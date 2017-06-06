@@ -1,0 +1,13 @@
+%{"decimal": {:hex, :decimal, "1.3.1", "157b3cedb2bfcb5359372a7766dd7a41091ad34578296e951f58a946fcab49c6", [:mix], []},
+  "dialyxir": {:hex, :dialyxir, "0.5.0", "5bc543f9c28ecd51b99cc1a685a3c2a1a93216990347f259406a910cf048d1d7", [:mix], []},
+  "earmark": {:hex, :earmark, "1.2.0", "bf1ce17aea43ab62f6943b97bd6e3dc032ce45d4f787504e3adf738e54b42f3a", [:mix], []},
+  "ecto": {:hex, :ecto, "2.1.4", "d1ba932813ec0e0d9db481ef2c17777f1cefb11fc90fa7c142ff354972dfba7e", [:mix], [{:db_connection, "~> 1.1", [hex: :db_connection, optional: true]}, {:decimal, "~> 1.2", [hex: :decimal, optional: false]}, {:mariaex, "~> 0.8.0", [hex: :mariaex, optional: true]}, {:poison, "~> 2.2 or ~> 3.0", [hex: :poison, optional: true]}, {:poolboy, "~> 1.5", [hex: :poolboy, optional: false]}, {:postgrex, "~> 0.13.0", [hex: :postgrex, optional: true]}, {:sbroker, "~> 1.0", [hex: :sbroker, optional: true]}]},
+  "ex_doc": {:hex, :ex_doc, "0.15.1", "d5f9d588fd802152516fccfdb96d6073753f77314fcfee892b15b6724ca0d596", [:mix], [{:earmark, "~> 1.1", [hex: :earmark, optional: false]}]},
+  "granderl": {:hex, :granderl, "0.1.5", "f20077a68bd80b8d8783bd15a052813c6483771dec1a5b837d307cbe92f14122", [:rebar3], []},
+  "jsonrpc2": {:hex, :jsonrpc2, "0.4.0", "a1f022a4757c468471b8e817119d4f94f7b2ab8fcd4b62709e41fece2c8b8c90", [:mix], [{:hackney, "~> 1.6", [hex: :hackney, optional: true]}, {:jiffy, "~> 0.14", [hex: :jiffy, optional: true]}, {:plug, "~> 1.1", [hex: :plug, optional: true]}, {:poison, "~> 2.2", [hex: :poison, optional: true]}, {:ranch, "~> 1.2", [hex: :ranch, optional: true]}, {:shackle, "~> 0.3", [hex: :shackle, optional: true]}]},
+  "logger_file_backend": {:hex, :logger_file_backend, "0.0.9", "5c2f7d4a28431e695cdf94d191523dbafe609321a67bb654254897f546c393db", [:mix], []},
+  "params": {:hex, :params, "2.0.2", "3db8aee3890d44ccfc506b949e23bc865b733bab58d42522aa0e14694c3b98c4", [:mix], [{:ecto, "~> 2.0", [hex: :ecto, optional: false]}]},
+  "poison": {:hex, :poison, "2.2.0", "4763b69a8a77bd77d26f477d196428b741261a761257ff1cf92753a0d4d24a63", [:mix], []},
+  "poolboy": {:hex, :poolboy, "1.5.1", "6b46163901cfd0a1b43d692657ed9d7e599853b3b21b95ae5ae0a777cf9b6ca8", [:rebar], []},
+  "ranch": {:hex, :ranch, "1.3.2", "e4965a144dc9fbe70e5c077c65e73c57165416a901bd02ea899cfd95aa890986", [:rebar3], []},
+  "shackle": {:hex, :shackle, "0.4.3", "bdc3f2e1ab19011dbed3d3e55cfee26fe9f10637805c581ae99da6e5b14ab946", [:rebar3], [{:granderl, "0.1.5", [hex: :granderl, optional: false]}]}}
