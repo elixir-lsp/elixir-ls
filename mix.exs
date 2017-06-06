@@ -1,4 +1,4 @@
-defmodule ElixirLs.Mixfile do
+defmodule ElixirLS.Mixfile do
   use Mix.Project
 
   def project do
@@ -6,16 +6,7 @@ defmodule ElixirLs.Mixfile do
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      build_per_environment: false,
-     deps: deps(),
-     dialyzer: [paths: dialyzer_paths(), plt_add_apps: [:ex_unit, :mix, :debugger, :wx]]]
-  end
-
-  def dialyzer_paths do
-    ["_build/dev/lib/language_server/ebin",
-     "_build/dev/lib/debugger/ebin",
-     "_build/dev/lib/elixir_sense/ebin",
-     "_build/dev/lib/io_handler/ebin",
-     Path.dirname(to_string(:code.which(:int)))]
+     deps: deps()]
   end
 
   # Dependencies can be Hex packages:

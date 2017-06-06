@@ -43,7 +43,7 @@ defmodule ElixirLS.Debugger.Server do
   def start_link(opts \\ []) do
     name = opts[:name]
     opts = Keyword.delete(opts, :name)
-    GenServer.start_link(__MODULE__, opts, name: name, debug: [log_to_file: "debug.log"])
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   def receive_packet(server \\ __MODULE__, packet) do
