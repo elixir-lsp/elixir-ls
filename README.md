@@ -45,7 +45,7 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
 
 In order to provide features like documentation look-up and code completion, ElixirLS needs to be able to load your project's compiled modules. ElixirLS attempts to compile your project automatically and reports build errors and warnings in the editor.
 
-At the moment, this compilation is performed using a fork of Elixir 1.4's compiler. This is not a good long-term solution and replacing it is a high priority in the near future. See [this blog post](https://medium.com/@JakeBeckerCode/compiler-hacks-in-elixirls) for an explanation.
+At the moment, this compilation is performed using a fork of Elixir 1.4's compiler. This is not a good long-term solution and replacing it is a high priority in the near future. See [this blog post](https://medium.com/@JakeBeckerCode/compiler-hacks-in-elixirls-6a6f04834f66) for an explanation.
 
 To avoid interfering with the developer's CLI workflow, ElixirLS creates a folder `.elixir_ls` in the project root and saves its build output there, so add `.elixir_ls` to your gitignore file.
 
