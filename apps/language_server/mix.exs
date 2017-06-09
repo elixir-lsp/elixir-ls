@@ -35,6 +35,6 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [{:io_handler, in_umbrella: true},
-     {:elixir_sense, github: "JakeBecker/elixir_sense"}]
+     {:elixir_sense, github: "msaraiva/elixir_sense"}]
   end
 end
