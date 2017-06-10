@@ -410,6 +410,10 @@ defmodule ElixirLS.Debugger.Server do
     set_stack_trace_mode(config["stackTraceMode"])
 
     File.cd!(project_dir)
+    Application.ensure_started(:mix)
+    Mix.Local.append_archives
+    Mix.Local.append_paths
+
     Code.load_file(System.get_env("MIX_EXS") || "mix.exs")
     task = task || Mix.Project.config[:default_task]
     unless mix_env, do: change_env(task)
