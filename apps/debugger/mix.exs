@@ -13,7 +13,8 @@ defmodule ElixirLS.Debugger.Mixfile do
      start_permanent: true,
      build_per_environment: false,
      consolidate_protocols: false,
-     deps: deps()]
+     deps: deps(),
+     escript: escript()]
   end
 
   # Configuration for the OTP application
@@ -21,7 +22,7 @@ defmodule ElixirLS.Debugger.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
-    [mod: {ElixirLS.Debugger, []}, applications: [:mix]]
+    [mod: {ElixirLS.Debugger, []}, applications: []]
   end
 
   # Dependencies can be Hex packages:
@@ -40,5 +41,18 @@ defmodule ElixirLS.Debugger.Mixfile do
   defp deps do
     [{:elixir_sense, github: "msaraiva/elixir_sense"},
      {:io_handler, in_umbrella: true}]
+  end
+
+  defp escript do
+    [main_module: ElixirLS.Debugger.CLI, 
+     embed_elixir: false, 
+     path: "../../release/debugger",
+     strip_beam: false, 
+     comment: escript_comment()]
+  end
+
+  defp escript_comment do
+    "Requires Elixir but does not embed it. Run via the included exscript.sh (Unix) or \
+     exscript.bat (Windows, TODO) scripts to set ERL_LIBS."
   end
 end
