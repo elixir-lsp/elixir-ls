@@ -8,7 +8,7 @@ mix deps.clean --unused
 
 rm -rf "$SCRIPTPATH"/release
 mkdir release
-cp bin/exscript* release/
+cp bin/* release/
 
 cd "$SCRIPTPATH"/apps/language_server
 mix escript.build
