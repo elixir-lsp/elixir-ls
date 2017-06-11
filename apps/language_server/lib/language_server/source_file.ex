@@ -18,4 +18,13 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   def apply_content_changes(source_file, [%{"text" => text} | rest]) do
     apply_content_changes(%{source_file | text: text}, rest)
   end
+
+  @doc """
+  Returns path from URI in a way that handles windows file:///c%3A/... URLs correctly
+  """
+  def path_from_uri(uri) do
+    URI.parse(uri).path
+    |> URI.decode
+    |> Path.absname
+  end
 end
