@@ -55,6 +55,12 @@ Note that compiling untrusted Elixir files can be dangerous. Elixir can execute 
 
 While you can develop ElixirLS on its own, it's easiest to test out changes if you clone the [vscode-elixir-ls](https://github.com/JakeBecker/vscode-elixir-ls) repository instead. It includes ElixirLS as a Git submodule, so you can make your changes in the submodule directory and launch the extension from the parent directory via the included "Launch Extension" configuration in `launch.json`. See the README on that repo for more details.
 
+### Building and running
+
+You can run the apps with `mix run` from the `apps/language_server` or `apps/debugger` directories. To build for release, run the `release.sh` script. It compiles these two apps to escripts in the `release` folder.
+
+Elixir escripts typically embed Elixir, which is not what we want because users will want to run it against their own system Elixir installation. In order to support this, there are scripts in the `bin` folder that look for the system-wide Elixir installation and set the `ERL_LIBS` environment variable prior to running the escripts. These scripts are copied to the `release` folder by `release.sh`.
+
 ## Acknowledgements and related projects
 
 ElixirLS isn't the first frontend-independent server for Elixir language support. The original was [Alchemist Server](https://github.com/tonini/alchemist-server/), which powers the [Alchemist](https://github.com/tonini/alchemist.el) plugin for Emacs. Another project, [Elixir Sense](https://github.com/msaraiva/elixir_sense), builds upon Alchemist and powers the [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir) as well as another VS Code plugin, [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). ElixirLS uses Elixir Sense for several code insight features. Credit for those projects goes to their respective authors.
