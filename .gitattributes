@@ -1,0 +1,2 @@
+# Don't convert batch files' line endings. They should always be CRLF.
+*.bat binary

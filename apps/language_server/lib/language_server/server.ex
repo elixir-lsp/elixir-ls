@@ -187,7 +187,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_open(uri, _language_id, version, text), state) do
-    path = if is_binary(state.root_uri), do: Path.relative_to(uri, state.root_uri)
+    path = 
+      if is_binary(state.root_uri) do
+        Path.relative_to(SourceFile.path_from_uri(uri), SourceFile.path_from_uri(state.root_uri))
+      end
     source_file = %SourceFile{text: text, path: path, version: version}
     publish_file_diagnostics(uri, state.build_errors[uri], source_file)
     state = put_in state.source_files[uri], source_file
@@ -227,7 +230,8 @@ defmodule ElixirLS.LanguageServer.Server do
     Mix.ProjectStack.clear_stack
     state = 
       case root_uri do
-        "file://" <> root_path ->
+        "file://" <> _ ->
+          root_path = SourceFile.path_from_uri(root_uri)
           File.cd!(root_path)
           force_build(state)
         _ ->
