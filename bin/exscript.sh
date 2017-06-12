@@ -12,5 +12,16 @@ readlink_f () {
   fi
 }
 
-export ERL_LIBS=$(cd "$(dirname $(readlink_f $(which elixir)))/../lib"; pwd)
-/usr/bin/env escript "$1"
+REL_DIR="$(dirname $(readlink_f $(which elixir)))/../lib"
+
+# If directory does not exist, it could be because the `elixir` in the PATH runs a script which runs
+# elixir. (Installations via the "asdf" tool work this way.) We run Elixir and ask it its path as a
+# fallback. This is slower.
+if [ -d "$REL_DIR" ]; then 
+  ELIXIR_LIB=$(cd "$REL_DIR"; pwd)
+else
+  ELIXIR_LIB=`elixir -e "IO.puts Path.expand(Path.join(Application.app_dir(:elixir), '..'))"`
+fi
+
+export ERL_LIBS="$ERL_LIBS:$ELIXIR_LIB"
+/usr/bin/env escript $@
