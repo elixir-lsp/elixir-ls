@@ -3,7 +3,7 @@ defmodule ElixirLS.Debugger.ServerTest do
   use ExUnit.Case, async: false
   use Protocol
 
-  @config %{"request" => "launch", "type" => "mix_task", "task" => "test", 
+  @config %{"request" => "launch", "type" => "mix_task", "task" => "test",
       "projectDir" => Path.join(__DIR__, "fixtures/mix_project")}
 
   doctest ElixirLS.Debugger.Server
@@ -33,7 +33,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     assert_receive(response(_, 2, "launch", %{}))
     assert_receive(event(_, "initialized", %{}))
 
-    Server.receive_packet(server, set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, 
+    Server.receive_packet(server, set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"},
         [%{"line" => 3}]))
     assert_receive(response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}))
 
@@ -45,24 +45,24 @@ defmodule ElixirLS.Debugger.ServerTest do
     thread_ids = Enum.map(threads, &(&1["id"]))  # ensure thread ids are unique
     assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
 
-    assert_receive event(_, "stopped", 
+    assert_receive event(_, "stopped",
         %{"allThreadsStopped" => false, "reason" => "breakpoint", "threadId" => thread_id})
-    
+
     Server.receive_packet(server, stacktrace_req(6, thread_id))
     assert_receive response(_, 6, "stackTrace", %{"totalFrames" => 1, "stackFrames" =>
-          [%{"column" => 0, "id" => frame_id, "line" => 3, "name" => "MixProject.quadruple/1", 
+          [%{"column" => 0, "id" => frame_id, "line" => 3, "name" => "MixProject.quadruple/1",
              "source" => %{"path" => path}}]}) when is_integer(frame_id)
     assert String.ends_with?(path, "/lib/mix_project.ex")
 
     Server.receive_packet(server, scopes_req(7, frame_id))
-    assert_receive response(_, 7, "scopes", %{"scopes" => 
-          [%{"expensive" => false, "indexedVariables" => 0, "name" => "variables", 
+    assert_receive response(_, 7, "scopes", %{"scopes" =>
+          [%{"expensive" => false, "indexedVariables" => 0, "name" => "variables",
              "namedVariables" => 1, "variablesReference" => vars_id},
-           %{"expensive" => false, "indexedVariables" => 1, "name" => "arguments", 
+           %{"expensive" => false, "indexedVariables" => 1, "name" => "arguments",
              "namedVariables" => 0, "variablesReference" => _}]})
 
     Server.receive_packet(server, vars_req(8, vars_id))
-    assert_receive response(_, 8, "variables", %{"variables" => 
+    assert_receive response(_, 8, "variables", %{"variables" =>
           [%{"name" => "x@1", "type" => "integer", "value" => "2", "variablesReference" => 0}]})
 
     Server.receive_packet(server, continue_req(9, thread_id))
@@ -73,6 +73,15 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     assert_receive(event(_, "exited", %{"exitCode" => 0}))
     assert_receive(event(_, "terminated", %{"restart" => false}))
+  end
+
+  test "sets breakpoints in erlang modules", %{server: server} do
+    Server.receive_packet(server, initialize_req(1, %{}))
+    Server.receive_packet(server, launch_req(2, @config))
+    Server.receive_packet(server, set_breakpoints_req(3, %{"path" => "src/hello.erl"},
+        [%{"line" => 5}]))
+    assert_receive(response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}), 1000)
+    assert(:int.interpreted() == [:hello])
   end
 
 end

@@ -1,11 +1,11 @@
 defmodule ElixirLS.Debugger.Server do
   @moduledoc """
   Implements the VS Code Debug Protocol
-  
+
   Refer to the protocol's [documentation](https://github.com/Microsoft/vscode/blob/master/src/vs/workbench/parts/debug/common/debugProtocol.d.ts)
   for details.
 
-  The protocol specifies that we must assign unique IDs to "threads" (or processes), to stack 
+  The protocol specifies that we must assign unique IDs to "threads" (or processes), to stack
   frames, and to any variables that can be expanded. We keep a counter with the next ID to use and
   increment it any time we assign an ID.
   """
@@ -17,9 +17,9 @@ defmodule ElixirLS.Debugger.Server do
   @temp_beam_dir ".elixir_ls/temp_beams"
 
   defstruct [
-    client_info: nil, 
+    client_info: nil,
     config: %{},
-    task_ref: nil, 
+    task_ref: nil,
     threads: %{},  # id => pid
     threads_inverse: %{},  # pid => id
     paused_processes: %{},  # pid => PausedProcess
@@ -37,7 +37,7 @@ defmodule ElixirLS.Debugger.Server do
       vars_inverse: %{},  # var => id
     ]
   end
-  
+
   ## Client API
 
   def start_link(opts \\ []) do
@@ -81,12 +81,12 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{task_ref: ref} = state) do
-    exit_code = 
+    exit_code =
       case reason do
-        :normal -> 
+        :normal ->
           0
         _ ->
-          IO.puts(:standard_error, "(Debugger) Task failed because " <> 
+          IO.puts(:standard_error, "(Debugger) Task failed because " <>
             Exception.format_exit(reason))
           1
       end
@@ -106,7 +106,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   def terminate(reason, state) do
-    IO.puts :standard_error, "Debug server terminated abnormally because " <> 
+    IO.puts :standard_error, "Debug server terminated abnormally because " <>
         Exception.format_exit(reason)
     super(reason, state)
   end
@@ -125,36 +125,32 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(set_breakpoints_req(_, %{"path" => path}, breakpoints), state) do
-    new_breakpoints = 
-      for %{"line" => line} <- breakpoints do
-        metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
-        env = ElixirSense.Core.Metadata.get_env(metadata, line)
-        if env.module, do: :int.ni(env.module)
-        {env.module, line}
-      end
+    lines = for %{"line" => line} <- breakpoints, do: line
+    new_breakpoints = resolve_breakpoint_modules(path, lines)
+    for {module, _} <- new_breakpoints, module != nil, do: :int.ni(module)
 
     interpreted = :int.interpreted
-    breakpoints_json = 
+    breakpoints_json =
       for {module, _} <- new_breakpoints do
         cond do
-          module == nil -> 
-            %{"verified" => false, 
+          module == nil ->
+            %{"verified" => false,
               "message" => "Breakpoints can only be set in functions within modules"}
           not(module in interpreted) ->
             required_files = Enum.flat_map(state.config["requireFiles"] || [], &Path.wildcard/1)
             path = Path.relative_to_cwd(path)
-            require_warning = 
+            require_warning =
               if String.ends_with?(path, ".exs") and not(path in required_files) do
                 "You may need to add #{path} to your launch configuration under \"requireFiles\""
               end
-            %{"verified" => false, 
+            %{"verified" => false,
               "message" => "Can't interpret module #{inspect(module)}. #{require_warning}"}
           true ->
             %{"verified" => true}
         end
       end
 
-    new_verified_breakpoints = 
+    new_verified_breakpoints =
       for {bp, %{"verified" => true}} <- List.zip([new_breakpoints, breakpoints_json]), do: bp
 
     existing_breakpoints = state.breakpoints[path] || []
@@ -182,10 +178,10 @@ defmodule ElixirLS.Debugger.Server do
     pids = :erlang.processes()
     {state, thread_ids} = ensure_thread_ids(state, pids)
 
-    threads = 
+    threads =
       for {pid, thread_id} <- List.zip([pids, thread_ids]), (info = Process.info(pid)) != nil do
         thread_info = Enum.into(info, %{})
-        name = 
+        name =
           case Enum.into(thread_info, %{}) do
             %{:registered_name => registered_name} ->
               inspect(registered_name)
@@ -205,13 +201,13 @@ defmodule ElixirLS.Debugger.Server do
     paused_process = state.paused_processes[pid]
 
     total_frames = Enum.count(paused_process.stack)
-    start_frame = 
+    start_frame =
       case args do
         %{"startFrame" => start_frame} when is_integer(start_frame) -> start_frame
         _ -> 0
       end
 
-    end_frame = 
+    end_frame =
       case args do
         %{"levels" => levels} when is_integer(levels) and levels > 0 -> start_frame + levels
         _ -> -1
@@ -235,14 +231,14 @@ defmodule ElixirLS.Debugger.Server do
     {state, args_id} = ensure_var_id(state, pid, frame.args)
     {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
 
-    vars_scope = 
-      %{"name" => "variables", "variablesReference" => bindings_id, 
-        "namedVariables" => Enum.count(frame.bindings), "indexedVariables" => 0, 
+    vars_scope =
+      %{"name" => "variables", "variablesReference" => bindings_id,
+        "namedVariables" => Enum.count(frame.bindings), "indexedVariables" => 0,
         "expensive" => false}
 
-    args_scope = 
-      %{"name" => "arguments", "variablesReference" => args_id, 
-        "namedVariables" => 0, "indexedVariables" => Enum.count(frame.args), 
+    args_scope =
+      %{"name" => "arguments", "variablesReference" => args_id,
+        "namedVariables" => 0, "indexedVariables" => Enum.count(frame.args),
         "expensive" => false}
 
     scopes = if (Enum.count(frame.args) > 0), do: [vars_scope, args_scope], else: [vars_scope]
@@ -257,7 +253,7 @@ defmodule ElixirLS.Debugger.Server do
 
     {%{"variables" => vars_json}, state}
   end
-  
+
   defp handle_request(request(_, "evaluate"), state) do
     msg = "(Debugger) Expression evaluation in Elixir debugger is not supported (yet)."
     {%{"result" => msg, "variablesReference" => 0}, state}
@@ -301,14 +297,14 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp remove_paused_process(state, pid) do
-    update_in state.paused_processes, fn paused_processes -> 
+    update_in state.paused_processes, fn paused_processes ->
       Map.delete(paused_processes, pid)
     end
   end
 
   defp variables(state, pid, var, start, count, filter) do
-    children = 
-      if (filter == "named" and Variables.child_type(var) == :indexed) or 
+    children =
+      if (filter == "named" and Variables.child_type(var) == :indexed) or
           (filter == "indexed" and Variables.child_type(var) == :named) do
         []
       else
@@ -316,14 +312,14 @@ defmodule ElixirLS.Debugger.Server do
       end
 
     Enum.reduce children, {state, []}, fn {name, value}, {state, result} ->
-      {state, var_id} = 
+      {state, var_id} =
         if Variables.expandable?(value) do
           ensure_var_id(state, pid, value)
         else
           {state, 0}
         end
 
-      json = 
+      json =
         %{"name" => to_string(name), "value" => inspect(value), "variablesReference" => var_id,
           "type" => Variables.type(value)}
       json =
@@ -480,7 +476,7 @@ defmodule ElixirLS.Debugger.Server do
   defp check_erlang_version do
     version = String.to_integer(to_string(:erlang.system_info(:otp_release)))
     if version < 19 do
-      IO.warn "Erlang version >= OTP 19 is required to debug Elixir. " <> 
+      IO.warn "Erlang version >= OTP 19 is required to debug Elixir. " <>
           "(Current version: #{version})\n"
     end
   end
@@ -510,7 +506,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   # Interpreting modules defined in .exs files requires that we first load the file and save any
-  # modules it defines to actual .beam files in the code path. The user must specify which .exs 
+  # modules it defines to actual .beam files in the code path. The user must specify which .exs
   # files to load via the launch configuration. They must be in the correct order (for example,
   # test helpers before tests). We save the .beam files to a temporary folder which we add to the
   # code path.
@@ -529,6 +525,19 @@ defmodule ElixirLS.Debugger.Server do
     File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
     :code.delete(module)
     :int.ni(module)
+  end
+
+  defp resolve_breakpoint_modules(path, lines) do
+    if Path.extname(path) == ".erl" do
+      module = String.to_atom(Path.basename(path, ".erl"))
+      for line <- lines, do: {module, line}
+    else
+      metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
+      for line <- lines do
+        env = ElixirSense.Core.Metadata.get_env(metadata, line)
+        {env.module, line}
+      end
+    end
   end
 
 end
