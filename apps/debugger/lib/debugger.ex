@@ -13,10 +13,10 @@ defmodule ElixirLS.Debugger do
     children = [
       # Define workers and child supervisors to be supervised
       worker(ElixirLS.Debugger.Output, [ElixirLS.Debugger.Output]),
-      worker(ElixirLS.Debugger.OutputDevice, 
-             [:user, "stdout", [change_all_gls?: change_all_gls?()]], 
+      worker(ElixirLS.Debugger.OutputDevice,
+             [:user, "stdout", [change_all_gls?: change_all_gls?()]],
              [id: ElixirLS.Debugger.OutputDevice.Stdout]),
-      worker(ElixirLS.Debugger.OutputDevice, [:standard_error, "stderr"], 
+      worker(ElixirLS.Debugger.OutputDevice, [:standard_error, "stderr"],
              [id: ElixirLS.Debugger.OutputDevice.Stderr]),
       worker(ElixirLS.Debugger.Server, [[name: ElixirLS.Debugger.Server]]),
       worker(ElixirLS.IOHandler, [ElixirLS.Debugger.Server, [name: ElixirLS.Debugger.IOHandler]]),
@@ -33,6 +33,6 @@ defmodule ElixirLS.Debugger do
   end
 
   defp change_all_gls? do
-    !(Enum.any?(Application.started_applications, &match?({:mix, _, _}, &1)) and Mix.env != :test)
+    !(Enum.any?(Application.started_applications, &match?({:mix, _, _}, &1)) and Mix.env == :test)
   end
 end
