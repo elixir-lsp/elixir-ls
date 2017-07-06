@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.BuildError do
   We can ascertain warnings from a captured build log using a regex, and we can determine
   errors from exceptions generated during compile. Unfortunately, these warnings and errors don't
   specify which tokens pertain to the error or warning, and some don't even specify the line number.
-  We use several regexes to guess which tokens within a line are relevant based on the error 
+  We use several regexes to guess which tokens within a line are relevant based on the error
   message. This messy and prone to failure, in which case we highlight the entire line
   (minus leading and trailing whitespace).
 
@@ -28,14 +28,14 @@ defmodule ElixirLS.LanguageServer.BuildError do
     warnings_raw = Regex.scan(@warning_regex, log, capture: :all_but_first)
     for [message, file, line] <- warnings_raw do
       %__MODULE__{severity: :warning, message: message, line: String.to_integer(line) - 1,
-        file: file}
+        file: Path.absname(file)}
     end
   end
 
   def from_compile_error(compile_error, file) do
-    message = 
+    message =
       case compile_error do
-        {:failure, kind, reason, stacktrace} -> 
+        {:failure, kind, reason, stacktrace} ->
           case reason do
             %{description: description} ->
               description
@@ -48,7 +48,7 @@ defmodule ElixirLS.LanguageServer.BuildError do
           Exception.format(:exit, compile_error, [])
       end
 
-    line = 
+    line =
       case compile_error do
         {:failure, _kind, %{line: line}, _stacktrace} ->
           max(line - 1, 0)
@@ -58,7 +58,7 @@ defmodule ElixirLS.LanguageServer.BuildError do
 
     %__MODULE__{
       severity: :error,
-      file: file,
+      file: Path.absname(file),
       line: line,
       message: message
     }
@@ -68,7 +68,7 @@ defmodule ElixirLS.LanguageServer.BuildError do
   Converts a BuildError struct to the diagnostic format specified in the Language Server Protocol
   """
   def to_diagnostic(build_error, source_file) do
-    severity = 
+    severity =
       case build_error.severity do
         :error -> 1
         :warning -> 2
@@ -105,7 +105,7 @@ defmodule ElixirLS.LanguageServer.BuildError do
 
       case keywords_in_line do
         [[{idx, length}]] ->
-          %{"start" => %{"line" => line, "character" => idx}, 
+          %{"start" => %{"line" => line, "character" => idx},
             "end" => %{"line" => line, "character" => idx + length}}
         _ ->
           nil
@@ -120,12 +120,12 @@ defmodule ElixirLS.LanguageServer.BuildError do
   defp full_line_range(line_number, line_text) do
     start_idx = String.length(line_text) - String.length(String.trim_leading(line_text))
     length = Enum.max([String.length(String.trim(line_text)), 1])
-    %{"start" => %{"line" => line_number, "character" => start_idx}, 
+    %{"start" => %{"line" => line_number, "character" => start_idx},
         "end" => %{"line" => line_number, "character" => start_idx + length}}
   end
 
   defp default_range(line_number) do
-    %{"start" => %{"line" => line_number, "character" => 0}, 
+    %{"start" => %{"line" => line_number, "character" => 0},
       "end" => %{"line" => line_number, "character" => 0}}
   end
 

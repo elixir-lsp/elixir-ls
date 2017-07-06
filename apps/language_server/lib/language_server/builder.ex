@@ -1,8 +1,8 @@
 defmodule ElixirLS.LanguageServer.Builder do
   @moduledoc """
   Server that compiles the current Mix project
-  
-  This is implemented as a GenServer because builds are not parallelizable. Only one instance of 
+
+  This is implemented as a GenServer because builds are not parallelizable. Only one instance of
   this server should be run to avoid conflicts between builds. (This is mostly an issue during
   tests, not during actual use.)
   """
@@ -30,9 +30,23 @@ defmodule ElixirLS.LanguageServer.Builder do
   ## Server Callbacks
 
   def handle_call({:build, source_files}, _from, state) do
-    response = 
+    configs = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
+    force = Mix.Project.get() == nil or
+              Mix.Utils.stale?(configs, ElixirLS.LanguageServer.Compilers.Elixir.manifests)
+    if force do
+      Logger.info("Forcing full rebuild")
+      reload_project()
+    end
+
+    response =
       try do
-        build_errors = do_build(source_files)
+        build_errors =
+          if Mix.Project.umbrella? do
+            recur(fn(project) -> do_build(project, source_files) end)
+            |> List.flatten()
+          else
+            do_build(Mix.Project.get!(), source_files)
+          end
         {:ok, build_errors}
       rescue
         err -> {:error, err}
@@ -45,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Builder do
     {:reply, :ok, state}
   end
 
-  # For some unknown reason, this server sometimes receives bizarre casts while performing builds. 
+  # For some unknown reason, this server sometimes receives bizarre casts while performing builds.
   # This is a noop to avoid crashing when receiving these unwanted casts.
   def handle_cast(_msg, state) do
     {:noreply, state}
@@ -62,22 +76,24 @@ defmodule ElixirLS.LanguageServer.Builder do
 
   ## Helpers
 
-  defp do_build(source_files, opts \\ []) do
-    compilers = Mix.Tasks.Compile.compilers()
-    configs = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
-    force = Mix.Project.get() == nil or 
-              Mix.Utils.stale?(configs, ElixirLS.LanguageServer.Compilers.Elixir.manifests)
-
-    if force do
-      Logger.info("Forcing full rebuild")
-      reload_project()
+  defp recur(fun) do
+    # Get all dependency configuration but not the deps path
+    # as we leave the control of the deps path still to the
+    # umbrella child.
+    config = Mix.Project.deps_config |> Keyword.delete(:deps_path)
+    for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
+      Mix.Project.in_project(app, opts[:path], config, fun)
     end
+  end
+
+  defp do_build(_project, source_files, opts \\ []) do
+    compilers = Mix.Tasks.Compile.compilers()
 
     Mix.shell(Mix.Shell.Quiet)
     Enum.flat_map compilers, fn compiler ->
       case compiler do
         :elixir ->
-          compile_elixir(source_files, force)
+          compile_elixir(source_files, opts[:force])
         :xref ->
           compile_xref()
         _ ->
@@ -94,9 +110,9 @@ defmodule ElixirLS.LanguageServer.Builder do
       Mix.ProjectStack.post_config(build_path: @build_path)
       Code.load_file(System.get_env("MIX_EXS") || "mix.exs")
     rescue
-      err -> 
+      err ->
         Logger.error("Error loading project: " <> Exception.format_exit(err))
-        case current_project do 
+        case current_project do
           %{name: name, file: file, config: config} ->
             Mix.ProjectStack.push(name, config, file)
           _ ->
@@ -116,22 +132,22 @@ defmodule ElixirLS.LanguageServer.Builder do
   end
 
   defp compile_xref do
-    errors = 
+    errors =
       ElixirLS.LanguageServer.Compilers.Xref.unreachable fn file, entries ->
         Enum.flat_map entries, fn {lines, error, module, function, arity} ->
-          message = 
+          message =
             case error do
-              :unknown_module -> 
+              :unknown_module ->
                 to_string(["function ", Exception.format_mfa(module, function, arity),
                   " is undefined\n(module #{inspect module} is not available)\n"])
-              :unknown_function -> 
+              :unknown_function ->
                 to_string(["function ", Exception.format_mfa(module, function, arity),
                   " is undefined or private"])
             end
 
           for line <- lines do
-            %BuildError{severity: :warning, line: line - 1, file: file, message: message, 
-              source: "xref"}
+            %BuildError{severity: :warning, line: line - 1, file: Path.absname(file),
+              message: message, source: "xref"}
           end
         end
       end

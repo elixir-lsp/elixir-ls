@@ -6,18 +6,18 @@ defmodule ElixirLS.LanguageServer.Server do
   requests from the IDE (for things like autocompletion, hover, etc.)
 
   Notifications from the IDE are handled synchronously, whereas requests can be handled sychronously
-  or asynchronously. 
-  
-  When possible, handling the request asynchronously has several advantages. The asynchronous 
+  or asynchronously.
+
+  When possible, handling the request asynchronously has several advantages. The asynchronous
   request handling cannot modify the server state.  That way, if the process handling the request
-  crashes, we can report that error to the client and continue knowing that the state is 
+  crashes, we can report that error to the client and continue knowing that the state is
   uncorrupted. Also, asynchronous requests can be cancelled by the client if they're taking too long
   or the user no longer cares about the result. Regardless of completion order, the protocol
   specifies that requests must be replied to in the order they are received.
   """
 
   use GenServer
-  alias ElixirLS.LanguageServer.{SourceFile, BuildError, Builder, Protocol, JsonRpc, 
+  alias ElixirLS.LanguageServer.{SourceFile, BuildError, Builder, Protocol, JsonRpc,
                                  Completion, Hover, Definition}
   require Logger
   use Protocol
@@ -28,9 +28,9 @@ defmodule ElixirLS.LanguageServer.Server do
     builder: nil,
     changed_sources: %{},
     client_capabilities: nil,
-    currently_compiling: nil, 
+    currently_compiling: nil,
     force_rebuild?: false,
-    received_shutdown?: false, 
+    received_shutdown?: false,
     requests: [],
     root_uri: nil,
     settings: nil,
@@ -70,7 +70,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:build_finished, build_errors}, _from, state) do
     state = update_build_errors(build_errors, state)
     state = %{state | currently_compiling: nil, build_failures: 0}
-    state = 
+    state =
       if pending_changes?(state) do
         queue_build(state)
       else
@@ -84,8 +84,8 @@ defmodule ElixirLS.LanguageServer.Server do
     {:reply, :ok, build_failed(error, state)}
   end
 
-  def handle_call({:receive_packet, request(id, _, _) = packet}, _from, state) do 
-    {request, state} = 
+  def handle_call({:receive_packet, request(id, _, _) = packet}, _from, state) do
+    {request, state} =
       case handle_request(packet, state) do
         {:ok, result, state} ->
           {%Request{id: id, status: :ok, result: result}, state}
@@ -105,11 +105,11 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   def handle_info({:DOWN, ref, :process, _pid, :normal}, state) do
-    state = 
+    state =
       update_request_by_ref state, ref, fn
         %{status: :async} = req ->
           error_msg = "Internal error: Request ended without result"
-          %{req | ref: nil, pid: nil, status: :error, error_type: :internal_error, 
+          %{req | ref: nil, pid: nil, status: :error, error_type: :internal_error,
                   error_msg: error_msg}
         req ->
           %{req | ref: nil, pid: nil}
@@ -119,11 +119,11 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
-    state = 
+    state =
       update_request_by_ref state, ref, fn
         %{status: :async} = req ->
           error_msg = "Internal error: " <> Exception.format_exit(reason)
-          %{req | ref: nil, pid: nil, status: :error, error_type: :internal_error, 
+          %{req | ref: nil, pid: nil, status: :error, error_type: :internal_error,
                   error_msg: error_msg}
         req ->
           %{req | ref: nil, pid: nil}
@@ -165,7 +165,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(cancel_request(id), state) do
-    state = 
+    state =
       update_request state, id, fn
         %{status: :async, pid: pid} = req ->
           Process.exit(pid, :kill)
@@ -187,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_open(uri, _language_id, version, text), state) do
-    path = 
+    path =
       if is_binary(state.root_uri) do
         Path.relative_to(SourceFile.path_from_uri(uri), SourceFile.path_from_uri(state.root_uri))
       end
@@ -203,7 +203,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change(uri, version, content_changes), state) do
-    state = 
+    state =
       update_in state.source_files[uri], fn source_file ->
         source_file = %{source_file | version: version}
         SourceFile.apply_content_changes(source_file, content_changes)
@@ -228,7 +228,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request(initialize_req(_id, root_uri, client_capabilities), state) do
     state = %{state | root_uri: root_uri}
     Mix.ProjectStack.clear_stack
-    state = 
+    state =
       case root_uri do
         "file://" <> _ ->
           root_path = SourceFile.path_from_uri(root_uri)
@@ -328,9 +328,9 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp update_build_errors(build_errors, state) do
-    build_errors = Enum.group_by(build_errors, &(Path.join(state.root_uri, &1.file)))
+    build_errors = Enum.group_by(build_errors, &(SourceFile.path_to_uri(&1.file)))
 
-    all_uris = 
+    all_uris =
       [Map.keys(state.build_errors), Map.keys(build_errors), Map.keys(state.source_files)]
       |> List.flatten
       |> Enum.uniq
@@ -352,13 +352,13 @@ defmodule ElixirLS.LanguageServer.Server do
         %{state | currently_compiling: all_sources, changed_sources: %{}, force_rebuild?: false}
       state.build_failures >= 3 ->
         if state.build_failures == 3 do
-          message = 
+          message =
             "Build failed after #{state.build_failures} tries. See error log for details."
           JsonRpc.show_message(:error, message)
         end
 
         # Wait for additional file changes before retrying the build
-        %{state | changed_sources: state.currently_compiling, currently_compiling: nil, 
+        %{state | changed_sources: state.currently_compiling, currently_compiling: nil,
                   build_failures: state.build_failures + 1}
       true ->
         build_async(state.currently_compiling)
@@ -369,11 +369,11 @@ defmodule ElixirLS.LanguageServer.Server do
   defp pending_changes?(state) do
     state.changed_sources != %{} or state.force_rebuild?
   end
-        
+
   defp queue_build(state) do
     if state.currently_compiling == nil and match?("file://" <> _, state.root_uri) do
       build_async(state.changed_sources)
-      %{state | currently_compiling: state.changed_sources, changed_sources: %{}, 
+      %{state | currently_compiling: state.changed_sources, changed_sources: %{},
                 force_rebuild?: false}
     else
       state
