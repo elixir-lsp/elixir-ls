@@ -1,20 +1,32 @@
 # Elixir Language Server (ElixirLS)
 
-*This is a very early release. It only works with Elixir 1.4, and it's only been tested on OSX. If all you want is a good, stable Elixir editor, stick with whatever you're using now until ElixirLS is more mature.*
+The Elixir Language Server provides a server that runs in the background, providing IDEs, editors, and other tools with information about Elixir Mix projects. It adheres to the [Language Server Protocol](https://github.com/Microsoft/language-server-protocol), a standard for frontend-independent IDE support. Debugger integration is accomplished through the similar [VS Code Debug Protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging).
 
-The Elixir Language Server provides a server that runs in the background, providing IDEs, editors, and other tools with information about Elixir Mix projects. It adheres to the [Language Server Protocol](https://github.com/Microsoft/language-server-protocol), a standard supported by Microsoft and Red Hat for frontend-independent IDE support. Debugger integration is accomplished through the similar [VS Code Debug Protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging).
+## Features
 
-Features include:
-
-- Debugger support!!!
-- Inline reporting of build warnings and errors
+- Debugger support (requires Erlang >= OTP 19)
+- Automatic, incremental Dialyzer analysis (requires Erlang OTP 20)
+- Inline reporting of build warnings and errors (requires Elixir >= 1.6)
 - Documentation lookup on hover
 - Go-to-definition
 - Code completion
+- Code formatter (requries Elixir >= 1.6)
 
-![Screenshot](screenshot.png?raw=true)
+![Screenshot](images/screenshot.png?raw=true)
 
-## IDE support
+## Supported versions
+
+Elixir:
+- 1.3 minimum
+- \>= 1.6.0-dev recommended. Required for reporting of build warnings and errors, and for code formatting support.
+
+Erlang:
+- OTP 18 minimum
+- OTP 20 recommended. >= OTP 19 is required for debugger support, and OTP 20 is recommended for automatic incremental Dialyzer integration.
+
+You may want to install Elixir and Erlang from source, using the [kiex](https://github.com/taylor/kiex) and [kerl](https://github.com/kerl/kerl) tools. This will let you go-to-definition for core Elixir and Erlang modules. Use `kiex install master` to install a pre-release version of Elixir.
+
+## IDE plugins
 
 ElixirLS is intended to be frontend-independent, but at this point has only been tested with VS Code. You can install the VS Code extension by searching ElixirLS from the "extensions" pane. The plugin code resides in the [vscode-elixir-ls](https://github.com/JakeBecker/vscode-elixir-ls) repo.
 
@@ -43,23 +55,17 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
 
 ## Automatic builds and error reporting
 
-In order to provide features like documentation look-up and code completion, ElixirLS needs to be able to load your project's compiled modules. ElixirLS attempts to compile your project automatically and reports build errors and warnings in the editor.
+Builds are performed automatically when files are saved. If you want this to happen automatically when you type, you can turn on "autosave" in your IDE.
 
-At the moment, this compilation is performed using a fork of Elixir 1.4's compiler. This is not a good long-term solution and replacing it is a high priority in the near future. See [this blog post](https://medium.com/@JakeBeckerCode/compiler-hacks-in-elixirls-6a6f04834f66) for an explanation.
+Starting in Elixir 1.6, Mix compilers adhere to the [Mix.Task.Compiler](https://hexdocs.pm/mix/master/Mix.Task.Compiler.html) behaviour and return their error and warning diagnostics in a standardized way. If you're using Elixir >= 1.6, errors and warnings will be shown inline in your code as well as in the "Problems" pane in the IDE. If you're using an earlier version of Elixir, you'll need to look at the text log from the extension to see the errors and warnings.
 
-To avoid interfering with the developer's CLI workflow, ElixirLS creates a folder `.elixir_ls` in the project root and saves its build output there, so add `.elixir_ls` to your gitignore file.
+## Dialyzer integration
 
-Note that compiling untrusted Elixir files can be dangerous. Elixir can execute arbitrary code at compile time, which is how it can support such extensive metaprogramming. Consequently, compiling untrusted Elixir code is a lot like executing an untrusted script. Since ElixirLS compiles your code automatically, opening a project in an ElixirLS-enabled editor has the same risks as running `mix compile`. It's an unlikely attack vector, but worth being aware of.
+If you're using Erlang >= OTP 20, ElixirLS will automatically analyze your project with Dialyzer after each successful build. It maintains a "manifest" file in `.elixir_ls/dialyzer_manifest` that stores the results of the analysis. The initial analysis for a project can take a few minutes, but after that's completed, modules are re-analyzed only if necessary, so subsequent analyses are typically very fast -- often less than a second. It also looks at your modules' abstract code to determine whether they reference any modules that haven't been analyzed and includes them automatically.
 
-## Contributing
+You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. To disable it completely, set `elixirLS.dialyzerEnabled` to false.
 
-While you can develop ElixirLS on its own, it's easiest to test out changes if you clone the [vscode-elixir-ls](https://github.com/JakeBecker/vscode-elixir-ls) repository instead. It includes ElixirLS as a Git submodule, so you can make your changes in the submodule directory and launch the extension from the parent directory via the included "Launch Extension" configuration in `launch.json`. See the README on that repo for more details.
-
-### Building and running
-
-You can run the apps with `mix run` from the `apps/language_server` or `apps/debugger` directories. To build for release, run the `release.sh` script. It compiles these two apps to escripts in the `release` folder.
-
-Elixir escripts typically embed Elixir, which is not what we want because users will want to run it against their own system Elixir installation. In order to support this, there are scripts in the `bin` folder that look for the system-wide Elixir installation and set the `ERL_LIBS` environment variable prior to running the escripts. These scripts are copied to the `release` folder by `release.sh`.
+ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
 
 ## Acknowledgements and related projects
 

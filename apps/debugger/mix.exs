@@ -3,12 +3,12 @@ defmodule ElixirLS.Debugger.Mixfile do
 
   def project do
     [app: :debugger,
-     version: "0.1.0",
+     version: "0.2.0",
      build_path: "../../_build",
      config_path: "config/config.exs",
      deps_path: "../../deps",
      lockfile: "../../mix.lock",
-     elixir: "~> 1.3",
+     elixir: "~> 1.6.0-dev",
      build_embedded: false,
      start_permanent: true,
      build_per_environment: false,
@@ -22,7 +22,7 @@ defmodule ElixirLS.Debugger.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
-    [mod: {ElixirLS.Debugger, []}, applications: []]
+    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix, :logger]]
   end
 
   # Dependencies can be Hex packages:
@@ -40,14 +40,15 @@ defmodule ElixirLS.Debugger.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [{:elixir_sense, github: "msaraiva/elixir_sense"},
-     {:io_handler, in_umbrella: true}]
+     {:elixir_ls_utils, in_umbrella: true}]
   end
 
   defp escript do
-    [main_module: ElixirLS.Debugger.CLI, 
-     embed_elixir: false, 
+    [main_module: ElixirLS.Debugger.CLI,
+     app: nil,
+     embed_elixir: false,
      path: "../../release/debugger",
-     strip_beam: false, 
+     strip_beam: false,
      comment: escript_comment()]
   end
 

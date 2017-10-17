@@ -17,23 +17,22 @@ defmodule ElixirLS.LanguageServer.Server do
   """
 
   use GenServer
-  alias ElixirLS.LanguageServer.{SourceFile, BuildError, Builder, Protocol, JsonRpc,
-                                 Completion, Hover, Definition}
-  require Logger
+  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer}
+  alias ElixirLS.LanguageServer.Providers.{Completion, Hover, Definition, Formatting, SignatureHelp}
   use Protocol
 
   defstruct [
-    build_errors: %{},
-    build_failures: 0,
-    builder: nil,
-    changed_sources: %{},
-    client_capabilities: nil,
-    currently_compiling: nil,
-    force_rebuild?: false,
+    :build_ref,
+    :dialyzer_sup,
+    :dialyzer_name,
+    :client_capabilities,
+    :root_uri,
+    build_diagnostics: [],
+    dialyzer_diagnostics: [],
+    needs_build?: false,
     received_shutdown?: false,
     requests: [],
-    root_uri: nil,
-    settings: nil,
+    settings: %{},
     source_files: %{},
   ]
 
@@ -48,7 +47,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   def receive_packet(server \\ __MODULE__, packet) do
-    GenServer.call(server, {:receive_packet, packet})
+    GenServer.cast(server, {:receive_packet, packet})
+  end
+
+  def build_finished(server \\ __MODULE__, result) do
+    GenServer.call(server, {:build_finished, result})
+  end
+
+  def dialyzer_finished(server \\ __MODULE__, result) do
+    GenServer.call(server, {:dialyzer_finished, result})
+  end
+
+  def rebuild(server \\ __MODULE__) do
+    GenServer.cast(server, :rebuild)
   end
 
   ## Server Callbacks
@@ -67,24 +78,25 @@ defmodule ElixirLS.LanguageServer.Server do
     {:reply, :ok, send_responses(state)}
   end
 
-  def handle_call({:build_finished, build_errors}, _from, state) do
-    state = update_build_errors(build_errors, state)
-    state = %{state | currently_compiling: nil, build_failures: 0}
-    state =
-      if pending_changes?(state) do
-        queue_build(state)
-      else
-        state
-      end
-
-    {:reply, :ok, state}
+  def handle_call({:build_finished, {status, diagnostics}}, _from, state)
+      when status in [:ok, :noop, :error] and is_list(diagnostics) do
+    {:reply, :ok, handle_build_result(status, diagnostics, state)}
   end
 
-  def handle_call({:build_failed, error}, _from, state) do
-    {:reply, :ok, build_failed(error, state)}
+  # Pre Elixir 1.6, we can't get diagnostics from builds
+  def handle_call({:build_finished, _}, _from, state) do
+    {:reply, :ok, handle_build_result(:ok, [], state)}
   end
 
-  def handle_call({:receive_packet, request(id, _, _) = packet}, _from, state) do
+  def handle_call({:dialyzer_finished, {status, diagnostics}}, _from, state) do
+    {:reply, :ok, handle_dialyzer_result(status, diagnostics, state)}
+  end
+
+  def handle_call(msg, from, state) do
+    super(msg, from, state)
+  end
+
+  def handle_cast({:receive_packet, request(id, _, _) = packet}, state) do
     {request, state} =
       case handle_request(packet, state) do
         {:ok, result, state} ->
@@ -97,11 +109,31 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
     state = %{state | requests: state.requests ++ [request]}
-    {:reply, :ok, send_responses(state)}
+    {:noreply, send_responses(state)}
   end
 
-  def handle_call({:receive_packet, notification(_) = packet}, _from, state) do
-    {:reply, :ok, handle_notification(packet, state)}
+  def handle_cast({:receive_packet, notification(_) = packet}, state) do
+    {:noreply, handle_notification(packet, state)}
+  end
+
+  def handle_cast(:rebuild, state) do
+    {:noreply, trigger_build(state)}
+  end
+
+  def handle_cast(msg, state) do
+    super(msg, state)
+  end
+
+  def handle_info({:DOWN, ref, _, _pid, reason}, %{build_ref: ref} = state) do
+    state = put_in(state.build_ref, nil)
+    state =
+      case reason do
+        :normal -> state
+        _ -> handle_build_result(:error, [Build.exception_to_diagnostic(reason)], state)
+      end
+
+    state = if state.needs_build?, do: trigger_build(state), else: state
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, :normal}, state) do
@@ -136,15 +168,6 @@ defmodule ElixirLS.LanguageServer.Server do
     super(info, state)
   end
 
-  def terminate(reason, state) do
-    unless reason == :normal do
-      msg = "Elixir Language Server terminated abnormally because "
-        <> Exception.format_exit(reason)
-      JsonRpc.log_message(:error, msg)
-    end
-    super(reason, state)
-  end
-
   ## Helpers
 
   defp find_and_update(list, find_fn, update_fn) do
@@ -157,7 +180,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(notification("initialized"), state) do
-    state  # noop
+    trigger_build(state)
   end
 
   defp handle_notification(notification("$/setTraceNotification"), state) do
@@ -178,7 +201,21 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change_configuration(settings), state) do
-    %{state | settings: settings}
+    settings = Map.get(settings, "elixirLS", %{})
+
+    enable_dialyzer = Dialyzer.supported?() && Map.get(settings, "dialyzerEnabled", true)
+    state = cond do
+      enable_dialyzer and state.dialyzer_sup == nil ->
+        {:ok, pid} = Dialyzer.Supervisor.start_link(SourceFile.path_from_uri(state.root_uri))
+        %{state | dialyzer_sup: pid}
+      not(enable_dialyzer) and state.dialyzer_sup != nil ->
+        Process.exit(state.dialyzer_sup, :normal)
+        %{state | dialyzer_sup: nil}
+      true ->
+        state
+    end
+
+    trigger_build(%{state | settings: settings})
   end
 
   defp handle_notification(notification("exit"), state) do
@@ -192,54 +229,54 @@ defmodule ElixirLS.LanguageServer.Server do
         Path.relative_to(SourceFile.path_from_uri(uri), SourceFile.path_from_uri(state.root_uri))
       end
     source_file = %SourceFile{text: text, path: path, version: version}
-    publish_file_diagnostics(uri, state.build_errors[uri], source_file)
-    state = put_in state.source_files[uri], source_file
-    track_change(uri, source_file, state)
+    Build.publish_file_diagnostics(uri, state.build_diagnostics ++ state.dialyzer_diagnostics, source_file)
+    put_in state.source_files[uri], source_file
   end
 
   defp handle_notification(did_close(uri), state) do
-    state = %{state | source_files: Map.delete(state.source_files, uri)}
-    track_change(uri, nil, state)
+    %{state | source_files: Map.delete(state.source_files, uri)}
   end
 
   defp handle_notification(did_change(uri, version, content_changes), state) do
-    state =
-      update_in state.source_files[uri], fn source_file ->
-        source_file = %{source_file | version: version}
-        SourceFile.apply_content_changes(source_file, content_changes)
-      end
-
-    track_change(uri, state.source_files[uri], state)
+    update_in state.source_files[uri], fn source_file ->
+      source_file = %{source_file | version: version}
+      SourceFile.apply_content_changes(source_file, content_changes)
+    end
   end
 
-  defp handle_notification(did_save(uri), state) do
-    track_change(uri, state.source_files[uri], state)
+  defp handle_notification(did_save(_uri), state) do
+    trigger_build(state)
   end
 
-  defp handle_notification(did_change_watched_files(_changes), state) do
-    force_build(state)
+  defp handle_notification(did_change_watched_files(changes), state) do
+    if Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
+      type in [1,3] or not(Map.has_key?(state.source_files, uri))
+    end) do
+      trigger_build(state)
+    else
+      state
+    end
   end
 
   defp handle_notification(notification(_, _) = packet, state) do
-    Logger.warn("Received unmatched notification: #{inspect(packet)}")
+    IO.warn("Received unmatched notification: #{inspect(packet)}")
     state
   end
 
   defp handle_request(initialize_req(_id, root_uri, client_capabilities), state) do
-    state = %{state | root_uri: root_uri}
-    Mix.ProjectStack.clear_stack
+    show_version_warnings()
     state =
       case root_uri do
         "file://" <> _ ->
           root_path = SourceFile.path_from_uri(root_uri)
           File.cd!(root_path)
-          force_build(state)
+          %{state | root_uri: root_uri}
         _ ->
+          IO.warn("Cannot handle URIs with a scheme other than file://")
           state
       end
 
-    state = %{state | client_capabilities: client_capabilities, root_uri: root_uri}
-
+    state = %{state | client_capabilities: client_capabilities}
     {:ok, %{"capabilities" => server_capabilities()}, state}
   end
 
@@ -268,7 +305,18 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(request(_, _, _), state) do
+  defp handle_request(formatting_req(_id, uri, _options), state) do
+    fun = fn -> Formatting.format(state.source_files[uri], Formatting.options(state.settings)) end
+    {:async, fun, state}
+  end
+
+  defp handle_request(signature_help_req(_id, uri, line, character), state) do
+    fun = fn -> SignatureHelp.signature(state.source_files[uri], line, character) end
+    {:async, fun, state}
+  end
+
+  defp handle_request(request(_, _, _) = req, state) do
+    IO.inspect(req, label: "Unmatched request")
     {:error, :invalid_request, nil, state}
   end
 
@@ -278,11 +326,6 @@ defmodule ElixirLS.LanguageServer.Server do
       result = func.()
       GenServer.call(parent, {:request_finished, id, result})
     end, [:monitor])
-  end
-
-  defp publish_file_diagnostics(uri, build_errors, source_file) do
-    diagnostics = for error <- build_errors || [], do: BuildError.to_diagnostic(error, source_file)
-    JsonRpc.notify("textDocument/publishDiagnostics", %{"uri" => uri, "diagnostics" => diagnostics})
   end
 
   defp send_responses(state) do
@@ -302,7 +345,9 @@ defmodule ElixirLS.LanguageServer.Server do
     %{"textDocumentSync" => 1,
       "hoverProvider" => true,
       "completionProvider" => %{},
-      "definitionProvider" => true}
+      "definitionProvider" => true,
+      "documentFormattingProvider" => Formatting.supported?(),
+      "signatureHelpProvider" => %{"triggerCharacters" => ["("]}}
   end
 
   defp update_request(state, id, update_fn) do
@@ -317,76 +362,101 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp track_change(uri, source_file, state) do
-    state = put_in state.changed_sources[uri], source_file
-    queue_build(state)
-  end
+  # Build
 
-  defp force_build(state) do
-    state = %{state | force_rebuild?: true}
-    queue_build(state)
-  end
-
-  defp update_build_errors(build_errors, state) do
-    build_errors = Enum.group_by(build_errors, &(SourceFile.path_to_uri(&1.file)))
-
-    all_uris =
-      [Map.keys(state.build_errors), Map.keys(build_errors), Map.keys(state.source_files)]
-      |> List.flatten
-      |> Enum.uniq
-
-    for uri <- all_uris do
-      publish_file_diagnostics(uri, build_errors[uri], state.source_files[uri])
-    end
-
-    %{state | build_errors: build_errors}
-  end
-
-  defp build_failed(error, state) do
-    Logger.warn("Build failed: #{inspect(error)}")
-    cond do
-      pending_changes?(state) ->
-        # Retry with the new changes
-        all_sources = Map.merge(state.currently_compiling, state.changed_sources)
-        build_async(all_sources)
-        %{state | currently_compiling: all_sources, changed_sources: %{}, force_rebuild?: false}
-      state.build_failures >= 3 ->
-        if state.build_failures == 3 do
-          message =
-            "Build failed after #{state.build_failures} tries. See error log for details."
-          JsonRpc.show_message(:error, message)
-        end
-
-        # Wait for additional file changes before retrying the build
-        %{state | changed_sources: state.currently_compiling, currently_compiling: nil,
-                  build_failures: state.build_failures + 1}
-      true ->
-        build_async(state.currently_compiling)
-        %{state | build_failures: state.build_failures + 1, force_rebuild?: false}
-    end
-  end
-
-  defp pending_changes?(state) do
-    state.changed_sources != %{} or state.force_rebuild?
-  end
-
-  defp queue_build(state) do
-    if state.currently_compiling == nil and match?("file://" <> _, state.root_uri) do
-      build_async(state.changed_sources)
-      %{state | currently_compiling: state.changed_sources, changed_sources: %{},
-                force_rebuild?: false}
+  defp trigger_build(state) do
+    if build_enabled?(state) and state.build_ref == nil do
+      {_pid, build_ref} = Build.build(self(), SourceFile.path_from_uri(state.root_uri))
+      %__MODULE__{state | build_ref: build_ref, needs_build?: false}
     else
-      state
+      %__MODULE__{state | needs_build?: true}
     end
   end
 
-  defp build_async(source_files) do
-    parent = self()
-    Process.spawn(fn ->
-      case Builder.build(source_files) do
-        {:ok, build_errors} -> GenServer.call(parent, {:build_finished, build_errors})
-        {:error, error} -> GenServer.call(parent, {:build_failed, error})
+  defp dialyze(state) do
+    warn_opts =
+      state.settings
+      |> Map.get("dialyzerWarnOpts", [])
+      |> Enum.map(&String.to_atom/1)
+
+    if dialyzer_enabled?(state), do: Dialyzer.analyze(warn_opts)
+    state
+  end
+
+  defp handle_build_result(status, diagnostics, state) do
+    old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
+    state = put_in(state.build_diagnostics, diagnostics)
+
+    state =
+      cond do
+        state.needs_build? ->
+          state
+        status == :error or not dialyzer_enabled?(state) ->
+          put_in(state.dialyzer_diagnostics, [])
+        true ->
+          dialyze(state)
       end
-    end, [:link])
+
+    publish_diagnostics(
+      state.build_diagnostics ++ state.dialyzer_diagnostics,
+      old_diagnostics,
+      state.source_files
+    )
+
+    state
+  end
+
+  defp handle_dialyzer_result(_status, diagnostics, state) do
+    old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
+    state = put_in(state.dialyzer_diagnostics, diagnostics)
+    publish_diagnostics(
+      state.build_diagnostics ++ state.dialyzer_diagnostics,
+      old_diagnostics,
+      state.source_files
+    )
+
+    state
+  end
+
+  defp build_enabled?(state) do
+    state.root_uri != nil
+  end
+
+  defp dialyzer_enabled?(state) do
+    Dialyzer.supported?() and build_enabled?(state) and state.dialyzer_sup != nil
+  end
+
+  defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
+    files = Enum.uniq(Enum.map(new_diagnostics, &(&1.file)) ++ Enum.map(old_diagnostics, &(&1.file)))
+    for file <- files,
+        uri = SourceFile.path_to_uri(file),
+        do: Build.publish_file_diagnostics(uri, new_diagnostics, Map.get(source_files, uri))
+  end
+
+  defp show_version_warnings do
+    unless Version.match?(System.version(), ">= 1.6.0-dev") do
+      JsonRpc.show_message(
+        :info,
+        "Upgrade to Elixir >= 1.6.0-dev for build warnings and errors and for code formatting. " <>
+        "(Currently v#{System.version()})"
+      )
+    end
+
+    {otp_version, _} = Integer.parse(to_string(:erlang.system_info(:otp_release)))
+    warning =
+      cond do
+        otp_version < 19 ->
+          "Upgrade Erlang to version OTP 20 for debugging support and automatic, " <>
+          "incremental Dialyzer integration."
+        otp_version < 20 ->
+          "Upgrade Erlang to version OTP 20 for automatic, incremental Dialyzer integration."
+        otp_version > 20 ->
+          "ElixirLS Dialyzer integration has not been tested with Erlang versions other than " <>
+          "OTP 20. To disable, set \"elixirLS.enableDialyzer\" to false."
+        true ->
+          nil
+      end
+
+    if warning != nil, do: JsonRpc.show_message(:info, warning <> " (Currently OTP #{otp_version})")
   end
 end

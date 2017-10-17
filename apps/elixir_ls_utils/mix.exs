@@ -1,15 +1,15 @@
-defmodule ElixirLS.IOHandler.Mixfile do
+defmodule ElixirLS.Utils.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :io_handler,
-     version: "0.1.0",
+    [app: :elixir_ls_utils,
+     version: "0.2.0",
      build_path: "../../_build",
      config_path: "../../config/config.exs",
      deps_path: "../../deps",
      elixirc_paths: ["lib", "test/support"],
      lockfile: "../../mix.lock",
-     elixir: "~> 1.3",
+     elixir: "~> 1.6.0-dev",
      build_embedded: false,
      start_permanent: false,
      build_per_environment: false,

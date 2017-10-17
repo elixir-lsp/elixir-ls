@@ -3,7 +3,6 @@ defmodule MixProjectTest do
   doctest MixProject
 
   test "double" do
-    IO.puts("FIXTURE TEST")
     assert MixProject.double(2) == 4
   end
 

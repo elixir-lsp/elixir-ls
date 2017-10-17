@@ -1,4 +1,4 @@
-defmodule ElixirLS.IOHandler.PacketStream do
+defmodule ElixirLS.Utils.PacketStream do
   @moduledoc """
   Reads from an IO device and provides a stream of incoming packets
   """
@@ -7,14 +7,14 @@ defmodule ElixirLS.IOHandler.PacketStream do
     if is_pid(pid), do: :io.setopts(pid, encoding: :latin1)
 
     Stream.resource(fn -> :ok end, fn _acc ->
-      case read_packet(pid) do 
+      case read_packet(pid) do
         :eof -> {:halt, :ok}
         packet -> {[packet], :ok}
       end
     end, fn _acc -> :ok end)
   end
 
-  defp read_packet(pid) do 
+  defp read_packet(pid) do
     header = read_header(pid)
     if header == :eof do
       :eof
@@ -38,7 +38,7 @@ defmodule ElixirLS.IOHandler.PacketStream do
     end
   end
 
-  defp read_body(pid, header) do 
+  defp read_body(pid, header) do
     %{"Content-Length" => content_length_str} = header
     body = IO.binread(pid, String.to_integer(content_length_str))
     if body == :eof do

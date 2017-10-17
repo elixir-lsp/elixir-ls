@@ -6,7 +6,18 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   responses and notifications
   """
 
-  defmacro notification(method, params) do 
+  import ElixirLS.Utils.WireProtocol, only: [{:send, 1}]
+  use GenServer
+
+  defstruct [
+    language_server: ElixirLS.LanguageServer.Server,
+    next_id: 1,
+    outgoing_requests: %{}
+  ]
+
+  ## Macros
+
+  defmacro notification(method, params) do
     quote do
       %{"method" => unquote(method), "params" => unquote(params), "jsonrpc" => "2.0"}
     end
@@ -20,16 +31,25 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   defmacro request(id, method, params) do
     quote do
-      %{"id" => unquote(id), "method" => unquote(method), "params" => unquote(params), 
+      %{"id" => unquote(id), "method" => unquote(method), "params" => unquote(params),
         "jsonrpc" => "2.0"}
     end
   end
 
-  defmacro response(id, result) do 
+  defmacro response(id, result) do
     quote do
       %{"result" => unquote(result), "id" => unquote(id), "jsonrpc" => "2.0"}
     end
   end
+
+  defmacro error_response(id, code, message) do
+    quote do
+      %{"error" => %{"code" => unquote(code), "message" => unquote(message)}, "id" => unquote(id),
+        "jsonrpc" => "2.0"}
+    end
+  end
+
+  ## Utils
 
   def notify(method, params) do
     send(notification(method, params))
@@ -39,14 +59,9 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     send(response(id, result))
   end
 
-  def error_response(id, type, message) do 
-    {code, default_message} = error_code_and_message(type)
-    %{"error" => %{"code" => code, "message" => message || default_message}, "id" => id,
-      "jsonrpc" => "2.0"}
-  end
-
   def respond_with_error(id, type, message) do
-    send(error_response(id, type, message))
+    {code, default_message} = error_code_and_message(type)
+    send(error_response(id, code, message || default_message))
   end
 
   def show_message(type, message) do
@@ -57,11 +72,82 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     notify("window/logMessage", %{type: message_type_code(type), message: message})
   end
 
-  ## Helpers
-
-  defp send(packet) do
-    ElixirLS.IOHandler.send(packet)
+  def show_message_request(server \\ __MODULE__, type, message, actions) do
+    send_request(
+      server,
+      "window/showMessageRequest",
+      %{"type" => message_type_code(type), "message" => message, "actions" => actions}
+    )
   end
+
+  # Used to intercept :user/:standard_io output
+  def print(str) do
+    log_message(:log, str)
+  end
+
+  # Used to intercept :standard_error output
+  def print_err(str) do
+    log_message(:warning, str)
+  end
+
+  ## Client API
+
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, Keyword.delete(opts, :name), name: opts[:name])
+  end
+
+  def receive_packet(server \\ __MODULE__, packet) do
+    GenServer.call(server, {:packet, packet})
+  end
+
+  def send_request(server \\ __MODULE__, method, params) do
+    GenServer.call(server, {:request, method, params}, :infinity)
+  end
+
+  ## Server callbacks
+
+  def init(opts) do
+    state =
+      if language_server = opts[:language_server] do
+        %__MODULE__{language_server: language_server}
+      else
+        %__MODULE__{}
+      end
+    {:ok, state}
+  end
+
+  def handle_call({:packet, notification(_) = packet}, _from, state) do
+    ElixirLS.LanguageServer.Server.receive_packet(packet)
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:packet, request(_, _, _) = packet}, _from, state) do
+    ElixirLS.LanguageServer.Server.receive_packet(packet)
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:packet, response(id, result)}, _from, state) do
+    %{^id => from} = state.outgoing_requests
+    GenServer.reply(from, {:ok, result})
+    state = update_in(state.outgoing_requests, &(Map.delete(&1, id)))
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:packet, error_response(id, code, message)}, _from, state) do
+    %{^id => from} = state.outgoing_requests
+    GenServer.reply(from, {:error, code, message})
+    state = update_in(state.outgoing_requests, &(Map.delete(&1, id)))
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:request, method, params}, from, state) do
+    send(request(state.next_id, method, params))
+    state = update_in(state.outgoing_requests, &(Map.put(&1, state.next_id, from)))
+    state = %__MODULE__{state | next_id: state.next_id + 1}
+    {:noreply, state}
+  end
+
+  ## Helpers
 
   defp message_type_code(type) do
     case type do

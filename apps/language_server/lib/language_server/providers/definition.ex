@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Definition do
+defmodule ElixirLS.LanguageServer.Providers.Definition do
   @moduledoc """
   Go-to-definition provider utilizing Elixir Sense
   """

@@ -1,10 +1,10 @@
-defmodule ElixirLS.LanguageServer.Hover do
+defmodule ElixirLS.LanguageServer.Providers.Hover do
   @moduledoc """
   Hover provider utilizing Elixir Sense
   """
 
   def hover(text, line, character) do
-    %{subject: subject, docs: docs} = 
+    %{subject: subject, docs: docs} =
       ElixirSense.docs(text, line + 1, character + 1)
 
     line_text = Enum.at(String.split(text, "\n"), line)

@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.LoggerBackend do
   """
   alias ElixirLS.LanguageServer.JsonRpc
 
-  use GenEvent
+  @behaviour :gen_event
 
   ## Server callbacks
 
@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.LoggerBackend do
       msg = to_string(msg)
       type =
         case level do
-          :debug -> :log 
+          :debug -> :log
           :warn -> :warning
           _ -> level
         end

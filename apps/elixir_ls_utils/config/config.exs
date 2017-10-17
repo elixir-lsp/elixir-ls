@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :io_handler, key: :value
+#     config :elixir_ls_utils, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:io_handler, :key)
+#     Application.get_env(:elixir_ls_utils, :key)
 #
 # Or configure a 3rd-party app:
 #

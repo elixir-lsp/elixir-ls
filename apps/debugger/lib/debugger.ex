@@ -13,13 +13,7 @@ defmodule ElixirLS.Debugger do
     children = [
       # Define workers and child supervisors to be supervised
       worker(ElixirLS.Debugger.Output, [ElixirLS.Debugger.Output]),
-      worker(ElixirLS.Debugger.OutputDevice,
-             [:user, "stdout", [change_all_gls?: change_all_gls?()]],
-             [id: ElixirLS.Debugger.OutputDevice.Stdout]),
-      worker(ElixirLS.Debugger.OutputDevice, [:standard_error, "stderr"],
-             [id: ElixirLS.Debugger.OutputDevice.Stderr]),
       worker(ElixirLS.Debugger.Server, [[name: ElixirLS.Debugger.Server]]),
-      worker(ElixirLS.IOHandler, [ElixirLS.Debugger.Server, [name: ElixirLS.Debugger.IOHandler]]),
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
@@ -29,10 +23,14 @@ defmodule ElixirLS.Debugger do
   end
 
   def stop(_state) do
-    :init.stop
-  end
+    # If IO is being intercepted (meaning we're running in production), allow time to flush errors
+    # then kill the VM
+    if ElixirLS.Utils.WireProtocol.io_intercepted?() do
+      IO.puts("Stopping ElixirLS debugger due to errors.")
+      :timer.sleep(100)
+      :init.stop(1)
+    end
 
-  defp change_all_gls? do
-    !(Enum.any?(Application.started_applications, &match?({:mix, _, _}, &1)) and Mix.env == :test)
+    :ok
   end
 end

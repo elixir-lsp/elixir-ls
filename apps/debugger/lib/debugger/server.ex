@@ -57,6 +57,7 @@ defmodule ElixirLS.Debugger.Server do
   ## Server Callbacks
 
   def init(opts) do
+    Process.flag(:trap_exit, true)
     :int.start
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
@@ -97,30 +98,23 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | task_ref: nil}}
   end
 
+  def handle_info({:EXIT, _, :normal}, state) do
+    {:noreply, state}
+  end
+
   def handle_info(msg, state) do
     super(msg, state)
-  end
-
-  def terminate(:normal, state) do
-    super(:normal, state)
-  end
-
-  def terminate(reason, state) do
-    IO.puts :standard_error, "Debug server terminated abnormally because " <>
-        Exception.format_exit(reason)
-    super(reason, state)
   end
 
   ## Helpers
 
   defp handle_request(initialize_req(_, client_info), state) do
     check_erlang_version()
-    Process.group_leader(self(), Process.whereis(:user))
     {capabilities(), %{state | client_info: client_info}}
   end
 
   defp handle_request(launch_req(_, config), state) do
-    Process.spawn(fn -> initialize(config) end, [:link])
+    initialize(config)
     {%{}, %{state | config: config}}
   end
 
@@ -406,23 +400,23 @@ defmodule ElixirLS.Debugger.Server do
     set_stack_trace_mode(config["stackTraceMode"])
 
     File.cd!(project_dir)
-    Application.ensure_started(:mix)
-    Mix.Local.append_archives
-    Mix.Local.append_paths
-
     Code.load_file(System.get_env("MIX_EXS") || "mix.exs")
     task = task || Mix.Project.config[:default_task]
     unless mix_env, do: change_env(task)
 
-    Mix.Tasks.Loadconfig.run([])
-    Mix.Tasks.Deps.Loadpaths.run([])
-    Mix.Tasks.Loadpaths.run([])
+    Mix.Task.run("loadconfig")
     unless is_list(task_args) and "--no-compile" in task_args do
-      Mix.Tasks.Compile.run([])
+      case Mix.Task.run("compile", ["--ignore-module-conflict"]) do
+        {:error, _} ->
+          IO.puts(:standard_error, "Aborting debugger due to compile errors")
+          :init.stop(1)
+        _ ->
+          :ok
+      end
     end
 
-    # Reenable all tasks in case they're run from the debugged code
-    for task <- Mix.Task.all_modules, do: Mix.Task.reenable(task)
+    Mix.Task.run("app.start", [])
+    # Mix.TasksServer.clear()
 
     interpret_modules_in(Mix.Project.build_path)
 
@@ -501,8 +495,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp launch_task(task, args) do
-    Process.group_leader(self(), Process.whereis(:user))
-    Mix.Task.rerun(task, args)
+    Mix.Task.run(task, args)
   end
 
   # Interpreting modules defined in .exs files requires that we first load the file and save any
