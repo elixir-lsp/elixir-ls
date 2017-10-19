@@ -95,30 +95,30 @@ defmodule ElixirLS.LanguageServer.Build do
           :ok
       end
 
+      Mix.Task.clear()
+      System.put_env("MIX_DEBUG", "true")
       Mix.Task.run("loadconfig")
 
       # If using Elixir 1.6 or higher, we can get diagnostics if Mixfile fails to load
-      result =
-        if Version.match?(System.version(), ">= 1.6.0-dev") do
-          case Kernel.ParallelCompiler.compile([mixfile]) do
-            {:ok, _, warnings} ->
-              {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
-            {:error, errors, warnings} ->
-              {:error, Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
-                Enum.map(errors, &mixfile_diagnostic(&1, :error))}
-          end
-        else
-          Code.load_file(mixfile)
-          {:ok, []}
+      if Version.match?(System.version(), ">= 1.6.0-dev") do
+        case Kernel.ParallelCompiler.compile([mixfile]) do
+          {:ok, _, warnings} ->
+            {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
+          {:error, errors, warnings} ->
+            {:error, Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
+              Enum.map(errors, &mixfile_diagnostic(&1, :error))}
         end
-      result
+      else
+        Code.load_file(mixfile)
+        {:ok, []}
+      end
     else
       {:error, [mixfile_diagnostic({Path.absname(mixfile), nil, "No mixfile found in project root"}, :error)]}
     end
   end
 
   defp compile do
-    Mix.TasksServer.clear()
+    clear_deps_cache()
     case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
@@ -127,6 +127,10 @@ defmodule ElixirLS.LanguageServer.Build do
       _ ->
         {:ok, []}
     end
+  end
+
+  defp clear_deps_cache do
+    Mix.ProjectStack.write_cache({:cached_deps, Mix.env(), Mix.Project.get()}, nil)
   end
 
   defp range(position, nil) when is_integer(position) do
