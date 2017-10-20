@@ -96,7 +96,6 @@ defmodule ElixirLS.LanguageServer.Build do
       end
 
       Mix.Task.clear()
-      System.put_env("MIX_DEBUG", "true")
       Mix.Task.run("loadconfig")
 
       # If using Elixir 1.6 or higher, we can get diagnostics if Mixfile fails to load
