@@ -245,13 +245,13 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change_watched_files(changes), state) do
-    if Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
-      type in [1,3] or not(Map.has_key?(state.source_files, uri))
-    end) do
-      trigger_build(state)
-    else
-      state
-    end
+    needs_build =
+      Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
+        Path.extname(uri) in [".ex", ".exs", ".erl", ".yrl", ".xrl", ".eex"] and
+          (type in [1,3] or not(Map.has_key?(state.source_files, uri)))
+      end)
+
+    if needs_build, do: trigger_build(state), else: state
   end
 
   defp handle_notification(notification(_, _) = packet, state) do
