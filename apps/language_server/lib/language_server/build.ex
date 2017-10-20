@@ -3,8 +3,8 @@ defmodule ElixirLS.LanguageServer.Build do
   require Logger
 
   def build(parent, root_path) do
-    if File.cwd!() != root_path do
-      IO.puts("Skipping build because cwd changed")
+    if Path.absname(File.cwd!()) != Path.absname(root_path) do
+      IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
     else
       Process.spawn(fn ->
