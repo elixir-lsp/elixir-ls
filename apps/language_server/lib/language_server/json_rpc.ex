@@ -65,11 +65,11 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def show_message(type, message) do
-    notify("window/showMessage", %{type: message_type_code(type), message: message})
+    notify("window/showMessage", %{type: message_type_code(type), message: to_string(message)})
   end
 
   def log_message(type, message) do
-    notify("window/logMessage", %{type: message_type_code(type), message: message})
+    notify("window/logMessage", %{type: message_type_code(type), message: to_string(message)})
   end
 
   def show_message_request(server \\ __MODULE__, type, message, actions) do
