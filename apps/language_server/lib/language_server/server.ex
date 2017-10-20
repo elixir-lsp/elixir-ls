@@ -224,11 +224,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_open(uri, _language_id, version, text), state) do
-    path =
-      if is_binary(state.root_uri) do
-        Path.relative_to(SourceFile.path_from_uri(uri), SourceFile.path_from_uri(state.root_uri))
-      end
-    source_file = %SourceFile{text: text, path: path, version: version}
+    source_file = %SourceFile{text: text, version: version}
     Build.publish_file_diagnostics(uri, state.build_diagnostics ++ state.dialyzer_diagnostics, source_file)
     put_in state.source_files[uri], source_file
   end

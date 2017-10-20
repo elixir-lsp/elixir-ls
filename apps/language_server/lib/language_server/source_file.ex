@@ -1,9 +1,7 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
   defstruct [
     text: nil,
-    path: nil,
     version: nil,
-    changed_since_compile?: true
   ]
 
   def lines(%__MODULE__{text: text}) do
