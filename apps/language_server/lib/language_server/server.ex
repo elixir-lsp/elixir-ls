@@ -267,8 +267,7 @@ defmodule ElixirLS.LanguageServer.Server do
           root_path = SourceFile.path_from_uri(root_uri)
           File.cd!(root_path)
           %{state | root_uri: root_uri}
-        _ ->
-          IO.warn("Cannot handle URIs with a scheme other than file://")
+        nil ->
           state
       end
 
@@ -415,7 +414,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp build_enabled?(state) do
-    state.root_uri != nil
+    match?("file://" <> _, state.root_uri)
   end
 
   defp dialyzer_enabled?(state) do
