@@ -36,7 +36,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [{:elixir_ls_utils, in_umbrella: true},
-     {:elixir_sense, github: "msaraiva/elixir_sense"},
+     {:elixir_sense, github: "JakeBecker/elixir_sense"},
      {:forms, "~> 0.0.1"}]
   end
 
