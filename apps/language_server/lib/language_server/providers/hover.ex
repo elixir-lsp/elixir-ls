@@ -20,7 +20,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp highlight_range(line_text, line, character, substr) do
-    regex_ranges = Regex.scan(~r/\b#{Regex.escape(substr)}\b/, line_text, capture: :first, return: :index)
+    regex_ranges = Regex.scan(Regex.recompile!(~r/\b#{Regex.escape(substr)}\b/), line_text, capture: :first, return: :index)
     Enum.find_value regex_ranges, fn
       [{start, length}] when start <= character and character <= start + length ->
         %{"start" => %{"line" => line, "character" => start},

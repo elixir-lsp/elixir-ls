@@ -379,7 +379,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         in_project?(source_file),
         not String.starts_with?(source_file, Mix.Project.deps_path()) do
       message = String.trim(to_string(:dialyzer.format_warning(data)))
-      message = Regex.replace(~r/^.*:\d+: /, message, "")
+      message = Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
 
       %Mix.Task.Compiler.Diagnostic{
         compiler_name: "ElixirLS Dialyzer",

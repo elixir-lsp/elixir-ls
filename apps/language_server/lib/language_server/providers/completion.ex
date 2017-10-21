@@ -19,8 +19,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     def_before =
       cond do
-        Regex.match?(~r/def\s*#{prefix}$/, text_before_cursor) -> :def
-        Regex.match?(~r/defmacro\s*#{prefix}$/, text_before_cursor) -> :defmacro
+        Regex.match?(Regex.recompile!(~r/def\s*#{prefix}$/), text_before_cursor) -> :def
+        Regex.match?(Regex.recompile!(~r/defmacro\s*#{prefix}$/), text_before_cursor) -> :defmacro
         true -> nil
       end
 
@@ -28,8 +28,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       text_before_cursor: text_before_cursor,
       prefix: prefix,
       def_before: def_before,
-      pipe_before?: Regex.match?(~r/\|>\s*#{prefix}$/, text_before_cursor),
-      capture_before?: Regex.match?(~r/&#{prefix}$/, text_before_cursor),
+      pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
+      capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
     }
 
     items =
@@ -63,7 +63,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp from_completion_item(%{type: :return, description: description, spec: spec, snippet: snippet},
                            %{def_before: nil, capture_before?: false, pipe_before?: false}) do
 
-    snippet = Regex.replace(~r/"\$\{(.*)\}\$"/U, snippet, "${\\1}")
+    snippet = Regex.replace(Regex.recompile!(~r/"\$\{(.*)\}\$"/U), snippet, "${\\1}")
 
     %{"label" => description, "kind" => completion_kind(:value), "detail" => "return",
       "documentation" => spec, "insertText" => snippet,
@@ -189,7 +189,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     sub_priority =
-      if Regex.match?(~r/^[0-9a-zA-Z]/, to_string(name)) do
+      if Regex.match?(Regex.recompile!(~r/^[0-9a-zA-Z]/), to_string(name)) do
         0
       else
         1
@@ -229,7 +229,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp get_prefix(text_before_cursor) do
-    regex = ~r/[\w0-9\._!\?\:@]+$/
+    regex = Regex.recompile!(~r/[\w0-9\._!\?\:@]+$/)
     case Regex.run(regex, text_before_cursor) do
       [prefix] -> prefix
       _ -> ""
