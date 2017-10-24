@@ -5,7 +5,7 @@ defmodule ElixirLS.Debugger.CLI do
   def main(_args) do
     WireProtocol.intercept_output(&Output.print/1, &Output.print_err/1)
 
-    Application.ensure_all_started(:elixir_ls_debugger, :permanent)
+    Application.ensure_all_started(:debugger, :permanent)
 
     Mix.Local.append_archives
     Mix.Local.append_paths
