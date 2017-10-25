@@ -67,6 +67,13 @@ You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` s
 
 ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
 
+
+## Building and running
+
+Run `mix release -o <release_dir>` (which is defined in the `elixir_ls_utils` umbrella child) to build the language server and debugger as a set of `.ez` archives. Then you can set `ERL_LIBS=<release_dir> mix elixir_ls.language_server` or `ERL_LIBS=<release_dir> mix elixir_ls.debugger` to launch. (On Windows, the command would be `SET ERL_LIBS=<release_dir>; mix elixir_ls.language_server`)
+
+If you're packaging these archives in an IDE plugin, make sure to build using Erlang/OTP 19, not OTP 20, because OTP 20 beam files are not backwards-compatible with earlier Erlang versions.
+
 ## Acknowledgements and related projects
 
 ElixirLS isn't the first frontend-independent server for Elixir language support. The original was [Alchemist Server](https://github.com/tonini/alchemist-server/), which powers the [Alchemist](https://github.com/tonini/alchemist.el) plugin for Emacs. Another project, [Elixir Sense](https://github.com/msaraiva/elixir_sense), builds upon Alchemist and powers the [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir) as well as another VS Code plugin, [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). ElixirLS uses Elixir Sense for several code insight features. Credit for those projects goes to their respective authors.
