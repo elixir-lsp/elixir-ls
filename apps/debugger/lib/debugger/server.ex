@@ -57,7 +57,6 @@ defmodule ElixirLS.Debugger.Server do
   ## Server Callbacks
 
   def init(opts) do
-    Process.flag(:trap_exit, true)
     :int.start
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
@@ -114,7 +113,18 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(launch_req(_, config), state) do
-    initialize(config)
+    {_, ref} = Process.spawn(fn ->
+      initialize(config)
+    end, [:monitor])
+
+    receive do
+      {:DOWN, ^ref, :process, _pid, reason} ->
+        if reason != :normal do
+          IO.puts(:standard_error, "(Debugger) Initialization failed because " <> Exception.format_exit(reason))
+          Output.send_event("exited", %{"exitCode" => 1})
+          Output.send_event("terminated", %{"restart" => false})
+        end
+    end
     {%{}, %{state | config: config}}
   end
 
