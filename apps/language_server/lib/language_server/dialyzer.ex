@@ -45,7 +45,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       md5,
       warnings,
       timestamp
-    })
+    }, :infinity)
   end
 
   # Server callbacks

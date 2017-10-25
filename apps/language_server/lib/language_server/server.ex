@@ -51,11 +51,11 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   def build_finished(server \\ __MODULE__, result) do
-    GenServer.call(server, {:build_finished, result})
+    GenServer.cast(server, {:build_finished, result})
   end
 
   def dialyzer_finished(server \\ __MODULE__, result) do
-    GenServer.call(server, {:dialyzer_finished, result})
+    GenServer.cast(server, {:dialyzer_finished, result})
   end
 
   def rebuild(server \\ __MODULE__) do
@@ -78,22 +78,22 @@ defmodule ElixirLS.LanguageServer.Server do
     {:reply, :ok, send_responses(state)}
   end
 
-  def handle_call({:build_finished, {status, diagnostics}}, _from, state)
+  def handle_call(msg, from, state) do
+    super(msg, from, state)
+  end
+
+  def handle_cast({:build_finished, {status, diagnostics}}, state)
       when status in [:ok, :noop, :error] and is_list(diagnostics) do
-    {:reply, :ok, handle_build_result(status, diagnostics, state)}
+    {:noreply, handle_build_result(status, diagnostics, state)}
   end
 
   # Pre Elixir 1.6, we can't get diagnostics from builds
-  def handle_call({:build_finished, _}, _from, state) do
-    {:reply, :ok, handle_build_result(:ok, [], state)}
+  def handle_cast({:build_finished, _}, state) do
+    {:noreply, handle_build_result(:ok, [], state)}
   end
 
-  def handle_call({:dialyzer_finished, {status, diagnostics}}, _from, state) do
-    {:reply, :ok, handle_dialyzer_result(status, diagnostics, state)}
-  end
-
-  def handle_call(msg, from, state) do
-    super(msg, from, state)
+  def handle_cast({:dialyzer_finished, {status, diagnostics}}, state) do
+    {:noreply, handle_dialyzer_result(status, diagnostics, state)}
   end
 
   def handle_cast({:receive_packet, request(id, _, _) = packet}, state) do
@@ -319,7 +319,7 @@ defmodule ElixirLS.LanguageServer.Server do
     parent = self()
     Process.spawn(fn ->
       result = func.()
-      GenServer.call(parent, {:request_finished, id, result})
+      GenServer.call(parent, {:request_finished, id, result}, :infinity)
     end, [:monitor])
   end
 
