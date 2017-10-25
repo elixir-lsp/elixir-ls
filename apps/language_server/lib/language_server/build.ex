@@ -96,7 +96,11 @@ defmodule ElixirLS.LanguageServer.Build do
       end
 
       Mix.Task.clear()
+
+      # The project may override our logger config, so we reset it after loading their config
+      logger_config = Application.get_all_env(:logger)
       Mix.Task.run("loadconfig")
+      Mix.Config.persist(logger: logger_config)
 
       # If using Elixir 1.6 or higher, we can get diagnostics if Mixfile fails to load
       if Version.match?(System.version(), ">= 1.6.0-dev") do
