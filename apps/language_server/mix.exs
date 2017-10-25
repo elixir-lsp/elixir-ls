@@ -13,8 +13,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
      start_permanent: true,
      build_per_environment: false,
      consolidate_protocols: false,
-     deps: deps(),
-     escript: escript()]
+     deps: deps()]
   end
 
   # Configuration for the OTP application
@@ -38,19 +37,5 @@ defmodule ElixirLS.LanguageServer.Mixfile do
     [{:elixir_ls_utils, in_umbrella: true},
      {:elixir_sense, github: "JakeBecker/elixir_sense"},
      {:forms, "~> 0.0.1"}]
-  end
-
-  defp escript do
-    [main_module: ElixirLS.LanguageServer.CLI,
-     app: nil,
-     embed_elixir: false,
-     path: "../../release/language_server",
-     strip_beam: false,
-     comment: escript_comment()]
-  end
-
-  defp escript_comment do
-    "Requires Elixir but does not embed it. Run via the included exscript.sh (Unix) or \
-     exscript.bat (Windows) scripts to set ERL_LIBS."
   end
 end

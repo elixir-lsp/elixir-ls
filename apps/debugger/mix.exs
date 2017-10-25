@@ -13,8 +13,7 @@ defmodule ElixirLS.Debugger.Mixfile do
      start_permanent: true,
      build_per_environment: false,
      consolidate_protocols: false,
-     deps: deps(),
-     escript: escript()]
+     deps: deps()]
   end
 
   # Configuration for the OTP application
@@ -41,19 +40,5 @@ defmodule ElixirLS.Debugger.Mixfile do
   defp deps do
     [{:elixir_sense, github: "JakeBecker/elixir_sense"},
      {:elixir_ls_utils, in_umbrella: true}]
-  end
-
-  defp escript do
-    [main_module: ElixirLS.Debugger.CLI,
-     app: nil,
-     embed_elixir: false,
-     path: "../../release/debugger",
-     strip_beam: false,
-     comment: escript_comment()]
-  end
-
-  defp escript_comment do
-    "Requires Elixir but does not embed it. Run via the included exscript.sh (Unix) or \
-     exscript.bat (Windows, TODO) scripts to set ERL_LIBS."
   end
 end
