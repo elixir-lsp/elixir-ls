@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Build do
               Server.build_finished(parent, {:error, mixfile_diagnostics})
           end
         end
-        Logger.info("Compile took #{div(us, 1000)} milliseconds")
+        JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
       end, [:monitor])
     end
   end

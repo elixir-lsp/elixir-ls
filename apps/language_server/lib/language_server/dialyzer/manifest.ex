@@ -53,13 +53,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       fn ->
         # Because the manifest file can be several megabytes, we do a write-then-rename
         # to reduce the likelihood of corrupting the manifest
-        Logger.info("[ElixirLS Dialyzer] Writing manifest...")
+        JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Writing manifest...")
         File.mkdir_p!(Path.dirname(manifest_path))
         tmp_manifest_path = manifest_path <> ".new"
         File.write!(tmp_manifest_path, :erlang.term_to_binary(manifest_data, compressed: 9))
         File.rename(tmp_manifest_path, manifest_path)
         File.touch!(manifest_path, timestamp)
-        Logger.info("[ElixirLS Dialyzer] Done writing manifest.")
+        JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Done writing manifest.")
       end,
       []
     )
