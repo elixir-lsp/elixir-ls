@@ -66,10 +66,12 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         end
         ))
 
-        assert capture_log(fn ->
-                 Server.receive_packet(server, did_save(SourceFile.path_to_uri("lib/b.ex")))
-                 assert_receive publish_diagnostics_notif(^file_a, []), 20000
-               end) =~ "[ElixirLS Dialyzer] Analyzing 2 modules: [A, B]"
+        Server.receive_packet(server, did_save(SourceFile.path_to_uri("lib/b.ex")))
+        assert_receive publish_diagnostics_notif(^file_a, []), 20000
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "[ElixirLS Dialyzer] Analyzing 2 modules: [A, B]"
+                       })
       end)
 
       # Stop while we're still capturing logs to avoid log leakage

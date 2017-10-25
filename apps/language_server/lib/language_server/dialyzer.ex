@@ -106,7 +106,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   def handle_call({:analyze, warn_opts}, _from, state) do
     state =
       if Mix.Project.get() do
-        Logger.info("[ElixirLS Dialyzer] Checking for stale beam files")
+        JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Checking for stale beam files")
         new_timestamp = adjusted_timestamp()
 
         {removed_files, file_changes} =
@@ -281,7 +281,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           end
 
         # Analyze!
-        Logger.info(
+        JsonRpc.log_message(:info,
           "[ElixirLS Dialyzer] Analyzing #{Enum.count(modules_to_analyze)} modules: " <>
           "#{inspect(modules_to_analyze)}"
         )
@@ -299,7 +299,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {active_plt, mod_deps, md5, warnings, timestamp}
       end)
 
-    Logger.info("[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds")
+    JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds")
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp)
   end
 

@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Build do
               Server.build_finished(parent, {:error, mixfile_diagnostics})
           end
         end
-        Logger.info("Compile took #{div(us, 1000)} milliseconds")
+        JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
       end, [:monitor])
     end
   end
@@ -96,7 +96,11 @@ defmodule ElixirLS.LanguageServer.Build do
       end
 
       Mix.Task.clear()
+
+      # The project may override our logger config, so we reset it after loading their config
+      logger_config = Application.get_all_env(:logger)
       Mix.Task.run("loadconfig")
+      Mix.Config.persist(logger: logger_config)
 
       # If using Elixir 1.6 or higher, we can get diagnostics if Mixfile fails to load
       if Version.match?(System.version(), ">= 1.6.0-dev") do
