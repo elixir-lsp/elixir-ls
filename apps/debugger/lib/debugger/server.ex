@@ -410,7 +410,13 @@ defmodule ElixirLS.Debugger.Server do
     set_stack_trace_mode(config["stackTraceMode"])
 
     File.cd!(project_dir)
-    Code.load_file(System.get_env("MIX_EXS") || "mix.exs")
+
+    # Mixfile may already be loaded depending on cwd when launching debugger task
+    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
+    unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
+      Code.load_file(System.get_env("MIX_EXS") || "mix.exs")
+    end
+
     task = task || Mix.Project.config[:default_task]
     unless mix_env, do: change_env(task)
 
