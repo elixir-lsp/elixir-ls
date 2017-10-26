@@ -518,10 +518,12 @@ defmodule ElixirLS.Debugger.Server do
     File.mkdir_p(@temp_beam_dir)
     Code.append_path(Path.expand(@temp_beam_dir))
 
-    required_files
-    |> Enum.flat_map(&Path.wildcard/1)
-    |> Enum.flat_map(&Code.require_file/1)
-    |> Enum.map(fn {module, beam_bin} -> save_and_reload(module, beam_bin) end)
+    for path <- required_files,
+        file <- Path.wildcard(path),
+        modules = Code.require_file(file),
+        is_list(modules),
+        {module, beam_bin} <- modules,
+        do: save_and_reload(module, beam_bin)
   end
 
   defp save_and_reload(module, beam_bin) do
