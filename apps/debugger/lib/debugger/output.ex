@@ -13,7 +13,7 @@ defmodule ElixirLS.Debugger.Output do
 
   ## Client API
 
-  def start_link(name \\ nil) do
+  def start(name \\ nil) do
     GenServer.start(__MODULE__, 1, name: name)
   end
 
