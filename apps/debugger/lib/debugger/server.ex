@@ -105,7 +105,7 @@ defmodule ElixirLS.Debugger.Server do
     super(msg, state)
   end
 
-  def terminate(reason, state) do
+  def terminate(reason, _state) do
     if reason != :normal do
       IO.puts(:standard_error, "(Debugger) Terminating because #{Exception.format_exit(reason)}")
     end
