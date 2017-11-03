@@ -40,6 +40,6 @@ defmodule ElixirLS.Debugger.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:elixir_sense, github: "JakeBecker/elixir_sense"}, {:elixir_ls_utils, in_umbrella: true}]
+    [{:elixir_sense, github: "msaraiva/elixir_sense"}, {:elixir_ls_utils, in_umbrella: true}]
   end
 end
