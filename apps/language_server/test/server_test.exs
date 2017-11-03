@@ -43,7 +43,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     )
 
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, completion_req(1, uri, 2, 28))
+    Server.receive_packet(server, completion_req(1, uri, 2, 29))
 
     assert_receive response(1, %{
                      "isIncomplete" => true,
@@ -165,9 +165,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" => "** (CompileError) lib/has_error.ex:5: undefined function does_not_exist" <>
+                           "message" => "** (CompileError) lib/has_error.ex:4: undefined function does_not_exist" <>
                              _,
-                           "range" => %{"end" => %{"line" => 4}, "start" => %{"line" => 4}},
+                           "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
                            "severity" => 1
                          }
                        ]
