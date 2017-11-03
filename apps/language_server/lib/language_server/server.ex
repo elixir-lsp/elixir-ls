@@ -18,7 +18,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use GenServer
   alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer}
-  alias ElixirLS.LanguageServer.Providers.{Completion, Hover, Definition, Formatting, SignatureHelp}
+
+  alias ElixirLS.LanguageServer.Providers.{
+          Completion,
+          Hover,
+          Definition,
+          Formatting,
+          SignatureHelp
+        }
+
   use Protocol
 
   defstruct [
@@ -33,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Server do
     received_shutdown?: false,
     requests: [],
     settings: %{},
-    source_files: %{},
+    source_files: %{}
   ]
 
   defmodule Request do
@@ -69,12 +77,12 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   def handle_call({:request_finished, id, {:error, type, msg}}, _from, state) do
-    state = update_request(state, id, &(%{&1 | status: :error, error_type: type, error_msg: msg}))
+    state = update_request(state, id, &%{&1 | status: :error, error_type: type, error_msg: msg})
     {:reply, :ok, send_responses(state)}
   end
 
   def handle_call({:request_finished, id, {:ok, result}}, _from, state) do
-    state = update_request(state, id, &(%{&1 | status: :ok, result: result}))
+    state = update_request(state, id, &%{&1 | status: :ok, result: result})
     {:reply, :ok, send_responses(state)}
   end
 
@@ -101,8 +109,10 @@ defmodule ElixirLS.LanguageServer.Server do
       case handle_request(packet, state) do
         {:ok, result, state} ->
           {%Request{id: id, status: :ok, result: result}, state}
+
         {:error, type, msg, state} ->
           {%Request{id: id, status: :error, error_type: type, error_msg: msg}, state}
+
         {:async, fun, state} ->
           {pid, ref} = handle_request_async(id, fun)
           {%Request{id: id, status: :async, pid: pid, ref: ref}, state}
@@ -126,6 +136,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   def handle_info({:DOWN, ref, _, _pid, reason}, %{build_ref: ref} = state) do
     state = put_in(state.build_ref, nil)
+
     state =
       case reason do
         :normal -> state
@@ -138,28 +149,44 @@ defmodule ElixirLS.LanguageServer.Server do
 
   def handle_info({:DOWN, ref, :process, _pid, :normal}, state) do
     state =
-      update_request_by_ref state, ref, fn
+      update_request_by_ref(state, ref, fn
         %{status: :async} = req ->
           error_msg = "Internal error: Request ended without result"
-          %{req | ref: nil, pid: nil, status: :error, error_type: :internal_error,
-                  error_msg: error_msg}
+
+          %{
+            req
+            | ref: nil,
+              pid: nil,
+              status: :error,
+              error_type: :internal_error,
+              error_msg: error_msg
+          }
+
         req ->
           %{req | ref: nil, pid: nil}
-      end
+      end)
 
     {:noreply, send_responses(state)}
   end
 
   def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
     state =
-      update_request_by_ref state, ref, fn
+      update_request_by_ref(state, ref, fn
         %{status: :async} = req ->
           error_msg = "Internal error: " <> Exception.format_exit(reason)
-          %{req | ref: nil, pid: nil, status: :error, error_type: :internal_error,
-                  error_msg: error_msg}
+
+          %{
+            req
+            | ref: nil,
+              pid: nil,
+              status: :error,
+              error_type: :internal_error,
+              error_msg: error_msg
+          }
+
         req ->
           %{req | ref: nil, pid: nil}
-      end
+      end)
 
     {:noreply, send_responses(state)}
   end
@@ -172,6 +199,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp find_and_update(list, find_fn, update_fn) do
     idx = Enum.find_index(list, find_fn)
+
     if idx do
       List.update_at(list, idx, update_fn)
     else
@@ -184,18 +212,20 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(notification("$/setTraceNotification"), state) do
-    state  # noop
+    # noop
+    state
   end
 
   defp handle_notification(cancel_request(id), state) do
     state =
-      update_request state, id, fn
+      update_request(state, id, fn
         %{status: :async, pid: pid} = req ->
           Process.exit(pid, :kill)
           %{req | pid: nil, ref: nil, status: :error, error_type: :request_cancelled}
+
         req ->
           req
-      end
+      end)
 
     send_responses(state)
   end
@@ -204,16 +234,20 @@ defmodule ElixirLS.LanguageServer.Server do
     settings = Map.get(settings, "elixirLS", %{})
 
     enable_dialyzer = Dialyzer.supported?() && Map.get(settings, "dialyzerEnabled", true)
-    state = cond do
-      enable_dialyzer and state.dialyzer_sup == nil ->
-        {:ok, pid} = Dialyzer.Supervisor.start_link(SourceFile.path_from_uri(state.root_uri))
-        %{state | dialyzer_sup: pid}
-      not(enable_dialyzer) and state.dialyzer_sup != nil ->
-        Process.exit(state.dialyzer_sup, :normal)
-        %{state | dialyzer_sup: nil}
-      true ->
-        state
-    end
+
+    state =
+      cond do
+        enable_dialyzer and state.dialyzer_sup == nil ->
+          {:ok, pid} = Dialyzer.Supervisor.start_link(SourceFile.path_from_uri(state.root_uri))
+          %{state | dialyzer_sup: pid}
+
+        not enable_dialyzer and state.dialyzer_sup != nil ->
+          Process.exit(state.dialyzer_sup, :normal)
+          %{state | dialyzer_sup: nil}
+
+        true ->
+          state
+      end
 
     trigger_build(%{state | settings: settings})
   end
@@ -225,8 +259,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(did_open(uri, _language_id, version, text), state) do
     source_file = %SourceFile{text: text, version: version}
-    Build.publish_file_diagnostics(uri, state.build_diagnostics ++ state.dialyzer_diagnostics, source_file)
-    put_in state.source_files[uri], source_file
+
+    Build.publish_file_diagnostics(
+      uri,
+      state.build_diagnostics ++ state.dialyzer_diagnostics,
+      source_file
+    )
+
+    put_in(state.source_files[uri], source_file)
   end
 
   defp handle_notification(did_close(uri), state) do
@@ -234,10 +274,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change(uri, version, content_changes), state) do
-    update_in state.source_files[uri], fn source_file ->
+    update_in(state.source_files[uri], fn source_file ->
       source_file = %{source_file | version: version}
       SourceFile.apply_content_changes(source_file, content_changes)
-    end
+    end)
   end
 
   defp handle_notification(did_save(_uri), state) do
@@ -248,7 +288,7 @@ defmodule ElixirLS.LanguageServer.Server do
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
         Path.extname(uri) in [".ex", ".exs", ".erl", ".yrl", ".xrl", ".eex"] and
-          (type in [1,3] or not(Map.has_key?(state.source_files, uri)))
+          (type in [1, 3] or not Map.has_key?(state.source_files, uri))
       end)
 
     if needs_build, do: trigger_build(state), else: state
@@ -261,12 +301,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(initialize_req(_id, root_uri, client_capabilities), state) do
     show_version_warnings()
+
     state =
       case root_uri do
         "file://" <> _ ->
           root_path = SourceFile.path_from_uri(root_uri)
           File.cd!(root_path)
           %{state | root_uri: root_uri}
+
         nil ->
           state
       end
@@ -283,6 +325,7 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {:ok, Definition.definition(state.source_files[uri].text, line, character)}
     end
+
     {:async, fun, state}
   end
 
@@ -290,6 +333,7 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {:ok, Hover.hover(state.source_files[uri].text, line, character)}
     end
+
     {:async, fun, state}
   end
 
@@ -297,6 +341,7 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {:ok, Completion.completion(state.source_files[uri].text, line, character)}
     end
+
     {:async, fun, state}
   end
 
@@ -317,10 +362,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request_async(id, func) do
     parent = self()
-    Process.spawn(fn ->
-      result = func.()
-      GenServer.call(parent, {:request_finished, id, result}, :infinity)
-    end, [:monitor])
+
+    Process.spawn(
+      fn ->
+        result = func.()
+        GenServer.call(parent, {:request_finished, id, result}, :infinity)
+      end,
+      [:monitor]
+    )
   end
 
   defp send_responses(state) do
@@ -328,33 +377,37 @@ defmodule ElixirLS.LanguageServer.Server do
       [%Request{id: id, status: :ok, result: result} | rest] ->
         JsonRpc.respond(id, result)
         send_responses(%{state | requests: rest})
+
       [%Request{id: id, status: :error, error_type: error_type, error_msg: error_msg} | rest] ->
         JsonRpc.respond_with_error(id, error_type, error_msg)
         send_responses(%{state | requests: rest})
+
       _ ->
         state
     end
   end
 
   defp server_capabilities do
-    %{"textDocumentSync" => 1,
+    %{
+      "textDocumentSync" => 1,
       "hoverProvider" => true,
       "completionProvider" => %{},
       "definitionProvider" => true,
       "documentFormattingProvider" => Formatting.supported?(),
-      "signatureHelpProvider" => %{"triggerCharacters" => ["("]}}
+      "signatureHelpProvider" => %{"triggerCharacters" => ["("]}
+    }
   end
 
   defp update_request(state, id, update_fn) do
-    update_in state.requests, fn requests ->
+    update_in(state.requests, fn requests ->
       find_and_update(requests, &(&1.id == id), update_fn)
-    end
+    end)
   end
 
   defp update_request_by_ref(state, ref, update_fn) do
-    update_in state.requests, fn requests ->
+    update_in(state.requests, fn requests ->
       find_and_update(requests, &(&1.ref == ref), update_fn)
-    end
+    end)
   end
 
   # Build
@@ -386,8 +439,10 @@ defmodule ElixirLS.LanguageServer.Server do
       cond do
         state.needs_build? ->
           state
+
         status == :error or not dialyzer_enabled?(state) ->
           put_in(state.dialyzer_diagnostics, [])
+
         true ->
           dialyze(state)
       end
@@ -404,6 +459,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_dialyzer_result(_status, diagnostics, state) do
     old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
     state = put_in(state.dialyzer_diagnostics, diagnostics)
+
     publish_diagnostics(
       state.build_diagnostics ++ state.dialyzer_diagnostics,
       old_diagnostics,
@@ -422,7 +478,9 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
-    files = Enum.uniq(Enum.map(new_diagnostics, &(&1.file)) ++ Enum.map(old_diagnostics, &(&1.file)))
+    files =
+      Enum.uniq(Enum.map(new_diagnostics, & &1.file) ++ Enum.map(old_diagnostics, & &1.file))
+
     for file <- files,
         uri = SourceFile.path_to_uri(file),
         do: Build.publish_file_diagnostics(uri, new_diagnostics, Map.get(source_files, uri))
@@ -433,25 +491,30 @@ defmodule ElixirLS.LanguageServer.Server do
       JsonRpc.show_message(
         :info,
         "Upgrade to Elixir >= 1.6.0-dev for build warnings and errors and for code formatting. " <>
-        "(Currently v#{System.version()})"
+          "(Currently v#{System.version()})"
       )
     end
 
     {otp_version, _} = Integer.parse(to_string(:erlang.system_info(:otp_release)))
+
     warning =
       cond do
         otp_version < 19 ->
           "Upgrade Erlang to version OTP 20 for debugging support and automatic, " <>
-          "incremental Dialyzer integration."
+            "incremental Dialyzer integration."
+
         otp_version < 20 ->
           "Upgrade Erlang to version OTP 20 for automatic, incremental Dialyzer integration."
+
         otp_version > 20 ->
           "ElixirLS Dialyzer integration has not been tested with Erlang versions other than " <>
-          "OTP 20. To disable, set \"elixirLS.enableDialyzer\" to false."
+            "OTP 20. To disable, set \"elixirLS.enableDialyzer\" to false."
+
         true ->
           nil
       end
 
-    if warning != nil, do: JsonRpc.show_message(:info, warning <> " (Currently OTP #{otp_version})")
+    if warning != nil,
+      do: JsonRpc.show_message(:info, warning <> " (Currently OTP #{otp_version})")
   end
 end

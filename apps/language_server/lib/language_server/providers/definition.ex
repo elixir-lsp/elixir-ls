@@ -7,13 +7,20 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
 
   def definition(text, line, character) do
     case ElixirSense.definition(text, line + 1, character + 1) do
-      {"non_existing", nil} -> []
+      {"non_existing", nil} ->
+        []
+
       {file, line} ->
         line = line || 0
         uri = SourceFile.path_to_uri(file)
-        %{"uri" => uri, "range" => %{"start" => %{"line" => line - 1, "character" => 0},
-          "end" => %{"line" => line - 1, "character" => 0}}}
+
+        %{
+          "uri" => uri,
+          "range" => %{
+            "start" => %{"line" => line - 1, "character" => 0},
+            "end" => %{"line" => line - 1, "character" => 0}
+          }
+        }
     end
   end
-
 end

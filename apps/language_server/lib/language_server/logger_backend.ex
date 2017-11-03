@@ -17,8 +17,9 @@ defmodule ElixirLS.LanguageServer.LoggerBackend do
   end
 
   def handle_event({level, _gl, {Logger, msg, _ts, _md}}, %{level: min_level} = state) do
-    if (is_nil(min_level) or Logger.compare_levels(level, min_level) != :lt) do
+    if is_nil(min_level) or Logger.compare_levels(level, min_level) != :lt do
       msg = to_string(msg)
+
       type =
         case level do
           :debug -> :log

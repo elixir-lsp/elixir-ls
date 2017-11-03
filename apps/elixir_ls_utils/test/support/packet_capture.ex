@@ -20,7 +20,10 @@ defmodule ElixirLS.Utils.PacketCapture do
     handle_output(to_string(chars), from, reply_as, parent)
   end
 
-  def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, module, fun, args}}, parent) do
+  def handle_info(
+        {:io_request, from, reply_as, {:put_chars, _encoding, module, fun, args}},
+        parent
+      ) do
     handle_output(to_string(module.apply(fun, args)), from, reply_as, parent)
   end
 
@@ -32,6 +35,7 @@ defmodule ElixirLS.Utils.PacketCapture do
     case extract_packet(str) do
       nil ->
         :ok
+
       packet ->
         send(parent, packet)
     end
@@ -42,11 +46,10 @@ defmodule ElixirLS.Utils.PacketCapture do
 
   defp extract_packet(str) do
     with [_header, body] <- String.split(str, "\r\n\r\n", parts: 2),
-         {:ok, packet} <- Poison.decode(body)
-      do
-        packet
-      else
-        _ -> nil
+         {:ok, packet} <- Poison.decode(body) do
+      packet
+    else
+      _ -> nil
     end
   end
 end

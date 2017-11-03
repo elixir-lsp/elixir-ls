@@ -9,11 +9,9 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   import ElixirLS.Utils.WireProtocol, only: [{:send, 1}]
   use GenServer
 
-  defstruct [
-    language_server: ElixirLS.LanguageServer.Server,
-    next_id: 1,
-    outgoing_requests: %{}
-  ]
+  defstruct language_server: ElixirLS.LanguageServer.Server,
+            next_id: 1,
+            outgoing_requests: %{}
 
   ## Macros
 
@@ -31,8 +29,12 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   defmacro request(id, method, params) do
     quote do
-      %{"id" => unquote(id), "method" => unquote(method), "params" => unquote(params),
-        "jsonrpc" => "2.0"}
+      %{
+        "id" => unquote(id),
+        "method" => unquote(method),
+        "params" => unquote(params),
+        "jsonrpc" => "2.0"
+      }
     end
   end
 
@@ -44,8 +46,11 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   defmacro error_response(id, code, message) do
     quote do
-      %{"error" => %{"code" => unquote(code), "message" => unquote(message)}, "id" => unquote(id),
-        "jsonrpc" => "2.0"}
+      %{
+        "error" => %{"code" => unquote(code), "message" => unquote(message)},
+        "id" => unquote(id),
+        "jsonrpc" => "2.0"
+      }
     end
   end
 
@@ -73,11 +78,11 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def show_message_request(server \\ __MODULE__, type, message, actions) do
-    send_request(
-      server,
-      "window/showMessageRequest",
-      %{"type" => message_type_code(type), "message" => message, "actions" => actions}
-    )
+    send_request(server, "window/showMessageRequest", %{
+      "type" => message_type_code(type),
+      "message" => message,
+      "actions" => actions
+    })
   end
 
   # Used to intercept :user/:standard_io output
@@ -113,6 +118,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
       else
         %__MODULE__{}
       end
+
     {:ok, state}
   end
 
@@ -129,20 +135,20 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   def handle_call({:packet, response(id, result)}, _from, state) do
     %{^id => from} = state.outgoing_requests
     GenServer.reply(from, {:ok, result})
-    state = update_in(state.outgoing_requests, &(Map.delete(&1, id)))
+    state = update_in(state.outgoing_requests, &Map.delete(&1, id))
     {:reply, :ok, state}
   end
 
   def handle_call({:packet, error_response(id, code, message)}, _from, state) do
     %{^id => from} = state.outgoing_requests
     GenServer.reply(from, {:error, code, message})
-    state = update_in(state.outgoing_requests, &(Map.delete(&1, id)))
+    state = update_in(state.outgoing_requests, &Map.delete(&1, id))
     {:reply, :ok, state}
   end
 
   def handle_call({:request, method, params}, from, state) do
     send(request(state.next_id, method, params))
-    state = update_in(state.outgoing_requests, &(Map.put(&1, state.next_id, from)))
+    state = update_in(state.outgoing_requests, &Map.put(&1, state.next_id, from))
     state = %__MODULE__{state | next_id: state.next_id + 1}
     {:noreply, state}
   end

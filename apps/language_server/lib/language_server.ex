@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer do
     children = [
       # Define workers and child supervisors to be supervised
       worker(ElixirLS.LanguageServer.Server, [ElixirLS.LanguageServer.Server]),
-      worker(ElixirLS.LanguageServer.JsonRpc, [[name: ElixirLS.LanguageServer.JsonRpc]]),
+      worker(ElixirLS.LanguageServer.JsonRpc, [[name: ElixirLS.LanguageServer.JsonRpc]])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

@@ -14,22 +14,36 @@ defmodule ElixirLS.Debugger.Protocol.Basic do
 
   defmacro request(seq, command, arguments) do
     quote do
-      %{"type" => "request", "command" => unquote(command), "seq" => unquote(seq),
-        "arguments" => unquote(arguments)}
+      %{
+        "type" => "request",
+        "command" => unquote(command),
+        "seq" => unquote(seq),
+        "arguments" => unquote(arguments)
+      }
     end
   end
 
   defmacro response(seq, request_seq, command, body) do
     quote do
-      %{"type" => "response", "command" => unquote(command), "seq" => unquote(seq), 
-        "request_seq" => unquote(request_seq), "success" => true, "body" => unquote(body)}
+      %{
+        "type" => "response",
+        "command" => unquote(command),
+        "seq" => unquote(seq),
+        "request_seq" => unquote(request_seq),
+        "success" => true,
+        "body" => unquote(body)
+      }
     end
   end
 
   defmacro event(seq, event, body) do
-    quote do 
-      %{"type" => "event", "event" => unquote(event), "body" => unquote(body),
-        "seq" => unquote(seq)}
+    quote do
+      %{
+        "type" => "event",
+        "event" => unquote(event),
+        "body" => unquote(body),
+        "seq" => unquote(seq)
+      }
     end
   end
 end

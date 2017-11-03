@@ -2,8 +2,7 @@ defmodule ElixirLS.LanguageServer.Fixtures.Dialyzer.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :els_dialyzer_test,
-     version: "0.1.0"]
+    [app: :els_dialyzer_test, version: "0.1.0"]
   end
 
   # Configuration for the OTP application

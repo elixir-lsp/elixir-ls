@@ -34,9 +34,7 @@ defmodule ElixirLS.Utils.OutputDevice do
     {:noreply, s}
   end
 
-  def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, module, func, args}},
-                         s) do
-
+  def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, module, func, args}}, s) do
     output(from, reply_as, apply(module, func, args), s)
     {:noreply, s}
   end
@@ -50,6 +48,7 @@ defmodule ElixirLS.Utils.OutputDevice do
     for req <- reqs do
       handle_info({:io_request, from, reply_as, req}, s)
     end
+
     {:noreply, s}
   end
 
@@ -65,5 +64,4 @@ defmodule ElixirLS.Utils.OutputDevice do
     output_fn.(characters)
     send(from, {:io_reply, reply_as, :ok})
   end
-
 end

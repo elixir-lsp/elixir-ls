@@ -2,19 +2,21 @@ defmodule ElixirLS.Utils.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :elixir_ls_utils,
-     version: "0.2.1",
-     build_path: "../../_build",
-     config_path: "../../config/config.exs",
-     deps_path: "../../deps",
-     elixirc_paths: ["lib", "test/support"],
-     lockfile: "../../mix.lock",
-     elixir: "~> 1.6.0-dev",
-     build_embedded: false,
-     start_permanent: false,
-     build_per_environment: false,
-     consolidate_protocols: false,
-     deps: deps()]
+    [
+      app: :elixir_ls_utils,
+      version: "0.2.1",
+      build_path: "../../_build",
+      config_path: "../../config/config.exs",
+      deps_path: "../../deps",
+      elixirc_paths: ["lib", "test/support"],
+      lockfile: "../../mix.lock",
+      elixir: "~> 1.6.0-dev",
+      build_embedded: false,
+      start_permanent: false,
+      build_per_environment: false,
+      consolidate_protocols: false,
+      deps: deps()
+    ]
   end
 
   # Configuration for the OTP application
@@ -39,7 +41,6 @@ defmodule ElixirLS.Utils.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:poison, "~> 3.0"},
-     {:mix_task_archive_deps, "~> 0.4.0"}]
+    [{:poison, "~> 3.0"}, {:mix_task_archive_deps, "~> 0.4.0"}]
   end
 end

@@ -16,7 +16,7 @@ defmodule ElixirLS.Debugger do
 
     children = [
       # Define workers and child supervisors to be supervised
-      worker(ElixirLS.Debugger.Server, [[name: ElixirLS.Debugger.Server]]),
+      worker(ElixirLS.Debugger.Server, [[name: ElixirLS.Debugger.Server]])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

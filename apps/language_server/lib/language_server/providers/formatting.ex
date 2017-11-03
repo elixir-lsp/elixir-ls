@@ -7,10 +7,12 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   def options(settings) do
     opts = []
+
     opts =
       case settings["formatterLineLength"] do
         %{"formatterLineLength" => line_length} when is_integer(line_length) ->
           [{:line_length, line_length} | opts]
+
         _ ->
           opts
       end

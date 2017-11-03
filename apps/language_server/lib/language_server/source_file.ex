@@ -1,8 +1,6 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
-  defstruct [
-    text: nil,
-    version: nil,
-  ]
+  defstruct text: nil,
+            version: nil
 
   def lines(%__MODULE__{text: text}) do
     String.split(text, ["\r\n", "\r", "\n"])
@@ -22,7 +20,8 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   """
   def path_from_uri(uri) do
     uri_path = URI.decode(URI.parse(uri).path)
-    case :os.type do
+
+    case :os.type() do
       {:win32, _} -> String.trim_leading(uri_path, "/")
       _ -> uri_path
     end
@@ -30,7 +29,8 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def path_to_uri(path) do
     uri_path = URI.encode(Path.expand(path))
-    case :os.type do
+
+    case :os.type() do
       {:win32, _} -> "file:///" <> uri_path
       _ -> "file://" <> uri_path
     end
@@ -38,7 +38,10 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def full_range(source_file) do
     lines = lines(source_file)
-    %{"start" => %{"line" => 0, "character" => 0},
-      "end" => %{"line" => Enum.count(lines) - 1, "character" => String.length(List.last(lines))}}
+
+    %{
+      "start" => %{"line" => 0, "character" => 0},
+      "end" => %{"line" => Enum.count(lines) - 1, "character" => String.length(List.last(lines))}
+    }
   end
 end

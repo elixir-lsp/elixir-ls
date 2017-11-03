@@ -2,18 +2,20 @@ defmodule ElixirLS.Debugger.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :debugger,
-     version: "0.2.1",
-     build_path: "../../_build",
-     config_path: "config/config.exs",
-     deps_path: "../../deps",
-     lockfile: "../../mix.lock",
-     elixir: "~> 1.6.0-dev",
-     build_embedded: false,
-     start_permanent: true,
-     build_per_environment: false,
-     consolidate_protocols: false,
-     deps: deps()]
+    [
+      app: :debugger,
+      version: "0.2.1",
+      build_path: "../../_build",
+      config_path: "config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+      elixir: "~> 1.6.0-dev",
+      build_embedded: false,
+      start_permanent: true,
+      build_per_environment: false,
+      consolidate_protocols: false,
+      deps: deps()
+    ]
   end
 
   # Configuration for the OTP application
@@ -38,7 +40,6 @@ defmodule ElixirLS.Debugger.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:elixir_sense, github: "JakeBecker/elixir_sense"},
-     {:elixir_ls_utils, in_umbrella: true}]
+    [{:elixir_sense, github: "JakeBecker/elixir_sense"}, {:elixir_ls_utils, in_umbrella: true}]
   end
 end

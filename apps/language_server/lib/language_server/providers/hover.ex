@@ -4,8 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   """
 
   def hover(text, line, character) do
-    %{subject: subject, docs: docs} =
-      ElixirSense.docs(text, line + 1, character + 1)
+    %{subject: subject, docs: docs} = ElixirSense.docs(text, line + 1, character + 1)
 
     line_text = Enum.at(String.split(text, "\n"), line)
     range = highlight_range(line_text, line, character, subject)
@@ -20,14 +19,24 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp highlight_range(line_text, line, character, substr) do
-    regex_ranges = Regex.scan(Regex.recompile!(~r/\b#{Regex.escape(substr)}\b/), line_text, capture: :first, return: :index)
-    Enum.find_value regex_ranges, fn
+    regex_ranges =
+      Regex.scan(
+        Regex.recompile!(~r/\b#{Regex.escape(substr)}\b/),
+        line_text,
+        capture: :first,
+        return: :index
+      )
+
+    Enum.find_value(regex_ranges, fn
       [{start, length}] when start <= character and character <= start + length ->
-        %{"start" => %{"line" => line, "character" => start},
-          "end" => %{"line" => line, "character" => start + length}}
+        %{
+          "start" => %{"line" => line, "character" => start},
+          "end" => %{"line" => line, "character" => start + length}
+        }
+
       _ ->
         nil
-    end
+    end)
   end
 
   defp contents(%{docs: "No documentation available"}) do
@@ -37,5 +46,4 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp contents(%{docs: markdown}) do
     markdown
   end
-
 end

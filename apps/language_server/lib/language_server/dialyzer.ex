@@ -37,15 +37,19 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   def analysis_finished(server, status, active_plt, mod_deps, md5, warnings, timestamp) do
-    GenServer.call(server, {
-      :analysis_finished,
-      status,
-      active_plt,
-      mod_deps,
-      md5,
-      warnings,
-      timestamp
-    }, :infinity)
+    GenServer.call(
+      server,
+      {
+        :analysis_finished,
+        status,
+        active_plt,
+        mod_deps,
+        md5,
+        warnings,
+        timestamp
+      },
+      :infinity
+    )
   end
 
   # Server callbacks
@@ -281,9 +285,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           end
 
         # Analyze!
-        JsonRpc.log_message(:info,
+        JsonRpc.log_message(
+          :info,
           "[ElixirLS Dialyzer] Analyzing #{Enum.count(modules_to_analyze)} modules: " <>
-          "#{inspect(modules_to_analyze)}"
+            "#{inspect(modules_to_analyze)}"
         )
 
         {active_plt, new_mod_deps, raw_warnings} = Analyzer.analyze(active_plt, files_to_analyze)
@@ -299,7 +304,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {active_plt, mod_deps, md5, warnings, timestamp}
       end)
 
-    JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds")
+    JsonRpc.log_message(
+      :info,
+      "[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds"
+    )
+
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp)
   end
 
@@ -313,7 +322,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           end
 
         beam_file = to_string(:code.which(module))
-        beam_file = if in_project?(beam_file), do: Path.relative_to_cwd(beam_file), else: beam_file
+
+        beam_file =
+          if in_project?(beam_file), do: Path.relative_to_cwd(beam_file), else: beam_file
+
         {to_string(beam_file), {file, line, warning}}
       end
 
@@ -347,6 +359,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     case get_core_from_beam(content) do
       nil ->
         nil
+
       core ->
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
@@ -355,11 +368,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp get_core_from_beam(content) do
     with {:ok, {_, kw}} when is_list(kw) <- :beam_lib.chunks(content, [:abstract_code]),
-         code when code != :no_abstract_code <- Keyword.get(kw, :abstract_code)
-     do
-        code
-     else
-        _ -> nil
+         code when code != :no_abstract_code <- Keyword.get(kw, :abstract_code) do
+      code
+    else
+      _ -> nil
     end
   end
 

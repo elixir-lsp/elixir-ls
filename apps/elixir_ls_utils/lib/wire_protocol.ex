@@ -30,8 +30,7 @@ defmodule ElixirLS.Utils.WireProtocol do
     Process.register(raw_standard_error, :raw_standard_error)
     Process.register(standard_error, :standard_error)
 
-    for process <- :erlang.processes,
-        not(process in [raw_user, raw_standard_error]) do
+    for process <- :erlang.processes(), process not in [raw_user, raw_standard_error] do
       Process.group_leader(process, user)
     end
   end
@@ -39,6 +38,6 @@ defmodule ElixirLS.Utils.WireProtocol do
   def stream_packets(receive_packets_fn) do
     PacketStream.stream(Process.whereis(:raw_user))
     |> Stream.each(fn packet -> receive_packets_fn.(packet) end)
-    |> Stream.run
+    |> Stream.run()
   end
 end

@@ -26,19 +26,11 @@ defmodule ElixirLS.Debugger.Output do
   end
 
   def print(server \\ __MODULE__, str) do
-    send_event(
-      server,
-      "output",
-      %{"category" => "stdout", "output" => to_string(str)}
-    )
+    send_event(server, "output", %{"category" => "stdout", "output" => to_string(str)})
   end
 
   def print_err(server \\ __MODULE__, str) do
-    send_event(
-      server,
-      "output",
-      %{"category" => "stderr", "output" => to_string(str)}
-    )
+    send_event(server, "output", %{"category" => "stderr", "output" => to_string(str)})
   end
 
   ## Server callbacks

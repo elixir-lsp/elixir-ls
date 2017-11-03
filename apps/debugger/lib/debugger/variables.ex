@@ -16,6 +16,7 @@ defmodule ElixirLS.Debugger.Variables do
   def children(var, start, count) when is_list(var) do
     start = start || 0
     count = count || Enum.count(var)
+
     var
     |> Enum.slice(start, count)
     |> with_index_as_name(start)
@@ -27,16 +28,16 @@ defmodule ElixirLS.Debugger.Variables do
 
   def children(var, start, count) when is_bitstring(var) do
     start = start || 0
-    count = if (is_integer(count) and count > 0), do: count, else: :erlang.byte_size(var)
-    slice_length = min(:erlang.bit_size(var) - (8 * start), (8 * count))
-    <<_ :: bytes-size(start), slice :: bitstring-size(slice_length), _ :: bitstring>> = var
+    count = if is_integer(count) and count > 0, do: count, else: :erlang.byte_size(var)
+    slice_length = min(:erlang.bit_size(var) - 8 * start, 8 * count)
+    <<_::bytes-size(start), slice::bitstring-size(slice_length), _::bitstring>> = var
     with_index_as_name(:erlang.bitstring_to_list(slice), start)
   end
 
   def children(var, start, count) when is_map(var) do
     children =
       var
-      |> Map.to_list
+      |> Map.to_list()
       |> Enum.slice(start || 0, count || map_size(var))
 
     for {key, value} <- children do
@@ -46,6 +47,7 @@ defmodule ElixirLS.Debugger.Variables do
         else
           inspect(key)
         end
+
       {name, value}
     end
   end

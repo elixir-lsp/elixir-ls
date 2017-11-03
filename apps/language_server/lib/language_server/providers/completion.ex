@@ -29,61 +29,93 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       prefix: prefix,
       def_before: def_before,
       pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
-      capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
+      capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor)
     }
 
     items =
       ElixirSense.suggestions(text, line + 1, character + 1)
-      |> Enum.map(&(from_completion_item(&1, context)))
+      |> Enum.map(&from_completion_item(&1, context))
       |> Enum.reject(&is_nil/1)
-      |> Enum.uniq
+      |> Enum.uniq()
 
     %{"isIncomplete" => true, "items" => items}
   end
 
   ## Helpers
 
-  defp from_completion_item(%{type: :attribute, name: name},
-                           %{def_before: nil, capture_before?: false, pipe_before?: false}) do
-
+  defp from_completion_item(%{type: :attribute, name: name}, %{
+         def_before: nil,
+         capture_before?: false,
+         pipe_before?: false
+       }) do
     unless name == "@moduledoc" || name == "@doc" do
-      %{"label" => name, "kind" => completion_kind(:variable),
+      %{
+        "label" => name,
+        "kind" => completion_kind(:variable),
         "sortText" => sort_text(:attribute, name),
-        "detail" => "module attribute"}
+        "detail" => "module attribute"
+      }
     end
   end
 
-  defp from_completion_item(%{type: :variable, name: name},
-                           %{def_before: nil, pipe_before?: false, capture_before?: false}) do
-
-    %{"label" => to_string(name), "kind" => completion_kind(:variable),
-      "sortText" => sort_text(:variable, name), "detail" => "variable"}
+  defp from_completion_item(%{type: :variable, name: name}, %{
+         def_before: nil,
+         pipe_before?: false,
+         capture_before?: false
+       }) do
+    %{
+      "label" => to_string(name),
+      "kind" => completion_kind(:variable),
+      "sortText" => sort_text(:variable, name),
+      "detail" => "variable"
+    }
   end
 
-  defp from_completion_item(%{type: :return, description: description, spec: spec, snippet: snippet},
-                           %{def_before: nil, capture_before?: false, pipe_before?: false}) do
-
+  defp from_completion_item(
+         %{type: :return, description: description, spec: spec, snippet: snippet},
+         %{def_before: nil, capture_before?: false, pipe_before?: false}
+       ) do
     snippet = Regex.replace(Regex.recompile!(~r/"\$\{(.*)\}\$"/U), snippet, "${\\1}")
 
-    %{"label" => description, "kind" => completion_kind(:value), "detail" => "return",
-      "documentation" => spec, "insertText" => snippet,
+    %{
+      "label" => description,
+      "kind" => completion_kind(:value),
+      "detail" => "return",
+      "documentation" => spec,
+      "insertText" => snippet,
       "insertTextFormat" => insert_text_format(:snippet),
-      "sortText" => sort_text(:return, description)}
+      "sortText" => sort_text(:return, description)
+    }
   end
 
-  defp from_completion_item(%{type: :module, name: name, summary: summary, subtype: subtype},
-                           %{def_before: nil, capture_before?: false, pipe_before?: false}) do
-
-    %{"label" => to_string(name), "kind" => completion_kind(:module), "detail" => subtype || "module",
-      "documentation" => summary, "sortText" => sort_text(:module, name)}
+  defp from_completion_item(%{type: :module, name: name, summary: summary, subtype: subtype}, %{
+         def_before: nil,
+         capture_before?: false,
+         pipe_before?: false
+       }) do
+    %{
+      "label" => to_string(name),
+      "kind" => completion_kind(:module),
+      "detail" => subtype || "module",
+      "documentation" => summary,
+      "sortText" => sort_text(:module, name)
+    }
   end
 
-  defp from_completion_item(%{type: :callback, args: args, spec: spec, name: name, summary: summary,
-                              arity: arity, origin: origin},
-                           context) do
-
+  defp from_completion_item(
+         %{
+           type: :callback,
+           args: args,
+           spec: spec,
+           name: name,
+           summary: summary,
+           arity: arity,
+           origin: origin
+         },
+         context
+       ) do
     if (context[:def_before] == :def && String.starts_with?(spec, "@macrocallback")) ||
-       (context[:def_before] == :defmacro && String.starts_with?(spec, "@callback")) do
+         (context[:def_before] == :defmacro && String.starts_with?(spec, "@callback")) do
       nil
     else
       def_str =
@@ -98,18 +130,32 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n  $0\nend\n"
       label = "#{def_str}#{function_label(name, args, arity)}"
 
-      %{"label" => label, "kind" => completion_kind(:interface), "detail" => origin,
-        "documentation" => summary, "insertTextFormat" => insert_text_format(:snippet),
-        "insertText" => full_snippet, "sortText" => sort_text(:callback, name)}
+      %{
+        "label" => label,
+        "kind" => completion_kind(:interface),
+        "detail" => origin,
+        "documentation" => summary,
+        "insertTextFormat" => insert_text_format(:snippet),
+        "insertText" => full_snippet,
+        "sortText" => sort_text(:callback, name)
+      }
     end
   end
 
-  defp from_completion_item(%{type: type, args: args, name: name, summary: summary, arity: arity,
-                             spec: spec, origin: origin},
-                           %{def_before: nil, pipe_before?: pipe_before?,
-                             capture_before?: capture_before?}) do
-
+  defp from_completion_item(
+         %{
+           type: type,
+           args: args,
+           name: name,
+           summary: summary,
+           arity: arity,
+           spec: spec,
+           origin: origin
+         },
+         %{def_before: nil, pipe_before?: pipe_before?, capture_before?: capture_before?}
+       ) do
     label = function_label(name, args, arity)
+
     snippet =
       snippet(name, args, arity, pipe_before?: pipe_before?, capture_before?: capture_before?)
 
@@ -117,8 +163,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       cond do
         spec && spec != "" ->
           spec
+
         String.starts_with?(type, ["private", "public"]) ->
           String.replace(type, "_", " ")
+
         true ->
           "(#{origin}) #{type}"
       end
@@ -130,9 +178,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         :function
       end
 
-    %{"label" => label, "kind" => completion_kind(kind), "detail" => detail,
-      "documentation" => summary, "insertTextFormat" => insert_text_format(:snippet),
-      "insertText" => snippet, "sortText" => sort_text(kind, name)}
+    %{
+      "label" => label,
+      "kind" => completion_kind(kind),
+      "detail" => detail,
+      "documentation" => summary,
+      "insertTextFormat" => insert_text_format(:snippet),
+      "insertText" => snippet,
+      "sortText" => sort_text(kind, name)
+    }
   end
 
   defp from_completion_item(_suggestion, _context) do
@@ -167,8 +221,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
       tabstops =
         args_list
-        |> Enum.with_index
+        |> Enum.with_index()
         |> Enum.map(fn {arg, i} -> "${#{i + 1}:#{arg}}" end)
+
       Enum.join([name, "(", Enum.join(tabstops, ", "), ")"])
     end
   end
@@ -230,6 +285,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp get_prefix(text_before_cursor) do
     regex = Regex.recompile!(~r/[\w0-9\._!\?\:@]+$/)
+
     case Regex.run(regex, text_before_cursor) do
       [prefix] -> prefix
       _ -> ""

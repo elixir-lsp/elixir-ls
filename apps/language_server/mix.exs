@@ -2,18 +2,20 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :language_server,
-     version: "0.2.1",
-     elixir: ">= 1.6.0-dev",
-     build_path: "../../_build",
-     config_path: "config/config.exs",
-     deps_path: "../../deps",
-     lockfile: "../../mix.lock",
-     build_embedded: false,
-     start_permanent: true,
-     build_per_environment: false,
-     consolidate_protocols: false,
-     deps: deps()]
+    [
+      app: :language_server,
+      version: "0.2.1",
+      elixir: ">= 1.6.0-dev",
+      build_path: "../../_build",
+      config_path: "config/config.exs",
+      deps_path: "../../deps",
+      lockfile: "../../mix.lock",
+      build_embedded: false,
+      start_permanent: true,
+      build_per_environment: false,
+      consolidate_protocols: false,
+      deps: deps()
+    ]
   end
 
   # Configuration for the OTP application
@@ -34,8 +36,10 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:elixir_ls_utils, in_umbrella: true},
-     {:elixir_sense, github: "JakeBecker/elixir_sense"},
-     {:forms, "~> 0.0.1"}]
+    [
+      {:elixir_ls_utils, in_umbrella: true},
+      {:elixir_sense, github: "JakeBecker/elixir_sense"},
+      {:forms, "~> 0.0.1"}
+    ]
   end
 end

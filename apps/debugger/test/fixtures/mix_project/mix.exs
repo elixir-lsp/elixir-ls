@@ -3,13 +3,15 @@ defmodule MixProject.Mixfile do
 
   # Test pattern is changed to avoid conflicting with the actual project's tests
   def project do
-    [app: :mix_project,
-     version: "0.1.0",
-     elixir: "~> 1.4",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps(),
-     test_pattern: "*_fixturetest.exs"]
+    [
+      app: :mix_project,
+      version: "0.1.0",
+      elixir: "~> 1.4",
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      deps: deps(),
+      test_pattern: "*_fixturetest.exs"
+    ]
   end
 
   # Configuration for the OTP application

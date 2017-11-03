@@ -8,7 +8,7 @@ defmodule ElixirLS.Debugger.Protocol do
   import ElixirLS.Debugger.Protocol.Basic
 
   defmacro __using__(_) do
-    quote do 
+    quote do
       import ElixirLS.Debugger.Protocol.Basic
       import unquote(__MODULE__)
     end
@@ -28,8 +28,10 @@ defmodule ElixirLS.Debugger.Protocol do
 
   defmacro set_breakpoints_req(seq, source, breakpoints) do
     quote do
-      request(unquote(seq), "setBreakpoints", 
-              %{"source" => unquote(source), "breakpoints" => unquote(breakpoints)})
+      request(unquote(seq), "setBreakpoints", %{
+        "source" => unquote(source),
+        "breakpoints" => unquote(breakpoints)
+      })
     end
   end
 
@@ -86,5 +88,4 @@ defmodule ElixirLS.Debugger.Protocol do
       request(unquote(seq), "stepOut", %{"threadId" => unquote(thread_id)})
     end
   end
-
 end

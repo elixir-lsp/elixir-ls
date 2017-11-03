@@ -13,10 +13,10 @@ defmodule ElixirLS.Utils.MixTest.Case do
       Logger.remove_backend(:console)
     end
 
-    on_exit fn ->
+    on_exit(fn ->
       Application.start(:logger)
-      Mix.Task.clear
-      Mix.Shell.Process.flush
+      Mix.Task.clear()
+      Mix.Shell.Process.flush()
       delete_tmp_paths()
 
       if apps do
@@ -24,15 +24,16 @@ defmodule ElixirLS.Utils.MixTest.Case do
           Application.stop(app)
           Application.unload(app)
         end
+
         Logger.add_backend(:console, flush: true)
       end
-    end
+    end)
 
     :ok
   end
 
   def fixture_path(dir, extension) do
-    Path.join Path.expand("fixtures", dir), extension
+    Path.join(Path.expand("fixtures", dir), extension)
   end
 
   def tmp_path do
@@ -40,20 +41,20 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   def tmp_path(extension) do
-    Path.join tmp_path(), to_string(extension)
+    Path.join(tmp_path(), to_string(extension))
   end
 
   def purge(modules) do
-    Enum.each modules, fn(m) ->
+    Enum.each(modules, fn m ->
       :code.purge(m)
       :code.delete(m)
-    end
+    end)
   end
 
   defmacro in_fixture(dir, which, block) do
-    module   = inspect __CALLER__.module
-    function = Atom.to_string elem(__CALLER__.function, 0)
-    tmp      = Path.join(module, function)
+    module = inspect(__CALLER__.module)
+    function = Atom.to_string(elem(__CALLER__.function, 0))
+    tmp = Path.join(module, function)
 
     quote do
       unquote(__MODULE__).in_fixture(unquote(dir), unquote(which), unquote(tmp), unquote(block))
@@ -69,19 +70,18 @@ defmodule ElixirLS.Utils.MixTest.Case do
     File.mkdir_p!(dest)
     File.cp_r!(src, dest)
 
-    get_path = :code.get_path
-    previous = :code.all_loaded
+    get_path = :code.get_path()
+    previous = :code.all_loaded()
     project_stack = clear_project_stack!()
 
     try do
-      File.cd! dest, function
+      File.cd!(dest, function)
     after
       :code.set_path(get_path)
 
-      for {mod, file} <- :code.all_loaded -- previous,
-          file == :in_memory or
-          (is_list(file) and :lists.prefix(flag, file)) do
-        purge [mod]
+      for {mod, file} <- :code.all_loaded() -- previous,
+          file == :in_memory or (is_list(file) and :lists.prefix(flag, file)) do
+        purge([mod])
       end
 
       restore_project_stack!(project_stack)
@@ -89,10 +89,8 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   defp delete_tmp_paths do
-    tmp = tmp_path() |> String.to_charlist
-    for path <- :code.get_path,
-        :string.str(path, tmp) != 0,
-        do: :code.del_path(path)
+    tmp = tmp_path() |> String.to_charlist()
+    for path <- :code.get_path(), :string.str(path, tmp) != 0, do: :code.del_path(path)
   end
 
   defp clear_project_stack! do
@@ -101,11 +99,12 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
     # Attempt to purge mixfiles for dependencies to avoid module redefinition warnings
     mix_exs = System.get_env("MIX_EXS") || "mix.exs"
-    for {mod, :in_memory} <- :code.all_loaded,
-      source = mod.module_info[:compile][:source],
-      is_list(source),
-      String.ends_with?(to_string(source), mix_exs),
-      do: purge([mod])
+
+    for {mod, :in_memory} <- :code.all_loaded(),
+        source = mod.module_info[:compile][:source],
+        is_list(source),
+        String.ends_with?(to_string(source), mix_exs),
+        do: purge([mod])
 
     stack
   end
@@ -114,6 +113,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     case Mix.Project.pop() do
       nil ->
         stack
+
       project ->
         clear_project_stack!([project | stack])
     end
@@ -122,6 +122,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
   defp restore_project_stack!(stack) do
     Mix.ProjectStack.clear_stack()
     Mix.ProjectStack.clear_cache()
+
     for %{name: module, file: file} <- stack do
       :code.purge(module)
       :code.delete(module)
@@ -129,4 +130,3 @@ defmodule ElixirLS.Utils.MixTest.Case do
     end
   end
 end
-
