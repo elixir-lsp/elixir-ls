@@ -144,54 +144,26 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(set_breakpoints_req(_, %{"path" => path}, breakpoints), state) do
-    lines = for %{"line" => line} <- breakpoints, do: line
-    new_breakpoints = resolve_breakpoint_modules(path, lines)
-    for {module, _} <- new_breakpoints, module != nil, do: :int.ni(module)
+    new_lines = for %{"line" => line} <- breakpoints, do: line
+    existing_bps = state.breakpoints[path] || []
+    existing_bp_lines = for {_module, line} <- existing_bps, do: line
+    removed_lines = existing_bp_lines -- new_lines
+    removed_bps = Enum.filter(existing_bps, fn {_, line} -> line in removed_lines end)
 
-    interpreted = :int.interpreted()
+    for {module, line} <- removed_bps do
+      :int.delete_break(module, line)
+    end
+
+    result = set_breakpoints(path, new_lines)
+    new_bps = for {:ok, module, line} <- result, do: {module, line}
+    state = put_in(state.breakpoints[path], new_bps)
 
     breakpoints_json =
-      for {module, _} <- new_breakpoints do
-        cond do
-          module == nil ->
-            %{
-              "verified" => false,
-              "message" => "Breakpoints can only be set in functions within modules"
-            }
+      Enum.map(result, fn
+        {:ok, _, _} -> %{"verified" => true}
+        {:error, error} -> %{"verified" => false, "message" => error}
+      end)
 
-          module not in interpreted ->
-            required_files = Enum.flat_map(state.config["requireFiles"] || [], &Path.wildcard/1)
-            path = Path.relative_to_cwd(path)
-
-            require_warning =
-              if String.ends_with?(path, ".exs") and path not in required_files do
-                "You may need to add #{path} to your launch configuration under \"requireFiles\""
-              end
-
-            %{
-              "verified" => false,
-              "message" => "Can't interpret module #{inspect(module)}. #{require_warning}"
-            }
-
-          true ->
-            %{"verified" => true}
-        end
-      end
-
-    new_verified_breakpoints =
-      for {bp, %{"verified" => true}} <- List.zip([new_breakpoints, breakpoints_json]), do: bp
-
-    existing_breakpoints = state.breakpoints[path] || []
-
-    for {module, line} = bp <- existing_breakpoints,
-        bp not in new_verified_breakpoints,
-        do: :int.delete_break(module, line)
-
-    for {module, line} = bp <- new_verified_breakpoints,
-        bp not in existing_breakpoints,
-        do: :int.break(module, line)
-
-    state = put_in(state.breakpoints[path], new_verified_breakpoints)
     {%{"breakpoints" => breakpoints_json}, state}
   end
 
@@ -595,17 +567,38 @@ defmodule ElixirLS.Debugger.Server do
     :int.ni(module)
   end
 
-  defp resolve_breakpoint_modules(path, lines) do
+  defp set_breakpoints(path, lines) do
     if Path.extname(path) == ".erl" do
       module = String.to_atom(Path.basename(path, ".erl"))
-      for line <- lines, do: {module, line}
+      for line <- lines, do: set_breakpoint(module, line)
     else
-      metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
+      try do
+        metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
-      for line <- lines do
-        env = ElixirSense.Core.Metadata.get_env(metadata, line)
-        {env.module, line}
+        for line <- lines do
+          env = ElixirSense.Core.Metadata.get_env(metadata, line)
+
+          if env.module == nil do
+            {:error, "Could not determine module at line"}
+          else
+            set_breakpoint(env.module, line)
+          end
+        end
+      rescue
+        error ->
+          for _line <- lines, do: {:error, Exception.format_exit(error)}
       end
+    end
+  end
+
+  defp set_breakpoint(module, line) do
+    case :int.ni(module) do
+      {:module, _} ->
+        :int.break(module, line)
+        {:ok, module, line}
+
+      _ ->
+        {:error, "Cannot interpret module #{inspect(module)}"}
     end
   end
 end
