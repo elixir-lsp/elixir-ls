@@ -5,24 +5,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     :erlang.function_exported(Code, :format_string!, 2)
   end
 
-  def options(settings) do
-    opts = []
-
-    opts =
-      case settings["formatterLineLength"] do
-        %{"formatterLineLength" => line_length} when is_integer(line_length) ->
-          [{:line_length, line_length} | opts]
-
-        _ ->
-          opts
-      end
-
-    # TODO: other settings
-
-    opts
-  end
-
-  def format(source_file, opts) do
+  def format(source_file, root_uri) do
+    opts = formatter_opts(root_uri)
     formatted = Code.format_string!(source_file.text, opts)
 
     response = [
@@ -30,5 +14,28 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     ]
 
     {:ok, response}
+  end
+
+  defp formatter_opts(nil) do
+    []
+  end
+
+  defp formatter_opts(root_uri) do
+    dot_formatter = Path.join(SourceFile.path_from_uri(root_uri), ".formatter.exs")
+
+    if File.regular?(dot_formatter) do
+      {formatter_opts, _} = Code.eval_file(dot_formatter)
+
+      unless Keyword.keyword?(formatter_opts) do
+        Mix.raise(
+          "Expected #{inspect(dot_formatter)} to return a keyword list, " <>
+            "got: #{inspect(formatter_opts)}"
+        )
+      end
+
+      formatter_opts
+    else
+      []
+    end
   end
 end
