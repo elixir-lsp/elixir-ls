@@ -357,7 +357,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(formatting_req(_id, uri, _options), state) do
-    fun = fn -> Formatting.format(state.source_files[uri], Formatting.options(state.settings)) end
+    fun = fn -> Formatting.format(state.source_files[uri], state.root_uri) end
     {:async, fun, state}
   end
 
