@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   text before the cursor so we can filter out suggestions that are not relevant.
   """
 
-  def completion(text, line, character) do
+  def completion(text, line, character, snippets_supported) do
     text_before_cursor =
       text
       |> String.split("\n")
@@ -37,6 +37,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> Enum.map(&from_completion_item(&1, context))
       |> Enum.reject(&is_nil/1)
       |> Enum.uniq()
+
+    items =
+      if snippets_supported do
+        items
+      else
+        Enum.map(items, &remove_snippets/1)
+      end
 
     %{"isIncomplete" => true, "items" => items}
   end
@@ -289,6 +296,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     case Regex.run(regex, text_before_cursor) do
       [prefix] -> prefix
       _ -> ""
+    end
+  end
+
+  defp remove_snippets(item) do
+    regex = Regex.recompile!(~r/\$\{.*\}.*$/)
+    snippet_format = insert_text_format(:snippet)
+
+    case item do
+      %{"insertTextFormat" => ^snippet_format, "insertText" => text} ->
+        %{
+          item
+          | "insertTextFormat" => insert_text_format(:plain_text),
+            "insertText" => Regex.replace(regex, text, "")
+        }
+
+      _ ->
+        item
     end
   end
 

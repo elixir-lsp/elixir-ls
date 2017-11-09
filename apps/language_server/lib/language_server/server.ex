@@ -338,8 +338,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(completion_req(_id, uri, line, character), state) do
+    snippets_supported =
+      get_in(state.client_capabilities, [
+        "textDocument",
+        "completion",
+        "completionItem",
+        "snippetSupport"
+      ]) != false
+
     fun = fn ->
-      {:ok, Completion.completion(state.source_files[uri].text, line, character)}
+      {
+        :ok,
+        Completion.completion(state.source_files[uri].text, line, character, snippets_supported)
+      }
     end
 
     {:async, fun, state}
