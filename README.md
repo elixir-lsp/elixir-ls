@@ -28,7 +28,12 @@ You may want to install Elixir and Erlang from source, using the [kiex](https://
 
 ## IDE plugins
 
-ElixirLS is intended to be frontend-independent, but at this point has only been tested with VS Code. You can install the VS Code extension by searching ElixirLS from the "extensions" pane. The plugin code resides in the [vscode-elixir-ls](https://github.com/JakeBecker/vscode-elixir-ls) repo.
+| IDE      | Plugin                                                                        | Support                                                          |
+|----------|-------------------------------------------------------------------------------|------------------------------------------------------------------|
+| VS Code  | [JakeBecker/vscode-elixir-ls](https://github.com/JakeBecker/vscode-elixir-ls) | Supports all ElixirLS features                                   |
+| Atom IDE | [JakeBecker/ide-elixir](https://github.com/JakeBecker/ide-elixir)             | Does not support debugger, auto-complete snippets, or output log |
+
+Feel free to create and publish your own client packages and add them to this list!
 
 ## Debugger support
 
