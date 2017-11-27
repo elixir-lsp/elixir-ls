@@ -20,12 +20,12 @@ defmodule ElixirLS.LanguageServer.Server do
   alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer}
 
   alias ElixirLS.LanguageServer.Providers.{
-          Completion,
-          Hover,
-          Definition,
-          Formatting,
-          SignatureHelp
-        }
+    Completion,
+    Hover,
+    Definition,
+    Formatting,
+    SignatureHelp
+  }
 
   use Protocol
 

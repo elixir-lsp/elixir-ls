@@ -244,23 +244,21 @@ defmodule ElixirLS.Debugger.Server do
     {state, args_id} = ensure_var_id(state, pid, frame.args)
     {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
 
-    vars_scope =
-      %{
-        "name" => "variables",
-        "variablesReference" => bindings_id,
-        "namedVariables" => Enum.count(frame.bindings),
-        "indexedVariables" => 0,
-        "expensive" => false
-      }
+    vars_scope = %{
+      "name" => "variables",
+      "variablesReference" => bindings_id,
+      "namedVariables" => Enum.count(frame.bindings),
+      "indexedVariables" => 0,
+      "expensive" => false
+    }
 
-    args_scope =
-      %{
-        "name" => "arguments",
-        "variablesReference" => args_id,
-        "namedVariables" => 0,
-        "indexedVariables" => Enum.count(frame.args),
-        "expensive" => false
-      }
+    args_scope = %{
+      "name" => "arguments",
+      "variablesReference" => args_id,
+      "namedVariables" => 0,
+      "indexedVariables" => Enum.count(frame.args),
+      "expensive" => false
+    }
 
     scopes = if Enum.count(frame.args) > 0, do: [vars_scope, args_scope], else: [vars_scope]
     {%{"scopes" => scopes}, state}
@@ -338,13 +336,12 @@ defmodule ElixirLS.Debugger.Server do
           {state, 0}
         end
 
-      json =
-        %{
-          "name" => to_string(name),
-          "value" => inspect(value),
-          "variablesReference" => var_id,
-          "type" => Variables.type(value)
-        }
+      json = %{
+        "name" => to_string(name),
+        "value" => inspect(value),
+        "variablesReference" => var_id,
+        "type" => Variables.type(value)
+      }
 
       json =
         case Variables.child_type(value) do

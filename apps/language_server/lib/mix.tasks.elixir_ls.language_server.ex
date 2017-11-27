@@ -13,12 +13,14 @@ defmodule Mix.Tasks.ElixirLs.LanguageServer do
   defp configure_logger do
     use Mix.Config
 
-    Mix.Config.persist(logger: [
-      handle_otp_reports: true,
-      handle_sasl_reports: true,
-      level: :warn,
-      backends: [{ElixirLS.LanguageServer.LoggerBackend, :lsp_logger_backend}]
-    ])
+    Mix.Config.persist(
+      logger: [
+        handle_otp_reports: true,
+        handle_sasl_reports: true,
+        level: :warn,
+        backends: [{ElixirLS.LanguageServer.LoggerBackend, :lsp_logger_backend}]
+      ]
+    )
 
     logger = Process.whereis(Logger)
     if logger, do: Logger.App.stop()

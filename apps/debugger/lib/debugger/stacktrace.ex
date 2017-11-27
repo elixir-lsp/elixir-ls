@@ -17,16 +17,15 @@ defmodule ElixirLS.Debugger.Stacktrace do
         [{level, {module, function, args}} | backtrace_rest] =
           :int.meta(meta_pid, :backtrace, :all)
 
-        first_frame =
-          %Frame{
-            level: level,
-            module: module,
-            function: function,
-            args: args,
-            file: get_file(module),
-            line: break_line(pid),
-            bindings: get_bindings(meta_pid, level)
-          }
+        first_frame = %Frame{
+          level: level,
+          module: module,
+          function: function,
+          args: args,
+          file: get_file(module),
+          line: break_line(pid),
+          bindings: get_bindings(meta_pid, level)
+        }
 
         # If backtrace_rest is empty, calling stack_frames causes an exception
         other_frames =

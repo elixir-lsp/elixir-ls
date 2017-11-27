@@ -43,7 +43,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     )
 
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, completion_req(1, uri, 2, 29))
+    Server.receive_packet(server, completion_req(1, uri, 2, 25))
 
     assert_receive response(1, %{
                      "isIncomplete" => true,
@@ -145,7 +145,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                      "activeSignature" => 0,
                      "signatures" => [
                        %{
-                         "documentation" => "@spec inspect(Inspect.t, keyword) :: String.t\nInspects the given argument according to the `Inspect` protocol.\nThe second argument is a keyword list with options to control\ninspection.",
+                         "documentation" =>
+                           "@spec inspect(Inspect.t, keyword) :: String.t\nInspects the given argument according to the `Inspect` protocol.\nThe second argument is a keyword list with options to control\ninspection.",
                          "label" => "inspect(term, opts \\\\ [])",
                          "parameters" => [%{"label" => "term"}, %{"label" => "opts \\\\ []"}]
                        }
@@ -165,8 +166,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" => "** (CompileError) lib/has_error.ex:4: undefined function does_not_exist" <>
-                             _,
+                           "message" =>
+                             "** (CompileError) lib/has_error.ex:4: undefined function does_not_exist" <>
+                               _,
                            "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
                            "severity" => 1
                          }
