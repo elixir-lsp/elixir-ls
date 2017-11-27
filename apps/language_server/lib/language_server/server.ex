@@ -339,12 +339,12 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(completion_req(_id, uri, line, character), state) do
     snippets_supported =
-      get_in(state.client_capabilities, [
+      !!get_in(state.client_capabilities, [
         "textDocument",
         "completion",
         "completionItem",
         "snippetSupport"
-      ]) != false
+      ])
 
     fun = fn ->
       {
