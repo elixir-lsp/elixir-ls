@@ -421,11 +421,12 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp initialize(%{"projectDir" => project_dir} = config) do
+    prev_env = Mix.env()
     task = config["task"]
     task_args = config["taskArgs"]
-    mix_env = config["mixEnv"]
 
     set_stack_trace_mode(config["stackTraceMode"])
+    set_env_vars(config["env"])
 
     File.cd!(project_dir)
 
@@ -437,7 +438,8 @@ defmodule ElixirLS.Debugger.Server do
     end
 
     task = task || Mix.Project.config()[:default_task]
-    unless mix_env, do: change_env(task)
+    env = task_env(task)
+    if env != prev_env, do: change_env(env)
 
     Mix.Task.run("loadconfig")
 
@@ -452,15 +454,30 @@ defmodule ElixirLS.Debugger.Server do
       end
     end
 
-    Mix.Task.run("app.start", [])
-    # Mix.TasksServer.clear()
+    # Some tasks (such as Phoenix tests) expect apps to already be running before the test files are
+    # required
+    if config["startApps"] do
+      Mix.Task.run("app.start", [])
+    end
 
-    interpret_modules_in(Mix.Project.build_path())
+    exclude_modules =
+      config
+      |> Map.get("excludeModules", [])
+      |> Enum.map(&string_to_module/1)
+
+    interpret_modules_in(Mix.Project.build_path(), exclude_modules)
 
     if required_files = config["requireFiles"], do: require_files(required_files)
 
     ElixirLS.Debugger.Output.send_event("initialized", %{})
   end
+
+  defp set_env_vars(env) when is_map(env) do
+    for {k, v} <- env, do: System.put_env(k, v)
+    :ok
+  end
+
+  defp set_env_vars(env) when is_nil(env), do: :ok
 
   defp set_stack_trace_mode("all"), do: :int.stack_trace(:all)
   defp set_stack_trace_mode("no_tail"), do: :int.stack_trace(:no_tail)
@@ -496,13 +513,18 @@ defmodule ElixirLS.Debugger.Server do
     }
   end
 
-  defp interpret_modules_in(path) do
+  defp interpret_modules_in(path, exclude_modules) do
     path
     |> Path.join("**/*.beam")
     |> Path.wildcard()
     |> Enum.map(&(Path.basename(&1, ".beam") |> String.to_atom()))
-    |> Enum.filter(&(:int.interpretable(&1) == true && !:code.is_sticky(&1) && &1 != __MODULE__))
+    |> Enum.filter(&interpretable?(&1, exclude_modules))
     |> Enum.map(&:int.ni(&1))
+  end
+
+  defp interpretable?(module, exclude_modules) do
+    :int.interpretable(module) == true and !:code.is_sticky(module) and module != __MODULE__ and
+      module not in exclude_modules
   end
 
   defp check_erlang_version do
@@ -516,23 +538,23 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp change_env(task) do
-    if env = preferred_cli_env(task) do
-      Mix.env(env)
+  defp change_env(env) do
+    Mix.env(env)
 
-      if project = Mix.Project.pop() do
-        %{name: name, file: file} = project
-        Mix.Project.push(name, file)
-      end
+    if project = Mix.Project.pop() do
+      %{name: name, file: file} = project
+      :code.purge(name)
+      :code.delete(name)
+      Code.load_file(file)
     end
   end
 
-  defp preferred_cli_env(task) do
+  defp task_env(task) do
     if System.get_env("MIX_ENV") do
-      nil
+      String.to_atom(System.get_env("MIX_ENV"))
     else
       task = String.to_atom(task)
-      Mix.Project.config()[:preferred_cli_env][task] || Mix.Task.preferred_cli_env(task)
+      Mix.Project.config()[:preferred_cli_env][task] || Mix.Task.preferred_cli_env(task) || :dev
     end
   end
 
@@ -596,6 +618,13 @@ defmodule ElixirLS.Debugger.Server do
 
       _ ->
         {:error, "Cannot interpret module #{inspect(module)}"}
+    end
+  end
+
+  defp string_to_module(str) when is_binary(str) do
+    case str do
+      ":" <> name -> String.to_atom(name)
+      name -> String.to_atom("Elixir." <> name)
     end
   end
 end
