@@ -155,7 +155,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   defp manifest_path(root_path) do
-    Path.join([root_path, ".elixir_ls/dialyzer_manifest_#{otp_vsn()}_elixir-#{System.version()}"])
+    Path.join([
+      root_path,
+      ".elixir_ls/dialyzer_manifest_#{otp_vsn()}_elixir-#{System.version()}_#{Mix.env()}"
+    ])
   end
 
   defp transfer_plt(active_plt, pid) do

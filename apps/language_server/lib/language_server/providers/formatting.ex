@@ -20,8 +20,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     []
   end
 
-  defp formatter_opts(root_uri) do
-    dot_formatter = Path.join(SourceFile.path_from_uri(root_uri), ".formatter.exs")
+  defp formatter_opts(project_dir) do
+    dot_formatter = Path.join(project_dir, ".formatter.exs")
 
     if File.regular?(dot_formatter) do
       {formatter_opts, _} = Code.eval_file(dot_formatter)

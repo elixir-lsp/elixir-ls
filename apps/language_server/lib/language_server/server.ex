@@ -34,6 +34,7 @@ defmodule ElixirLS.LanguageServer.Server do
     :dialyzer_sup,
     :client_capabilities,
     :root_uri,
+    :project_dir,
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
@@ -207,7 +208,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(notification("initialized"), state) do
-    trigger_build(state)
+    state
   end
 
   defp handle_notification(notification("$/setTraceNotification"), state) do
@@ -231,22 +232,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(did_change_configuration(settings), state) do
     settings = Map.get(settings, "elixirLS", %{})
-
     enable_dialyzer = Dialyzer.supported?() && Map.get(settings, "dialyzerEnabled", true)
+    mix_env = Map.get(settings, "mixEnv", "test")
+    project_dir = Map.get(settings, "projectDir")
 
     state =
-      cond do
-        enable_dialyzer and state.dialyzer_sup == nil ->
-          {:ok, pid} = Dialyzer.Supervisor.start_link(SourceFile.path_from_uri(state.root_uri))
-          %{state | dialyzer_sup: pid}
-
-        not enable_dialyzer and state.dialyzer_sup != nil ->
-          Process.exit(state.dialyzer_sup, :normal)
-          %{state | dialyzer_sup: nil}
-
-        true ->
-          state
-      end
+      state
+      |> set_mix_env(mix_env)
+      |> set_project_dir(project_dir)
+      |> set_dialyzer_enabled(enable_dialyzer)
 
     trigger_build(%{state | settings: settings})
   end
@@ -356,7 +350,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(formatting_req(_id, uri, _options), state) do
-    fun = fn -> Formatting.format(state.source_files[uri], state.root_uri) end
+    fun = fn -> Formatting.format(state.source_files[uri], state.project_dir) end
     {:async, fun, state}
   end
 
@@ -424,7 +418,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp trigger_build(state) do
     if build_enabled?(state) and state.build_ref == nil do
-      {_pid, build_ref} = Build.build(self(), SourceFile.path_from_uri(state.root_uri))
+      {_pid, build_ref} = Build.build(self(), SourceFile.path_from_uri(state.project_dir))
       %__MODULE__{state | build_ref: build_ref, needs_build?: false}
     else
       %__MODULE__{state | needs_build?: true}
@@ -480,7 +474,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp build_enabled?(state) do
-    match?("file://" <> _, state.root_uri)
+    is_binary(state.project_dir)
   end
 
   defp dialyzer_enabled?(state) do
@@ -526,5 +520,63 @@ defmodule ElixirLS.LanguageServer.Server do
 
     if warning != nil,
       do: JsonRpc.show_message(:info, warning <> " (Currently OTP #{otp_version})")
+  end
+
+  defp set_dialyzer_enabled(state, enable_dialyzer) do
+    cond do
+      enable_dialyzer and state.dialyzer_sup == nil and is_binary(state.project_dir) ->
+        {:ok, pid} = Dialyzer.Supervisor.start_link(state.project_dir)
+        %{state | dialyzer_sup: pid}
+
+      not enable_dialyzer and state.dialyzer_sup != nil ->
+        Process.exit(state.dialyzer_sup, :normal)
+        %{state | dialyzer_sup: nil}
+
+      true ->
+        state
+    end
+  end
+
+  defp set_mix_env(state, env) do
+    prev_env = state.settings["mixEnv"]
+
+    if is_nil(prev_env) or env == prev_env do
+      Mix.env(String.to_atom(env))
+    else
+      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix env")
+    end
+
+    state
+  end
+
+  defp set_project_dir(%{project_dir: prev_project_dir, root_uri: root_uri} = state, project_dir)
+       when is_binary(root_uri) do
+    project_dir =
+      if is_binary(project_dir) do
+        Path.expand(project_dir, SourceFile.path_from_uri(root_uri))
+      else
+        SourceFile.path_from_uri(root_uri)
+      end
+
+    cond do
+      is_nil(prev_project_dir) ->
+        File.cd!(project_dir)
+        put_in(state.project_dir, project_dir)
+
+      prev_project_dir != project_dir ->
+        JsonRpc.show_message(
+          :warning,
+          "You must restart ElixirLS after changing the project directory"
+        )
+
+        state
+
+      true ->
+        state
+    end
+  end
+
+  defp set_project_dir(state, _) do
+    state
   end
 end

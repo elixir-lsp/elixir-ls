@@ -11,6 +11,8 @@ defmodule ElixirLS.LanguageServer.Build do
         fn ->
           {us, _} =
             :timer.tc(fn ->
+              IO.puts("Compiling with Mix env #{Mix.env()}")
+
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
                   {status, diagnostics} = compile()

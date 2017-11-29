@@ -174,6 +174,11 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, initialize_req(1, root_uri, %{}))
       Server.receive_packet(server, notification("initialized"))
 
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
+      )
+
       assert_receive notification("textDocument/publishDiagnostics", %{
                        "uri" => ^error_file,
                        "diagnostics" => [
