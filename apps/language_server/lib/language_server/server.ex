@@ -32,7 +32,6 @@ defmodule ElixirLS.LanguageServer.Server do
   defstruct [
     :build_ref,
     :dialyzer_sup,
-    :dialyzer_name,
     :client_capabilities,
     :root_uri,
     build_diagnostics: [],
