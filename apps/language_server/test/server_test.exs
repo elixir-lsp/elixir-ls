@@ -104,27 +104,39 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   test "formatter", %{server: server} do
-    uri = "file:///file.ex"
-    code = ~S(
-    defmodule MyModule do
-    def my_fn do
-    :ok
-    end
-    end
-    )
+    in_fixture(__DIR__, "formatter", fn ->
+      root_uri = SourceFile.path_to_uri(File.cwd!())
+      Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+      Server.receive_packet(server, notification("initialized"))
 
-    Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, formatting_req(1, uri, %{}))
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
+      )
 
-    assert_receive response(1, [
-                     %{
-                       "newText" => "defmodule MyModule do\n  def my_fn do\n    :ok\n  end\nend",
-                       "range" => %{
-                         "end" => %{"character" => 4, "line" => 6},
-                         "start" => %{"character" => 0, "line" => 0}
+      uri = Path.join([root_uri, "file.ex"])
+      code = ~S(
+      defmodule MyModule do
+      def my_fn do
+      x = "This should be split into two lines if reading options from .formatter.exs"
+      end
+      end
+      )
+
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, formatting_req(1, uri, %{}))
+
+      assert_receive response(1, [
+                       %{
+                         "newText" =>
+                           "defmodule MyModule do\n  def my_fn do\n    x =\n      \"This should be split into two lines if reading options from .formatter.exs\"\n  end\nend",
+                         "range" => %{
+                           "end" => %{"character" => 6, "line" => 6},
+                           "start" => %{"character" => 0, "line" => 0}
+                         }
                        }
-                     }
-                   ])
+                     ])
+    end)
   end
 
   test "signature help", %{server: server} do
