@@ -45,7 +45,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         Enum.map(items, &remove_snippets/1)
       end
 
-    %{"isIncomplete" => true, "items" => items}
+    {:ok, %{"isIncomplete" => true, "items" => items}}
   end
 
   ## Helpers
