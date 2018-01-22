@@ -494,7 +494,7 @@ defmodule ElixirLS.LanguageServer.Server do
     unless Version.match?(System.version(), ">= 1.6.0-dev") do
       JsonRpc.show_message(
         :info,
-        "Upgrade to Elixir >= 1.6.0-dev for build warnings and errors and for code formatting. " <>
+        "Upgrade to Elixir >= 1.6 for build warnings and errors and for code formatting. " <>
           "(Currently v#{System.version()})"
       )
     end
