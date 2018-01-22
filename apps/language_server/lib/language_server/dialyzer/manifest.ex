@@ -37,18 +37,17 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       exported_types: exported_types
     ) = active_plt
 
-    manifest_data =
-      {
-        @manifest_vsn,
-        mod_deps,
-        md5,
-        warnings,
-        :ets.tab2list(info),
-        :ets.tab2list(types),
-        :ets.tab2list(contracts),
-        :ets.tab2list(callbacks),
-        :ets.tab2list(exported_types)
-      }
+    manifest_data = {
+      @manifest_vsn,
+      mod_deps,
+      md5,
+      warnings,
+      :ets.tab2list(info),
+      :ets.tab2list(types),
+      :ets.tab2list(contracts),
+      :ets.tab2list(callbacks),
+      :ets.tab2list(exported_types)
+    }
 
     Process.spawn(
       fn ->
