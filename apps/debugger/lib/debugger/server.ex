@@ -119,13 +119,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(launch_req(_, config), state) do
-    {_, ref} =
-      Process.spawn(
-        fn ->
-          initialize(config)
-        end,
-        [:monitor]
-      )
+    {_, ref} = spawn_monitor(fn -> initialize(config) end)
 
     receive do
       {:DOWN, ^ref, :process, _pid, reason} ->
@@ -173,7 +167,7 @@ defmodule ElixirLS.Debugger.Server do
 
     task = state.config["task"] || Mix.Project.config()[:default_task]
     args = state.config["taskArgs"] || []
-    {_pid, task_ref} = Process.spawn(fn -> launch_task(task, args) end, [:monitor])
+    {_pid, task_ref} = spawn_monitor(fn -> launch_task(task, args) end)
 
     {%{}, %{state | task_ref: task_ref}}
   end

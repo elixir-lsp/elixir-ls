@@ -58,16 +58,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     parent = self()
 
     pid =
-      Process.spawn(
-        fn ->
-          :dialyzer_analysis_callgraph.start(
-            parent,
-            @default_warns ++ @non_default_warns,
-            analysis_config
-          )
-        end,
-        [:link]
-      )
+      spawn_link(fn ->
+        :dialyzer_analysis_callgraph.start(
+          parent,
+          @default_warns ++ @non_default_warns,
+          analysis_config
+        )
+      end)
 
     state = %__MODULE__{backend_pid: pid}
     main_loop(state)

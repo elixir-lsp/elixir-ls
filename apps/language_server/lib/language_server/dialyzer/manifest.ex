@@ -11,15 +11,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   def build_new_manifest() do
     parent = self()
 
-    Process.spawn(
-      fn ->
-        active_plt = load_elixir_plt()
-        transfer_plt(active_plt, parent)
+    spawn_link(fn ->
+      active_plt = load_elixir_plt()
+      transfer_plt(active_plt, parent)
 
-        Dialyzer.analysis_finished(parent, :noop, active_plt, %{}, %{}, %{}, nil)
-      end,
-      [:link]
-    )
+      Dialyzer.analysis_finished(parent, :noop, active_plt, %{}, %{}, %{}, nil)
+    end)
   end
 
   def write(_, _, _, _, _, nil) do
@@ -49,20 +46,17 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       :ets.tab2list(exported_types)
     }
 
-    Process.spawn(
-      fn ->
-        # Because the manifest file can be several megabytes, we do a write-then-rename
-        # to reduce the likelihood of corrupting the manifest
-        JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Writing manifest...")
-        File.mkdir_p!(Path.dirname(manifest_path))
-        tmp_manifest_path = manifest_path <> ".new"
-        File.write!(tmp_manifest_path, :erlang.term_to_binary(manifest_data, compressed: 9))
-        File.rename(tmp_manifest_path, manifest_path)
-        File.touch!(manifest_path, timestamp)
-        JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Done writing manifest.")
-      end,
-      []
-    )
+    spawn(fn ->
+      # Because the manifest file can be several megabytes, we do a write-then-rename
+      # to reduce the likelihood of corrupting the manifest
+      JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Writing manifest...")
+      File.mkdir_p!(Path.dirname(manifest_path))
+      tmp_manifest_path = manifest_path <> ".new"
+      File.write!(tmp_manifest_path, :erlang.term_to_binary(manifest_data, compressed: 9))
+      File.rename(tmp_manifest_path, manifest_path)
+      File.touch!(manifest_path, timestamp)
+      JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Done writing manifest.")
+    end)
   end
 
   def read(root_path) do

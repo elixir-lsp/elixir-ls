@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp do_analyze(state) do
     parent = self()
-    analysis_pid = Process.spawn(fn -> compile(parent, state) end, [:link])
+    analysis_pid = spawn_link(fn -> compile(parent, state) end)
 
     %{
       state
