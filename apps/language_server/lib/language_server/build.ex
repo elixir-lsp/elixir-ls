@@ -132,15 +132,11 @@ defmodule ElixirLS.LanguageServer.Build do
         {:ok, []}
       end
     else
-      {
-        :error,
-        [
-          mixfile_diagnostic(
-            {Path.absname(mixfile), nil, "No mixfile found in project root"},
-            :error
-          )
-        ]
-      }
+      msg =
+        "No mixfile found in project root. " <>
+          "To use a subdirectory, set `elixirLS.projectDir` in your settings"
+
+      {:error, [mixfile_diagnostic({Path.absname(mixfile), nil, msg}, :error)]}
     end
   end
 

@@ -364,12 +364,10 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request_async(id, func) do
     parent = self()
 
-    spawn_monitor(
-      fn ->
-        result = func.()
-        GenServer.call(parent, {:request_finished, id, result}, :infinity)
-      end
-    )
+    spawn_monitor(fn ->
+      result = func.()
+      GenServer.call(parent, {:request_finished, id, result}, :infinity)
+    end)
   end
 
   defp send_responses(state) do
