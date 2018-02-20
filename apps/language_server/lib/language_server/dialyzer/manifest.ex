@@ -119,6 +119,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       |> Enum.map(&:code.which/1)
       |> Enum.filter(&is_list/1)
 
+    File.mkdir_p!(Path.dirname(elixir_plt_path()))
+
     :dialyzer.run(
       analysis_type: :plt_build,
       files: files,
