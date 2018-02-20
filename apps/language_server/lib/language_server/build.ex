@@ -7,26 +7,23 @@ defmodule ElixirLS.LanguageServer.Build do
       IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
     else
-      Process.spawn(
-        fn ->
-          {us, _} =
-            :timer.tc(fn ->
-              IO.puts("Compiling with Mix env #{Mix.env()}")
+      spawn_monitor(fn ->
+        {us, _} =
+          :timer.tc(fn ->
+            IO.puts("Compiling with Mix env #{Mix.env()}")
 
-              case reload_project() do
-                {:ok, mixfile_diagnostics} ->
-                  {status, diagnostics} = compile()
-                  Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
+            case reload_project() do
+              {:ok, mixfile_diagnostics} ->
+                {status, diagnostics} = compile()
+                Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
-                {:error, mixfile_diagnostics} ->
-                  Server.build_finished(parent, {:error, mixfile_diagnostics})
-              end
-            end)
+              {:error, mixfile_diagnostics} ->
+                Server.build_finished(parent, {:error, mixfile_diagnostics})
+            end
+          end)
 
-          JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
-        end,
-        [:monitor]
-      )
+        JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
+      end)
     end
   end
 
