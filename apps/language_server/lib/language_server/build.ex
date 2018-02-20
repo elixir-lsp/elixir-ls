@@ -114,6 +114,9 @@ defmodule ElixirLS.LanguageServer.Build do
       Mix.Task.run("loadconfig")
       Mix.Config.persist(logger: logger_config)
 
+      # Override build directory to avoid interfering with other dev tools
+      Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
+
       # If using Elixir 1.6 or higher, we can get diagnostics if Mixfile fails to load
       if Version.match?(System.version(), ">= 1.6.0-dev") do
         case Kernel.ParallelCompiler.compile([mixfile]) do
