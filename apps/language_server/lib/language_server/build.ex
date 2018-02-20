@@ -29,7 +29,8 @@ defmodule ElixirLS.LanguageServer.Build do
 
   def publish_file_diagnostics(uri, all_diagnostics, source_file) do
     diagnostics =
-      Enum.filter(all_diagnostics, &(SourceFile.path_to_uri(&1.file) == uri))
+      all_diagnostics
+      |> Enum.filter(&(SourceFile.path_to_uri(&1.file) == uri))
       |> Enum.sort_by(fn %{position: position} -> position end)
 
     diagnostics_json =

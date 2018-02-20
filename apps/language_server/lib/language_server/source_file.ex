@@ -28,7 +28,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   def path_to_uri(path) do
-    uri_path = URI.encode(Path.expand(path)) |> String.replace(":", "%3A")
+    uri_path =
+      path
+      |> Path.expand()
+      |> URI.encode()
+      |> String.replace(":", "%3A")
 
     case :os.type() do
       {:win32, _} -> "file:///" <> uri_path
