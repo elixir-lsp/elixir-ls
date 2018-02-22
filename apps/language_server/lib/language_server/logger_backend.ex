@@ -38,6 +38,11 @@ defmodule ElixirLS.LanguageServer.LoggerBackend do
     {:ok, state}
   end
 
+  # These implementations are required to avoid warnings but don't really do anything
+  def handle_info(_msg, state), do: {:ok, state}
+  def terminate(_reason, _state), do: :ok
+  def code_change(_old, state, _extra), do: {:ok, state}
+
   ## Helpers
 
   defp configure(name, opts) do
