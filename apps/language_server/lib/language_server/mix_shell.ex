@@ -13,7 +13,6 @@ defmodule ElixirLS.LanguageServer.MixShell do
   defdelegate(cmd(command, opts \\ []), to: Mix.Shell.IO)
   defdelegate(info(message), to: Mix.Shell.IO)
   defdelegate(error(message), to: Mix.Shell.IO)
-  defdelegate(write(message), to: Mix.Shell.IO)
 
   def prompt(message) do
     if WireProtocol.io_intercepted?() do
