@@ -277,12 +277,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           end
 
         # Clear warnings for files that changed or need to be re-analyzed
-        warnings = Map.drop(warnings, removed_files)
-
-        warnings =
-          for file <- files_to_analyze, into: warnings do
-            {Path.absname(file), []}
-          end
+        warnings = Map.drop(warnings, modules_to_analyze)
 
         # Analyze!
         JsonRpc.log_message(
@@ -314,23 +309,17 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp add_warnings(warnings, raw_warnings) do
     new_warnings =
-      for {_, {file, line, m_or_mfa}, _} = warning <- raw_warnings, File.exists?(file) do
+      for {_, {file, line, m_or_mfa}, _} = warning <- raw_warnings, in_project?(file) do
         module =
           case m_or_mfa do
             module when is_atom(module) -> module
             {module, _, _} when is_atom(module) -> module
           end
 
-        beam_file = to_string(:code.which(module))
-
-        beam_file =
-          if in_project?(beam_file), do: Path.relative_to_cwd(beam_file), else: beam_file
-
-        {to_string(beam_file), {file, line, warning}}
+        {module, {file, line, warning}}
       end
 
     new_warnings
-    |> Enum.filter(fn {beam_file, _} -> in_project?(beam_file) end)
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
     |> Enum.into(warnings)
   end
@@ -352,7 +341,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp in_project?(path) do
-    String.starts_with?(Path.absname(path), File.cwd!())
+    File.exists?(path) and String.starts_with?(Path.absname(path), File.cwd!())
   end
 
   defp module_md5(content) do

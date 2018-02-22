@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   import Dialyzer.Utils
   require Logger
 
-  @manifest_vsn :v1
+  @manifest_vsn :v2
 
   defrecord(:plt, [:info, :types, :contracts, :callbacks, :exported_types])
 
