@@ -210,7 +210,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^mixfile_uri,
                        "diagnostics" => [
                          %{
-                           "message" => "No mixfile found in project root",
+                           "message" => "No mixfile found in project root" <> _,
                            "severity" => 1
                          }
                        ]
