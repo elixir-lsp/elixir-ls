@@ -14,7 +14,7 @@ defmodule ElixirLS.Debugger.Output do
   ## Client API
 
   def start(name \\ nil) do
-    GenServer.start(__MODULE__, 1, name: name)
+    GenServer.start(__MODULE__, :ok, name: name)
   end
 
   def send_response(server \\ __MODULE__, request_packet, response_body) do
@@ -34,6 +34,10 @@ defmodule ElixirLS.Debugger.Output do
   end
 
   ## Server callbacks
+
+  def init(:ok) do
+    {:ok, 1}
+  end
 
   def handle_call({:send_response, request_packet, body}, _from, seq) do
     send(response(seq, request_packet["seq"], request_packet["command"], body))
