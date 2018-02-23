@@ -1,11 +1,11 @@
 defmodule Mix.Tasks.Release do
-  @switches [destination: :string]
-  @aliases [o: :destination]
+  @switches [destination: :string, zip: :string]
+  @aliases [o: :destination, z: :zip]
 
   def run(args) do
     version_warning()
     {opts, _} = OptionParser.parse!(args, aliases: @aliases, switches: @switches)
-    destination = opts[:destination] || "release"
+    destination = Path.expand(opts[:destination] || "release")
 
     Path.join(destination, "*.ez")
     |> Path.wildcard()
@@ -25,6 +25,15 @@ defmodule Mix.Tasks.Release do
       dest_file = Path.join([destination, Path.basename(file)])
       File.cp!(file, dest_file)
     end)
+
+    # If --zip <file> option is provided, package into a zip file
+    if opts[:zip] do
+      zip_file = to_charlist(Path.expand(opts[:zip]))
+      files = Enum.map(File.ls!(destination), &to_charlist/1)
+      :zip.create(zip_file, files, cwd: destination)
+    end
+
+    :ok
   end
 
   defp version_warning do
