@@ -7,6 +7,7 @@ defmodule Mix.Tasks.ElixirLs.LanguageServer do
     configure_logger()
     Application.ensure_all_started(:language_server, :permanent)
     Mix.shell(ElixirLS.LanguageServer.MixShell)
+    IO.puts("Started ElixirLS")
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
   end
 
