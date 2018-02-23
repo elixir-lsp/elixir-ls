@@ -75,9 +75,9 @@ ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and s
 
 ## Building and running
 
-Run `mix release -o <release_dir>` (which is defined in the `elixir_ls_utils` umbrella child) to build the language server and debugger as a set of `.ez` archives. Then you can set `ERL_LIBS=<release_dir> mix elixir_ls.language_server` or `ERL_LIBS=<release_dir> mix elixir_ls.debugger` to launch. (On Windows, the command would be `SET ERL_LIBS=<release_dir>; mix elixir_ls.language_server`)
+Run `mix compile`, then `mix release -o <release_dir>`. This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
 
-If you're packaging these archives in an IDE plugin, make sure to build using Erlang/OTP 19, not OTP 20, because OTP 20 beam files are not backwards-compatible with earlier Erlang versions.
+If you're packaging these archives in an IDE plugin, make sure to build using Erlang/OTP 19, not OTP 20, because OTP 20 beam files are not backwards-compatible with earlier Erlang versions. Alternatively, you can use a [precompiled release](https://github.com/JakeBecker/elixir-ls/releases).
 
 ## Acknowledgements and related projects
 
