@@ -101,6 +101,13 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, state}
   end
 
+  # If we get the disconnect request from the client, we send :disconnect to the server so it will
+  # die right after responding to the request
+  def handle_info(:disconnect, state) do
+    System.halt(0)
+    {:noreply, state}
+  end
+
   def handle_info(msg, state) do
     super(msg, state)
   end
@@ -271,7 +278,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(request(_, "disconnect"), state) do
-    System.halt(0)
+    send(self(), :disconnect)
     {%{}, state}
   end
 
