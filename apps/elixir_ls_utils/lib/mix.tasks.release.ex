@@ -17,6 +17,14 @@ defmodule Mix.Tasks.Release do
       "--destination",
       destination
     ])
+
+    # Copy launcher scripts
+    Path.join([:code.priv_dir(:elixir_ls_utils), "*"])
+    |> Path.wildcard()
+    |> Enum.map(fn file ->
+      dest_file = Path.join([destination, Path.basename(file)])
+      File.cp!(file, dest_file)
+    end)
   end
 
   defp version_warning do
