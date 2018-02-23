@@ -41,6 +41,6 @@ defmodule ElixirLS.Utils.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:poison, "~> 3.0"}, {:mix_task_archive_deps, "~> 0.4.0"}]
+    [{:jason, "~> 1.0"}, {:mix_task_archive_deps, "~> 0.4.0"}]
   end
 end
