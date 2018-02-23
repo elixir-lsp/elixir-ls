@@ -17,7 +17,7 @@ The Elixir Language Server provides a server that runs in the background, provid
 ## Supported versions
 
 Elixir:
-- 1.3 minimum
+- 1.4 minimum
 - \>= 1.6.0-dev recommended. Required for reporting of build warnings and errors, and for code formatting support.
 
 Erlang:
