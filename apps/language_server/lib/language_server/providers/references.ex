@@ -2,34 +2,54 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   @moduledoc """
   This module provides References support by using
   the `Mix.Tasks.Xref` task to find all references to
-  any function found at the provided location.
+  any function or module identified at the provided location.
   """
 
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.Metadata
 
   def references(text, line, character, _include_declaration) do
-    # support _include_declaration
-    subject = get_subject(text, line, character)
-    {module, scope, arity} = get_line_scope(text, line)
-
-    cond do
-      subject == scope -> xref(module, scope, arity) |> Enum.map(&build_location/1)
-      true -> []
-    end
+    subject_at_cursor(text, line, character)
+    |> derive_function_subject(get_line_context(text, line))
+    |> xref()
+    |> Enum.map(&build_location/1)
   end
 
-  @xref_pattern ~r/(?<path>.*):(?<line>\d+): (?<function>.*)/
-  defp xref(module, scope, arity) do
+  # Guard against reference requests that lack a subject
+  defp derive_function_subject(nil, _line_context), do: ""
+
+  # Support finding references to a function by clicking on its function head
+  # e.g. "foo" in `def foo`
+  defp derive_function_subject(subject, {module, subject, arity}),
+    do: "#{module}.#{subject}/#{arity}"
+
+  # Support finding references to an erlang module or function reference
+  # e.g. `:timer` or `:timer.tc`
+  defp derive_function_subject(":" <> _ = subject, _line_context), do: subject
+
+  # Support finding references to an elixir module or function reference
+  # e.g. `Application` or `Application.get_env`
+  defp derive_function_subject(subject, _line_context) do
+    if module_or_function_name?(subject), do: subject, else: ""
+  end
+
+  defp xref(""), do: []
+
+  defp xref(func) do
     ExUnit.CaptureIO.capture_io(fn ->
-      Mix.Tasks.Xref.run(["callers", "#{module}.#{scope}/#{arity}"])
+      Mix.Tasks.Xref.run(["callers", func])
     end)
-    |> String.trim()
     |> String.split("\n")
-    |> Enum.map(fn line ->
-      %{"path" => caller_path, "line" => caller_line} = Regex.named_captures(@xref_pattern, line)
-      %{uri: SourceFile.path_to_uri(caller_path), line: String.to_integer(caller_line) - 1}
-    end)
+    |> Enum.reject(&match?("", &1))
+    |> Enum.map(&parse_xref_line/1)
+  end
+
+  @xref_line_pattern ~r/(?<path>.*):(?<line>\d+): (?<function>.*)/
+  defp parse_xref_line(line) do
+    %{"path" => caller_path, "line" => caller_line} =
+      Regex.named_captures(@xref_line_pattern, line)
+
+    %{uri: SourceFile.path_to_uri(caller_path), line: String.to_integer(caller_line) - 1}
   end
 
   defp build_location(caller) do
@@ -42,15 +62,24 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     }
   end
 
-  defp get_subject(text, line, character) do
-    ElixirSense.Core.Source.subject(text, line + 1, character + 1) |> String.to_atom()
+  defp subject_at_cursor(text, line, character) do
+    ElixirSense.Core.Source.subject(text, line + 1, character + 1)
   end
 
-  defp get_line_scope(text, line) do
-    %{module: module, scope: {scope, arity}} =
-      ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
-      |> Metadata.get_env(line + 1)
+  defp get_line_context(text, line) do
+    ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
+    |> Metadata.get_env(line + 1)
+    |> case do
+      %{module: module, scope: {scope, arity}} ->
+        {String.Chars.to_string(module), String.Chars.to_string(scope), arity}
 
-    {module, scope, arity}
+      _ ->
+        nil
+    end
   end
+
+  @capitalized_atom ~S(\p{Lu}[\p{L}\d_]*)
+  @function_name ~S(\p{L}[\p{L}\d_]*)
+  @module_name ~r/\A#{@capitalized_atom}(\.#{@capitalized_atom})*(\.#{@function_name})?\z/
+  defp module_or_function_name?(str), do: Regex.match?(@module_name, str)
 end
