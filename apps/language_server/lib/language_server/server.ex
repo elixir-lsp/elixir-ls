@@ -23,6 +23,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Completion,
     Hover,
     Definition,
+    References,
     Formatting,
     SignatureHelp
   }
@@ -322,6 +323,17 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(references_req(_id, uri, line, character, include_declaration), state) do
+    fun = fn ->
+      {
+        :ok,
+        References.references(state.source_files[uri].text, line, character, include_declaration)
+      }
+    end
+
+    {:async, fun, state}
+  end
+
   defp handle_request(hover_req(_id, uri, line, character), state) do
     fun = fn ->
       Hover.hover(state.source_files[uri].text, line, character)
@@ -391,6 +403,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => ["."]},
       "definitionProvider" => true,
+      "referencesProvider" => true,
       "documentFormattingProvider" => Formatting.supported?(),
       "signatureHelpProvider" => %{"triggerCharacters" => ["("]}
     }

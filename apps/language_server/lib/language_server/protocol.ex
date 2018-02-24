@@ -64,6 +64,16 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro references_req(id, uri, line, character, include_declaration) do
+    quote do
+      request(unquote(id), "textDocument/references", %{
+        "textDocument" => %{"uri" => unquote(uri)},
+        "position" => %{"line" => unquote(line), "character" => unquote(character)},
+        "context" => %{"includeDeclaration" => unquote(include_declaration)}
+      })
+    end
+  end
+
   defmacro initialize_req(id, root_uri, client_capabilities) do
     quote do
       request(unquote(id), "initialize", %{
