@@ -1,84 +1,66 @@
 defmodule ElixirLS.LanguageServer.Providers.References do
   @moduledoc """
   This module provides References support by using
-  the `Mix.Tasks.Xref` task to find all references to
+  the `Mix.Tasks.Xref.call/0` task to find all references to
   any function or module identified at the provided location.
   """
 
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirSense.Core.Metadata
+  alias ElixirSense.Core.{Metadata, Parser, Source}
 
   def references(text, line, character, _include_declaration) do
-    subject_at_cursor(text, line, character)
-    |> derive_function_subject(get_line_context(text, line))
-    |> xref()
-    |> Enum.map(&build_location/1)
+    xref_at_cursor(text, line, character) |> Enum.map(&build_location/1)
   end
 
-  # Guard against reference requests that lack a subject
-  defp derive_function_subject(nil, _line_context), do: ""
-
-  # Support finding references to a function by clicking on its function head
-  # e.g. "foo" in `def foo`
-  defp derive_function_subject(subject, {module, subject, arity}),
-    do: "#{module}.#{subject}/#{arity}"
-
-  # Support finding references to an erlang module or function reference
-  # e.g. `:timer` or `:timer.tc`
-  defp derive_function_subject(":" <> _ = subject, _line_context), do: ":" <> derive_mfa(subject)
-
-  # Support finding references to an elixir module or function reference
-  # e.g. `Application` or `Application.get_env`
-  defp derive_function_subject(subject, _line_context), do: derive_mfa(subject)
-
-  defp derive_mfa(subject) do
-    case Mix.Utils.parse_mfa(subject) do
-      :error -> ""
-      {:ok, [module]} -> "#{module}"
-      {:ok, [module, function]} -> "#{module}.#{function}"
-      {:ok, [module, function, arity]} -> "#{module}.#{function}/#{arity}"
+  defp xref_at_cursor(text, line, character) do
+    subject_at_cursor(text, line, character)
+    |> callee_at_cursor(text, line)
+    |> case do
+      {:ok, mfa} -> callers(mfa)
+      _ -> []
     end
   end
 
-  defp xref(""), do: []
+  defp callee_at_cursor(nil, _, _), do: :error
 
-  defp xref(func) do
-    ExUnit.CaptureIO.capture_io(fn ->
-      Mix.Tasks.Xref.run(["callers", func])
-    end)
-    |> String.split("\n")
-    |> Enum.reject(&match?("", &1))
-    |> Enum.map(&parse_xref_line/1)
+  defp callee_at_cursor(subject_at_cursor, text, line) do
+    case function_context_at_cursor(text, line) do
+      [_module, ^subject_at_cursor, _arity] = mfa -> {:ok, mfa}
+      _ -> Mix.Utils.parse_mfa(subject_at_cursor)
+    end
   end
 
-  @xref_line_pattern ~r/(?<path>.*):(?<line>\d+): (?<function>.*)/
-  defp parse_xref_line(line) do
-    %{"path" => caller_path, "line" => caller_line} =
-      Regex.named_captures(@xref_line_pattern, line)
+  def callers(mfa), do: Mix.Tasks.Xref.calls() |> Enum.filter(caller_filter(mfa))
 
-    %{uri: SourceFile.path_to_uri(caller_path), line: String.to_integer(caller_line) - 1}
-  end
+  defp caller_filter([module, func, arity]), do: &match?(%{callee: {^module, ^func, ^arity}}, &1)
 
-  defp build_location(caller) do
-    %{
-      "uri" => caller.uri,
-      "range" => %{
-        "start" => %{"line" => caller.line, "character" => 0},
-        "end" => %{"line" => caller.line, "character" => 0}
-      }
-    }
-  end
+  defp caller_filter([module, func]), do: &match?(%{callee: {^module, ^func, _}}, &1)
+
+  defp caller_filter([module]), do: &match?(%{callee: {^module, _, _}}, &1)
 
   defp subject_at_cursor(text, line, character) do
-    ElixirSense.Core.Source.subject(text, line + 1, character + 1)
+    case Source.subject(text, line + 1, character + 1) do
+      nil -> nil
+      subject -> String.to_atom(subject)
+    end
   end
 
-  defp get_line_context(text, line) do
-    ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
+  defp function_context_at_cursor(text, line) do
+    Parser.parse_string(text, true, true, line + 1)
     |> Metadata.get_env(line + 1)
     |> case do
-      %{module: module, scope: {scope, arity}} -> {"#{module}", "#{scope}", "#{arity}"}
+      %{module: module, scope: {scope, arity}} -> [module, scope, arity]
       _ -> nil
     end
+  end
+
+  defp build_location(call) do
+    %{
+      "uri" => SourceFile.path_to_uri(call.file),
+      "range" => %{
+        "start" => %{"line" => call.line - 1, "character" => 0},
+        "end" => %{"line" => call.line - 1, "character" => 0}
+      }
+    }
   end
 end
