@@ -24,7 +24,8 @@ defmodule ElixirLS.LanguageServer.Server do
     Hover,
     Definition,
     Formatting,
-    SignatureHelp
+    SignatureHelp,
+    DocumentSymbols
   }
 
   use Protocol
@@ -330,6 +331,14 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(document_symbol_req(_id, uri), state) do
+    fun = fn ->
+      DocumentSymbols.symbols(uri, state.source_files[uri].text)
+    end
+
+    {:async, fun, state}
+  end
+
   defp handle_request(completion_req(_id, uri, line, character), state) do
     snippets_supported =
       !!get_in(state.client_capabilities, [
@@ -392,7 +401,8 @@ defmodule ElixirLS.LanguageServer.Server do
       "completionProvider" => %{"triggerCharacters" => ["."]},
       "definitionProvider" => true,
       "documentFormattingProvider" => Formatting.supported?(),
-      "signatureHelpProvider" => %{"triggerCharacters" => ["("]}
+      "signatureHelpProvider" => %{"triggerCharacters" => ["("]},
+      "documentSymbolProvider" => true
     }
   end
 
