@@ -25,12 +25,19 @@ defmodule ElixirLS.LanguageServer.Providers.References do
 
   # Support finding references to an erlang module or function reference
   # e.g. `:timer` or `:timer.tc`
-  defp derive_function_subject(":" <> _ = subject, _line_context), do: subject
+  defp derive_function_subject(":" <> _ = subject, _line_context), do: ":" <> derive_mfa(subject)
 
   # Support finding references to an elixir module or function reference
   # e.g. `Application` or `Application.get_env`
-  defp derive_function_subject(subject, _line_context) do
-    if module_or_function_name?(subject), do: subject, else: ""
+  defp derive_function_subject(subject, _line_context), do: derive_mfa(subject)
+
+  defp derive_mfa(subject) do
+    case Mix.Utils.parse_mfa(subject) do
+      :error -> ""
+      {:ok, [module]} -> "#{module}"
+      {:ok, [module, function]} -> "#{module}.#{function}"
+      {:ok, [module, function, arity]} -> "#{module}.#{function}/#{arity}"
+    end
   end
 
   defp xref(""), do: []
@@ -70,16 +77,8 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
     |> Metadata.get_env(line + 1)
     |> case do
-      %{module: module, scope: {scope, arity}} ->
-        {String.Chars.to_string(module), String.Chars.to_string(scope), arity}
-
-      _ ->
-        nil
+      %{module: module, scope: {scope, arity}} -> {"#{module}", "#{scope}", "#{arity}"}
+      _ -> nil
     end
   end
-
-  @capitalized_atom ~S(\p{Lu}[\p{L}\d_]*)
-  @function_name ~S(\p{L}[\p{L}\d_]*)
-  @module_name ~r/\A#{@capitalized_atom}(\.#{@capitalized_atom})*(\.#{@function_name})?\z/
-  defp module_or_function_name?(str), do: Regex.match?(@module_name, str)
 end
