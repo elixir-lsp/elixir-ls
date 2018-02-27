@@ -6,53 +6,50 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   """
 
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirSense.Core.{Metadata, Parser, Source}
+  alias ElixirSense.Core.{Metadata, Parser, Source, Introspection}
 
   def references(text, line, character, _include_declaration) do
-    xref_at_cursor(text, line, character) |> Enum.map(&build_location/1)
+    xref_at_cursor(text, line, character)
+    |> Enum.filter(fn %{line: line} -> is_integer(line) end)
+    |> Enum.map(&build_location/1)
   end
 
   defp xref_at_cursor(text, line, character) do
+    env_at_cursor = line_environment(text, line)
+
     subject_at_cursor(text, line, character)
-    |> callee_at_cursor(text, line)
-    |> case do
-      {:ok, mfa} -> callers(mfa)
-      _ -> []
-    end
+    |> Introspection.split_mod_fun_call()
+    |> expand_mod_fun(env_at_cursor)
+    |> add_arity(env_at_cursor)
+    |> callers()
   end
 
-  defp callee_at_cursor(nil, _, _), do: :error
-
-  defp callee_at_cursor(subject_at_cursor, text, line) do
-    case function_context_at_cursor(text, line) do
-      [_module, ^subject_at_cursor, _arity] = mfa -> {:ok, mfa}
-      _ -> Mix.Utils.parse_mfa(subject_at_cursor)
-    end
+  defp line_environment(text, line) do
+    Parser.parse_string(text, true, true, line + 1) |> Metadata.get_env(line + 1)
   end
-
-  def callers(mfa), do: Mix.Tasks.Xref.calls() |> Enum.filter(caller_filter(mfa))
-
-  defp caller_filter([module, func, arity]), do: &match?(%{callee: {^module, ^func, ^arity}}, &1)
-
-  defp caller_filter([module, func]), do: &match?(%{callee: {^module, ^func, _}}, &1)
-
-  defp caller_filter([module]), do: &match?(%{callee: {^module, _, _}}, &1)
 
   defp subject_at_cursor(text, line, character) do
-    case Source.subject(text, line + 1, character + 1) do
-      nil -> nil
-      subject -> String.to_atom(subject)
+    Source.subject(text, line + 1, character + 1)
+  end
+
+  defp expand_mod_fun(nil, _environment), do: nil
+
+  defp expand_mod_fun(mod_fun, %{imports: imports, aliases: aliases, module: module}) do
+    case Introspection.actual_mod_fun(mod_fun, imports, aliases, module) do
+      {mod, nil} -> {mod, nil}
+      {mod, fun} -> {mod, fun}
     end
   end
 
-  defp function_context_at_cursor(text, line) do
-    Parser.parse_string(text, true, true, line + 1)
-    |> Metadata.get_env(line + 1)
-    |> case do
-      %{module: module, scope: {scope, arity}} -> [module, scope, arity]
-      _ -> nil
-    end
-  end
+  defp add_arity({mod, fun}, %{scope: {fun, arity}, module: mod}), do: {mod, fun, arity}
+  defp add_arity({mod, fun}, _env), do: {mod, fun, nil}
+
+  def callers(nil), do: []
+  def callers(mfa), do: Mix.Tasks.Xref.calls() |> Enum.filter(caller_filter(mfa))
+
+  defp caller_filter({module, nil, nil}), do: &match?(%{callee: {^module, _, _}}, &1)
+  defp caller_filter({module, func, nil}), do: &match?(%{callee: {^module, ^func, _}}, &1)
+  defp caller_filter({module, func, arity}), do: &match?(%{callee: {^module, ^func, ^arity}}, &1)
 
   defp build_location(call) do
     %{
