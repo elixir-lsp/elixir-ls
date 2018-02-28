@@ -36,7 +36,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     Source.subject(text, line + 1, character + 1)
   end
 
-  defp expand_mod_fun(nil, _environment), do: nil
+  defp expand_mod_fun({nil, nil}, _environment), do: nil
 
   defp expand_mod_fun(mod_fun, %{imports: imports, aliases: aliases, module: module}) do
     case Introspection.actual_mod_fun(mod_fun, imports, aliases, module) do
