@@ -403,7 +403,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => ["."]},
       "definitionProvider" => true,
-      "referencesProvider" => true,
+      "referencesProvider" => References.supported?(),
       "documentFormattingProvider" => Formatting.supported?(),
       "signatureHelpProvider" => %{"triggerCharacters" => ["("]}
     }

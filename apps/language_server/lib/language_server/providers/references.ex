@@ -14,6 +14,10 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     |> Enum.map(&build_location/1)
   end
 
+  def supported? do
+    :erlang.function_exported(Mix.Tasks.Xref, :calls, 0)
+  end
+
   defp xref_at_cursor(text, line, character) do
     env_at_cursor = line_environment(text, line)
 
