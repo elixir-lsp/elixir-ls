@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   end
 
   def supported? do
-    :erlang.function_exported(Mix.Tasks.Xref, :calls, 0)
+    Mix.Tasks.Xref.__info__(:functions) |> Enum.member?({:calls, 0})
   end
 
   defp xref_at_cursor(text, line, character) do
