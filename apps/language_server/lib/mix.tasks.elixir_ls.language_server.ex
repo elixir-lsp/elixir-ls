@@ -4,6 +4,7 @@ defmodule Mix.Tasks.ElixirLs.LanguageServer do
 
   def run(_args) do
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
+    ElixirLS.Utils.Launch.restore_mix_exs_var()
     configure_logger()
     Application.ensure_all_started(:language_server, :permanent)
     Mix.shell(ElixirLS.LanguageServer.MixShell)
