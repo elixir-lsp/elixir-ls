@@ -327,7 +327,13 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {
         :ok,
-        References.references(state.source_files[uri].text, line, character, include_declaration)
+        References.references(
+          state.source_files[uri].text,
+          line,
+          character,
+          state.project_dir,
+          include_declaration
+        )
       }
     end
 

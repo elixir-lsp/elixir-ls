@@ -8,8 +8,8 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.{Metadata, Parser, Source, Introspection}
 
-  def references(text, line, character, _include_declaration) do
-    xref_at_cursor(text, line, character)
+  def references(text, line, character, project_dir, _include_declaration) do
+    xref_at_cursor(project_dir, text, line, character)
     |> Enum.filter(fn %{line: line} -> is_integer(line) end)
     |> Enum.map(&build_location/1)
   end
@@ -18,14 +18,14 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     Mix.Tasks.Xref.__info__(:functions) |> Enum.member?({:calls, 0})
   end
 
-  defp xref_at_cursor(text, line, character) do
+  defp xref_at_cursor(project_dir, text, line, character) do
     env_at_cursor = line_environment(text, line)
 
     subject_at_cursor(text, line, character)
     |> Introspection.split_mod_fun_call()
     |> expand_mod_fun(env_at_cursor)
     |> add_arity(env_at_cursor)
-    |> callers()
+    |> callers(project_dir)
   end
 
   defp line_environment(text, line) do
@@ -48,8 +48,26 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   defp add_arity({mod, fun}, %{scope: {fun, arity}, module: mod}), do: {mod, fun, arity}
   defp add_arity({mod, fun}, _env), do: {mod, fun, nil}
 
-  def callers(nil), do: []
-  def callers(mfa), do: Mix.Tasks.Xref.calls() |> Enum.filter(caller_filter(mfa))
+  def callers(nil, _), do: []
+
+  def callers(mfa, project_dir) do
+    if Mix.Project.umbrella?() do
+      build_dir = Path.join(project_dir, ".elixir_ls/build")
+
+      Mix.Project.apps_paths()
+      |> Enum.flat_map(fn {app, path} ->
+        Mix.Project.in_project(app, path, [build_path: build_dir], fn _ ->
+          Mix.Tasks.Xref.calls()
+          |> Enum.map(fn %{file: file} = call ->
+            Map.put(call, :file, Path.join(path, file))
+          end)
+        end)
+      end)
+    else
+      Mix.Tasks.Xref.calls()
+    end
+    |> Enum.filter(caller_filter(mfa))
+  end
 
   defp caller_filter({module, nil, nil}), do: &match?(%{callee: {^module, _, _}}, &1)
   defp caller_filter({module, func, nil}), do: &match?(%{callee: {^module, ^func, _}}, &1)
