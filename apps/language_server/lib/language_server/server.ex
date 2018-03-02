@@ -29,6 +29,7 @@ defmodule ElixirLS.LanguageServer.Server do
   }
 
   use Protocol
+  require Logger
 
   defstruct [
     :build_ref,
@@ -36,12 +37,12 @@ defmodule ElixirLS.LanguageServer.Server do
     :client_capabilities,
     :root_uri,
     :project_dir,
+    :settings,
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
     received_shutdown?: false,
     requests: [],
-    settings: %{},
     source_files: %{}
   ]
 
@@ -133,6 +134,24 @@ defmodule ElixirLS.LanguageServer.Server do
 
   def handle_cast(msg, state) do
     super(msg, state)
+  end
+
+  def handle_info(:default_config, state) do
+    state =
+      case state do
+        %{settings: nil} ->
+          Logger.warn(
+            "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
+              "Using default settings."
+          )
+
+          set_settings(state, %{})
+
+        _ ->
+          state
+      end
+
+    {:noreply, state}
   end
 
   def handle_info({:DOWN, ref, _, _pid, reason}, %{build_ref: ref} = state) do
@@ -233,17 +252,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(did_change_configuration(settings), state) do
     settings = Map.get(settings, "elixirLS", %{})
-    enable_dialyzer = Dialyzer.supported?() && Map.get(settings, "dialyzerEnabled", true)
-    mix_env = Map.get(settings, "mixEnv", "test")
-    project_dir = Map.get(settings, "projectDir")
-
-    state =
-      state
-      |> set_mix_env(mix_env)
-      |> set_project_dir(project_dir)
-      |> set_dialyzer_enabled(enable_dialyzer)
-
-    trigger_build(%{state | settings: settings})
+    set_settings(state, settings)
   end
 
   defp handle_notification(notification("exit"), state) do
@@ -308,6 +317,10 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
     state = %{state | client_capabilities: client_capabilities}
+
+    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
+    Process.send_after(self(), :default_config, 5000)
+
     {:ok, %{"capabilities" => server_capabilities()}, state}
   end
 
@@ -434,8 +447,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp dialyze(state) do
     warn_opts =
-      state.settings
-      |> Map.get("dialyzerWarnOpts", [])
+      (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
     if dialyzer_enabled?(state), do: Dialyzer.analyze(warn_opts)
@@ -527,6 +539,20 @@ defmodule ElixirLS.LanguageServer.Server do
 
     if warning != nil,
       do: JsonRpc.show_message(:info, warning <> " (Currently OTP #{otp_version})")
+  end
+
+  defp set_settings(state, settings) do
+    enable_dialyzer = Dialyzer.supported?() && Map.get(settings, "dialyzerEnabled", true)
+    mix_env = Map.get(settings, "mixEnv", "test")
+    project_dir = Map.get(settings, "projectDir")
+
+    state =
+      state
+      |> set_mix_env(mix_env)
+      |> set_project_dir(project_dir)
+      |> set_dialyzer_enabled(enable_dialyzer)
+
+    trigger_build(%{state | settings: settings})
   end
 
   defp set_dialyzer_enabled(state, enable_dialyzer) do
