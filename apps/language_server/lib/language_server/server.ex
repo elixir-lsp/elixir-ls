@@ -325,16 +325,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(references_req(_id, uri, line, character, include_declaration), state) do
     fun = fn ->
-      {
-        :ok,
-        References.references(
-          state.source_files[uri].text,
-          line,
-          character,
-          state.project_dir,
-          include_declaration
-        )
-      }
+      {:ok,
+       References.references(
+         state.source_files[uri].text,
+         line,
+         character,
+         include_declaration
+       )}
     end
 
     {:async, fun, state}

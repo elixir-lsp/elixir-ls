@@ -8,21 +8,23 @@ defmodule ElixirLS.LanguageServer.Build do
       {nil, nil}
     else
       spawn_monitor(fn ->
-        {us, _} =
-          :timer.tc(fn ->
-            IO.puts("Compiling with Mix env #{Mix.env()}")
+        with_build_lock(__MODULE__, fn ->
+          {us, _} =
+            :timer.tc(fn ->
+              IO.puts("Compiling with Mix env #{Mix.env()}")
 
-            case reload_project() do
-              {:ok, mixfile_diagnostics} ->
-                {status, diagnostics} = compile()
-                Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
+              case reload_project() do
+                {:ok, mixfile_diagnostics} ->
+                  {status, diagnostics} = compile()
+                  Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
-              {:error, mixfile_diagnostics} ->
-                Server.build_finished(parent, {:error, mixfile_diagnostics})
-            end
-          end)
+                {:error, mixfile_diagnostics} ->
+                  Server.build_finished(parent, {:error, mixfile_diagnostics})
+              end
+            end)
 
-        JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
+          JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
+        end)
       end)
     end
   end
@@ -91,6 +93,22 @@ defmodule ElixirLS.LanguageServer.Build do
       severity: :error,
       details: error
     }
+  end
+
+  def with_build_lock(requester, func) do
+    IO.puts("#{requester} requesting lock.")
+
+    :global.trans({:compilation_lock, requester}, fn ->
+      IO.puts("#{requester} acquired lock.")
+
+      {us, result} =
+        :timer.tc(fn ->
+          func.()
+        end)
+
+      IO.puts("#{requester} releasing lock after #{div(us, 1000)}ms.")
+      result
+    end)
   end
 
   defp reload_project do
