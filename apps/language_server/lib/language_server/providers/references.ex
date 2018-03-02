@@ -50,8 +50,6 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   defp add_arity({mod, fun}, %{scope: {fun, arity}, module: mod}), do: {mod, fun, arity}
   defp add_arity({mod, fun}, _env), do: {mod, fun, nil}
 
-  defp callers(nil), do: []
-
   defp callers(mfa) do
     if Mix.Project.umbrella?() do
       umbrella_calls()
