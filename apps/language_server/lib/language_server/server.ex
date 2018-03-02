@@ -426,7 +426,7 @@ defmodule ElixirLS.LanguageServer.Server do
     %{
       "textDocumentSync" => 1,
       "hoverProvider" => true,
-      "completionProvider" => %{"triggerCharacters" => ["."]},
+      "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
       "definitionProvider" => true,
       "referencesProvider" => References.supported?(),
       "documentFormattingProvider" => Formatting.supported?(),
