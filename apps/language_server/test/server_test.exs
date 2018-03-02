@@ -6,6 +6,20 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   doctest(Server)
 
+  defp initialize(server) do
+    Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+    Server.receive_packet(server, notification("initialized"))
+
+    Server.receive_packet(
+      server,
+      did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
+    )
+  end
+
+  defp root_uri do
+    SourceFile.path_to_uri(File.cwd!())
+  end
+
   setup do
     {:ok, server} = Server.start_link()
     {:ok, packet_capture} = PacketCapture.start_link(self())
@@ -105,16 +119,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   test "formatter", %{server: server} do
     in_fixture(__DIR__, "formatter", fn ->
-      root_uri = SourceFile.path_to_uri(File.cwd!())
-      Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-      Server.receive_packet(server, notification("initialized"))
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
-      )
-
-      uri = Path.join([root_uri, "file.ex"])
+      uri = Path.join([root_uri(), "file.ex"])
       code = ~S(
       defmodule MyModule do
       def my_fn do
@@ -123,6 +128,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       end
       )
 
+      initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       Server.receive_packet(server, formatting_req(1, uri, %{}))
 
@@ -168,16 +174,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   test "reports build diagnostics", %{server: server} do
     in_fixture(__DIR__, "build_errors", fn ->
-      root_uri = SourceFile.path_to_uri(File.cwd!())
       error_file = SourceFile.path_to_uri("lib/has_error.ex")
 
-      Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-      Server.receive_packet(server, notification("initialized"))
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
-      )
+      initialize(server)
 
       assert_receive notification("textDocument/publishDiagnostics", %{
                        "uri" => ^error_file,
@@ -196,15 +195,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   test "reports error if no mixfile", %{server: server} do
     in_fixture(__DIR__, "no_mixfile", fn ->
-      root_uri = SourceFile.path_to_uri(File.cwd!())
       mixfile_uri = SourceFile.path_to_uri("mix.exs")
-      Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-      Server.receive_packet(server, notification("initialized"))
 
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
-      )
+      initialize(server)
 
       assert_receive notification("textDocument/publishDiagnostics", %{
                        "uri" => ^mixfile_uri,
