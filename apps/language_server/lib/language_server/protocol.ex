@@ -119,6 +119,14 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro document_symbol_req(id, uri) do
+    quote do
+      request(unquote(id), "textDocument/documentSymbol", %{
+        "textDocument" => %{"uri" => unquote(uri)}
+      })
+    end
+  end
+
   defmacro signature_help_req(id, uri, line, character) do
     quote do
       request(unquote(id), "textDocument/signatureHelp", %{
