@@ -48,7 +48,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   # Identify and extract the module symbol, and the symbols contained within the module
   defp extract_module({:defmodule, _, _child_ast} = ast) do
-    {_, _, [{:__aliases__, location, module_name}, [do: {:__block__, [], mod_defns}]]} = ast
+    {_, _, [{:__aliases__, location, module_name}, [do: module_body]]} = ast
+
+    mod_defns =
+      case module_body do
+        {:__block__, [], mod_defns} -> mod_defns
+        stmt -> [stmt]
+      end
+
     module_name = Enum.join(module_name, ".")
 
     module_symbols =
