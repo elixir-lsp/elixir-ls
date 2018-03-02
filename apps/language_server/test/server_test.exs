@@ -212,6 +212,33 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end)
   end
 
+  test "finds references in non-umbrella project", %{server: server} do
+    in_fixture(__DIR__, "references", fn ->
+      file_path = "lib/b.ex"
+      file_uri = SourceFile.path_to_uri(file_path)
+      text = File.read!(file_path)
+      reference_uri = SourceFile.path_to_uri("lib/a.ex")
+
+      initialize(server)
+      Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+
+      Server.receive_packet(
+        server,
+        references_req(4, file_uri, 1, 8, true)
+      )
+
+      assert_receive(
+        response(4, [
+          %{
+            "range" => %{"start" => %{"line" => 2}, "end" => %{"line" => 2}},
+            "uri" => ^reference_uri
+          }
+        ]),
+        5000
+      )
+    end)
+  end
+
   test "finds references in umbrella project", %{server: server} do
     in_fixture(__DIR__, "umbrella", fn ->
       file_path = "apps/app2/lib/app2.ex"
