@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Build do
       {nil, nil}
     else
       spawn_monitor(fn ->
-        with_build_lock(__MODULE__, fn ->
+        with_build_lock(fn ->
           {us, _} =
             :timer.tc(fn ->
               IO.puts("Compiling with Mix env #{Mix.env()}")
@@ -95,20 +95,8 @@ defmodule ElixirLS.LanguageServer.Build do
     }
   end
 
-  def with_build_lock(requester, func) do
-    IO.puts("#{requester} requesting lock.")
-
-    :global.trans({:compilation_lock, requester}, fn ->
-      IO.puts("#{requester} acquired lock.")
-
-      {us, result} =
-        :timer.tc(fn ->
-          func.()
-        end)
-
-      IO.puts("#{requester} releasing lock after #{div(us, 1000)}ms.")
-      result
-    end)
+  def with_build_lock(func) do
+    :global.trans({__MODULE__, self()}, func)
   end
 
   defp reload_project do

@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   alias ElixirSense.Core.{Metadata, Parser, Source, Introspection}
 
   def references(text, line, character, _include_declaration) do
-    Build.with_build_lock(__MODULE__, fn ->
+    Build.with_build_lock(fn ->
       xref_at_cursor(text, line, character)
       |> Enum.filter(fn %{line: line} -> is_integer(line) end)
       |> Enum.map(&build_location/1)
