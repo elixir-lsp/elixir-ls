@@ -129,4 +129,42 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               }
             ]} = DocumentSymbols.symbols(uri, text)
   end
+
+  test "handles exunit tests" do
+    uri = "file://project/test.exs"
+    text = ~S[
+      defmodule MyModuleTest do
+        use ExUnit.Case
+        test "does something", do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %{
+                containerName: nil,
+                kind: 2,
+                location: %{
+                  range: %{
+                    end: %{character: 16, line: 1},
+                    start: %{character: 16, line: 1}
+                  },
+                  uri: ^uri
+                },
+                name: "MyModuleTest"
+              },
+              %{
+                containerName: "MyModuleTest",
+                kind: 12,
+                location: %{
+                  range: %{
+                    end: %{character: 8, line: 3},
+                    start: %{character: 8, line: 3}
+                  },
+                  uri: ^uri
+                },
+                name: "test \"does something\""
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
 end
