@@ -115,31 +115,36 @@ defmodule ElixirLS.LanguageServer.Build do
 
       Mix.Task.clear()
 
-      # The project may override our logger config, so we reset it after loading their config
-      logger_config = Application.get_all_env(:logger)
-      Mix.Task.run("loadconfig")
-      Mix.Config.persist(logger: logger_config)
-
       # Override build directory to avoid interfering with other dev tools
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
       # If using Elixir 1.6 or higher, we can get diagnostics if Mixfile fails to load
-      if Version.match?(System.version(), ">= 1.6.0-dev") do
-        case Kernel.ParallelCompiler.compile([mixfile]) do
-          {:ok, _, warnings} ->
-            {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
+      {status, diagnostics} =
+        if Version.match?(System.version(), ">= 1.6.0-dev") do
+          case Kernel.ParallelCompiler.compile([mixfile]) do
+            {:ok, _, warnings} ->
+              {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
 
-          {:error, errors, warnings} ->
-            {
-              :error,
-              Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
-                Enum.map(errors, &mixfile_diagnostic(&1, :error))
-            }
+            {:error, errors, warnings} ->
+              {
+                :error,
+                Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
+                  Enum.map(errors, &mixfile_diagnostic(&1, :error))
+              }
+          end
+        else
+          Code.load_file(mixfile)
+          {:ok, []}
         end
-      else
-        Code.load_file(mixfile)
-        {:ok, []}
+
+      if status == :ok do
+        # The project may override our logger config, so we reset it after loading their config
+        logger_config = Application.get_all_env(:logger)
+        Mix.Task.run("loadconfig")
+        Mix.Config.persist(logger: logger_config)
       end
+
+      {status, diagnostics}
     else
       msg =
         "No mixfile found in project root. " <>
