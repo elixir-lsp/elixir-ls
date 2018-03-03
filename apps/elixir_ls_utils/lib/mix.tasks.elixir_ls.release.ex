@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Release do
+defmodule Mix.Tasks.ElixirLs.Release do
   @switches [destination: :string, zip: :string]
   @aliases [o: :destination, z: :zip]
 
