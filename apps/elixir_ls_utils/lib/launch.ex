@@ -1,19 +1,17 @@
 defmodule ElixirLS.Utils.Launch do
-  @doc """
-  This is an unfortunate hack to allow us to launch the language server or debugger using Mix
-  without automatically loading the mixfile in the current directory (which is unsafe until we've
-  called [ElixirLS.Utils.WireProtocol.intercept_output/2])
+  def start_mix do
+    Mix.start()
+    Mix.Local.append_archives()
+    Mix.Local.append_paths()
+    load_dot_config()
+    :ok
+  end
 
-  The launcher script overrides MIX_EXS, but we can restore it from ELIXIR_LS_MIX_EXS once
-  we've launched.
-  """
-  def restore_mix_exs_var do
-    case System.get_env("ELIXIR_LS_MIX_EXS") do
-      nil -> System.delete_env("MIX_EXS")
-      "" -> System.delete_env("MIX_EXS")
-      mix_exs -> System.put_env("MIX_EXS", mix_exs)
+  defp load_dot_config do
+    path = Path.join(Mix.Utils.mix_home(), "config.exs")
+
+    if File.regular?(path) do
+      Mix.Task.run("loadconfig", [path])
     end
-
-    System.delete_env("ELIXIR_LS_MIX_EXS")
   end
 end

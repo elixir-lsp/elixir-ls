@@ -1,10 +1,10 @@
-defmodule Mix.Tasks.ElixirLs.Debugger do
-  alias ElixirLS.Utils.WireProtocol
+defmodule ElixirLS.Debugger.CLI do
+  alias ElixirLS.Utils.{WireProtocol, Launch}
   alias ElixirLS.Debugger.{Output, Server}
 
-  def run(_args) do
+  def main do
     WireProtocol.intercept_output(&Output.print/1, &Output.print_err/1)
-    ElixirLS.Utils.Launch.restore_mix_exs_var()
+    Launch.start_mix()
     Application.ensure_all_started(:debugger, :permanent)
     IO.puts("Started ElixirLS debugger")
     WireProtocol.stream_packets(&Server.receive_packet/1)

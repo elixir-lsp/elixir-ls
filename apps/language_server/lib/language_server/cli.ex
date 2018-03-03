@@ -1,14 +1,18 @@
-defmodule Mix.Tasks.ElixirLs.LanguageServer do
-  alias ElixirLS.Utils.WireProtocol
+defmodule ElixirLS.LanguageServer.CLI do
+  alias ElixirLS.Utils.{WireProtocol, Launch}
   alias ElixirLS.LanguageServer.JsonRpc
 
-  def run(_args) do
+  def main do
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
-    ElixirLS.Utils.Launch.restore_mix_exs_var()
+    Launch.start_mix()
+
     configure_logger()
     Application.ensure_all_started(:language_server, :permanent)
-    Mix.shell(ElixirLS.LanguageServer.MixShell)
     IO.puts("Started ElixirLS")
+
+    Mix.shell(ElixirLS.LanguageServer.MixShell)
+    Mix.Hex.ensure_updated?()
+
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
   end
 

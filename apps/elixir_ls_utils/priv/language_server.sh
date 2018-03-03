@@ -11,13 +11,8 @@ readlink_f () {
   fi
 }
 
-# HACK: We don't want Mix to load the mixfile in the cwd, so we override MIX_EXS here. We can
-# restore it from ELIXIR_LS_MIX_EXS once we've launched.
-export ELIXIR_LS_MIX_EXS=$MIX_EXS
-export MIX_EXS="."
-
 SCRIPT=$(readlink_f $0)
 SCRIPTPATH=`dirname $SCRIPT`
 export ERL_LIBS="$SCRIPTPATH:$ERL_LIBS"
 
-mix elixir_ls.language_server
+elixir -e "ElixirLS.LanguageServer.CLI.main()"
