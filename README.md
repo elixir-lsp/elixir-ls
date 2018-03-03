@@ -11,6 +11,8 @@ The Elixir Language Server provides a server that runs in the background, provid
 - Go-to-definition
 - Code completion
 - Code formatter (requries Elixir >= 1.6)
+- Find references to functions and modules (Thanks to @mattbaker)
+- Quick symbol lookup in file (Thanks to @mattbaker)
 
 ![Screenshot](images/screenshot.png?raw=true)
 
