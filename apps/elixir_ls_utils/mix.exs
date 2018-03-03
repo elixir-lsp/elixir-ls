@@ -4,7 +4,7 @@ defmodule ElixirLS.Utils.Mixfile do
   def project do
     [
       app: :elixir_ls_utils,
-      version: "0.2.12",
+      version: "0.2.13",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
