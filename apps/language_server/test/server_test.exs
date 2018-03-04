@@ -158,18 +158,25 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, signature_help_req(1, uri, 3, 19))
 
-    assert_receive response(1, %{
-                     "activeParameter" => 0,
-                     "activeSignature" => 0,
-                     "signatures" => [
-                       %{
-                         "documentation" =>
-                           "@spec inspect(Inspect.t, keyword) :: String.t\nInspects the given argument according to the `Inspect` protocol.\nThe second argument is a keyword list with options to control\ninspection.",
-                         "label" => "inspect(term, opts \\\\ [])",
-                         "parameters" => [%{"label" => "term"}, %{"label" => "opts \\\\ []"}]
-                       }
-                     ]
-                   })
+    assert_receive(
+      response(1, %{
+        "activeParameter" => 0,
+        "activeSignature" => 0,
+        "signatures" => [
+          %{
+            "documentation" => "@spec inspect(item, keyword) :: item when item: var\n" <> _,
+            "label" => "inspect(item, opts \\\\ [])",
+            "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
+          },
+          %{
+            "documentation" =>
+              "@spec inspect(device, item, keyword) :: item when item: var\n" <> _,
+            "label" => "inspect(device, item, opts)",
+            "parameters" => [%{"label" => "device"}, %{"label" => "item"}, %{"label" => "opts"}]
+          }
+        ]
+      })
+    )
   end
 
   test "reports build diagnostics", %{server: server} do
