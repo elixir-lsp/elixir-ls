@@ -4,7 +4,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   use ExUnit.Case
 
   test "returns all Logger completions on normal require" do
-    # uri = "file://project/file.ex"
     text = ~S[
       defmodule MyModule do
         require Logger
@@ -27,7 +26,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   end
 
   test "returns all Logger completions on require with alias" do
-    # uri = "file://project/file.ex"
     text = ~S[
       defmodule MyModule do
         require Logger, as: LAlias
