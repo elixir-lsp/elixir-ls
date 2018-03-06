@@ -81,7 +81,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   # When ending a line with "else", we don't want to autocomplete it because that's really
   # irritating. We can't make it a snippet because that interferes with the auto-indentation rules.
   # So we blacklist any prefixes that look like the user is about to type "else" instead.
-  @blacklist_prefixes ["els", "else"]
+  @prevent_completions_on ["else", "end"]
 
   def trigger_characters do
     # VS Code's 24x7 autocompletion triggers automatically on alphanumeric characters. We add these
@@ -99,7 +99,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     prefix = get_prefix(text_before_cursor)
 
     items =
-      if prefix in @blacklist_prefixes do
+      if blacklisted_prefix?(prefix) do
         []
       else
         try do
@@ -509,5 +509,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
       for {k, v} <- json, not is_nil(v), into: %{}, do: {k, v}
     end
+  end
+
+  # If we're within one letter of a keyword that frequently ends a line (such as "else" or "end"),
+  # prevent any completions
+  defp blacklisted_prefix?(prefix) do
+    blacklisted_prefixes =
+      @prevent_completions_on ++ Enum.map(@prevent_completions_on, &String.slice(&1, 0..-2))
+
+    prefix in blacklisted_prefixes
   end
 end
