@@ -264,7 +264,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           end
         end
 
-      full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n\t$0\nend\n"
+      full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n\t$0\nend"
       label = "#{def_str}#{function_label(name, args, arity)}"
 
       %__MODULE__{
