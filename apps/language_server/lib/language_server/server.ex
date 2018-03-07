@@ -26,7 +26,8 @@ defmodule ElixirLS.LanguageServer.Server do
     References,
     Formatting,
     SignatureHelp,
-    DocumentSymbols
+    DocumentSymbols,
+    OnTypeFormatting
   }
 
   use Protocol
@@ -393,6 +394,14 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(on_type_formatting_req(_id, uri, line, character, ch, options), state) do
+    fun = fn ->
+      OnTypeFormatting.format(state.source_files[uri], line, character, ch, options)
+    end
+
+    {:async, fun, state}
+  end
+
   defp handle_request(request(_, _, _) = req, state) do
     IO.inspect(req, label: "Unmatched request")
     {:error, :invalid_request, nil, state}
@@ -431,7 +440,8 @@ defmodule ElixirLS.LanguageServer.Server do
       "referencesProvider" => References.supported?(),
       "documentFormattingProvider" => Formatting.supported?(),
       "signatureHelpProvider" => %{"triggerCharacters" => ["("]},
-      "documentSymbolProvider" => true
+      "documentSymbolProvider" => true,
+      "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"}
     }
   end
 

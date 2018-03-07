@@ -144,4 +144,26 @@ defmodule ElixirLS.LanguageServer.Protocol do
       })
     end
   end
+
+  defmacro on_type_formatting_req(id, uri, line, character, ch, options) do
+    quote do
+      request(unquote(id), "textDocument/onTypeFormatting", %{
+        "textDocument" => %{"uri" => unquote(uri)},
+        "position" => %{"line" => unquote(line), "character" => unquote(character)},
+        "ch" => unquote(ch),
+        "options" => unquote(options)
+      })
+    end
+  end
+
+  # Other utilities
+
+  defmacro range(start_line, start_character, end_line, end_character) do
+    quote do
+      %{
+        "start" => %{"line" => unquote(start_line), "character" => unquote(start_character)},
+        "end" => %{"line" => unquote(end_line), "character" => unquote(end_character)}
+      }
+    end
+  end
 end

@@ -1,8 +1,14 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
+  import ElixirLS.LanguageServer.Protocol
+
   defstruct text: nil,
             version: nil
 
   def lines(%__MODULE__{text: text}) do
+    lines(text)
+  end
+
+  def lines(text) when is_binary(text) do
     String.split(text, ["\r\n", "\r", "\n"])
   end
 
@@ -47,5 +53,42 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       "start" => %{"line" => 0, "character" => 0},
       "end" => %{"line" => Enum.count(lines) - 1, "character" => String.length(List.last(lines))}
     }
+  end
+
+  def apply_edit(text, range(start_line, start_character, end_line, end_character), new_text) do
+    lines_with_idx =
+      text
+      |> lines()
+      |> Enum.with_index()
+
+    text_before =
+      Enum.reduce(lines_with_idx, "", fn {line, idx}, acc ->
+        cond do
+          idx < start_line ->
+            acc <> line <> "\n"
+
+          idx == start_line ->
+            acc <> String.slice(line, 0, start_character)
+
+          idx > start_line ->
+            acc
+        end
+      end)
+
+    text_after =
+      Enum.reduce(lines_with_idx, "", fn {line, idx}, acc ->
+        cond do
+          idx < end_line ->
+            acc
+
+          idx == end_line ->
+            acc <> String.slice(line, end_character..-1) <> "\n"
+
+          idx > end_line ->
+            acc <> line <> "\n"
+        end
+      end)
+
+    text_before <> new_text <> text_after
   end
 end
