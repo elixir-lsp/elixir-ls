@@ -22,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     {"Kernel.SpecialForms", "case"} => "case $1 do\n\t$2 ->\n\t\t$0\nend",
     {"Kernel.SpecialForms", "cond"} => "cond do\n\t$1 ->\n\t\t$0\nend",
     {"Kernel.SpecialForms", "receive"} =>
-      "receive do\n\t${1:{${2::message_type}, ${3:value}\\}} ->\n    ${0:# code}\nend\n",
+      "receive do\n\t${1:{${2::message_type}, ${3:value}\\}} ->\n\t\t${0:# code}\nend\n",
     {"Kernel.SpecialForms", "fn"} => "fn $1 -> $0 end",
     {"Kernel.SpecialForms", "for"} => "for $1 <- $2 do\n\t$3\nend",
     {"Kernel.SpecialForms", "super"} => "super($1)",
@@ -37,14 +37,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     {"Kernel", "defexception"} => "defexception [${1::message}]",
     {"Kernel", "defguard"} => "defguard ${1:guard_name}($2) when $3",
     {"Kernel", "defguardp"} => "defguardp ${1:guard_name}($2) when $3",
-    {"Kernel", "defimpl"} => "defimpl $1, for: $2 do\n  $0\nend",
+    {"Kernel", "defimpl"} => "defimpl $1, for: $2 do\n\t$0\nend",
     {"Kernel", "defmacro"} => "defmacro $1 do\n\t$0\nend",
     {"Kernel", "defmacrocallback"} => "defmacrocallback $1 :: $0",
     {"Kernel", "defmacrop"} => "defmacrop $1 do\n\t$0\nend",
     {"Kernel", "defmodule"} => "defmodule $1 do\n\t$0\nend",
-    {"Kernel", "defprotocol"} => "defprotocol $1 do\n  $0\nend",
+    {"Kernel", "defprotocol"} => "defprotocol $1 do\n\t$0\nend",
     {"Kernel", "defstruct"} => "defstruct $1: $2",
-    {"ExUnit.Callbacks", "setup"} => "setup ${1:%{$2\\}} do\n  $3\nend",
+    {"ExUnit.Callbacks", "setup"} => "setup ${1:%{$2\\}} do\n\t$3\nend",
     {"ExUnit.Case", "test"} => "test $1 do\n\t$0\nend",
     {"ExUnit.Case", "describe"} => "describe \"$1\" do\n\t$0\nend"
   }
@@ -264,7 +264,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           end
         end
 
-      full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n  $0\nend\n"
+      full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n\t$0\nend\n"
       label = "#{def_str}#{function_label(name, args, arity)}"
 
       %__MODULE__{
