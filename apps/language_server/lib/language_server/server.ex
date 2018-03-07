@@ -597,14 +597,20 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_project_dir(%{project_dir: prev_project_dir, root_uri: root_uri} = state, project_dir)
        when is_binary(root_uri) do
+    root_dir = SourceFile.path_from_uri(root_uri)
+
     project_dir =
       if is_binary(project_dir) do
-        Path.expand(project_dir, SourceFile.path_from_uri(root_uri))
+        Path.join(root_dir, project_dir)
       else
-        SourceFile.path_from_uri(root_uri)
+        root_dir
       end
 
     cond do
+      not File.dir?(project_dir) ->
+        JsonRpc.show_message(:error, "Project directory #{project_dir} does not exist")
+        state
+
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
         put_in(state.project_dir, project_dir)
