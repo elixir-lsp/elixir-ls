@@ -85,8 +85,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   def trigger_characters do
     # VS Code's 24x7 autocompletion triggers automatically on alphanumeric characters. We add these
-    # for "SomeModule." calls, @module_attrs, and macros like __ENV__
-    [".", "@", "_"]
+    # for "SomeModule." calls and @module_attrs
+    [".", "@"]
   end
 
   def completion(text, line, character, snippets_supported) do
