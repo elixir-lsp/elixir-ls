@@ -102,61 +102,39 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       if blacklisted_prefix?(prefix) do
         []
       else
-        try do
-          env = Parser.parse_string(text, true, true, line + 1) |> Metadata.get_env(line + 1)
+        env = Parser.parse_string(text, true, true, line + 1) |> Metadata.get_env(line + 1)
 
-          scope =
-            case env.scope do
-              Elixir -> :file
-              module when is_atom(module) -> :module
-              _ -> :function
-            end
+        scope =
+          case env.scope do
+            Elixir -> :file
+            module when is_atom(module) -> :module
+            _ -> :function
+          end
 
-          def_before =
-            cond do
-              Regex.match?(Regex.recompile!(~r/def\s*#{prefix}$/), text_before_cursor) ->
-                :def
+        def_before =
+          cond do
+            Regex.match?(Regex.recompile!(~r/def\s*#{prefix}$/), text_before_cursor) ->
+              :def
 
-              Regex.match?(Regex.recompile!(~r/defmacro\s*#{prefix}$/), text_before_cursor) ->
-                :defmacro
+            Regex.match?(Regex.recompile!(~r/defmacro\s*#{prefix}$/), text_before_cursor) ->
+              :defmacro
 
-              true ->
-                nil
-            end
+            true ->
+              nil
+          end
 
-          context = %{
-            text_before_cursor: text_before_cursor,
-            prefix: prefix,
-            def_before: def_before,
-            pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
-            capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
-            scope: scope
-          }
+        context = %{
+          text_before_cursor: text_before_cursor,
+          prefix: prefix,
+          def_before: def_before,
+          pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
+          capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
+          scope: scope
+        }
 
-          ElixirSense.suggestions(text, line + 1, character + 1)
-          |> Enum.map(&from_completion_item(&1, context))
-          |> Enum.concat(module_attr_snippets(context))
-        rescue
-          err ->
-            IO.puts(:standard_error, Exception.format_exit(err))
-            []
-        end
-      end
-
-    # The "do" snippet is special because it's really annoying if it doesn't fire when it should
-    items =
-      if String.starts_with?("do", prefix) do
-        [
-          %__MODULE__{
-            label: "do",
-            insert_text: "do\n\t$0\nend",
-            kind: :snippet,
-            priority: 0
-          }
-          | items
-        ]
-      else
-        items
+        ElixirSense.suggestions(text, line + 1, character + 1)
+        |> Enum.map(&from_completion_item(&1, context))
+        |> Enum.concat(module_attr_snippets(context))
       end
 
     items_json =
