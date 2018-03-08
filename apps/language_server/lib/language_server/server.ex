@@ -258,7 +258,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(notification("exit"), state) do
-    System.halt(0)
+    code = if state.received_shutdown?, do: 0, else: 1
+    System.halt(code)
     state
   end
 
