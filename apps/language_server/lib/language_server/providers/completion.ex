@@ -429,7 +429,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           {text, text}
 
         use_name_only?(origin, name) ->
-          {name, name <> " "}
+          {name, name}
 
         true ->
           label = function_label(name, args, arity)
