@@ -142,7 +142,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> sort_items()
       |> items_to_json(snippets_supported)
 
-    {:ok, %{"isIncomplete" => true, "items" => items_json}}
+    {:ok, %{"isIncomplete" => false, "items" => items_json}}
   end
 
   ## Helpers
