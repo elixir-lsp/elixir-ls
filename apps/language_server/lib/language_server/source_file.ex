@@ -111,6 +111,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     [[last_line, ?\n] | rest] = acc
     acc = [last_line | rest]
 
-    to_string(Enum.reverse(acc))
+    IO.iodata_to_binary(Enum.reverse(acc))
   end
 end
