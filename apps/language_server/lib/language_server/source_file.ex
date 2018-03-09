@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   def apply_content_changes(source_file, [edit | rest]) do
     source_file =
       case edit do
-        %{"range" => edited_range, "text" => new_text} ->
+        %{"range" => edited_range, "text" => new_text} when not is_nil(edited_range) ->
           update_in(source_file.text, fn text ->
             apply_edit(text, edited_range, new_text)
           end)
