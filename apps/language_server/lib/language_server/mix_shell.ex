@@ -39,7 +39,7 @@ defmodule ElixirLS.LanguageServer.MixShell do
 
       case response do
         {:ok, %{"result" => result}} -> result
-        _ -> false
+        _ -> true
       end
     else
       Mix.Shell.IO.yes?(message)
