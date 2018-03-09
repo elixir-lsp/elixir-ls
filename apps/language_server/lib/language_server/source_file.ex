@@ -77,35 +77,40 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       |> lines()
       |> Enum.with_index()
 
-    text_before =
-      Enum.reduce(lines_with_idx, "", fn {line, idx}, acc ->
+    acc =
+      Enum.reduce(lines_with_idx, [], fn {line, idx}, acc ->
         cond do
           idx < start_line ->
-            acc <> line <> "\n"
+            [[line, ?\n] | acc]
 
           idx == start_line ->
-            acc <> String.slice(line, 0, start_character)
+            [String.slice(line, 0, start_character) | acc]
 
           idx > start_line ->
             acc
         end
       end)
 
-    text_after =
-      Enum.reduce(lines_with_idx, "", fn {line, idx}, acc ->
+    acc = [new_text | acc]
+
+    acc =
+      Enum.reduce(lines_with_idx, acc, fn {line, idx}, acc ->
         cond do
           idx < end_line ->
             acc
 
           idx == end_line ->
-            acc <> String.slice(line, end_character..-1) <> "\n"
+            [[String.slice(line, end_character..-1), ?\n] | acc]
 
           idx > end_line ->
-            acc <> line <> "\n"
+            [[line, ?\n] | acc]
         end
       end)
 
-    # Remove extra newline that was added
-    String.slice(text_before <> new_text <> text_after, 0..-2)
+    # Remove extraneous newline from last line
+    [[last_line, ?\n] | rest] = acc
+    acc = [last_line | rest]
+
+    to_string(Enum.reverse(acc))
   end
 end
