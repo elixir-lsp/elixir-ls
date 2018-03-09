@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile}
   require Logger
 
-  def build(parent, root_path) do
+  def build(parent, root_path, fetch_deps?) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
       IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
@@ -15,6 +15,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
+                  if fetch_deps?, do: fetch_deps()
                   {status, diagnostics} = compile()
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
@@ -100,6 +101,8 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project do
+    clear_deps_cache()
+
     mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
 
     if File.exists?(mixfile) do
@@ -155,8 +158,6 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp compile do
-    clear_deps_cache()
-
     case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
@@ -171,6 +172,30 @@ defmodule ElixirLS.LanguageServer.Build do
 
   defp clear_deps_cache do
     Mix.ProjectStack.write_cache({:cached_deps, Mix.env(), Mix.Project.get()}, nil)
+  end
+
+  defp fetch_deps do
+    missing_deps =
+      Mix.Dep.loaded([])
+      |> Enum.filter(fn %Mix.Dep{status: status} ->
+        case status do
+          {:unavailable, _} -> true
+          {:nomatchvsn, _} -> true
+          _ -> false
+        end
+      end)
+      |> Enum.map(fn %Mix.Dep{app: app, requirement: requirement} -> "#{app} #{requirement}" end)
+
+    if missing_deps != [] do
+      JsonRpc.show_message(
+        :info,
+        "Fetching #{Enum.count(missing_deps)} deps: #{Enum.join(missing_deps, ", ")}"
+      )
+
+      Mix.Task.run("deps.get")
+    end
+
+    :ok
   end
 
   defp range(position, nil) when is_integer(position) do

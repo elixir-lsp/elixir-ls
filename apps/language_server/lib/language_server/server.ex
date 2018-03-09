@@ -462,7 +462,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp trigger_build(state) do
     if build_enabled?(state) and state.build_ref == nil do
-      {_pid, build_ref} = Build.build(self(), state.project_dir)
+      {_pid, build_ref} =
+        Build.build(self(), state.project_dir, state.settings["fetchDeps"] || true)
+
       %__MODULE__{state | build_ref: build_ref, needs_build?: false}
     else
       %__MODULE__{state | needs_build?: true}
