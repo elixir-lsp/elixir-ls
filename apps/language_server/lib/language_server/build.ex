@@ -13,9 +13,12 @@ defmodule ElixirLS.LanguageServer.Build do
             :timer.tc(fn ->
               IO.puts("Compiling with Mix env #{Mix.env()}")
 
+              prev_deps = Mix.Dep.loaded([])
+              clear_deps_cache()
+
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
-                  if fetch_deps?, do: fetch_deps()
+                  if fetch_deps? and Mix.Dep.loaded([]) != prev_deps, do: fetch_deps()
                   {status, diagnostics} = compile()
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
@@ -101,8 +104,6 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project do
-    clear_deps_cache()
-
     mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
 
     if File.exists?(mixfile) do
