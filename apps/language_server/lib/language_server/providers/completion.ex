@@ -78,10 +78,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     "@dialyzer"
   ]
 
-  # When ending a line with "else", we don't want to autocomplete it because that's really
-  # irritating. We can't make it a snippet because that interferes with the auto-indentation rules.
-  # So we blacklist any prefixes that look like the user is about to type "else" instead.
-  @prevent_completions_on ["else", "end", "do"]
+  @keywords %{
+    "else" => "else",
+    "end" => "end",
+    "do" => "do\n\t$0\nend"
+  }
 
   def trigger_characters do
     # VS Code's 24x7 autocompletion triggers automatically on alphanumeric characters. We add these
@@ -98,44 +99,41 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     prefix = get_prefix(text_before_cursor)
 
-    items =
-      if prefix in @prevent_completions_on do
-        []
-      else
-        env = Parser.parse_string(text, true, true, line + 1) |> Metadata.get_env(line + 1)
+    env = Parser.parse_string(text, true, true, line + 1) |> Metadata.get_env(line + 1)
 
-        scope =
-          case env.scope do
-            Elixir -> :file
-            module when is_atom(module) -> :module
-            _ -> :function
-          end
-
-        def_before =
-          cond do
-            Regex.match?(Regex.recompile!(~r/def\s*#{prefix}$/), text_before_cursor) ->
-              :def
-
-            Regex.match?(Regex.recompile!(~r/defmacro\s*#{prefix}$/), text_before_cursor) ->
-              :defmacro
-
-            true ->
-              nil
-          end
-
-        context = %{
-          text_before_cursor: text_before_cursor,
-          prefix: prefix,
-          def_before: def_before,
-          pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
-          capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
-          scope: scope
-        }
-
-        ElixirSense.suggestions(text, line + 1, character + 1)
-        |> Enum.map(&from_completion_item(&1, context))
-        |> Enum.concat(module_attr_snippets(context))
+    scope =
+      case env.scope do
+        Elixir -> :file
+        module when is_atom(module) -> :module
+        _ -> :function
       end
+
+    def_before =
+      cond do
+        Regex.match?(Regex.recompile!(~r/def\s*#{prefix}$/), text_before_cursor) ->
+          :def
+
+        Regex.match?(Regex.recompile!(~r/defmacro\s*#{prefix}$/), text_before_cursor) ->
+          :defmacro
+
+        true ->
+          nil
+      end
+
+    context = %{
+      text_before_cursor: text_before_cursor,
+      prefix: prefix,
+      def_before: def_before,
+      pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
+      capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
+      scope: scope
+    }
+
+    items =
+      ElixirSense.suggestions(text, line + 1, character + 1)
+      |> Enum.map(&from_completion_item(&1, context))
+      |> Enum.concat(module_attr_snippets(context))
+      |> Enum.concat(keyword_completions(context))
 
     items_json =
       items
@@ -396,6 +394,22 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp module_attr_snippets(_), do: []
+
+  # These aren't really useful, to be honest, and it interferes with the auto-indentation
+  # for "else", but better to show them even if there's no good reason to use them
+  defp keyword_completions(%{prefix: prefix}) do
+    @keywords
+    |> Enum.filter(fn {keyword, _} -> String.starts_with?(keyword, prefix) end)
+    |> Enum.map(fn {keyword, snippet} ->
+      %__MODULE__{
+        label: keyword,
+        kind: :keyword,
+        detail: "keyword",
+        insert_text: snippet,
+        priority: 0
+      }
+    end)
+  end
 
   defp function_completion(
          %{
