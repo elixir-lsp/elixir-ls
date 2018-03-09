@@ -16,9 +16,25 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     source_file
   end
 
-  # TODO: Support incremental changes
-  def apply_content_changes(source_file, [%{"text" => text} | rest]) do
-    apply_content_changes(%{source_file | text: text}, rest)
+  def apply_content_changes(source_file, [edit | rest]) do
+    source_file =
+      case edit do
+        %{"range" => edited_range, "text" => new_text} ->
+          update_in(source_file.text, fn text ->
+            apply_edit(text, edited_range, new_text)
+          end)
+
+        %{"text" => new_text} ->
+          put_in(source_file.text, new_text)
+      end
+
+    source_file =
+      update_in(source_file.version, fn
+        v when is_integer(v) -> v + 1
+        _ -> 1
+      end)
+
+    apply_content_changes(source_file, rest)
   end
 
   @doc """
@@ -89,6 +105,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         end
       end)
 
-    text_before <> new_text <> text_after
+    # Remove extra newline that was added
+    String.slice(text_before <> new_text <> text_after, 0..-2)
   end
 end

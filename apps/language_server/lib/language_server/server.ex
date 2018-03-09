@@ -434,7 +434,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp server_capabilities do
     %{
-      "textDocumentSync" => 1,
+      "textDocumentSync" => 2,
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
       "definitionProvider" => true,
