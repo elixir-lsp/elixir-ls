@@ -79,7 +79,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   ]
 
   @keywords %{
-    "else" => "else",
     "end" => "end",
     "do" => "do\n\t$0\nend"
   }
