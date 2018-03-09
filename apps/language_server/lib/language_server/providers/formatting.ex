@@ -7,7 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   def format(source_file, root_uri) do
     opts = formatter_opts(root_uri)
-    formatted = Code.format_string!(source_file.text, opts)
+    formatted = [Code.format_string!(source_file.text, opts), ?\n]
 
     response = [
       %{"newText" => to_string(formatted), "range" => SourceFile.full_range(source_file)}
