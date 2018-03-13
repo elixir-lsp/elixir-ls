@@ -94,7 +94,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       text
       |> String.split("\n")
       |> Enum.at(line)
-      |> String.slice(0..character)
+      |> String.slice(0, character)
 
     prefix = get_prefix(text_before_cursor)
 
