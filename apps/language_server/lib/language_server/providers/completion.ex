@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   with the Language Server Protocol. We also attempt to determine the context based on the line
   text before the cursor so we can filter out suggestions that are not relevant.
   """
+  alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.{Metadata, Parser}
 
   @enforce_keys [:label, :kind, :insert_text, :priority]
@@ -92,7 +93,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   def completion(text, line, character, snippets_supported) do
     text_before_cursor =
       text
-      |> String.split("\n")
+      |> SourceFile.lines()
       |> Enum.at(line)
       |> String.slice(0, character)
 
