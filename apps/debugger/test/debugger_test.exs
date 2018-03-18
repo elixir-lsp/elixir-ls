@@ -112,7 +112,7 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive response(_, 8, "variables", %{
                        "variables" => [
                          %{
-                           "name" => "Vx@1",
+                           "name" => "_x@1",
                            "type" => "integer",
                            "value" => "2",
                            "variablesReference" => 0
