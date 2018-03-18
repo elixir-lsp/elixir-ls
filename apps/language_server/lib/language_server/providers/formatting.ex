@@ -2,11 +2,12 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   alias ElixirLS.LanguageServer.SourceFile
 
   def supported? do
-    :erlang.function_exported(Code, :format_string!, 2)
+    function_exported?(Code, :format_string!, 2)
   end
 
-  def format(source_file, root_uri) do
-    opts = formatter_opts(root_uri)
+  def format(source_file, uri, project_dir) do
+    file = SourceFile.path_from_uri(uri) |> Path.relative_to(project_dir)
+    opts = formatter_opts(file, project_dir)
     formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
     response = [
@@ -16,11 +17,18 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     {:ok, response}
   end
 
-  defp formatter_opts(nil) do
-    []
+  defp formatter_opts(for_file, project_dir) do
+    # Elixir 1.6.5+ has a function that returns formatter options, so we use that if available
+    if Code.ensure_loaded?(Mix.Tasks.Format) and
+         function_exported?(Mix.Tasks.Format, :formatter_opts_for_file, 1) do
+      Mix.Tasks.Format.formatter_opts_for_file(for_file)
+    else
+      read_formatter_exs(project_dir)
+    end
   end
 
-  defp formatter_opts(project_dir) do
+  # TODO: Deprecate once Elixir 1.7 released
+  defp read_formatter_exs(project_dir) do
     dot_formatter = Path.join(project_dir, ".formatter.exs")
 
     if File.regular?(dot_formatter) do

@@ -1,3 +1,4 @@
 [
-  line_length: 20
+  line_length: 20,
+  subdirectories: ["lib"]
 ]

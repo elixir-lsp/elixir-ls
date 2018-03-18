@@ -123,7 +123,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       code = ~S(
       defmodule MyModule do
       def my_fn do
-      x = "This should be split into two lines if reading options from .formatter.exs"
+      foo "This should be split into two lines if reading options from .formatter.exs"
       end
       end
       )
@@ -132,16 +132,36 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       Server.receive_packet(server, formatting_req(1, uri, %{}))
 
-      assert_receive response(1, [
-                       %{
-                         "newText" =>
-                           "defmodule MyModule do\n  def my_fn do\n    x =\n      \"This should be split into two lines if reading options from .formatter.exs\"\n  end\nend",
-                         "range" => %{
-                           "end" => %{"character" => 6, "line" => 6},
-                           "start" => %{"character" => 0, "line" => 0}
-                         }
-                       }
-                     ])
+      assert_receive(
+        response(1, [
+          %{
+            "newText" =>
+              "defmodule MyModule do\n  def my_fn do\n    foo(\n      \"This should be split into two lines if reading options from .formatter.exs\"\n    )\n  end\nend\n",
+            "range" => %{
+              "end" => %{"character" => 6, "line" => 6},
+              "start" => %{"character" => 0, "line" => 0}
+            }
+          }
+        ])
+      )
+
+      # Now try it in a subdirectory with its own .formatter.exs file.
+      subdir_uri = Path.join([root_uri(), "lib/file.ex"])
+      Server.receive_packet(server, did_open(subdir_uri, "elixir", 1, code))
+      Server.receive_packet(server, formatting_req(2, subdir_uri, %{}))
+
+      assert_receive(
+        response(2, [
+          %{
+            "newText" =>
+              "defmodule MyModule do\n  def my_fn do\n    foo \"This should be split into two lines if reading options from .formatter.exs\"\n  end\nend\n",
+            "range" => %{
+              "end" => %{"character" => 6, "line" => 6},
+              "start" => %{"character" => 0, "line" => 0}
+            }
+          }
+        ])
+      )
     end)
   end
 
