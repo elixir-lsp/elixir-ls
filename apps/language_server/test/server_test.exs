@@ -60,7 +60,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     Server.receive_packet(server, completion_req(1, uri, 2, 25))
 
     assert_receive response(1, %{
-                     "isIncomplete" => true,
+                     "isIncomplete" => false,
                      "items" => [
                        %{
                          "detail" => "module",
