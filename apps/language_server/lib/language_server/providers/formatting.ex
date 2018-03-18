@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   alias ElixirLS.LanguageServer.SourceFile
 
   def supported? do
-    :erlang.function_exported(Code, :format_string!, 2)
+    function_exported?(Code, :format_string!, 2)
   end
 
   def format(source_file, uri, project_dir) do
