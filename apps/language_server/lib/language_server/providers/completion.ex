@@ -67,19 +67,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                  ])
 
   @ignore_module_attrs [
-    "@moduledoc",
-    "@doc",
-    "@spec",
     "@behaviour",
-    "@impl",
-    "@type",
-    "@typedoc",
-    "@enforce_keys",
     "@callback",
-    "@dialyzer",
-    "@optional_callbacks",
     "@compile",
-    "@opaque"
+    "@dialyzer",
+    "@doc",
+    "@enforce_keys",
+    "@impl",
+    "@moduledoc",
+    "@opaque",
+    "@optional_callbacks",
+    "@spec",
+    "@type",
+    "@typedoc"
   ]
 
   @keywords %{
