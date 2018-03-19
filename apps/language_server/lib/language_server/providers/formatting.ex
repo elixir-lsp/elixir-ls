@@ -6,15 +6,32 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   end
 
   def format(source_file, uri, project_dir) do
-    file = SourceFile.path_from_uri(uri) |> Path.relative_to(project_dir)
-    opts = formatter_opts(file, project_dir)
-    formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
+    if can_format?(uri, project_dir) do
+      file = SourceFile.path_from_uri(uri) |> Path.relative_to(project_dir)
+      opts = formatter_opts(file, project_dir)
+      formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
-    response = [
-      %{"newText" => formatted, "range" => SourceFile.full_range(source_file)}
-    ]
+      response = [
+        %{"newText" => formatted, "range" => SourceFile.full_range(source_file)}
+      ]
 
-    {:ok, response}
+      {:ok, response}
+    else
+      msg =
+        "Cannot format file from current directory " <>
+          "(Currently in #{Path.relative_to(File.cwd!(), project_dir)})"
+
+      {:error, :internal_error, msg}
+    end
+  end
+
+  # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
+  # fine if the file we're trying to format is in that app. Otherwise, we return an error.
+  defp can_format?(file_uri, project_dir) do
+    file_path = SourceFile.path_from_uri(file_uri)
+
+    is_nil(project_dir) or not String.starts_with?(file_path, project_dir) or
+      String.starts_with?(Path.absname(file_path), File.cwd!())
   end
 
   defp formatter_opts(for_file, project_dir) do
