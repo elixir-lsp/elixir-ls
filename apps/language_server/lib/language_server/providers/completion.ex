@@ -76,7 +76,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     "@typedoc",
     "@enforce_keys",
     "@callback",
-    "@dialyzer"
+    "@dialyzer",
+    "@optional_callbacks",
+    "@compile",
+    "@opaque"
   ]
 
   @keywords %{
