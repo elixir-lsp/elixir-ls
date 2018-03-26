@@ -95,7 +95,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   def handle_cast({:build_finished, {status, diagnostics}}, state)
-      when status in [:ok, :noop, :error] and is_list(diagnostics) do
+  when status in [:ok, :noop, :error] and is_list(diagnostics) do
     {:noreply, handle_build_result(status, diagnostics, state)}
   end
 
@@ -175,14 +175,14 @@ defmodule ElixirLS.LanguageServer.Server do
         %{status: :async} = req ->
           error_msg = "Internal error: Request ended without result"
 
-          %{
-            req
-            | ref: nil,
-              pid: nil,
-              status: :error,
-              error_type: :internal_error,
-              error_msg: error_msg
-          }
+        %{
+          req
+          | ref: nil,
+          pid: nil,
+          status: :error,
+          error_type: :internal_error,
+          error_msg: error_msg
+        }
 
         req ->
           %{req | ref: nil, pid: nil}
@@ -197,14 +197,14 @@ defmodule ElixirLS.LanguageServer.Server do
         %{status: :async} = req ->
           error_msg = "Internal error: " <> Exception.format_exit(reason)
 
-          %{
-            req
-            | ref: nil,
-              pid: nil,
-              status: :error,
-              error_type: :internal_error,
-              error_msg: error_msg
-          }
+        %{
+          req
+          | ref: nil,
+          pid: nil,
+          status: :error,
+          error_type: :internal_error,
+          error_msg: error_msg
+        }
 
         req ->
           %{req | ref: nil, pid: nil}
@@ -243,7 +243,7 @@ defmodule ElixirLS.LanguageServer.Server do
       update_request(state, id, fn
         %{status: :async, pid: pid} = req ->
           Process.exit(pid, :kill)
-          %{req | pid: nil, ref: nil, status: :error, error_type: :request_cancelled}
+        %{req | pid: nil, ref: nil, status: :error, error_type: :request_cancelled}
 
         req ->
           req
@@ -294,7 +294,7 @@ defmodule ElixirLS.LanguageServer.Server do
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
         Path.extname(uri) in [".ex", ".exs", ".erl", ".yrl", ".xrl", ".eex"] and
-          (type in [1, 3] or not Map.has_key?(state.source_files, uri))
+        (type in [1, 3] or not Map.has_key?(state.source_files, uri))
       end)
 
     if needs_build, do: trigger_build(state), else: state
@@ -372,11 +372,11 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request(completion_req(_id, uri, line, character), state) do
     snippets_supported =
       !!get_in(state.client_capabilities, [
-        "textDocument",
-        "completion",
-        "completionItem",
-        "snippetSupport"
-      ])
+            "textDocument",
+            "completion",
+            "completionItem",
+            "snippetSupport"
+          ])
 
     fun = fn ->
       Completion.completion(state.source_files[uri].text, line, character, snippets_supported)
@@ -401,6 +401,15 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     {:async, fun, state}
+  end
+
+  defp handle_request(macro_expansion(_id, uri, text, line) = x, state) do
+    y = string_to_ast(text, true, line)
+    x = ElixirSense.expand_full(text, y, line)
+    IO.inspect y
+    IO.inspect "--------"
+    IO.inspect x
+    {:ok, x, state}
   end
 
   defp handle_request(request(_, _, _) = req, state) do
@@ -434,6 +443,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp server_capabilities do
     %{
+      "macroExpansion" => true,
       "textDocumentSync" => 2,
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
@@ -473,8 +483,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp dialyze(state) do
     warn_opts =
-      (state.settings["dialyzerWarnOpts"] || [])
-      |> Enum.map(&String.to_atom/1)
+    (state.settings["dialyzerWarnOpts"] || [])
+    |> Enum.map(&String.to_atom/1)
 
     if dialyzer_enabled?(state), do: Dialyzer.analyze(warn_opts)
     state
@@ -486,15 +496,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
     state =
       cond do
-        state.needs_build? ->
-          state
+      state.needs_build? ->
+        state
 
-        status == :error or not dialyzer_enabled?(state) ->
-          put_in(state.dialyzer_diagnostics, [])
+      status == :error or not dialyzer_enabled?(state) ->
+        put_in(state.dialyzer_diagnostics, [])
 
-        true ->
-          dialyze(state)
-      end
+      true ->
+        dialyze(state)
+    end
 
     publish_diagnostics(
       state.build_diagnostics ++ state.dialyzer_diagnostics,
@@ -531,8 +541,8 @@ defmodule ElixirLS.LanguageServer.Server do
       Enum.uniq(Enum.map(new_diagnostics, & &1.file) ++ Enum.map(old_diagnostics, & &1.file))
 
     for file <- files,
-        uri = SourceFile.path_to_uri(file),
-        do: Build.publish_file_diagnostics(uri, new_diagnostics, Map.get(source_files, uri))
+      uri = SourceFile.path_to_uri(file),
+      do: Build.publish_file_diagnostics(uri, new_diagnostics, Map.get(source_files, uri))
   end
 
   defp show_version_warnings do
@@ -548,20 +558,20 @@ defmodule ElixirLS.LanguageServer.Server do
 
     warning =
       cond do
-        otp_version < 19 ->
-          "Upgrade Erlang to version OTP 20 for debugging support and automatic, " <>
-            "incremental Dialyzer integration."
+      otp_version < 19 ->
+        "Upgrade Erlang to version OTP 20 for debugging support and automatic, " <>
+          "incremental Dialyzer integration."
 
-        otp_version < 20 ->
-          "Upgrade Erlang to version OTP 20 for automatic, incremental Dialyzer integration."
+      otp_version < 20 ->
+        "Upgrade Erlang to version OTP 20 for automatic, incremental Dialyzer integration."
 
-        otp_version > 20 ->
-          "ElixirLS Dialyzer integration has not been tested with Erlang versions other than " <>
-            "OTP 20. To disable, set \"elixirLS.enableDialyzer\" to false."
+      otp_version > 20 ->
+        "ElixirLS Dialyzer integration has not been tested with Erlang versions other than " <>
+          "OTP 20. To disable, set \"elixirLS.enableDialyzer\" to false."
 
-        true ->
-          nil
-      end
+      true ->
+        nil
+    end
 
     if warning != nil,
       do: JsonRpc.show_message(:info, warning <> " (Currently OTP #{otp_version})")
@@ -609,15 +619,15 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp set_project_dir(%{project_dir: prev_project_dir, root_uri: root_uri} = state, project_dir)
-       when is_binary(root_uri) do
+  when is_binary(root_uri) do
     root_dir = SourceFile.path_from_uri(root_uri)
 
     project_dir =
-      if is_binary(project_dir) do
-        Path.absname(Path.join(root_dir, project_dir))
-      else
-        root_dir
-      end
+    if is_binary(project_dir) do
+      Path.absname(Path.join(root_dir, project_dir))
+    else
+      root_dir
+    end
 
     cond do
       not File.dir?(project_dir) ->
@@ -644,4 +654,66 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_project_dir(state, _) do
     state
   end
+
+
+  defp string_to_ast(source, try_to_fix_parse_error, cursor_line_number) do
+    case Code.string_to_quoted(source) do
+      {:ok, ast} ->
+        {:ok, ast}
+      error ->
+      # IO.puts :stderr, "PARSE ERROR"
+      # IO.inspect :stderr, error, []
+      if try_to_fix_parse_error do
+        source
+        |> fix_parse_error(cursor_line_number, error)
+        |> string_to_ast(false, cursor_line_number)
+      else
+        error
+      end
+    end
+  end
+
+  defp fix_parse_error(source, _cursor_line_number, {:error, {line, {"\"" <> <<_::bytes-size(1)>> <> "\" is missing terminator" <> _, _}, _}}) when is_integer(line) do
+    source
+    |> replace_line_with_marker(line)
+  end
+
+  defp fix_parse_error(source, _cursor_line_number, {:error, {_line, {_error_type, text}, _token}}) do
+    [_, line] = Regex.run(Regex.recompile!(~r/line\s(\d+)/), text)
+    line = line |> String.to_integer
+    source
+    |> replace_line_with_marker(line)
+  end
+
+  defp fix_parse_error(source, cursor_line_number, {:error, {line, "syntax" <> _, "'end'"}}) when is_integer(line) do
+    source
+    |> replace_line_with_marker(cursor_line_number)
+  end
+
+  defp fix_parse_error(source, _cursor_line_number, {:error, {line, "syntax" <> _, _token}}) when is_integer(line) do
+    source
+    |> replace_line_with_marker(line)
+  end
+
+  defp fix_parse_error(_, nil, error) do
+    error
+  end
+
+  defp fix_parse_error(source, cursor_line_number, _error) do
+    source
+    |> replace_line_with_marker(cursor_line_number)
+  end
+
+  defp fix_line_not_found(source, line_number) do
+    source |> replace_line_with_marker(line_number)
+  end
+
+  defp replace_line_with_marker(source, line) do
+    # IO.puts :stderr, "REPLACING LINE: #{line}"
+    source
+    |> String.split(["\n", "\r\n"])
+    |> List.replace_at(line - 1, "(__atom_elixir_marker_#{line}__())")
+    |> Enum.join("\n")
+  end
+
 end
