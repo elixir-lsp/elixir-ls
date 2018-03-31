@@ -403,12 +403,8 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(macro_expansion(_id, uri, text, line) = x, state) do
-    y = string_to_ast(text, true, line)
-    x = ElixirSense.expand_full(text, y, line)
-    IO.inspect(y)
-    IO.inspect("--------")
-    IO.inspect(x)
+  defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
+    x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
     {:ok, x, state}
   end
 

@@ -156,13 +156,13 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
-  defmacro macro_expansion(id, uri, text, line) do
+  defmacro macro_expansion(id, whole_buffer, selected_macro, macro_line) do
     quote do
       request(unquote(id), "elixirDocument/macroExpansion", %{
+            "context" => %{"selection" => unquote(selected_macro)},
             "textDocument" => %{
-              "uri" => unquote(uri),
-              "text" => unquote(text)},
-            "position" => %{ "line" => unquote(line) }
+              "text" => unquote(whole_buffer)},
+            "position" => %{ "line" => unquote(macro_line) }
       })
     end
   end
