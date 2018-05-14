@@ -403,6 +403,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
+    x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
+    {:ok, x, state}
+  end
+
   defp handle_request(request(_, _, _) = req, state) do
     IO.inspect(req, label: "Unmatched request")
     {:error, :invalid_request, nil, state}
@@ -434,6 +439,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp server_capabilities do
     %{
+      "macroExpansion" => true,
       "textDocumentSync" => 2,
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
@@ -644,4 +650,5 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_project_dir(state, _) do
     state
   end
+
 end
