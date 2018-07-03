@@ -557,7 +557,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
         otp_version > 20 ->
           "ElixirLS Dialyzer integration has not been tested with Erlang versions other than " <>
-            "OTP 20. To disable, set \"elixirLS.enableDialyzer\" to false."
+            "OTP 20. To disable, set \"elixirLS.dialyzerEnabled\" to false."
 
         true ->
           nil
