@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.CLI do
       configure_logger()
     end
 
-    Application.ensure_all_started(:language_server, :permanent)
+    Application.ensure_all_started(:language_server, :temporary)
     IO.puts("Started ElixirLS")
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)

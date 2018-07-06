@@ -26,12 +26,10 @@ defmodule ElixirLS.Debugger do
   end
 
   def stop(_state) do
-    # If IO is being intercepted (meaning we're running in production), allow time to flush errors
-    # then kill the VM
+    # If we crash, try to print a message. We don't kill the VM because that makes it harder to
+    # figure out what happened
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
-      IO.puts("Stopping ElixirLS debugger due to errors.")
-      :timer.sleep(100)
-      :init.stop(1)
+      IO.puts(:standard_error, "ElixirLS debugger has crashed")
     end
 
     :ok
