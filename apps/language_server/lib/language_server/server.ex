@@ -523,7 +523,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp dialyzer_enabled?(state) do
-    Dialyzer.supported?() and build_enabled?(state) and state.dialyzer_sup != nil
+    Dialyzer.check_support() == :ok and build_enabled?(state) and state.dialyzer_sup != nil
   end
 
   defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
@@ -544,31 +544,27 @@ defmodule ElixirLS.LanguageServer.Server do
       )
     end
 
-    {otp_version, _} = Integer.parse(to_string(:erlang.system_info(:otp_release)))
+    otp_release = String.to_integer(System.otp_release())
 
-    warning =
-      cond do
-        otp_version < 19 ->
-          "Upgrade Erlang to version OTP 20 for debugging support and automatic, " <>
-            "incremental Dialyzer integration."
+    if otp_release < 19 do
+      JsonRpc.show_message(
+        :info,
+        "Upgrade Erlang to version OTP 20 for debugging support (Currently OTP #{otp_release})"
+      )
+    end
 
-        otp_version < 20 ->
-          "Upgrade Erlang to version OTP 20 for automatic, incremental Dialyzer integration."
+    case Dialyzer.check_support() do
+      :ok -> :ok
+      {:error, msg} -> JsonRpc.show_message(:info, msg)
+    end
 
-        otp_version > 20 ->
-          "ElixirLS Dialyzer integration has not been tested with Erlang versions other than " <>
-            "OTP 20. To disable, set \"elixirLS.dialyzerEnabled\" to false."
-
-        true ->
-          nil
-      end
-
-    if warning != nil,
-      do: JsonRpc.show_message(:info, warning <> " (Currently OTP #{otp_version})")
+    :ok
   end
 
   defp set_settings(state, settings) do
-    enable_dialyzer = Dialyzer.supported?() && Map.get(settings, "dialyzerEnabled", true)
+    enable_dialyzer =
+      Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
+
     mix_env = Map.get(settings, "mixEnv", "test")
     project_dir = Map.get(settings, "projectDir")
 

@@ -23,9 +23,22 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   # Client API
 
-  def supported? do
-    {otp_version, _} = Integer.parse(to_string(:erlang.system_info(:otp_release)))
-    otp_version >= 20
+  def check_support do
+    otp_release = String.to_integer(System.otp_release())
+
+    cond do
+      otp_release < 20 ->
+        {:error,
+         "Dialyzer integration requires Erlang OTP 20 or higher (Currently OTP #{otp_release})"}
+
+      not File.regular?(Manifest.elixir_plt_path()) and not dialyzable?(System) ->
+        {:error,
+         "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
+           "You may need to recompile Elixir with Erlang >= OTP 20"}
+
+      true ->
+        :ok
+    end
   end
 
   def start_link({parent, root_path}) do
@@ -345,28 +358,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp module_md5(content) do
-    case get_core_from_beam(content) do
-      nil ->
-        nil
-
-      core ->
+    case :dialyzer_utils.get_core_from_beam(content) do
+      {:ok, core} ->
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
-    end
-  end
 
-  defp get_core_from_beam(content) do
-    with {:ok, {_, kw}} when is_list(kw) <- :beam_lib.chunks(content, [:abstract_code]),
-         code when code != :no_abstract_code <- Keyword.get(kw, :abstract_code) do
-      code
-    else
-      _ -> nil
+      {:error, _} ->
+        nil
     end
-  end
-
-  defp dialyzable?(module) do
-    file = :code.which(module)
-    is_list(file) and get_core_from_beam(file) != nil
   end
 
   defp to_diagnostics(warnings_map, warn_opts) do

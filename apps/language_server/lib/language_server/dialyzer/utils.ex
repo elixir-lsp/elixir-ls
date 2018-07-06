@@ -1,4 +1,11 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
+  @epoch_gregorian_seconds 62_167_219_200
+
+  def dialyzable?(module) do
+    file = :code.which(module)
+    is_list(file) and match?({:ok, _}, :dialyzer_utils.get_core_from_beam(file))
+  end
+
   def pathname_to_module(path) do
     String.to_atom(Path.basename(path, ".beam"))
   end
@@ -11,7 +18,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
 
   def expand_references([module | rest], exclude, result) do
     result =
-      if module in result or module in exclude do
+      if module in result or module in exclude or not dialyzable?(module) do
         result
       else
         result = MapSet.put(result, module)
@@ -20,6 +27,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
 
     expand_references(rest, exclude, result)
   end
+
+  # Mix.Utils.last_modified/1 returns a :calendar.universal_time() in Elixir < 1.7,
+  # otherwise posix time, so we normalize to a :calendar.universal_time()
+  def normalize_timestamp(timestamp) when is_integer(timestamp),
+    do: :calendar.gregorian_seconds_to_datetime(timestamp + @epoch_gregorian_seconds)
+
+  def normalize_timestamp(timestamp), do: timestamp
 
   defp module_references(mod) do
     try do
