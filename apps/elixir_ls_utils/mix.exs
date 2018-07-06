@@ -10,7 +10,7 @@ defmodule ElixirLS.Utils.Mixfile do
       deps_path: "../../deps",
       elixirc_paths: ["lib", "test/support"],
       lockfile: "../../mix.lock",
-      elixir: ">= 1.7.0-dev",
+      elixir: ">= 1.6.5",
       build_embedded: false,
       start_permanent: false,
       build_per_environment: false,
