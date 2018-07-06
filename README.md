@@ -24,7 +24,7 @@ Elixir:
 
 Erlang:
 - OTP 18 minimum
-- >= OTP 20 recommended
+- \>= OTP 20 recommended
 
 You may want to install Elixir and Erlang from source, using the [kiex](https://github.com/taylor/kiex) and [kerl](https://github.com/kerl/kerl) tools. This will let you go-to-definition for core Elixir and Erlang modules.
 
