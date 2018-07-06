@@ -4,22 +4,28 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
   """
 
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirSense.Providers.Definition.Location
 
-  def definition(text, line, character) do
+  def definition(uri, text, line, character) do
     case ElixirSense.definition(text, line + 1, character + 1) do
-      {"non_existing", nil} ->
+      %Location{found: false} ->
         {:ok, []}
 
-      {file, line} ->
+      %Location{file: file, line: line, column: column} ->
         line = line || 0
-        uri = SourceFile.path_to_uri(file)
+        column = column || 0
+        uri =
+          case file do
+            nil -> uri
+            _ -> SourceFile.path_to_uri(file)
+          end
 
         {:ok,
          %{
            "uri" => uri,
            "range" => %{
-             "start" => %{"line" => line - 1, "character" => 0},
-             "end" => %{"line" => line - 1, "character" => 0}
+             "start" => %{"line" => line - 1, "character" => column - 1},
+             "end" => %{"line" => line - 1, "character" => column - 1}
            }
          }}
     end

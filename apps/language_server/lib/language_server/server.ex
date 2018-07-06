@@ -333,7 +333,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(definition_req(_id, uri, line, character), state) do
     fun = fn ->
-      Definition.definition(state.source_files[uri].text, line, character)
+      Definition.definition(uri, state.source_files[uri].text, line, character)
     end
 
     {:async, fun, state}
