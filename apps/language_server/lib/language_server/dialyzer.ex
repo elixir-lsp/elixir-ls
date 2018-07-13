@@ -211,7 +211,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     changed_contents =
       Task.async_stream(changed, fn file ->
         content = File.read!(file)
-        {file, content, module_md5(content)}
+        {file, content, module_md5(file)}
       end)
 
     file_changes =
@@ -357,8 +357,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     File.exists?(path) and String.starts_with?(Path.absname(path), File.cwd!())
   end
 
-  defp module_md5(content) do
-    case :dialyzer_utils.get_core_from_beam(content) do
+  defp module_md5(file) do
+    case :dialyzer_utils.get_core_from_beam(to_charlist(file)) do
       {:ok, core} ->
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
