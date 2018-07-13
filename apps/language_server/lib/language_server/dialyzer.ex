@@ -211,19 +211,21 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     changed_contents =
       Task.async_stream(changed, fn file ->
         content = File.read!(file)
-        {file, content, module_md5(content)}
+        {file, content, module_md5(file)}
       end)
+      |> Enum.into([])
 
     file_changes =
       Enum.reduce(changed_contents, file_changes, fn {:ok, {file, content, hash}}, file_changes ->
-        if hash == md5[file] do
+        if is_nil(hash) or hash == md5[file] do
           Map.delete(file_changes, file)
         else
           Map.put(file_changes, file, {content, hash})
         end
       end)
 
-    removed_files = Enum.uniq((removed_files ++ removed) -- changed)
+    undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
+    removed_files = Enum.uniq(removed_files ++ removed ++ undialyzable -- changed)
     {removed_files, file_changes}
   end
 
@@ -357,8 +359,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     File.exists?(path) and String.starts_with?(Path.absname(path), File.cwd!())
   end
 
-  defp module_md5(content) do
-    case :dialyzer_utils.get_core_from_beam(content) do
+  defp module_md5(file) do
+    case :dialyzer_utils.get_core_from_beam(to_charlist(file)) do
       {:ok, core} ->
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
