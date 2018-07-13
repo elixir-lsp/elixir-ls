@@ -31,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {:error,
          "Dialyzer integration requires Erlang OTP 20 or higher (Currently OTP #{otp_release})"}
 
-      not File.regular?(Manifest.elixir_plt_path()) and not dialyzable?(System) ->
+      not dialyzable?(System) ->
         {:error,
          "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
            "You may need to recompile Elixir with Erlang >= OTP 20"}
