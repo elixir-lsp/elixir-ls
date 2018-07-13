@@ -213,17 +213,19 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         content = File.read!(file)
         {file, content, module_md5(file)}
       end)
+      |> Enum.into([])
 
     file_changes =
       Enum.reduce(changed_contents, file_changes, fn {:ok, {file, content, hash}}, file_changes ->
-        if hash == md5[file] do
+        if is_nil(hash) or hash == md5[file] do
           Map.delete(file_changes, file)
         else
           Map.put(file_changes, file, {content, hash})
         end
       end)
 
-    removed_files = Enum.uniq((removed_files ++ removed) -- changed)
+    undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
+    removed_files = Enum.uniq(removed_files ++ removed ++ undialyzable -- changed)
     {removed_files, file_changes}
   end
 
