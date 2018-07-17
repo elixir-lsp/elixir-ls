@@ -88,11 +88,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     assert_receive response(1, %{
                      "range" => %{
-                       "end" => %{"character" => 0, "line" => 0},
-                       "start" => %{"character" => 0, "line" => 0}
+                       "end" => %{"character" => column, "line" => 0},
+                       "start" => %{"character" => column, "line" => 0}
                      },
                      "uri" => ^uri
                    })
+
+    assert column > 0
   end
 
   test "requests cancellation", %{server: server} do

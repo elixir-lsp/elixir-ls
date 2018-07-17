@@ -6,8 +6,12 @@ defmodule ElixirLS.LanguageServer.CLI do
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
     Launch.start_mix()
 
-    configure_logger()
-    Application.ensure_all_started(:language_server, :permanent)
+    # TODO: Figure out a safe way to use the custom logger backend in Elixir 1.7
+    unless Version.match?(System.version(), ">= 1.7.0-dev") do
+      configure_logger()
+    end
+
+    Application.ensure_all_started(:language_server, :temporary)
     IO.puts("Started ElixirLS")
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)

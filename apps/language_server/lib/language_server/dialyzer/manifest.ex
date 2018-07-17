@@ -61,7 +61,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
   def read(root_path) do
     manifest_path = manifest_path(root_path)
-    timestamp = Mix.Utils.last_modified(manifest_path)
+    timestamp = normalize_timestamp(Mix.Utils.last_modified(manifest_path))
 
     {
       @manifest_vsn,
@@ -102,6 +102,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     _ -> build_elixir_plt()
   end
 
+  def elixir_plt_path() do
+    Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
+  end
+
   defp build_elixir_plt() do
     JsonRpc.show_message(:info, "Building core Elixir PLT. This will take a few minutes.")
 
@@ -124,10 +128,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
     JsonRpc.show_message(:info, "Saved Elixir PLT to #{elixir_plt_path()}")
     :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
-  end
-
-  defp elixir_plt_path() do
-    Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
   end
 
   defp otp_vsn() do

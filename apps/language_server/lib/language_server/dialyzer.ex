@@ -23,9 +23,22 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   # Client API
 
-  def supported? do
-    {otp_version, _} = Integer.parse(to_string(:erlang.system_info(:otp_release)))
-    otp_version >= 20
+  def check_support do
+    otp_release = String.to_integer(System.otp_release())
+
+    cond do
+      otp_release < 20 ->
+        {:error,
+         "Dialyzer integration requires Erlang OTP 20 or higher (Currently OTP #{otp_release})"}
+
+      not dialyzable?(System) ->
+        {:error,
+         "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
+           "You may need to recompile Elixir with Erlang >= OTP 20"}
+
+      true ->
+        :ok
+    end
   end
 
   def start_link({parent, root_path}) do
@@ -198,19 +211,21 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     changed_contents =
       Task.async_stream(changed, fn file ->
         content = File.read!(file)
-        {file, content, module_md5(content)}
+        {file, content, module_md5(file)}
       end)
+      |> Enum.into([])
 
     file_changes =
       Enum.reduce(changed_contents, file_changes, fn {:ok, {file, content, hash}}, file_changes ->
-        if hash == md5[file] do
+        if is_nil(hash) or hash == md5[file] do
           Map.delete(file_changes, file)
         else
           Map.put(file_changes, file, {content, hash})
         end
       end)
 
-    removed_files = Enum.uniq((removed_files ++ removed) -- changed)
+    undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
+    removed_files = Enum.uniq(removed_files ++ removed ++ undialyzable -- changed)
     {removed_files, file_changes}
   end
 
@@ -344,29 +359,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     File.exists?(path) and String.starts_with?(Path.absname(path), File.cwd!())
   end
 
-  defp module_md5(content) do
-    case get_core_from_beam(content) do
-      nil ->
-        nil
-
-      core ->
+  defp module_md5(file) do
+    case :dialyzer_utils.get_core_from_beam(to_charlist(file)) do
+      {:ok, core} ->
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
-    end
-  end
 
-  defp get_core_from_beam(content) do
-    with {:ok, {_, kw}} when is_list(kw) <- :beam_lib.chunks(content, [:abstract_code]),
-         code when code != :no_abstract_code <- Keyword.get(kw, :abstract_code) do
-      code
-    else
-      _ -> nil
+      {:error, _} ->
+        nil
     end
-  end
-
-  defp dialyzable?(module) do
-    file = :code.which(module)
-    is_list(file) and get_core_from_beam(file) != nil
   end
 
   defp to_diagnostics(warnings_map, warn_opts) do
