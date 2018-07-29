@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
     [
       app: :language_server,
       version: "0.2.18",
-      elixir: ">= 1.7.0-dev",
+      elixir: ">= 1.6.0-dev",
       build_path: "../../_build",
       config_path: "config/config.exs",
       deps_path: "../../deps",
@@ -38,7 +38,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   defp deps do
     [
       {:elixir_ls_utils, in_umbrella: true},
-      {:elixir_sense, github: "msaraiva/elixir_sense"},
+      {:elixir_sense, github: "elixir-lsp/elixir_sense"},
       {:forms, "~> 0.0.1"}
     ]
   end
