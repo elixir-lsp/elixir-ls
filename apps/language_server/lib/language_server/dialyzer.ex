@@ -209,10 +209,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     changed = Enum.uniq(new_paths ++ Mix.Utils.extract_stale(all_paths, [timestamp]))
 
     changed_contents =
-      Task.async_stream(changed, fn file ->
-        content = File.read!(file)
-        {file, content, module_md5(file)}
-      end)
+      Task.async_stream(
+        changed,
+        fn file ->
+          content = File.read!(file)
+          {file, content, module_md5(file)}
+        end,
+        timeout: :infinity
+      )
       |> Enum.into([])
 
     file_changes =
