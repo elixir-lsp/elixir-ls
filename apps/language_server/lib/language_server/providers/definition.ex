@@ -14,6 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
       %Location{file: file, line: line, column: column} ->
         line = line || 0
         column = column || 0
+
         uri =
           case file do
             nil -> uri

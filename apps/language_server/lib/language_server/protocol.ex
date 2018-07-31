@@ -156,6 +156,23 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro code_lens_req(id, uri) do
+    quote do
+      request(unquote(id), "textDocument/codeLens", %{
+        "textDocument" => %{"uri" => unquote(uri)}
+      })
+    end
+  end
+
+  defmacro execute_command_req(id, command, arguments) do
+    quote do
+      request(unquote(id), "workspace/executeCommand", %{
+        "command" => unquote(command),
+        "arguments" => unquote(arguments)
+      })
+    end
+  end
+
   # Other utilities
 
   defmacro range(start_line, start_character, end_line, end_character) do
