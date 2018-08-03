@@ -108,6 +108,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     }
   end
 
+  # TODO: Fix this test for the incremental formatter
   test "formatter", %{server: server} do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])
