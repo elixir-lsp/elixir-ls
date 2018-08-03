@@ -12,8 +12,7 @@ defmodule ElixirLS.LanguageServer.Server do
   request handling cannot modify the server state.  That way, if the process handling the request
   crashes, we can report that error to the client and continue knowing that the state is
   uncorrupted. Also, asynchronous requests can be cancelled by the client if they're taking too long
-  or the user no longer cares about the result. Regardless of completion order, the protocol
-  specifies that requests must be replied to in the order they are received.
+  or the user no longer cares about the result.
   """
 
   use GenServer
@@ -27,7 +26,9 @@ defmodule ElixirLS.LanguageServer.Server do
     Formatting,
     SignatureHelp,
     DocumentSymbols,
-    OnTypeFormatting
+    OnTypeFormatting,
+    CodeLens,
+    ExecuteCommand
   }
 
   use Protocol
@@ -43,14 +44,13 @@ defmodule ElixirLS.LanguageServer.Server do
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
+    build_running?: false,
+    analysis_ready?: false,
     received_shutdown?: false,
-    requests: [],
-    source_files: %{}
+    requests: %{},
+    source_files: %{},
+    awaiting_contracts: []
   ]
-
-  defmodule Request do
-    defstruct [:id, :status, :pid, :ref, :result, :error_type, :error_msg]
-  end
 
   ## Client API
 
@@ -66,12 +66,16 @@ defmodule ElixirLS.LanguageServer.Server do
     GenServer.cast(server, {:build_finished, result})
   end
 
-  def dialyzer_finished(server \\ __MODULE__, result) do
-    GenServer.cast(server, {:dialyzer_finished, result})
+  def dialyzer_finished(server \\ __MODULE__, diagnostics, build_ref) do
+    GenServer.cast(server, {:dialyzer_finished, diagnostics, build_ref})
   end
 
   def rebuild(server \\ __MODULE__) do
     GenServer.cast(server, :rebuild)
+  end
+
+  def suggest_contracts(server \\ __MODULE__, uri) do
+    GenServer.call(server, {:suggest_contracts, uri}, :infinity)
   end
 
   ## Server Callbacks
@@ -80,14 +84,24 @@ defmodule ElixirLS.LanguageServer.Server do
     {:ok, %__MODULE__{}}
   end
 
-  def handle_call({:request_finished, id, {:error, type, msg}}, _from, state) do
-    state = update_request(state, id, &%{&1 | status: :error, error_type: type, error_msg: msg})
-    {:reply, :ok, send_responses(state)}
+  def handle_call({:request_finished, id, result}, _from, state) do
+    case result do
+      {:error, type, msg} -> JsonRpc.respond_with_error(id, type, msg)
+      {:ok, result} -> JsonRpc.respond(id, result)
+    end
+
+    state = %{state | requests: Map.delete(state.requests, id)}
+    {:reply, :ok, state}
   end
 
-  def handle_call({:request_finished, id, {:ok, result}}, _from, state) do
-    state = update_request(state, id, &%{&1 | status: :ok, result: result})
-    {:reply, :ok, send_responses(state)}
+  def handle_call({:suggest_contracts, uri}, from, state) do
+    case state do
+      %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
+        {:reply, Dialyzer.suggest_contracts([uri]), state}
+
+      _ ->
+        {:noreply, %{state | awaiting_contracts: [{from, uri} | state.awaiting_contracts]}}
+    end
   end
 
   def handle_call(msg, from, state) do
@@ -104,26 +118,27 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, handle_build_result(:ok, [], state)}
   end
 
-  def handle_cast({:dialyzer_finished, {status, diagnostics}}, state) do
-    {:noreply, handle_dialyzer_result(status, diagnostics, state)}
+  def handle_cast({:dialyzer_finished, diagnostics, build_ref}, state) do
+    {:noreply, handle_dialyzer_result(diagnostics, build_ref, state)}
   end
 
   def handle_cast({:receive_packet, request(id, _, _) = packet}, state) do
-    {request, state} =
+    state =
       case handle_request(packet, state) do
         {:ok, result, state} ->
-          {%Request{id: id, status: :ok, result: result}, state}
+          JsonRpc.respond(id, result)
+          state
 
         {:error, type, msg, state} ->
-          {%Request{id: id, status: :error, error_type: type, error_msg: msg}, state}
+          JsonRpc.respond_with_error(id, type, msg)
+          state
 
         {:async, fun, state} ->
-          {pid, ref} = handle_request_async(id, fun)
-          {%Request{id: id, status: :async, pid: pid, ref: ref}, state}
+          {pid, _ref} = handle_request_async(id, fun)
+          %{state | requests: Map.put(state.requests, id, pid)}
       end
 
-    state = %{state | requests: state.requests ++ [request]}
-    {:noreply, send_responses(state)}
+    {:noreply, state}
   end
 
   def handle_cast({:receive_packet, notification(_) = packet}, state) do
@@ -156,8 +171,8 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, state}
   end
 
-  def handle_info({:DOWN, ref, _, _pid, reason}, %{build_ref: ref} = state) do
-    state = put_in(state.build_ref, nil)
+  def handle_info({:DOWN, ref, _, _pid, reason}, %{build_ref: ref, build_running?: true} = state) do
+    state = %{state | build_running?: false}
 
     state =
       case reason do
@@ -169,48 +184,19 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, state}
   end
 
-  def handle_info({:DOWN, ref, :process, _pid, :normal}, state) do
+  def handle_info({:DOWN, _ref, :process, pid, reason}, %{requests: requests} = state) do
     state =
-      update_request_by_ref(state, ref, fn
-        %{status: :async} = req ->
-          error_msg = "Internal error: Request ended without result"
+      case Enum.find(requests, &match?({_, ^pid}, &1)) do
+        {id, _} ->
+          error_msg = Exception.format_exit(reason)
+          JsonRpc.respond_with_error(id, :server_error, error_msg)
+          %{state | requests: Map.delete(requests, id)}
 
-          %{
-            req
-            | ref: nil,
-              pid: nil,
-              status: :error,
-              error_type: :internal_error,
-              error_msg: error_msg
-          }
+        nil ->
+          state
+      end
 
-        req ->
-          %{req | ref: nil, pid: nil}
-      end)
-
-    {:noreply, send_responses(state)}
-  end
-
-  def handle_info({:DOWN, ref, :process, _pid, reason}, state) do
-    state =
-      update_request_by_ref(state, ref, fn
-        %{status: :async} = req ->
-          error_msg = "Internal error: " <> Exception.format_exit(reason)
-
-          %{
-            req
-            | ref: nil,
-              pid: nil,
-              status: :error,
-              error_type: :internal_error,
-              error_msg: error_msg
-          }
-
-        req ->
-          %{req | ref: nil, pid: nil}
-      end)
-
-    {:noreply, send_responses(state)}
+    {:noreply, state}
   end
 
   def handle_info(info, state) do
@@ -218,16 +204,6 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   ## Helpers
-
-  defp find_and_update(list, find_fn, update_fn) do
-    idx = Enum.find_index(list, find_fn)
-
-    if idx do
-      List.update_at(list, idx, update_fn)
-    else
-      list
-    end
-  end
 
   defp handle_notification(notification("initialized"), state) do
     state
@@ -238,18 +214,16 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_notification(cancel_request(id), state) do
-    state =
-      update_request(state, id, fn
-        %{status: :async, pid: pid} = req ->
-          Process.exit(pid, :kill)
-          %{req | pid: nil, ref: nil, status: :error, error_type: :request_cancelled}
+  defp handle_notification(cancel_request(id), %{requests: requests} = state) do
+    case requests do
+      %{^id => pid} ->
+        Process.exit(pid, :cancelled)
+        JsonRpc.respond_with_error(id, :request_cancelled, "Request cancelled")
+        %{state | requests: Map.delete(requests, id)}
 
-        req ->
-          req
-      end)
-
-    send_responses(state)
+      _ ->
+        state
+    end
   end
 
   defp handle_notification(did_change_configuration(settings), state) do
@@ -281,12 +255,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(did_change(uri, version, content_changes), state) do
     update_in(state.source_files[uri], fn source_file ->
-      source_file = %{source_file | version: version}
+      source_file = %{source_file | version: version, dirty?: true}
       SourceFile.apply_content_changes(source_file, content_changes)
     end)
   end
 
-  defp handle_notification(did_save(_uri), state) do
+  defp handle_notification(did_save(uri), state) do
+    state = update_in(state.source_files[uri], &%{&1 | dirty?: false})
     trigger_build(state)
   end
 
@@ -403,6 +378,19 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(code_lens_req(_id, uri), state) do
+    if dialyzer_enabled?(state) and state.settings["suggestSpecs"] != false do
+      %{^uri => %{text: text}} = state.source_files
+      {:async, fn -> CodeLens.code_lens(uri, text) end, state}
+    else
+      {:ok, nil, state}
+    end
+  end
+
+  defp handle_request(execute_command_req(_id, command, args), state) do
+    {:async, fn -> ExecuteCommand.execute(command, args, state.source_files) end, state}
+  end
+
   defp handle_request(request(_, _, _) = req, state) do
     IO.inspect(req, label: "Unmatched request")
     {:error, :invalid_request, nil, state}
@@ -417,21 +405,6 @@ defmodule ElixirLS.LanguageServer.Server do
     end)
   end
 
-  defp send_responses(state) do
-    case state.requests do
-      [%Request{id: id, status: :ok, result: result} | rest] ->
-        JsonRpc.respond(id, result)
-        send_responses(%{state | requests: rest})
-
-      [%Request{id: id, status: :error, error_type: error_type, error_msg: error_msg} | rest] ->
-        JsonRpc.respond_with_error(id, error_type, error_msg)
-        send_responses(%{state | requests: rest})
-
-      _ ->
-        state
-    end
-  end
-
   defp server_capabilities do
     %{
       "textDocumentSync" => 2,
@@ -442,32 +415,28 @@ defmodule ElixirLS.LanguageServer.Server do
       "documentFormattingProvider" => Formatting.supported?(),
       "signatureHelpProvider" => %{"triggerCharacters" => ["("]},
       "documentSymbolProvider" => true,
-      "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"}
+      "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
+      "codeLensProvider" => %{"resolveProvider" => false},
+      "executeCommandProvider" => %{"commands" => ["spec"]}
     }
-  end
-
-  defp update_request(state, id, update_fn) do
-    update_in(state.requests, fn requests ->
-      find_and_update(requests, &(&1.id == id), update_fn)
-    end)
-  end
-
-  defp update_request_by_ref(state, ref, update_fn) do
-    update_in(state.requests, fn requests ->
-      find_and_update(requests, &(&1.ref == ref), update_fn)
-    end)
   end
 
   # Build
 
   defp trigger_build(state) do
-    if build_enabled?(state) and state.build_ref == nil do
+    if build_enabled?(state) and not state.build_running? do
       fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
       {_pid, build_ref} = Build.build(self(), state.project_dir, fetch_deps?)
 
-      %__MODULE__{state | build_ref: build_ref, needs_build?: false}
+      %__MODULE__{
+        state
+        | build_ref: build_ref,
+          needs_build?: false,
+          build_running?: true,
+          analysis_ready?: false
+      }
     else
-      %__MODULE__{state | needs_build?: true}
+      %__MODULE__{state | needs_build?: true, analysis_ready?: false}
     end
   end
 
@@ -476,7 +445,7 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    if dialyzer_enabled?(state), do: Dialyzer.analyze(warn_opts)
+    if dialyzer_enabled?(state), do: Dialyzer.analyze(state.build_ref, warn_opts)
     state
   end
 
@@ -505,7 +474,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_dialyzer_result(_status, diagnostics, state) do
+  defp handle_dialyzer_result(diagnostics, build_ref, state) do
     old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
     state = put_in(state.dialyzer_diagnostics, diagnostics)
 
@@ -515,7 +484,33 @@ defmodule ElixirLS.LanguageServer.Server do
       state.source_files
     )
 
-    state
+    # If these results were triggered by the most recent build and files are not dirty, then we know
+    # we're up to date and can release spec suggestions to the code lens provider
+    if build_ref == state.build_ref do
+      JsonRpc.log_message(:info, "Dialyzer analysis is up to date")
+
+      {dirty, not_dirty} =
+        Enum.split_with(state.awaiting_contracts, fn {_, uri} ->
+          state.source_files[uri].dirty?
+        end)
+
+      contracts =
+        not_dirty
+        |> Enum.uniq()
+        |> Enum.map(fn {_from, uri} -> SourceFile.path_from_uri(uri) end)
+        |> Dialyzer.suggest_contracts()
+
+      for {from, uri} <- not_dirty do
+        contracts =
+          Enum.filter(contracts, fn {file, _, _, _} -> SourceFile.path_from_uri(uri) == file end)
+
+        GenServer.reply(from, contracts)
+      end
+
+      %{state | analysis_ready?: true, awaiting_contracts: dirty}
+    else
+      state
+    end
   end
 
   defp build_enabled?(state) do
@@ -584,7 +579,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       not enable_dialyzer and state.dialyzer_sup != nil ->
         Process.exit(state.dialyzer_sup, :normal)
-        %{state | dialyzer_sup: nil}
+        %{state | dialyzer_sup: nil, analysis_ready?: false}
 
       true ->
         state
