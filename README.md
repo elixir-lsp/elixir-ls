@@ -6,6 +6,7 @@ The Elixir Language Server provides a server that runs in the background, provid
 
 - Debugger support (requires Erlang >= OTP 19)
 - Automatic, incremental Dialyzer analysis (requires Erlang OTP 20)
+- Automatic inline suggestion of @specs based on Dialyzer's inferred success typings
 - Inline reporting of build warnings and errors (requires Elixir >= 1.6)
 - Documentation lookup on hover
 - Go-to-definition
@@ -19,10 +20,12 @@ The Elixir Language Server provides a server that runs in the background, provid
 ## Supported versions
 
 Elixir:
+
 - 1.6.0 minimum
 - \>= 1.6.6 recommended
 
 Erlang:
+
 - OTP 18 minimum
 - \>= OTP 20 recommended
 
@@ -31,7 +34,7 @@ You may want to install Elixir and Erlang from source, using the [kiex](https://
 ## IDE plugins
 
 | IDE      | Plugin                                                                        | Support                                 |
-|----------|-------------------------------------------------------------------------------|-----------------------------------------|
+| -------- | ----------------------------------------------------------------------------- | --------------------------------------- |
 | VS Code  | [JakeBecker/vscode-elixir-ls](https://github.com/JakeBecker/vscode-elixir-ls) | Supports all ElixirLS features          |
 | Atom IDE | [JakeBecker/ide-elixir](https://github.com/JakeBecker/ide-elixir)             | Does not support debugger or output log |
 
@@ -73,7 +76,6 @@ If you're using Erlang >= OTP 20, ElixirLS will automatically analyze your proje
 You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. To disable it completely, set `elixirLS.dialyzerEnabled` to false.
 
 ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
-
 
 ## Building and running
 
