@@ -23,13 +23,13 @@ defmodule ElixirLS.LanguageServer do
   end
 
   def stop(_state) do
-    # VS Code, unfortunately, disappears the "Output" pane if the server terminates so we can't see
-    # an error message, so we can't kill the VM... We attempt to show an error message instead.
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
       ElixirLS.LanguageServer.JsonRpc.show_message(
         :error,
         "ElixirLS has crashed. See Output panel."
       )
+
+      :init.stop(1)
     end
 
     :ok
