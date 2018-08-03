@@ -1,3 +1,11 @@
+### v0.2.22: 03 Aug 2018
+
+- Fix crash in Dialyzer when stale-checking beam files takes too long
+- Fix documentation and arg names in suggestions for Elixir 1.7
+- Formatter response is now incremental instead of replacing the entire document text
+- New feature: Autocomplete suggestions for struct field names (Thanks to @msaraiva/elixir_sense)
+- New feature: Suggest @spec annotations using Dialyzer's inferred success typings. To turn it off, set `elixirLS.suggestSpecs: false`
+
 ### v0.2.21: 13 Jul 2018
 
 - Print PATH to developer console if "elixir" command fails
