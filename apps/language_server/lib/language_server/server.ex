@@ -250,7 +250,17 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_close(uri), state) do
-    %{state | source_files: Map.delete(state.source_files, uri)}
+    awaiting_contracts =
+      Enum.reject(state.awaiting_contracts, fn
+        {from, ^uri} -> GenServer.reply(from, [])
+        _ -> false
+      end)
+
+    %{
+      state
+      | source_files: Map.delete(state.source_files, uri),
+        awaiting_contracts: awaiting_contracts
+    }
   end
 
   defp handle_notification(did_change(uri, version, content_changes), state) do
