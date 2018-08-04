@@ -490,7 +490,11 @@ defmodule ElixirLS.LanguageServer.Server do
       JsonRpc.log_message(:info, "Dialyzer analysis is up to date")
 
       {dirty, not_dirty} =
-        Enum.split_with(state.awaiting_contracts, fn {_, uri} ->
+        state.awaiting_contracts
+        |> Enum.filter(fn {_, uri} ->
+          state.source_files[uri] != nil
+        end)
+        |> Enum.split_with(fn {_, uri} ->
           state.source_files[uri].dirty?
         end)
 
