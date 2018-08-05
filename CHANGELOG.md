@@ -1,3 +1,8 @@
+### v0.2.23: 05 Aug 2018
+
+- Fix crashes caused by the new spec suggestions feature
+- Fix showing of @spec suggestions on newly opened files
+
 ### v0.2.22: 03 Aug 2018
 
 - Fix crash in Dialyzer when stale-checking beam files takes too long
