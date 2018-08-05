@@ -97,7 +97,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:suggest_contracts, uri}, from, state) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
-        {:reply, Dialyzer.suggest_contracts([uri]), state}
+        {:reply, Dialyzer.suggest_contracts([SourceFile.path_from_uri(uri)]), state}
 
       _ ->
         {:noreply, %{state | awaiting_contracts: [{from, uri} | state.awaiting_contracts]}}
