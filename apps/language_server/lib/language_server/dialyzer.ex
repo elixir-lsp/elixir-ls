@@ -37,6 +37,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
          "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
            "You may need to recompile Elixir with Erlang >= OTP 20"}
 
+      Version.match?(System.version(), "1.7.0") ->
+        {:error,
+         "Dialyzer is disabled in Elixir v1.7.0 due to a bug in Dialyzer. " <>
+           "Upgrade Elixir to >= v1.7.1 to enable"}
+
       true ->
         :ok
     end
