@@ -53,11 +53,14 @@ defmodule ElixirLS.Debugger.ServerTest do
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
 
-      Server.receive_packet(server, request(4, "configurationDone", %{}))
-      assert_receive(response(_, 4, "configurationDone", %{}))
+      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
+      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
 
-      Server.receive_packet(server, request(5, "threads", %{}))
-      assert_receive(response(_, 5, "threads", %{"threads" => threads}))
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
       # ensure thread ids are unique
       thread_ids = Enum.map(threads, & &1["id"])
       assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
@@ -68,9 +71,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "threadId" => thread_id
                      })
 
-      Server.receive_packet(server, stacktrace_req(6, thread_id))
+      Server.receive_packet(server, stacktrace_req(7, thread_id))
 
-      assert_receive response(_, 6, "stackTrace", %{
+      assert_receive response(_, 7, "stackTrace", %{
                        "totalFrames" => 1,
                        "stackFrames" => [
                          %{
@@ -86,9 +89,9 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       assert String.ends_with?(path, "/lib/mix_project.ex")
 
-      Server.receive_packet(server, scopes_req(7, frame_id))
+      Server.receive_packet(server, scopes_req(8, frame_id))
 
-      assert_receive response(_, 7, "scopes", %{
+      assert_receive response(_, 8, "scopes", %{
                        "scopes" => [
                          %{
                            "expensive" => false,
@@ -107,9 +110,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        ]
                      })
 
-      Server.receive_packet(server, vars_req(8, vars_id))
+      Server.receive_packet(server, vars_req(9, vars_id))
 
-      assert_receive response(_, 8, "variables", %{
+      assert_receive response(_, 9, "variables", %{
                        "variables" => [
                          %{
                            "name" => _,
@@ -120,8 +123,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                        ]
                      })
 
-      Server.receive_packet(server, continue_req(9, thread_id))
-      assert_receive response(_, 9, "continue", %{"allThreadsContinued" => false})
+      Server.receive_packet(server, continue_req(10, thread_id))
+      assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
 
       assert_receive(event(_, "exited", %{"exitCode" => 0}))
       assert_receive(event(_, "terminated", %{"restart" => false}))
