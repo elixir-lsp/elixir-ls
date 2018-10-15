@@ -13,6 +13,7 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     Application.ensure_all_started(:language_server, :temporary)
     IO.puts("Started ElixirLS")
+    Launch.print_versions()
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
     Mix.Hex.ensure_updated?()
