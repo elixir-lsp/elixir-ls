@@ -1,3 +1,8 @@
+### v0.2.24: 15 Oct 2018
+
+- Fix debugger crash in new versions of VS Code (Thanks to @martin-watts)
+- Minor improvements to logs and error messages
+
 ### v0.2.23: 05 Aug 2018
 
 - Fix crashes caused by the new spec suggestions feature
