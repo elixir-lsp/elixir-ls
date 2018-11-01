@@ -24,3 +24,6 @@ erl_crash.dump
 
 # Run release.sh to generate this release folder
 /release
+
+# Also ignore temp files created during testing
+**/test/tmp

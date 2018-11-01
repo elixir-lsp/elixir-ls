@@ -61,7 +61,7 @@ defmodule ElixirLS.Utils.OutputDevice do
   ## Helpers
 
   defp output(from, reply_as, characters, {_, output_fn}) do
-    output_fn.(characters)
+    output_fn.(IO.iodata_to_binary(characters))
     send(from, {:io_reply, reply_as, :ok})
   end
 end

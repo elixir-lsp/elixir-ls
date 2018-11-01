@@ -1,8 +1,7 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
   import ElixirLS.LanguageServer.Protocol
 
-  defstruct text: nil,
-            version: nil
+  defstruct [:text, :version, dirty?: false]
 
   def lines(%__MODULE__{text: text}) do
     lines(text)
@@ -112,5 +111,28 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     acc = [last_line | rest]
 
     IO.iodata_to_binary(Enum.reverse(acc))
+  end
+
+  def function_line(mod, fun, arity) do
+    case ElixirSense.Core.Introspection.get_docs(mod, :docs) do
+      nil ->
+        nil
+
+      docs ->
+        Enum.find_value(docs, fn
+          {{^fun, ^arity}, line, :def, _, _} -> line
+          _ -> nil
+        end)
+    end
+  end
+
+  def function_def_on_line?(text, line, fun) do
+    case Enum.at(lines(text), line - 1) do
+      nil ->
+        false
+
+      line_text ->
+        Regex.match?(Regex.compile!("^\s*def\s+#{Regex.escape(to_string(fun))}"), line_text)
+    end
   end
 end

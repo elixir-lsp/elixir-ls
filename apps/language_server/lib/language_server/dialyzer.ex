@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Dialyzer do
   alias ElixirLS.LanguageServer.{JsonRpc, Server}
-  alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, Utils}
+  alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, Utils, SuccessTypings}
   import Utils
   require Logger
   use GenServer
@@ -12,29 +12,47 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     :root_path,
     :analysis_pid,
     :write_manifest_pid,
-    needs_analysis?: false,
+    :build_ref,
     warn_opts: [],
     mod_deps: %{},
     warnings: %{},
     file_changes: %{},
     removed_files: [],
-    md5: %{}
+    md5: %{},
+    specs_cache: %{}
   ]
 
   # Client API
 
   def check_support do
     otp_release = String.to_integer(System.otp_release())
+    {compiled_with, _} = System.build_info() |> Map.fetch!(:otp_release) |> Integer.parse()
 
     cond do
       otp_release < 20 ->
         {:error,
          "Dialyzer integration requires Erlang OTP 20 or higher (Currently OTP #{otp_release})"}
 
+      not Code.ensure_loaded?(:dialyzer) ->
+        {:error,
+         "The current Erlang installation does not include Dialyzer. It may be available as a " <>
+           "separate package."}
+
+      otp_release >= 21 and compiled_with < 20 ->
+        {:error,
+         "Dialyzer in Erlang/OTP versions >= 21 requires Elixir to have been compiled with an " <>
+           "Erlang/OTP version >= 20, but current Elixir was compiled with " <>
+           "version #{compiled_with}"}
+
       not dialyzable?(System) ->
         {:error,
          "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
            "You may need to recompile Elixir with Erlang >= OTP 20"}
+
+      Version.match?(System.version(), "1.7.0") ->
+        {:error,
+         "Dialyzer is disabled in Elixir v1.7.0 due to a bug in Dialyzer. " <>
+           "Upgrade Elixir to >= v1.7.1 to enable"}
 
       true ->
         :ok
@@ -45,11 +63,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     GenServer.start_link(__MODULE__, {parent, root_path}, name: {:global, {parent, __MODULE__}})
   end
 
-  def analyze(parent \\ self(), warn_opts) do
-    GenServer.call({:global, {parent, __MODULE__}}, {:analyze, warn_opts}, :infinity)
+  def analyze(parent \\ self(), build_ref, warn_opts) do
+    GenServer.call({:global, {parent, __MODULE__}}, {:analyze, build_ref, warn_opts}, :infinity)
   end
 
-  def analysis_finished(server, status, active_plt, mod_deps, md5, warnings, timestamp) do
+  def analysis_finished(server, status, active_plt, mod_deps, md5, warnings, timestamp, build_ref) do
     GenServer.call(
       server,
       {
@@ -59,10 +77,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         mod_deps,
         md5,
         warnings,
-        timestamp
+        timestamp,
+        build_ref
       },
       :infinity
     )
+  end
+
+  def suggest_contracts(server \\ {:global, {self(), __MODULE__}}, files) do
+    GenServer.call(server, {:suggest_contracts, files}, :infinity)
   end
 
   # Server callbacks
@@ -92,12 +115,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   def handle_call(
-        {:analysis_finished, _status, active_plt, mod_deps, md5, warnings, timestamp},
+        {:analysis_finished, _status, active_plt, mod_deps, md5, warnings, timestamp, build_ref},
         _from,
         state
       ) do
     diagnostics = to_diagnostics(warnings, state.warn_opts)
-    Server.dialyzer_finished(state.parent, {:ok, diagnostics})
+
+    Server.dialyzer_finished(state.parent, diagnostics, build_ref)
 
     state = %{
       state
@@ -109,7 +133,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     }
 
     state =
-      if state.needs_analysis? do
+      if not is_nil(state.build_ref) do
         do_analyze(state)
       else
         if state.write_manifest_pid, do: Process.exit(state.write_manifest_pid, :kill)
@@ -120,7 +144,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:reply, :ok, state}
   end
 
-  def handle_call({:analyze, warn_opts}, _from, state) do
+  def handle_call({:analyze, build_ref, warn_opts}, _from, state) do
     state =
       if Mix.Project.get() do
         JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Checking for stale beam files")
@@ -134,7 +158,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           | warn_opts: warn_opts,
             timestamp: new_timestamp,
             removed_files: removed_files,
-            file_changes: file_changes
+            file_changes: file_changes,
+            build_ref: build_ref
         }
 
         trigger_analyze(state)
@@ -143,6 +168,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       end
 
     {:reply, :ok, state}
+  end
+
+  def handle_call({:suggest_contracts, files}, _from, %{plt: plt} = state) do
+    specs = if is_nil(plt), do: [], else: SuccessTypings.suggest_contracts(plt, files)
+    {:reply, specs, state}
   end
 
   def handle_info({:"ETS-TRANSFER", _, _, _}, state) do
@@ -167,26 +197,25 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   ## Helpers
 
-  defp do_analyze(state) do
+  defp do_analyze(%{write_manifest_pid: write_manifest_pid} = state) do
+    # Cancel writing to the manifest, since we'll end up overwriting it anyway
+    if is_pid(write_manifest_pid), do: Process.exit(write_manifest_pid, :cancelled)
+
     parent = self()
     analysis_pid = spawn_link(fn -> compile(parent, state) end)
 
     %{
       state
       | analysis_pid: analysis_pid,
+        write_manifest_pid: nil,
         file_changes: %{},
         removed_files: [],
-        needs_analysis?: false
+        build_ref: nil
     }
   end
 
-  defp trigger_analyze(%{analysis_pid: nil} = state) do
-    do_analyze(state)
-  end
-
-  defp trigger_analyze(state) do
-    put_in(state.needs_analysis?, true)
-  end
+  defp trigger_analyze(%{analysis_pid: nil} = state), do: do_analyze(state)
+  defp trigger_analyze(state), do: state
 
   defp update_stale(md5, removed_files, file_changes, timestamp) do
     prev_paths = MapSet.new(Map.keys(md5))
@@ -209,10 +238,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     changed = Enum.uniq(new_paths ++ Mix.Utils.extract_stale(all_paths, [timestamp]))
 
     changed_contents =
-      Task.async_stream(changed, fn file ->
-        content = File.read!(file)
-        {file, content, module_md5(file)}
-      end)
+      Task.async_stream(
+        changed,
+        fn file ->
+          content = File.read!(file)
+          {file, content, module_md5(file)}
+        end,
+        timeout: :infinity
+      )
       |> Enum.into([])
 
     file_changes =
@@ -225,7 +258,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       end)
 
     undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
-    removed_files = Enum.uniq(removed_files ++ removed ++ undialyzable -- changed)
+    removed_files = Enum.uniq(removed_files ++ removed ++ (undialyzable -- changed))
     {removed_files, file_changes}
   end
 
@@ -248,10 +281,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       warnings: warnings,
       timestamp: timestamp,
       removed_files: removed_files,
-      file_changes: file_changes
+      file_changes: file_changes,
+      build_ref: build_ref
     } = state
 
-    {us, {active_plt, mod_deps, md5, warnings, timestamp}} =
+    {us, {active_plt, mod_deps, md5, warnings}} =
       :timer.tc(fn ->
         Task.async_stream(file_changes, fn {file, {content, _}} ->
           write_temp_file(root_path, file, content)
@@ -311,7 +345,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
             {file, hash}
           end
 
-        {active_plt, mod_deps, md5, warnings, timestamp}
+        {active_plt, mod_deps, md5, warnings}
       end)
 
     JsonRpc.log_message(
@@ -319,7 +353,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       "[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds"
     )
 
-    analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp)
+    analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
   end
 
   defp add_warnings(warnings, raw_warnings) do

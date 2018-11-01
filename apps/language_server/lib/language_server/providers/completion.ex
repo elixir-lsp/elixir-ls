@@ -179,7 +179,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "module attribute",
         insert_text: insert_text,
         filter_text: name_only,
-        priority: 2
+        priority: 3
       }
     end
   end
@@ -194,7 +194,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       kind: :variable,
       detail: "variable",
       insert_text: name,
-      priority: 2
+      priority: 3
     }
   end
 
@@ -210,7 +210,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: "return value",
       documentation: spec,
       insert_text: snippet,
-      priority: 4
+      priority: 5
     }
   end
 
@@ -234,7 +234,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         documentation: summary,
         insert_text: name,
         filter_text: name,
-        priority: 3
+        priority: 4
       }
     end
   end
@@ -273,10 +273,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "#{origin} callback",
         documentation: summary,
         insert_text: full_snippet,
-        priority: 1,
+        priority: 2,
         filter_text: name
       }
     end
+  end
+
+  defp from_completion_item(%{type: :field, name: name, origin: origin}, _context) do
+    %__MODULE__{
+      label: to_string(name),
+      detail: "#{origin} struct field",
+      insert_text: "#{name}: ",
+      priority: 0,
+      kind: :field
+    }
   end
 
   defp from_completion_item(
@@ -420,7 +430,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         kind: :keyword,
         detail: "keyword",
         insert_text: snippet,
-        priority: 0
+        priority: 1
       }
     end)
   end
