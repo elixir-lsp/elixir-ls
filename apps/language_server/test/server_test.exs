@@ -108,17 +108,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     }
   end
 
-  test "responses are sent in order of request regardless of completion order", %{server: server} do
-    for id <- 1..3, do: Server.receive_packet(server, hover_req(id, "file:///file.ex", 1, 1))
-    for id <- 3..1, do: Server.receive_packet(server, cancel_request(id))
-
-    for id <- 1..3 do
-      receive do
-        message -> assert %{"id" => ^id, "error" => %{"code" => -32800}} = message
-      end
-    end
-  end
-
+  # TODO: Fix this test for the incremental formatter
   test "formatter", %{server: server} do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])

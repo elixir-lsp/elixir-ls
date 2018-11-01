@@ -2,7 +2,7 @@ defmodule ElixirLS.Debugger.Protocol do
   @moduledoc """
   Macros for VS Code debug protocol requests
 
-  These macros can be used for pattern matching against incoming requests, or for creating request 
+  These macros can be used for pattern matching against incoming requests, or for creating request
   messages for use in tests.
   """
   import ElixirLS.Debugger.Protocol.Basic
@@ -32,6 +32,12 @@ defmodule ElixirLS.Debugger.Protocol do
         "source" => unquote(source),
         "breakpoints" => unquote(breakpoints)
       })
+    end
+  end
+
+  defmacro set_exception_breakpoints_req(seq) do
+    quote do
+      request(unquote(seq), "setExceptionBreakpoints")
     end
   end
 

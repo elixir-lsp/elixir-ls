@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   def project do
     [
       app: :language_server,
-      version: "0.2.21",
+      version: "0.2.24",
       elixir: ">= 1.6.5",
       build_path: "../../_build",
       config_path: "config/config.exs",
@@ -39,7 +39,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
     [
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "msaraiva/elixir_sense"},
-      {:forms, "~> 0.0.1"}
+      {:forms, "~> 0.0.1"},
+      {:erl2ex, github: "dazuma/erl2ex"}
     ]
   end
 end

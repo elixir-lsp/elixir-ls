@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       active_plt = load_elixir_plt()
       transfer_plt(active_plt, parent)
 
-      Dialyzer.analysis_finished(parent, :noop, active_plt, %{}, %{}, %{}, nil)
+      Dialyzer.analysis_finished(parent, :noop, active_plt, %{}, %{}, %{}, nil, nil)
     end)
   end
 
@@ -24,29 +24,29 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def write(root_path, active_plt, mod_deps, md5, warnings, timestamp) do
-    manifest_path = manifest_path(root_path)
-
-    plt(
-      info: info,
-      types: types,
-      contracts: contracts,
-      callbacks: callbacks,
-      exported_types: exported_types
-    ) = active_plt
-
-    manifest_data = {
-      @manifest_vsn,
-      mod_deps,
-      md5,
-      warnings,
-      :ets.tab2list(info),
-      :ets.tab2list(types),
-      :ets.tab2list(contracts),
-      :ets.tab2list(callbacks),
-      :ets.tab2list(exported_types)
-    }
-
     spawn(fn ->
+      manifest_path = manifest_path(root_path)
+
+      plt(
+        info: info,
+        types: types,
+        contracts: contracts,
+        callbacks: callbacks,
+        exported_types: exported_types
+      ) = active_plt
+
+      manifest_data = {
+        @manifest_vsn,
+        mod_deps,
+        md5,
+        warnings,
+        :ets.tab2list(info),
+        :ets.tab2list(types),
+        :ets.tab2list(contracts),
+        :ets.tab2list(callbacks),
+        :ets.tab2list(exported_types)
+      }
+
       # Because the manifest file can be several megabytes, we do a write-then-rename
       # to reduce the likelihood of corrupting the manifest
       JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Writing manifest...")

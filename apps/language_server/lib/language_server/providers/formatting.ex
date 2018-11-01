@@ -1,4 +1,5 @@
 defmodule ElixirLS.LanguageServer.Providers.Formatting do
+  import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.LanguageServer.SourceFile
 
   def supported? do
@@ -11,9 +12,10 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       opts = formatter_opts(file, project_dir)
       formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
-      response = [
-        %{"newText" => formatted, "range" => SourceFile.full_range(source_file)}
-      ]
+      response =
+        source_file.text
+        |> String.myers_difference(formatted)
+        |> myers_diff_to_text_edits()
 
       {:ok, response}
     else
@@ -62,5 +64,44 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     else
       []
     end
+  end
+
+  defp myers_diff_to_text_edits(myers_diff, starting_pos \\ {0, 0}) do
+    myers_diff_to_text_edits(myers_diff, starting_pos, [])
+  end
+
+  defp myers_diff_to_text_edits([], _pos, edits) do
+    edits
+  end
+
+  defp myers_diff_to_text_edits([diff | rest], {line, col}, edits) do
+    case {diff, rest} do
+      {{:eq, str}, _} ->
+        myers_diff_to_text_edits(rest, advance_pos({line, col}, str), edits)
+
+      {{:ins, str}, _} ->
+        edit = %{"range" => range(line, col, line, col), "newText" => str}
+        myers_diff_to_text_edits(rest, {line, col}, [edit | edits])
+
+      {{:del, del_str}, [{:ins, ins_str} | rest]} ->
+        {end_line, end_col} = advance_pos({line, col}, del_str)
+        edit = %{"range" => range(line, col, end_line, end_col), "newText" => ins_str}
+        myers_diff_to_text_edits(rest, {end_line, end_col}, [edit | edits])
+
+      {{:del, str}, _} ->
+        {end_line, end_col} = advance_pos({line, col}, str)
+        edit = %{"range" => range(line, col, end_line, end_col), "newText" => ""}
+        myers_diff_to_text_edits(rest, {end_line, end_col}, [edit | edits])
+    end
+  end
+
+  defp advance_pos({line, col}, str) do
+    Enum.reduce(String.split(str, "", trim: true), {line, col}, fn char, {line, col} ->
+      if char == "\n" do
+        {line + 1, 0}
+      else
+        {line, col + 1}
+      end
+    end)
   end
 end

@@ -7,6 +7,11 @@ defmodule ElixirLS.Utils.Launch do
     :ok
   end
 
+  def print_versions do
+    IO.inspect(System.build_info()[:build], label: "Elixir version")
+    IO.inspect(System.otp_release(), label: "Erlang version")
+  end
+
   defp load_dot_config do
     path = Path.join(Mix.Utils.mix_home(), "config.exs")
 

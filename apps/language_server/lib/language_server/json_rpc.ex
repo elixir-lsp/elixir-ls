@@ -87,12 +87,12 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   # Used to intercept :user/:standard_io output
   def print(str) do
-    log_message(:log, str)
+    log_message(:log, String.replace_suffix(str, "\n", ""))
   end
 
   # Used to intercept :standard_error output
   def print_err(str) do
-    log_message(:warning, str)
+    log_message(:warning, String.replace_suffix(str, "\n", ""))
   end
 
   ## Client API

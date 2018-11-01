@@ -26,10 +26,10 @@ defmodule ElixirLS.Debugger do
   end
 
   def stop(_state) do
-    # If we crash, try to print a message. We don't kill the VM because that makes it harder to
-    # figure out what happened
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
       IO.puts(:standard_error, "ElixirLS debugger has crashed")
+
+      :init.stop(1)
     end
 
     :ok

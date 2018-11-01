@@ -156,17 +156,33 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
-  defmacro macro_expansion(id, whole_buffer, selected_macro, macro_line) do
+  defmacro code_lens_req(id, uri) do
     quote do
-      request(unquote(id), "elixirDocument/macroExpansion", %{
-            "context" => %{"selection" => unquote(selected_macro)},
-            "textDocument" => %{
-              "text" => unquote(whole_buffer)},
-            "position" => %{ "line" => unquote(macro_line) }
+      request(unquote(id), "textDocument/codeLens", %{
+        "textDocument" => %{"uri" => unquote(uri)}
       })
     end
   end
 
+  defmacro execute_command_req(id, command, arguments) do
+    quote do
+      request(unquote(id), "workspace/executeCommand", %{
+        "command" => unquote(command),
+        "arguments" => unquote(arguments)
+      })
+    end
+  end
+
+  defmacro macro_expansion(id, whole_buffer, selected_macro, macro_line) do
+    quote do
+      request(unquote(id), "elixirDocument/macroExpansion", %{
+        "context" => %{"selection" => unquote(selected_macro)},
+        "textDocument" => %{
+          "text" => unquote(whole_buffer)},
+        "position" => %{ "line" => unquote(macro_line) }
+      })
+    end
+  end
 
   # Other utilities
 
