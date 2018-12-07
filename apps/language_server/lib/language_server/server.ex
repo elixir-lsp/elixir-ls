@@ -226,10 +226,12 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_configuration(settings), state) do
-    settings = Map.get(settings, "elixirLS", %{})
+  defp handle_notification(did_change_configuration(%{"elixirLS" => settings}), state)
+       when is_map(settings) do
     set_settings(state, settings)
   end
+
+  defp handle_notification(did_change_configuration(_settings), state), do: state
 
   defp handle_notification(notification("exit"), state) do
     code = if state.received_shutdown?, do: 0, else: 1
