@@ -414,18 +414,35 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         source_file = Path.absname(to_string(source_file)),
         in_project?(source_file),
         not String.starts_with?(source_file, Mix.Project.deps_path()) do
-      message = String.trim(to_string(:dialyzer.format_warning(data)))
-      message = Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
-
       %Mix.Task.Compiler.Diagnostic{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
         position: line,
-        message: message,
+        message: warning_message(data),
         severity: :warning,
         details: data
       }
     end
+  end
+
+  defp warning_message(raw_warning) do
+    try do
+      dialyxir_format(raw_warning)
+    rescue
+      _ -> dialyzer_format(raw_warning)
+    catch
+      _ -> dialyzer_format(raw_warning)
+    end
+  end
+
+  defp dialyzer_format(raw_warning) do
+    message = String.trim(to_string(:dialyzer.format_warning(raw_warning)))
+    Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
+  end
+
+  defp dialyxir_format({_, _, {warning_name, args}}) do
+    %{^warning_name => warning_module} = Dialyxir.Warnings.warnings()
+    <<_::binary>> = apply(warning_module, :format_long, [args])
   end
 
   # Because mtime-based stale-checking has 1-second granularity, we err on the side of

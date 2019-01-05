@@ -2,7 +2,7 @@
   "briefly": {:hex, :briefly, "0.3.0", "16e6b76d2070ebc9cbd025fa85cf5dbaf52368c4bd896fb482b5a6b95a540c2f", [:mix], []},
   "certifi": {:hex, :certifi, "1.0.0", "1c787a85b1855ba354f0b8920392c19aa1d06b0ee1362f9141279620a5be2039", [:rebar3], []},
   "code_formatter": {:git, "https://github.com/whatyouhide/code_formatter.git", "aaab01ea28a88a74966959efb22c0e8324c6bf64", []},
-  "dialyxir": {:hex, :dialyxir, "0.5.1", "b331b091720fd93e878137add264bac4f644e1ddae07a70bf7062c7862c4b952", [], [], "hexpm"},
+  "dialyxir": {:hex, :dialyxir, "1.0.0-rc.2", "1e68d42870c50dac013e8184254f232c32fa4164a4cdc001d723389cdee27b35", [:mix], [], "hexpm"},
   "distillery": {:hex, :distillery, "1.4.0", "d633cd322c8efa0428082b00b7f902daf8caa166d45f9022bbc19a896d2e1e56", [:mix], []},
   "earmark": {:hex, :earmark, "1.2.0", "bf1ce17aea43ab62f6943b97bd6e3dc032ce45d4f787504e3adf738e54b42f3a", [:mix], []},
   "elixir_sense": {:git, "https://github.com/msaraiva/elixir_sense.git", "bc627b7ba199ab4d365d18512571c1cf5d565cad", []},
