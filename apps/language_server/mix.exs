@@ -40,7 +40,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "msaraiva/elixir_sense"},
       {:forms, "~> 0.0.1"},
-      {:erl2ex, github: "dazuma/erl2ex"}
+      {:erl2ex, github: "dazuma/erl2ex"},
+      {:dialyxir, "~> 1.0.0-rc.2"}
     ]
   end
 end
