@@ -1,3 +1,11 @@
+### Unreleased
+
+- Dialyxir new 1.0-rc formatting support
+- `can_format/2` now case-insensitive (fixes formatting on Mac OS X)
+- `defdelegate` snippet is now syntactically correct (was previously missing a comma)
+- `workspace/didChangeConfiguration` handles `null` now (fixes [eglot](https://github.com/joaotavora/eglot) support)
+- Update elixir_sense
+
 ### v0.2.24: 15 Oct 2018
 
 - Fix debugger crash in new versions of VS Code (Thanks to @martin-watts)
