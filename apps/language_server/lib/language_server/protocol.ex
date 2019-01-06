@@ -177,9 +177,8 @@ defmodule ElixirLS.LanguageServer.Protocol do
     quote do
       request(unquote(id), "elixirDocument/macroExpansion", %{
         "context" => %{"selection" => unquote(selected_macro)},
-        "textDocument" => %{
-          "text" => unquote(whole_buffer)},
-        "position" => %{ "line" => unquote(macro_line) }
+        "textDocument" => %{"text" => unquote(whole_buffer)},
+        "position" => %{"line" => unquote(macro_line)}
       })
     end
   end

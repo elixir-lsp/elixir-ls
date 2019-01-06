@@ -655,5 +655,4 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_project_dir(state, _) do
     state
   end
-
 end

@@ -38,10 +38,10 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   defp deps do
     [
       {:elixir_ls_utils, in_umbrella: true},
-      {:elixir_sense, github: "msaraiva/elixir_sense"},
+      {:elixir_sense, github: "elixir-lsp/elixir_sense"},
       {:forms, "~> 0.0.1"},
       {:erl2ex, github: "dazuma/erl2ex"},
-      {:dialyxir, "~> 1.0.0-rc.2"}
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false}
     ]
   end
 end
