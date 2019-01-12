@@ -179,12 +179,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:noreply, state}
   end
 
-  def handle_info(msg, state) do
-    super(msg, state)
+  def handle_info(_msg, state) do
+    {:noreply, state}
   end
 
-  def terminate(reason, state) do
-    if reason != :normal do
+  def terminate(reason, _state) do
+    unless reason == :normal do
       JsonRpc.show_message(
         :error,
         "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
@@ -192,7 +192,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       )
     end
 
-    super(reason, state)
+    :ok
   end
 
   ## Helpers
@@ -415,12 +415,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         in_project?(source_file),
         not String.starts_with?(source_file, Mix.Project.deps_path()) do
       %Mix.Task.Compiler.Diagnostic{
-        compiler_name: "ElixirLS Dialyzer",
+        compiler_name: "Dialyzer",
         file: source_file,
         position: line,
         message: warning_message(data),
         severity: :warning,
-        details: data
+        details: details(data)
       }
     end
   end
@@ -442,7 +442,18 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp dialyxir_format({_, _, {warning_name, args}}) do
     %{^warning_name => warning_module} = Dialyxir.Warnings.warnings()
-    <<_::binary>> = apply(warning_module, :format_long, [args])
+    warning_module.format_short(args)
+  end
+
+  defp details(warning = {_, _, {warning_name, args}}) do
+    try do
+      %{^warning_name => warning_module} = Dialyxir.Warnings.warnings()
+      warning_module.format_long(args)
+    rescue
+      _ -> warning
+    catch
+      _ -> warning
+    end
   end
 
   # Because mtime-based stale-checking has 1-second granularity, we err on the side of
