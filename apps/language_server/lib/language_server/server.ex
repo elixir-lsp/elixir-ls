@@ -226,9 +226,22 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_configuration(settings), state) do
-    settings = Map.get(settings, "elixirLS", %{})
-    set_settings(state, settings)
+  # We don't start performing builds until we receive settings from the client in case they've set
+  # the `projectDir` or `mixEnv` settings. If the settings don't match the format expected, leave
+  # settings unchanged or set default settings if this is the first request.
+  defp handle_notification(did_change_configuration(changed_settings), state) do
+    prev_settings = state.settings || %{}
+
+    new_settings =
+      case changed_settings do
+        %{"elixirLS" => changed_settings} when is_map(changed_settings) ->
+          Map.merge(prev_settings, changed_settings)
+
+        _ ->
+          prev_settings
+      end
+
+    set_settings(state, new_settings)
   end
 
   defp handle_notification(notification("exit"), state) do
