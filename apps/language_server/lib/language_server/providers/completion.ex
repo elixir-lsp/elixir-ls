@@ -34,7 +34,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     {"Kernel", "def"} => "def $1 do\n\t$0\nend",
     {"Kernel", "defp"} => "defp $1 do\n\t$0\nend",
     {"Kernel", "defcallback"} => "defcallback $1 :: $0",
-    {"Kernel", "defdelegate"} => "defdelegate $1 to: $0",
+    {"Kernel", "defdelegate"} => "defdelegate $1, to: $0",
     {"Kernel", "defexception"} => "defexception [${1::message}]",
     {"Kernel", "defguard"} => "defguard ${1:guard_name}($2) when $3",
     {"Kernel", "defguardp"} => "defguardp ${1:guard_name}($2) when $3",
