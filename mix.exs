@@ -8,7 +8,7 @@ defmodule ElixirLS.Mixfile do
       start_permanent: Mix.env() == :prod,
       build_per_environment: false,
       deps: deps(),
-      elixir: ">= 1.6.0-dev"
+      elixir: ">= 1.7.0"
     ]
   end
 
