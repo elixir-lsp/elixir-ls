@@ -100,7 +100,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     state =
       case Manifest.read(root_path) do
         {:ok, active_plt, mod_deps, md5, warnings, timestamp} ->
-          state = %{
+          %{
             state
             | plt: active_plt,
               mod_deps: mod_deps,
@@ -108,8 +108,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               warnings: warnings,
               timestamp: timestamp
           }
-
-          trigger_analyze(state)
 
         :error ->
           %{state | analysis_pid: Manifest.build_new_manifest()}
