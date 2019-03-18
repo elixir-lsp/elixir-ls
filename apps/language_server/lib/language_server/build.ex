@@ -234,11 +234,11 @@ defmodule ElixirLS.LanguageServer.Build do
     }
   end
 
-  defp range(nil, nil) do
+  defp range(_, nil) do
     %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
   end
 
-  defp range(nil, source_file) do
+  defp range(_, source_file) do
     SourceFile.full_range(source_file)
   end
 end
