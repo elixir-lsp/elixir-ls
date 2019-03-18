@@ -105,11 +105,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   def completion(text, line, character, snippets_supported) do
-    text_before_cursor =
+    line_text =
       text
       |> SourceFile.lines()
       |> Enum.at(line)
-      |> String.slice(0, character)
+
+    text_before_cursor = String.slice(line_text, 0, character)
+    text_after_cursor = String.slice(line_text, character..-1)
 
     prefix = get_prefix(text_before_cursor)
 
@@ -136,6 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     context = %{
       text_before_cursor: text_before_cursor,
+      text_after_cursor: text_after_cursor,
       prefix: prefix,
       def_before: def_before,
       pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
@@ -435,18 +438,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end)
   end
 
-  defp function_completion(
-         %{
-           type: type,
-           args: args,
-           name: name,
-           summary: summary,
-           arity: arity,
-           spec: spec,
-           origin: origin
-         },
-         %{def_before: nil, pipe_before?: pipe_before?, capture_before?: capture_before?}
-       ) do
+  defp function_completion(info, context) do
+    %{
+      type: type,
+      args: args,
+      name: name,
+      summary: summary,
+      arity: arity,
+      spec: spec,
+      origin: origin
+    } = info
+
+    %{
+      pipe_before?: pipe_before?,
+      capture_before?: capture_before?,
+      text_after_cursor: text_after_cursor
+    } = context
+
     {label, snippet} =
       cond do
         match?("sigil_" <> _, name) ->
@@ -454,7 +462,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           text = "~#{sigil_name}"
           {text, text}
 
-        use_name_only?(origin, name) ->
+        use_name_only?(origin, name) or String.starts_with?(text_after_cursor, "(") ->
           {name, name}
 
         true ->
