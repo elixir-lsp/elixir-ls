@@ -23,7 +23,7 @@ defmodule ElixirLS.Debugger.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     # Specify extra applications you'll use from Erlang/Elixir
-    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix, :logger]]
+    [mod: {ElixirLS.Debugger, []}, applications: [:mix, :logger]]
   end
 
   # Dependencies can be Hex packages:
