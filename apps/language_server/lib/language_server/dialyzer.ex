@@ -64,7 +64,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   def analyze(parent \\ self(), build_ref, warn_opts) do
-    GenServer.cast({:global, {parent, __MODULE__}}, {:analyze, build_ref, warn_opts})
+    GenServer.call({:global, {parent, __MODULE__}}, {:analyze, build_ref, warn_opts}, :infinity)
   end
 
   def analysis_finished(server, status, active_plt, mod_deps, md5, warnings, timestamp, build_ref) do
@@ -144,37 +144,35 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:reply, :ok, state}
   end
 
+  def handle_call({:analyze, build_ref, warn_opts}, _from, state) do
+    state =
+      if Mix.Project.get() do
+        JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Checking for stale beam files")
+        new_timestamp = adjusted_timestamp()
+
+        {removed_files, file_changes} =
+          update_stale(state.md5, state.removed_files, state.file_changes, state.timestamp)
+
+        state = %{
+          state
+          | warn_opts: warn_opts,
+            timestamp: new_timestamp,
+            removed_files: removed_files,
+            file_changes: file_changes,
+            build_ref: build_ref
+        }
+
+        trigger_analyze(state)
+      else
+        state
+      end
+
+    {:reply, :ok, state}
+  end
+
   def handle_call({:suggest_contracts, files}, _from, %{plt: plt} = state) do
     specs = if is_nil(plt), do: [], else: SuccessTypings.suggest_contracts(plt, files)
     {:reply, specs, state}
-  end
-
-  def handle_cast({:analyze, build_ref, warn_opts}, state) do
-    state =
-      ElixirLS.LanguageServer.Build.with_build_lock(fn ->
-        if Mix.Project.get() do
-          JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Checking for stale beam files")
-          new_timestamp = adjusted_timestamp()
-
-          {removed_files, file_changes} =
-            update_stale(state.md5, state.removed_files, state.file_changes, state.timestamp)
-
-          state = %{
-            state
-            | warn_opts: warn_opts,
-              timestamp: new_timestamp,
-              removed_files: removed_files,
-              file_changes: file_changes,
-              build_ref: build_ref
-          }
-
-          trigger_analyze(state)
-        else
-          state
-        end
-      end)
-
-    {:noreply, state}
   end
 
   def handle_info({:"ETS-TRANSFER", _, _, _}, state) do
