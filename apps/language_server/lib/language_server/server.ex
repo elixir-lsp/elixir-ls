@@ -552,10 +552,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp show_version_warnings do
-    unless Version.match?(System.version(), ">= 1.7.0") do
+    unless Version.match?(System.version(), ">= 1.6.0") do
       JsonRpc.show_message(
         :warning,
-        "Elixir versions below 1.7 are not supported. (Currently v#{System.version()})"
+        "Elixir versions below 1.6 are not supported. (Currently v#{System.version()})"
       )
     end
 

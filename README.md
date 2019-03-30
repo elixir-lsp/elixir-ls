@@ -7,11 +7,11 @@ The Elixir Language Server provides a server that runs in the background, provid
 - Debugger support (requires Erlang >= OTP 19)
 - Automatic, incremental Dialyzer analysis (requires Erlang OTP 20)
 - Automatic inline suggestion of @specs based on Dialyzer's inferred success typings
-- Inline reporting of build warnings and errors
+- Inline reporting of build warnings and errors (requires Elixir >= 1.6)
 - Documentation lookup on hover
 - Go-to-definition
 - Code completion
-- Code formatter
+- Code formatter (requries Elixir >= 1.6)
 - Find references to functions and modules (Thanks to @mattbaker)
 - Quick symbol lookup in file (Thanks to @mattbaker)
 
@@ -21,7 +21,8 @@ The Elixir Language Server provides a server that runs in the background, provid
 
 Elixir:
 
-- 1.7.0 minimum
+- 1.6.0 minimum
+- \>= 1.6.6 recommended
 
 Erlang:
 

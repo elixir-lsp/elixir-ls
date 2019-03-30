@@ -13,14 +13,12 @@ defmodule ElixirLS.LanguageServer.Build do
             :timer.tc(fn ->
               IO.puts("Compiling with Mix env #{Mix.env()}")
 
-              prev_deps = cached_deps()
-              Mix.Dep.clear_cached()
+              prev_deps = Mix.Dep.loaded([])
+              clear_deps_cache()
 
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
-                  if fetch_deps? and Mix.Dep.load_on_environment([]) != prev_deps,
-                    do: fetch_deps()
-
+                  if fetch_deps? and Mix.Dep.loaded([]) != prev_deps, do: fetch_deps()
                   {status, diagnostics} = compile()
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
@@ -173,18 +171,13 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
-  defp cached_deps do
-    try do
-      Mix.Dep.cached()
-    rescue
-      _ ->
-        []
-    end
+  defp clear_deps_cache do
+    Mix.ProjectStack.write_cache({:cached_deps, Mix.env(), Mix.Project.get()}, nil)
   end
 
   defp fetch_deps do
     missing_deps =
-      Mix.Dep.load_on_environment([])
+      Mix.Dep.loaded([])
       |> Enum.filter(fn %Mix.Dep{status: status} ->
         case status do
           {:unavailable, _} -> true
@@ -234,11 +227,11 @@ defmodule ElixirLS.LanguageServer.Build do
     }
   end
 
-  defp range(_, nil) do
+  defp range(nil, nil) do
     %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
   end
 
-  defp range(_, source_file) do
+  defp range(nil, source_file) do
     SourceFile.full_range(source_file)
   end
 end
