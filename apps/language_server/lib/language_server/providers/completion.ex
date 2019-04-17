@@ -292,6 +292,50 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
   end
 
+  defp from_completion_item(%{type: :param_option} = suggestion, _context) do
+    %{name: name, origin: _origin, doc: doc, type_spec: type_spec, expanded_spec: expanded_spec} = suggestion
+    formatted_spec =
+      if expanded_spec != "" do
+        "\n\n```\n#{expanded_spec}\n```\n"
+      else
+        ""
+      end
+    %__MODULE__{
+      label: to_string(name),
+      detail: "#{type_spec}",
+      documentation: "#{doc}#{formatted_spec}",
+      insert_text: "#{name}: ",
+      priority: 0,
+      kind: :field
+    }
+  end
+
+  defp from_completion_item(%{type: :type_spec} = suggestion, _context) do
+    %{name: name, arity: arity, origin: _origin, doc: doc, signature: signature, spec: spec} = suggestion
+    formatted_spec =
+      if spec != "" do
+        "\n\n```\n#{spec}\n```\n"
+      else
+        ""
+      end
+
+    snippet =
+      if arity > 0 do
+        "#{name}($0)"
+      else
+        "#{name}()"
+      end
+
+    %__MODULE__{
+      label: signature,
+      detail: "typespec #{signature}",
+      documentation: "#{doc}#{formatted_spec}",
+      insert_text: snippet,
+      priority: 0,
+      kind: :class
+    }
+  end
+
   defp from_completion_item(
          %{name: name, origin: origin} = item,
          %{def_before: nil} = context
@@ -520,7 +564,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         "label" => item.label,
         "kind" => completion_kind(item.kind),
         "detail" => item.detail,
-        "documentation" => item.documentation,
+        "documentation" => %{"value" =>  item.documentation, kind: "markdown"},
         "filterText" => item.filter_text,
         "sortText" => String.pad_leading(to_string(idx), 8, "0")
       }
