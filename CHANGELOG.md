@@ -5,6 +5,7 @@
 - `defdelegate` snippet is now syntactically correct (was previously missing a comma)
 - `workspace/didChangeConfiguration` handles `null` now (fixes [eglot](https://github.com/joaotavora/eglot) support)
 - Update elixir_sense
+- Watch LiveView .leex files
 
 ### v0.2.24: 15 Oct 2018
 
