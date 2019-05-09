@@ -4,7 +4,7 @@ The Elixir Language Server provides a server that runs in the background, provid
 
 ## The reason for this fork
 
-This fork started when [Jake Becker's repository](https://github.com/JakeBecker/elixir-ls) became inactive for an extended period of time. So we decided to start an active fork to merge dormant PR's and fix issues where possible. We also believe in an open and shared governance model to share the work instead of relying on one person to shoulder the whole burden. If possible we would like to combine efforts with Jake under the umbrella of an organization.
+This fork started when [Jake Becker's repository](https://github.com/JakeBecker/elixir-ls) became inactive for an extended period of time. So we decided to start an active fork to merge dormant PR's and fix issues where possible. We also believe in an open and shared governance model to share the work instead of relying on one person to shoulder the whole burden.
 
 ## Features
 
