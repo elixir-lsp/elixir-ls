@@ -79,6 +79,15 @@ You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` s
 
 ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
 
+## Troubleshooting
+
+Basic troubleshooting steps:
+* Restart your editor (which will restart ElixirLS)
+* After stopping your editor, remove the entire `.elixir_ls` directory, then restart your editor
+  * NOTE: This will cause you to have to re-run the entire dialyzer build
+
+If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles code with `MIX_ENV=test` (by default). So if you are missing some configuration in the test environment, your code may not compile.
+
 ## Building and running
 
 Run `mix compile`, then `mix elixir_ls.release -o <release_dir>`. This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
