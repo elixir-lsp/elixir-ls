@@ -154,11 +154,12 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   def handle_info(:send_file_watchers, state) do
-    JsonRpc.register_capability_request("0", "workspace/didChangeWatchedFiles",
-      %{"watchers" => [
+    JsonRpc.register_capability_request("0", "workspace/didChangeWatchedFiles", %{
+      "watchers" => [
         %{"globPattern" => "**/*.ex"},
         %{"globPattern" => "**/*.exs"}
-      ]})
+      ]
+    })
 
     {:noreply, state}
   end

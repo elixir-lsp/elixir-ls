@@ -79,11 +79,13 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   def register_capability_request(server \\ __MODULE__, id, method, options) do
     send_request(server, "client/registerCapability", %{
-          "registrations" => [%{
-                                 "id" => id,
-                                 "method" => method,
-                                 "registerOptions" => options
-                              }]
+      "registrations" => [
+        %{
+          "id" => id,
+          "method" => method,
+          "registerOptions" => options
+        }
+      ]
     })
   end
 
