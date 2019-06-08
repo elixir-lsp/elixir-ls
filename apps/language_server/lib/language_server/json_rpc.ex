@@ -77,6 +77,16 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     notify("window/logMessage", %{type: message_type_code(type), message: to_string(message)})
   end
 
+  def register_capability_request(server \\ __MODULE__, id, method, options) do
+    send_request(server, "client/registerCapability", %{
+          "registrations" => [%{
+                                 "id" => id,
+                                 "method" => method,
+                                 "registerOptions" => options
+                              }]
+    })
+  end
+
   def show_message_request(server \\ __MODULE__, type, message, actions) do
     send_request(server, "window/showMessageRequest", %{
       "type" => message_type_code(type),

@@ -153,6 +153,16 @@ defmodule ElixirLS.LanguageServer.Server do
     super(msg, state)
   end
 
+  def handle_info(:send_file_watchers, state) do
+    JsonRpc.register_capability_request("0", "workspace/didChangeWatchedFiles",
+      %{"watchers" => [
+        %{"globPattern" => "**/*.ex"},
+        %{"globPattern" => "**/*.exs"}
+      ]})
+
+    {:noreply, state}
+  end
+
   def handle_info(:default_config, state) do
     state =
       case state do
@@ -310,6 +320,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
     # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
     Process.send_after(self(), :default_config, 5000)
+
+    # Explicitly request file watchers from the client
+    Process.send_after(self(), :send_file_watchers, 100)
 
     {:ok, %{"capabilities" => server_capabilities()}, state}
   end
