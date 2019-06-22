@@ -7,6 +7,18 @@
 - Update elixir_sense
 - Watch LiveView .leex files
 
+### v0.2.25: 23 May 2019
+
+- Fix compatibility with Elixir 1.9
+- Fix bug where Mix file is not reloaded on change if it had errors
+- Remove unneccessary empty parens from suggested specs
+- Add 'dialyzerFormat' setting to select which warning formatter to use. Options are `"dialyzer"` (default), `"dialyxir_short"`, `"dialyxir_long"` 
+- (VS Code) Support syntax highlighting in Phoenix LiveView (.leex) files, including ~L sigil (Thanks to @rrichardsonv)
+- (VS Code) Improved syntax highlighting and other automatic behavior (Thanks to @crbelaus)
+- Fix crash when yecc grammar file has conflicts
+- Dialyzer robustness improvements
+- When autocompleting a function name with cursor immediately prior to a `(`, don't insert additional parens and argument list
+
 ### v0.2.24: 15 Oct 2018
 
 - Fix debugger crash in new versions of VS Code (Thanks to @martin-watts)

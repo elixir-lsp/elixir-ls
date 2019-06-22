@@ -13,6 +13,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     :analysis_pid,
     :write_manifest_pid,
     :build_ref,
+    :warning_format,
     warn_opts: [],
     mod_deps: %{},
     warnings: %{},
@@ -63,8 +64,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     GenServer.start_link(__MODULE__, {parent, root_path}, name: {:global, {parent, __MODULE__}})
   end
 
-  def analyze(parent \\ self(), build_ref, warn_opts) do
-    GenServer.cast({:global, {parent, __MODULE__}}, {:analyze, build_ref, warn_opts})
+  def analyze(parent \\ self(), build_ref, warn_opts, warning_format) do
+    GenServer.cast(
+      {:global, {parent, __MODULE__}},
+      {:analyze, build_ref, warn_opts, warning_format}
+    )
   end
 
   def analysis_finished(server, status, active_plt, mod_deps, md5, warnings, timestamp, build_ref) do
@@ -96,7 +100,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     state =
       case Manifest.read(root_path) do
         {:ok, active_plt, mod_deps, md5, warnings, timestamp} ->
-          state = %{
+          %{
             state
             | plt: active_plt,
               mod_deps: mod_deps,
@@ -104,8 +108,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               warnings: warnings,
               timestamp: timestamp
           }
-
-          trigger_analyze(state)
 
         :error ->
           %{state | analysis_pid: Manifest.build_new_manifest()}
@@ -119,7 +121,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         _from,
         state
       ) do
-    diagnostics = to_diagnostics(warnings, state.warn_opts)
+    diagnostics = to_diagnostics(warnings, state.warn_opts, state.warning_format)
 
     Server.dialyzer_finished(state.parent, diagnostics, build_ref)
 
@@ -149,7 +151,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:reply, specs, state}
   end
 
-  def handle_cast({:analyze, build_ref, warn_opts}, state) do
+  def handle_cast({:analyze, build_ref, warn_opts, warning_format}, state) do
     state =
       ElixirLS.LanguageServer.Build.with_build_lock(fn ->
         if Mix.Project.get() do
@@ -165,7 +167,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               timestamp: new_timestamp,
               removed_files: removed_files,
               file_changes: file_changes,
-              build_ref: build_ref
+              build_ref: build_ref,
+              warning_format: warning_format
           }
 
           trigger_analyze(state)
@@ -181,12 +184,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:noreply, state}
   end
 
-  def handle_info(_msg, state) do
-    {:noreply, state}
+  def handle_info(msg, state) do
+    super(msg, state)
   end
 
-  def terminate(reason, _state) do
-    unless reason == :normal do
+  def terminate(reason, state) do
+    if reason != :normal do
       JsonRpc.show_message(
         :error,
         "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
@@ -194,7 +197,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       )
     end
 
-    :ok
+    super(reason, state)
   end
 
   ## Helpers
@@ -406,7 +409,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  defp to_diagnostics(warnings_map, warn_opts) do
+  defp to_diagnostics(warnings_map, warn_opts, warning_format) do
     tags_enabled = Analyzer.matching_tags(warn_opts)
 
     for {_beam_file, warnings} <- warnings_map,
@@ -417,45 +420,37 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         in_project?(source_file),
         not String.starts_with?(source_file, Mix.Project.deps_path()) do
       %Mix.Task.Compiler.Diagnostic{
-        compiler_name: "Dialyzer",
+        compiler_name: "ElixirLS Dialyzer",
         file: source_file,
         position: line,
-        message: warning_message(data),
+        message: warning_message(data, warning_format),
         severity: :warning,
-        details: details(data)
+        details: data
       }
     end
   end
 
-  defp warning_message(raw_warning) do
-    try do
-      dialyxir_format(raw_warning)
-    rescue
-      _ -> dialyzer_format(raw_warning)
-    catch
-      _ -> dialyzer_format(raw_warning)
-    end
-  end
+  defp warning_message({_, _, {warning_name, args}} = raw_warning, warning_format)
+       when warning_format in ["dialyxir_long", "dialyxir_short"] do
+    format_function =
+      case warning_format do
+        "dialyxir_long" -> :format_long
+        "dialyxir_short" -> :format_short
+      end
 
-  defp dialyzer_format(raw_warning) do
-    message = String.trim(to_string(:dialyzer.format_warning(raw_warning)))
-    Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
-  end
-
-  defp dialyxir_format({_, _, {warning_name, args}}) do
-    %{^warning_name => warning_module} = Dialyxir.Warnings.warnings()
-    warning_module.format_short(args)
-  end
-
-  defp details(warning = {_, _, {warning_name, args}}) do
     try do
       %{^warning_name => warning_module} = Dialyxir.Warnings.warnings()
-      warning_module.format_long(args)
+      <<_::binary>> = apply(warning_module, format_function, [args])
     rescue
-      _ -> warning
+      _ -> warning_message(raw_warning, "dialyzer")
     catch
-      _ -> warning
+      _ -> warning_message(raw_warning, "dialyzer")
     end
+  end
+
+  defp warning_message(raw_warning, _) do
+    message = String.trim(to_string(:dialyzer.format_warning(raw_warning)))
+    Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
   end
 
   # Because mtime-based stale-checking has 1-second granularity, we err on the side of
