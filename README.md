@@ -8,7 +8,7 @@ This fork started when [Jake Becker's repository](https://github.com/JakeBecker/
 
 ## Features
 
-- Debugger support (requires Erlang >= OTP 19)
+- Debugger support
 - Automatic, incremental Dialyzer analysis (requires Erlang OTP 20)
 - Automatic inline suggestion of @specs based on Dialyzer's inferred success typings
 - Inline reporting of build warnings and errors
@@ -29,7 +29,7 @@ Elixir:
 
 Erlang:
 
-- OTP 18 minimum
+- OTP 19 minimum
 - \>= OTP 20 recommended
 
 You may want to install Elixir and Erlang from source, using the [kiex](https://github.com/taylor/kiex) and [kerl](https://github.com/kerl/kerl) tools. This will let you go-to-definition for core Elixir and Erlang modules.
