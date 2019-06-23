@@ -226,12 +226,23 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_configuration(%{"elixirLS" => settings}), state)
-       when is_map(settings) do
-    set_settings(state, settings)
-  end
+  # We don't start performing builds until we receive settings from the client in case they've set
+  # the `projectDir` or `mixEnv` settings. If the settings don't match the format expected, leave
+  # settings unchanged or set default settings if this is the first request.
+  defp handle_notification(did_change_configuration(changed_settings), state) do
+    prev_settings = state.settings || %{}
 
-  defp handle_notification(did_change_configuration(_settings), state), do: state
+    new_settings =
+      case changed_settings do
+        %{"elixirLS" => changed_settings} when is_map(changed_settings) ->
+          Map.merge(prev_settings, changed_settings)
+
+        _ ->
+          prev_settings
+      end
+
+    set_settings(state, new_settings)
+  end
 
   defp handle_notification(notification("exit"), state) do
     code = if state.received_shutdown?, do: 0, else: 1
@@ -462,7 +473,9 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    if dialyzer_enabled?(state), do: Dialyzer.analyze(state.build_ref, warn_opts)
+    if dialyzer_enabled?(state),
+      do: Dialyzer.analyze(state.build_ref, warn_opts, state.settings["dialyzerFormat"])
+
     state
   end
 
