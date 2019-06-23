@@ -77,11 +77,11 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     notify("window/logMessage", %{type: message_type_code(type), message: to_string(message)})
   end
 
-  def register_capability_request(server \\ __MODULE__, id, method, options) do
+  def register_capability_request(server \\ __MODULE__, method, options) do
     send_request(server, "client/registerCapability", %{
       "registrations" => [
         %{
-          "id" => id,
+          "id" => :crypto.hash(:sha, method) |> Base.encode16(),
           "method" => method,
           "registerOptions" => options
         }
