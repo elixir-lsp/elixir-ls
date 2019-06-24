@@ -153,6 +153,17 @@ defmodule ElixirLS.LanguageServer.Server do
     super(msg, state)
   end
 
+  def handle_info(:send_file_watchers, state) do
+    JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
+      "watchers" => [
+        %{"globPattern" => "**/*.ex"},
+        %{"globPattern" => "**/*.exs"}
+      ]
+    })
+
+    {:noreply, state}
+  end
+
   def handle_info(:default_config, state) do
     state =
       case state do
@@ -322,6 +333,16 @@ defmodule ElixirLS.LanguageServer.Server do
     # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
     Process.send_after(self(), :default_config, 5000)
 
+    # Explicitly request file watchers from the client if supported
+    supports_dynamic = get_in(client_capabilities, [
+          "textDocument",
+          "codeAction",
+          "dynamicRegistration"
+        ])
+    if supports_dynamic do
+      Process.send_after(self(), :send_file_watchers, 100)
+    end
+
     {:ok, %{"capabilities" => server_capabilities()}, state}
   end
 
@@ -445,7 +466,8 @@ defmodule ElixirLS.LanguageServer.Server do
       "documentSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
-      "executeCommandProvider" => %{"commands" => ["spec"]}
+      "executeCommandProvider" => %{"commands" => ["spec"]},
+      "workspace" => %{ "workspaceFolders" => %{"supported" => true, "changeNotifications" => true}}
     }
   end
 
