@@ -447,7 +447,11 @@ defmodule ElixirLS.LanguageServer.Server do
   defp server_capabilities do
     %{
       "macroExpansion" => true,
-      "textDocumentSync" => 2,
+      "textDocumentSync" => %{
+        "change" => 2,
+        "openClose" => true,
+        "save" => true
+      },
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
       "definitionProvider" => true,
