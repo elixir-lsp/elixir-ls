@@ -1,6 +1,6 @@
 %{
   "dialyxir": {:hex, :dialyxir, "1.0.0-rc.6", "78e97d9c0ff1b5521dd68041193891aebebce52fc3b93463c0a6806874557d7d", [:mix], [{:erlex, "~> 0.2.1", [hex: :erlex, repo: "hexpm", optional: false]}], "hexpm"},
-  "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "e6374a234bc1d1e7c3dc43202da0aa689bf92f32", []},
+  "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "da4e6f2b7628e595a384e737da5a9091464d4834", []},
   "erl2ex": {:git, "https://github.com/dazuma/erl2ex.git", "244c2d9ed5805ef4855a491d8616b8842fef7ca4", []},
   "erlex": {:hex, :erlex, "0.2.2", "cb0e6878fdf86dc63509eaf2233a71fa73fc383c8362c8ff8e8b6f0c2bb7017c", [:mix], [], "hexpm"},
   "forms": {:hex, :forms, "0.0.1", "45f3b10b6f859f95f2c2c1a1de244d63855296d55ed8e93eb0dd116b3e86c4a6", [:rebar3], [], "hexpm"},
