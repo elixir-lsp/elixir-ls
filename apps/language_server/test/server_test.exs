@@ -39,13 +39,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, hover_req(1, uri, 2, 17))
 
-    assert_receive response(1, %{
-                     "contents" => "> GenServer" <> _,
-                     "range" => %{
-                       "start" => %{"line" => 2, "character" => 12},
-                       "end" => %{"line" => 2, "character" => 21}
-                     }
-                   })
+    resp = assert_receive(%{"id" => 1}, 1000)
+
+    assert response(1, %{
+             "contents" => "> GenServer" <> _,
+             "range" => %{
+               "start" => %{"line" => 2, "character" => 12},
+               "end" => %{"line" => 2, "character" => 21}
+             }
+           }) = resp
   end
 
   test "auto complete", %{server: server} do
@@ -59,18 +61,20 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, completion_req(1, uri, 2, 25))
 
-    assert_receive response(1, %{
-                     "isIncomplete" => false,
-                     "items" => [
-                       %{
-                         "detail" => "module",
-                         "documentation" => _,
-                         "kind" => 9,
-                         "label" => "GenServer"
-                       }
-                       | _
-                     ]
-                   })
+    resp = assert_receive(%{"id" => 1}, 1000)
+
+    assert response(1, %{
+             "isIncomplete" => false,
+             "items" => [
+               %{
+                 "detail" => "module",
+                 "documentation" => _,
+                 "kind" => 9,
+                 "label" => "GenServer"
+               }
+               | _
+             ]
+           }) = resp
   end
 
   # Failing
@@ -88,13 +92,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     uri = "file://" <> to_string(GenServer.module_info()[:compile][:source])
 
-    assert_receive response(1, %{
-                     "range" => %{
-                       "end" => %{"character" => column, "line" => 0},
-                       "start" => %{"character" => column, "line" => 0}
-                     },
-                     "uri" => ^uri
-                   })
+    resp = assert_receive(%{"id" => 1}, 1000)
+
+    assert response(1, %{
+             "range" => %{
+               "end" => %{"character" => column, "line" => 0},
+               "start" => %{"character" => column, "line" => 0}
+             },
+             "uri" => ^uri
+           }) = resp
 
     assert column > 0
   end
@@ -127,36 +133,36 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       Server.receive_packet(server, formatting_req(1, uri, %{}))
 
-      assert_receive(
-        response(1, [
-          %{
-            "newText" =>
-              "defmodule MyModule do\n  def my_fn do\n    foo(\n      \"This should be split into two lines if reading options from .formatter.exs\"\n    )\n  end\nend\n",
-            "range" => %{
-              "end" => %{"character" => 6, "line" => 6},
-              "start" => %{"character" => 0, "line" => 0}
-            }
-          }
-        ])
-      )
+      resp = assert_receive(%{"id" => 2}, 1000)
+
+      assert response(1, [
+               %{
+                 "newText" =>
+                   "defmodule MyModule do\n  def my_fn do\n    foo(\n      \"This should be split into two lines if reading options from .formatter.exs\"\n    )\n  end\nend\n",
+                 "range" => %{
+                   "end" => %{"character" => 6, "line" => 6},
+                   "start" => %{"character" => 0, "line" => 0}
+                 }
+               }
+             ]) = resp
 
       # Now try it in a subdirectory with its own .formatter.exs file.
       subdir_uri = Path.join([root_uri(), "lib/file.ex"])
       Server.receive_packet(server, did_open(subdir_uri, "elixir", 1, code))
       Server.receive_packet(server, formatting_req(2, subdir_uri, %{}))
 
-      assert_receive(
-        response(2, [
-          %{
-            "newText" =>
-              "defmodule MyModule do\n  def my_fn do\n    foo \"This should be split into two lines if reading options from .formatter.exs\"\n  end\nend\n",
-            "range" => %{
-              "end" => %{"character" => 6, "line" => 6},
-              "start" => %{"character" => 0, "line" => 0}
-            }
-          }
-        ])
-      )
+      resp = assert_receive(%{"id" => 2}, 1000)
+
+      assert response(2, [
+               %{
+                 "newText" =>
+                   "defmodule MyModule do\n  def my_fn do\n    foo \"This should be split into two lines if reading options from .formatter.exs\"\n  end\nend\n",
+                 "range" => %{
+                   "end" => %{"character" => 6, "line" => 6},
+                   "start" => %{"character" => 0, "line" => 0}
+                 }
+               }
+             ]) = resp
     end)
   end
 
@@ -173,25 +179,29 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, signature_help_req(1, uri, 3, 19))
 
-    assert_receive(
-      response(1, %{
-        "activeParameter" => 0,
-        "activeSignature" => 0,
-        "signatures" => [
-          %{
-            "documentation" => "@spec inspect(item, keyword) :: item when item: var\n" <> _,
-            "label" => "inspect(item, opts \\\\ [])",
-            "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
-          },
-          %{
-            "documentation" =>
-              "@spec inspect(device, item, keyword) :: item when item: var\n" <> _,
-            "label" => "inspect(device, item, opts)",
-            "parameters" => [%{"label" => "device"}, %{"label" => "item"}, %{"label" => "opts"}]
-          }
-        ]
-      })
-    )
+    resp = assert_receive(%{"id" => 1}, 1000)
+
+    assert response(1, %{
+             "activeParameter" => 0,
+             "activeSignature" => 0,
+             "signatures" => [
+               %{
+                 "documentation" => "@spec inspect(item, keyword) :: item when item: var\n" <> _,
+                 "label" => "inspect(item, opts \\\\ [])",
+                 "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
+               },
+               %{
+                 "documentation" =>
+                   "@spec inspect(device, item, keyword) :: item when item: var\n" <> _,
+                 "label" => "inspect(device, item, opts)",
+                 "parameters" => [
+                   %{"label" => "device"},
+                   %{"label" => "item"},
+                   %{"label" => "opts"}
+                 ]
+               }
+             ]
+           }) = resp
   end
 
   test "reports build diagnostics", %{server: server} do
@@ -275,15 +285,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         references_req(4, file_uri, 1, 9, true)
       )
 
-      assert_receive(
-        response(4, [
-          %{
-            "range" => %{"start" => %{"line" => 2}, "end" => %{"line" => 2}},
-            "uri" => ^reference_uri
-          }
-        ]),
-        5000
-      )
+      resp = assert_receive(%{"id" => 4}, 5000)
+
+      assert response(4, [
+               %{
+                 "range" => %{"start" => %{"line" => 2}, "end" => %{"line" => 2}},
+                 "uri" => ^reference_uri
+               }
+             ]) = resp
     end)
   end
 end
