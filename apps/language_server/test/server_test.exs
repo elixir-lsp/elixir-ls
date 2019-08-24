@@ -249,15 +249,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         references_req(4, file_uri, 1, 8, true)
       )
 
-      assert_receive(
-        response(4, [
-          %{
-            "range" => %{"start" => %{"line" => 2}, "end" => %{"line" => 2}},
-            "uri" => ^reference_uri
-          }
-        ]),
-        5000
-      )
+      resp = assert_receive(%{"id" => 4}, 5000)
+
+      assert response(4, [
+               %{
+                 "range" => %{"start" => %{"line" => 2}, "end" => %{"line" => 2}},
+                 "uri" => ^reference_uri
+               }
+             ]) = resp
     end)
   end
 

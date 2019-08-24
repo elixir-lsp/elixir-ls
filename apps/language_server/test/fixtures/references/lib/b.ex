@@ -1,5 +1,5 @@
 defmodule B do
-  def fun do
+  def my_fun do
     :ok
   end
 end
