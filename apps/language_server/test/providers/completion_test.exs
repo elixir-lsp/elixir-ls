@@ -1,20 +1,26 @@
 defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
-  require Logger
-  alias ElixirLS.LanguageServer.Providers.Completion
   use ExUnit.Case
 
+  require Logger
+
+  alias ElixirLS.LanguageServer.Providers.Completion
+  alias ElixirLS.Utils.TestUtils
+
   test "returns all Logger completions on normal require" do
-    text = ~S[
-      defmodule MyModule do
-        require Logger
+    text = """
+    defmodule MyModule do
+      require Logger
 
-        def dummy_function() do
-          Logger.
-        end
+      def dummy_function() do
+        Logger.
+        #      ^
       end
-    ]
+    end
+    """
 
-    {:ok, %{"items" => items}} = Completion.completion(text, 5, 12, true)
+    {line, char} = {4, 11}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
 
     logger_labels =
       ["warn", "debug", "error", "info"]
@@ -26,17 +32,20 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   end
 
   test "returns all Logger completions on require with alias" do
-    text = ~S[
-      defmodule MyModule do
-        require Logger, as: LAlias
+    text = """
+    defmodule MyModule do
+      require Logger, as: LAlias
 
-        def dummy_function() do
-          LAlias.
-        end
+      def dummy_function() do
+        LAlias.
+        #      ^
       end
-    ]
+    end
+    """
 
-    {:ok, %{"items" => items}} = Completion.completion(text, 5, 12, true)
+    {line, char} = {4, 11}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
 
     logger_labels =
       ["warn", "debug", "error", "info"]

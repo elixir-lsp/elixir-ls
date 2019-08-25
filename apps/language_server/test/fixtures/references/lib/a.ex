@@ -1,5 +1,5 @@
 defmodule A do
-  def fun do
-    B.fun()
+  def other_fun do
+    B.my_fun()
   end
 end

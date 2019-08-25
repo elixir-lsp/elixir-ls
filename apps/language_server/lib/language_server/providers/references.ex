@@ -4,9 +4,9 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   the `Mix.Tasks.Xref.call/0` task to find all references to
   any function or module identified at the provided location.
   """
+  require Logger
 
   alias ElixirLS.LanguageServer.{SourceFile, Build}
-  alias ElixirSense.Core.{Metadata, Parser, Source, Introspection}
 
   def references(text, line, character, _include_declaration) do
     Build.with_build_lock(fn ->
@@ -22,26 +22,34 @@ defmodule ElixirLS.LanguageServer.Providers.References do
 
   defp xref_at_cursor(text, line, character) do
     env_at_cursor = line_environment(text, line)
+    %{aliases: aliases} = env_at_cursor
 
     subject_at_cursor(text, line, character)
-    |> Introspection.split_mod_fun_call()
+    # TODO: Don't call into here directly
+    |> ElixirSense.Core.Source.split_module_and_func(aliases)
     |> expand_mod_fun(env_at_cursor)
     |> add_arity(env_at_cursor)
     |> callers()
   end
 
   defp line_environment(text, line) do
-    Parser.parse_string(text, true, true, line + 1) |> Metadata.get_env(line + 1)
+    # TODO: Don't call into here directly
+    ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
+    |> ElixirSense.Core.Metadata.get_env(line + 1)
   end
 
   defp subject_at_cursor(text, line, character) do
-    Source.subject(text, line + 1, character + 1)
+    # TODO: Don't call into here directly
+    ElixirSense.Core.Source.subject(text, line + 1, character + 1)
   end
 
   defp expand_mod_fun({nil, nil}, _environment), do: nil
 
   defp expand_mod_fun(mod_fun, %{imports: imports, aliases: aliases, module: module}) do
-    case Introspection.actual_mod_fun(mod_fun, imports, aliases, module) do
+    # TODO: Don't call into here directly
+    mod_fun = ElixirSense.Core.Introspection.actual_mod_fun(mod_fun, imports, aliases, module)
+
+    case mod_fun do
       {mod, nil} -> {mod, nil}
       {mod, fun} -> {mod, fun}
     end

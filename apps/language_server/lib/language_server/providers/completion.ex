@@ -8,7 +8,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   text before the cursor so we can filter out suggestions that are not relevant.
   """
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirSense.Core.{Metadata, Parser}
 
   @enforce_keys [:label, :kind, :insert_text, :priority]
   defstruct [:label, :kind, :detail, :documentation, :insert_text, :filter_text, :priority]
@@ -115,7 +114,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     prefix = get_prefix(text_before_cursor)
 
-    env = Parser.parse_string(text, true, true, line + 1) |> Metadata.get_env(line + 1)
+    # TODO: Don't call into here directly
+    # Can we use ElixirSense.Providers.Suggestion? ElixirSense.suggestions/3
+    env =
+      ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
+      |> ElixirSense.Core.Metadata.get_env(line + 1)
+
 
     scope =
       case env.scope do
@@ -293,13 +297,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp from_completion_item(%{type: :param_option} = suggestion, _context) do
-    %{name: name, origin: _origin, doc: doc, type_spec: type_spec, expanded_spec: expanded_spec} = suggestion
+    %{name: name, origin: _origin, doc: doc, type_spec: type_spec, expanded_spec: expanded_spec} =
+      suggestion
+
     formatted_spec =
       if expanded_spec != "" do
         "\n\n```\n#{expanded_spec}\n```\n"
       else
         ""
       end
+
     %__MODULE__{
       label: to_string(name),
       detail: "#{type_spec}",
@@ -311,7 +318,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp from_completion_item(%{type: :type_spec} = suggestion, _context) do
-    %{name: name, arity: arity, origin: _origin, doc: doc, signature: signature, spec: spec} = suggestion
+    %{name: name, arity: arity, origin: _origin, doc: doc, signature: signature, spec: spec} =
+      suggestion
+
     formatted_spec =
       if spec != "" do
         "\n\n```\n#{spec}\n```\n"
@@ -564,7 +573,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         "label" => item.label,
         "kind" => completion_kind(item.kind),
         "detail" => item.detail,
-        "documentation" => %{"value" =>  item.documentation, kind: "markdown"},
+        "documentation" => %{"value" => item.documentation, kind: "markdown"},
         "filterText" => item.filter_text,
         "sortText" => String.pad_leading(to_string(idx), 8, "0")
       }
