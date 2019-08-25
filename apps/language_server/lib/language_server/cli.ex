@@ -7,6 +7,9 @@ defmodule ElixirLS.LanguageServer.CLI do
     Launch.start_mix()
 
     Application.ensure_all_started(:language_server, :temporary)
+
+    start_node()
+
     IO.puts("Started ElixirLS")
     Launch.print_versions()
 
@@ -14,5 +17,29 @@ defmodule ElixirLS.LanguageServer.CLI do
     Mix.Hex.ensure_updated?()
 
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
+  end
+
+  def start_node(number \\ 0) do
+    node_name = node_name(number)
+
+    case Node.start(node_name, :shortnames) do
+      {:error, _error} ->
+        start_node(number + 1)
+
+      {:ok, _pid} ->
+        IO.puts("Started node with name #{inspect(node_name)}")
+        Node.set_cookie(node_name, :cookie)
+
+        for num <- Range.new(0, number) do
+          Node.connect(node_name(num))
+        end
+    end
+  end
+
+  def node_name(number) do
+    {:ok, hostname} = :inet.gethostname()
+
+    "elixirls-#{number}@#{hostname}"
+    |> String.to_atom()
   end
 end
