@@ -448,7 +448,21 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  defp warning_message(raw_warning, _) do
+  defp warning_message(raw_warning, "dialyzer") do
+    dialyzer_raw_warning_message(raw_warning)
+  end
+
+  defp warning_message(raw_warning, warning_format) do
+    JsonRpc.log_message(
+      :info,
+      "[ElixirLS Dialyzer] Unrecognized dialyzerFormat setting: #{inspect(warning_format)}" <>
+        ", falling back to \"dialyzer\""
+    )
+
+    dialyzer_raw_warning_message(raw_warning)
+  end
+
+  defp dialyzer_raw_warning_message(raw_warning) do
     message = String.trim(to_string(:dialyzer.format_warning(raw_warning)))
     Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
   end
