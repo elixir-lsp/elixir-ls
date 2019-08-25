@@ -1,3 +1,7 @@
+### Unreleased
+
+- Automatically cluster beam nodes to allow for easier debugging
+
 ### v0.2.26: 4 Sept 2019
 
 - Dialyxir new 1.0-rc formatting support
