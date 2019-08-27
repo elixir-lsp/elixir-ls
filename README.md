@@ -26,6 +26,42 @@ The original repository has now been deprecated in favor of this one. Any IDE ex
 
 Note: On first run Dialyzer will build a PLT cache which will take a considerable amount of CPU time (usually 10+ minutes). After that is complete the CPU usage will go back to normal. Alternatively instead of waiting you can disable Dialyzer in the settings.
 
+## Installation
+
+How you install ElixirLS depends on your editor.
+
+For VSCode install the extension: https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls
+
+### Emacs
+
+Download the latest release:
+https://github.com/elixir-lsp/elixir-ls/releases/latest and unzip it into a
+directory (this is the directory referred to as the
+`"path-to-elixir-ls/release"` below)
+
+If using `lsp-mode` add this configuration:
+```elisp
+  (use-package lsp-mode
+    :commands lsp
+    :ensure t
+    :diminish lsp-mode
+    :hook
+    (elixir-mode . lsp)
+    :init
+    (add-to-list 'exec-path "path-to-elixir-ls/release"))
+```
+
+For eglot use:
+```elisp
+(require 'eglot)
+
+;; This is optional. It automatically runs `M-x eglot` for you whenever you are in `elixir-mode`
+(add-hook 'elixir-mode-hook 'eglot-ensure)
+
+;; Make sure to edit the path appropriately, use the .bat script instead for Windows
+(add-to-list 'eglot-server-programs '(elixir-mode "path-to-elixir-ls/release/language_server.sh"))
+```
+
 ## Supported versions
 
 Elixir:
