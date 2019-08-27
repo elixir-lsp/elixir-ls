@@ -21,6 +21,12 @@ This fork started when [Jake Becker's repository](https://github.com/JakeBecker/
 
 ![Screenshot](images/screenshot.png?raw=true)
 
+## Installation
+
+How you install ElixirLS depends on your editor. Here are some links to blog posts to help you get started:
+* Vim: https://www.rockyourcode.com/developing-with-elixir-in-vim/
+* Emacs: https://elixirforum.com/t/emacs-elixir-setup-configuration-wiki/19196
+
 ## Supported versions
 
 Elixir:
