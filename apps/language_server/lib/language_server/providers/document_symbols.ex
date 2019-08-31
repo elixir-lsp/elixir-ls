@@ -37,17 +37,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp list_symbols(src) do
-    {_ast, symbol_list} =
-      Code.string_to_quoted!(src, columns: true, line: 0)
-      |> Macro.prewalk([], fn ast, symbols ->
-        {ast, extract_module(ast) ++ symbols}
-      end)
-
-    symbol_list
+    Code.string_to_quoted!(src, columns: true, line: 0)
+    |> extract_moduls()
   end
 
   # Identify and extract the module symbol, and the symbols contained within the module
-  defp extract_module({:defmodule, _, _child_ast} = ast) do
+  defp extract_moduls({:__block__, [], ast}) do
+    ast |> Enum.map(&extract_moduls(&1)) |> List.flatten()
+  end
+
+  defp extract_moduls({:defmodule, _, _child_ast} = ast) do
+    [extract_symbol("", ast)]
+  end
+
+  defp extract_moduls_aaa({:defmodule, _, _child_ast} = ast) do
     {_, _, [{:__aliases__, location, module_name}, [do: module_body]]} = ast
 
     mod_defns =
@@ -63,12 +66,31 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       |> Enum.map(&extract_symbol(module_name, &1))
       |> Enum.reject(&is_nil/1)
 
-    [%{type: :module, name: module_name, location: location, container: nil}] ++ module_symbols
+    [%{type: :module, name: module_name, location: location, children: module_symbols}]
   end
 
-  defp extract_module(_ast), do: []
+  defp extract_moduls(_ast), do: []
 
   # Module Variable
+  defp extract_symbol(_module_name, {:defmodule, _, _child_ast} = ast) do
+    {_, _, [{:__aliases__, location, module_name}, [do: module_body]]} = ast
+
+    mod_defns =
+      case module_body do
+        {:__block__, [], mod_defns} -> mod_defns
+        stmt -> [stmt]
+      end
+
+    module_name = Enum.join(module_name, ".")
+
+    module_symbols =
+      mod_defns
+      |> Enum.map(&extract_symbol(module_name, &1))
+      |> Enum.reject(&is_nil/1)
+
+    %{type: :module, name: module_name, location: location, children: module_symbols}
+  end
+
   defp extract_symbol(_, {:@, _, [{:moduledoc, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:doc, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:spec, _, _}]}), do: nil
@@ -78,64 +100,92 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_symbol(_, {:@, _, [{:typedoc, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:enforce_keys, _, _}]}), do: nil
 
-  defp extract_symbol(current_module, {:@, _, [{name, location, _}]}) do
-    %{type: :constant, name: "@#{name}", location: location, container: current_module}
+  defp extract_symbol(_current_module, {:@, _, [{name, location, _}]}) do
+    %{type: :constant, name: "@#{name}", location: location, children: []}
   end
 
   # Function
-  defp extract_symbol(current_module, {:def, _, [{_, location, _} = fn_head | _]}) do
+  defp extract_symbol(_current_module, {:def, _, [{_, location, _} = fn_head | _]}) do
     %{
       type: :function,
       name: Macro.to_string(fn_head),
       location: location,
-      container: current_module
+      children: []
     }
   end
 
   # Private Function
-  defp extract_symbol(current_module, {:defp, _, [{_, location, _} = fn_head | _]}) do
+  defp extract_symbol(_current_module, {:defp, _, [{_, location, _} = fn_head | _]}) do
     %{
       type: :function,
       name: Macro.to_string(fn_head),
       location: location,
-      container: current_module
+      children: []
     }
   end
 
   # Macro
-  defp extract_symbol(current_module, {:defmacro, _, [{_, location, _} = fn_head | _]}) do
+  defp extract_symbol(_current_module, {:defmacro, _, [{_, location, _} = fn_head | _]}) do
     %{
       type: :function,
       name: Macro.to_string(fn_head),
       location: location,
-      container: current_module
+      children: []
     }
   end
 
   # Test
-  defp extract_symbol(current_module, {:test, location, [name | _]}) do
+  defp extract_symbol(_current_module, {:test, location, [name | _]}) do
     %{
       type: :function,
       name: ~s(test "#{name}"),
       location: location,
-      container: current_module
+      children: []
+    }
+  end
+
+  # Describe
+  defp extract_symbol(current_module, {:describe, location, [name | ast]}) do
+    [[do: module_body]] = ast
+
+    mod_defns =
+      case module_body do
+        {:__block__, [], mod_defns} -> mod_defns
+        stmt -> [stmt]
+      end
+
+    module_symbols =
+      mod_defns
+      |> Enum.map(&extract_symbol(current_module, &1))
+      |> Enum.reject(&is_nil/1)
+
+    %{
+      type: :function,
+      name: ~s(describe "#{name}"),
+      location: location,
+      children: module_symbols
     }
   end
 
   defp extract_symbol(_, _), do: nil
 
+  defp build_symbol_information(uri, info) when is_list(info),
+    do: Enum.map(info, &build_symbol_information(uri, &1))
+
   defp build_symbol_information(uri, info) do
     %{
       name: info.name,
       kind: @symbol_enum[info.type],
-      containerName: info.container,
-      location: %{
-        uri: uri,
-        range: %{
-          start: %{line: info.location[:line], character: info.location[:column] - 1},
-          end: %{line: info.location[:line], character: info.location[:column] - 1}
-        }
-      }
+      range: location_to_range(info.location),
+      selectionRange: location_to_range(info.location),
+      children: build_symbol_information(uri, info.children)
+    }
+  end
+
+  defp location_to_range(location) do
+    %{
+      start: %{line: location[:line], character: location[:column] - 1},
+      end: %{line: location[:line], character: location[:column] - 1}
     }
   end
 end
