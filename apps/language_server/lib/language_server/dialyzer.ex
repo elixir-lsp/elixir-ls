@@ -184,11 +184,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:noreply, state}
   end
 
-  def handle_info(msg, state) do
-    super(msg, state)
-  end
-
-  def terminate(reason, state) do
+  def terminate(reason, _state) do
     if reason != :normal do
       JsonRpc.show_message(
         :error,
@@ -196,8 +192,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           "\"elixirLS.dialyzerEnabled\" to false in settings.json to disable it"
       )
     end
-
-    super(reason, state)
   end
 
   ## Helpers

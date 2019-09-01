@@ -108,10 +108,6 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, state}
   end
 
-  def handle_info(msg, state) do
-    super(msg, state)
-  end
-
   def terminate(reason, _state) do
     if reason != :normal do
       IO.puts(:standard_error, "(Debugger) Terminating because #{Exception.format_exit(reason)}")
@@ -535,9 +531,9 @@ defmodule ElixirLS.Debugger.Server do
   defp check_erlang_version do
     version = String.to_integer(to_string(:erlang.system_info(:otp_release)))
 
-    if version < 19 do
+    if version < 20 do
       IO.warn(
-        "Erlang version >= OTP 19 is required to debug Elixir. " <>
+        "Erlang version >= OTP 20 is required to debug Elixir. " <>
           "(Current version: #{version})\n"
       )
     end
