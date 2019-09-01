@@ -1,5 +1,6 @@
 language: elixir
 script:
+  - mix format --check-formatted
   - mix test
 matrix:
   include:
