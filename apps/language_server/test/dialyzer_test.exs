@@ -217,7 +217,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                    "source" => "ElixirLS Dialyzer"
                  },
                  %{
-                   "message" => error_message2,
+                   "message" => _error_message2,
                    "range" => %{
                      "end" => %{"character" => 0, "line" => 2},
                      "start" => %{"character" => 0, "line" => 2}
@@ -228,7 +228,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                ]) = message
 
         assert error_message1 == "Function 'fun'/0 has no local return"
-        assert error_message2 == "The pattern 'ok' can never match the type 'error'"
+
+        # Note: Don't assert on error_messaage 2 because the message is not stable across OTP versions
       end)
     end)
   end
