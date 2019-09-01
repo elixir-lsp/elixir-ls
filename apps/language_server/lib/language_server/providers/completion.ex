@@ -120,7 +120,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
       |> ElixirSense.Core.Metadata.get_env(line + 1)
 
-
     scope =
       case env.scope do
         Elixir -> :file
