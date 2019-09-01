@@ -531,9 +531,9 @@ defmodule ElixirLS.Debugger.Server do
   defp check_erlang_version do
     version = String.to_integer(to_string(:erlang.system_info(:otp_release)))
 
-    if version < 19 do
+    if version < 20 do
       IO.warn(
-        "Erlang version >= OTP 19 is required to debug Elixir. " <>
+        "Erlang version >= OTP 20 is required to debug Elixir. " <>
           "(Current version: #{version})\n"
       )
     end
