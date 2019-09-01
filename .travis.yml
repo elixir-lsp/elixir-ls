@@ -1,5 +1,6 @@
 language: elixir
 script:
+  - MIX_ENV=test mix compile --force --warnings-as-errors
   - mix format --check-formatted
   - mix test
 matrix:
