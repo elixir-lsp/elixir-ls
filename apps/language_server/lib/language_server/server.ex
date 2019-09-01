@@ -48,6 +48,7 @@ defmodule ElixirLS.LanguageServer.Server do
     analysis_ready?: false,
     received_shutdown?: false,
     requests: %{},
+    # Tracks source files that are currently open in the editor
     source_files: %{},
     awaiting_contracts: []
   ]
@@ -488,9 +489,13 @@ defmodule ElixirLS.LanguageServer.Server do
       |> Enum.map(&String.to_atom/1)
 
     if dialyzer_enabled?(state),
-      do: Dialyzer.analyze(state.build_ref, warn_opts, state.settings["dialyzerFormat"])
+      do: Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state))
 
     state
+  end
+
+  defp dialyzer_default_format(state) do
+    state.settings["dialyzerFormat"] || "dialyxir_long"
   end
 
   defp handle_build_result(status, diagnostics, state) do

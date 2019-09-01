@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def write(root_path, active_plt, mod_deps, md5, warnings, timestamp) do
-    spawn(fn ->
+    Task.start_link(fn ->
       manifest_path = manifest_path(root_path)
 
       plt(

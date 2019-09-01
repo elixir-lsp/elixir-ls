@@ -6,6 +6,7 @@
 - `workspace/didChangeConfiguration` handles `null` now (fixes [eglot](https://github.com/joaotavora/eglot) support)
 - Update elixir_sense
 - Watch LiveView .leex files
+- Change 'dialyzerFormat' default setting to `"dialyxir_long"`
 
 ### v0.2.25: 23 May 2019
 
