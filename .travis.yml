@@ -3,6 +3,14 @@ script:
   - MIX_ENV=test mix compile --force --warnings-as-errors
   - mix format --check-formatted
   - mix test
+env:
+  global:
+    - MIX_HOME=$HOME/.mix
+cache:
+  directories:
+  - $HOME/.mix
+  - deps
+  - _build
 matrix:
   include:
     - otp_release: 20.3
