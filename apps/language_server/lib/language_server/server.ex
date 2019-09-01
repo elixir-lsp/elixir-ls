@@ -48,6 +48,7 @@ defmodule ElixirLS.LanguageServer.Server do
     analysis_ready?: false,
     received_shutdown?: false,
     requests: %{},
+    # Tracks source files that are currently open in the editor
     source_files: %{},
     awaiting_contracts: []
   ]
@@ -334,11 +335,13 @@ defmodule ElixirLS.LanguageServer.Server do
     Process.send_after(self(), :default_config, 5000)
 
     # Explicitly request file watchers from the client if supported
-    supports_dynamic = get_in(client_capabilities, [
-          "textDocument",
-          "codeAction",
-          "dynamicRegistration"
-        ])
+    supports_dynamic =
+      get_in(client_capabilities, [
+        "textDocument",
+        "codeAction",
+        "dynamicRegistration"
+      ])
+
     if supports_dynamic do
       Process.send_after(self(), :send_file_watchers, 100)
     end
@@ -467,7 +470,9 @@ defmodule ElixirLS.LanguageServer.Server do
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
       "executeCommandProvider" => %{"commands" => ["spec"]},
-      "workspace" => %{ "workspaceFolders" => %{"supported" => true, "changeNotifications" => true}}
+      "workspace" => %{
+        "workspaceFolders" => %{"supported" => true, "changeNotifications" => true}
+      }
     }
   end
 

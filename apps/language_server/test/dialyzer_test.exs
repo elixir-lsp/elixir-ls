@@ -22,8 +22,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     {:ok, %{server: server}}
   end
 
-  # Failing
-  @tag :pending
   test "reports diagnostics then clears them once problems are fixed", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
@@ -34,50 +32,204 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         Server.receive_packet(
           server,
-          did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => true}})
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
+          })
         )
 
-        assert_receive publish_diagnostics_notif(^file_a, [
-                         %{
-                           "message" => "Function 'fun'/0 has no local return",
-                           "range" => %{
-                             "end" => %{"character" => 0, "line" => 1},
-                             "start" => %{"character" => 0, "line" => 1}
-                           },
-                           "severity" => 2,
-                           "source" => "ElixirLS Dialyzer"
-                         },
-                         %{
-                           "message" => "The pattern 'ok' can never match the type 'error'",
-                           "range" => %{
-                             "end" => %{"character" => 0, "line" => 2},
-                             "start" => %{"character" => 0, "line" => 2}
-                           },
-                           "severity" => 2,
-                           "source" => "ElixirLS Dialyzer"
-                         }
-                       ]),
-                       20000
+        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+
+        assert publish_diagnostics_notif(^file_a, [
+                 %{
+                   "message" => error_message1,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 1},
+                     "start" => %{"character" => 0, "line" => 1}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 },
+                 %{
+                   "message" => error_message2,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 2},
+                     "start" => %{"character" => 0, "line" => 2}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 }
+               ]) = message
+
+        assert error_message1 == "Function fun/0 has no local return."
+
+        assert error_message2 ==
+                 "The pattern can never match the type.\n\nPattern:\n:ok\n\nType:\n:error\n"
 
         # Fix file B. It should recompile and re-analyze A and B only
-        File.write!("lib/b.ex", ~S(
+        b_text = """
         defmodule B do
           def fun do
             :ok
           end
         end
-        ))
+        """
 
-        Server.receive_packet(server, did_save(SourceFile.path_to_uri("lib/b.ex")))
+        b_uri = SourceFile.path_to_uri("lib/b.ex")
+        Server.receive_packet(server, did_open(b_uri, "elixir", 1, b_text))
+        File.write!("lib/b.ex", b_text)
+
+        Server.receive_packet(server, did_save(b_uri))
+
         assert_receive publish_diagnostics_notif(^file_a, []), 20000
 
         assert_receive notification("window/logMessage", %{
                          "message" => "[ElixirLS Dialyzer] Analyzing 2 modules: [A, B]"
                        })
-      end)
 
-      # Stop while we're still capturing logs to avoid log leakage
-      GenServer.stop(server)
+        # Stop while we're still capturing logs to avoid log leakage
+        GenServer.stop(server)
+      end)
+    end)
+  end
+
+  test "reports dialyxir_long formatted error", %{server: server} do
+    in_fixture(__DIR__, "dialyzer", fn ->
+      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+
+      capture_log(fn ->
+        root_uri = SourceFile.path_to_uri(File.cwd!())
+        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
+          })
+        )
+
+        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+
+        assert publish_diagnostics_notif(^file_a, [
+                 %{
+                   "message" => error_message1,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 1},
+                     "start" => %{"character" => 0, "line" => 1}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 },
+                 %{
+                   "message" => error_message2,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 2},
+                     "start" => %{"character" => 0, "line" => 2}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 }
+               ]) = message
+
+        assert error_message1 == "Function fun/0 has no local return."
+
+        assert error_message2 == """
+               The pattern can never match the type.
+
+               Pattern:
+               :ok
+
+               Type:
+               :error
+               """
+      end)
+    end)
+  end
+
+  test "reports dialyxir_short formatted error", %{server: server} do
+    in_fixture(__DIR__, "dialyzer", fn ->
+      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+
+      capture_log(fn ->
+        root_uri = SourceFile.path_to_uri(File.cwd!())
+        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"}
+          })
+        )
+
+        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+
+        assert publish_diagnostics_notif(^file_a, [
+                 %{
+                   "message" => error_message1,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 1},
+                     "start" => %{"character" => 0, "line" => 1}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 },
+                 %{
+                   "message" => error_message2,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 2},
+                     "start" => %{"character" => 0, "line" => 2}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 }
+               ]) = message
+
+        assert error_message1 == "Function fun/0 has no local return."
+        assert error_message2 == "The pattern can never match the type :error."
+      end)
+    end)
+  end
+
+  test "reports dialyzer_formatted error", %{server: server} do
+    in_fixture(__DIR__, "dialyzer", fn ->
+      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+
+      capture_log(fn ->
+        root_uri = SourceFile.path_to_uri(File.cwd!())
+        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"}
+          })
+        )
+
+        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+
+        assert publish_diagnostics_notif(^file_a, [
+                 %{
+                   "message" => error_message1,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 1},
+                     "start" => %{"character" => 0, "line" => 1}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 },
+                 %{
+                   "message" => error_message2,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 2},
+                     "start" => %{"character" => 0, "line" => 2}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 }
+               ]) = message
+
+        assert error_message1 == "Function 'fun'/0 has no local return"
+        assert error_message2 == "The pattern 'ok' can never match the type 'error'"
+      end)
     end)
   end
 
