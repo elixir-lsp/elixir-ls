@@ -310,7 +310,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         stale_modules = dependent_modules(changed_modules ++ removed_modules, mod_deps)
 
         # Remove modules that need analysis from mod_deps and PLT
-        mod_deps = Map.drop(mod_deps, stale_modules)
+        mod_deps = Map.drop(mod_deps, MapSet.to_list(stale_modules))
         for module <- stale_modules, do: :dialyzer_plt.delete_module(active_plt, module)
 
         # For changed modules, we look at erlang AST to find referenced modules that aren't analyzed
