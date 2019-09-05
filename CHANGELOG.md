@@ -1,4 +1,4 @@
-### Unreleased
+### v0.2.26: 4 Sept 2019
 
 - Dialyxir new 1.0-rc formatting support
 - `can_format/2` now case-insensitive (fixes formatting on Mac OS X)
