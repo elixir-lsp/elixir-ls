@@ -3,5 +3,8 @@
 # OTP 20 and should work with any later releases.
 # Using asdf to manage your elixir and OTP versions is not required, you can
 # use the system-installed version instead.
-elixir 1.9.1-otp-22
-erlang 22.0.7
+#
+# The versions selected here are the versions that are used to build a binary
+# release for distribution
+elixir 1.7.4-otp-20
+erlang 20.3.8.9
