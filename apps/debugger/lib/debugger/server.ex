@@ -14,7 +14,7 @@ defmodule ElixirLS.Debugger.Server do
   use GenServer
   use Protocol
 
-  @temp_beam_dir ".elixir_ls/temp_beams"
+  @temp_beam_dir "_build/.elixir_ls/temp_beams"
 
   defstruct client_info: nil,
             config: %{},
