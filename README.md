@@ -91,6 +91,13 @@ Basic troubleshooting steps:
 
 If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles code with `MIX_ENV=test` (by default). So if you are missing some configuration in the test environment, your code may not compile.
 
+ElixirLS automatically starts up a node that you can connect to if you want to debug the server. Simply run the following in an iEX session (note if there's multiple ElixirLS instances running you may need to connect to a higher number than 0, see the server logs for the specific node name):
+
+    {:ok, hostname} = :inet.gethostname()
+    Node.connect(:"elixirls-0@#{hostname}")
+
+Then you can run `:observer.start()` (make sure to use the "Nodes" menu to change to the ElixirLS node) or any tracing commands.
+
 ## Building and running
 
 Run `mix compile`, then `mix elixir_ls.release -o <release_dir>`. This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.

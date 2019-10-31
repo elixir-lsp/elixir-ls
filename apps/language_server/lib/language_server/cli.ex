@@ -27,12 +27,13 @@ defmodule ElixirLS.LanguageServer.CLI do
         start_node(number + 1)
 
       {:ok, _pid} ->
-        IO.puts("Started node with name #{inspect(node_name)}")
-        Node.set_cookie(node_name, :cookie)
+        IO.puts(
+          "Started node with name #{inspect(node_name)}. Connect with Node.connect(#{
+            inspect(node_name)
+          })"
+        )
 
-        for num <- Range.new(0, number) do
-          Node.connect(node_name(num))
-        end
+        Node.set_cookie(node_name, :cookie)
     end
   end
 
