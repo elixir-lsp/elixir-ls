@@ -7,4 +7,4 @@
 # The versions selected here are the versions that are used to build a binary
 # release for distribution
 elixir 1.7.4-otp-20
-erlang 20.3.8.9
+erlang 20.3.8.23
