@@ -1,3 +1,10 @@
+### v0.2.27: 14 Nov 2019
+
+VSCode:
+
+- Fix missing comma issue in the language configuration [#16](https://github.com/elixir-lsp/vscode-elixir-ls/pull/16)
+- Add some basic configuration for HTML (EEx) files [#14](https://github.com/elixir-lsp/vscode-elixir-ls/pull/14) (thanks [@J3RN](https://github.com/J3RN))
+
 ### v0.2.26: 4 Sept 2019
 
 - Dialyxir new 1.0-rc formatting support
