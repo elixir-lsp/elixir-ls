@@ -1,3 +1,9 @@
+### Unreleased
+
+VSCode:
+
+- Add syntax rules for function calls [vscode-elixir-ls #15](https://github.com/elixir-lsp/vscode-elixir-ls/pull/15) (thanks [CaiqueMitsuoka](https://github.com/CaiqueMitsuoka))
+
 ### v0.2.27: 14 Nov 2019
 
 VSCode:
