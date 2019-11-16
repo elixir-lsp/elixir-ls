@@ -1,5 +1,8 @@
 ### Unreleased
 
+- Fix debugger tasks not continuing to run on Elixir 1.9 (thanks to [joshua-andrassy](https://github.com/joshua-andrassy) for doing the legwork)
+  - Fixes [JakeBecker/elixir-ls#194](https://github.com/JakeBecker/elixir-ls/issues/194) and [JakeBecker/elixir-ls#185](https://github.com/JakeBecker/elixir-ls/issues/185)
+
 VSCode:
 
 - Add syntax rules for function calls [vscode-elixir-ls #15](https://github.com/elixir-lsp/vscode-elixir-ls/pull/15) (thanks [CaiqueMitsuoka](https://github.com/CaiqueMitsuoka))
