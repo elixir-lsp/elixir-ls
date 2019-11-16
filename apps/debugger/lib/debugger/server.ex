@@ -561,6 +561,11 @@ defmodule ElixirLS.Debugger.Server do
 
   defp launch_task(task, args) do
     Mix.Task.run(task, args)
+
+    # Starting from Elixir 1.9 Mix.Task.run will return so we need to sleep our
+    # process so that the code keeps running (Note: process is expected to be
+    # killed by stopping the debugger)
+    Process.sleep(:infinity)
   end
 
   # Interpreting modules defined in .exs files requires that we first load the file and save any
