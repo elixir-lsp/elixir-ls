@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.2.28: 16 Nov 2019
+
 - Fix debugger tasks not continuing to run on Elixir 1.9 (thanks to [joshua-andrassy](https://github.com/joshua-andrassy) for doing the legwork)
   - Fixes [JakeBecker/elixir-ls#194](https://github.com/JakeBecker/elixir-ls/issues/194) and [JakeBecker/elixir-ls#185](https://github.com/JakeBecker/elixir-ls/issues/185)
 - Improve supervision tree when writing dialyzer manifest files 
