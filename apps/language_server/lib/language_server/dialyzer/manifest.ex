@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   def build_new_manifest() do
     parent = self()
 
-    spawn_link(fn ->
+    Task.start_link(fn ->
       active_plt = load_elixir_plt()
       transfer_plt(active_plt, parent)
 
