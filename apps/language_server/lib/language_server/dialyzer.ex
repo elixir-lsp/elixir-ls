@@ -110,7 +110,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           }
 
         :error ->
-          %{state | analysis_pid: Manifest.build_new_manifest()}
+          {:ok, pid} = Manifest.build_new_manifest()
+          %{state | analysis_pid: pid}
       end
 
     {:ok, state}
