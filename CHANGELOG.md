@@ -1,5 +1,7 @@
 ### Unreleased
 
+- Update dialyxir to 1.0.0-rc.7
+
 ### v0.2.28: 16 Nov 2019
 
 - Fix debugger tasks not continuing to run on Elixir 1.9 (thanks to [joshua-andrassy](https://github.com/joshua-andrassy) for doing the legwork)
