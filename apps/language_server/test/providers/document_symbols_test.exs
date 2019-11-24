@@ -14,6 +14,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         defguard my_guard(a) when is_integer(a)
         defguardp my_private_guard(a) when is_integer(a)
         defdelegate my_delegate(list), to: Enum, as: :reverse
+        defguard my_guard when 1 == 1
+        def my_fn_no_arg, do: :ok
+        def my_fn_with_guard(arg) when is_integer(arg), do: :ok
+        def my_fn_with_more_blocks(arg) do
+          :ok
+        rescue
+          e in ArgumentError -> :ok
+        else
+          _ -> :ok
+        catch
+          _ -> :ok
+        after
+          :ok
+        end
       end
     ]
 
@@ -99,6 +113,46 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     selectionRange: %{
                       end: %{character: 20, line: 9},
                       start: %{character: 20, line: 9}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_guard when 1 == 1",
+                    range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}},
+                    selectionRange: %{
+                      end: %{character: 26, line: 10},
+                      start: %{character: 26, line: 10}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_fn_no_arg",
+                    range: %{end: %{character: 12, line: 11}, start: %{character: 12, line: 11}},
+                    selectionRange: %{
+                      end: %{character: 12, line: 11},
+                      start: %{character: 12, line: 11}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_fn_with_guard(arg) when is_integer(arg)",
+                    range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}},
+                    selectionRange: %{
+                      end: %{character: 34, line: 12},
+                      start: %{character: 34, line: 12}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_fn_with_more_blocks(arg)",
+                    range: %{end: %{character: 12, line: 13}, start: %{character: 12, line: 13}},
+                    selectionRange: %{
+                      end: %{character: 12, line: 13},
+                      start: %{character: 12, line: 13}
                     }
                   }
                 ],
