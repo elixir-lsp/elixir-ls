@@ -504,6 +504,70 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text)
   end
 
+  test "handles module definitions with struct" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      defstruct [:prop]
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 23,
+                    name: "struct",
+                    range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                    selectionRange: %{
+                      end: %{character: 2, line: 1},
+                      start: %{character: 2, line: 1}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModule",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
+  test "handles module definitions with exception" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyError do
+      defexception [:message]
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 23,
+                    name: "exception",
+                    range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                    selectionRange: %{
+                      end: %{character: 2, line: 1},
+                      start: %{character: 2, line: 1}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyError",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
   test "handles exunit tests" do
     uri = "file://project/test.exs"
     text = ~S[

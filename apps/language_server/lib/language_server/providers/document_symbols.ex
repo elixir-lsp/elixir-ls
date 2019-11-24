@@ -94,6 +94,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     )
   end
 
+  defp extract_symbol(_module_name, {defname, location, _properties})
+       when defname in [:defstruct, :defexception] do
+    name =
+      case defname do
+        :defstruct -> "struct"
+        :defexception -> "exception"
+      end
+
+    %{type: :struct, name: name, location: location, children: []}
+  end
+
   # Module Variable
 
   defp extract_symbol(_, {:@, _, [{:moduledoc, _, _}]}), do: nil
