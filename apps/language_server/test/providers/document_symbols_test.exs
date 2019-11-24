@@ -342,6 +342,83 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text)
   end
 
+  test "handles protocols and implementations" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defprotocol MyProtocol do
+      @doc "Calculates the size"
+      def size(data)
+    end
+
+    defimpl MyProtocol, for: BitString do
+      def size(binary), do: byte_size(binary)
+    end
+
+    defimpl MyProtocol, for: [List, MyList] do
+      def size(param), do: length(param)
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "size(data)",
+                    range: %{end: %{character: 6, line: 2}, start: %{character: 6, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 6, line: 2},
+                      start: %{character: 6, line: 2}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyProtocol",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              },
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "size(binary)",
+                    range: %{end: %{character: 6, line: 6}, start: %{character: 6, line: 6}},
+                    selectionRange: %{
+                      end: %{character: 6, line: 6},
+                      start: %{character: 6, line: 6}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyProtocol, for: BitString",
+                range: %{end: %{character: 0, line: 5}, start: %{character: 0, line: 5}},
+                selectionRange: %{end: %{character: 0, line: 5}, start: %{character: 0, line: 5}}
+              },
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "size(param)",
+                    range: %{end: %{character: 6, line: 10}, start: %{character: 6, line: 10}},
+                    selectionRange: %{
+                      end: %{character: 6, line: 10},
+                      start: %{character: 6, line: 10}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyProtocol, for: [List, MyList]",
+                range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}},
+                selectionRange: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
   test "handles exunit tests" do
     uri = "file://project/test.exs"
     text = ~S[

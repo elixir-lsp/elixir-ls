@@ -44,20 +44,21 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Identify and extract the module symbol, and the symbols contained within the module
+
   defp extract_modules({:__block__, [], ast}) do
     ast |> Enum.map(&extract_modules(&1)) |> List.flatten()
   end
 
-  defp extract_modules({:defmodule, _, _child_ast} = ast) do
+  defp extract_modules({defname, _, _child_ast} = ast)
+       when defname in [:defmodule, :defprotocol, :defimpl] do
     [extract_symbol("", ast)]
   end
 
   defp extract_modules(_ast), do: []
 
-  # Module Variable
-  defp extract_symbol(_module_name, {:defmodule, _, _child_ast} = ast) do
-    {_, location, [module_expression, [do: module_body]]} = ast
-
+  # Modules, protocols
+  defp extract_symbol(_module_name, {defname, location, [module_expression, [do: module_body]]})
+       when defname in [:defmodule, :defprotocol] do
     mod_defns =
       case module_body do
         {:__block__, [], mod_defns} -> mod_defns
@@ -73,6 +74,21 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     %{type: :module, name: module_name, location: location, children: module_symbols}
   end
+
+  # Protocol implementations
+
+  defp extract_symbol(
+         module_name,
+         {:defimpl, location, [protocol_expression, [for: for_expression], [do: module_body]]}
+       ) do
+    extract_symbol(
+      module_name,
+      {:defmodule, location,
+       [[protocol: protocol_expression, implementations: for_expression], [do: module_body]]}
+    )
+  end
+
+  # Module Variable
 
   defp extract_symbol(_, {:@, _, [{:moduledoc, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:doc, _, _}]}), do: nil
@@ -151,6 +167,19 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       start: %{line: location[:line], character: location[:column] - 1},
       end: %{line: location[:line], character: location[:column] - 1}
     }
+  end
+
+  defp extract_module_name(protocol: protocol, implementations: implementations) do
+    extract_module_name(protocol) <> ", for: " <> extract_module_name(implementations)
+  end
+
+  defp extract_module_name(list) when is_list(list) do
+    list_stringified =
+      list
+      |> Enum.map(&extract_module_name/1)
+      |> Enum.join(", ")
+
+    "[" <> list_stringified <> "]"
   end
 
   defp extract_module_name({:__aliases__, location, [{:__MODULE__, _, nil} = head | tail]}) do
