@@ -568,6 +568,224 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text)
   end
 
+  test "handles module definitions with typespecs" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @type my_simple :: integer
+      @type my_union :: integer | binary
+      @typep my_simple_private :: integer
+      @opaque my_simple_opaque :: integer
+      @type my_with_args(key, value) :: [{key, value}]
+      @type my_with_args_when(key, value) :: [{key, value}] when value: integer
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 5,
+                    name: "my_simple",
+                    range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 1},
+                      start: %{character: 3, line: 1}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 5,
+                    name: "my_union",
+                    range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 2},
+                      start: %{character: 3, line: 2}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 5,
+                    name: "my_simple_private",
+                    range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 3},
+                      start: %{character: 3, line: 3}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 5,
+                    name: "my_simple_opaque",
+                    range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 4},
+                      start: %{character: 3, line: 4}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 5,
+                    name: "my_with_args(key, value)",
+                    range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 5},
+                      start: %{character: 3, line: 5}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 5,
+                    name: "my_with_args_when(key, value)",
+                    range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 6},
+                      start: %{character: 3, line: 6}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModule",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
+  test "handles module definitions with callbacks" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @callback my_callback(type1, type2) :: return_type
+      @macrocallback my_macrocallback(type1, type2) :: Macro.t
+
+      @callback my_callback_when(type1, type2) :: return_type when type1: integer
+      @macrocallback my_macrocallback_when(type1, type2) :: Macro.t when type1: integer, type2: binary
+
+      @callback my_callback_no_arg() :: return_type
+      @macrocallback my_macrocallback_no_arg() :: Macro.t
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 24,
+                    name: "my_callback(type1, type2)",
+                    range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 1},
+                      start: %{character: 3, line: 1}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 24,
+                    name: "my_macrocallback(type1, type2)",
+                    range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 2},
+                      start: %{character: 3, line: 2}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 24,
+                    name: "my_callback_when(type1, type2)",
+                    range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 4},
+                      start: %{character: 3, line: 4}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 24,
+                    name: "my_macrocallback_when(type1, type2)",
+                    range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 5},
+                      start: %{character: 3, line: 5}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 24,
+                    name: "my_callback_no_arg()",
+                    range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 7},
+                      start: %{character: 3, line: 7}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 24,
+                    name: "my_macrocallback_no_arg()",
+                    range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 8},
+                      start: %{character: 3, line: 8}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModule",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
+  test "handles funs with specs" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule MyModule do
+        @spec my_fn(integer) :: atom
+        def my_fn(a), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 24,
+                    name: "my_fn(integer)",
+                    range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 9, line: 2},
+                      start: %{character: 9, line: 2}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_fn(a)",
+                    range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}},
+                    selectionRange: %{
+                      end: %{character: 12, line: 3},
+                      start: %{character: 12, line: 3}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModule",
+                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
+                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
   test "handles exunit tests" do
     uri = "file://project/test.exs"
     text = ~S[

@@ -109,12 +109,31 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp extract_symbol(_, {:@, _, [{:moduledoc, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:doc, _, _}]}), do: nil
-  defp extract_symbol(_, {:@, _, [{:spec, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:behaviour, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:impl, _, _}]}), do: nil
-  defp extract_symbol(_, {:@, _, [{:type, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:typedoc, _, _}]}), do: nil
   defp extract_symbol(_, {:@, _, [{:enforce_keys, _, _}]}), do: nil
+
+  defp extract_symbol(_current_module, {:@, _, [{type_kind, location, type_expression}]})
+       when type_kind in [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
+    type_name =
+      case type_expression do
+        [{:"::", _, [{_, _, _} = type_head | _]}] ->
+          Macro.to_string(type_head)
+
+        [{:when, _, [{:"::", _, [{_, _, _} = type_head, _]}, _]}] ->
+          Macro.to_string(type_head)
+      end
+
+    type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
+
+    %{
+      type: type,
+      name: type_name,
+      location: location,
+      children: []
+    }
+  end
 
   defp extract_symbol(_current_module, {:@, _, [{name, location, _}]}) do
     %{type: :constant, name: "@#{name}", location: location, children: []}
