@@ -1103,4 +1103,63 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               }
             ]} = DocumentSymbols.symbols(uri, text)
   end
+
+  test "handles exunit callbacks" do
+    uri = "file://project/test.exs"
+
+    text = """
+    defmodule MyModuleTest do
+      use ExUnit.Case
+      setup do
+        [conn: Plug.Conn.build_conn()]
+      end
+      setup :clean_up_tmp_directory
+      setup_all do
+        :ok
+      end
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "setup",
+                    range: %{end: %{character: 2, line: 2}, start: %{character: 2, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 2, line: 2},
+                      start: %{character: 2, line: 2}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "setup",
+                    range: %{end: %{character: 2, line: 5}, start: %{character: 2, line: 5}},
+                    selectionRange: %{
+                      end: %{character: 2, line: 5},
+                      start: %{character: 2, line: 5}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "setup_all",
+                    range: %{end: %{character: 2, line: 6}, start: %{character: 2, line: 6}},
+                    selectionRange: %{
+                      end: %{character: 2, line: 6},
+                      start: %{character: 2, line: 6}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModuleTest",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
 end

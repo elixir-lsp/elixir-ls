@@ -161,6 +161,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
+  defp extract_symbol(_current_module, {name, location, [_name | _]})
+       when name in [:setup, :setup_all] do
+    %{
+      type: :function,
+      name: "#{name}",
+      location: location,
+      children: []
+    }
+  end
+
   # Describe
   defp extract_symbol(current_module, {:describe, location, [name | ast]}) do
     [[do: module_body]] = ast
