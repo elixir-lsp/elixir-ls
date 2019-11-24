@@ -62,17 +62,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         stmt -> [stmt]
       end
 
-    module_name =
-      case module_expression do
-        {:__aliases__, _location, module_name} ->
-          Enum.join(module_name, ".")
-
-        module when is_atom(module) ->
-          case Atom.to_string(module) do
-            "Elixir." <> elixir_module_rest -> elixir_module_rest
-            erlang_module -> erlang_module
-          end
-      end
+    module_name = extract_module_name(module_expression)
 
     module_symbols =
       mod_defns
@@ -178,5 +168,24 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       start: %{line: location[:line], character: location[:column] - 1},
       end: %{line: location[:line], character: location[:column] - 1}
     }
+  end
+
+  defp extract_module_name({:__aliases__, location, [{:__MODULE__, _, nil} = head | tail]}) do
+    extract_module_name(head) <> "." <> extract_module_name({:__aliases__, location, tail})
+  end
+
+  defp extract_module_name({:__aliases__, _location, module_names}) do
+    Enum.join(module_names, ".")
+  end
+
+  defp extract_module_name({:__MODULE__, _location, nil}) do
+    "__MODULE__"
+  end
+
+  defp extract_module_name(module) when is_atom(module) do
+    case Atom.to_string(module) do
+      "Elixir." <> elixir_module_rest -> elixir_module_rest
+      erlang_module -> erlang_module
+    end
   end
 end

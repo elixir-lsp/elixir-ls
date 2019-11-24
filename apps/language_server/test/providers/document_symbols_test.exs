@@ -273,6 +273,50 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text)
   end
 
+  test "handles nested module definitions with __MODULE__" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule __MODULE__ do
+        defmodule __MODULE__.SubModule do
+          def my_fn(), do: :ok
+        end
+      end
+    ]
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [
+                      %{
+                        children: [],
+                        kind: 12,
+                        name: "my_fn()",
+                        range: %{end: %{character: 14, line: 3}, start: %{character: 14, line: 3}},
+                        selectionRange: %{
+                          end: %{character: 14, line: 3},
+                          start: %{character: 14, line: 3}
+                        }
+                      }
+                    ],
+                    kind: 2,
+                    name: "__MODULE__.SubModule",
+                    range: %{end: %{character: 8, line: 2}, start: %{character: 8, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 8, line: 2},
+                      start: %{character: 8, line: 2}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "__MODULE__",
+                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
+                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
   test "handles exunit tests" do
     uri = "file://project/test.exs"
     text = ~S[
