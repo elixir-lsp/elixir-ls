@@ -33,6 +33,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
 
+  @docs [
+    :doc,
+    :moduledoc,
+    :typedoc
+  ]
+
   def symbols(uri, text) do
     symbols = list_symbols(text) |> Enum.map(&build_symbol_information(uri, &1))
     {:ok, symbols}
@@ -44,7 +50,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Identify and extract the module symbol, and the symbols contained within the module
-
   defp extract_modules({:__block__, [], ast}) do
     ast |> Enum.map(&extract_modules(&1)) |> List.flatten()
   end
@@ -82,7 +87,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Protocol implementations
-
   defp extract_symbol(
          module_name,
          {:defimpl, location, [protocol_expression, [for: for_expression], [do: module_body]]}
@@ -94,6 +98,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     )
   end
 
+  # Struct and exception
   defp extract_symbol(_module_name, {defname, location, _properties})
        when defname in [:defstruct, :defexception] do
     name =
@@ -105,15 +110,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %{type: :struct, name: name, location: location, children: []}
   end
 
-  # Module Variable
+  # Docs
+  defp extract_symbol(_, {:@, _, [{kind, _, _}]}) when kind in @docs, do: nil
 
-  defp extract_symbol(_, {:@, _, [{:moduledoc, _, _}]}), do: nil
-  defp extract_symbol(_, {:@, _, [{:doc, _, _}]}), do: nil
-  defp extract_symbol(_, {:@, _, [{:behaviour, _, _}]}), do: nil
-  defp extract_symbol(_, {:@, _, [{:impl, _, _}]}), do: nil
-  defp extract_symbol(_, {:@, _, [{:typedoc, _, _}]}), do: nil
-  defp extract_symbol(_, {:@, _, [{:enforce_keys, _, _}]}), do: nil
-
+  # Types
   defp extract_symbol(_current_module, {:@, _, [{type_kind, location, type_expression}]})
        when type_kind in [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
     type_name =
@@ -135,6 +135,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
+  # Other attributes
   defp extract_symbol(_current_module, {:@, _, [{name, location, _}]}) do
     %{type: :constant, name: "@#{name}", location: location, children: []}
   end

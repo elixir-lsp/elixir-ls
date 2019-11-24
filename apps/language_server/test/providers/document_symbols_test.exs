@@ -786,6 +786,226 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text)
   end
 
+  test "skips docs attributes" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @moduledoc ""
+      @doc ""
+      @typedoc ""
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [],
+                kind: 2,
+                name: "MyModule",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
+  test "handles various builtin attributes" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @optional_callbacks non_vital_fun: 0, non_vital_macro: 1
+      @behaviour MyBehaviour
+      @impl true
+      @derive [MyProtocol]
+      @enforce_keys [:name]
+      @compile {:inline, my_fun: 1}
+      @deprecated ""
+      @dialyzer {:nowarn_function, my_fun: 1}
+      @file "hello.ex"
+      @external_resource ""
+      @on_load :load_check
+      @on_definition :load_check
+      @vsn "1.0"
+      @after_compile __MODULE__
+      @before_compile __MODULE__
+      @fallback_to_any true
+    end
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@optional_callbacks",
+                    range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 1},
+                      start: %{character: 3, line: 1}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@behaviour",
+                    range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 2},
+                      start: %{character: 3, line: 2}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@impl",
+                    range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 3},
+                      start: %{character: 3, line: 3}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@derive",
+                    range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 4},
+                      start: %{character: 3, line: 4}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@enforce_keys",
+                    range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 5},
+                      start: %{character: 3, line: 5}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@compile",
+                    range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 6},
+                      start: %{character: 3, line: 6}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@deprecated",
+                    range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 7},
+                      start: %{character: 3, line: 7}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@dialyzer",
+                    range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 8},
+                      start: %{character: 3, line: 8}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@file",
+                    range: %{end: %{character: 3, line: 9}, start: %{character: 3, line: 9}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 9},
+                      start: %{character: 3, line: 9}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@external_resource",
+                    range: %{end: %{character: 3, line: 10}, start: %{character: 3, line: 10}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 10},
+                      start: %{character: 3, line: 10}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@on_load",
+                    range: %{end: %{character: 3, line: 11}, start: %{character: 3, line: 11}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 11},
+                      start: %{character: 3, line: 11}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@on_definition",
+                    range: %{end: %{character: 3, line: 12}, start: %{character: 3, line: 12}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 12},
+                      start: %{character: 3, line: 12}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@vsn",
+                    range: %{end: %{character: 3, line: 13}, start: %{character: 3, line: 13}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 13},
+                      start: %{character: 3, line: 13}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@after_compile",
+                    range: %{end: %{character: 3, line: 14}, start: %{character: 3, line: 14}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 14},
+                      start: %{character: 3, line: 14}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@before_compile",
+                    range: %{end: %{character: 3, line: 15}, start: %{character: 3, line: 15}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 15},
+                      start: %{character: 3, line: 15}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@fallback_to_any",
+                    range: %{end: %{character: 3, line: 16}, start: %{character: 3, line: 16}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 16},
+                      start: %{character: 3, line: 16}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModule",
+                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
+                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
   test "handles exunit tests" do
     uri = "file://project/test.exs"
     text = ~S[
