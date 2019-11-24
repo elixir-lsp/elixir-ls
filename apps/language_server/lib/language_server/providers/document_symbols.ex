@@ -38,38 +38,19 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp list_symbols(src) do
     Code.string_to_quoted!(src, columns: true, line: 0)
-    |> extract_moduls()
+    |> extract_modules()
   end
 
   # Identify and extract the module symbol, and the symbols contained within the module
-  defp extract_moduls({:__block__, [], ast}) do
-    ast |> Enum.map(&extract_moduls(&1)) |> List.flatten()
+  defp extract_modules({:__block__, [], ast}) do
+    ast |> Enum.map(&extract_modules(&1)) |> List.flatten()
   end
 
-  defp extract_moduls({:defmodule, _, _child_ast} = ast) do
+  defp extract_modules({:defmodule, _, _child_ast} = ast) do
     [extract_symbol("", ast)]
   end
 
-  defp extract_moduls_aaa({:defmodule, _, _child_ast} = ast) do
-    {_, _, [{:__aliases__, location, module_name}, [do: module_body]]} = ast
-
-    mod_defns =
-      case module_body do
-        {:__block__, [], mod_defns} -> mod_defns
-        stmt -> [stmt]
-      end
-
-    module_name = Enum.join(module_name, ".")
-
-    module_symbols =
-      mod_defns
-      |> Enum.map(&extract_symbol(module_name, &1))
-      |> Enum.reject(&is_nil/1)
-
-    [%{type: :module, name: module_name, location: location, children: module_symbols}]
-  end
-
-  defp extract_moduls(_ast), do: []
+  defp extract_modules(_ast), do: []
 
   # Module Variable
   defp extract_symbol(_module_name, {:defmodule, _, _child_ast} = ast) do
