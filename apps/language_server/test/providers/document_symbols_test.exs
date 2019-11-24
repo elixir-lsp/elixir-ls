@@ -375,7 +375,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     }
                   }
                 ],
-                kind: 2,
+                kind: 11,
                 name: "MyProtocol",
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}

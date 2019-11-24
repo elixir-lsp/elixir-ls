@@ -72,7 +72,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       |> Enum.map(&extract_symbol(module_name, &1))
       |> Enum.reject(&is_nil/1)
 
-    %{type: :module, name: module_name, location: location, children: module_symbols}
+    type =
+      case defname do
+        :defmodule -> :module
+        :defprotocol -> :interface
+      end
+
+    %{type: type, name: module_name, location: location, children: module_symbols}
   end
 
   # Protocol implementations
