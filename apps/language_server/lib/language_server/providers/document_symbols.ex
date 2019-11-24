@@ -59,6 +59,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     [extract_symbol("", ast)]
   end
 
+  defp extract_modules({:config, _, _} = ast) do
+    [extract_symbol("", ast)]
+  end
+
   defp extract_modules(_ast), do: []
 
   # Modules, protocols
@@ -151,7 +155,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
-  # Test
+  # ExUnit test
   defp extract_symbol(_current_module, {:test, location, [name | _]}) do
     %{
       type: :function,
@@ -161,6 +165,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
+  # ExUnit setup and setup_all callbacks
   defp extract_symbol(_current_module, {name, location, [_name | _]})
        when name in [:setup, :setup_all] do
     %{
@@ -171,7 +176,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
-  # Describe
+  # ExUnit describe
   defp extract_symbol(current_module, {:describe, location, [name | ast]}) do
     [[do: module_body]] = ast
 
@@ -191,6 +196,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       name: ~s(describe "#{name}"),
       location: location,
       children: module_symbols
+    }
+  end
+
+  # Config entry
+  defp extract_symbol(_current_module, {:config, location, [app, name | _]}) do
+    %{
+      type: :key,
+      name: "config :#{app} :#{name}",
+      location: location,
+      children: []
     }
   end
 

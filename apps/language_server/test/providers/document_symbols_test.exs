@@ -1162,4 +1162,35 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               }
             ]} = DocumentSymbols.symbols(uri, text)
   end
+
+  test "handles config" do
+    uri = "file://project/test.exs"
+
+    text = """
+    use Mix.Config
+    config :logger, :console,
+       level: :info,
+       format: "$date $time [$level] $metadata$message\n",
+       metadata: [:user_id]
+    config :app, :key, :value
+    """
+
+    assert {:ok,
+            [
+              %{
+                children: [],
+                kind: 20,
+                name: "config :logger :console",
+                range: %{end: %{character: 0, line: 1}, start: %{character: 0, line: 1}},
+                selectionRange: %{end: %{character: 0, line: 1}, start: %{character: 0, line: 1}}
+              },
+              %{
+                children: [],
+                kind: 20,
+                name: "config :app :key",
+                range: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}},
+                selectionRange: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
 end
