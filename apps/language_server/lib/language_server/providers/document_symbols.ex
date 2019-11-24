@@ -31,6 +31,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     type_parameter: 26
   }
 
+  @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
+
   def symbols(uri, text) do
     symbols = list_symbols(text) |> Enum.map(&build_symbol_information(uri, &1))
     {:ok, symbols}
@@ -85,28 +87,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %{type: :constant, name: "@#{name}", location: location, children: []}
   end
 
-  # Function
-  defp extract_symbol(_current_module, {:def, _, [{_, location, _} = fn_head | _]}) do
-    %{
-      type: :function,
-      name: Macro.to_string(fn_head),
-      location: location,
-      children: []
-    }
-  end
-
-  # Private Function
-  defp extract_symbol(_current_module, {:defp, _, [{_, location, _} = fn_head | _]}) do
-    %{
-      type: :function,
-      name: Macro.to_string(fn_head),
-      location: location,
-      children: []
-    }
-  end
-
-  # Macro
-  defp extract_symbol(_current_module, {:defmacro, _, [{_, location, _} = fn_head | _]}) do
+  # Function, macro, guard, delegate
+  defp extract_symbol(_current_module, {defname, _, [{_, location, _} = fn_head | _]})
+       when defname in @defs do
     %{
       type: :function,
       name: Macro.to_string(fn_head),

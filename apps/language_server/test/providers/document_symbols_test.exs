@@ -11,6 +11,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         defp my_private_fn(arg), do: :ok
         defmacro my_macro(), do: :ok
         defmacrop my_private_macro(), do: :ok
+        defguard my_guard(a) when is_integer(a)
+        defguardp my_private_guard(a) when is_integer(a)
+        defdelegate my_delegate(list), to: Enum, as: :reverse
       end
     ]
 
@@ -22,10 +25,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 14,
                     name: "@my_mod_var",
-                    range: %{
-                      end: %{character: 9, line: 2},
-                      start: %{character: 9, line: 2}
-                    },
+                    range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}},
                     selectionRange: %{
                       end: %{character: 9, line: 2},
                       start: %{character: 9, line: 2}
@@ -35,10 +35,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "my_fn(arg)",
-                    range: %{
-                      end: %{character: 12, line: 3},
-                      start: %{character: 12, line: 3}
-                    },
+                    range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}},
                     selectionRange: %{
                       end: %{character: 12, line: 3},
                       start: %{character: 12, line: 3}
@@ -48,10 +45,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "my_private_fn(arg)",
-                    range: %{
-                      end: %{character: 13, line: 4},
-                      start: %{character: 13, line: 4}
-                    },
+                    range: %{end: %{character: 13, line: 4}, start: %{character: 13, line: 4}},
                     selectionRange: %{
                       end: %{character: 13, line: 4},
                       start: %{character: 13, line: 4}
@@ -61,26 +55,57 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "my_macro()",
-                    range: %{
-                      end: %{character: 17, line: 5},
-                      start: %{character: 17, line: 5}
-                    },
+                    range: %{end: %{character: 17, line: 5}, start: %{character: 17, line: 5}},
                     selectionRange: %{
                       end: %{character: 17, line: 5},
                       start: %{character: 17, line: 5}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_private_macro()",
+                    range: %{end: %{character: 18, line: 6}, start: %{character: 18, line: 6}},
+                    selectionRange: %{
+                      end: %{character: 18, line: 6},
+                      start: %{character: 18, line: 6}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_guard(a) when is_integer(a)",
+                    range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}},
+                    selectionRange: %{
+                      end: %{character: 29, line: 7},
+                      start: %{character: 29, line: 7}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_private_guard(a) when is_integer(a)",
+                    range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}},
+                    selectionRange: %{
+                      end: %{character: 38, line: 8},
+                      start: %{character: 38, line: 8}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_delegate(list)",
+                    range: %{end: %{character: 20, line: 9}, start: %{character: 20, line: 9}},
+                    selectionRange: %{
+                      end: %{character: 20, line: 9},
+                      start: %{character: 20, line: 9}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
-                },
-                selectionRange: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
-                }
+                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
+                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
             ]} = DocumentSymbols.symbols(uri, text)
   end
