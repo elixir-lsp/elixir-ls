@@ -321,6 +321,37 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text)
   end
 
+  test "handles unquoted module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule unquote(var) do
+        def my_fn(), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_fn()",
+                    range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 12, line: 2},
+                      start: %{character: 12, line: 2}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "# unknown",
+                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
+                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
   test "handles erlang atom module definitions" do
     uri = "file://project/file.ex"
     text = ~S[

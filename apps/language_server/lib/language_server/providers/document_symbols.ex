@@ -206,4 +206,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       erlang_module -> erlang_module
     end
   end
+
+  defp extract_module_name(_), do: "# unknown"
 end
