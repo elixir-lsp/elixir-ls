@@ -74,12 +74,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule",
                 range: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 },
                 selectionRange: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text)
@@ -118,24 +118,24 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     kind: 2,
                     name: "SubModule",
                     range: %{
-                      end: %{character: 18, line: 2},
-                      start: %{character: 18, line: 2}
+                      end: %{character: 8, line: 2},
+                      start: %{character: 8, line: 2}
                     },
                     selectionRange: %{
-                      end: %{character: 18, line: 2},
-                      start: %{character: 18, line: 2}
+                      end: %{character: 8, line: 2},
+                      start: %{character: 8, line: 2}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
                 range: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 },
                 selectionRange: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text)
@@ -173,12 +173,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule",
                 range: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 },
                 selectionRange: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 }
               },
               %{
@@ -200,13 +200,75 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyOtherModule",
                 range: %{
-                  end: %{character: 16, line: 4},
-                  start: %{character: 16, line: 4}
+                  end: %{character: 6, line: 4},
+                  start: %{character: 6, line: 4}
                 },
                 selectionRange: %{
-                  end: %{character: 16, line: 4},
-                  start: %{character: 16, line: 4}
+                  end: %{character: 6, line: 4},
+                  start: %{character: 6, line: 4}
                 }
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
+  test "handles elixir atom module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule :'Elixir.MyModule' do
+        def my_fn(), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_fn()",
+                    range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 12, line: 2},
+                      start: %{character: 12, line: 2}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModule",
+                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
+                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+              }
+            ]} = DocumentSymbols.symbols(uri, text)
+  end
+
+  test "handles erlang atom module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule :my_module do
+        def my_fn(), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %{
+                children: [
+                  %{
+                    children: [],
+                    kind: 12,
+                    name: "my_fn()",
+                    range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
+                    selectionRange: %{
+                      end: %{character: 12, line: 2},
+                      start: %{character: 12, line: 2}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "my_module",
+                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
+                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
             ]} = DocumentSymbols.symbols(uri, text)
   end
@@ -241,12 +303,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModuleTest",
                 range: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 },
                 selectionRange: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text)
@@ -298,12 +360,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModuleTest",
                 range: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 },
                 selectionRange: %{
-                  end: %{character: 16, line: 1},
-                  start: %{character: 16, line: 1}
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text)

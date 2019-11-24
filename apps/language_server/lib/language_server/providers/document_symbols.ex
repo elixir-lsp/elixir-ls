@@ -54,7 +54,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   # Module Variable
   defp extract_symbol(_module_name, {:defmodule, _, _child_ast} = ast) do
-    {_, _, [{:__aliases__, location, module_name}, [do: module_body]]} = ast
+    {_, location, [module_expression, [do: module_body]]} = ast
 
     mod_defns =
       case module_body do
@@ -62,7 +62,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         stmt -> [stmt]
       end
 
-    module_name = Enum.join(module_name, ".")
+    module_name =
+      case module_expression do
+        {:__aliases__, _location, module_name} ->
+          Enum.join(module_name, ".")
+
+        module when is_atom(module) ->
+          case Atom.to_string(module) do
+            "Elixir." <> elixir_module_rest -> elixir_module_rest
+            erlang_module -> erlang_module
+          end
+      end
 
     module_symbols =
       mod_defns
