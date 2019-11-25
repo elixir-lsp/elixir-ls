@@ -103,7 +103,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Struct and exception
-  defp extract_symbol(_module_name, {defname, location, _properties})
+  defp extract_symbol(_module_name, {defname, location, [properties | _]})
        when defname in [:defstruct, :defexception] do
     name =
       case defname do
@@ -111,7 +111,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         :defexception -> "exception"
       end
 
-    %{type: :struct, name: name, location: location, children: []}
+    children =
+      if is_list(properties) do
+        properties
+        |> Enum.map(&extract_property(&1, location))
+        |> Enum.reject(&is_nil/1)
+      else
+        []
+      end
+
+    %{type: :struct, name: name, location: location, children: children}
   end
 
   # Docs
@@ -264,4 +273,18 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp extract_module_name(_), do: "# unknown"
+
+  defp extract_property(property_name, location) when is_atom(property_name) do
+    %{
+      type: :property,
+      name: "#{property_name}",
+      location: location,
+      children: []
+    }
+  end
+
+  defp extract_property({property_name, _default}, location),
+    do: extract_property(property_name, location)
+
+  defp extract_property(_, _), do: nil
 end

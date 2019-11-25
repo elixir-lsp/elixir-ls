@@ -509,7 +509,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     text = """
     defmodule MyModule do
-      defstruct [:prop]
+      defstruct [:prop, prop_with_def: nil]
     end
     """
 
@@ -518,7 +518,28 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %{
                 children: [
                   %{
-                    children: [],
+                    children: [
+                      %{
+                        children: [],
+                        kind: 7,
+                        name: "prop",
+                        range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                        selectionRange: %{
+                          end: %{character: 2, line: 1},
+                          start: %{character: 2, line: 1}
+                        }
+                      },
+                      %{
+                        children: [],
+                        kind: 7,
+                        name: "prop_with_def",
+                        range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                        selectionRange: %{
+                          end: %{character: 2, line: 1},
+                          start: %{character: 2, line: 1}
+                        }
+                      }
+                    ],
                     kind: 23,
                     name: "struct",
                     range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
@@ -550,7 +571,18 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %{
                 children: [
                   %{
-                    children: [],
+                    children: [
+                      %{
+                        children: [],
+                        kind: 7,
+                        name: "message",
+                        range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                        selectionRange: %{
+                          end: %{character: 2, line: 1},
+                          start: %{character: 2, line: 1}
+                        }
+                      }
+                    ],
                     kind: 23,
                     name: "exception",
                     range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
