@@ -260,8 +260,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_module_name(list) when is_list(list) do
     list_stringified =
       list
-      |> Enum.map(&extract_module_name/1)
-      |> Enum.join(", ")
+      |> Enum.map_join(", ", &extract_module_name/1)
 
     "[" <> list_stringified <> "]"
   end
