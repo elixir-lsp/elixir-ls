@@ -1205,6 +1205,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
        format: "$date $time [$level] $metadata$message\n",
        metadata: [:user_id]
     config :app, :key, :value
+    config :my_app,
+      ecto_repos: [MyApp.Repo]
     """
 
     assert {:ok,
@@ -1222,6 +1224,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "config :app :key",
                 range: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}},
                 selectionRange: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}}
+              },
+              %{
+                children: [],
+                kind: 20,
+                name: "config :my_app :ecto_repos",
+                range: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}},
+                selectionRange: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}}
               }
             ]} = DocumentSymbols.symbols(uri, text)
   end

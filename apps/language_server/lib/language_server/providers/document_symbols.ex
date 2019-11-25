@@ -209,13 +209,33 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Config entry
-  defp extract_symbol(_current_module, {:config, location, [app, name | _]}) do
-    %{
-      type: :key,
-      name: "config :#{app} :#{name}",
-      location: location,
-      children: []
-    }
+  defp extract_symbol(_current_module, {:config, location, [app, config_entry | _]})
+       when is_atom(app) do
+    keys =
+      case config_entry do
+        list when is_list(list) ->
+          list
+          |> Enum.map(fn
+            {key, _} when is_atom(key) -> key
+            _ -> nil
+          end)
+          |> Enum.reject(&is_nil/1)
+
+        key when is_atom(key) ->
+          [key]
+
+        _ ->
+          []
+      end
+
+    for key <- keys do
+      %{
+        type: :key,
+        name: "config :#{app} :#{key}",
+        location: location,
+        children: []
+      }
+    end
   end
 
   defp extract_symbol(_, _), do: nil
