@@ -215,23 +215,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       case config_entry do
         list when is_list(list) ->
           list
-          |> Enum.map(fn
-            {key, _} when is_atom(key) -> key
-            _ -> nil
-          end)
-          |> Enum.reject(&is_nil/1)
+          |> Enum.map(fn {key, _} -> Macro.to_string(key) end)
 
-        key when is_atom(key) ->
-          [key]
-
-        _ ->
-          []
+        key ->
+          [Macro.to_string(key)]
       end
 
     for key <- keys do
       %{
         type: :key,
-        name: "config :#{app} :#{key}",
+        name: "config :#{app} #{key}",
         location: location,
         children: []
       }

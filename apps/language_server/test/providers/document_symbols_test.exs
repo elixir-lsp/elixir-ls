@@ -1207,6 +1207,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     config :app, :key, :value
     config :my_app,
       ecto_repos: [MyApp.Repo]
+    config :my_app, MyApp.Repo,
+      migration_timestamps: [type: :naive_datetime_usec],
+      username: "postgres"
     """
 
     assert {:ok,
@@ -1231,6 +1234,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "config :my_app :ecto_repos",
                 range: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}},
                 selectionRange: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}}
+              },
+              %{
+                children: [],
+                kind: 20,
+                name: "config :my_app MyApp.Repo",
+                range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}},
+                selectionRange: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
               }
             ]} = DocumentSymbols.symbols(uri, text)
   end
