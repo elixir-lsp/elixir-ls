@@ -1,6 +1,7 @@
 ### Unreleased
 
 - Update dialyxir to 1.0.0-rc.7
+- Improvements to `textDocument/documentSymbol`, now `DocumentSymbol` is returned instead of the more simplistic `SymbolInformation` (thanks to [Łukasz Samson](https://github.com/lukaszsamson) and [kent-medin](https://github.com/kent-medin)) [#76](https://github.com/elixir-lsp/elixir-ls/pull/76)
 
 ### v0.2.28: 16 Nov 2019
 

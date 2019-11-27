@@ -1,7 +1,10 @@
 defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   @moduledoc """
-  Document Symbols provider
+  Document Symbols provider. Generates and returns the nested `DocumentSymbol` format.
+
+  https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#textDocument_documentSymbol
   """
+
   @symbol_enum %{
     file: 1,
     module: 2,
