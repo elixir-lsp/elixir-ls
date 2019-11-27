@@ -1,7 +1,7 @@
 language: elixir
 script:
   - MIX_ENV=test mix compile --force --warnings-as-errors
-  - if [ "$CHECK_FORMATTED" = "true" ]; then
+  - if [ $CHECK_FORMATTED -eq true ]; then
       mix format --check-formatted
     else
       echo "Not checking formatting"
