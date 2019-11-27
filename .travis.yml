@@ -1,7 +1,13 @@
 language: elixir
 script:
   - MIX_ENV=test mix compile --force --warnings-as-errors
-  - mix format --check-formatted
+  - |
+    if [[ "$CHECK_FORMATTED" -eq 1 ]]
+    then
+      mix format --check-formatted
+    else
+      echo "Not checking formatting"
+    fi
   - mix test
 env:
   global:
@@ -19,3 +25,4 @@ matrix:
       elixir: 1.8.1
     - otp_release: 22.0
       elixir: 1.9.1
+      env: CHECK_FORMATTED=1
