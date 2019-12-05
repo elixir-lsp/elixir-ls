@@ -58,7 +58,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
   test "provides completions for protocol functions" do
     text = """
-    defimpl Enumerable, for: MyModule do
+    defimpl ElixirLS.LanguageServer.Fixtures.ExampleProtocol, for: MyModule do
 
     #^
     end
@@ -70,15 +70,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     completions =
       items
-      |> Enum.filter(&(&1["detail"] == "Enumerable protocol function"))
+      |> Enum.filter(&(&1["detail"] =~ "protocol function"))
       |> Enum.map(& &1["label"])
-      |> Enum.sort()
 
     assert completions == [
-             "def count(enumerable)",
-             "def member?(enumerable,element)",
-             "def reduce(enumerable,acc,fun)",
-             "def slice(enumerable)"
+             "def my_fun(example,arg)"
            ]
   end
 end
