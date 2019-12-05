@@ -151,6 +151,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
+  # @behaviour BehaviourModule
+  defp extract_symbol(_current_module, {:@, _, [{:behaviour, location, [behaviour_expression]}]}) do
+    module_name = extract_module_name(behaviour_expression)
+
+    %{type: :constant, name: "@behaviour #{module_name}", location: location, children: []}
+  end
+
   # @impl true
   defp extract_symbol(_current_module, {:@, _, [{:impl, location, [true]}]}) do
     %{type: :constant, name: "@impl true", location: location, children: []}

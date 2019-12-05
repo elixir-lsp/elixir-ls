@@ -883,7 +883,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %{
                     children: [],
                     kind: 14,
-                    name: "@behaviour",
+                    name: "@behaviour MyBehaviour",
                     range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
                     selectionRange: %{
                       end: %{character: 3, line: 2},
