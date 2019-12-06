@@ -10,6 +10,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       config_path: "config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
+      elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
@@ -31,4 +32,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:dialyxir, "~> 1.0.0-rc.6", runtime: false}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end

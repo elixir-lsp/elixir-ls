@@ -285,6 +285,34 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
+  defp from_completion_item(
+         %{
+           type: :protocol_function,
+           args: args,
+           spec: _spec,
+           name: name,
+           summary: summary,
+           arity: arity,
+           origin: origin
+         },
+         context
+       ) do
+    def_str = if(context[:def_before] == nil, do: "def ")
+
+    full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n\t$0\nend"
+    label = "#{def_str}#{function_label(name, args, arity)}"
+
+    %__MODULE__{
+      label: label,
+      kind: :interface,
+      detail: "#{origin} protocol function",
+      documentation: summary,
+      insert_text: full_snippet,
+      priority: 2,
+      filter_text: name
+    }
+  end
+
   defp from_completion_item(%{type: :field, name: name, origin: origin}, _context) do
     %__MODULE__{
       label: to_string(name),

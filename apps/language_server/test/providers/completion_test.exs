@@ -55,4 +55,26 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
     end
   end
+
+  test "provides completions for protocol functions" do
+    text = """
+    defimpl ElixirLS.LanguageServer.Fixtures.ExampleProtocol, for: MyModule do
+
+    #^
+    end
+    """
+
+    {line, char} = {1, 1}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+
+    completions =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "protocol function"))
+      |> Enum.map(& &1["label"])
+
+    assert completions == [
+             "def my_fun(example,arg)"
+           ]
+  end
 end
