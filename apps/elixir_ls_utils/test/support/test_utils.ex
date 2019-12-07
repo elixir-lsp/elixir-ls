@@ -10,4 +10,8 @@ defmodule ElixirLS.Utils.TestUtils do
 
     assert char == "^"
   end
+
+  def assert_match_list(list1, list2) do
+    assert Enum.sort(list1) == Enum.sort(list2)
+  end
 end
