@@ -1,7 +1,10 @@
 defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   @moduledoc """
-  Document Symbols provider
+  Document Symbols provider. Generates and returns the nested `DocumentSymbol` format.
+
+  https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#textDocument_documentSymbol
   """
+
   @symbol_enum %{
     file: 1,
     module: 2,
@@ -146,6 +149,25 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       location: location,
       children: []
     }
+  end
+
+  # @behaviour BehaviourModule
+  defp extract_symbol(_current_module, {:@, _, [{:behaviour, location, [behaviour_expression]}]}) do
+    module_name = extract_module_name(behaviour_expression)
+
+    %{type: :constant, name: "@behaviour #{module_name}", location: location, children: []}
+  end
+
+  # @impl true
+  defp extract_symbol(_current_module, {:@, _, [{:impl, location, [true]}]}) do
+    %{type: :constant, name: "@impl true", location: location, children: []}
+  end
+
+  # @impl BehaviourModule
+  defp extract_symbol(_current_module, {:@, _, [{:impl, location, [impl_expression]}]}) do
+    module_name = extract_module_name(impl_expression)
+
+    %{type: :constant, name: "@impl #{module_name}", location: location, children: []}
   end
 
   # Other attributes

@@ -862,6 +862,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @after_compile __MODULE__
       @before_compile __MODULE__
       @fallback_to_any true
+      @impl MyBehaviour
     end
     """
 
@@ -882,7 +883,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %{
                     children: [],
                     kind: 14,
-                    name: "@behaviour",
+                    name: "@behaviour MyBehaviour",
                     range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
                     selectionRange: %{
                       end: %{character: 3, line: 2},
@@ -892,7 +893,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %{
                     children: [],
                     kind: 14,
-                    name: "@impl",
+                    name: "@impl true",
                     range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}},
                     selectionRange: %{
                       end: %{character: 3, line: 3},
@@ -1027,6 +1028,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     selectionRange: %{
                       end: %{character: 3, line: 16},
                       start: %{character: 3, line: 16}
+                    }
+                  },
+                  %{
+                    children: [],
+                    kind: 14,
+                    name: "@impl MyBehaviour",
+                    range: %{end: %{character: 3, line: 17}, start: %{character: 3, line: 17}},
+                    selectionRange: %{
+                      end: %{character: 3, line: 17},
+                      start: %{character: 3, line: 17}
                     }
                   }
                 ],
