@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Launches the debugger. This script must be in the same directory as the compiled .ez archives.
 
+[ -f "$HOME/.asdf/asdf.sh" ] && . "$HOME/.asdf/asdf.sh"
+
 readlink_f () {
   cd "$(dirname "$1")" > /dev/null
   filename="$(basename "$1")"
