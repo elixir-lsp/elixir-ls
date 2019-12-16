@@ -529,6 +529,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       origin: origin
     } = info
 
+    # ElixirSense now returns types as an atom
+    type = to_string(type)
+
     %{
       pipe_before?: pipe_before?,
       capture_before?: capture_before?,
