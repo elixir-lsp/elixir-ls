@@ -1,18 +1,27 @@
 defmodule ElixirLS.LanguageServer.Providers.References do
   @moduledoc """
-  This module provides References support by using
-  the `Mix.Tasks.Xref.call/0` task to find all references to
-  any function or module identified at the provided location.
+  This module provides References support by using `ElixirSense.references/3` to
+  find all references to any function or module identified at the provided
+  location.
+
+  Does not support configuring "includeDeclaration" and assumes it is always
+  `true`
+
+  https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#textDocument_references
   """
   require Logger
 
   alias ElixirLS.LanguageServer.{SourceFile, Build}
 
-  def references(text, line, character, _include_declaration) do
+  def references(text, uri, line, character, _include_declaration) do
     Build.with_build_lock(fn ->
-      xref_at_cursor(text, line, character)
-      |> Enum.filter(fn %{line: line} -> is_integer(line) end)
-      |> Enum.map(&build_location/1)
+      ElixirSense.references(text, line + 1, character + 1)
+      |> Enum.map(fn elixir_sense_reference ->
+        elixir_sense_reference
+        |> build_reference(uri)
+        |> build_loc()
+      end)
+      |> Enum.filter(&has_uri?/1)
     end)
   end
 
@@ -20,77 +29,42 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     Mix.Tasks.Xref.__info__(:functions) |> Enum.member?({:calls, 0})
   end
 
-  defp xref_at_cursor(text, line, character) do
-    env_at_cursor = line_environment(text, line)
-    %{aliases: aliases} = env_at_cursor
-
-    subject_at_cursor(text, line, character)
-    # TODO: Don't call into here directly
-    |> ElixirSense.Core.Source.split_module_and_func(aliases)
-    |> expand_mod_fun(env_at_cursor)
-    |> add_arity(env_at_cursor)
-    |> callers()
-  end
-
-  defp line_environment(text, line) do
-    # TODO: Don't call into here directly
-    ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
-    |> ElixirSense.Core.Metadata.get_env(line + 1)
-  end
-
-  defp subject_at_cursor(text, line, character) do
-    # TODO: Don't call into here directly
-    ElixirSense.Core.Source.subject(text, line + 1, character + 1)
-  end
-
-  defp expand_mod_fun({nil, nil}, _environment), do: nil
-
-  defp expand_mod_fun(mod_fun, %{imports: imports, aliases: aliases, module: module}) do
-    # TODO: Don't call into here directly
-    mod_fun = ElixirSense.Core.Introspection.actual_mod_fun(mod_fun, imports, aliases, module)
-
-    case mod_fun do
-      {mod, nil} -> {mod, nil}
-      {mod, fun} -> {mod, fun}
-    end
-  end
-
-  defp add_arity({mod, fun}, %{scope: {fun, arity}, module: mod}), do: {mod, fun, arity}
-  defp add_arity({mod, fun}, _env), do: {mod, fun, nil}
-
-  defp callers(mfa) do
-    if Mix.Project.umbrella?() do
-      umbrella_calls()
-    else
-      Mix.Tasks.Xref.calls()
-    end
-    |> Enum.filter(caller_filter(mfa))
-  end
-
-  def umbrella_calls() do
-    build_dir = Path.expand(Mix.Project.config()[:build_path])
-
-    Mix.Project.apps_paths()
-    |> Enum.flat_map(fn {app, path} ->
-      Mix.Project.in_project(app, path, [build_path: build_dir], fn _ ->
-        Mix.Tasks.Xref.calls()
-        |> Enum.map(fn %{file: file} = call ->
-          Map.put(call, :file, Path.expand(file))
-        end)
-      end)
-    end)
-  end
-
-  defp caller_filter({module, nil, nil}), do: &match?(%{callee: {^module, _, _}}, &1)
-  defp caller_filter({module, func, nil}), do: &match?(%{callee: {^module, ^func, _}}, &1)
-  defp caller_filter({module, func, arity}), do: &match?(%{callee: {^module, ^func, ^arity}}, &1)
-
-  defp build_location(%{file: file, line: line}) do
+  defp build_reference(ref, current_file_uri) do
     %{
-      "uri" => SourceFile.path_to_uri(file),
+      range: %{
+        start: %{line: ref.range.start.line, column: ref.range.start.column},
+        end: %{line: ref.range.end.line, column: ref.range.end.column}
+      },
+      uri: build_uri(ref, current_file_uri)
+    }
+  end
+
+  def build_uri(elixir_sense_ref, current_file_uri) do
+    case elixir_sense_ref.uri do
+      # A `nil` uri indicates that the reference was in the passed in text
+      # https://github.com/elixir-lsp/elixir-ls/pull/82#discussion_r351922803
+      nil -> current_file_uri
+      # ElixirSense returns a plain path (e.g. "/home/bob/my_app/lib/a.ex") as
+      # the "uri" so we convert it to an actual uri
+      path when is_binary(path) -> SourceFile.path_to_uri(path)
+      _ -> nil
+    end
+  end
+
+  defp has_uri?(reference), do: !is_nil(reference["uri"])
+
+  defp build_loc(reference) do
+    # Adjust for ElixirSense 1-based indexing
+    line_start = reference.range.start.line - 1
+    line_end = reference.range.end.line - 1
+    column_start = reference.range.start.column - 1
+    column_end = reference.range.end.column - 1
+
+    %{
+      "uri" => reference.uri,
       "range" => %{
-        "start" => %{"line" => line - 1, "character" => 0},
-        "end" => %{"line" => line - 1, "character" => 0}
+        "start" => %{"line" => line_start, "character" => column_start},
+        "end" => %{"line" => line_end, "character" => column_end}
       }
     }
   end

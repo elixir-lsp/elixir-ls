@@ -354,6 +354,7 @@ defmodule ElixirLS.LanguageServer.Server do
       {:ok,
        References.references(
          state.source_files[uri].text,
+         uri,
          line,
          character,
          include_declaration
