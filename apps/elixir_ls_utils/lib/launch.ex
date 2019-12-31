@@ -12,6 +12,11 @@ defmodule ElixirLS.Utils.Launch do
     IO.inspect(System.otp_release(), label: "Erlang version")
   end
 
+  def language_server_version do
+    {:ok, vsn} = :application.get_key(:language_server, :vsn)
+    vsn
+  end
+
   defp load_dot_config do
     path = Path.join(Mix.Utils.mix_home(), "config.exs")
 
