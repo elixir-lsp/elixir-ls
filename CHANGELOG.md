@@ -7,6 +7,8 @@
 - Upgrade ElixirSense (thanks to [Jason Axelson](https://github.com/axelson)) [#82](https://github.com/elixir-lsp/elixir-ls/pull/82)
 - Update startup message (thanks to [Ahmed Hamdy](https://github.com/shakram02)) [#85](https://github.com/elixir-lsp/elixir-ls/pull/85)
 - Add didSave to server capabilities (thanks to [Jonáš Trantina](https://github.com/Coffei)) [#86](https://github.com/elixir-lsp/elixir-ls/pull/86)
+- Bump ElixirSense
+  - Main changes: return results by arity, return all type signatures, typespec and dialyzer fixes
 
 ### v0.2.28: 16 Nov 2019
 
