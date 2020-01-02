@@ -40,6 +40,7 @@ You may want to install Elixir and Erlang from source, using the [kiex](https://
 | VS Code  | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                 |
 | Atom IDE | [JakeBecker/ide-elixir](https://github.com/JakeBecker/ide-elixir)             | Does not support debugger or @spec suggestions |
 | Vim      | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions |
+| Neovim   | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger                      |
 | Emacs    | [lsp-mode](https://github.com/emacs-lsp/lsp-mode) |      Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
 | Emacs    | [eglot](https://github.com/joaotavora/eglot)                                  |                                                |
 
