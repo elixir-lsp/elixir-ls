@@ -126,7 +126,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     for %{name: module, file: file} <- stack do
       :code.purge(module)
       :code.delete(module)
-      Code.load_file(file)
+      Code.require_file(file)
     end
   end
 end

@@ -435,7 +435,7 @@ defmodule ElixirLS.Debugger.Server do
     mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
 
     unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
-      Code.load_file(System.get_env("MIX_EXS") || "mix.exs")
+      Code.require_file(System.get_env("MIX_EXS") || "mix.exs")
     end
 
     task = task || Mix.Project.config()[:default_task]
@@ -546,7 +546,7 @@ defmodule ElixirLS.Debugger.Server do
       %{name: name, file: file} = project
       :code.purge(name)
       :code.delete(name)
-      Code.load_file(file)
+      Code.require_file(file)
     end
   end
 
