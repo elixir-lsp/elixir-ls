@@ -92,6 +92,10 @@ Basic troubleshooting steps:
 
 If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles code with `MIX_ENV=test` (by default). So if you are missing some configuration in the test environment, your code may not compile.
 
+## Known Issues
+
+* `.exs` files don't return compilation errors
+
 ## Building and running
 
 Run `mix compile`, then `mix elixir_ls.release -o <release_dir>`. This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
