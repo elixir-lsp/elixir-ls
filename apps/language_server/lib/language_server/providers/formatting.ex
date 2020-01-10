@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   def format(source_file, uri, project_dir) do
     if can_format?(uri, project_dir) do
       file = SourceFile.path_from_uri(uri) |> Path.relative_to(project_dir)
-      opts = formatter_opts(file, project_dir)
+      opts = formatter_opts(file)
       formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
       response =
@@ -38,7 +38,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       String.starts_with?(Path.absname(file_path), cwd)
   end
 
-  defp formatter_opts(for_file, project_dir) do
+  defp formatter_opts(for_file) do
     Mix.Tasks.Format.formatter_opts_for_file(for_file)
   end
 
