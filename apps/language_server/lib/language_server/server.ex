@@ -110,11 +110,6 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, handle_build_result(status, diagnostics, state)}
   end
 
-  # Pre Elixir 1.6, we can't get diagnostics from builds
-  def handle_cast({:build_finished, _}, state) do
-    {:noreply, handle_build_result(:ok, [], state)}
-  end
-
   def handle_cast({:dialyzer_finished, diagnostics, build_ref}, state) do
     {:noreply, handle_dialyzer_result(diagnostics, build_ref, state)}
   end

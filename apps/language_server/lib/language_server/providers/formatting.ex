@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   def format(source_file, uri, project_dir) do
     if can_format?(uri, project_dir) do
       file = SourceFile.path_from_uri(uri) |> Path.relative_to(project_dir)
-      opts = formatter_opts(file, project_dir)
+      opts = formatter_opts(file)
       formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
       response =
@@ -34,38 +34,12 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     file_path = file_uri |> SourceFile.path_from_uri() |> String.downcase()
     cwd = File.cwd!() |> String.downcase()
 
-    is_nil(project_dir) or not String.starts_with?(file_path, project_dir) or
+    not String.starts_with?(file_path, project_dir) or
       String.starts_with?(Path.absname(file_path), cwd)
   end
 
-  defp formatter_opts(for_file, project_dir) do
-    # Elixir 1.6.5+ has a function that returns formatter options, so we use that if available
-    if Code.ensure_loaded?(Mix.Tasks.Format) and
-         function_exported?(Mix.Tasks.Format, :formatter_opts_for_file, 1) do
-      Mix.Tasks.Format.formatter_opts_for_file(for_file)
-    else
-      read_formatter_exs(project_dir)
-    end
-  end
-
-  # TODO: Deprecate once Elixir 1.7 released
-  defp read_formatter_exs(project_dir) do
-    dot_formatter = Path.join(project_dir, ".formatter.exs")
-
-    if File.regular?(dot_formatter) do
-      {formatter_opts, _} = Code.eval_file(dot_formatter)
-
-      unless Keyword.keyword?(formatter_opts) do
-        Mix.raise(
-          "Expected #{inspect(dot_formatter)} to return a keyword list, " <>
-            "got: #{inspect(formatter_opts)}"
-        )
-      end
-
-      formatter_opts
-    else
-      []
-    end
+  defp formatter_opts(for_file) do
+    Mix.Tasks.Format.formatter_opts_for_file(for_file)
   end
 
   defp myers_diff_to_text_edits(myers_diff, starting_pos \\ {0, 0}) do

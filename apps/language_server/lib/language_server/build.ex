@@ -79,13 +79,7 @@ defmodule ElixirLS.LanguageServer.Build do
     msg =
       case error do
         {:shutdown, 1} ->
-          msg = "Build failed for unknown reason. See output log."
-
-          if Version.match?(System.version(), ">= 1.6.0-dev") do
-            msg
-          else
-            msg <> " Upgrade to Elixir 1.6 to see build errors and warnings."
-          end
+          "Build failed for unknown reason. See output log."
 
         _ ->
           Exception.format_exit(error)
@@ -124,23 +118,18 @@ defmodule ElixirLS.LanguageServer.Build do
       # Override build directory to avoid interfering with other dev tools
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
-      # If using Elixir 1.6 or higher, we can get diagnostics if Mixfile fails to load
+      # We can get diagnostics if Mixfile fails to load
       {status, diagnostics} =
-        if Version.match?(System.version(), ">= 1.6.0-dev") do
-          case Kernel.ParallelCompiler.compile([mixfile]) do
-            {:ok, _, warnings} ->
-              {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
+        case Kernel.ParallelCompiler.compile([mixfile]) do
+          {:ok, _, warnings} ->
+            {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
 
-            {:error, errors, warnings} ->
-              {
-                :error,
-                Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
-                  Enum.map(errors, &mixfile_diagnostic(&1, :error))
-              }
-          end
-        else
-          Code.load_file(mixfile)
-          {:ok, []}
+          {:error, errors, warnings} ->
+            {
+              :error,
+              Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
+                Enum.map(errors, &mixfile_diagnostic(&1, :error))
+            }
         end
 
       if status == :ok do
