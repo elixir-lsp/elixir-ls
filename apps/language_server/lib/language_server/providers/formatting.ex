@@ -34,7 +34,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     file_path = file_uri |> SourceFile.path_from_uri() |> String.downcase()
     cwd = File.cwd!() |> String.downcase()
 
-    is_nil(project_dir) or not String.starts_with?(file_path, project_dir) or
+    not String.starts_with?(file_path, project_dir) or
       String.starts_with?(Path.absname(file_path), cwd)
   end
 
