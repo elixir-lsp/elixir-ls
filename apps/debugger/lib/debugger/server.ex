@@ -434,6 +434,7 @@ defmodule ElixirLS.Debugger.Server do
     # Mixfile may already be loaded depending on cwd when launching debugger task
     mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
 
+    # FIXME: Private API
     unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
       Code.require_file(System.get_env("MIX_EXS") || "mix.exs")
     end
@@ -542,6 +543,7 @@ defmodule ElixirLS.Debugger.Server do
   defp change_env(env) do
     Mix.env(env)
 
+    # FIXME: Private API
     if project = Mix.Project.pop() do
       %{name: name, file: file} = project
       :code.purge(name)

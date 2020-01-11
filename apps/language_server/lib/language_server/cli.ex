@@ -11,6 +11,7 @@ defmodule ElixirLS.LanguageServer.CLI do
     Launch.print_versions()
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
+    # FIXME: Private API
     Mix.Hex.ensure_updated?()
 
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)

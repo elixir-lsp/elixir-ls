@@ -220,6 +220,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   defp update_stale(md5, removed_files, file_changes, timestamp) do
     prev_paths = MapSet.new(Map.keys(md5))
 
+    # FIXME: Private API
     all_paths =
       Mix.Utils.extract_files([Mix.Project.build_path()], [:beam])
       |> Enum.map(&Path.relative_to_cwd(&1))
@@ -235,6 +236,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       |> MapSet.difference(prev_paths)
       |> MapSet.to_list()
 
+    # FIXME: Private API
     changed = Enum.uniq(new_paths ++ Mix.Utils.extract_stale(all_paths, [timestamp]))
 
     changed_contents =
