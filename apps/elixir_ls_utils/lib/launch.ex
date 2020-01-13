@@ -1,7 +1,10 @@
 defmodule ElixirLS.Utils.Launch do
   def start_mix do
+    # FIXME: Private API
     Mix.start()
+    # FIXME: Private API
     Mix.Local.append_archives()
+    # FIXME: Private API
     Mix.Local.append_paths()
     load_dot_config()
     :ok

@@ -61,6 +61,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
   def read(root_path) do
     manifest_path = manifest_path(root_path)
+    # FIXME: Private API
     timestamp = normalize_timestamp(Mix.Utils.last_modified(manifest_path))
 
     {
@@ -103,6 +104,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def elixir_plt_path() do
+    # FIXME: Private API
     Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
   end
 

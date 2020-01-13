@@ -14,10 +14,12 @@ defmodule ElixirLS.LanguageServer.Build do
               IO.puts("Compiling with Mix env #{Mix.env()}")
 
               prev_deps = cached_deps()
+              # FIXME: Private API
               Mix.Dep.clear_cached()
 
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
+                  # FIXME: Private API
                   if fetch_deps? and Mix.Dep.load_on_environment([]) != prev_deps,
                     do: fetch_deps()
 
@@ -103,8 +105,10 @@ defmodule ElixirLS.LanguageServer.Build do
     mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
 
     if File.exists?(mixfile) do
+      # FIXME: Private API
       case Mix.ProjectStack.peek() do
         %{file: ^mixfile, name: module} ->
+          # FIXME: Private API
           Mix.Project.pop()
           :code.purge(module)
           :code.delete(module)
@@ -116,6 +120,7 @@ defmodule ElixirLS.LanguageServer.Build do
       Mix.Task.clear()
 
       # Override build directory to avoid interfering with other dev tools
+      # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
       # We can get diagnostics if Mixfile fails to load
@@ -136,6 +141,7 @@ defmodule ElixirLS.LanguageServer.Build do
         # The project may override our logger config, so we reset it after loading their config
         logger_config = Application.get_all_env(:logger)
         Mix.Task.run("loadconfig")
+        # NOTE: soft-deprecated in v1.10
         Mix.Config.persist(logger: logger_config)
       end
 
@@ -164,6 +170,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
   defp cached_deps do
     try do
+      # FIXME: Private API
       Mix.Dep.cached()
     rescue
       _ ->
@@ -172,6 +179,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp fetch_deps do
+    # FIXME: Private API and struct
     missing_deps =
       Mix.Dep.load_on_environment([])
       |> Enum.filter(fn %Mix.Dep{status: status} ->
@@ -181,6 +189,7 @@ defmodule ElixirLS.LanguageServer.Build do
           _ -> false
         end
       end)
+      # FIXME: Private struct
       |> Enum.map(fn %Mix.Dep{app: app, requirement: requirement} -> "#{app} #{requirement}" end)
 
     if missing_deps != [] do
