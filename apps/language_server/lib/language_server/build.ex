@@ -53,8 +53,14 @@ defmodule ElixirLS.LanguageServer.Build do
             :hint -> 4
           end
 
+        message =
+          case diagnostic.message do
+            m when is_binary(m) -> m
+            m when is_list(m) -> m |> Enum.join("\n")
+          end
+
         %{
-          "message" => diagnostic.message,
+          "message" => message,
           "severity" => severity,
           "range" => range(diagnostic.position, source_file),
           "source" => diagnostic.compiler_name
