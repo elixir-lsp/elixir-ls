@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
           }
 
         :none ->
-          %{"signatures" => []}
+          nil
       end
 
     {:ok, response}
