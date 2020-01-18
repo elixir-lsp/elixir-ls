@@ -16,14 +16,17 @@ defmodule ElixirLS.Utils.PacketCapture do
 
   ## Server Callbacks
 
+  @impl GenServer
   def init(parent) do
     {:ok, parent}
   end
 
+  @impl GenServer
   def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, chars}}, parent) do
     handle_output(to_string(chars), from, reply_as, parent)
   end
 
+  @impl GenServer
   def handle_info(
         {:io_request, from, reply_as, {:put_chars, _encoding, module, fun, args}},
         parent

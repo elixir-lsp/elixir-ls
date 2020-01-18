@@ -123,6 +123,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   ## Server callbacks
 
+  @impl GenServer
   def init(opts) do
     state =
       if language_server = opts[:language_server] do
@@ -134,16 +135,19 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     {:ok, state}
   end
 
+  @impl GenServer
   def handle_call({:packet, notification(_) = packet}, _from, state) do
     ElixirLS.LanguageServer.Server.receive_packet(packet)
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_call({:packet, request(_, _, _) = packet}, _from, state) do
     ElixirLS.LanguageServer.Server.receive_packet(packet)
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_call({:packet, response(id, result)}, _from, state) do
     %{^id => from} = state.outgoing_requests
     GenServer.reply(from, {:ok, result})
@@ -151,6 +155,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_call({:packet, error_response(id, code, message)}, _from, state) do
     %{^id => from} = state.outgoing_requests
     GenServer.reply(from, {:error, code, message})
@@ -158,6 +163,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_call({:request, method, params}, from, state) do
     send(request(state.next_id, method, params))
     state = update_in(state.outgoing_requests, &Map.put(&1, state.next_id, from))

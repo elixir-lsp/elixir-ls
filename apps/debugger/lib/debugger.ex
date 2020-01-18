@@ -5,8 +5,7 @@ defmodule ElixirLS.Debugger do
 
   use Application
 
-  # See http://elixir-lang.org/docs/stable/elixir/Application.html
-  # for more information on OTP Applications
+  @impl Application
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
@@ -15,16 +14,14 @@ defmodule ElixirLS.Debugger do
     ElixirLS.Debugger.Output.start(ElixirLS.Debugger.Output)
 
     children = [
-      # Define workers and child supervisors to be supervised
       worker(ElixirLS.Debugger.Server, [[name: ElixirLS.Debugger.Server]])
     ]
 
-    # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ElixirLS.Debugger.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)
   end
 
+  @impl Application
   def stop(_state) do
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
       IO.puts(:standard_error, "ElixirLS debugger has crashed")

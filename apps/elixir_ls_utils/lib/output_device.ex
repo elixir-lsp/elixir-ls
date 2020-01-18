@@ -20,30 +20,36 @@ defmodule ElixirLS.Utils.OutputDevice do
 
   ## Server callbacks
 
+  @impl GenServer
   def init({device, output_fn}) do
     {:ok, {device, output_fn}}
   end
 
+  @impl GenServer
   def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, characters}}, s) do
     output(from, reply_as, characters, s)
     {:noreply, s}
   end
 
+  @impl GenServer
   def handle_info({:io_request, from, reply_as, {:put_chars, characters}}, s) do
     output(from, reply_as, characters, s)
     {:noreply, s}
   end
 
+  @impl GenServer
   def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, module, func, args}}, s) do
     output(from, reply_as, apply(module, func, args), s)
     {:noreply, s}
   end
 
+  @impl GenServer
   def handle_info({:io_request, from, reply_as, {:put_chars, module, func, args}}, s) do
     output(from, reply_as, apply(module, func, args), s)
     {:noreply, s}
   end
 
+  @impl GenServer
   def handle_info({:io_request, from, reply_as, {:requests, reqs}}, s) do
     for req <- reqs do
       handle_info({:io_request, from, reply_as, req}, s)
@@ -53,6 +59,7 @@ defmodule ElixirLS.Utils.OutputDevice do
   end
 
   # Any other message (get_geometry, set_opts, etc.) goes directly to original device
+  @impl GenServer
   def handle_info(msg, {device, _} = s) do
     send(device, msg)
     {:noreply, s}

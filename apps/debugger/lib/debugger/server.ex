@@ -52,18 +52,21 @@ defmodule ElixirLS.Debugger.Server do
 
   ## Server Callbacks
 
+  @impl GenServer
   def init(opts) do
     :int.start()
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
 
+  @impl GenServer
   def handle_cast({:receive_packet, request(_, _) = packet}, state) do
     {response_body, state} = handle_request(packet, state)
     Output.send_response(packet, response_body)
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_cast({:breakpoint_reached, pid}, state) do
     {state, thread_id} = ensure_thread_id(state, pid)
 
@@ -76,6 +79,7 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{task_ref: ref} = state) do
     exit_code =
       case reason do
@@ -97,17 +101,20 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | task_ref: nil}}
   end
 
+  @impl GenServer
   def handle_info({:EXIT, _, :normal}, state) do
     {:noreply, state}
   end
 
   # If we get the disconnect request from the client, we send :disconnect to the server so it will
   # die right after responding to the request
+  @impl GenServer
   def handle_info(:disconnect, state) do
     System.halt(0)
     {:noreply, state}
   end
 
+  @impl GenServer
   def terminate(reason, _state) do
     if reason != :normal do
       IO.puts(:standard_error, "(Debugger) Terminating because #{Exception.format_exit(reason)}")
