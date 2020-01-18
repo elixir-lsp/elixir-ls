@@ -4,19 +4,22 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   """
 
   def hover(text, line, character) do
-    %{subject: subject, docs: docs} = ElixirSense.docs(text, line + 1, character + 1)
+    response =
+      case ElixirSense.docs(text, line + 1, character + 1) do
+        %{subject: ""} ->
+          nil
 
-    line_text = Enum.at(String.split(text, "\n"), line)
-    range = highlight_range(line_text, line, character, subject)
+        %{subject: subject, docs: docs} ->
+          line_text = Enum.at(String.split(text, "\n"), line)
+          range = highlight_range(line_text, line, character, subject)
 
-    {:ok, %{"contents" => contents(docs), "range" => range}}
+          %{"contents" => contents(docs), "range" => range}
+      end
+
+    {:ok, response}
   end
 
   ## Helpers
-
-  defp highlight_range(_line_text, _line, _character, nil) do
-    nil
-  end
 
   defp highlight_range(line_text, line, character, substr) do
     regex_ranges =
