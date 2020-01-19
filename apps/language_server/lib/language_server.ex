@@ -5,23 +5,20 @@ defmodule ElixirLS.LanguageServer do
   require Logger
   use Application
 
-  # See http://elixir-lang.org/docs/stable/elixir/Application.html
-  # for more information on OTP Applications
+  @impl Application
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
     children = [
-      # Define workers and child supervisors to be supervised
       worker(ElixirLS.LanguageServer.Server, [ElixirLS.LanguageServer.Server]),
       worker(ElixirLS.LanguageServer.JsonRpc, [[name: ElixirLS.LanguageServer.JsonRpc]])
     ]
 
-    # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ElixirLS.LanguageServer.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)
   end
 
+  @impl Application
   def stop(_state) do
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
       ElixirLS.LanguageServer.JsonRpc.show_message(

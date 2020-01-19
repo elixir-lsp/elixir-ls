@@ -94,6 +94,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   # Server callbacks
 
+  @impl GenServer
   def init({parent, root_path}) do
     state = %__MODULE__{parent: parent, root_path: root_path}
 
@@ -117,6 +118,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:ok, state}
   end
 
+  @impl GenServer
   def handle_call(
         {:analysis_finished, _status, active_plt, mod_deps, md5, warnings, timestamp, build_ref},
         _from,
@@ -147,11 +149,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_call({:suggest_contracts, files}, _from, %{plt: plt} = state) do
     specs = if is_nil(plt), do: [], else: SuccessTypings.suggest_contracts(plt, files)
     {:reply, specs, state}
   end
 
+  @impl GenServer
   def handle_cast({:analyze, build_ref, warn_opts, warning_format}, state) do
     state =
       ElixirLS.LanguageServer.Build.with_build_lock(fn ->
@@ -181,10 +185,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_info({:"ETS-TRANSFER", _, _, _}, state) do
     {:noreply, state}
   end
 
+  @impl GenServer
   def terminate(reason, _state) do
     if reason != :normal do
       JsonRpc.show_message(

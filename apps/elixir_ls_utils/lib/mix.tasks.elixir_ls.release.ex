@@ -1,7 +1,10 @@
 defmodule Mix.Tasks.ElixirLs.Release do
+  use Mix.Task
+
   @switches [destination: :string, zip: :string]
   @aliases [o: :destination, z: :zip]
 
+  @impl Mix.Task
   def run(args) do
     version_warning()
     {opts, _} = OptionParser.parse!(args, aliases: @aliases, switches: @switches)

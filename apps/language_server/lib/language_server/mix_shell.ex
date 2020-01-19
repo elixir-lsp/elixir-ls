@@ -9,11 +9,19 @@ defmodule ElixirLS.LanguageServer.MixShell do
 
   @behaviour Mix.Shell
 
-  defdelegate(print_app, to: Mix.Shell.IO)
-  defdelegate(cmd(command, opts \\ []), to: Mix.Shell.IO)
-  defdelegate(info(message), to: Mix.Shell.IO)
-  defdelegate(error(message), to: Mix.Shell.IO)
+  @impl Mix.Shell
+  defdelegate print_app, to: Mix.Shell.IO
 
+  @impl Mix.Shell
+  defdelegate cmd(command, opts \\ []), to: Mix.Shell.IO
+
+  @impl Mix.Shell
+  defdelegate info(message), to: Mix.Shell.IO
+
+  @impl Mix.Shell
+  defdelegate error(message), to: Mix.Shell.IO
+
+  @impl Mix.Shell
   def prompt(message) do
     if WireProtocol.io_intercepted?() do
       IO.puts(message)
@@ -29,6 +37,7 @@ defmodule ElixirLS.LanguageServer.MixShell do
     end
   end
 
+  @impl Mix.Shell
   def yes?(message) do
     if WireProtocol.io_intercepted?() do
       response =

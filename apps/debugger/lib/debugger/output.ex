@@ -35,15 +35,18 @@ defmodule ElixirLS.Debugger.Output do
 
   ## Server callbacks
 
+  @impl GenServer
   def init(:ok) do
     {:ok, 1}
   end
 
+  @impl GenServer
   def handle_call({:send_response, request_packet, body}, _from, seq) do
     send(response(seq, request_packet["seq"], request_packet["command"], body))
     {:reply, :ok, seq + 1}
   end
 
+  @impl GenServer
   def handle_call({:send_event, event, body}, _from, seq) do
     send(event(seq, event, body))
     {:reply, :ok, seq + 1}

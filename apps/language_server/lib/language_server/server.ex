@@ -81,10 +81,12 @@ defmodule ElixirLS.LanguageServer.Server do
 
   ## Server Callbacks
 
+  @impl GenServer
   def init(:ok) do
     {:ok, %__MODULE__{}}
   end
 
+  @impl GenServer
   def handle_call({:request_finished, id, result}, _from, state) do
     case result do
       {:error, type, msg} -> JsonRpc.respond_with_error(id, type, msg)
@@ -95,6 +97,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:reply, :ok, state}
   end
 
+  @impl GenServer
   def handle_call({:suggest_contracts, uri}, from, state) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
@@ -105,15 +108,18 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
+  @impl GenServer
   def handle_cast({:build_finished, {status, diagnostics}}, state)
       when status in [:ok, :noop, :error] and is_list(diagnostics) do
     {:noreply, handle_build_result(status, diagnostics, state)}
   end
 
+  @impl GenServer
   def handle_cast({:dialyzer_finished, diagnostics, build_ref}, state) do
     {:noreply, handle_dialyzer_result(diagnostics, build_ref, state)}
   end
 
+  @impl GenServer
   def handle_cast({:receive_packet, request(id, _, _) = packet}, state) do
     state =
       case handle_request(packet, state) do
@@ -133,14 +139,17 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_cast({:receive_packet, notification(_) = packet}, state) do
     {:noreply, handle_notification(packet, state)}
   end
 
+  @impl GenServer
   def handle_cast(:rebuild, state) do
     {:noreply, trigger_build(state)}
   end
 
+  @impl GenServer
   def handle_info(:send_file_watchers, state) do
     JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
       "watchers" => [
@@ -152,6 +161,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_info(:default_config, state) do
     state =
       case state do
@@ -170,6 +180,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_info({:DOWN, ref, _, _pid, reason}, %{build_ref: ref, build_running?: true} = state) do
     state = %{state | build_running?: false}
 
@@ -183,6 +194,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, state}
   end
 
+  @impl GenServer
   def handle_info({:DOWN, _ref, :process, pid, reason}, %{requests: requests} = state) do
     state =
       case Enum.find(requests, &match?({_, ^pid}, &1)) do

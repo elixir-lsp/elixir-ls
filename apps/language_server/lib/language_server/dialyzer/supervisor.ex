@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Supervisor do
     Supervisor.start_link(__MODULE__, {parent, root_path})
   end
 
+  @impl Supervisor
   def init({parent, root_path}) do
     Supervisor.init(
       [
