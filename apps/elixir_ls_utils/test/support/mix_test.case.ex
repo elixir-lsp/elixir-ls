@@ -95,7 +95,8 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
   defp clear_project_stack! do
     stack = clear_project_stack!([])
-    Mix.ProjectStack.clear_cache()
+
+    clear_mix_cache()
 
     # Attempt to purge mixfiles for dependencies to avoid module redefinition warnings
     mix_exs = System.get_env("MIX_EXS") || "mix.exs"
@@ -110,6 +111,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   defp clear_project_stack!(stack) do
+    # FIXME: Private API
     case Mix.Project.pop() do
       nil ->
         stack
@@ -120,13 +122,26 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   defp restore_project_stack!(stack) do
+    # FIXME: Private API
     Mix.ProjectStack.clear_stack()
-    Mix.ProjectStack.clear_cache()
+    clear_mix_cache()
 
     for %{name: module, file: file} <- stack do
       :code.purge(module)
       :code.delete(module)
       Code.require_file(file)
     end
+  end
+
+  # FIXME: Private API
+  defp clear_mix_cache do
+    module =
+      if Version.match?(System.version(), ">= 1.10.0-rc.0") do
+        Mix.State
+      else
+        Mix.ProjectStack
+      end
+
+    module.clear_cache()
   end
 end
