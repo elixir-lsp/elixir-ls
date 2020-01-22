@@ -9,7 +9,7 @@ This fork started when [Jake Becker's repository](https://github.com/JakeBecker/
 ## Features
 
 - Debugger support
-- Automatic, incremental Dialyzer analysis (requires Erlang OTP 20)
+- Automatic, incremental Dialyzer analysis
 - Automatic inline suggestion of @specs based on Dialyzer's inferred success typings
 - Inline reporting of build warnings and errors
 - Documentation lookup on hover
@@ -77,7 +77,7 @@ Starting in Elixir 1.6, Mix compilers adhere to the [Mix.Task.Compiler](https://
 
 ## Dialyzer integration
 
-If you're using Erlang >= OTP 20, ElixirLS will automatically analyze your project with Dialyzer after each successful build. It maintains a "manifest" file in `.elixir_ls/dialyzer_manifest` that stores the results of the analysis. The initial analysis for a project can take a few minutes, but after that's completed, modules are re-analyzed only if necessary, so subsequent analyses are typically very fast -- often less than a second. It also looks at your modules' abstract code to determine whether they reference any modules that haven't been analyzed and includes them automatically.
+ElixirLS will automatically analyze your project with Dialyzer after each successful build. It maintains a "manifest" file in `.elixir_ls/dialyzer_manifest` that stores the results of the analysis. The initial analysis for a project can take a few minutes, but after that's completed, modules are re-analyzed only if necessary, so subsequent analyses are typically very fast -- often less than a second. It also looks at your modules' abstract code to determine whether they reference any modules that haven't been analyzed and includes them automatically.
 
 You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. To disable it completely, set `elixirLS.dialyzerEnabled` to false.
 

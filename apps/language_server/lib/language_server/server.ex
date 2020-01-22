@@ -605,10 +605,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
     otp_release = String.to_integer(System.otp_release())
 
-    if otp_release < 19 do
+    if otp_release < 20 do
       JsonRpc.show_message(
         :info,
-        "Upgrade Erlang to version OTP 20 for debugging support (Currently OTP #{otp_release})"
+        "Erlang OTP releases below 20 are not supported (Currently OTP #{otp_release})"
       )
     end
 
