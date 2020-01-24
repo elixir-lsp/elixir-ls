@@ -33,7 +33,7 @@ defmodule Mix.Tasks.ElixirLs.Release do
     if opts[:zip] do
       zip_file = to_charlist(Path.expand(opts[:zip]))
       files = Enum.map(File.ls!(destination), &to_charlist/1)
-      :zip.create(zip_file, files, cwd: destination)
+      :zip.create(zip_file, files, cwd: to_charlist(destination))
     end
 
     :ok
