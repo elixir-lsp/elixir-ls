@@ -129,10 +129,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     def_before =
       cond do
-        Regex.match?(Regex.recompile!(~r/def\s*#{prefix}$/), text_before_cursor) ->
+        Regex.match?(Regex.recompile!(~r/(defdelegate|defp?)\s*#{prefix}$/), text_before_cursor) ->
           :def
 
-        Regex.match?(Regex.recompile!(~r/defmacro\s*#{prefix}$/), text_before_cursor) ->
+        Regex.match?(
+          Regex.recompile!(~r/(defguardp?|defmacrop?)\s*#{prefix}$/),
+          text_before_cursor
+        ) ->
           :defmacro
 
         true ->
@@ -222,8 +225,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(%{type: :module, name: name, summary: summary, subtype: subtype}, %{
          def_before: nil,
-         capture_before?: false,
-         pipe_before?: false,
          prefix: prefix
        }) do
     capitalized? = String.first(name) == String.upcase(String.first(name))
@@ -233,10 +234,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     else
       label = if capitalized?, do: name, else: ":" <> name
 
+      detail =
+        if subtype do
+          Atom.to_string(subtype)
+        else
+          "module"
+        end
+
       %__MODULE__{
         label: label,
         kind: :module,
-        detail: subtype || "module",
+        detail: detail,
         documentation: summary,
         insert_text: name,
         filter_text: name,
