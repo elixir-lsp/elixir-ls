@@ -20,6 +20,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   @func_snippets %{
     {"Kernel.SpecialForms", "case"} => "case $1 do\n\t$2 ->\n\t\t$0\nend",
+    {"Kernel.SpecialForms", "with"} => "with $2 <- $1 do\n\t$0\nend",
     {"Kernel.SpecialForms", "cond"} => "cond do\n\t$1 ->\n\t\t$0\nend",
     {"Kernel.SpecialForms", "receive"} =>
       "receive do\n\t${1:{${2::message_type}, ${3:value}\\}} ->\n\t\t${0:# code}\nend\n",
@@ -45,6 +46,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     {"Kernel", "defprotocol"} => "defprotocol $1 do\n\t$0\nend",
     {"Kernel", "defstruct"} => "defstruct $1: $2",
     {"ExUnit.Callbacks", "setup"} => "setup ${1:%{$2\\}} do\n\t$3\nend",
+    {"ExUnit.Callbacks", "setup_all"} => "setup_all ${1:%{$2\\}} do\n\t$3\nend",
     {"ExUnit.Case", "test"} => "test $1 do\n\t$0\nend",
     {"ExUnit.Case", "describe"} => "describe \"$1\" do\n\t$0\nend"
   }
