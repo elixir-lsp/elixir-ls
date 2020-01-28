@@ -77,4 +77,51 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
              "def my_fun(example,arg)"
            ]
   end
+
+  test "returns module completions after pipe" do
+    text = """
+    defmodule MyModule do
+      NaiveDateTime.utc_now() |> Naiv
+    #                                ^
+    1..100
+    |> Enum.map(&Inte)
+    #                ^
+    def my(%Naiv)
+    #           ^
+    end
+    """
+
+    {line, char} = {1, 33}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+
+    completions =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "struct"))
+      |> Enum.map(& &1["label"])
+
+    assert "NaiveDateTime" in completions
+
+    {line, char} = {4, 17}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+
+    completions =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "module"))
+      |> Enum.map(& &1["label"])
+
+    assert "Integer" in completions
+
+    {line, char} = {6, 12}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+
+    completions =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "struct"))
+      |> Enum.map(& &1["label"])
+
+    assert "NaiveDateTime" in completions
+  end
 end
