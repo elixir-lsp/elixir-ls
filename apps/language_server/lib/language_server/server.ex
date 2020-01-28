@@ -32,7 +32,6 @@ defmodule ElixirLS.LanguageServer.Server do
   }
 
   use Protocol
-  require Logger
 
   defstruct [
     :build_ref,
@@ -166,7 +165,8 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case state do
         %{settings: nil} ->
-          Logger.warn(
+          JsonRpc.show_message(
+            :warning,
             "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
               "Using default settings."
           )

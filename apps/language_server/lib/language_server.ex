@@ -2,7 +2,6 @@ defmodule ElixirLS.LanguageServer do
   @moduledoc """
   Implementation of Language Server Protocol for Elixir
   """
-  require Logger
   use Application
 
   @impl Application
