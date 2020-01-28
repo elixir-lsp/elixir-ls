@@ -122,6 +122,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.filter(&(&1["detail"] =~ "struct"))
       |> Enum.map(& &1["label"])
 
-      assert "NaiveDateTime" in completions
+    assert "NaiveDateTime" in completions
   end
 end
