@@ -5,34 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#textDocument_documentSymbol
   """
 
-  @symbol_enum %{
-    file: 1,
-    module: 2,
-    namespace: 3,
-    package: 4,
-    class: 5,
-    method: 6,
-    property: 7,
-    field: 8,
-    constructor: 9,
-    enum: 10,
-    interface: 11,
-    function: 12,
-    variable: 13,
-    constant: 14,
-    string: 15,
-    number: 16,
-    boolean: 17,
-    array: 18,
-    object: 19,
-    key: 20,
-    null: 21,
-    enum_member: 22,
-    struct: 23,
-    event: 24,
-    operator: 25,
-    type_parameter: 26
-  }
+  alias ElixirLS.LanguageServer.Providers.SymbolUtils
 
   @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
 
@@ -261,7 +234,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp build_symbol_information(uri, info) do
     %{
       name: info.name,
-      kind: @symbol_enum[info.type],
+      kind: SymbolUtils.symbol_kind_to_code(info.type),
       range: location_to_range(info.location),
       selectionRange: location_to_range(info.location),
       children: build_symbol_information(uri, info.children)

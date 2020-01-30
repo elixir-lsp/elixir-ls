@@ -10,7 +10,8 @@ defmodule ElixirLS.LanguageServer do
 
     children = [
       worker(ElixirLS.LanguageServer.Server, [ElixirLS.LanguageServer.Server]),
-      worker(ElixirLS.LanguageServer.JsonRpc, [[name: ElixirLS.LanguageServer.JsonRpc]])
+      worker(ElixirLS.LanguageServer.JsonRpc, [[name: ElixirLS.LanguageServer.JsonRpc]]),
+      worker(ElixirLS.LanguageServer.Providers.WorkspaceSymbols, [[]])
     ]
 
     opts = [strategy: :one_for_one, name: ElixirLS.LanguageServer.Supervisor, max_restarts: 0]
