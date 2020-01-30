@@ -9,7 +9,6 @@ defmodule ElixirLS.LanguageServer.Providers.References do
 
   https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#textDocument_references
   """
-  require Logger
 
   alias ElixirLS.LanguageServer.{SourceFile, Build}
 

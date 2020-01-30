@@ -2,7 +2,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   alias ElixirLS.LanguageServer.{Dialyzer, JsonRpc}
   import Record
   import Dialyzer.Utils
-  require Logger
 
   @manifest_vsn :v2
 

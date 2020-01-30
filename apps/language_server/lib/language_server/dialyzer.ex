@@ -2,7 +2,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   alias ElixirLS.LanguageServer.{JsonRpc, Server}
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, Utils, SuccessTypings}
   import Utils
-  require Logger
   use GenServer
 
   defstruct [

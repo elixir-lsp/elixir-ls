@@ -1,6 +1,5 @@
 defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile}
-  require Logger
 
   def build(parent, root_path, fetch_deps?) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
