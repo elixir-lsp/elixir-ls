@@ -439,11 +439,11 @@ defmodule ElixirLS.Debugger.Server do
     File.cd!(project_dir)
 
     # Mixfile may already be loaded depending on cwd when launching debugger task
-    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
+    mixfile = Path.absname(System.get_env("MIX_EXS", "mix.exs"))
 
     # FIXME: Private API
     unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
-      Code.require_file(System.get_env("MIX_EXS") || "mix.exs")
+      Code.require_file(System.get_env("MIX_EXS", "mix.exs"))
     end
 
     task = task || Mix.Project.config()[:default_task]

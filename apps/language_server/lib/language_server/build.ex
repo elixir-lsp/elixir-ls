@@ -94,7 +94,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
-      file: Path.absname(System.get_env("MIX_EXS") || "mix.exs"),
+      file: Path.absname(System.get_env("MIX_EXS", "mix.exs")),
       position: nil,
       message: msg,
       severity: :error,
@@ -107,7 +107,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project do
-    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
+    mixfile = Path.absname(System.get_env("MIX_EXS", "mix.exs"))
 
     if File.exists?(mixfile) do
       # FIXME: Private API
