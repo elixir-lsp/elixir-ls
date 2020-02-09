@@ -1,9 +1,10 @@
 defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   alias ElixirLS.LanguageServer.Providers.DocumentSymbols
   alias ElixirLS.LanguageServer.Providers.DocumentSymbols.DocumentSymbol
+  alias ElixirLS.LanguageServer.Providers.DocumentSymbols.SymbolInformation
   use ExUnit.Case
 
-  test "returns symbol information" do
+  test "returns hierarchical symbol information" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule MyModule do
@@ -162,10 +163,147 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
                 selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles nested module definitions" do
+  test "returns flat symbol information" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule MyModule do
+        @my_mod_var "module variable"
+        def my_fn(arg), do: :ok
+        defp my_private_fn(arg), do: :ok
+        defmacro my_macro(), do: :ok
+        defmacrop my_private_macro(), do: :ok
+        defguard my_guard(a) when is_integer(a)
+        defguardp my_private_guard(a) when is_integer(a)
+        defdelegate my_delegate(list), to: Enum, as: :reverse
+        defguard my_guard when 1 == 1
+        def my_fn_no_arg, do: :ok
+        def my_fn_with_guard(arg) when is_integer(arg), do: :ok
+        def my_fn_with_more_blocks(arg) do
+          :ok
+        rescue
+          e in ArgumentError -> :ok
+        else
+          _ -> :ok
+        catch
+          _ -> :ok
+        after
+          :ok
+        end
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "@my_mod_var",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_fn(arg)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_private_fn(arg)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 13, line: 4}, start: %{character: 13, line: 4}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_macro()",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 17, line: 5}, start: %{character: 17, line: 5}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_private_macro()",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 18, line: 6}, start: %{character: 18, line: 6}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_guard(a) when is_integer(a)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_private_guard(a) when is_integer(a)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_delegate(list)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 20, line: 9}, start: %{character: 20, line: 9}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_guard when 1 == 1",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_fn_no_arg",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 12, line: 11}, start: %{character: 12, line: 11}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_fn_with_guard(arg) when is_integer(arg)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_fn_with_more_blocks(arg)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 12, line: 13}, start: %{character: 12, line: 13}}
+                },
+                containerName: "MyModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles nested module definitions" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule MyModule do
@@ -218,10 +356,57 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   start: %{character: 6, line: 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handels multiple module definitions" do
+  test "[flat] handles nested module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule MyModule do
+        defmodule SubModule do
+          def my_fn(), do: :ok
+        end
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{
+                    end: %{character: 6, line: 1},
+                    start: %{character: 6, line: 1}
+                  }
+                }
+              },
+              %SymbolInformation{
+                name: "SubModule",
+                kind: 2,
+                location: %{
+                  range: %{
+                    end: %{character: 8, line: 2},
+                    start: %{character: 8, line: 2}
+                  }
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                kind: 12,
+                name: "my_fn()",
+                location: %{
+                  range: %{
+                    end: %{character: 14, line: 3},
+                    start: %{character: 14, line: 3}
+                  }
+                },
+                containerName: "SubModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles multiple module definitions" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule MyModule do
@@ -288,10 +473,68 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   start: %{character: 6, line: 4}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles elixir atom module definitions" do
+  test "[flat] handles multiple module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule MyModule do
+        def some_function(), do: :ok
+      end
+      defmodule MyOtherModule do
+        def some_other_function(), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{
+                    end: %{character: 6, line: 1},
+                    start: %{character: 6, line: 1}
+                  }
+                }
+              },
+              %SymbolInformation{
+                name: "some_function()",
+                kind: 12,
+                location: %{
+                  range: %{
+                    end: %{character: 12, line: 2},
+                    start: %{character: 12, line: 2}
+                  }
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "MyOtherModule",
+                kind: 2,
+                location: %{
+                  range: %{
+                    end: %{character: 6, line: 4},
+                    start: %{character: 6, line: 4}
+                  }
+                }
+              },
+              %SymbolInformation{
+                kind: 12,
+                name: "some_other_function()",
+                location: %{
+                  range: %{
+                    end: %{character: 12, line: 5},
+                    start: %{character: 12, line: 5}
+                  }
+                },
+                containerName: "MyOtherModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles elixir atom module definitions" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule :'Elixir.MyModule' do
@@ -319,10 +562,38 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
                 selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles unquoted module definitions" do
+  test "[flat] handles elixir atom module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule :'Elixir.MyModule' do
+        def my_fn(), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "my_fn()",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
+                },
+                containerName: "MyModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles unquoted module definitions" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule unquote(var) do
@@ -350,10 +621,38 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
                 selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles erlang atom module definitions" do
+  test "[flat] handles unquoted module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule unquote(var) do
+        def my_fn(), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "# unknown",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                kind: 12,
+                name: "my_fn()",
+                location: %{
+                  range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
+                },
+                containerName: "# unknown"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles erlang atom module definitions" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule :my_module do
@@ -381,10 +680,38 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
                 selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles nested module definitions with __MODULE__" do
+  test "[flat] handles erlang atom module definitions" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule :my_module do
+        def my_fn(), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "my_module",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "my_fn()",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
+                },
+                containerName: "my_module"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles nested module definitions with __MODULE__" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule __MODULE__ do
@@ -425,10 +752,48 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
                 selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles protocols and implementations" do
+  test "[flat] handles nested module definitions with __MODULE__" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule __MODULE__ do
+        defmodule __MODULE__.SubModule do
+          def my_fn(), do: :ok
+        end
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "__MODULE__",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "__MODULE__.SubModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 8, line: 2}, start: %{character: 8, line: 2}}
+                },
+                containerName: "__MODULE__"
+              },
+              %SymbolInformation{
+                name: "my_fn()",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 14, line: 3}, start: %{character: 14, line: 3}}
+                },
+                containerName: "__MODULE__.SubModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles protocols and implementations" do
     uri = "file://project/file.ex"
 
     text = """
@@ -502,10 +867,78 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}},
                 selectionRange: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles module definitions with struct" do
+  test "[flat] handles protocols and implementations" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defprotocol MyProtocol do
+      @doc "Calculates the size"
+      def size(data)
+    end
+
+    defimpl MyProtocol, for: BitString do
+      def size(binary), do: byte_size(binary)
+    end
+
+    defimpl MyProtocol, for: [List, MyList] do
+      def size(param), do: length(param)
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyProtocol",
+                kind: 11,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              },
+              %SymbolInformation{
+                kind: 12,
+                name: "size(data)",
+                location: %{
+                  range: %{end: %{character: 6, line: 2}, start: %{character: 6, line: 2}}
+                },
+                containerName: "MyProtocol"
+              },
+              %SymbolInformation{
+                kind: 2,
+                name: "MyProtocol, for: BitString",
+                location: %{
+                  range: %{end: %{character: 0, line: 5}, start: %{character: 0, line: 5}}
+                }
+              },
+              %SymbolInformation{
+                kind: 12,
+                name: "size(binary)",
+                location: %{
+                  range: %{end: %{character: 6, line: 6}, start: %{character: 6, line: 6}}
+                },
+                containerName: "MyProtocol, for: BitString"
+              },
+              %SymbolInformation{
+                kind: 2,
+                name: "MyProtocol, for: [List, MyList]",
+                location: %{
+                  range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
+                }
+              },
+              %SymbolInformation{
+                kind: 12,
+                name: "size(param)",
+                location: %{
+                  range: %{end: %{character: 6, line: 10}, start: %{character: 6, line: 10}}
+                },
+                containerName: "MyProtocol, for: [List, MyList]"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles module definitions with struct" do
     uri = "file://project/file.ex"
 
     text = """
@@ -555,10 +988,55 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles module definitions with exception" do
+  test "[flat] handles module definitions with struct" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      defstruct [:prop, prop_with_def: nil]
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              },
+              %SymbolInformation{
+                name: "struct",
+                kind: 23,
+                location: %{
+                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "prop",
+                kind: 7,
+                location: %{
+                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                },
+                containerName: "struct"
+              },
+              %SymbolInformation{
+                kind: 7,
+                name: "prop_with_def",
+                location: %{
+                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                },
+                containerName: "struct"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles module definitions with exception" do
     uri = "file://project/file.ex"
 
     text = """
@@ -598,10 +1076,47 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles module definitions with typespecs" do
+  test "[flat] handles module definitions with exception" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyError do
+      defexception [:message]
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyError",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              },
+              %SymbolInformation{
+                kind: 23,
+                name: "exception",
+                location: %{
+                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                },
+                containerName: "MyError"
+              },
+              %SymbolInformation{
+                kind: 7,
+                name: "message",
+                location: %{
+                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                },
+                containerName: "exception"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles module definitions with typespecs" do
     uri = "file://project/file.ex"
 
     text = """
@@ -685,10 +1200,84 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles module definitions with callbacks" do
+  test "[flat] handles module definitions with typespecs" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @type my_simple :: integer
+      @type my_union :: integer | binary
+      @typep my_simple_private :: integer
+      @opaque my_simple_opaque :: integer
+      @type my_with_args(key, value) :: [{key, value}]
+      @type my_with_args_when(key, value) :: [{key, value}] when value: integer
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              },
+              %SymbolInformation{
+                kind: 5,
+                name: "my_simple",
+                location: %{
+                  range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                kind: 5,
+                name: "my_union",
+                location: %{
+                  range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                kind: 5,
+                name: "my_simple_private",
+                location: %{
+                  range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                kind: 5,
+                name: "my_simple_opaque",
+                location: %{
+                  range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                kind: 5,
+                name: "my_with_args(key, value)",
+                location: %{
+                  range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                kind: 5,
+                name: "my_with_args_when(key, value)",
+                location: %{
+                  range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}}
+                },
+                containerName: "MyModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles module definitions with callbacks" do
     uri = "file://project/file.ex"
 
     text = """
@@ -774,10 +1363,86 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles funs with specs" do
+  test "[flat] handles module definitions with callbacks" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @callback my_callback(type1, type2) :: return_type
+      @macrocallback my_macrocallback(type1, type2) :: Macro.t
+
+      @callback my_callback_when(type1, type2) :: return_type when type1: integer
+      @macrocallback my_macrocallback_when(type1, type2) :: Macro.t when type1: integer, type2: binary
+
+      @callback my_callback_no_arg() :: return_type
+      @macrocallback my_macrocallback_no_arg() :: Macro.t
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              },
+              %SymbolInformation{
+                name: "my_callback(type1, type2)",
+                kind: 24,
+                location: %{
+                  range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_macrocallback(type1, type2)",
+                kind: 24,
+                location: %{
+                  range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_callback_when(type1, type2)",
+                kind: 24,
+                location: %{
+                  range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_macrocallback_when(type1, type2)",
+                kind: 24,
+                location: %{
+                  range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_callback_no_arg()",
+                kind: 24,
+                location: %{
+                  range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_macrocallback_no_arg()",
+                kind: 24,
+                location: %{
+                  range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}}
+                },
+                containerName: "MyModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles funs with specs" do
     uri = "file://project/file.ex"
     text = ~S[
       defmodule MyModule do
@@ -816,10 +1481,47 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
                 selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "skips docs attributes" do
+  test "[flat] handles funs with specs" do
+    uri = "file://project/file.ex"
+    text = ~S[
+      defmodule MyModule do
+        @spec my_fn(integer) :: atom
+        def my_fn(a), do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "my_fn(integer)",
+                kind: 24,
+                location: %{
+                  range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "my_fn(a)",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}}
+                },
+                containerName: "MyModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] skips docs attributes" do
     uri = "file://project/file.ex"
 
     text = """
@@ -839,10 +1541,33 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles various builtin attributes" do
+  test "[flat] skips docs attributes" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @moduledoc ""
+      @doc ""
+      @typedoc ""
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles various builtin attributes" do
     uri = "file://project/file.ex"
 
     text = """
@@ -1047,10 +1772,183 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles exunit tests" do
+  test "[flat] handles various builtin attributes" do
+    uri = "file://project/file.ex"
+
+    text = """
+    defmodule MyModule do
+      @optional_callbacks non_vital_fun: 0, non_vital_macro: 1
+      @behaviour MyBehaviour
+      @impl true
+      @derive [MyProtocol]
+      @enforce_keys [:name]
+      @compile {:inline, my_fun: 1}
+      @deprecated ""
+      @dialyzer {:nowarn_function, my_fun: 1}
+      @file "hello.ex"
+      @external_resource ""
+      @on_load :load_check
+      @on_definition :load_check
+      @vsn "1.0"
+      @after_compile __MODULE__
+      @before_compile __MODULE__
+      @fallback_to_any true
+      @impl MyBehaviour
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              },
+              %SymbolInformation{
+                name: "@optional_callbacks",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@behaviour MyBehaviour",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@impl true",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@derive",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@enforce_keys",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@compile",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@deprecated",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@dialyzer",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@file",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 9}, start: %{character: 3, line: 9}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@external_resource",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 10}, start: %{character: 3, line: 10}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@on_load",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 11}, start: %{character: 3, line: 11}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@on_definition",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 12}, start: %{character: 3, line: 12}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@vsn",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 13}, start: %{character: 3, line: 13}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@after_compile",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 14}, start: %{character: 3, line: 14}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@before_compile",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 15}, start: %{character: 3, line: 15}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@fallback_to_any",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 16}, start: %{character: 3, line: 16}}
+                },
+                containerName: "MyModule"
+              },
+              %SymbolInformation{
+                name: "@impl MyBehaviour",
+                kind: 14,
+                location: %{
+                  range: %{end: %{character: 3, line: 17}, start: %{character: 3, line: 17}}
+                },
+                containerName: "MyModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles exunit tests" do
     uri = "file://project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
@@ -1088,10 +1986,39 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   start: %{character: 6, line: 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles exunit descibe tests" do
+  test "[flat] handles exunit tests" do
+    uri = "file://project/test.exs"
+    text = ~S[
+      defmodule MyModuleTest do
+        use ExUnit.Case
+        test "does something", do: :ok
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModuleTest",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "test \"does something\"",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
+                },
+                containerName: "MyModuleTest"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles exunit descibe tests" do
     uri = "file://project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
@@ -1145,10 +2072,49 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   start: %{character: 6, line: 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles exunit callbacks" do
+  test "[flat] handles exunit descibe tests" do
+    uri = "file://project/test.exs"
+    text = ~S[
+      defmodule MyModuleTest do
+        use ExUnit.Case
+        describe "some descripton" do
+          test "does something", do: :ok
+        end
+      end
+    ]
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModuleTest",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "describe \"some descripton\"",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
+                },
+                containerName: "MyModuleTest"
+              },
+              %SymbolInformation{
+                name: "test \"does something\"",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 10, line: 4}, start: %{character: 10, line: 4}}
+                },
+                containerName: "describe \"some descripton\""
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles exunit callbacks" do
     uri = "file://project/test.exs"
 
     text = """
@@ -1204,10 +2170,62 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
                 selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "handles config" do
+  test "[flat] handles exunit callbacks" do
+    uri = "file://project/test.exs"
+
+    text = """
+    defmodule MyModuleTest do
+      use ExUnit.Case
+      setup do
+        [conn: Plug.Conn.build_conn()]
+      end
+      setup :clean_up_tmp_directory
+      setup_all do
+        :ok
+      end
+    end
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "MyModuleTest",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                }
+              },
+              %SymbolInformation{
+                name: "setup",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 2, line: 2}, start: %{character: 2, line: 2}}
+                },
+                containerName: "MyModuleTest"
+              },
+              %SymbolInformation{
+                name: "setup",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 2, line: 5}, start: %{character: 2, line: 5}}
+                },
+                containerName: "MyModuleTest"
+              },
+              %SymbolInformation{
+                name: "setup_all",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 2, line: 6}, start: %{character: 2, line: 6}}
+                },
+                containerName: "MyModuleTest"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles config" do
     uri = "file://project/test.exs"
 
     text = """
@@ -1254,6 +2272,56 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}},
                 selectionRange: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
               }
-            ]} = DocumentSymbols.symbols(uri, text)
+            ]} = DocumentSymbols.symbols(uri, text, true)
+  end
+
+  test "[flat] handles config" do
+    uri = "file://project/test.exs"
+
+    text = """
+    use Mix.Config
+    config :logger, :console,
+       level: :info,
+       format: "$date $time [$level] $metadata$message\n",
+       metadata: [:user_id]
+    config :app, :key, :value
+    config :my_app,
+      ecto_repos: [MyApp.Repo]
+    config :my_app, MyApp.Repo,
+      migration_timestamps: [type: :naive_datetime_usec],
+      username: "postgres"
+    """
+
+    assert {:ok,
+            [
+              %SymbolInformation{
+                name: "config :logger :console",
+                kind: 20,
+                location: %{
+                  range: %{end: %{character: 0, line: 1}, start: %{character: 0, line: 1}}
+                }
+              },
+              %SymbolInformation{
+                name: "config :app :key",
+                kind: 20,
+                location: %{
+                  range: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}}
+                }
+              },
+              %SymbolInformation{
+                name: "config :my_app :ecto_repos",
+                kind: 20,
+                location: %{
+                  range: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}}
+                }
+              },
+              %SymbolInformation{
+                name: "config :my_app MyApp.Repo",
+                kind: 20,
+                location: %{
+                  range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
+                }
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
   end
 end
