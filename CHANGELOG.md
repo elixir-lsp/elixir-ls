@@ -10,6 +10,10 @@
 - Bump ElixirSense
   - Main changes: return results by arity, return all type signatures, typespec and dialyzer fixes
 
+Breaking Changes:
+
+- `language_server.sh` and `debugger.sh` run bash instead of `sh` (this is expected to break very few setups, if any) [#118](https://github.com/elixir-lsp/elixir-ls/pull/118)
+
 ### v0.2.28: 16 Nov 2019
 
 - Fix debugger tasks not continuing to run on Elixir 1.9 (thanks to [joshua-andrassy](https://github.com/joshua-andrassy) for doing the legwork)
