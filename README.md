@@ -95,7 +95,6 @@ If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles co
 ## Known Issues
 
 * `.exs` files don't return compilation errors
-* Does not yet work with Elixir 1.10.0-rc0 or greater: ([#92](https://github.com/elixir-lsp/elixir-ls/issues/92))
 
 ## Building and running
 
