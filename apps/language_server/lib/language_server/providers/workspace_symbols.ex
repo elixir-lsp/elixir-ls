@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   @moduledoc """
   Workspace Symbols provider. Generates and returns `SymbolInformation[]`.
 
-  https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#workspace_symbol
+  https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#workspace_symbol
   """
   use GenServer
 
