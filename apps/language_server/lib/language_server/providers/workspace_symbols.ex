@@ -11,6 +11,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
   alias ElixirLS.LanguageServer.JsonRpc
 
+  @arity_suffix_regex ~r/\/\d+$/
+
   @type position_t :: %{
           line: non_neg_integer,
           character: non_neg_integer
@@ -235,12 +237,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end
   end
 
-  defp get_score(item, query) do
+  defp get_score(item, query, query_downcase, query_length, arity_suffix) do
     item_downcase = String.downcase(item)
-    query_downcase = String.downcase(query)
 
     parts = item |> String.split(".")
-    arity_suffix = Regex.run(~r/\/\d+$/, query)
 
     cond do
       # searching for an erlang module but item is an Elixir module
@@ -259,23 +259,39 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       arity_suffix != nil and not String.ends_with?(item, arity_suffix) ->
         0.0
 
-      length(parts) > 1 and Enum.at(parts, -1) |> String.contains?(query) ->
+      length(parts) > 1 and Enum.at(parts, -1) |> exact_or_contains?(query, query_length) ->
         2.0
 
       length(parts) > 1 and
-          Enum.at(parts, -1) |> String.downcase() |> String.contains?(query_downcase) ->
+          Enum.at(parts, -1)
+          |> String.downcase()
+          |> exact_or_contains?(query_downcase, query_length) ->
         1.8
 
-      String.contains?(item, query) ->
+      exact_or_contains?(item, query, query_length) ->
         1.3
 
-      String.contains?(item_downcase, query_downcase) ->
+      exact_or_contains?(item_downcase, query_downcase, query_length) ->
         1.2
 
-      true ->
+      query_length >= 3 ->
         String.jaro_distance(item_downcase, query_downcase)
+
+      true ->
+        0.0
     end
   end
+
+  defp exact_or_contains?(string, needle = "/" <> _, needle_length) when needle_length < 3 do
+    String.ends_with?(string, needle)
+  end
+
+  defp exact_or_contains?(string, needle, needle_length) when needle_length < 3 do
+    string_no_arity = Regex.replace(@arity_suffix_regex, string, "")
+    string_no_arity == needle
+  end
+
+  defp exact_or_contains?(string, needle, _needle_length), do: String.contains?(string, needle)
 
   defp limit_results(list) do
     list
@@ -386,11 +402,15 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @spec get_results(state_t, key_t, String.t()) :: [symbol_information_t]
   defp get_results(state, key, query) do
+    query_downcase = String.downcase(query)
+    query_length = String.length(query)
+    arity_suffix = Regex.run(@arity_suffix_regex, query)
+
     state
     |> Map.fetch!(key)
     |> chunk_by_schedulers(fn chunk ->
       chunk
-      |> Enum.map(&{&1, get_score(&1.name, query)})
+      |> Enum.map(&{&1, get_score(&1.name, query, query_downcase, query_length, arity_suffix)})
       |> Enum.reject(fn {_item, score} -> score < 0.1 end)
     end)
     |> limit_results
