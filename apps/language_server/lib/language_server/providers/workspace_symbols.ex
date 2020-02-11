@@ -92,9 +92,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     {:ok,
      %{
        modules: [],
+       modules_indexed: false,
        types: [],
+       types_indexed: false,
        callbacks: [],
+       callbacks_indexed: false,
        functions: [],
+       functions_indexed: false,
+       indexing: false,
        modified_uris: []
      }}
   end
@@ -110,7 +115,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   @impl GenServer
-  def handle_cast(:build_complete, %{modified_uris: []} = state) do
+  # not yet indexed
+  def handle_cast(:build_complete, state = %{
+    indexing: false,
+    modules_indexed: false,
+    functions_indexed: false,
+    types_indexed: false,
+    callbacks_indexed: false
+  }) do
     JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Indexing...")
 
     module_paths =
@@ -126,11 +138,15 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
     index(module_paths)
 
-    {:noreply, state}
+    {:noreply, %{state | indexing: true}}
   end
 
   @impl GenServer
-  def handle_cast(:build_complete, %{modified_uris: modified_uris} = state) do
+  # indexed but some uris were modified
+  def handle_cast(:build_complete, %{
+    indexing: false,
+    modified_uris: modified_uris = [_ | _]
+    } = state) do
     JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Updating index...")
 
     module_paths =
@@ -169,29 +185,38 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
      %{
        state
        | modules: modules,
+         modules_indexed: false,
          functions: functions,
+         functions_indexed: false,
          types: types,
+         types_indexed: false,
          callbacks: callbacks,
+         callbacks_indexed: false,
+         indexing: true,
          modified_uris: []
      }}
+  end
+  # indexed and no uris momified or already indexing
+  def handle_cast(:build_complete, state) do
+    {:noreply, state}
   end
 
   @impl GenServer
   def handle_cast({:uris_modified, uris}, state) do
-    state =
-      if state.modules == [] or state.types == [] or state.callbacks == [] or
-           state.functions == [] do
-        state
-      else
-        %{state | modified_uris: uris ++ state.modified_uris}
-      end
+    state = %{state | modified_uris: uris ++ state.modified_uris}
 
     {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:results, key, results}, state) do
-    {:noreply, state |> Map.put(key, results ++ state[key])}
+  def handle_info({:indexing_complete, key, results}, state) do
+    state = state
+    |> Map.put(key, results ++ state[key])
+    |> Map.put(:"#{key}_indexed", true)
+
+    indexed = state.modules_indexed and state.functions_indexed and state.types_indexed and state.callbacks_indexed
+
+    {:noreply, %{state | indexing: not(indexed)}}
   end
 
   ## Helpers
@@ -391,7 +416,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     Task.start_link(fn ->
       results = fun.()
 
-      send(self, {:results, key, results})
+      send(self, {:indexing_complete, key, results})
 
       JsonRpc.log_message(
         :info,
