@@ -16,12 +16,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       |> List.to_string()
       |> ElixirLS.LanguageServer.SourceFile.path_to_uri()
 
-    :sys.replace_state(pid, fn _ -> %{state |
-    modules_indexed: true,
-    functions_indexed: true,
-    types_indexed: true,
-    callbacks_indexed: true,
-    modified_uris: [fixture_uri]} end)
+    :sys.replace_state(pid, fn _ ->
+      %{
+        state
+        | modules_indexed: true,
+          functions_indexed: true,
+          types_indexed: true,
+          callbacks_indexed: true,
+          modified_uris: [fixture_uri]
+      }
+    end)
 
     WorkspaceSymbols.notify_build_complete()
 

@@ -116,18 +116,21 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @impl GenServer
   # not yet indexed
-  def handle_cast(:build_complete, state = %{
-    indexing: false,
-    modules_indexed: false,
-    functions_indexed: false,
-    types_indexed: false,
-    callbacks_indexed: false
-  }) do
+  def handle_cast(
+        :build_complete,
+        state = %{
+          indexing: false,
+          modules_indexed: false,
+          functions_indexed: false,
+          types_indexed: false,
+          callbacks_indexed: false
+        }
+      ) do
     JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Indexing...")
 
     module_paths =
       :code.all_loaded()
-      |> chunk_by_schedulers(fn chunk ->
+      |> process_chunked(fn chunk ->
         for {module, beam_file} <- chunk,
             path = find_module_path(module, beam_file),
             path != nil,
@@ -143,15 +146,18 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @impl GenServer
   # indexed but some uris were modified
-  def handle_cast(:build_complete, %{
-    indexing: false,
-    modified_uris: modified_uris = [_ | _]
-    } = state) do
+  def handle_cast(
+        :build_complete,
+        %{
+          indexing: false,
+          modified_uris: modified_uris = [_ | _]
+        } = state
+      ) do
     JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Updating index...")
 
     module_paths =
       :code.all_loaded()
-      |> chunk_by_schedulers(fn chunk ->
+      |> process_chunked(fn chunk ->
         for {module, beam_file} <- chunk,
             path = find_module_path(module, beam_file),
             SourceFile.path_to_uri(path) in modified_uris,
@@ -196,6 +202,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
          modified_uris: []
      }}
   end
+
   # indexed and no uris momified or already indexing
   def handle_cast(:build_complete, state) do
     {:noreply, state}
@@ -210,13 +217,16 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @impl GenServer
   def handle_info({:indexing_complete, key, results}, state) do
-    state = state
-    |> Map.put(key, results ++ state[key])
-    |> Map.put(:"#{key}_indexed", true)
+    state =
+      state
+      |> Map.put(key, results ++ state[key])
+      |> Map.put(:"#{key}_indexed", true)
 
-    indexed = state.modules_indexed and state.functions_indexed and state.types_indexed and state.callbacks_indexed
+    indexed =
+      state.modules_indexed and state.functions_indexed and state.types_indexed and
+        state.callbacks_indexed
 
-    {:noreply, %{state | indexing: not(indexed)}}
+    {:noreply, %{state | indexing: not indexed}}
   end
 
   ## Helpers
@@ -352,9 +362,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   defp index(module_paths) do
+    chunked_module_paths = chunk_by_schedulers(module_paths)
+
     index_async(:modules, fn ->
-      module_paths
-      |> chunk_by_schedulers(fn chunk ->
+      chunked_module_paths
+      |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk do
           line = find_module_line(module, path)
           build_result(:modules, module, path, line)
@@ -363,8 +375,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end)
 
     index_async(:functions, fn ->
-      module_paths
-      |> chunk_by_schedulers(fn chunk ->
+      chunked_module_paths
+      |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
             {function, arity} <- module.module_info(:exports) do
           {function, arity} = strip_macro_prefix({function, arity})
@@ -376,8 +388,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end)
 
     index_async(:types, fn ->
-      module_paths
-      |> chunk_by_schedulers(fn chunk ->
+      chunked_module_paths
+      |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
             # TODO: Don't call into here directly
             {kind, {type, type_ast, args}} <-
@@ -395,8 +407,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end)
 
     index_async(:callbacks, fn ->
-      module_paths
-      |> chunk_by_schedulers(fn chunk ->
+      chunked_module_paths
+      |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
             function_exported?(module, :behaviour_info, 1),
             # TODO: Don't call into here directly
@@ -433,7 +445,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
     state
     |> Map.fetch!(key)
-    |> chunk_by_schedulers(fn chunk ->
+    |> process_chunked(fn chunk ->
       chunk
       |> Enum.map(&{&1, get_score(&1.name, query, query_downcase, query_length, arity_suffix)})
       |> Enum.reject(fn {_item, score} -> score < 0.1 end)
@@ -441,7 +453,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     |> limit_results
   end
 
-  defp chunk_by_schedulers(enumerable, fun) do
+  defp chunk_by_schedulers(enumerable) do
     chunk_size =
       Enum.count(enumerable)
       |> div(System.schedulers_online())
@@ -449,6 +461,16 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
     enumerable
     |> Enum.chunk_every(chunk_size)
+  end
+
+  defp process_chunked(enumerable, fun) do
+    enumerable
+    |> chunk_by_schedulers
+    |> do_process_chunked(fun)
+  end
+
+  defp do_process_chunked(chunked_enumerable, fun) do
+    chunked_enumerable
     |> Enum.map(fn chunk when is_list(chunk) ->
       Task.async(fn ->
         fun.(chunk)
