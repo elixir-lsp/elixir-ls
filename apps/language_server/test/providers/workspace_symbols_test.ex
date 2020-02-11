@@ -1,7 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
   use ExUnit.Case
-  import ExUnit.CaptureLog
 
   setup_all do
     pid =
