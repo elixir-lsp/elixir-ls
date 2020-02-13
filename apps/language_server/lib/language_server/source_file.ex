@@ -113,6 +113,17 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     IO.iodata_to_binary(Enum.reverse(acc))
   end
 
+  def module_line(module) do
+    # TODO: Don't call into here directly
+    case ElixirSense.Core.Normalized.Code.get_docs(module, :moduledoc) do
+      nil ->
+        nil
+
+      {line, _} ->
+        line
+    end
+  end
+
   def function_line(mod, fun, arity) do
     # TODO: Don't call into here directly
     case ElixirSense.Core.Normalized.Code.get_docs(mod, :docs) do
@@ -121,7 +132,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
       docs ->
         Enum.find_value(docs, fn
-          {{^fun, ^arity}, line, :def, _, _} -> line
+          {{^fun, ^arity}, line, _, _, _} -> line
           _ -> nil
         end)
     end

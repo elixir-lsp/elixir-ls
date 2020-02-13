@@ -18,6 +18,7 @@ This fork started when [Jake Becker's repository](https://github.com/JakeBecker/
 - Code formatter
 - Find references to functions and modules (Thanks to @mattbaker)
 - Quick symbol lookup in file (Thanks to @mattbaker)
+- Quick symbol lookup in workspace and stdlib (both Elixir and erlang) (@lukaszsamson)
 
 ![Screenshot](images/screenshot.png?raw=true)
 
@@ -83,6 +84,28 @@ You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` s
 
 ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
 
+## Workspace Symbols
+
+With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions. However due to sheer number of different symbols and fuzzy search utilized by the provider, ElixirLS uses query prefixes to improve search results relevance.
+
+Use the following rules when navigating to workspace symbols:
+* no prefix - search for modules
+  * `:erl`
+  * `Enu`
+* `f ` prefix - search for functions
+  * `f inse`
+  * `f :ets.inse`
+  * `f Enum.cou`
+  * `f count/0`
+* `t ` prefix - search for types
+  * `t t/0`
+  * `t :erlang.time_u`
+  * `t DateTime.`
+* `c ` prefix - search for callbacks
+  * `c handle_info`
+  * `c GenServer.in`
+  * `c :gen_statem`
+
 ## Troubleshooting
 
 Basic troubleshooting steps:
@@ -95,6 +118,7 @@ If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles co
 ## Known Issues
 
 * `.exs` files don't return compilation errors
+* `workspaceSymbolProvider` capability currently requires enabled dialyzer
 
 ## Building and running
 

@@ -26,6 +26,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Formatting,
     SignatureHelp,
     DocumentSymbols,
+    WorkspaceSymbols,
     OnTypeFormatting,
     CodeLens,
     ExecuteCommand
@@ -291,6 +292,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_save(uri), state) do
+    WorkspaceSymbols.notify_uris_modified([uri])
     state = update_in(state.source_files[uri], &%{&1 | dirty?: false})
     trigger_build(state)
   end
@@ -301,6 +303,11 @@ defmodule ElixirLS.LanguageServer.Server do
         Path.extname(uri) in [".ex", ".exs", ".erl", ".yrl", ".xrl", ".eex", ".leex"] and
           (type in [1, 3] or not Map.has_key?(state.source_files, uri))
       end)
+
+    changes
+    |> Enum.map(& &1["uri"])
+    |> Enum.uniq()
+    |> WorkspaceSymbols.notify_uris_modified()
 
     if needs_build, do: trigger_build(state), else: state
   end
@@ -387,6 +394,15 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(workspace_symbol_req(_id, query), state) do
+    fun = fn ->
+      state.source_files
+      WorkspaceSymbols.symbols(query)
+    end
+
+    {:async, fun, state}
+  end
+
   defp handle_request(completion_req(_id, uri, line, character), state) do
     snippets_supported =
       !!get_in(state.client_capabilities, [
@@ -467,6 +483,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "documentFormattingProvider" => Formatting.supported?(),
       "signatureHelpProvider" => %{"triggerCharacters" => ["("]},
       "documentSymbolProvider" => true,
+      "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
       "executeCommandProvider" => %{"commands" => ["spec"]},
@@ -571,6 +588,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
         GenServer.reply(from, contracts)
       end
+
+      WorkspaceSymbols.notify_build_complete()
 
       %{state | analysis_ready?: true, awaiting_contracts: dirty}
     else
