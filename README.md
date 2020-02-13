@@ -86,7 +86,7 @@ ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and s
 
 ## Workspace Symbols
 
-With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from current workspace, all dependances and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions. However due to sheer number of different symbols and fuzzy search utilized by the provider, ElixirLS uses query prefixes to improove serch results relevance.
+With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions. However due to sheer number of different symbols and fuzzy search utilized by the provider, ElixirLS uses query prefixes to improve search results relevance.
 
 Use the following rules when navigating to workspace symbols:
 * no prefix - search for modules
