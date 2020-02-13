@@ -27,3 +27,5 @@ erl_crash.dump
 
 # Also ignore temp files created during testing
 **/test/tmp
+
+elixir-ls-dist.tar
