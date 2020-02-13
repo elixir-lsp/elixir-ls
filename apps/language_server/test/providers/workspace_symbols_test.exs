@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
+defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
   alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
   use ExUnit.Case
 
