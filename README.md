@@ -118,6 +118,7 @@ If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles co
 ## Known Issues
 
 * `.exs` files don't return compilation errors
+* `workspaceSymbolProvider` capability currently requires enabled dialyzer
 
 ## Building and running
 
