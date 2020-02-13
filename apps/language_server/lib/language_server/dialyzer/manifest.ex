@@ -108,7 +108,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   defp build_elixir_plt() do
-    JsonRpc.show_message(:info, "Building core Elixir PLT. This will take a few minutes.")
+    JsonRpc.show_message(
+      :info,
+      "Building core Dialyzer Elixir PLT. This will take a few minutes (often 15+) and can be disabled in the settings."
+    )
 
     files =
       Path.join([Application.app_dir(:elixir), "**/*.beam"])
