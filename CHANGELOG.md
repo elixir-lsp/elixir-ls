@@ -9,6 +9,7 @@
 - Add didSave to server capabilities (thanks to [Jonáš Trantina](https://github.com/Coffei)) [#86](https://github.com/elixir-lsp/elixir-ls/pull/86)
 - Bump ElixirSense
   - Main changes: return results by arity, return all type signatures, typespec and dialyzer fixes
+- Add workspaceSymbol support to quickly navigate to modules, functions, callbacks etc (thanks to [Łukasz Samson](https://github.com/lukaszsamson)) [#110](https://github.com/elixir-lsp/elixir-ls/pull/110)
 
 Breaking Changes:
 
