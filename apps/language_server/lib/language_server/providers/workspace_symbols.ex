@@ -379,7 +379,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
             {function, arity} <- module.module_info(:exports) do
-          {function, arity} = strip_macro_prefix({function, arity})
+          {function, arity} = SourceFile.strip_macro_prefix({function, arity})
           line = find_function_line(module, function, arity, path)
 
           build_result(:functions, {module, function, arity}, path, line)
@@ -414,7 +414,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
             # TODO: Don't call into here directly
             {{callback, arity}, [{:type, line, _, _}]} <-
               ElixirSense.Core.Normalized.Typespec.get_callbacks(module) do
-          {callback, arity} = strip_macro_prefix({callback, arity})
+          {callback, arity} = SourceFile.strip_macro_prefix({callback, arity})
 
           build_result(:callbacks, {module, callback, arity}, path, line)
         end
@@ -524,12 +524,5 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       start: %{line: max(line - 1, 0), character: 0},
       end: %{line: line, character: 0}
     }
-  end
-
-  defp strip_macro_prefix({function, arity}) do
-    case Atom.to_string(function) do
-      "MACRO-" <> rest -> {String.to_atom(rest), arity - 1}
-      _other -> {function, arity}
-    end
   end
 end

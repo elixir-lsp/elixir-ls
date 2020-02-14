@@ -584,7 +584,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
       for {from, uri} <- not_dirty do
         contracts =
-          Enum.filter(contracts, fn {file, _, _, _} -> SourceFile.path_from_uri(uri) == file end)
+          Enum.filter(contracts, fn {file, _, _, _, _} ->
+            SourceFile.path_from_uri(uri) == file
+          end)
 
         GenServer.reply(from, contracts)
       end

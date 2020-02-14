@@ -12,9 +12,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer.SuccessTypings do
         file in files,
         {{^mod, fun, arity} = mfa, success_typing} <- success_typings(plt, mod),
         :dialyzer_plt.lookup_contract(plt, mfa) == :none,
-        line = SourceFile.function_line(mod, fun, arity),
+        {stripped_fun, stripped_arity} = SourceFile.strip_macro_prefix({fun, arity}),
+        line = SourceFile.function_line(mod, stripped_fun, stripped_arity),
         is_integer(line),
-        do: {file, line, mfa, success_typing}
+        do: {file, line, {mod, stripped_fun, stripped_arity}, success_typing, stripped_fun != fun}
   end
 
   defp source(module) do
