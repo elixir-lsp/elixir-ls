@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
   import ElixirLS.LanguageServer.Protocol
 
   defmodule ContractTranslator do
-    def translate_contract(fun, contract) do
+    def translate_contract(fun, contract, is_macro) do
       {[%ExSpec{specs: [spec]} | _], _} =
         "-spec foo#{contract}."
         |> Parse.string()
@@ -29,6 +29,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
 
       spec
       |> Macro.postwalk(&tweak_specs/1)
+      |> drop_macro_env(is_macro)
       |> Macro.to_string()
       |> String.replace("()", "")
       |> Code.format_string!(line_length: :infinity)
@@ -97,13 +98,19 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
     defp tweak_specs(node) do
       node
     end
+
+    defp drop_macro_env(ast, false), do: ast
+
+    defp drop_macro_env({:"::", [], [{:foo, [], [_env | rest]}, res]}, true) do
+      {:"::", [], [{:foo, [], rest}, res]}
+    end
   end
 
   def code_lens(uri, text) do
     resp =
-      for {_, line, {mod, fun, arity}, contract} <- Server.suggest_contracts(uri),
+      for {_, line, {mod, fun, arity}, contract, is_macro} <- Server.suggest_contracts(uri),
           SourceFile.function_def_on_line?(text, line, fun),
-          spec = ContractTranslator.translate_contract(fun, contract) do
+          spec = ContractTranslator.translate_contract(fun, contract, is_macro) do
         %{
           "range" => range(line - 1, 0, line - 1, 0),
           "command" => %{

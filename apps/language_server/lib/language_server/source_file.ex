@@ -144,7 +144,23 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         false
 
       line_text ->
-        Regex.match?(Regex.compile!("^\s*def\s+#{Regex.escape(to_string(fun))}"), line_text)
+        # when function line is taken from docs the line points to `@doc` attribute
+        # or first `def`/`defp`/`defmacro`/`defmacrop`/`defguard`/`defguardp`/`defdelegate` clause line if no `@doc` attribute
+        Regex.match?(
+          Regex.compile!(
+            "^\s*def((macro)|(guard)|(delegate))?p?\s+#{Regex.escape(to_string(fun))}"
+          ),
+          line_text
+        ) or
+          Regex.match?(Regex.compile!("^\s*@doc"), line_text)
+    end
+  end
+
+  @spec strip_macro_prefix({atom, non_neg_integer}) :: {atom, non_neg_integer}
+  def strip_macro_prefix({function, arity}) do
+    case Atom.to_string(function) do
+      "MACRO-" <> rest -> {String.to_atom(rest), arity - 1}
+      _other -> {function, arity}
     end
   end
 end
