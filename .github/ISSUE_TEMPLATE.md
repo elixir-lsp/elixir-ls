@@ -6,6 +6,12 @@
 * LSP Client name: 
 * If using VSCode, are you using "ElixirLS Fork: Elixir support and debugger" (note that it has "Fork" in the name)? 
 
+### Troubleshooting
+
+- [ ] Restart your editor (which will restart ElixirLS) sometimes fixes issues
+- [ ] Stop your editor, remove the entire `.elixir_ls` directory, then restart your editor
+  * NOTE: This will cause you to have to re-run the entire dialyzer build
+
 ### Crash report template
 
 _Delete this section if not reporting a crash_
