@@ -145,7 +145,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
       line_text ->
         # when function line is taken from docs the line points to `@doc` attribute
-        # or first `def`/`defp`/`defmacro`/`defmacrop`/`defquard`/`defguardp`/`defdelegate` clause line if no `@doc` attribute
+        # or first `def`/`defp`/`defmacro`/`defmacrop`/`defguard`/`defguardp`/`defdelegate` clause line if no `@doc` attribute
         Regex.match?(
           Regex.compile!(
             "^\s*def((macro)|(guard)|(delegate))?p?\s+#{Regex.escape(to_string(fun))}"
