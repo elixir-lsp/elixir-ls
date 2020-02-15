@@ -15,6 +15,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     :typedoc
   ]
 
+  defmodule DocumentSymbol do
+    @moduledoc """
+    Corresponds to the LSP interface of the same name.
+
+    For details see https://microsoft.github.io/language-server-protocol/specification#textDocument_documentSymbol
+    """
+    @derive Jason.Encoder
+    defstruct [:name, :kind, :range, :selectionRange, :children]
+  end
+
   def symbols(uri, text) do
     symbols = list_symbols(text) |> Enum.map(&build_symbol_information(uri, &1))
     {:ok, symbols}
@@ -232,7 +242,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     do: Enum.map(info, &build_symbol_information(uri, &1))
 
   defp build_symbol_information(uri, info) do
-    %{
+    %DocumentSymbol{
       name: info.name,
       kind: SymbolUtils.symbol_kind_to_code(info.type),
       range: location_to_range(info.location),
