@@ -252,6 +252,10 @@ defmodule ElixirLS.LanguageServer.Server do
     set_settings(state, new_settings)
   end
 
+  defp handle_notification(notification("shutdown"), state) do
+    %{state | received_shutdown?: true}
+  end
+
   defp handle_notification(notification("exit"), state) do
     code = if state.received_shutdown?, do: 0, else: 1
     System.halt(code)
@@ -351,8 +355,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:ok, %{"capabilities" => server_capabilities()}, state}
   end
 
+  # NOTE: This doesn't seem to match spec
+  # https://github.com/Microsoft/language-server-protocol/blob/master/versions/protocol-2-x.md#shutdown-request
   defp handle_request(request(_id, "shutdown", _params), state) do
-    {:ok, nil, %{state | received_shutdown?: true}}
+    state = handle_request(notification("shutdown"), state)
+    {:ok, nil, state}
   end
 
   defp handle_request(definition_req(_id, uri, line, character), state) do
