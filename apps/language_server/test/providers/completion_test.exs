@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     logger_labels =
       ["warn", "debug", "error", "info"]
-      |> Enum.map(&(&1 <> "(chardata_or_fun,metadata \\\\ [])"))
+      |> Enum.map(&(&1 <> "(chardata_or_fun, metadata \\\\ [])"))
 
     for lfn <- logger_labels do
       assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     logger_labels =
       ["warn", "debug", "error", "info"]
-      |> Enum.map(&(&1 <> "(chardata_or_fun,metadata \\\\ [])"))
+      |> Enum.map(&(&1 <> "(chardata_or_fun, metadata \\\\ [])"))
 
     for lfn <- logger_labels do
       assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
@@ -74,7 +74,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.map(& &1["label"])
 
     assert completions == [
-             "def my_fun(example,arg)"
+             "def my_fun(example, arg)"
            ]
   end
 
