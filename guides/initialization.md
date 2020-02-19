@@ -51,7 +51,7 @@ Before building the project and start answering requests from the client, it mus
 
 This is also a private Mix API.
 
-## Start receiving requet/responses
+## Start receiving request/responses
 
 To start receiving packets, it uses `Stream.resource/3` reading with `IO.binread/2` until `:eof` is received. It is a very simple but functional implementation of a server that uses standard IO for communication.
 
