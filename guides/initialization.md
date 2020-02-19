@@ -124,7 +124,7 @@ The build might not be successful, but if it is, it will trigger a call to `dial
 
 Here is the point in time where it will build the [PLT (a Persistent Lookup Table)](http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html#the-persistent-lookup-table) for the instance of Erlang/Elixir/project deps and source. This is mighty resource hungry and it is usually where CPUs start spinning.
 
-There are many things done in this module. It tries to be smart about analyzing only the modules that have change. It does that by first checking the integrity of the PLT and then loading all modules from the PLT using `:dialyzer_plt.all_modules/1`.
+There are many things done in this module. It tries to be smart about analyzing only the modules that have changed. It does that by first checking the integrity of the PLT and then loading all modules from the PLT using `:dialyzer_plt.all_modules/1`.
 
 If it finds that there is a difference, than it calculates this difference (using `MapSet`) to separate stale modules from non-stale. Then it delegates do the `ElixirLS.LanguageServer.Dialyzer.Analyzer` module for the proper analysis run. 
 
