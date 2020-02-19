@@ -112,7 +112,7 @@ When the language server needs to "reload" the project it must first:
 - compile only the project's `mix.exs` file. This is to ensure it is properly sourced and that it can use it for reading project metadata;
 - ensure that it does not override the server logger config;
 
-This process is handled on the private function `reload_project/0`. One interesting trick it uses is that it sets a different build path using `Mix.ProjectStack.post_config/1`. This is the point where it will create a `.elixir_ls` directory on your project. 
+This process is handled on the private function `reload_project/0`. One interesting trick it uses is that it sets a different build path using `Mix.ProjectStack.post_config/1` (which is a private API). This is the point where it will create a `.elixir_ls` directory on your project. 
 
 After reloading, the BEAM instance is free of old code and is ready to fetch/compile/analyze the project.
 
