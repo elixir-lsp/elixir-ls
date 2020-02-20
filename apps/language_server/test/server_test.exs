@@ -67,7 +67,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
              "isIncomplete" => false,
              "items" => [
                %{
-                 "detail" => "module",
+                 "detail" => "behaviour",
                  "documentation" => _,
                  "kind" => 9,
                  "label" => "GenServer"
