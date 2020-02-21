@@ -21,10 +21,10 @@ clustering.
 
 The new startup sequence is:
 
-* The wrapper script compiles, using the project OTP/Elixir, this application caches it;
-* The wrapper script starts the just-compiled application;
-* The application enables clustering and tries to find the Elixir-LS process under a well-known global name;
-* If it is not found, Elixir-LS is started using its distribution in the background and the finding is retried;
+* The wrapper script compiles, using the project OTP/Elixir, this application caches it (done);
+* The wrapper script starts the just-compiled application (done);
+* The application enables clustering and tries to find the Elixir-LS process under a well-known global name (done);
+* If it is not found, Elixir-LS is started using its distribution in the background and the finding is retried (done);
 * The embedded server registers with Elixir-LS and starts piping stdin/stdout to it;
 * Elixir-LS handles the LSP protocol, as usual, but calls back to the embedded server for anything it needs
   to figure out.
@@ -39,3 +39,5 @@ Note that there is a potential for conflict with another application called `eel
 by renaming this application to something obscure, like `eels_24692c715a9dc2f8c3a88632dbb18704` but that's probably
 best postponed to when it actually is needed. To reduce the change of this happening, `eels` is published as
 a Hex package.
+
+Because we need the source code at runtime, this app has `lib/` moved under `priv/`, in case you're wondering.

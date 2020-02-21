@@ -6,7 +6,7 @@ defmodule Eels.Application do
   use Application
 
   def start(_type, _args) do
-    IO.puts("Starting EELS application")
+    IO.puts(:stderr, "Starting EELS application")
     start_distribution()
     start_language_server()
     start_supervisor()
@@ -14,8 +14,8 @@ defmodule Eels.Application do
 
   defp start_supervisor do
     children = [
-      Eels.LSClient,
-      # TODO Eels.InputForwarder
+      {Eels.LSClient, get_language_server()},
+      Eels.InputForwarder
     ]
     Supervisor.start_link(children, strategy: :one_for_one)
   end
@@ -24,12 +24,12 @@ defmodule Eels.Application do
     System.cmd("epmd", ["-daemon"])
     {:ok, _mypid} = :net_kernel.start([my_name(), :shortnames])
     :erlang.set_cookie(:erlang.node(), cookie())
-    IO.puts("System started on #{inspect :erlang.node()}")
+    IO.puts(:stderr, "System started on #{inspect :erlang.node()}")
   end
 
   defp start_language_server(tries \\ 3)
   defp start_language_server(0)do
-    IO.puts("Could not start language server after 3 tries, exiting!")
+    IO.puts(:stderr, "Could not start language server after 3 tries, exiting!")
     System.halt(:abort)
   end
 
@@ -40,7 +40,7 @@ defmodule Eels.Application do
       if get_language_server() == nil do
         start_language_server(tries - 1)
       else
-        IO.puts("Connected to language server")
+        IO.puts(:stderr, "Connected to language server")
       end
     end
   end
