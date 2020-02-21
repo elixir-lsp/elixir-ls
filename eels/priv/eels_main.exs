@@ -39,6 +39,7 @@ defmodule Eels.StartupHelper do
   end
 end
 
+# The script that calls us should ensure we're in the root directory of the release.
 names = Eels.StartupHelper.collect("lib/#{eels}/priv/lib")
 {:ok, _, _} = Kernel.ParallelCompiler.compile(names)
 
