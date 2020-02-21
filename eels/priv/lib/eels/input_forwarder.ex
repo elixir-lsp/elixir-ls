@@ -16,7 +16,8 @@ defmodule Eels.InputForwarder do
   end
 
   defp read_loop do
-    input = IO.read(:stdin, :line)
+    input = IO.read(:stdio, :line)
+    IO.puts(:stderr, "Input line received: #{inspect input}")
     Eels.LSClient.send_input_data(input)
     read_loop()
   end

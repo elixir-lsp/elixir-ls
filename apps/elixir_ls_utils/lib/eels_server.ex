@@ -1,6 +1,8 @@
 defmodule ElixirLS.Utils.EelsServer  do
   @moduledoc """
   Server for `Eels.LSClient`.
+
+  TODO: Work as language server of debugging server. Design for that is still tbd.
   """
   use GenServer
   require Logger
@@ -33,7 +35,10 @@ defmodule ElixirLS.Utils.EelsServer  do
   # Received from Eels client instance to register it as a new project specific node
   def handle_cast({:register, pid}, state) do
     Logger.info("Received registration request from #{inspect pid}")
-    # I don't think we actually need to do anything right now.
+    # TODO The simplest way to hook into the existing code is by executing
+    # intercept_output and then stream packets directly from the remote. It
+    # also keeps more code "here" than "there". The alternative is to just
+    # forward with the `:input` and `:print` casts.
     {:noreply, state}
   end
 

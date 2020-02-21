@@ -25,7 +25,7 @@ The new startup sequence is:
 * The wrapper script starts the just-compiled application (done);
 * The application enables clustering and tries to find the Elixir-LS process under a well-known global name (done);
 * If it is not found, Elixir-LS is started using its distribution in the background and the finding is retried (done);
-* The embedded server registers with Elixir-LS and starts piping stdin/stdout to it;
+* The embedded server registers with Elixir-LS and starts piping stdin/stdout to it (done);
 * Elixir-LS handles the LSP protocol, as usual, but calls back to the embedded server for anything it needs
   to figure out.
 

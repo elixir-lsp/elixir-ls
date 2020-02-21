@@ -40,8 +40,10 @@ defmodule Eels.Application do
       if get_language_server() == nil do
         start_language_server(tries - 1)
       else
-        IO.puts(:stderr, "Connected to language server")
+        IO.puts(:stderr, "Started and connected to language server")
       end
+    else
+      IO.puts(:stderr, "Connected to language server")
     end
   end
 

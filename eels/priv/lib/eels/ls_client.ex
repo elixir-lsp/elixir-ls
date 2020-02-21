@@ -26,17 +26,18 @@ defmodule Eels.LSClient do
   # Call from server to execute code in our node. Yes, anything goes.
   def handle_call({:execute, {module, func, args}}, _from, server_node) do
     result = Kernel.apply(module, func, args)
-    {:ok, result, server_node}
+    {:reply, result, server_node}
   end
 
   # Call from server to print data to stdout (LSP replies)
   def handle_cast({:print, data}, server_node) do
     IO.puts(data)
-    {:noresult, server_node}
+    {:noreply, server_node}
   end
 
   # Call from forwarder to send read data to server (LSP requests)
   def handle_cast({:input, data}, server_node) do
-    GenServer.cast({@ls_process_name, server_node}, {:input, data})
+    IO.inspect GenServer.cast({@ls_process_name, server_node}, {:input, data, self()})
+    {:noreply, server_node}
   end
 end
