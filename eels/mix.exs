@@ -16,7 +16,8 @@ defmodule Eels.MixProject do
 
   def application do
     [
-      applications: []
+      applications: [],
+      mod: {Eels.Application, []}
     ]
   end
 

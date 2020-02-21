@@ -4,6 +4,8 @@
 # parallel scripts for Unix and NT like environments. Going
 # to Elixir helps a lot :)
 
+eels = "eels-0.1.0" # TODO can we dynamically figure this out? Template?
+
 ### Step one: compile our application.
 
 defmodule Eels.StartupHelper do
@@ -21,7 +23,6 @@ defmodule Eels.StartupHelper do
     dirs = (get_full_paths(path, result, :dir))
 
     recursive = Enum.flat_map(dirs, fn dir ->
-      IO.puts("  recurse into #{inspect dir}")
       collect(dir)
     end)
 
@@ -38,11 +39,16 @@ defmodule Eels.StartupHelper do
   end
 end
 
-names = Eels.StartupHelper.collect("lib/eels-0.1.0/priv/lib") # TODO make version variable
-IO.puts("Collected: #{inspect names}") # TODO make version variable
-result = Kernel.ParallelCompiler.compile(names)
-IO.puts("Result: #{inspect result}")
+names = Eels.StartupHelper.collect("lib/#{eels}/priv/lib")
+{:ok, _, _} = Kernel.ParallelCompiler.compile(names)
 
-### Step two: start our application
+### Step two: Load and start our application
 
-Eels.Application.start()
+# TODO is there a quicker way to get the app spec parsed and loaded?
+app_spec_src = File.read!("lib/#{eels}/ebin/eels.app")
+{:ok, app_spec_tokens, _} = :erl_scan.string(String.to_charlist(app_spec_src))
+{:ok, app_spec} = :erl_parse.parse_term(app_spec_tokens)
+:ok = :application.load(app_spec)
+
+# All done, start the thing.
+:ok = :application.start(:eels, :permanent)

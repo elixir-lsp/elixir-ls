@@ -3,9 +3,6 @@ defmodule Eels.Application do
 
   def start(_type, _args) do
     IO.puts("Starting EELS application")
-  end
-
-  def start() do
-    IO.puts("Starting EELS application")
+    {:ok, self()}
   end
 end
