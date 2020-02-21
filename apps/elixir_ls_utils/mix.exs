@@ -21,13 +21,16 @@ defmodule ElixirLS.Utils.Mixfile do
 
   def application do
     # We must NOT start ANY applications as this is taken care in code.
-    [applications: []]
+    [applications: [],
+     included_applications: [:eels]]
   end
 
   defp deps do
     [
       {:jason, "~> 1.1"},
-      {:mix_task_archive_deps, github: "JakeBecker/mix_task_archive_deps"}
+      {:mix_task_archive_deps, github: "JakeBecker/mix_task_archive_deps"},
+      # We include eels as a dependency so that we get it bundled in the release
+      {:eels, path: "../../eels"}
     ]
   end
 end

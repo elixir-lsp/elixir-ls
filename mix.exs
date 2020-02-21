@@ -3,27 +3,27 @@ defmodule ElixirLS.Mixfile do
 
   def project do
     [
+      version: "1.0.0",
       apps_path: "apps",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       build_per_environment: false,
       deps: deps(),
-      elixir: ">= 1.7.0"
+      elixir: ">= 1.9.0",
+      releases: releases()
     ]
   end
 
-  # Dependencies can be Hex packages:
-  #
-  #   {:my_dep, "~> 0.3.0"}
-  #
-  # Or git/path repositories:
-  #
-  #   {:my_dep, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
-  #
-  # Type "mix help deps" for more examples and options.
-  #
-  # Dependencies listed here are available only for this project
-  # and cannot be accessed from applications inside the apps folder
+  defp releases do
+    [
+      # TODO add debugger as separate or mixed in application?
+      language_server: [
+        applications: [language_server: :permanent],
+#        steps: [:assemble, :tar] TODO enable, slows down development too much
+      ]
+    ]
+  end
+
   defp deps do
     []
   end

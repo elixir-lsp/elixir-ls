@@ -21,7 +21,7 @@ clustering.
 
 The new startup sequence is:
 
-* The wrapper script compiles, using the project OTP/Elixir, this application under a new random name and caches it;
+* The wrapper script compiles, using the project OTP/Elixir, this application caches it;
 * The wrapper script starts the just-compiled application;
 * The application enables clustering and tries to find the Elixir-LS process under a well-known global name;
 * If it is not found, Elixir-LS is started using its distribution in the background and the finding is retried;
@@ -33,5 +33,9 @@ It is a little bit roundabout and makes implementing Elixir-LS somewhat harder b
 it solves all the versioning problems.
 
 This application contains the per-beam code and therefore cannot contain any dependencies; also, it is compiled
-at run-time to make sure that there are no incompatibilities. It gets compiled at startup time under a new random
-name so that it cannot possibly conflict with existing application names in the project BEAM.
+at run-time to make sure that there are no incompatibilities.
+
+Note that there is a potential for conflict with another application called `eels`. This can be alleviated simply
+by renaming this application to something obscure, like `eels_24692c715a9dc2f8c3a88632dbb18704` but that's probably
+best postponed to when it actually is needed. To reduce the change of this happening, `eels` is published as
+a Hex package.
