@@ -15,8 +15,38 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     :typedoc
   ]
 
-  def symbols(uri, text) do
-    symbols = list_symbols(text) |> Enum.map(&build_symbol_information(uri, &1))
+  defmodule DocumentSymbol do
+    @moduledoc """
+    Corresponds to the LSP interface of the same name.
+
+    For details see https://microsoft.github.io/language-server-protocol/specification#textDocument_documentSymbol
+    """
+    @derive Jason.Encoder
+    defstruct [:name, :kind, :range, :selectionRange, :children]
+  end
+
+  defmodule SymbolInformation do
+    @moduledoc """
+    Corresponds to the LSP interface of the same name.
+
+    For details see https://microsoft.github.io/language-server-protocol/specification#textDocument_documentSymbol
+    """
+    @derive Jason.Encoder
+    defstruct [:name, :kind, :location, :containerName]
+  end
+
+  def symbols(uri, text, hierarchical) do
+    symbols = list_symbols(text)
+
+    symbols =
+      if hierarchical do
+        Enum.map(symbols, &build_symbol_information_hierarchical(uri, &1))
+      else
+        symbols
+        |> Enum.map(&build_symbol_information_flat(uri, &1))
+        |> List.flatten()
+      end
+
     {:ok, symbols}
   end
 
@@ -228,17 +258,51 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp extract_symbol(_, _), do: nil
 
-  defp build_symbol_information(uri, info) when is_list(info),
-    do: Enum.map(info, &build_symbol_information(uri, &1))
+  defp build_symbol_information_hierarchical(uri, info) when is_list(info),
+    do: Enum.map(info, &build_symbol_information_hierarchical(uri, &1))
 
-  defp build_symbol_information(uri, info) do
-    %{
+  defp build_symbol_information_hierarchical(uri, info) do
+    %DocumentSymbol{
       name: info.name,
       kind: SymbolUtils.symbol_kind_to_code(info.type),
       range: location_to_range(info.location),
       selectionRange: location_to_range(info.location),
-      children: build_symbol_information(uri, info.children)
+      children: build_symbol_information_hierarchical(uri, info.children)
     }
+  end
+
+  defp build_symbol_information_flat(uri, info, parent_name \\ nil)
+
+  defp build_symbol_information_flat(uri, info, parent_name) when is_list(info),
+    do: Enum.map(info, &build_symbol_information_flat(uri, &1, parent_name))
+
+  defp build_symbol_information_flat(uri, info, parent_name) do
+    case info.children do
+      [_ | _] ->
+        [
+          %SymbolInformation{
+            name: info.name,
+            kind: SymbolUtils.symbol_kind_to_code(info.type),
+            location: %{
+              uri: uri,
+              range: location_to_range(info.location)
+            },
+            containerName: parent_name
+          }
+          | Enum.map(info.children, &build_symbol_information_flat(uri, &1, info.name))
+        ]
+
+      _ ->
+        %SymbolInformation{
+          name: info.name,
+          kind: SymbolUtils.symbol_kind_to_code(info.type),
+          location: %{
+            uri: uri,
+            range: location_to_range(info.location)
+          },
+          containerName: parent_name
+        }
+    end
   end
 
   defp location_to_range(location) do

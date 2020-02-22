@@ -388,7 +388,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(document_symbol_req(_id, uri), state) do
     fun = fn ->
-      DocumentSymbols.symbols(uri, state.source_files[uri].text)
+      hierarchical? =
+        state.client_capabilities
+        |> Map.get("textDocument", %{})
+        |> Map.get("documentSymbol", %{})
+        |> Map.get("hierarchicalDocumentSymbolSupport", false)
+
+      DocumentSymbols.symbols(uri, state.source_files[uri].text, hierarchical?)
     end
 
     {:async, fun, state}
