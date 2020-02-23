@@ -116,6 +116,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     }
   end
 
+  test "requests shutdown without params", %{server: server} do
+    Server.receive_packet(server, request(1, "shutdown"))
+    assert %{received_shutdown?: true} = :sys.get_state(server)
+  end
+
+  test "requests shutdown with params", %{server: server} do
+    Server.receive_packet(server, request(1, "shutdown", nil))
+    assert %{received_shutdown?: true} = :sys.get_state(server)
+  end
+
   # TODO: Fix this test for the incremental formatter
   @tag :pending
   test "formatter", %{server: server} do
