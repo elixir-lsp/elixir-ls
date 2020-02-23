@@ -121,22 +121,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
   @impl GenServer
   def handle_cast({:receive_packet, request(id, _, _) = packet}, state) do
-    state =
-      case handle_request(packet, state) do
-        {:ok, result, state} ->
-          JsonRpc.respond(id, result)
-          state
+    {:noreply, handle_request_packet(id, packet, state)}
+  end
 
-        {:error, type, msg, state} ->
-          JsonRpc.respond_with_error(id, type, msg)
-          state
-
-        {:async, fun, state} ->
-          {pid, _ref} = handle_request_async(id, fun)
-          %{state | requests: Map.put(state.requests, id, pid)}
-      end
-
-    {:noreply, state}
+  def handle_cast({:receive_packet, request(id, method)}, state) do
+    {:noreply, handle_request_packet(id, request(id, method, nil), state)}
   end
 
   @impl GenServer
@@ -317,6 +306,22 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
+  defp handle_request_packet(id, packet, state) do
+    case handle_request(packet, state) do
+      {:ok, result, state} ->
+        JsonRpc.respond(id, result)
+        state
+
+      {:error, type, msg, state} ->
+        JsonRpc.respond_with_error(id, type, msg)
+        state
+
+      {:async, fun, state} ->
+        {pid, _ref} = handle_request_async(id, fun)
+        %{state | requests: Map.put(state.requests, id, pid)}
+    end
+  end
+
   defp handle_request(initialize_req(_id, root_uri, client_capabilities), state) do
     show_version_warnings()
 
@@ -458,11 +463,6 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
     x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
     {:ok, x, state}
-  end
-
-  defp handle_request(request(_, _, _) = req, state) do
-    IO.inspect(req, label: "Unmatched request")
-    {:error, :invalid_request, nil, state}
   end
 
   defp handle_request_async(id, func) do
