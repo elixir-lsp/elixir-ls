@@ -465,6 +465,19 @@ defmodule ElixirLS.LanguageServer.Server do
     {:ok, x, state}
   end
 
+  defp handle_request(request(_, _) = req, state) do
+    handle_invalid_request(req, state)
+  end
+
+  defp handle_request(request(_, _, _) = req, state) do
+    handle_invalid_request(req, state)
+  end
+
+  defp handle_invalid_request(req, state) do
+    IO.inspect(req, label: "Unmatched request")
+    {:error, :invalid_request, nil, state}
+  end
+
   defp handle_request_async(id, func) do
     parent = self()
 
