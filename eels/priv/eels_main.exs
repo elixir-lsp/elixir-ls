@@ -10,7 +10,7 @@ eels_version = System.get_env("EELS_VERSION")
 eels = "eels-#{eels_version}"
 
 old_dir = File.cwd!()
-release_dir = System.get_env("RELEASE_ROOT", ".")
+release_dir = System.get_env("RELEASE_ROOT") || "."
 File.cd!(release_dir)
 
 ### Step one: compile our application.

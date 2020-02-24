@@ -27,13 +27,18 @@ defmodule Eels.Application do
 
   def my_node do
     "EELS_NODE"
-    |> System.get_env("eels-default-node")
+    |> getenv("eels-default-node")
     |> String.to_atom()
   end
 
   def cookie do
     "EELS_COOKIE"
-    |> System.get_env("eels-default-cookie")
+    |> getenv("eels-default-cookie")
     |> String.to_atom()
+  end
+
+  # Added to be compatible with then System.get_env/2 did not exist
+  def getenv(name, default) do
+    System.get_env(name) || default
   end
 end
