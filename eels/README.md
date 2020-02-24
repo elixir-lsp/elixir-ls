@@ -39,3 +39,5 @@ best postponed to when it actually is needed. To reduce the change of this happe
 a Hex package.
 
 Because we need the source code at runtime, this app has `lib/` moved under `priv/`, in case you're wondering.
+
+TODO cleanup inferior BEAM instance if main one fails.
