@@ -2,12 +2,17 @@
 # Launches a new Elixir Embedded Language Server, which
 # runs the Elixir/OTP version-specific bits of Elixir-LS
 
+exec >/tmp/start_eels.out 2>&1
+
 [ -f "$HOME/.asdf/asdf.sh" ] && . "$HOME/.asdf/asdf.sh"
 
 echo "Starting Eels, PWD=$PWD"
-echo "Language Server Release Dir: RELEASE_ROOT"
+echo "Language Server Release Dir: $RELEASE_ROOT"
+echo "Release cookie: $RELEASE_COOKIE"
+echo "Node: $EELS_NODE"
+echo "Cookie: $EELS_COOKIE"
 
 # Run elixir, asdf-vm makes it the project specific version.
 # TODO template eels verion (or send it in as an argument?).
 # TODO Windows version
-elixir $RELEASE_DIR/lib/eels-0.1.0/priv/eels_main.exs
+elixir --no-halt $RELEASE_ROOT/lib/eels-0.1.0/priv/eels_main.exs

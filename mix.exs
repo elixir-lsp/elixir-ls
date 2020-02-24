@@ -18,7 +18,7 @@ defmodule ElixirLS.Mixfile do
     [
       elixir_ls: [
         applications: [elixir_ls_main: :permanent],
-        steps: [:assemble, :tar]
+        # steps: [:assemble, :tar] TODO re-enable when done
       ]
     ]
   end

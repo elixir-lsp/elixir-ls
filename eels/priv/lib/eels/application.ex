@@ -4,9 +4,10 @@ defmodule Eels.Application do
   Elixir LS distribution root.
   """
   use Application
+  require Logger
 
   def start(_type, _args) do
-    IO.puts(:stderr, "Starting EELS application")
+    Logger.info("Starting EELS application")
     start_distribution()
     start_supervisor()
   end
@@ -19,19 +20,17 @@ defmodule Eels.Application do
   end
 
   defp start_distribution do
-    System.cmd("epmd", ["-daemon"])
     {:ok, _mypid} = :net_kernel.start([my_node(), :shortnames])
-    :erlang.set_cookie(:erlang.node(), cookie())
-    IO.puts(:stderr, "System started on #{inspect :erlang.node()}")
+    :erlang.set_cookie(node(), cookie())
+    Logger.info("System started on #{inspect node()} with cookie #{cookie()}")
   end
 
   def my_node do
     "EELS_NODE"
-    |> System.get_env("eels-#{System.pid()}")
+    |> System.get_env("eels-default-node")
     |> String.to_atom()
   end
 
-  # TODO make it work in MIX_ENV == development
   def cookie do
     "EELS_COOKIE"
     |> System.get_env("eels-default-cookie")

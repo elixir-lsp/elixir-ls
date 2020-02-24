@@ -25,7 +25,7 @@ defmodule ElixirLS.Utils.EelsRunner do
     {:ok, node}
   end
 
-  def handle_call(call = {:exec, module, function, arguments}, _from, node) do
+  def handle_call(call = {:exec, _module, _function, _arguments}, _from, node) do
     result = GenServer.call({:eels_server, node}, call)
     {:reply, result, node}
   end
@@ -33,25 +33,25 @@ defmodule ElixirLS.Utils.EelsRunner do
   defp generate_state() do
     max = 2_000_000_000_000 # lots of birthdays need to happen...
     cookie = :"eels-cookie-#{:rand.uniform(max)}"
-    node = :"eels-#{:rand.uniform(max)}"
+    host = node |> Atom.to_string() |> String.split("@") |> List.last()
+    node = :"eels-#{:rand.uniform(max)}@#{host}"
     {node, cookie}
   end
 
   defp start_eels_vm(node, cookie) do
-    :erlang.set_cookie(node, cookie)
-    System.put_env("EELS_COOKIE", cookie)
-    System.put_env("EELS_NODE", node)
-    System.put_env("EELS_VERSION", Keyword.get(Application.spec(:eels), :vsn))
-    script = Application.app_dir(:elixir_ls_utils <> "/priv/start_eels")
+    System.put_env("EELS_COOKIE", Atom.to_string(Node.get_cookie()))
+    System.put_env("EELS_NODE", Atom.to_string(node))
+    System.put_env("EELS_VERSION", List.to_string(Keyword.get(Application.spec(:eels), :vsn)))
+    script = Application.app_dir(:elixir_ls_utils) <> "/priv/start_eels"
     # TODO Should we keep the port around?
-    Port.open({:command, script <> " start"})
+    Port.open({:spawn, script <> " start"}, [])
+    Process.sleep(2_000) # TODO clean up
+    Logger.info("Connected: #{inspect Node.connect(node)}")
   end
 
   defp exec_ping(node) do
-    # TODO clean up
-    Process.sleep(2_000)
     result = GenServer.call({:eels_server, node}, {:exec, Kernel, :node, []})
-    Logger.info("Result = #{inspect result}
+    Logger.info("Result = #{inspect result}")
   end
 
 end

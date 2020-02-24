@@ -6,7 +6,8 @@
 
 # TODO make work in development.
 
-eels = "eels-0.1.0" # TODO can we dynamically figure this out? Template?
+eels_version = System.get_env("EELS_VERSION")
+eels = "eels-#{eels_version}"
 
 old_dir = File.cwd!()
 release_dir = System.get_env("RELEASE_ROOT", ".")

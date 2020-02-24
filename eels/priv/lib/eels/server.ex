@@ -6,6 +6,7 @@ defmodule Eels.Server do
   not to act as a trust boundary.
   """
   use GenServer
+  require Logger
 
   # Known name for the language server/debugger to find us under.
   @name :eels_server
@@ -15,13 +16,14 @@ defmodule Eels.Server do
   end
 
   def init([]) do
-    IO.puts(:stderr, "Eels server running on #{inspect node()}/#{inspect self()}")
+    Logger.info("Eels server running on #{inspect node()}/#{inspect self()}")
     {:ok, []}
   end
 
   # Call from server to execute code in our node. Yes, anything goes.
-  def handle_call({:execute, {module, func, args}}, _from, state) do
+  def handle_call({:exec, module, func, args}, _from, state) do
     result = Kernel.apply(module, func, args)
+    Logger.info("execute #{module}/#{func}/#{inspect args} -> #{inspect result}")
     {:reply, result, state}
   end
 end
