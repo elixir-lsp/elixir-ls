@@ -4,7 +4,13 @@
 # parallel scripts for Unix and NT like environments. Going
 # to Elixir helps a lot :)
 
+# TODO make work in development.
+
 eels = "eels-0.1.0" # TODO can we dynamically figure this out? Template?
+
+old_dir = File.cwd!()
+release_dir = System.get_env("RELEASE_ROOT", ".")
+File.cd!(release_dir)
 
 ### Step one: compile our application.
 
@@ -52,4 +58,6 @@ app_spec_src = File.read!("lib/#{eels}/ebin/eels.app")
 :ok = :application.load(app_spec)
 
 # All done, start the thing.
+File.cd!(old_dir) # We don't need the filesystem anymore, back to - hopefully -
+                  # the project directory
 :ok = :application.start(:eels, :permanent)

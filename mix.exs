@@ -16,10 +16,9 @@ defmodule ElixirLS.Mixfile do
 
   defp releases do
     [
-      # TODO add debugger as separate or mixed in application?
-      language_server: [
-        applications: [language_server: :permanent],
-#        steps: [:assemble, :tar] TODO enable, slows down development too much
+      elixir_ls: [
+        applications: [elixir_ls_main: :permanent],
+        steps: [:assemble, :tar]
       ]
     ]
   end

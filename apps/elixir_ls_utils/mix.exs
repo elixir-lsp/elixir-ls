@@ -21,6 +21,7 @@ defmodule ElixirLS.Utils.Mixfile do
 
   def application do
     [mod: {ElixirLS.Utils.Application, []},
+     # We include Eels basically just for its source code, so prevent it from starting.
      included_applications: [:eels]]
   end
 
