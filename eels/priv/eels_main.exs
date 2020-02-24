@@ -52,7 +52,6 @@ names = Eels.StartupHelper.collect("lib/#{eels}/priv/lib")
 
 ### Step two: Load and start our application
 
-# TODO is there a quicker way to get the app spec parsed and loaded?
 app_spec_src = File.read!("lib/#{eels}/ebin/eels.app")
 {:ok, app_spec_tokens, _} = :erl_scan.string(String.to_charlist(app_spec_src))
 {:ok, app_spec} = :erl_parse.parse_term(app_spec_tokens)

@@ -21,16 +21,14 @@ clustering.
 
 The new startup sequence is:
 
-* The wrapper script compiles, using the project OTP/Elixir, this application caches it (done);
-* The wrapper script starts the just-compiled application (done);
-* The application enables clustering and tries to find the Elixir-LS process under a well-known global name (done);
-* If it is not found, Elixir-LS is started using its distribution in the background and the finding is retried (done);
-* The embedded server registers with Elixir-LS and starts piping stdin/stdout to it (done);
-* Elixir-LS handles the LSP protocol, as usual, but calls back to the embedded server for anything it needs
-  to figure out.
+* Elixir-LS gets started as a release, with its own compiled OTP/Elixir version;
+* On startup, it kicks off a subprocess that starts the project's `elixir` command
+  with the Eels wrapper script;
+* The wrapper script compiles, using the project OTP/Elixir, this application caches it;
+* The wrapper script starts the just-compiled application;
 
-It is a little bit roundabout and makes implementing Elixir-LS somewhat harder because of all the remote calls, but
-it solves all the versioning problems.
+The "embedded" Elixir Language Server (Eels) is now running and can be used by the
+"real" one for project-specific things.
 
 This application contains the per-beam code and therefore cannot contain any dependencies; also, it is compiled
 at run-time to make sure that there are no incompatibilities.
