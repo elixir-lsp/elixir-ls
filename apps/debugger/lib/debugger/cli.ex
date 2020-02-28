@@ -6,7 +6,7 @@ defmodule ElixirLS.Debugger.CLI do
     WireProtocol.intercept_output(&Output.print/1, &Output.print_err/1)
     Launch.start_mix()
     Application.ensure_all_started(:debugger, :permanent)
-    IO.puts("Started ElixirLS debugger")
+    IO.puts("Started ElixirLS Fork debugger v#{Launch.debugger_version()}")
     Launch.print_versions()
     WireProtocol.stream_packets(&Server.receive_packet/1)
   end

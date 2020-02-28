@@ -20,6 +20,11 @@ defmodule ElixirLS.Utils.Launch do
     vsn
   end
 
+  def debugger_version do
+    {:ok, vsn} = :application.get_key(:debugger, :vsn)
+    vsn
+  end
+
   defp load_dot_config do
     path = Path.join(Mix.Utils.mix_home(), "config.exs")
 
