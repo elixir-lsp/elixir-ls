@@ -493,7 +493,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "textDocumentSync" => %{
         "change" => 2,
         "openClose" => true,
-        "save" => true
+        "save" => %{"includeText" => true}
       },
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
