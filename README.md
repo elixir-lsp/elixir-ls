@@ -119,6 +119,7 @@ If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles co
 
 * `.exs` files don't return compilation errors
 * `workspaceSymbolProvider` capability currently requires enabled dialyzer
+* "Fetching n dependencies" sometimes get stuck (remove the `.elixir_ls` directory to fix)
 
 ## Building and running
 
