@@ -129,6 +129,9 @@ defmodule ElixirLS.Utils.MixTest.Case do
     for %{name: module, file: file} <- stack do
       :code.purge(module)
       :code.delete(module)
+      # It's important to use `compile_file` here instead of `require_file`
+      # because we are recompiling this file to reload the mix project back onto
+      # the project stack.
       Code.compile_file(file)
     end
   end
