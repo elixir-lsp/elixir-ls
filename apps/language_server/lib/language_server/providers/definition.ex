@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
   """
 
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.Protocol
   alias ElixirSense.Providers.Definition.Location
 
   def definition(uri, text, line, character) do
@@ -21,10 +22,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
             _ -> SourceFile.path_to_uri(file)
           end
 
+        ElixirLS.LanguageServer.JsonRpc.log_message(:info, "Returning location struct")
+
         {:ok,
-         %{
-           "uri" => uri,
-           "range" => %{
+         %Protocol.Location{
+           uri: uri,
+           range: %{
              "start" => %{"line" => line - 1, "character" => column - 1},
              "end" => %{"line" => line - 1, "character" => column - 1}
            }

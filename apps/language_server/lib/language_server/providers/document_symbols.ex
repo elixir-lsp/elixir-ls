@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   """
 
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
+  alias ElixirLS.LanguageServer.Protocol
 
   @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
 
@@ -14,26 +15,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     :moduledoc,
     :typedoc
   ]
-
-  defmodule DocumentSymbol do
-    @moduledoc """
-    Corresponds to the LSP interface of the same name.
-
-    For details see https://microsoft.github.io/language-server-protocol/specification#textDocument_documentSymbol
-    """
-    @derive Jason.Encoder
-    defstruct [:name, :kind, :range, :selectionRange, :children]
-  end
-
-  defmodule SymbolInformation do
-    @moduledoc """
-    Corresponds to the LSP interface of the same name.
-
-    For details see https://microsoft.github.io/language-server-protocol/specification#textDocument_documentSymbol
-    """
-    @derive Jason.Encoder
-    defstruct [:name, :kind, :location, :containerName]
-  end
 
   def symbols(uri, text, hierarchical) do
     symbols = list_symbols(text)
@@ -262,7 +243,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     do: Enum.map(info, &build_symbol_information_hierarchical(uri, &1))
 
   defp build_symbol_information_hierarchical(uri, info) do
-    %DocumentSymbol{
+    %Protocol.DocumentSymbol{
       name: info.name,
       kind: SymbolUtils.symbol_kind_to_code(info.type),
       range: location_to_range(info.location),
@@ -280,7 +261,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     case info.children do
       [_ | _] ->
         [
-          %SymbolInformation{
+          %Protocol.SymbolInformation{
             name: info.name,
             kind: SymbolUtils.symbol_kind_to_code(info.type),
             location: %{
@@ -293,7 +274,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         ]
 
       _ ->
-        %SymbolInformation{
+        %Protocol.SymbolInformation{
           name: info.name,
           kind: SymbolUtils.symbol_kind_to_code(info.type),
           location: %{
