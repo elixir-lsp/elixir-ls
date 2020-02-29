@@ -443,7 +443,7 @@ defmodule ElixirLS.Debugger.Server do
 
     # FIXME: Private API
     unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
-      Code.require_file(System.get_env("MIX_EXS") || "mix.exs")
+      Code.compile_file(System.get_env("MIX_EXS") || "mix.exs")
     end
 
     task = task || Mix.Project.config()[:default_task]
@@ -555,7 +555,10 @@ defmodule ElixirLS.Debugger.Server do
       %{name: name, file: file} = project
       :code.purge(name)
       :code.delete(name)
-      Code.require_file(file)
+      # It's important to use `compile_file` here instead of `require_file`
+      # because we are recompiling this file to reload the mix project back onto
+      # the project stack.
+      Code.compile_file(file)
     end
   end
 
