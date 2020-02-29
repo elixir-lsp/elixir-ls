@@ -6,6 +6,10 @@ Improvements:
 - Code lens is returned in more situations [#122](https://github.com/elixir-lsp/elixir-ls/pull/122) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 - Properly support requests without params (fixes shutdown in vim-lsc) [#139](https://github.com/elixir-lsp/elixir-ls/pull/139) (thanks [Brad Folkens](https://github.com/bfolkens))
 
+Bug Fixes:
+- Fix the debugger [#143](https://github.com/elixir-lsp/elixir-ls/pull/143)
+- textDocumentSync save match spec (fixes error notice in vim-lsp) [#144](https://github.com/elixir-lsp/elixir-ls/pull/144) (thanks [N. G. Scheurich](https://github.com/ngscheurich))
+
 ### v0.3.0: 14 Feb 2020
 
 Major Improvements:
