@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.3.1: 3 Mar 2020
+
 Improvements:
 
 - Do not highlight function calls the same as function definitions [vscode-elixir-ls #40](https://github.com/elixir-lsp/vscode-elixir-ls/pull/40) (thanks [Jason Axelson](https://github.com/axelson))
