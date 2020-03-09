@@ -363,15 +363,28 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
   end
 
+  defp resolve_module(module) when is_atom(module), do: module
+  defp resolve_module({module, _, _}) when is_atom(module), do: module
+
+  defp resolve_module_file(module, fallback) do
+    # We try to resolve the module to its source file. The only time the source
+    # info may not be available is when it has been stripped by the beam_lib
+    # module, but that shouldn't be the case. More info:
+    # http://erlang.org/doc/reference_manual/modules.html#module_info-0-and-module_info-1-functions
+    module.module_info(:compile)
+    |> Keyword.get(:source, fallback)
+    |> Path.relative_to_cwd()
+  end
+
   defp add_warnings(warnings, raw_warnings) do
     new_warnings =
-      for {_, {file, line, m_or_mfa}, _} = warning <- raw_warnings, in_project?(file) do
-        module =
-          case m_or_mfa do
-            module when is_atom(module) -> module
-            {module, _, _} when is_atom(module) -> module
-          end
-
+      for {_, {file, line, m_or_mfa}, _} = warning <- raw_warnings,
+          module = resolve_module(m_or_mfa),
+          # Dialyzer warnings have the file path at the start of the app it's
+          # in, which breaks umbrella apps. We have to manually resolve the file
+          # from the module instead.
+          file = resolve_module_file(module, file),
+          in_project?(file) do
         {module, {file, line, warning}}
       end
 
