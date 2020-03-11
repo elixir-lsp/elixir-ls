@@ -363,19 +363,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
   end
 
-  defp resolve_module(module) when is_atom(module), do: module
-  defp resolve_module({module, _, _}) when is_atom(module), do: module
-
-  defp resolve_module_file(module, fallback) do
-    # We try to resolve the module to its source file. The only time the source
-    # info may not be available is when it has been stripped by the beam_lib
-    # module, but that shouldn't be the case. More info:
-    # http://erlang.org/doc/reference_manual/modules.html#module_info-0-and-module_info-1-functions
-    module.module_info(:compile)
-    |> Keyword.get(:source, fallback)
-    |> Path.relative_to_cwd()
-  end
-
   defp add_warnings(warnings, raw_warnings) do
     new_warnings =
       for {_, {file, line, m_or_mfa}, _} = warning <- raw_warnings,
@@ -391,6 +378,19 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     new_warnings
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
     |> Enum.into(warnings)
+  end
+
+  defp resolve_module(module) when is_atom(module), do: module
+  defp resolve_module({module, _, _}) when is_atom(module), do: module
+
+  defp resolve_module_file(module, fallback) do
+    # We try to resolve the module to its source file. The only time the source
+    # info may not be available is when it has been stripped by the beam_lib
+    # module, but that shouldn't be the case. More info:
+    # http://erlang.org/doc/reference_manual/modules.html#module_info-0-and-module_info-1-functions
+    module.module_info(:compile)
+    |> Keyword.get(:source, fallback)
+    |> Path.relative_to_cwd()
   end
 
   defp dependent_modules(modules, mod_deps, result \\ MapSet.new())
