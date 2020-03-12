@@ -1,5 +1,10 @@
 ### Unreleased
 
+Improvements:
+
+Bug Fixes:
+- Fix dialyzer errors not being reported for umbrella projects [#149](https://github.com/elixir-lsp/elixir-ls/pull/149) (thanks [hworld](https://github.com/hworld))
+
 ### v0.3.1: 3 Mar 2020
 
 Improvements:
