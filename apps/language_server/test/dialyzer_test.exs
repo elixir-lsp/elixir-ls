@@ -234,6 +234,50 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  test "reports dialyxir_short error in umbrella", %{server: server} do
+    in_fixture(__DIR__, "umbrella_dialyzer", fn ->
+      file_a = SourceFile.path_to_uri(Path.absname("apps/app1/lib/app1.ex"))
+
+      capture_log(fn ->
+        root_uri = SourceFile.path_to_uri(File.cwd!())
+        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"}
+          })
+        )
+
+        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+
+        assert publish_diagnostics_notif(^file_a, [
+                 %{
+                   "message" => error_message1,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 1},
+                     "start" => %{"character" => 0, "line" => 1}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 },
+                 %{
+                   "message" => error_message2,
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 2},
+                     "start" => %{"character" => 0, "line" => 2}
+                   },
+                   "severity" => 2,
+                   "source" => "ElixirLS Dialyzer"
+                 }
+               ]) = message
+
+        assert error_message1 == "Function check_error/0 has no local return."
+        assert error_message2 == "The pattern can never match the type :error."
+      end)
+    end)
+  end
+
   # Failing and extremely slow (~3s)
   @tag :pending
   test "clears diagnostics when source files are deleted", %{server: server} do
