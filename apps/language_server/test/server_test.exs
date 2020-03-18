@@ -126,53 +126,50 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     assert %{received_shutdown?: true} = :sys.get_state(server)
   end
 
-  # TODO: Fix this test for the incremental formatter
-  @tag :pending
-  test "formatter", %{server: server} do
+  test "incremental formatter", %{server: server} do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])
-      code = ~S(
+
+      code = """
       defmodule MyModule do
-      def my_fn do
-      foo "This should be split into two lines if reading options from .formatter.exs"
+        def my_fn do
+          foo("This should be split into two lines if reading options from .formatter.exs")
+        end
       end
-      end
-      )
+      """
 
       initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, formatting_req(1, uri, %{}))
-
-      resp = assert_receive(%{"id" => 2}, 1000)
-
-      assert response(1, [
-               %{
-                 "newText" =>
-                   "defmodule MyModule do\n  def my_fn do\n    foo(\n      \"This should be split into two lines if reading options from .formatter.exs\"\n    )\n  end\nend\n",
-                 "range" => %{
-                   "end" => %{"character" => 6, "line" => 6},
-                   "start" => %{"character" => 0, "line" => 0}
-                 }
-               }
-             ]) = resp
-
-      # Now try it in a subdirectory with its own .formatter.exs file.
-      subdir_uri = Path.join([root_uri(), "lib/file.ex"])
-      Server.receive_packet(server, did_open(subdir_uri, "elixir", 1, code))
-      Server.receive_packet(server, formatting_req(2, subdir_uri, %{}))
+      Server.receive_packet(server, formatting_req(2, uri, %{}))
 
       resp = assert_receive(%{"id" => 2}, 1000)
 
       assert response(2, [
                %{
-                 "newText" =>
-                   "defmodule MyModule do\n  def my_fn do\n    foo \"This should be split into two lines if reading options from .formatter.exs\"\n  end\nend\n",
+                 "newText" => "\n    ",
                  "range" => %{
-                   "end" => %{"character" => 6, "line" => 6},
-                   "start" => %{"character" => 0, "line" => 0}
+                   "end" => %{"character" => 84, "line" => 2},
+                   "start" => %{"character" => 84, "line" => 2}
+                 }
+               },
+               %{
+                 "newText" => "\n      ",
+                 "range" => %{
+                   "end" => %{"character" => 8, "line" => 2},
+                   "start" => %{"character" => 8, "line" => 2}
                  }
                }
-             ]) = resp
+             ]) == resp
+
+      # Now try it in a subdirectory with its own .formatter.exs file that does not define a max line length.
+      subdir_uri = Path.join([root_uri(), "lib/file.ex"])
+      Server.receive_packet(server, did_open(subdir_uri, "elixir", 1, code))
+      Server.receive_packet(server, formatting_req(3, subdir_uri, %{}))
+
+      resp = assert_receive(%{"id" => 3}, 1000)
+
+      # File is already formatted
+      assert response(3, []) == resp
     end)
   end
 
