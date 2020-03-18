@@ -14,6 +14,8 @@ available support channels.
    [issues](https://github.com/elixir-lsp/elixir-ls/issues/) before opening a new
    one**
 
+   Also check [elixir\_sense issues](https://github.com/elixir-lsp/elixir_sense/issues)
+
    Check if one already exists related to the issue you are having. Remember
    to include `closed` issues as well.
 
