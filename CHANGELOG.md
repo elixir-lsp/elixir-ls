@@ -5,6 +5,9 @@ Improvements:
 Bug Fixes:
 - Fix dialyzer errors not being reported for umbrella projects [#149](https://github.com/elixir-lsp/elixir-ls/pull/149) (thanks [hworld](https://github.com/hworld))
 
+VSCode:
+- Change: No longer override default value of `editor.acceptSuggestionOnEnter` [vscode-elixir-ls #53](https://github.com/elixir-lsp/vscode-elixir-ls/pull/53)
+
 ### v0.3.1: 3 Mar 2020
 
 Improvements:
