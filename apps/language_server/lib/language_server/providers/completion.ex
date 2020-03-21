@@ -486,6 +486,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     |> String.replace("$", "\\$")
     |> String.replace("}", "\\}")
     |> String.split(",")
+    |> Enum.map(&String.trim/1)
   end
 
   defp module_attr_snippets(%{prefix: prefix, scope: :module, def_before: nil}) do
