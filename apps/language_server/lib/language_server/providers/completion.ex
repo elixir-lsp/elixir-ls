@@ -67,33 +67,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                    "ExUnit.Assertions"
                  ])
 
-  @ignore_module_attrs [
-    "@after_compile",
-    "@before_compile",
-    "@behaviour",
-    "@callback",
-    "@compile",
-    "@deprecated",
-    "@dialyzer",
-    "@doc",
-    "@enforce_keys",
-    "@external_resource",
-    "@file",
-    "@impl",
-    "@macrocallback",
-    "@moduledoc",
-    "@on_definition",
-    "@on_load",
-    "@opaque",
-    "@optional_callbacks",
-    "@since",
-    "@spec",
-    "@type",
-    "@typedoc",
-    "@typep",
-    "@vsn"
-  ]
-
   @keywords %{
     "end" => "end",
     "do" => "do\n\t$0\nend"
@@ -181,7 +154,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     name_only = String.trim_leading(name, "@")
     insert_text = if String.starts_with?(prefix, "@"), do: name_only, else: name
 
-    if name in @ignore_module_attrs or name == prefix do
+    if name == prefix do
       nil
     else
       %__MODULE__{
