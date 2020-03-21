@@ -124,9 +124,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     scope =
       case env.scope do
-        Elixir -> :file
+        scope when scope in [Elixir, nil] -> :file
         module when is_atom(module) -> :module
-        _ -> :function
+        {_, _} -> :function
       end
 
     def_before =
