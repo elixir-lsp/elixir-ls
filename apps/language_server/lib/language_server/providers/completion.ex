@@ -69,7 +69,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   @keywords %{
     "end" => "end",
-    "do" => "do\n\t$0\nend"
+    "do" => "do\n\t$0\nend",
+    "true" => "true",
+    "false" => "false",
+    "nil" => "nil",
+    "else" => "else\n\t$0",
+    "rescue" => "rescue\n\t$0",
+    "catch" => "catch\n\t$0",
+    "after" => "after\n\t$0"
   }
 
   def trigger_characters do
