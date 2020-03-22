@@ -1,6 +1,14 @@
 ### Unreleased
 
 Improvements:
+- Bump ElixirSense
+  - Fixes find all references doesn't work with argument defaults [#150](https://github.com/elixir-lsp/elixir-ls/issues/150)
+  - Adds erlang edoc support [elixir_sense #86](https://github.com/elixir-lsp/elixir_sense/pull/86)
+- Improvements to complete provider (thanks to [Łukasz Samson](https://github.com/lukaszsamson)) [#159](https://github.com/elixir-lsp/elixir-ls/pull/159)
+  - Better handling when file fails to parse
+  - Remove no longer necessary workaround that prevented completing default `@` (such as `@doc` or `@external_resource`)
+  - Add more keywords
+  - Trim spaces
 
 Bug Fixes:
 - Fix dialyzer errors not being reported for umbrella projects [#149](https://github.com/elixir-lsp/elixir-ls/pull/149) (thanks [hworld](https://github.com/hworld))
