@@ -67,36 +67,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                    "ExUnit.Assertions"
                  ])
 
-  @ignore_module_attrs [
-    "@after_compile",
-    "@before_compile",
-    "@behaviour",
-    "@callback",
-    "@compile",
-    "@deprecated",
-    "@dialyzer",
-    "@doc",
-    "@enforce_keys",
-    "@external_resource",
-    "@file",
-    "@impl",
-    "@macrocallback",
-    "@moduledoc",
-    "@on_definition",
-    "@on_load",
-    "@opaque",
-    "@optional_callbacks",
-    "@since",
-    "@spec",
-    "@type",
-    "@typedoc",
-    "@typep",
-    "@vsn"
-  ]
-
   @keywords %{
     "end" => "end",
-    "do" => "do\n\t$0\nend"
+    "do" => "do\n\t$0\nend",
+    "true" => "true",
+    "false" => "false",
+    "nil" => "nil",
+    "else" => "else\n\t$0",
+    "rescue" => "rescue\n\t$0",
+    "catch" => "catch\n\t$0",
+    "after" => "after\n\t$0"
   }
 
   def trigger_characters do
@@ -124,9 +104,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     scope =
       case env.scope do
-        Elixir -> :file
+        scope when scope in [Elixir, nil] -> :file
         module when is_atom(module) -> :module
-        _ -> :function
+        {_, _} -> :function
       end
 
     def_before =
@@ -181,7 +161,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     name_only = String.trim_leading(name, "@")
     insert_text = if String.starts_with?(prefix, "@"), do: name_only, else: name
 
-    if name in @ignore_module_attrs or name == prefix do
+    if name == prefix do
       nil
     else
       %__MODULE__{
@@ -486,6 +466,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     |> String.replace("$", "\\$")
     |> String.replace("}", "\\}")
     |> String.split(",")
+    |> Enum.map(&String.trim/1)
   end
 
   defp module_attr_snippets(%{prefix: prefix, scope: :module, def_before: nil}) do
