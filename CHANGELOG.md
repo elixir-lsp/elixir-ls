@@ -15,6 +15,7 @@ Bug Fixes:
 
 VSCode:
 - Change: No longer override default value of `editor.acceptSuggestionOnEnter` [vscode-elixir-ls #53](https://github.com/elixir-lsp/vscode-elixir-ls/pull/53)
+- Change: Warn when incompatible extensions are installed [vscode-elixir-ls #57](https://github.com/elixir-lsp/vscode-elixir-ls/pull/57)
 
 ### v0.3.1: 3 Mar 2020
 
