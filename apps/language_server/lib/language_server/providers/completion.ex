@@ -73,6 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     "true" => "true",
     "false" => "false",
     "nil" => "nil",
+    "when" => "when",
     "else" => "else\n\t$0",
     "rescue" => "rescue\n\t$0",
     "catch" => "catch\n\t$0",
