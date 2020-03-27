@@ -52,8 +52,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   }
 
   @use_name_only MapSet.new([
-                   {"Kernel", "require"},
-                   {"Kernel", "import"},
                    {"Kernel", "not"},
                    {"Kernel", "use"},
                    {"Kernel", "or"},
