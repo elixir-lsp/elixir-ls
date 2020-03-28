@@ -9,6 +9,7 @@ Improvements:
   - Remove no longer necessary workaround that prevented completing default `@` (such as `@doc` or `@external_resource`)
   - Add more keywords
   - Trim spaces
+- Use lower compression level to speed up dialyzer manifest writing (thanks to [hworld](https://github.com/hworld)) [#164](https://github.com/elixir-lsp/elixir-ls/pull/164)
 
 Bug Fixes:
 - Fix dialyzer errors not being reported for umbrella projects [#149](https://github.com/elixir-lsp/elixir-ls/pull/149) (thanks [hworld](https://github.com/hworld))
