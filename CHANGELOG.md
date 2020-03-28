@@ -13,6 +13,7 @@ Improvements:
 
 Bug Fixes:
 - Fix dialyzer errors not being reported for umbrella projects [#149](https://github.com/elixir-lsp/elixir-ls/pull/149) (thanks [hworld](https://github.com/hworld))
+- Fix dialyzer checking files that have not changed which gives a good speedup [#165](https://github.com/elixir-lsp/elixir-ls/pull/165) (thanks [hworld](https://github.com/hworld))
 
 VSCode:
 - Change: No longer override default value of `editor.acceptSuggestionOnEnter` [vscode-elixir-ls #53](https://github.com/elixir-lsp/vscode-elixir-ls/pull/53)
