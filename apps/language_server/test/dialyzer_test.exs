@@ -92,6 +92,53 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  test "only analyzes the changed files", %{server: server} do
+    in_fixture(__DIR__, "dialyzer", fn ->
+      file_c = SourceFile.path_to_uri(Path.absname("lib/c.ex"))
+
+      capture_log(fn ->
+        root_uri = SourceFile.path_to_uri(File.cwd!())
+        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
+          })
+        )
+
+        assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20_000
+
+        c_text = """
+        defmodule C do
+        end
+        """
+
+        c_uri = SourceFile.path_to_uri("lib/c.ex")
+
+        # The dialyzer process checks a second back since mtime only has second
+        # granularity, so we need to trigger one save that will set the
+        # timestamp, and then wait a second and save again to get the actual
+        # changed file.
+        for _ <- 1..2 do
+          Server.receive_packet(server, did_open(c_uri, "elixir", 1, c_text))
+          File.write!("lib/c.ex", c_text)
+          Server.receive_packet(server, did_save(c_uri))
+          assert_receive publish_diagnostics_notif(^file_c, []), 20_000
+
+          Process.sleep(1_500)
+        end
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "[ElixirLS Dialyzer] Found 1 changed files" <> _
+                       })
+
+        # Stop while we're still capturing logs to avoid log leakage
+        GenServer.stop(server)
+      end)
+    end)
+  end
+
   test "reports dialyxir_long formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))

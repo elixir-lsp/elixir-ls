@@ -223,7 +223,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   defp trigger_analyze(state), do: state
 
   defp update_stale(md5, removed_files, file_changes, timestamp) do
-    prev_paths = MapSet.new(Map.keys(md5))
+    prev_paths = Map.keys(md5) |> MapSet.new()
 
     # FIXME: Private API
     all_paths =
@@ -241,19 +241,32 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       |> MapSet.difference(prev_paths)
       |> MapSet.to_list()
 
-    # FIXME: Private API
-    changed = Enum.uniq(new_paths ++ Mix.Utils.extract_stale(all_paths, [timestamp]))
+    {us, {changed, changed_contents}} =
+      :timer.tc(fn ->
+        changed =
+          all_paths
+          |> extract_stale(timestamp)
+          |> Enum.concat(new_paths)
+          |> Enum.uniq()
 
-    changed_contents =
-      Task.async_stream(
-        changed,
-        fn file ->
-          content = File.read!(file)
-          {file, content, module_md5(file)}
-        end,
-        timeout: :infinity
-      )
-      |> Enum.into([])
+        changed_contents =
+          Task.async_stream(
+            changed,
+            fn file ->
+              content = File.read!(file)
+              {file, content, module_md5(file)}
+            end,
+            timeout: :infinity
+          )
+          |> Enum.into([])
+
+        {changed, changed_contents}
+      end)
+
+    JsonRpc.log_message(
+      :info,
+      "[ElixirLS Dialyzer] Found #{length(changed)} changed files in #{div(us, 1000)} milliseconds"
+    )
 
     file_changes =
       Enum.reduce(changed_contents, file_changes, fn {:ok, {file, content, hash}}, file_changes ->
@@ -267,6 +280,23 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
     removed_files = Enum.uniq(removed_files ++ removed ++ (undialyzable -- changed))
     {removed_files, file_changes}
+  end
+
+  defp extract_stale(sources, timestamp) do
+    for source <- sources,
+        last_modified(source) > timestamp do
+      source
+    end
+  end
+
+  defp last_modified(path) do
+    case File.stat(path) do
+      {:ok, %File.Stat{mtime: mtime}} ->
+        mtime
+
+      {:error, _} ->
+        {0, 0}
+    end
   end
 
   defp temp_file_path(root_path, file) do
