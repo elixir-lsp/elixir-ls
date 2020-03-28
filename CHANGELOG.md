@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.3.2: 28 Mar 2020
+
 Improvements:
 - Bump ElixirSense
   - Fixes find all references doesn't work with argument defaults [#150](https://github.com/elixir-lsp/elixir-ls/issues/150)
