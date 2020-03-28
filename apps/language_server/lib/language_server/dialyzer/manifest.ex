@@ -24,37 +24,44 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
   def write(root_path, active_plt, mod_deps, md5, warnings, timestamp) do
     Task.start_link(fn ->
-      manifest_path = manifest_path(root_path)
+      {us, _} =
+        :timer.tc(fn ->
+          manifest_path = manifest_path(root_path)
 
-      plt(
-        info: info,
-        types: types,
-        contracts: contracts,
-        callbacks: callbacks,
-        exported_types: exported_types
-      ) = active_plt
+          plt(
+            info: info,
+            types: types,
+            contracts: contracts,
+            callbacks: callbacks,
+            exported_types: exported_types
+          ) = active_plt
 
-      manifest_data = {
-        @manifest_vsn,
-        mod_deps,
-        md5,
-        warnings,
-        :ets.tab2list(info),
-        :ets.tab2list(types),
-        :ets.tab2list(contracts),
-        :ets.tab2list(callbacks),
-        :ets.tab2list(exported_types)
-      }
+          manifest_data = {
+            @manifest_vsn,
+            mod_deps,
+            md5,
+            warnings,
+            :ets.tab2list(info),
+            :ets.tab2list(types),
+            :ets.tab2list(contracts),
+            :ets.tab2list(callbacks),
+            :ets.tab2list(exported_types)
+          }
 
-      # Because the manifest file can be several megabytes, we do a write-then-rename
-      # to reduce the likelihood of corrupting the manifest
-      JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Writing manifest...")
-      File.mkdir_p!(Path.dirname(manifest_path))
-      tmp_manifest_path = manifest_path <> ".new"
-      File.write!(tmp_manifest_path, :erlang.term_to_binary(manifest_data, compressed: 9))
-      File.rename(tmp_manifest_path, manifest_path)
-      File.touch!(manifest_path, timestamp)
-      JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Done writing manifest.")
+          # Because the manifest file can be several megabytes, we do a write-then-rename
+          # to reduce the likelihood of corrupting the manifest
+          JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Writing manifest...")
+          File.mkdir_p!(Path.dirname(manifest_path))
+          tmp_manifest_path = manifest_path <> ".new"
+          File.write!(tmp_manifest_path, :erlang.term_to_binary(manifest_data, compressed: 1))
+          File.rename(tmp_manifest_path, manifest_path)
+          File.touch!(manifest_path, timestamp)
+        end)
+
+      JsonRpc.log_message(
+        :info,
+        "[ElixirLS Dialyzer] Done writing manifest in #{div(us, 1000)} milliseconds."
+      )
     end)
   end
 
