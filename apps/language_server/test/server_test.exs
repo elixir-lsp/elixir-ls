@@ -126,6 +126,18 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     assert %{received_shutdown?: true} = :sys.get_state(server)
   end
 
+  test "document symbols request when there are no client capabilities and the source file is not loaded into the server",
+       %{server: server} do
+    server_state = :sys.get_state(server)
+    assert server_state.client_capabilities == nil
+    assert server_state.source_files == %{}
+
+    Server.receive_packet(server, document_symbol_req(1, "file:///file.ex"))
+
+    resp = assert_receive(%{"id" => 1}, 1000)
+    assert resp["result"] == []
+  end
+
   test "incremental formatter", %{server: server} do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])
