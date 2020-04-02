@@ -56,6 +56,28 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     end
   end
 
+  test "unless with snippets not supported does not return a completion" do
+    text = """
+    defmodule MyModule do
+      require Logger, as: LAlias
+
+      def dummy_function() do
+        unless
+        #     ^
+      end
+    end
+    """
+
+    {line, char} = {4, 10}
+    TestUtils.assert_has_cursor_char(text, line, char)
+
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    assert length(items) == 1
+
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, false)
+    assert length(items) == 0
+  end
+
   test "provides completions for protocol functions" do
     text = """
     defimpl ElixirLS.LanguageServer.Fixtures.ExampleProtocol, for: MyModule do
