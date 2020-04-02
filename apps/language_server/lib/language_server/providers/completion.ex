@@ -588,33 +588,37 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp items_to_json(items, snippets_supported) do
+    items =
+      Enum.reject(items, fn item ->
+        !snippets_supported && snippet?(item)
+      end)
+
     for {item, idx} <- Enum.with_index(items) do
-      json = %{
-        "label" => item.label,
-        "kind" => completion_kind(item.kind),
-        "detail" => item.detail,
-        "documentation" => %{"value" => item.documentation, kind: "markdown"},
-        "filterText" => item.filter_text,
-        "sortText" => String.pad_leading(to_string(idx), 8, "0")
-      }
-
-      json =
-        if snippets_supported do
-          Map.merge(json, %{
-            "insertText" => item.insert_text,
-            "insertTextFormat" => insert_text_format(:snippet)
-          })
-        else
-          regex = Regex.recompile!(~r/\$(\{.*\})|(\$\d+).*$/)
-          text = Regex.replace(regex, item.insert_text, "")
-
-          Map.merge(json, %{
-            "insertText" => text,
-            "insertTextFormat" => insert_text_format(:plain_text)
-          })
-        end
-
-      for {k, v} <- json, not is_nil(v), into: %{}, do: {k, v}
+      item_to_json(item, idx, snippets_supported)
     end
+  end
+
+  defp item_to_json(item, idx, snippets_supported) do
+    json = %{
+      "label" => item.label,
+      "kind" => completion_kind(item.kind),
+      "detail" => item.detail,
+      "documentation" => %{"value" => item.documentation, kind: "markdown"},
+      "filterText" => item.filter_text,
+      "sortText" => String.pad_leading(to_string(idx), 8, "0"),
+      "insertText" => item.insert_text,
+      "insertTextFormat" =>
+        if snippets_supported do
+          insert_text_format(:snippet)
+        else
+          insert_text_format(:plain_text)
+        end
+    }
+
+    for {k, v} <- json, not is_nil(v), into: %{}, do: {k, v}
+  end
+
+  defp snippet?(item) do
+    item.kind == :snippet || String.match?(item.insert_text, ~r/\$\d/)
   end
 end

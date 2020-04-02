@@ -5,6 +5,7 @@ Meta:
 
 Bug Fixes:
 - Fix `textDocument/documentSymbol` on a non-fully initialized server (thanks [Jason Axelson](https://github.com/axelson)) [#173](https://github.com/elixir-lsp/elixir-ls/pull/173)
+- Don't return snippets to clients that don't declare `snippetSupport` for completions (thanks [Jason Axelson](https://github.com/axelson)) [#173](https://github.com/elixir-lsp/elixir-ls/pull/177)
 
 ### v0.3.2: 28 Mar 2020
 
