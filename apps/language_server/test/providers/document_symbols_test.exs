@@ -2324,4 +2324,75 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
   end
+
+  test "[nested] handles a file with a top-level module without a name" do
+    uri = "file://project/test.exs"
+
+    text = """
+    defmodule do
+    def foo, do: :bar
+    end
+    """
+
+    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, text, true)
+
+    assert [
+             %Protocol.DocumentSymbol{
+               children: children,
+               kind: 2,
+               name: "MISSING_MODULE_NAME",
+               range: %{
+                 start: %{line: 0, character: 0},
+                 end: %{line: 0, character: 0}
+               },
+               selectionRange: %{
+                 start: %{line: 0, character: 0},
+                 end: %{line: 0, character: 0}
+               }
+             }
+           ] = document_symbols
+
+    assert children == [
+             %Protocol.DocumentSymbol{
+               children: [],
+               kind: 12,
+               name: "foo",
+               range: %{
+                 start: %{character: 4, line: 1},
+                 end: %{character: 4, line: 1}
+               },
+               selectionRange: %{
+                 start: %{character: 4, line: 1},
+                 end: %{character: 4, line: 1}
+               }
+             }
+           ]
+  end
+
+  test "[nested] handles a file with a top-level protocol module without a name" do
+    uri = "file://project/test.exs"
+
+    text = """
+    defprotocol do
+    end
+    """
+
+    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, text, true)
+
+    assert [
+             %Protocol.DocumentSymbol{
+               children: [],
+               kind: 11,
+               name: "MISSING_PROTOCOL_NAME",
+               range: %{
+                 start: %{line: 0, character: 0},
+                 end: %{line: 0, character: 0}
+               },
+               selectionRange: %{
+                 start: %{line: 0, character: 0},
+                 end: %{line: 0, character: 0}
+               }
+             }
+           ] = document_symbols
+  end
 end

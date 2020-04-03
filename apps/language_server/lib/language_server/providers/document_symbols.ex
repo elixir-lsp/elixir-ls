@@ -53,15 +53,27 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_modules(_ast), do: []
 
   # Modules, protocols
-  defp extract_symbol(_module_name, {defname, location, [module_expression, [do: module_body]]})
+  defp extract_symbol(_module_name, {defname, location, arguments})
        when defname in [:defmodule, :defprotocol] do
+    {module_name, module_body} =
+      case arguments do
+        # Handles `defmodule do\nend` type compile errors
+        [[do: module_body]] ->
+          # The LSP requires us to return a non-empty name
+          case defname do
+            :defmodule -> {"MISSING_MODULE_NAME", module_body}
+            :defprotocol -> {"MISSING_PROTOCOL_NAME", module_body}
+          end
+
+        [module_expression, [do: module_body]] ->
+          {extract_module_name(module_expression), module_body}
+      end
+
     mod_defns =
       case module_body do
         {:__block__, [], mod_defns} -> mod_defns
         stmt -> [stmt]
       end
-
-    module_name = extract_module_name(module_expression)
 
     module_symbols =
       mod_defns
