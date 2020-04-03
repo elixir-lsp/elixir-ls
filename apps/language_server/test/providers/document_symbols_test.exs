@@ -2379,7 +2379,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, text, true)
 
-    assert [
+    assert document_symbols == [
              %Protocol.DocumentSymbol{
                children: [],
                kind: 11,
@@ -2393,6 +2393,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                  end: %{line: 0, character: 0}
                }
              }
-           ] = document_symbols
+           ]
   end
 end
