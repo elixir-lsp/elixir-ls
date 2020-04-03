@@ -28,6 +28,28 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     {:ok, %{server: server}}
   end
 
+  test "textDocument/didChange when the client hasn't claimed ownership with textDocument/didOpen",
+       %{server: server} do
+    uri = "file:///file.ex"
+
+    content_changes = [
+      %{
+        "range" => %{
+          "end" => %{"character" => 2, "line" => 1},
+          "start" => %{"character" => 0, "line" => 2}
+        },
+        "rangeLength" => 1,
+        "text" => ""
+      }
+    ]
+
+    version = 2
+    Server.receive_packet(server, did_change(uri, version, content_changes))
+
+    # Wait for the server to process the message and ensure that there is no exception
+    _ = :sys.get_state(server)
+  end
+
   test "hover", %{server: server} do
     uri = "file:///file.ex"
     code = ~S(

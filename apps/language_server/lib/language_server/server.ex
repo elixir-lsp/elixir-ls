@@ -274,9 +274,16 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change(uri, version, content_changes), state) do
-    update_in(state.source_files[uri], fn source_file ->
-      source_file = %{source_file | version: version, dirty?: true}
-      SourceFile.apply_content_changes(source_file, content_changes)
+    update_in(state.source_files[uri], fn
+      nil ->
+        # The source file was not marked as open either due to a bug in the
+        # client or a restart of the server. So just ignore the message and do
+        # not update the state
+        nil
+
+      source_file ->
+        source_file = %{source_file | version: version, dirty?: true}
+        SourceFile.apply_content_changes(source_file, content_changes)
     end)
   end
 
