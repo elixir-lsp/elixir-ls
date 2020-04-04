@@ -9,8 +9,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   """
   alias ElixirLS.LanguageServer.SourceFile
 
-  @enforce_keys [:label, :kind, :insert_text, :priority]
-  defstruct [:label, :kind, :detail, :documentation, :insert_text, :filter_text, :priority]
+  @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
+  defstruct [:label, :kind, :detail, :documentation, :insert_text, :filter_text, :priority, :tags]
 
   @module_attr_snippets [
     {"doc", "doc \"\"\"\n$0\n\"\"\"", "Documents a function"},
@@ -84,7 +84,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     [".", "@"]
   end
 
-  def completion(text, line, character, snippets_supported) do
+  def completion(text, line, character, options) do
     line_text =
       text
       |> SourceFile.lines()
@@ -144,7 +144,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> Enum.reject(&is_nil/1)
       |> Enum.uniq_by(& &1.insert_text)
       |> sort_items()
-      |> items_to_json(snippets_supported)
+      |> items_to_json(options)
 
     {:ok, %{"isIncomplete" => false, "items" => items_json}}
   end
@@ -169,7 +169,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "module attribute",
         insert_text: insert_text,
         filter_text: name_only,
-        priority: 3
+        priority: 3,
+        tags: []
       }
     end
   end
@@ -184,7 +185,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       kind: :variable,
       detail: "variable",
       insert_text: name,
-      priority: 3
+      priority: 3,
+      tags: []
     }
   end
 
@@ -200,14 +202,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: "return value",
       documentation: spec,
       insert_text: snippet,
-      priority: 5
+      priority: 5,
+      tags: []
     }
   end
 
-  defp from_completion_item(%{type: :module, name: name, summary: summary, subtype: subtype}, %{
-         def_before: nil,
-         prefix: prefix
-       }) do
+  defp from_completion_item(
+         %{type: :module, name: name, summary: summary, subtype: subtype, metadata: metadata},
+         %{
+           def_before: nil,
+           prefix: prefix
+         }
+       ) do
     capitalized? = String.first(name) == String.upcase(String.first(name))
 
     if String.ends_with?(prefix, ":") and capitalized? do
@@ -229,7 +235,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         documentation: summary,
         insert_text: name,
         filter_text: name,
-        priority: 4
+        priority: 4,
+        tags: metadata_to_tags(metadata)
       }
     end
   end
@@ -242,7 +249,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            name: name,
            summary: summary,
            arity: arity,
-           origin: origin
+           origin: origin,
+           metadata: metadata
          },
          context
        ) do
@@ -269,7 +277,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         documentation: summary,
         insert_text: full_snippet,
         priority: 2,
-        filter_text: name
+        filter_text: name,
+        tags: metadata_to_tags(metadata)
       }
     end
   end
@@ -282,7 +291,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            name: name,
            summary: summary,
            arity: arity,
-           origin: origin
+           origin: origin,
+           metadata: metadata
          },
          context
        ) do
@@ -298,7 +308,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       documentation: summary,
       insert_text: full_snippet,
       priority: 2,
-      filter_text: name
+      filter_text: name,
+      tags: metadata_to_tags(metadata)
     }
   end
 
@@ -308,7 +319,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: "#{origin} struct field",
       insert_text: "#{name}: ",
       priority: 0,
-      kind: :field
+      kind: :field,
+      tags: []
     }
   end
 
@@ -329,11 +341,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       documentation: "#{doc}#{formatted_spec}",
       insert_text: "#{name}: ",
       priority: 0,
-      kind: :field
+      kind: :field,
+      tags: []
     }
   end
 
-  defp from_completion_item(%{type: :type_spec} = suggestion, _context) do
+  defp from_completion_item(%{type: :type_spec, metadata: metadata} = suggestion, _context) do
     %{name: name, arity: arity, origin: _origin, doc: doc, signature: signature, spec: spec} =
       suggestion
 
@@ -357,7 +370,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       documentation: "#{doc}#{formatted_spec}",
       insert_text: snippet,
       priority: 0,
-      kind: :class
+      kind: :class,
+      tags: metadata_to_tags(metadata)
     }
   end
 
@@ -485,6 +499,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "module attribute",
         insert_text: snippet,
         filter_text: name,
+        tags: [],
         priority: 6
       }
     end
@@ -503,6 +518,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         kind: :keyword,
         detail: "keyword",
         insert_text: snippet,
+        tags: [],
         priority: 1
       }
     end)
@@ -516,7 +532,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       summary: summary,
       arity: arity,
       spec: spec,
-      origin: origin
+      origin: origin,
+      metadata: metadata
     } = info
 
     # ElixirSense now returns types as an atom
@@ -571,7 +588,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: detail,
       documentation: summary,
       insert_text: snippet,
-      priority: 7
+      priority: 7,
+      tags: metadata_to_tags(metadata)
     }
   end
 
@@ -587,18 +605,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end)
   end
 
-  defp items_to_json(items, snippets_supported) do
+  defp items_to_json(items, options) do
     items =
       Enum.reject(items, fn item ->
-        !snippets_supported && snippet?(item)
+        {:snippets_supported, false} in options and snippet?(item)
       end)
 
     for {item, idx} <- Enum.with_index(items) do
-      item_to_json(item, idx, snippets_supported)
+      item_to_json(item, idx, options)
     end
   end
 
-  defp item_to_json(item, idx, snippets_supported) do
+  defp item_to_json(item, idx, options) do
     json = %{
       "label" => item.label,
       "kind" => completion_kind(item.kind),
@@ -608,17 +626,49 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       "sortText" => String.pad_leading(to_string(idx), 8, "0"),
       "insertText" => item.insert_text,
       "insertTextFormat" =>
-        if snippets_supported do
+        if {:snippets_supported, true} in options do
           insert_text_format(:snippet)
         else
           insert_text_format(:plain_text)
         end
     }
 
+    # deprecated as of Language Server Protocol Specification - 3.15
+    json =
+      if {:deprecated_supported, true} in options do
+        Map.merge(json, %{
+          "deprecated" => item.tags |> Enum.any?(&(&1 == :deprecated))
+        })
+      else
+        json
+      end
+
+    tag_supported = options |> Keyword.fetch!(:tag_supported)
+
+    json =
+      if tag_supported != [] do
+        Map.merge(json, %{
+          "tags" => item.tags |> Enum.map(&tag_to_code/1) |> Enum.filter(&(&1 in tag_supported))
+        })
+      else
+        json
+      end
+
     for {k, v} <- json, not is_nil(v), into: %{}, do: {k, v}
   end
 
   defp snippet?(item) do
     item.kind == :snippet || String.match?(item.insert_text, ~r/\$\d/)
+  end
+
+  # As defined by CompletionItemTag in https://microsoft.github.io/language-server-protocol/specifications/specification-current/
+  defp tag_to_code(:deprecated), do: 1
+
+  defp metadata_to_tags(metadata) do
+    # As of Language Server Protocol Specification - 3.15 only one tag is supported
+    case metadata[:deprecated] do
+      nil -> []
+      _ -> [:deprecated]
+    end
   end
 end

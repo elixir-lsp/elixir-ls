@@ -119,7 +119,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       nil ->
         nil
 
-      {line, _} ->
+      {line, _docs, _metadata} ->
         line
     end
   end
@@ -132,7 +132,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
       docs ->
         Enum.find_value(docs, fn
-          {{^fun, ^arity}, line, _, _, _} -> line
+          {{^fun, ^arity}, line, _, _, _, _metadata} -> line
           _ -> nil
         end)
     end
