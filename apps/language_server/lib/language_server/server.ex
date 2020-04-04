@@ -279,6 +279,12 @@ defmodule ElixirLS.LanguageServer.Server do
         # The source file was not marked as open either due to a bug in the
         # client or a restart of the server. So just ignore the message and do
         # not update the state
+        IO.warn(
+          "Received textDocument/didChange for file that is not open. Received uri: #{
+            inspect(uri)
+          }"
+        )
+
         nil
 
       source_file ->
