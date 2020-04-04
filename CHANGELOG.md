@@ -8,6 +8,9 @@ Bug Fixes:
 - Don't return snippets to clients that don't declare `snippetSupport` for completions (thanks [Jason Axelson](https://github.com/axelson)) [#173](https://github.com/elixir-lsp/elixir-ls/pull/177)
 - Handle an exception that was raised in the DocumentSymbols provider (thanks [Jason Axelson](https://github.com/axelson)) [#173](https://github.com/elixir-lsp/elixir-ls/pull/179)
 
+VSCode:
+- Change: Upgrade vscode-languageclient to 6.1.3 to support Language Server Protocol 3.15 (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#159](https://github.com/elixir-lsp/vscode-elixir-ls/pull/64)
+
 ### v0.3.2: 28 Mar 2020
 
 Improvements:
