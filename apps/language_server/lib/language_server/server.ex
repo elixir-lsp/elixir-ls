@@ -439,7 +439,7 @@ defmodule ElixirLS.LanguageServer.Server do
         "deprecatedSupport"
       ])
 
-    tag_supported =
+    tags_supported =
       case get_in(state.client_capabilities, [
              "textDocument",
              "completion",
@@ -454,7 +454,7 @@ defmodule ElixirLS.LanguageServer.Server do
       Completion.completion(state.source_files[uri].text, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
-        tag_supported: tag_supported
+        tags_supported: tags_supported
       )
     end
 

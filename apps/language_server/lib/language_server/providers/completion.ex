@@ -606,9 +606,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp items_to_json(items, options) do
+    snippets_supported = Keyword.get(options, :snippets_supported, false)
+
     items =
       Enum.reject(items, fn item ->
-        {:snippets_supported, false} in options and snippet?(item)
+        not snippets_supported and snippet?(item)
       end)
 
     for {item, idx} <- Enum.with_index(items) do
@@ -626,7 +628,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       "sortText" => String.pad_leading(to_string(idx), 8, "0"),
       "insertText" => item.insert_text,
       "insertTextFormat" =>
-        if {:snippets_supported, true} in options do
+        if Keyword.get(options, :snippets_supported, false) do
           insert_text_format(:snippet)
         else
           insert_text_format(:plain_text)
@@ -635,7 +637,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     # deprecated as of Language Server Protocol Specification - 3.15
     json =
-      if {:deprecated_supported, true} in options do
+      if Keyword.get(options, :deprecated_supported, false) do
         Map.merge(json, %{
           "deprecated" => item.tags |> Enum.any?(&(&1 == :deprecated))
         })
@@ -643,12 +645,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         json
       end
 
-    tag_supported = options |> Keyword.fetch!(:tag_supported)
+    tags_supported = options |> Keyword.get(:tags_supported, [])
 
     json =
-      if tag_supported != [] do
+      if tags_supported != [] do
         Map.merge(json, %{
-          "tags" => item.tags |> Enum.map(&tag_to_code/1) |> Enum.filter(&(&1 in tag_supported))
+          "tags" => item.tags |> Enum.map(&tag_to_code/1) |> Enum.filter(&(&1 in tags_supported))
         })
       else
         json
