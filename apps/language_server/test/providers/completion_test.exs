@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   alias ElixirLS.LanguageServer.Providers.Completion
   alias ElixirLS.Utils.TestUtils
 
-  @supports [snippets_supported: true, deprecated_supported: false, tag_supported: []]
+  @supports [snippets_supported: true, deprecated_supported: false, tags_supported: []]
 
   test "returns all Logger completions on normal require" do
     text = """
