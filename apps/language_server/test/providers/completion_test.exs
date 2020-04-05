@@ -6,6 +6,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   alias ElixirLS.LanguageServer.Providers.Completion
   alias ElixirLS.Utils.TestUtils
 
+  @supports [snippets_supported: true, deprecated_supported: false, tags_supported: []]
+
   test "returns all Logger completions on normal require" do
     text = """
     defmodule MyModule do
@@ -20,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {4, 11}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
     logger_labels =
       ["warn", "debug", "error", "info"]
@@ -45,7 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {4, 11}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
     logger_labels =
       ["warn", "debug", "error", "info"]
@@ -71,10 +73,17 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = {4, 10}
     TestUtils.assert_has_cursor_char(text, line, char)
 
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
     assert length(items) == 1
 
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, false)
+    {:ok, %{"items" => items}} =
+      Completion.completion(
+        text,
+        line,
+        char,
+        @supports |> Keyword.put(:snippets_supported, false)
+      )
+
     assert length(items) == 0
   end
 
@@ -88,7 +97,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {1, 1}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
     completions =
       items
@@ -115,7 +124,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {1, 33}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
     completions =
       items
@@ -126,7 +135,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {4, 17}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
     completions =
       items
@@ -137,7 +146,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {6, 12}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => items}} = Completion.completion(text, line, char, true)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
     completions =
       items
@@ -145,5 +154,37 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.map(& &1["label"])
 
     assert "NaiveDateTime" in completions
+  end
+
+  describe "deprecated" do
+    defp get_deprecated_completion_item(options) do
+      text = """
+      ElixirLS.LanguageServer.Fixtures.ExampleDeprecated
+                                                        ^
+      """
+
+      {line, char} = {0, 50}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, options)
+      item
+    end
+
+    test "returns deprecated flag when supported" do
+      assert %{"deprecated" => true} = get_deprecated_completion_item(deprecated_supported: true)
+    end
+
+    test "returns deprecated completion tag when supported" do
+      assert %{"tags" => [1]} = get_deprecated_completion_item(tags_supported: [1])
+    end
+
+    test "returns no deprecated indicator when not supported" do
+      # deprecated and tags not supported
+      item = get_deprecated_completion_item([])
+      refute Map.has_key?(item, "deprecated")
+      refute Map.has_key?(item, "tags")
+
+      # tags supported but not deprecated tag
+      assert %{"tags" => []} = get_deprecated_completion_item(tags_supported: [2])
+    end
   end
 end

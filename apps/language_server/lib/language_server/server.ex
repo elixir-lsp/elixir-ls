@@ -443,8 +443,32 @@ defmodule ElixirLS.LanguageServer.Server do
         "snippetSupport"
       ])
 
+    # deprecated as of Language Server Protocol Specification - 3.15
+    deprecated_supported =
+      !!get_in(state.client_capabilities, [
+        "textDocument",
+        "completion",
+        "completionItem",
+        "deprecatedSupport"
+      ])
+
+    tags_supported =
+      case get_in(state.client_capabilities, [
+             "textDocument",
+             "completion",
+             "completionItem",
+             "tagSupport"
+           ]) do
+        nil -> []
+        %{"valueSet" => value_set} -> value_set
+      end
+
     fun = fn ->
-      Completion.completion(state.source_files[uri].text, line, character, snippets_supported)
+      Completion.completion(state.source_files[uri].text, line, character,
+        snippets_supported: snippets_supported,
+        deprecated_supported: deprecated_supported,
+        tags_supported: tags_supported
+      )
     end
 
     {:async, fun, state}
