@@ -17,23 +17,32 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   ]
 
   def symbols(uri, text, hierarchical) do
-    symbols = list_symbols(text)
+    case list_symbols(text) do
+      {:ok, symbols} ->
+        {:ok, build_symbols(symbols, uri, hierarchical)}
 
-    symbols =
-      if hierarchical do
-        Enum.map(symbols, &build_symbol_information_hierarchical(uri, &1))
-      else
-        symbols
-        |> Enum.map(&build_symbol_information_flat(uri, &1))
-        |> List.flatten()
-      end
+      {:error, :compilation_error} ->
+        {:error, :server_error, "[DocumentSymbols] Compilation error while parsing source file"}
+    end
+  end
 
-    {:ok, symbols}
+  defp build_symbols(symbols, uri, hierarchical)
+
+  defp build_symbols(symbols, uri, true) do
+    Enum.map(symbols, &build_symbol_information_hierarchical(uri, &1))
+  end
+
+  defp build_symbols(symbols, uri, false) do
+    symbols
+    |> Enum.map(&build_symbol_information_flat(uri, &1))
+    |> List.flatten()
   end
 
   defp list_symbols(src) do
-    Code.string_to_quoted!(src, columns: true, line: 0)
-    |> extract_modules()
+    case Code.string_to_quoted(src, columns: true, line: 0) do
+      {:ok, quoted_form} -> {:ok, extract_modules(quoted_form)}
+      {:error, _error} -> {:error, :compilation_error}
+    end
   end
 
   # Identify and extract the module symbol, and the symbols contained within the module
