@@ -39,9 +39,9 @@ fi
 # In case that people want to tweak the path, which Elixir to use, or
 # whatever prior to launching the language server or the debugger, we
 # give them the chance here. ELS_MODE will be set for
-# the really complex stuff.
+# the really complex stuff. Use an XDG compliant path.
 
-els_setup="${HOME}/.elixir_ls_setup.sh"
+els_setup="${HOME}/.config/elixir_ls/setup.sh"
 if test -f "${els_setup}"
 then
   .  "${els_setup}"
