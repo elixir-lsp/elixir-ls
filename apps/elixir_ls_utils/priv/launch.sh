@@ -22,16 +22,16 @@ then
     "")
       if which bash >/dev/null
       then
-        exec `which bash` $0 $1 relaunch
+        exec "$(which bash)" "$0" relaunch
       elif which zsh >/dev/null
       then
-        exec `which zsh` $0 $1 relaunch
+        exec "$(which zsh)" "$0" relaunch
       fi
       ;;
     *)
       # We have an arg2, so we got relaunched. Therefore, e're running in
       # a shell that can asdf-vm.
-      source "${asdf_vm}"
+      .  "${asdf_vm}"
       ;;
   esac
 fi
@@ -44,7 +44,7 @@ fi
 els_setup="${HOME}/.elixir_ls_setup.sh"
 if test -f "${els_setup}"
 then
-  source "${els_setup}"
+  .  "${els_setup}"
 fi
 
 # Setup done. Make sure that we have the proper actual path to this
@@ -57,12 +57,12 @@ readlink_f () {
   if [ -h "$filename" ]; then
     readlink_f "$(readlink "$filename")"
   else
-    echo "`pwd -P`/$filename"
+    echo "$(pwd -P)/$filename"
   fi
 }
 
-SCRIPT=`readlink_f $0`
-SCRIPTPATH=`dirname $SCRIPT`
+SCRIPT=$(readlink_f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
 export ERL_LIBS="$SCRIPTPATH:$ERL_LIBS"
 
 exec elixir -e "$ELS_SCRIPT"
