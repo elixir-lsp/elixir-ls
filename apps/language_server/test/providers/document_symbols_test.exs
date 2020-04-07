@@ -2395,4 +2395,19 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
              }
            ]
   end
+
+  test "handles a file with compilation errors by returning an empty list" do
+    uri = "file://project/test.exs"
+
+    text = """
+    defmodule A do
+      def hello do
+        Hello.hi(
+      end
+    end
+    """
+
+    assert {:error, :server_error, message} = DocumentSymbols.symbols(uri, text, true)
+    assert String.contains?(message, "Compilation error")
+  end
 end
