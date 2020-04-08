@@ -3,8 +3,6 @@
 # to launch the language server or the debugger.
 #
 
-set -vx
-
 # Running this script is a one-time action per project launch, so we opt for
 # code simplicity instead of performance. Hence some potentially redundant
 # moves here.
