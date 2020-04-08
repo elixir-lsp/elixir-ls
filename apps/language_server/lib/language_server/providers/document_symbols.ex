@@ -8,6 +8,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
   alias ElixirLS.LanguageServer.Protocol
 
+  defmodule Info do
+    defstruct [:type, :name, :location, :children]
+  end
+
   @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
 
   @docs [
@@ -95,7 +99,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         :defprotocol -> :interface
       end
 
-    %{type: type, name: module_name, location: location, children: module_symbols}
+    %Info{type: type, name: module_name, location: location, children: module_symbols}
   end
 
   # Protocol implementations
@@ -128,7 +132,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         []
       end
 
-    %{type: :struct, name: name, location: location, children: children}
+    %Info{type: :struct, name: name, location: location, children: children}
   end
 
   # Docs
@@ -148,7 +152,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
 
-    %{
+    %Info{
       type: type,
       name: type_name,
       location: location,
@@ -160,32 +164,34 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_symbol(_current_module, {:@, _, [{:behaviour, location, [behaviour_expression]}]}) do
     module_name = extract_module_name(behaviour_expression)
 
-    %{type: :constant, name: "@behaviour #{module_name}", location: location, children: []}
+    %Info{type: :constant, name: "@behaviour #{module_name}", location: location, children: []}
   end
 
   # @impl true
   defp extract_symbol(_current_module, {:@, _, [{:impl, location, [true]}]}) do
-    %{type: :constant, name: "@impl true", location: location, children: []}
+    %Info{type: :constant, name: "@impl true", location: location, children: []}
   end
 
   # @impl BehaviourModule
   defp extract_symbol(_current_module, {:@, _, [{:impl, location, [impl_expression]}]}) do
     module_name = extract_module_name(impl_expression)
 
-    %{type: :constant, name: "@impl #{module_name}", location: location, children: []}
+    %Info{type: :constant, name: "@impl #{module_name}", location: location, children: []}
   end
 
   # Other attributes
   defp extract_symbol(_current_module, {:@, _, [{name, location, _}]}) do
-    %{type: :constant, name: "@#{name}", location: location, children: []}
+    %Info{type: :constant, name: "@#{name}", location: location, children: []}
   end
 
   # Function, macro, guard, delegate
   defp extract_symbol(_current_module, {defname, _, [{_, location, _} = fn_head | _]})
        when defname in @defs do
-    %{
+    name = Macro.to_string(fn_head)
+
+    %Info{
       type: :function,
-      name: Macro.to_string(fn_head),
+      name: "#{defname} #{name}",
       location: location,
       children: []
     }
@@ -193,7 +199,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   # ExUnit test
   defp extract_symbol(_current_module, {:test, location, [name | _]}) do
-    %{
+    %Info{
       type: :function,
       name: ~s(test "#{name}"),
       location: location,
@@ -204,7 +210,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   # ExUnit setup and setup_all callbacks
   defp extract_symbol(_current_module, {name, location, [_name | _]})
        when name in [:setup, :setup_all] do
-    %{
+    %Info{
       type: :function,
       name: "#{name}",
       location: location,
@@ -227,7 +233,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       |> Enum.map(&extract_symbol(current_module, &1))
       |> Enum.reject(&is_nil/1)
 
-    %{
+    %Info{
       type: :function,
       name: ~s(describe "#{name}"),
       location: location,
@@ -249,7 +255,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       end
 
     for key <- keys do
-      %{
+      %Info{
         type: :key,
         name: "config :#{app} #{key}",
         location: location,
@@ -263,7 +269,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp build_symbol_information_hierarchical(uri, info) when is_list(info),
     do: Enum.map(info, &build_symbol_information_hierarchical(uri, &1))
 
-  defp build_symbol_information_hierarchical(uri, info) do
+  defp build_symbol_information_hierarchical(uri, %Info{} = info) do
     %Protocol.DocumentSymbol{
       name: info.name,
       kind: SymbolUtils.symbol_kind_to_code(info.type),
@@ -278,7 +284,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp build_symbol_information_flat(uri, info, parent_name) when is_list(info),
     do: Enum.map(info, &build_symbol_information_flat(uri, &1, parent_name))
 
-  defp build_symbol_information_flat(uri, info, parent_name) do
+  defp build_symbol_information_flat(uri, %Info{} = info, parent_name) do
     case info.children do
       [_ | _] ->
         [
@@ -346,7 +352,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_module_name(_), do: "# unknown"
 
   defp extract_property(property_name, location) when is_atom(property_name) do
-    %{
+    %Info{
       type: :property,
       name: "#{property_name}",
       location: location,

@@ -50,7 +50,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn(arg)",
+                    name: "def my_fn(arg)",
                     range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}},
                     selectionRange: %{
                       end: %{character: 12, line: 3},
@@ -60,7 +60,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_private_fn(arg)",
+                    name: "defp my_private_fn(arg)",
                     range: %{end: %{character: 13, line: 4}, start: %{character: 13, line: 4}},
                     selectionRange: %{
                       end: %{character: 13, line: 4},
@@ -70,7 +70,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_macro()",
+                    name: "defmacro my_macro()",
                     range: %{end: %{character: 17, line: 5}, start: %{character: 17, line: 5}},
                     selectionRange: %{
                       end: %{character: 17, line: 5},
@@ -80,7 +80,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_private_macro()",
+                    name: "defmacrop my_private_macro()",
                     range: %{end: %{character: 18, line: 6}, start: %{character: 18, line: 6}},
                     selectionRange: %{
                       end: %{character: 18, line: 6},
@@ -90,7 +90,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_guard(a) when is_integer(a)",
+                    name: "defguard my_guard(a) when is_integer(a)",
                     range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}},
                     selectionRange: %{
                       end: %{character: 29, line: 7},
@@ -100,7 +100,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_private_guard(a) when is_integer(a)",
+                    name: "defguardp my_private_guard(a) when is_integer(a)",
                     range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}},
                     selectionRange: %{
                       end: %{character: 38, line: 8},
@@ -110,7 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_delegate(list)",
+                    name: "defdelegate my_delegate(list)",
                     range: %{end: %{character: 20, line: 9}, start: %{character: 20, line: 9}},
                     selectionRange: %{
                       end: %{character: 20, line: 9},
@@ -120,7 +120,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_guard when 1 == 1",
+                    name: "defguard my_guard when 1 == 1",
                     range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}},
                     selectionRange: %{
                       end: %{character: 26, line: 10},
@@ -130,7 +130,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn_no_arg",
+                    name: "def my_fn_no_arg",
                     range: %{end: %{character: 12, line: 11}, start: %{character: 12, line: 11}},
                     selectionRange: %{
                       end: %{character: 12, line: 11},
@@ -140,7 +140,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn_with_guard(arg) when is_integer(arg)",
+                    name: "def my_fn_with_guard(arg) when is_integer(arg)",
                     range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}},
                     selectionRange: %{
                       end: %{character: 34, line: 12},
@@ -150,7 +150,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn_with_more_blocks(arg)",
+                    name: "def my_fn_with_more_blocks(arg)",
                     range: %{end: %{character: 12, line: 13}, start: %{character: 12, line: 13}},
                     selectionRange: %{
                       end: %{character: 12, line: 13},
@@ -213,7 +213,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_fn(arg)",
+                name: "def my_fn(arg)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}}
@@ -221,7 +221,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_private_fn(arg)",
+                name: "defp my_private_fn(arg)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 13, line: 4}, start: %{character: 13, line: 4}}
@@ -229,7 +229,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_macro()",
+                name: "defmacro my_macro()",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 17, line: 5}, start: %{character: 17, line: 5}}
@@ -237,7 +237,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_private_macro()",
+                name: "defmacrop my_private_macro()",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 18, line: 6}, start: %{character: 18, line: 6}}
@@ -245,7 +245,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_guard(a) when is_integer(a)",
+                name: "defguard my_guard(a) when is_integer(a)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}}
@@ -253,7 +253,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_private_guard(a) when is_integer(a)",
+                name: "defguardp my_private_guard(a) when is_integer(a)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}}
@@ -261,7 +261,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_delegate(list)",
+                name: "defdelegate my_delegate(list)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 20, line: 9}, start: %{character: 20, line: 9}}
@@ -269,7 +269,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_guard when 1 == 1",
+                name: "defguard my_guard when 1 == 1",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}}
@@ -277,7 +277,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_fn_no_arg",
+                name: "def my_fn_no_arg",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 12, line: 11}, start: %{character: 12, line: 11}}
@@ -285,7 +285,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_fn_with_guard(arg) when is_integer(arg)",
+                name: "def my_fn_with_guard(arg) when is_integer(arg)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}}
@@ -293,7 +293,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_fn_with_more_blocks(arg)",
+                name: "def my_fn_with_more_blocks(arg)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 12, line: 13}, start: %{character: 12, line: 13}}
@@ -322,7 +322,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       %Protocol.DocumentSymbol{
                         children: [],
                         kind: 12,
-                        name: "my_fn()",
+                        name: "def my_fn()",
                         range: %{
                           end: %{character: 14, line: 3},
                           start: %{character: 14, line: 3}
@@ -394,7 +394,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 12,
-                name: "my_fn()",
+                name: "def my_fn()",
                 location: %{
                   range: %{
                     end: %{character: 14, line: 3},
@@ -424,7 +424,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "some_function()",
+                    name: "def some_function()",
                     range: %{
                       end: %{character: 12, line: 2},
                       start: %{character: 12, line: 2}
@@ -451,7 +451,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "some_other_function()",
+                    name: "def some_other_function()",
                     range: %{
                       end: %{character: 12, line: 5},
                       start: %{character: 12, line: 5}
@@ -500,7 +500,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "some_function()",
+                name: "def some_function()",
                 kind: 12,
                 location: %{
                   range: %{
@@ -522,7 +522,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 12,
-                name: "some_other_function()",
+                name: "def some_other_function()",
                 location: %{
                   range: %{
                     end: %{character: 12, line: 5},
@@ -549,7 +549,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn()",
+                    name: "def my_fn()",
                     range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
                     selectionRange: %{
                       end: %{character: 12, line: 2},
@@ -583,7 +583,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "my_fn()",
+                name: "def my_fn()",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
@@ -608,7 +608,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn()",
+                    name: "def my_fn()",
                     range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
                     selectionRange: %{
                       end: %{character: 12, line: 2},
@@ -643,7 +643,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 12,
-                name: "my_fn()",
+                name: "def my_fn()",
                 location: %{
                   range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
                 },
@@ -667,7 +667,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn()",
+                    name: "def my_fn()",
                     range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
                     selectionRange: %{
                       end: %{character: 12, line: 2},
@@ -701,7 +701,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "my_fn()",
+                name: "def my_fn()",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
@@ -730,7 +730,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       %Protocol.DocumentSymbol{
                         children: [],
                         kind: 12,
-                        name: "my_fn()",
+                        name: "def my_fn()",
                         range: %{end: %{character: 14, line: 3}, start: %{character: 14, line: 3}},
                         selectionRange: %{
                           end: %{character: 14, line: 3},
@@ -783,7 +783,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "__MODULE__"
               },
               %Protocol.SymbolInformation{
-                name: "my_fn()",
+                name: "def my_fn()",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 14, line: 3}, start: %{character: 14, line: 3}}
@@ -818,7 +818,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "size(data)",
+                    name: "def size(data)",
                     range: %{end: %{character: 6, line: 2}, start: %{character: 6, line: 2}},
                     selectionRange: %{
                       end: %{character: 6, line: 2},
@@ -836,7 +836,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "size(binary)",
+                    name: "def size(binary)",
                     range: %{end: %{character: 6, line: 6}, start: %{character: 6, line: 6}},
                     selectionRange: %{
                       end: %{character: 6, line: 6},
@@ -854,7 +854,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "size(param)",
+                    name: "def size(param)",
                     range: %{end: %{character: 6, line: 10}, start: %{character: 6, line: 10}},
                     selectionRange: %{
                       end: %{character: 6, line: 10},
@@ -899,7 +899,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 12,
-                name: "size(data)",
+                name: "def size(data)",
                 location: %{
                   range: %{end: %{character: 6, line: 2}, start: %{character: 6, line: 2}}
                 },
@@ -914,7 +914,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 12,
-                name: "size(binary)",
+                name: "def size(binary)",
                 location: %{
                   range: %{end: %{character: 6, line: 6}, start: %{character: 6, line: 6}}
                 },
@@ -929,7 +929,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 12,
-                name: "size(param)",
+                name: "def size(param)",
                 location: %{
                   range: %{end: %{character: 6, line: 10}, start: %{character: 6, line: 10}}
                 },
@@ -1468,7 +1468,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "my_fn(a)",
+                    name: "def my_fn(a)",
                     range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}},
                     selectionRange: %{
                       end: %{character: 12, line: 3},
@@ -1511,7 +1511,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_fn(a)",
+                name: "def my_fn(a)",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}}
@@ -2356,7 +2356,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
              %Protocol.DocumentSymbol{
                children: [],
                kind: 12,
-               name: "foo",
+               name: "def foo",
                range: %{
                  start: %{character: 4, line: 1},
                  end: %{character: 4, line: 1}
@@ -2409,5 +2409,25 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:error, :server_error, message} = DocumentSymbols.symbols(uri, text, true)
     assert String.contains?(message, "Compilation error")
+  end
+
+  test "returns def and defp as a prefix" do
+    uri = "file://project/test.exs"
+
+    text = """
+    defmodule A do
+      def hello do
+        greetings()
+      end
+
+      defp greetings do
+        IO.puts("Hello, world")
+      end
+    end
+    """
+
+    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, text, true)
+    # IO.inspect(document_symbols, label: "document_symbols")
+    # assert String.contains?(message, "Compilation error")
   end
 end
