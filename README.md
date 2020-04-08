@@ -131,6 +131,14 @@ Run `mix compile`, then `mix elixir_ls.release -o <release_dir>`. This builds th
 
 If you're packaging these archives in an IDE plugin, make sure to build using the minimum supported OTP version for the best backwards-compatibility. Alternatively, you can use a [precompiled release](https://github.com/JakeBecker/elixir-ls/releases).
 
+### Local setup
+
+Because ElixirLS may get launched from an IDE that itself got launched from a graphical shell, the environment may not
+be complete enough to run or even find the correct Elixir/OTP version. The wrapper scripts try to configure `asdf-vm`
+if available, but that may not be what you want or need. Therefore, prior to executing Elixir, the script will source
+`~/.config/elixir_ls/setup.sh`, if available. The environment variable `ELS_MODE` is set to either `debugger` or
+`language_server` to help you decide what to do inside the script, if needed.
+
 ## Acknowledgements and related projects
 
 ElixirLS isn't the first frontend-independent server for Elixir language support. The original was [Alchemist Server](https://github.com/tonini/alchemist-server/), which powers the [Alchemist](https://github.com/tonini/alchemist.el) plugin for Emacs. Another project, [Elixir Sense](https://github.com/msaraiva/elixir_sense), builds upon Alchemist and powers the [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir) as well as another VS Code plugin, [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). ElixirLS uses Elixir Sense for several code insight features. Credit for those projects goes to their respective authors.
