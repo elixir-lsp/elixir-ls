@@ -475,8 +475,14 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(formatting_req(_id, uri, _options), state) do
-    fun = fn -> Formatting.format(state.source_files[uri], uri, state.project_dir) end
-    {:async, fun, state}
+    case state.source_files[uri] do
+      nil ->
+        {:error, :server_error, "Missing source file", state}
+
+      source_file ->
+        fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
+        {:async, fun, state}
+    end
   end
 
   defp handle_request(signature_help_req(_id, uri, line, character), state) do

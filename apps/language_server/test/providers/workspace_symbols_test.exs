@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
-  alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
   use ExUnit.Case
+  alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
 
   setup_all do
     pid =
