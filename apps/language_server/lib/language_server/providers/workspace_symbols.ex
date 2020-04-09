@@ -378,6 +378,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       chunked_module_paths
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
+            Code.ensure_loaded?(module),
             {function, arity} <- module.module_info(:exports) do
           {function, arity} = SourceFile.strip_macro_prefix({function, arity})
           line = find_function_line(module, function, arity, path)
