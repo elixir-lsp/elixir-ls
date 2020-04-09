@@ -25,6 +25,9 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
       {:error, :internal_error, msg}
     end
+  rescue
+    _e in [TokenMissingError, SyntaxError] ->
+      {:error, :internal_error, "Unable to format due to syntax error"}
   end
 
   # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
