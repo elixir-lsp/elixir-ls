@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Launches a new Elixir Embedded Language Server, which
+# runs the Elixir/OTP version-specific bits of Elixir-LS
+
+# See ElixirLS.Utils.EelsRunner for details on the environment
+# setup. RELEASE_ROOT is inherited from the release wrapper script
+# that started Elixir-LS; we can use it to find our way around.
+
+exec >/tmp/start_eels.out 2>&1
+
+[ -f "$HOME/.asdf/asdf.sh" ] && . "$HOME/.asdf/asdf.sh"
+
+# Run elixir, asdf-vm makes it the project specific version.
+# TODO Windows version
+elixir --no-halt $RELEASE_ROOT/lib/eels-${EELS_VERSION}/priv/eels_main.exs
