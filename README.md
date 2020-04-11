@@ -137,8 +137,8 @@ If you're packaging these archives in an IDE plugin, make sure to build using th
 Because ElixirLS may get launched from an IDE that itself got launched from a graphical shell, the environment may not
 be complete enough to run or even find the correct Elixir/OTP version. The wrapper scripts try to configure `asdf-vm`
 if available, but that may not be what you want or need. Therefore, prior to executing Elixir, the script will source
-`~/.config/elixir_ls/setup.sh`, if available. The environment variable `ELS_MODE` is set to either `debugger` or
-`language_server` to help you decide what to do inside the script, if needed.
+`$XDG_CONFIG_HOME/elixir_ls/setup.sh` (e.g. `~/.config/elixir_ls/setup.sh`), if available. The environment variable
+`ELS_MODE` is set to either `debugger` or `language_server` to help you decide what to do inside the script, if needed.
 
 ## Acknowledgements and related projects
 
