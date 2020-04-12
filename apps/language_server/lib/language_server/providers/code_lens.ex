@@ -17,13 +17,17 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
 
   defmodule ContractTranslator do
     def translate_contract(fun, contract, is_macro) do
+      # FIXME: Private module
       {[%ExSpec{specs: [spec]} | _], _} =
         "-spec foo#{contract}."
+        # FIXME: Private module
         |> Parse.string()
         |> hd()
         |> elem(0)
+        # FIXME: Private module
         |> ErlForms.conv_form(%Context{
           in_type_expr: true,
+          # FIXME: Private module
           module_data: %ModuleData{}
         })
 

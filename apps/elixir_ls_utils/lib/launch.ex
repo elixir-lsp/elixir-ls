@@ -26,6 +26,7 @@ defmodule ElixirLS.Utils.Launch do
   end
 
   defp load_dot_config do
+    # FIXME: Private API
     path = Path.join(Mix.Utils.mix_home(), "config.exs")
 
     if File.regular?(path) do
