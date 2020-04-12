@@ -27,8 +27,8 @@ then
       fi
       ;;
     *)
-      # We have an arg2, so we got relaunched. Therefore, e're running in
-      # a shell that can asdf-vm.
+      # We have an arg2, so we got relaunched. Therefore, we're running in a
+      # shell that supports asdf-vm.
       .  "${asdf_vm}"
       ;;
   esac
@@ -39,7 +39,7 @@ fi
 # give them the chance here. ELS_MODE will be set for
 # the really complex stuff. Use an XDG compliant path.
 
-els_setup="${HOME}/.config/elixir_ls/setup.sh"
+els_setup="${XDG_CONFIG_HOME:-~/.config}/elixir_ls/setup.sh"
 if test -f "${els_setup}"
 then
   .  "${els_setup}"
