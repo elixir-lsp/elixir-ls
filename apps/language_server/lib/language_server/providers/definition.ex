@@ -9,9 +9,11 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
 
   def definition(uri, text, line, character) do
     case ElixirSense.definition(text, line + 1, character + 1) do
+      # FIXME: Private module
       %Location{found: false} ->
         {:ok, []}
 
+      # FIXME: Private module
       %Location{file: file, line: line, column: column} ->
         line = line || 0
         column = column || 0
