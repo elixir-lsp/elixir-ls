@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.3.3: 15 Apr 2020
+
 Meta:
 - The original repository at [JakeBecker](https://github.com/JakeBecker)/[elixir-ls](https://github.com/JakeBecker/elixir-ls) has now been deprecated in favor of [elixir-lsp](https://github.com/elixir-lsp)/[elixir-ls](https://github.com/elixir-lsp/elixir-ls). Any IDE extensions that use ElixirLS should switch to using this repository. The ["ElixirLS Fork"](https://marketplace.visualstudio.com/items?itemName=elixir-lsp.elixir-ls) extension on the VS Code marketplace will be deprecated, and updates will continue at the [original ElixirLS extension](https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls)
 
