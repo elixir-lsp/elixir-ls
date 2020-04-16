@@ -7,6 +7,7 @@ Meta:
 
 Improvements:
 - Return the type of function/macro in DocumentSymbols provider (e.g. `def`, `defp`, `defmacro`) (thanks [Jason Axelson](https://github.com/axelson)) [#189](https://github.com/elixir-lsp/elixir-ls/pull/189)
+- Return `deprecated` flag or completion tag on completion items for clints that declare `deprecatedSupport` or `tagSupport` in complete provider (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#180](https://github.com/elixir-lsp/elixir-ls/pull/180)
 
 Bug Fixes:
 - Fix `textDocument/documentSymbol` on a non-fully initialized server (thanks [Jason Axelson](https://github.com/axelson)) [#173](https://github.com/elixir-lsp/elixir-ls/pull/173)
