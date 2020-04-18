@@ -6,3 +6,8 @@ Make PR
 Merge PR
 Make the tag from the new master
 Push the tag
+- `rm -rf _build release`
+- `mix elixir_ls.release`
+- `cd release`
+- `zip elixir-ls.zip *`
+- Attach elixir-ls.zip to the release on github https://github.com/elixir-lsp/elixir-ls/releases
