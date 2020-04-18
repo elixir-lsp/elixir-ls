@@ -87,6 +87,27 @@ You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` s
 
 ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
 
+## Code completion
+
+ElixirLS bundles an advanced code completion provider. The provider builds on [Elixir Sense](https://github.com/elixir-lsp/elixir_sense) library and utilizes two main mechanisms. The first one is reflection - getting information about compiled modules by Erlang and Elixir APIs. The second one is AST analysis of the current text buffer. While reflection gives precise results, it is not well suited for on demand completion of symbols from the currently edited file. The compiled version is likely to be outdated or the file may not compile at all. AST analysis helps in that case but it has its limitations. Unfortunately it is infeasible to be 100% accurate, especially with Elixir being a metaprogramming heavy language.
+
+The completions include:
+
+- keywords
+- special form snippets
+- functions
+- macros
+- modules
+- variables
+- struct fields (if the struct type is explicitely stated or can be infered from variable binding)
+- atom map keys (if map keys can be infered from variable binding)
+- attrubutes
+- types (in typespecs)
+- behaviour callbacks (inside the body of implementing module)
+- protocol functions (inside the body of implementing module)
+- keys in keyword functions arguments (if defined in spec)
+- function returns (if defined in spec)
+
 ## Workspace Symbols
 
 With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions. However due to sheer number of different symbols and fuzzy search utilized by the provider, ElixirLS uses query prefixes to improve search results relevance.
