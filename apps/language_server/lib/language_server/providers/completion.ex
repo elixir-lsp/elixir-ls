@@ -633,7 +633,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       "label" => item.label,
       "kind" => completion_kind(item.kind),
       "detail" => item.detail,
-      "documentation" => %{"value" => item.documentation, kind: "markdown"},
+      "documentation" => %{"value" => item.documentation || "", kind: "markdown"},
       "filterText" => item.filter_text,
       "sortText" => String.pad_leading(to_string(idx), 8, "0"),
       "insertText" => item.insert_text,
