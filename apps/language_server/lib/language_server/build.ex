@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile}
 
-  def build(parent, root_path, fetch_deps?) do
+  def build(parent, root_path, opts) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
       IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
@@ -16,11 +16,12 @@ defmodule ElixirLS.LanguageServer.Build do
               # FIXME: Private API
               Mix.Dep.clear_cached()
 
-              case reload_project() do
+              case reload_project(Keyword.get(opts, :load_all_modules?)) do
                 {:ok, mixfile_diagnostics} ->
                   # FIXME: Private API
-                  if fetch_deps? and Mix.Dep.load_on_environment([]) != prev_deps,
-                    do: fetch_deps()
+                  if Keyword.get(opts, :fetch_deps?) and
+                       Mix.Dep.load_on_environment([]) != prev_deps,
+                     do: fetch_deps()
 
                   {status, diagnostics} = compile()
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
@@ -106,7 +107,7 @@ defmodule ElixirLS.LanguageServer.Build do
     :global.trans({__MODULE__, self()}, func)
   end
 
-  defp reload_project do
+  defp reload_project(load_all_modules?) do
     mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
 
     if File.exists?(mixfile) do
@@ -150,6 +151,10 @@ defmodule ElixirLS.LanguageServer.Build do
         Mix.Config.persist(logger: logger_config)
       end
 
+      if load_all_modules? do
+        load_all_modules()
+      end
+
       {status, diagnostics}
     else
       msg =
@@ -158,6 +163,20 @@ defmodule ElixirLS.LanguageServer.Build do
 
       {:error, [mixfile_diagnostic({Path.absname(mixfile), nil, msg}, :error)]}
     end
+  end
+
+  defp load_all_modules do
+    apps =
+      if Mix.Project.umbrella?() do
+        Mix.Project.apps_paths() |> Map.keys()
+      else
+        [Keyword.fetch!(Mix.Project.config(), :app)]
+      end
+
+    Enum.each(apps, fn app ->
+      true = Code.prepend_path(Path.join(Mix.Project.build_path(), "lib/#{app}/ebin"))
+      :ok = Application.load(app)
+    end)
   end
 
   defp compile do
