@@ -191,6 +191,18 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro shutdown_req(id) do
+    quote do
+      request(unquote(id), "shutdown", %{})
+    end
+  end
+
+  defmacro exit_req(id) do
+    quote do
+      request(unquote(id), "exit", %{})
+    end
+  end
+
   # Other utilities
 
   defmacro range(start_line, start_character, end_line, end_character) do

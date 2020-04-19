@@ -336,4 +336,56 @@ defmodule ElixirLS.LanguageServer.ServerTest do
              ]) = resp
     end)
   end
+
+  test "loading of umbrella app dependencies", %{server: server} do
+    in_fixture(__DIR__, "umbrella", fn ->
+      # We test this by opening the umbrella project twice.
+      # First to compile the applications and build the cache.
+      # Second time to see if loads modules
+      initialize(server)
+
+      # Upon first vist, server complies and loads all umbrella applications and modules
+      Process.sleep(1_500)
+
+      Server.receive_packet(server, shutdown_req(2))
+      assert response(2, nil) = assert_receive(%{"id" => 2}, 5000)
+      Server.receive_packet(server, exit_req(3))
+
+      Process.sleep(500)
+      # unload App2.Foo
+      purge([App2.Foo])
+
+      # Upon re-visiting, server does not attempt to compile umbrella applications
+      initialize(server)
+      Process.sleep(1_500)
+
+      file_path = "apps/app1/lib/bar.ex"
+      uri = SourceFile.path_to_uri(file_path)
+
+      code = """
+      defmodule Bar do
+        def fnuc, do: App2.Fo
+        #____________________^
+      end
+      """
+
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, completion_req(2, uri, 1, 23))
+
+      resp = assert_receive(%{"id" => 2}, 5000)
+
+      assert response(2, %{
+               "isIncomplete" => false,
+               "items" => [
+                 %{
+                   "detail" => "module",
+                   "documentation" => _,
+                   "kind" => 9,
+                   "label" => "Foo"
+                 }
+                 | _
+               ]
+             }) = resp
+    end)
+  end
 end
