@@ -5,14 +5,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
 
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Protocol
-  alias ElixirSense.Providers.Definition.Location
 
   def definition(uri, text, line, character) do
     case ElixirSense.definition(text, line + 1, character + 1) do
-      %Location{found: false} ->
+      %ElixirSense.Location{found: false} ->
         {:ok, []}
 
-      %Location{file: file, line: line, column: column} ->
+      %ElixirSense.Location{file: file, line: line, column: column} ->
         line = line || 0
         column = column || 0
 

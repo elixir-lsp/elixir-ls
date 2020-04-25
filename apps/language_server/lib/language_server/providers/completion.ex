@@ -313,11 +313,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
   end
 
-  defp from_completion_item(%{type: :field, name: name, origin: origin}, _context) do
+  defp from_completion_item(
+         %{type: :field, subtype: subtype, name: name, origin: origin, call?: call?},
+         _context
+       ) do
+    detail =
+      case {subtype, origin} do
+        {:map_key, _} -> "map key"
+        {:struct_field, nil} -> "struct field"
+        {:struct_field, module_name} -> "#{module_name} struct field"
+      end
+
     %__MODULE__{
       label: to_string(name),
-      detail: "#{origin} struct field",
-      insert_text: "#{name}: ",
+      detail: detail,
+      insert_text: if(call?, do: name, else: "#{name}: "),
       priority: 0,
       kind: :field,
       tags: []
@@ -623,7 +633,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       "label" => item.label,
       "kind" => completion_kind(item.kind),
       "detail" => item.detail,
-      "documentation" => %{"value" => item.documentation, kind: "markdown"},
+      "documentation" => %{"value" => item.documentation || "", kind: "markdown"},
       "filterText" => item.filter_text,
       "sortText" => String.pad_leading(to_string(idx), 8, "0"),
       "insertText" => item.insert_text,

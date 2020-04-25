@@ -187,4 +187,108 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert %{"tags" => []} = get_deprecated_completion_item(tags_supported: [2])
     end
   end
+
+  describe "structs and maps" do
+    test "returns struct fields in call syntax" do
+      text = """
+      defmodule MyModule do
+        defstruct [some: nil, other: 1]
+
+        def dummy_function(var = %MyModule{}) do
+          var.
+          #   ^
+        end
+      end
+      """
+
+      {line, char} = {4, 8}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert ["__struct__", "other", "some"] == items |> Enum.map(& &1["label"]) |> Enum.sort()
+      assert (items |> hd)["detail"] == "MyModule struct field"
+    end
+
+    test "returns map keys in call syntax" do
+      text = """
+      defmodule MyModule do
+        def dummy_function(var = %{some: nil, other: 1}) do
+          var.
+          #   ^
+        end
+      end
+      """
+
+      {line, char} = {2, 8}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert ["other", "some"] == items |> Enum.map(& &1["label"]) |> Enum.sort()
+      assert (items |> hd)["detail"] == "map key"
+    end
+
+    test "returns struct fields in update syntax" do
+      text = """
+      defmodule MyModule do
+        defstruct [some: nil, other: 1]
+
+        def dummy_function(var = %MyModule{}) do
+          %{var |
+          #      ^
+        end
+      end
+      """
+
+      {line, char} = {4, 11}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert ["__struct__", "other", "some"] ==
+               items |> Enum.filter(&(&1["kind"] == 5)) |> Enum.map(& &1["label"]) |> Enum.sort()
+
+      assert (items |> hd)["detail"] == "MyModule struct field"
+    end
+
+    test "returns map keys in update syntax" do
+      text = """
+      defmodule MyModule do
+        def dummy_function(var = %{some: nil, other: 1}) do
+          %{var |
+          #      ^
+        end
+      end
+      """
+
+      {line, char} = {2, 11}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert ["other", "some"] ==
+               items |> Enum.filter(&(&1["kind"] == 5)) |> Enum.map(& &1["label"]) |> Enum.sort()
+
+      assert (items |> hd)["detail"] == "map key"
+    end
+
+    test "returns struct fields in definition syntax" do
+      text = """
+      defmodule MyModule do
+        defstruct [some: nil, other: 1]
+
+        def dummy_function() do
+          %MyModule{}
+          #         ^
+        end
+      end
+      """
+
+      {line, char} = {4, 14}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert ["__struct__", "other", "some"] ==
+               items |> Enum.filter(&(&1["kind"] == 5)) |> Enum.map(& &1["label"]) |> Enum.sort()
+
+      assert (items |> hd)["detail"] == "MyModule struct field"
+    end
+  end
 end
