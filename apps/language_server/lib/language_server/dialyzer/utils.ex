@@ -1,9 +1,24 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
   @epoch_gregorian_seconds 62_167_219_200
 
+  @spec dialyzable?(module()) :: boolean()
   def dialyzable?(module) do
-    file = :code.which(module)
+    file = get_beam_file(module)
     is_list(file) and match?({:ok, _}, :dialyzer_utils.get_core_from_beam(file))
+  end
+
+  @spec get_beam_file(module()) :: charlist() | :preloaded | :non_existing | :cover_compiled
+  def get_beam_file(module) do
+    case :code.which(module) do
+      file when is_list(file) ->
+        file
+
+      other ->
+        case :code.get_object_code(module) do
+          {_module, _binary, beam_filename} -> beam_filename
+          :error -> other
+        end
+    end
   end
 
   def pathname_to_module(path) do

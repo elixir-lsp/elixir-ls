@@ -359,7 +359,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
         files_to_analyze =
           for module <- modules_to_analyze do
-            temp_modules[module] || :code.which(module)
+            temp_modules[module] || Utils.get_beam_file(module)
           end
 
         # Clear warnings for files that changed or need to be re-analyzed
