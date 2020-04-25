@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
-  alias ElixirLS.LanguageServer.{Dialyzer, JsonRpc}
+  alias ElixirLS.LanguageServer.{Dialyzer, Dialyzer.Utils, JsonRpc}
   import Record
   import Dialyzer.Utils
 
@@ -125,7 +125,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       |> Path.wildcard()
       |> Enum.map(&pathname_to_module/1)
       |> expand_references()
-      |> Enum.map(&:code.which/1)
+      |> Enum.map(&Utils.get_beam_file/1)
       |> Enum.filter(&is_list/1)
 
     File.mkdir_p!(Path.dirname(elixir_plt_path()))
