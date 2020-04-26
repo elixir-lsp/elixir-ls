@@ -87,6 +87,35 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert length(items) == 0
   end
 
+  test "function with snippets not supported does not have argument placeholders" do
+    text = """
+    defmodule MyModule do
+      def add(a, b), do: a + b
+
+      def dummy_function() do
+        ad
+        # ^
+      end
+    end
+    """
+
+    {line, char} = {4, 6}
+    TestUtils.assert_has_cursor_char(text, line, char)
+
+    {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
+    assert item["insertText"] == "add(${1:a}, ${2:b})"
+
+    {:ok, %{"items" => [item]}} =
+      Completion.completion(
+        text,
+        line,
+        char,
+        @supports |> Keyword.put(:snippets_supported, false)
+      )
+
+    assert item["insertText"] == "add"
+  end
+
   test "provides completions for protocol functions" do
     text = """
     defimpl ElixirLS.LanguageServer.Fixtures.ExampleProtocol, for: MyModule do

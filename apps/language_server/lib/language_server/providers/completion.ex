@@ -135,7 +135,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     items =
       ElixirSense.suggestions(text, line + 1, character + 1)
-      |> Enum.map(&from_completion_item(&1, context))
+      |> Enum.map(&from_completion_item(&1, context, options))
       |> Enum.concat(module_attr_snippets(context))
       |> Enum.concat(keyword_completions(context))
 
@@ -151,12 +151,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   ## Helpers
 
-  defp from_completion_item(%{type: :attribute, name: name}, %{
-         prefix: prefix,
-         def_before: nil,
-         capture_before?: false,
-         pipe_before?: false
-       }) do
+  defp from_completion_item(
+         %{type: :attribute, name: name},
+         %{
+           prefix: prefix,
+           def_before: nil,
+           capture_before?: false,
+           pipe_before?: false
+         },
+         _options
+       ) do
     name_only = String.trim_leading(name, "@")
     insert_text = if String.starts_with?(prefix, "@"), do: name_only, else: name
 
@@ -175,11 +179,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp from_completion_item(%{type: :variable, name: name}, %{
-         def_before: nil,
-         pipe_before?: false,
-         capture_before?: false
-       }) do
+  defp from_completion_item(
+         %{type: :variable, name: name},
+         %{
+           def_before: nil,
+           pipe_before?: false,
+           capture_before?: false
+         },
+         _options
+       ) do
     %__MODULE__{
       label: to_string(name),
       kind: :variable,
@@ -192,7 +200,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(
          %{type: :return, description: description, spec: spec, snippet: snippet},
-         %{def_before: nil, capture_before?: false, pipe_before?: false}
+         %{def_before: nil, capture_before?: false, pipe_before?: false},
+         _options
        ) do
     snippet = Regex.replace(Regex.recompile!(~r/"\$\{(.*)\}\$"/U), snippet, "${\\1}")
 
@@ -212,7 +221,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          %{
            def_before: nil,
            prefix: prefix
-         }
+         },
+         _options
        ) do
     capitalized? = String.first(name) == String.upcase(String.first(name))
 
@@ -252,7 +262,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            origin: origin,
            metadata: metadata
          },
-         context
+         context,
+         options
        ) do
     if (context[:def_before] == :def && String.starts_with?(spec, "@macrocallback")) ||
          (context[:def_before] == :defmacro && String.starts_with?(spec, "@callback")) do
@@ -267,7 +278,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           end
         end
 
-      full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n\t$0\nend"
+      insert_text = def_snippet(def_str, name, args, arity, options)
       label = "#{def_str}#{function_label(name, args, arity)}"
 
       %__MODULE__{
@@ -275,7 +286,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         kind: :interface,
         detail: "#{origin} callback",
         documentation: summary,
-        insert_text: full_snippet,
+        insert_text: insert_text,
         priority: 2,
         filter_text: name,
         tags: metadata_to_tags(metadata)
@@ -294,11 +305,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            origin: origin,
            metadata: metadata
          },
-         context
+         context,
+         options
        ) do
     def_str = if(context[:def_before] == nil, do: "def ")
 
-    full_snippet = "#{def_str}#{snippet(name, args, arity)} do\n\t$0\nend"
+    insert_text = def_snippet(def_str, name, args, arity, options)
     label = "#{def_str}#{function_label(name, args, arity)}"
 
     %__MODULE__{
@@ -306,7 +318,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       kind: :interface,
       detail: "#{origin} protocol function",
       documentation: summary,
-      insert_text: full_snippet,
+      insert_text: insert_text,
       priority: 2,
       filter_text: name,
       tags: metadata_to_tags(metadata)
@@ -315,7 +327,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(
          %{type: :field, subtype: subtype, name: name, origin: origin, call?: call?},
-         _context
+         _context,
+         _options
        ) do
     detail =
       case {subtype, origin} do
@@ -334,7 +347,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
   end
 
-  defp from_completion_item(%{type: :param_option} = suggestion, _context) do
+  defp from_completion_item(%{type: :param_option} = suggestion, _context, _options) do
     %{name: name, origin: _origin, doc: doc, type_spec: type_spec, expanded_spec: expanded_spec} =
       suggestion
 
@@ -356,7 +369,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
   end
 
-  defp from_completion_item(%{type: :type_spec, metadata: metadata} = suggestion, _context) do
+  defp from_completion_item(
+         %{type: :type_spec, metadata: metadata} = suggestion,
+         _context,
+         _options
+       ) do
     %{name: name, arity: arity, origin: _origin, doc: doc, signature: signature, spec: spec} =
       suggestion
 
@@ -387,9 +404,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(
          %{name: name, origin: origin} = item,
-         %{def_before: nil} = context
+         %{def_before: nil} = context,
+         options
        ) do
-    completion = function_completion(item, context)
+    completion = function_completion(item, context, options)
 
     completion =
       if origin == "Kernel" || origin == "Kernel.SpecialForms" do
@@ -405,7 +423,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp from_completion_item(_suggestion, _context) do
+  defp from_completion_item(_suggestion, _context, _options) do
     nil
   end
 
@@ -417,30 +435,43 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp snippet(name, args, arity, opts \\ []) do
-    if Keyword.get(opts, :capture_before?) && arity <= 1 do
-      Enum.join([name, "/", arity])
+  defp def_snippet(def_str, name, args, arity, opts) do
+    if Keyword.get(opts, :snippets_supported, false) do
+      "#{def_str}#{function_snippet(name, args, arity)} do\n\t$0\nend"
     else
-      args_list =
-        if args && args != "" do
-          split_args(args)
-        else
-          for i <- Enum.slice(0..arity, 1..-1), do: "arg#{i}"
-        end
+      "#{def_str}#{name}"
+    end
+  end
 
-      args_list =
-        if Keyword.get(opts, :pipe_before?) do
-          Enum.slice(args_list, 1..-1)
-        else
+  defp function_snippet(name, args, arity, opts \\ []) do
+    cond do
+      Keyword.get(opts, :capture_before?) && arity <= 1 ->
+        Enum.join([name, "/", arity])
+
+      not Keyword.get(opts, :snippets_supported, false) ->
+        name
+
+      true ->
+        args_list =
+          if args && args != "" do
+            split_args(args)
+          else
+            for i <- Enum.slice(0..arity, 1..-1), do: "arg#{i}"
+          end
+
+        args_list =
+          if Keyword.get(opts, :pipe_before?) do
+            Enum.slice(args_list, 1..-1)
+          else
+            args_list
+          end
+
+        tabstops =
           args_list
-        end
+          |> Enum.with_index()
+          |> Enum.map(fn {arg, i} -> "${#{i + 1}:#{arg}}" end)
 
-      tabstops =
-        args_list
-        |> Enum.with_index()
-        |> Enum.map(fn {arg, i} -> "${#{i + 1}:#{arg}}" end)
-
-      Enum.join([name, "(", Enum.join(tabstops, ", "), ")"])
+        Enum.join([name, "(", Enum.join(tabstops, ", "), ")"])
     end
   end
 
@@ -534,7 +565,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end)
   end
 
-  defp function_completion(info, context) do
+  defp function_completion(info, context, options) do
     %{
       type: type,
       args: args,
@@ -555,7 +586,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       text_after_cursor: text_after_cursor
     } = context
 
-    {label, snippet} =
+    {label, insert_text} =
       cond do
         match?("sigil_" <> _, name) ->
           "sigil_" <> sigil_name = name
@@ -568,16 +599,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         true ->
           label = function_label(name, args, arity)
 
-          snippet =
-            snippet(
+          insert_text =
+            function_snippet(
               name,
               args,
               arity,
-              pipe_before?: pipe_before?,
-              capture_before?: capture_before?
+              Keyword.merge(
+                options,
+                pipe_before?: pipe_before?,
+                capture_before?: capture_before?
+              )
             )
 
-          {label, snippet}
+          {label, insert_text}
       end
 
     detail =
@@ -597,7 +631,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       kind: :function,
       detail: detail,
       documentation: summary,
-      insert_text: snippet,
+      insert_text: insert_text,
       priority: 7,
       tags: metadata_to_tags(metadata)
     }
@@ -670,7 +704,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp snippet?(item) do
-    item.kind == :snippet || String.match?(item.insert_text, ~r/\$\d/)
+    item.kind == :snippet || String.match?(item.insert_text, ~r/\${?\d/)
   end
 
   # As defined by CompletionItemTag in https://microsoft.github.io/language-server-protocol/specifications/specification-current/
