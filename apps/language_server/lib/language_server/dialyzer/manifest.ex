@@ -114,6 +114,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
   end
 
+  @elixir_apps [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
+
   defp build_elixir_plt() do
     JsonRpc.show_message(
       :info,
@@ -121,12 +123,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     )
 
     files =
-      Path.join([Application.app_dir(:elixir), "**/*.beam"])
-      |> Path.wildcard()
-      |> Enum.map(&pathname_to_module/1)
-      |> expand_references()
-      |> Enum.map(&Utils.get_beam_file/1)
-      |> Enum.filter(&is_list/1)
+      Enum.flat_map(@elixir_apps, fn app ->
+        Path.join([Application.app_dir(app), "**/*.beam"])
+        |> Path.wildcard()
+        |> Enum.map(&pathname_to_module/1)
+        |> expand_references()
+        |> Enum.map(&Utils.get_beam_file/1)
+        |> Enum.filter(&is_list/1)
+      end)
 
     File.mkdir_p!(Path.dirname(elixir_plt_path()))
 
