@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Server do
       case state do
         %{settings: nil} ->
           JsonRpc.show_message(
-            :warning,
+            :info,
             "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
               "Using default settings."
           )
