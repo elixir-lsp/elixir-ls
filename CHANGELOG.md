@@ -10,6 +10,7 @@ Bug Fixes:
 
 VSCode:
 - Add basic support for `.html.leex` files for Phoenix LiveView (thanks [oskarkook](https://github.com/oskarkook)) [#82](https://github.com/elixir-lsp/vscode-elixir-ls/pull/82)
+- Add filetype and watcher for `.html.leex` files for Phoenix LiveView (thanks [Byron Hambly](https://github.com/delta1)) [#83](https://github.com/elixir-lsp/vscode-elixir-ls/pull/83)
 
 ### v0.3.3: 15 Apr 2020
 
