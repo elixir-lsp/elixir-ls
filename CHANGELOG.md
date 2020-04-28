@@ -3,10 +3,12 @@
 Improvements:
 - Add autocompletion of struct fields on a binding when we know for sure what type of struct it is. (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#202](https://github.com/elixir-lsp/elixir-ls/pull/202)
   - For details see the [Code Completion section of the readme](https://github.com/elixir-lsp/elixir-ls/tree/a2a1f38bf0f47e074ec5d50636d669fae03a3d5e#code-completion)
+- Add all core elixir apps to the Dialyzer PLT. (thanks [Eric Entin](https://github.com/ericentin)) [#225](https://github.com/elixir-lsp/elixir-ls/pull/225)
 
 Bug Fixes:
 - Dialyzer: Get beam file for preloaded modules. (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#218](https://github.com/elixir-lsp/elixir-ls/pull/218)
 - Warn when using the debugger on Elixir 1.10.0-1.10.2. (thanks [Jason Axelson](https://github.com/axelson)) [#221](https://github.com/elixir-lsp/elixir-ls/pull/221)
+- Don't return snippets to clients that don't declare `snippetSupport` for function completions (thanks [Jeffrey Xiao](https://github.com/jeffrey-xiao)) [#223](https://github.com/elixir-lsp/elixir-ls/pull/223)
 
 VSCode:
 - Add basic support for `.html.leex` files for Phoenix LiveView (thanks [oskarkook](https://github.com/oskarkook)) [#82](https://github.com/elixir-lsp/vscode-elixir-ls/pull/82)
