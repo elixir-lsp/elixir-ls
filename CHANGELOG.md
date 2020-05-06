@@ -15,6 +15,18 @@ VSCode:
 - Add basic support for `.html.leex` files for Phoenix LiveView (thanks [oskarkook](https://github.com/oskarkook)) [#82](https://github.com/elixir-lsp/vscode-elixir-ls/pull/82)
 - Add filetype and watcher for `.html.leex` files for Phoenix LiveView (thanks [Byron Hambly](https://github.com/delta1)) [#83](https://github.com/elixir-lsp/vscode-elixir-ls/pull/83)
 
+VSCode potentially breaking changes:
+- Change language id to be lowercase kebab-case in accordance with [VSCode guidelines](https://code.visualstudio.com/docs/languages/identifiers#_new-identifier-guidelines). This also fixes an issue displaying the elixir logo for html.eex files. (thanks [Matt Furden](https://github.com/zolrath)) [#87](https://github.com/elixir-lsp/vscode-elixir-ls/pull/87)
+  - This changes the language id's `EEx`->`eex` and `HTML (EEx)`->`html-eex`
+  - If you have customized your emmet configuration configuration then you need to update it:
+  - Open VSCode and hit `Ctrl+Shift+P` or `Cmd+Shift+P` and type `"Preference: Open Settings (JSON)"`
+  - Add or edit your `emmet.includedLanguages` to include the new Language Id:
+```json
+"emmet.includeLanguages": {
+  "html-eex": "html"
+}
+```
+
 ### v0.3.3: 15 Apr 2020
 
 Meta:
