@@ -723,6 +723,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
 
+    state = create_gitignore(state)
     trigger_build(%{state | settings: settings})
   end
 
@@ -788,5 +789,25 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_project_dir(state, _) do
     state
+  end
+
+  defp create_gitignore(%{project_dir: project_dir} = state) do
+    with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
+         false <- File.exists?(gitignore_path),
+         :ok <- gitignore_path |> Path.dirname() |> File.mkdir_p(),
+         :ok <- File.write(gitignore_path, "*", [:write]) do
+      state
+    else
+      true ->
+        state
+
+      {:error, err} ->
+        JsonRpc.log_message(
+          :warning,
+          "Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}"
+        )
+
+        state
+    end
   end
 end
