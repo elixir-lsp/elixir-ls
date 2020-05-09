@@ -5,6 +5,7 @@ Improvements:
   - For details see the [Code Completion section of the readme](https://github.com/elixir-lsp/elixir-ls/tree/a2a1f38bf0f47e074ec5d50636d669fae03a3d5e#code-completion)
 - Add all core elixir apps to the Dialyzer PLT. (thanks [Eric Entin](https://github.com/ericentin)) [#225](https://github.com/elixir-lsp/elixir-ls/pull/225)
 - Change "did not receive workspace/didChangeConfiguration" log level from warning to info (thanks [Jason Axelson](https://github.com/axelson)) [#222](https://github.com/elixir-lsp/elixir-ls/pull/222)
+- Automatically create a `.gitignore` file inside the `.elixir-ls` dir so that users do not need to manually add it to their gitignore (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#232](https://github.com/elixir-lsp/elixir-ls/pull/232)
 
 Bug Fixes:
 - Dialyzer: Get beam file for preloaded modules. (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#218](https://github.com/elixir-lsp/elixir-ls/pull/218)
