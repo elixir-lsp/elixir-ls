@@ -13,8 +13,7 @@ defmodule ElixirLS.LanguageServer.Build do
               IO.puts("Compiling with Mix env #{Mix.env()}")
 
               prev_deps = cached_deps()
-              # FIXME: Private API
-              Mix.Dep.clear_cached()
+              :ok = Mix.Project.clear_deps_cache()
 
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
