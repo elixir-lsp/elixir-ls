@@ -143,7 +143,9 @@ defmodule ElixirLS.LanguageServer.Server do
     JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
       "watchers" => [
         %{"globPattern" => "**/*.ex"},
-        %{"globPattern" => "**/*.exs"}
+        %{"globPattern" => "**/*.exs"},
+        %{"globPattern" => "**/*.eex"},
+        %{"globPattern" => "**/*.leex"}
       ]
     })
 
