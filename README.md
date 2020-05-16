@@ -149,10 +149,9 @@ If you get an error like the following immediately on startup:
 
 and you installed Elixir and Erlang from the Erlang Solutions repository, you may not have a full installation of erlang. This can be solved with `sudo apt-get install esl-erlang`. Originally reported in [#208](https://github.com/elixir-lsp/elixir-ls/issues/208).
 
-## Known Issues
+## Known Issues/Limitations
 
 * `.exs` files don't return compilation errors
-* `workspaceSymbolProvider` capability currently requires enabled dialyzer
 * "Fetching n dependencies" sometimes get stuck (remove the `.elixir_ls` directory to fix)
 * Debugger doesn't work in Elixir 1.10.0 - 1.10.2 (but it should work in 1.10.3 when [this fix](https://github.com/elixir-lang/elixir/pull/9864) is released)
 * "Go to definition" does not work within the `scope` of a Phoenix router
