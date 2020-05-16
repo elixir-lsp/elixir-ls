@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics}
 
   def build(parent, root_path, fetch_deps?) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
@@ -22,6 +22,7 @@ defmodule ElixirLS.LanguageServer.Build do
                     do: fetch_deps()
 
                   {status, diagnostics} = compile()
+                  diagnostics = Diagnostics.normalize(diagnostics, root_path)
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
                 {:error, mixfile_diagnostics} ->
