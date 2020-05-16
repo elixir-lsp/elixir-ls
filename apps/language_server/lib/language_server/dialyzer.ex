@@ -399,8 +399,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     mod_deps
     |> Map.merge(new_mod_deps)
     |> Map.drop(removed_modules)
-    |> Enum.map(fn {mod, deps} -> {mod, deps -- removed_modules} end)
-    |> Enum.into(%{})
+    |> Map.new(fn {mod, deps} -> {mod, deps -- removed_modules} end)
   end
 
   defp remove_files(md5, removed_files) do
