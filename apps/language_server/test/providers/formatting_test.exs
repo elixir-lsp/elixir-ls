@@ -138,7 +138,6 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
            ]
   end
 
-
   test "Proper utf-16 format: zalgo" do
     uri = "file://project/file.ex"
 
