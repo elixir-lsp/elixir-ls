@@ -44,6 +44,7 @@ defmodule ElixirLS.LanguageServer.Server do
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
+    load_all_modules?: false,
     build_running?: false,
     analysis_ready?: false,
     received_shutdown?: false,
@@ -569,14 +570,20 @@ defmodule ElixirLS.LanguageServer.Server do
   defp trigger_build(state) do
     if build_enabled?(state) and not state.build_running? do
       fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
-      {_pid, build_ref} = Build.build(self(), state.project_dir, fetch_deps?)
+
+      {_pid, build_ref} =
+        Build.build(self(), state.project_dir,
+          fetch_deps?: fetch_deps?,
+          load_all_modules?: state.load_all_modules?
+        )
 
       %__MODULE__{
         state
         | build_ref: build_ref,
           needs_build?: false,
           build_running?: true,
-          analysis_ready?: false
+          analysis_ready?: false,
+          load_all_modules?: false
       }
     else
       %__MODULE__{state | needs_build?: true, analysis_ready?: false}
@@ -774,7 +781,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        put_in(state.project_dir, project_dir)
+        Map.merge(state, %{project_dir: project_dir, load_all_modules?: true})
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(

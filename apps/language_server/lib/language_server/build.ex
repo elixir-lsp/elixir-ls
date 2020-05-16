@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics}
 
-  def build(parent, root_path, fetch_deps?) do
+  def build(parent, root_path, opts) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
       IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
@@ -18,10 +18,16 @@ defmodule ElixirLS.LanguageServer.Build do
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
                   # FIXME: Private API
-                  if fetch_deps? and Mix.Dep.load_on_environment([]) != prev_deps,
-                    do: fetch_deps()
+                  if Keyword.get(opts, :fetch_deps?) and
+                       Mix.Dep.load_on_environment([]) != prev_deps,
+                     do: fetch_deps()
 
                   {status, diagnostics} = compile()
+
+                  if status in [:ok, :noop] and Keyword.get(opts, :load_all_modules?) do
+                    load_all_modules()
+                  end
+
                   diagnostics = Diagnostics.normalize(diagnostics, root_path)
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
@@ -158,6 +164,29 @@ defmodule ElixirLS.LanguageServer.Build do
 
       {:error, [mixfile_diagnostic({Path.absname(mixfile), nil, msg}, :error)]}
     end
+  end
+
+  defp load_all_modules do
+    apps =
+      cond do
+        Mix.Project.umbrella?() ->
+          Mix.Project.apps_paths() |> Map.keys()
+
+        app = Keyword.get(Mix.Project.config(), :app) ->
+          [app]
+
+        true ->
+          []
+      end
+
+    Enum.each(apps, fn app ->
+      true = Code.prepend_path(Path.join(Mix.Project.build_path(), "lib/#{app}/ebin"))
+
+      case Application.load(app) do
+        :ok -> :ok
+        {:error, {:already_loaded, _}} -> :ok
+      end
+    end)
   end
 
   defp compile do

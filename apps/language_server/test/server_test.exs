@@ -20,12 +20,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     SourceFile.path_to_uri(File.cwd!())
   end
 
-  setup do
-    {:ok, server} = Server.start_link()
-    {:ok, packet_capture} = PacketCapture.start_link(self())
-    Process.group_leader(server, packet_capture)
-
-    {:ok, %{server: server}}
+  setup context do
+    unless context[:skip_server] do
+      server = start_supervised!({Server, nil})
+      packet_capture = start_supervised!({PacketCapture, self()})
+      Process.group_leader(server, packet_capture)
+      {:ok, %{server: server}}
+    else
+      :ok
+    end
   end
 
   test "textDocument/didChange when the client hasn't claimed ownership with textDocument/didOpen",
@@ -356,5 +359,86 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                }
              ]) = resp
     end)
+  end
+
+  @tag :skip_server
+  test "loading of umbrella app dependencies" do
+    in_fixture(__DIR__, "umbrella", fn ->
+      # We test this by opening the umbrella project twice.
+      # First to compile the applications and build the cache.
+      # Second time to see if loads modules
+      with_new_server(fn server ->
+        initialize(server)
+        wait_until_compiled(server)
+      end)
+
+      # unload App2.Foo
+      purge([App2.Foo])
+
+      # re-visiting the same project
+      with_new_server(fn server ->
+        initialize(server)
+        wait_until_compiled(server)
+
+        file_path = "apps/app1/lib/bar.ex"
+        uri = SourceFile.path_to_uri(file_path)
+
+        code = """
+        defmodule Bar do
+          def fnuc, do: App2.Fo
+          #                    ^
+        end
+        """
+
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, completion_req(3, uri, 1, 23))
+
+        resp = assert_receive(%{"id" => 3}, 5000)
+
+        assert response(3, %{
+                 "isIncomplete" => false,
+                 "items" => [
+                   %{
+                     "detail" => "module",
+                     "documentation" => _,
+                     "kind" => 9,
+                     "label" => "Foo"
+                   }
+                   | _
+                 ]
+               }) = resp
+      end)
+    end)
+  end
+
+  defp with_new_server(func) do
+    server = start_supervised!({Server, nil})
+    packet_capture = start_supervised!({PacketCapture, self()})
+    Process.group_leader(server, packet_capture)
+
+    try do
+      func.(server)
+    after
+      stop_supervised(Server)
+      stop_supervised(PacketCapture)
+      flush_mailbox()
+    end
+  end
+
+  defp flush_mailbox do
+    receive do
+      _ -> flush_mailbox()
+    after
+      0 -> :ok
+    end
+  end
+
+  defp wait_until_compiled(pid) do
+    state = :sys.get_state(pid)
+
+    if state.build_running? do
+      Process.sleep(500)
+      wait_until_compiled(pid)
+    end
   end
 end
