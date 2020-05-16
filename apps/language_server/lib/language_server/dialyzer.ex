@@ -374,13 +374,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
         {active_plt, new_mod_deps, raw_warnings} = Analyzer.analyze(active_plt, files_to_analyze)
 
-        mod_deps = Map.merge(mod_deps, new_mod_deps)
+        mod_deps = update_mod_deps(mod_deps, new_mod_deps, removed_modules)
         warnings = add_warnings(warnings, raw_warnings)
 
         md5 =
           for {file, {_, hash}} <- file_changes, into: md5 do
             {file, hash}
           end
+
+        md5 = remove_files(md5, removed_files)
 
         {active_plt, mod_deps, md5, warnings}
       end)
@@ -391,6 +393,17 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     )
 
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
+  end
+
+  defp update_mod_deps(mod_deps, new_mod_deps, removed_modules) do
+    mod_deps
+    |> Map.merge(new_mod_deps)
+    |> Map.drop(removed_modules)
+    |> Map.new(fn {mod, deps} -> {mod, deps -- removed_modules} end)
+  end
+
+  defp remove_files(md5, removed_files) do
+    Map.drop(md5, removed_files)
   end
 
   defp add_warnings(warnings, raw_warnings) do

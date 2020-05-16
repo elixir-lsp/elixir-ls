@@ -83,7 +83,14 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             [[line, ?\n] | acc]
 
           idx == start_line ->
-            [String.slice(line, 0, start_character) | acc]
+            # LSP contentChanges positions are based on UTF-16 string representation
+            # https://microsoft.github.io/language-server-protocol/specification#textDocuments
+            beginning_utf8 =
+              :unicode.characters_to_binary(line, :utf8, :utf16)
+              |> binary_part(0, start_character * 2)
+              |> :unicode.characters_to_binary(:utf16, :utf8)
+
+            [beginning_utf8 | acc]
 
           idx > start_line ->
             acc
@@ -99,7 +106,18 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             acc
 
           idx == end_line ->
-            [[String.slice(line, end_character..-1), ?\n] | acc]
+            # LSP contentChanges positions are based on UTF-16 string representation
+            # https://microsoft.github.io/language-server-protocol/specification#textDocuments
+            ending_utf8 =
+              :unicode.characters_to_binary(line, :utf8, :utf16)
+              |> (&binary_part(
+                    &1,
+                    end_character * 2,
+                    byte_size(&1) - end_character * 2
+                  )).()
+              |> :unicode.characters_to_binary(:utf16, :utf8)
+
+            [[ending_utf8, ?\n] | acc]
 
           idx > end_line ->
             [[line, ?\n] | acc]

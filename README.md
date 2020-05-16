@@ -47,6 +47,7 @@ You may want to install Elixir and Erlang from source, using the [kiex](https://
 | Neovim   | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                      |
 | Emacs    | [lsp-mode](https://github.com/emacs-lsp/lsp-mode) |      Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
 | Emacs    | [eglot](https://github.com/joaotavora/eglot)                                  |                                                |
+| Kate     | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger |
 
 Feel free to create and publish your own client packages and add them to this list!
 

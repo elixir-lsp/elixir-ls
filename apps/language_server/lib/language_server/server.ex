@@ -144,7 +144,9 @@ defmodule ElixirLS.LanguageServer.Server do
     JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
       "watchers" => [
         %{"globPattern" => "**/*.ex"},
-        %{"globPattern" => "**/*.exs"}
+        %{"globPattern" => "**/*.exs"},
+        %{"globPattern" => "**/*.eex"},
+        %{"globPattern" => "**/*.leex"}
       ]
     })
 
@@ -157,7 +159,7 @@ defmodule ElixirLS.LanguageServer.Server do
       case state do
         %{settings: nil} ->
           JsonRpc.show_message(
-            :warning,
+            :info,
             "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
               "Using default settings."
           )
@@ -730,6 +732,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
 
+    state = create_gitignore(state)
     trigger_build(%{state | settings: settings})
   end
 
@@ -795,5 +798,25 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_project_dir(state, _) do
     state
+  end
+
+  defp create_gitignore(%{project_dir: project_dir} = state) do
+    with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
+         false <- File.exists?(gitignore_path),
+         :ok <- gitignore_path |> Path.dirname() |> File.mkdir_p(),
+         :ok <- File.write(gitignore_path, "*", [:write]) do
+      state
+    else
+      true ->
+        state
+
+      {:error, err} ->
+        JsonRpc.log_message(
+          :warning,
+          "Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}"
+        )
+
+        state
+    end
   end
 end

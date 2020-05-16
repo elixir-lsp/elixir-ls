@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics}
 
   def build(parent, root_path, opts) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
@@ -13,8 +13,7 @@ defmodule ElixirLS.LanguageServer.Build do
               IO.puts("Compiling with Mix env #{Mix.env()}")
 
               prev_deps = cached_deps()
-              # FIXME: Private API
-              Mix.Dep.clear_cached()
+              :ok = Mix.Project.clear_deps_cache()
 
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
@@ -29,6 +28,7 @@ defmodule ElixirLS.LanguageServer.Build do
                     load_all_modules()
                   end
 
+                  diagnostics = Diagnostics.normalize(diagnostics, root_path)
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
                 {:error, mixfile_diagnostics} ->

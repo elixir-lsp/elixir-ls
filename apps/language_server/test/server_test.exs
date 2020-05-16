@@ -259,9 +259,30 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "diagnostics" => [
                          %{
                            "message" =>
-                             "** (CompileError) lib/has_error.ex:4: undefined function does_not_exist" <>
+                             "(CompileError) undefined function does_not_exist" <>
                                _,
                            "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
+                           "severity" => 1
+                         }
+                       ]
+                     })
+    end)
+  end
+
+  test "reports build diagnostics on external resources", %{server: server} do
+    in_fixture(__DIR__, "build_errors_on_external_resource", fn ->
+      error_file = SourceFile.path_to_uri("lib/template.eex")
+
+      initialize(server)
+
+      assert_receive notification("textDocument/publishDiagnostics", %{
+                       "uri" => ^error_file,
+                       "diagnostics" => [
+                         %{
+                           "message" =>
+                             "(SyntaxError) syntax error before: ','" <>
+                               _,
+                           "range" => %{"end" => %{"line" => 1}, "start" => %{"line" => 1}},
                            "severity" => 1
                          }
                        ]
