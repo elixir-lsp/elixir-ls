@@ -34,6 +34,14 @@ VSCode potentially breaking changes:
 }
 ```
 
+If you have eex file associations in your settings.json then remove them:
+```
+"files.associations": {
+  "*.html.eex": "HTML (EEx)", // remove this
+  "*.html.leex": "HTML (EEx)" // remove this
+},
+```
+
 ### v0.3.3: 15 Apr 2020
 
 Meta:
