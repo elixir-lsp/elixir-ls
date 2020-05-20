@@ -81,7 +81,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       else
         # LSP contentChanges positions are based on UTF-16 string representation
         # https://microsoft.github.io/language-server-protocol/specification#textDocuments
-        {line, col + byte_size(:unicode.characters_to_binary(char, :utf8, :utf16)) / 2}
+        {line, col + div(byte_size(:unicode.characters_to_binary(char, :utf8, :utf16)), 2)}
       end
     end)
   end

@@ -41,7 +41,15 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
                }
              }
            ]
+
+    assert Enum.all?(changes, fn change ->
+             assert_position_type(change["range"]["end"]) and
+               assert_position_type(change["range"]["start"])
+           end)
   end
+
+  defp assert_position_type(%{"character" => ch, "line" => line}),
+    do: is_integer(ch) and is_integer(line)
 
   test "returns an error when formatting a file with a syntax error" do
     uri = "file://project/file.ex"
