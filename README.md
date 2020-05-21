@@ -156,6 +156,7 @@ and you installed Elixir and Erlang from the Erlang Solutions repository, you ma
 * Debugger doesn't work in Elixir 1.10.0 - 1.10.2 (but it should work in 1.10.3 when [this fix](https://github.com/elixir-lang/elixir/pull/9864) is released)
 * "Go to definition" does not work within the `scope` of a Phoenix router
 * On-hover docs do not work with erlang modules or functions (better support of EEP-48 is needed)
+* "Find references" does not work on Elixir 1.10.x [#257](https://github.com/elixir-lsp/elixir-ls/issues/257)
 
 ## Building and running
 
