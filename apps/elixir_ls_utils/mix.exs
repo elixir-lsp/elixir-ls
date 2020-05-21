@@ -26,7 +26,7 @@ defmodule ElixirLS.Utils.Mixfile do
 
   defp deps do
     [
-      {:jason, "~> 1.2"},
+      {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
       {:mix_task_archive_deps, github: "JakeBecker/mix_task_archive_deps"}
     ]
   end

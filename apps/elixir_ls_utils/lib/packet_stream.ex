@@ -52,7 +52,7 @@ defmodule ElixirLS.Utils.PacketStream do
     if body == :eof do
       :eof
     else
-      Jason.decode!(body)
+      JasonVendored.decode!(body)
     end
   end
 end
