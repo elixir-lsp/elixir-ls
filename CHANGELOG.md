@@ -1,5 +1,11 @@
 ### Unreleased
 
+Improvements:
+- Vendor Jason library to prevent conflicts with user's code (thanks [Jason Axelson](https://github.com/axelson)) [#253](https://github.com/elixir-lsp/elixir-ls/pull/253)
+
+Bug Fixes:
+- Formatting was returning invalid floating point number (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#250](https://github.com/elixir-lsp/elixir-ls/pull/250)
+
 ### v0.4.0: 16 May 2020
 
 Improvements:
