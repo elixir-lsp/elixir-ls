@@ -49,7 +49,7 @@ defmodule ElixirLS.Utils.PacketCapture do
 
   defp extract_packet(str) do
     with [_header, body] <- String.split(str, "\r\n\r\n", parts: 2),
-         {:ok, packet} <- Jason.decode(body) do
+         {:ok, packet} <- JasonVendored.decode(body) do
       packet
     else
       _ -> nil

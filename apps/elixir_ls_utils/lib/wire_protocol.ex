@@ -6,7 +6,7 @@ defmodule ElixirLS.Utils.WireProtocol do
 
   def send(packet) do
     pid = Process.whereis(:raw_user) || Process.group_leader()
-    body = Jason.encode!(packet) <> "\r\n\r\n"
+    body = JasonVendored.encode!(packet) <> "\r\n\r\n"
     IO.binwrite(pid, "Content-Length: #{byte_size(body)}\r\n\r\n" <> body)
   end
 

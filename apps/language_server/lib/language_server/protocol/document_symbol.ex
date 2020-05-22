@@ -4,6 +4,6 @@ defmodule ElixirLS.LanguageServer.Protocol.DocumentSymbol do
 
   For details see https://microsoft.github.io/language-server-protocol/specification#textDocument_documentSymbol
   """
-  @derive Jason.Encoder
+  @derive JasonVendored.Encoder
   defstruct [:name, :kind, :range, :selectionRange, :children]
 end
