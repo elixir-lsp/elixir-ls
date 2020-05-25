@@ -7,14 +7,12 @@ defmodule ElixirLS.Debugger do
 
   @impl Application
   def start(_type, _args) do
-    import Supervisor.Spec, warn: false
-
     # We don't start this as a worker because if the debugger crashes, we want
     # this process to remain alive to print errors
     ElixirLS.Debugger.Output.start(ElixirLS.Debugger.Output)
 
     children = [
-      worker(ElixirLS.Debugger.Server, [[name: ElixirLS.Debugger.Server]])
+      {ElixirLS.Debugger.Server, name: ElixirLS.Debugger.Server}
     ]
 
     opts = [strategy: :one_for_one, name: ElixirLS.Debugger.Supervisor, max_restarts: 0]
