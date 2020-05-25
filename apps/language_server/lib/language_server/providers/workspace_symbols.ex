@@ -128,14 +128,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       ) do
     JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Indexing...")
 
-    module_paths =
-      :code.all_loaded()
-      |> process_chunked(fn chunk ->
-        for {module, beam_file} <- chunk,
-            path = find_module_path(module, beam_file),
-            path != nil,
-            do: {module, path}
-      end)
+    module_paths = module_paths()
 
     JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Module discovery complete")
 
@@ -155,14 +148,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       ) do
     JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Updating index...")
 
-    module_paths =
-      :code.all_loaded()
-      |> process_chunked(fn chunk ->
-        for {module, beam_file} <- chunk,
-            path = find_module_path(module, beam_file),
-            SourceFile.path_to_uri(path) in modified_uris,
-            do: {module, path}
-      end)
+    module_paths = module_paths()
 
     JsonRpc.log_message(
       :info,
@@ -247,28 +233,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end
   end
 
-  defp find_module_path(module, beam_file) do
-    file =
-      with true <- Code.ensure_loaded?(module),
-           path when not is_nil(path) <- module.module_info(:compile)[:source],
-           path_binary = List.to_string(path),
-           true <- File.exists?(path_binary) do
-        path_binary
-      else
-        _ -> nil
-      end
-
-    if file do
-      file
+  defp find_module_path(module) do
+    with true <- Code.ensure_loaded?(module),
+         path when not is_nil(path) <- module.module_info(:compile)[:source],
+         path_binary = List.to_string(path),
+         true <- File.exists?(path_binary) do
+      path_binary
     else
-      with beam_file when not is_nil(beam_file) <-
-             ErlangSourceFile.get_beam_file(module, beam_file),
-           erl_file = ErlangSourceFile.beam_file_to_erl_file(beam_file),
-           true <- File.exists?(erl_file) do
-        erl_file
-      else
-        _ -> nil
-      end
+      _ -> nil
     end
   end
 
@@ -480,6 +452,20 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     |> Task.yield_many(:infinity)
     |> Enum.flat_map(fn {_task, {:ok, result}} when is_list(result) ->
       result
+    end)
+  end
+
+  defp module_paths do
+    app = Keyword.fetch!(Mix.Project.config(), :app)
+
+    Application.load(app)
+
+    Application.spec(app, :modules)
+    |> Enum.flat_map(fn app_module ->
+      case find_module_path(app_module) do
+        nil -> []
+        path -> [{app_module, path}]
+      end
     end)
   end
 
