@@ -1,4 +1,6 @@
 defmodule ElixirLS.Utils.Launch do
+  @compiled_with System.version()
+
   def start_mix do
     # FIXME: Private API
     Mix.start()
@@ -12,6 +14,7 @@ defmodule ElixirLS.Utils.Launch do
 
   def print_versions do
     IO.inspect(System.build_info()[:build], label: "Elixir version")
+    IO.puts("ElixirLS compiled with Elixir #{inspect(@compiled_with)}")
     IO.inspect(System.otp_release(), label: "Erlang version")
   end
 
