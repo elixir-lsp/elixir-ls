@@ -281,6 +281,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       insert_text = def_snippet(def_str, name, args, arity, options)
       label = "#{def_str}#{function_label(name, args, arity)}"
 
+      filter_text =
+        if def_str do
+          "#{def_str}#{name}"
+        else
+          name
+        end
+
       %__MODULE__{
         label: label,
         kind: :interface,
@@ -288,7 +295,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         documentation: summary,
         insert_text: insert_text,
         priority: 2,
-        filter_text: name,
+        filter_text: filter_text,
         tags: metadata_to_tags(metadata)
       }
     end
