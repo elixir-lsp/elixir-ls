@@ -418,7 +418,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       source_file = state.source_files[uri]
 
-      if source_file do
+      if source_file && String.ends_with?(uri, [".ex", ".exs"]) do
         DocumentSymbols.symbols(uri, source_file.text, hierarchical?)
       else
         {:ok, []}
