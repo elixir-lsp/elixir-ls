@@ -183,6 +183,10 @@ defmodule ElixirLS.LanguageServer.Server do
         _ -> handle_build_result(:error, [Build.exception_to_diagnostic(reason)], state)
       end
 
+    if reason == :normal do
+      WorkspaceSymbols.notify_build_complete()
+    end
+
     state = if state.needs_build?, do: trigger_build(state), else: state
     {:noreply, state}
   end
@@ -668,8 +672,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
         GenServer.reply(from, contracts)
       end
-
-      WorkspaceSymbols.notify_build_complete()
 
       %{state | analysis_ready?: true, awaiting_contracts: dirty}
     else
