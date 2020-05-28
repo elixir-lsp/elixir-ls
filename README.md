@@ -38,16 +38,17 @@ You may want to install Elixir and Erlang from source, using the [kiex](https://
 
 ## IDE plugins
 
-| IDE      | Plugin                                                                        | Support                                        |
-| -------- | ----------------------------------------------------------------------------- | ---------------------------------------------- |
-| VS Code  | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                 |
-| Atom IDE | [JakeBecker/ide-elixir](https://github.com/JakeBecker/ide-elixir)             | Does not support debugger or @spec suggestions |
-| Vim      | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions |
-| Neovim   | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger                      |
-| Neovim   | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                      |
-| Emacs    | [lsp-mode](https://github.com/emacs-lsp/lsp-mode) |      Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
-| Emacs    | [eglot](https://github.com/joaotavora/eglot)                                  |                                                |
-| Kate     | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger |
+| IDE          | Plugin                                                                        | Support                                        |
+| ------------ | ----------------------------------------------------------------------------- | ---------------------------------------------- |
+| VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                 |
+| Atom IDE     | [JakeBecker/ide-elixir](https://github.com/JakeBecker/ide-elixir)             | Does not support debugger or @spec suggestions |
+| Vim          | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions |
+| Neovim       | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger                      |
+| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                      |
+| Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode) |      Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
+| Emacs        | [eglot](https://github.com/joaotavora/eglot)                                  |                                                |
+| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger |
+| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                        | Does not support debugger                      |
 
 Feel free to create and publish your own client packages and add them to this list!
 
