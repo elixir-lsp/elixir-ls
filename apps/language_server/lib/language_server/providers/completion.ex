@@ -444,13 +444,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp def_snippet(def_str, name, args, arity, opts) do
     if Keyword.get(opts, :snippets_supported, false) do
-      "#{def_str}#{function_snippet(name, args, arity)} do\n\t$0\nend"
+      "#{def_str}#{function_snippet(name, args, arity, opts)} do\n\t$0\nend"
     else
       "#{def_str}#{name}"
     end
   end
 
-  defp function_snippet(name, args, arity, opts \\ []) do
+  defp function_snippet(name, args, arity, opts) do
     cond do
       Keyword.get(opts, :capture_before?) && arity <= 1 ->
         Enum.join([name, "/", arity])
