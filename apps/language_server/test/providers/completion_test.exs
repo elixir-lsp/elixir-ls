@@ -138,6 +138,52 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
            ]
   end
 
+  test "provides completions for callbacks without `def` before" do
+    text = """
+    defmodule MyModule do
+      use GenServer
+
+    # ^
+    end
+    """
+
+    {line, char} = {2, 2}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+    first_completion =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "callback"))
+      |> Enum.at(0)
+
+    assert first_completion["label"] =~ "def code_change"
+
+    assert first_completion["insertText"] ==
+             "def code_change(${1:old_vsn}, ${2:state}, ${3:extra}) do\n\t$0\nend"
+  end
+
+  test "provides completions for callbacks with `def` before" do
+    text = """
+    defmodule MyModule do
+      use GenServer
+
+      def
+       # ^
+    end
+    """
+
+    {line, char} = {3, 5}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+    first_completion =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "callback"))
+      |> Enum.at(0)
+
+    assert first_completion["label"] =~ "def code_change"
+  end
+
   test "returns module completions after pipe" do
     text = """
     defmodule MyModule do

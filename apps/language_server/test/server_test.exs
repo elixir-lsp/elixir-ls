@@ -265,7 +265,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                            "severity" => 1
                          }
                        ]
-                     })
+                     }),
+                     300
     end)
   end
 
@@ -286,7 +287,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                            "severity" => 1
                          }
                        ]
-                     })
+                     }),
+                     300
     end)
   end
 
