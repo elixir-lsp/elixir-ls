@@ -273,7 +273,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          }
                        ]
                      }),
-                     300
+                     1000
     end)
   end
 
@@ -293,7 +293,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          }
                        ]
                      }),
-                     300
+                     1000
     end)
   end
 
