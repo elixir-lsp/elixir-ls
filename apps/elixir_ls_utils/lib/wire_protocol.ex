@@ -5,9 +5,22 @@ defmodule ElixirLS.Utils.WireProtocol do
   alias ElixirLS.Utils.{PacketStream, OutputDevice}
 
   def send(packet) do
-    pid = Process.whereis(:raw_user) || Process.group_leader()
+    pid = io_dest()
     body = JasonVendored.encode!(packet) <> "\r\n\r\n"
     IO.binwrite(pid, "Content-Length: #{byte_size(body)}\r\n\r\n" <> body)
+  end
+
+  case Mix.env() do
+    :test ->
+      defp io_dest do
+        Process.whereis(:raw_user) || Process.whereis(:elixir_ls_test_process) ||
+          Process.group_leader()
+      end
+
+    _ ->
+      defp io_dest do
+        Process.whereis(:raw_user) || Process.group_leader()
+      end
   end
 
   def io_intercepted? do

@@ -7,7 +7,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       version: "0.4.0",
       elixir: ">= 1.7.0",
       build_path: "../../_build",
-      config_path: "config/config.exs",
+      config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixirc_paths: elixirc_paths(Mix.env()),
