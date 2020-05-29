@@ -6,8 +6,8 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   responses and notifications
   """
 
-  import ElixirLS.Utils.WireProtocol, only: [{:send, 1}]
   use GenServer
+  alias ElixirLS.Utils.WireProtocol
 
   defstruct language_server: ElixirLS.LanguageServer.Server,
             next_id: 1,
@@ -67,16 +67,16 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   ## Utils
 
   def notify(method, params) do
-    send(notification(method, params))
+    WireProtocol.send(notification(method, params))
   end
 
   def respond(id, result) do
-    send(response(id, result))
+    WireProtocol.send(response(id, result))
   end
 
   def respond_with_error(id, type, message) do
     {code, default_message} = error_code_and_message(type)
-    send(error_response(id, code, message || default_message))
+    WireProtocol.send(error_response(id, code, message || default_message))
   end
 
   def show_message(type, message) do
@@ -175,7 +175,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   @impl GenServer
   def handle_call({:request, method, params}, from, state) do
-    send(request(state.next_id, method, params))
+    WireProtocol.send(request(state.next_id, method, params))
     state = update_in(state.outgoing_requests, &Map.put(&1, state.next_id, from))
     state = %__MODULE__{state | next_id: state.next_id + 1}
     {:noreply, state}

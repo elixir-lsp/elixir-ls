@@ -286,7 +286,8 @@ defmodule ElixirLS.LanguageServer.Server do
         # The source file was not marked as open either due to a bug in the
         # client or a restart of the server. So just ignore the message and do
         # not update the state
-        IO.warn(
+        JsonRpc.log_message(
+          :warning,
           "Received textDocument/didChange for file that is not open. Received uri: #{
             inspect(uri)
           }"
@@ -422,7 +423,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       source_file = state.source_files[uri]
 
-      if source_file do
+      if source_file && String.ends_with?(uri, [".ex", ".exs"]) do
         DocumentSymbols.symbols(uri, source_file.text, hierarchical?)
       else
         {:ok, []}
