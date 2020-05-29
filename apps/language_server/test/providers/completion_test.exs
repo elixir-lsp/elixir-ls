@@ -141,7 +141,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   test "provides completions for callbacks without `def` before" do
     text = """
     defmodule MyModule do
-      use GenServer
+      @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
 
     # ^
     end
@@ -156,16 +156,15 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.filter(&(&1["detail"] =~ "callback"))
       |> Enum.at(0)
 
-    assert first_completion["label"] =~ "def code_change"
+    assert first_completion["label"] =~ "def build_greeting"
 
-    assert first_completion["insertText"] ==
-             "def code_change(${1:old_vsn}, ${2:state}, ${3:extra}) do\n\t$0\nend"
+    assert first_completion["insertText"] == "def build_greeting(${1:name}) do\n\t$0\nend"
   end
 
   test "provides completions for callbacks with `def` before" do
     text = """
     defmodule MyModule do
-      use GenServer
+      @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
 
       def
        # ^
@@ -181,7 +180,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.filter(&(&1["detail"] =~ "callback"))
       |> Enum.at(0)
 
-    assert first_completion["label"] =~ "def code_change"
+    assert first_completion["label"] =~ "def build_greeting"
   end
 
   test "returns module completions after pipe" do
