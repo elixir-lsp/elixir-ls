@@ -71,6 +71,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         end
         """
 
+        :lib.flush_receive()
         b_uri = SourceFile.path_to_uri("lib/b.ex")
         Server.receive_packet(server, did_open(b_uri, "elixir", 1, b_text))
         File.write!("lib/b.ex", b_text)
