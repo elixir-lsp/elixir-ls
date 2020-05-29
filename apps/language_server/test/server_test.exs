@@ -267,14 +267,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" =>
-                             "(CompileError) undefined function does_not_exist" <>
-                               _,
+                           "message" => "(CompileError) undefined function does_not_exist" <> _,
                            "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
                            "severity" => 1
                          }
                        ]
-                     })
+                     }),
+                     300
     end)
   end
 
@@ -288,14 +287,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" =>
-                             "(SyntaxError) syntax error before: ','" <>
-                               _,
+                           "message" => "(SyntaxError) syntax error before: ','" <> _,
                            "range" => %{"end" => %{"line" => 1}, "start" => %{"line" => 1}},
                            "severity" => 1
                          }
                        ]
-                     })
+                     }),
+                     300
     end)
   end
 
