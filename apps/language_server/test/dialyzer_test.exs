@@ -15,9 +15,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   end
 
   setup do
-    {:ok, server} = Server.start_link()
-    {:ok, packet_capture} = PacketCapture.start_link(self())
-    Process.group_leader(server, packet_capture)
+    server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}
   end

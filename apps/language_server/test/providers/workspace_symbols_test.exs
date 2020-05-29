@@ -1,8 +1,12 @@
 defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
 
-  setup_all do
+  setup do
+    alias ElixirLS.Utils.PacketCapture
+    packet_capture = start_supervised!({PacketCapture, self()})
+    Process.register(packet_capture, :elixir_ls_test_process)
+
     pid =
       case WorkspaceSymbols.start_link([]) do
         {:ok, pid} -> pid
@@ -40,6 +44,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
 
   test "empty query" do
     assert {:ok, []} == WorkspaceSymbols.symbols("")
+
+    assert_receive %{
+      "method" => "window/logMessage",
+      "params" => %{"message" => "[ElixirLS WorkspaceSymbols] Updating index..."}
+    }
   end
 
   test "returns modules" do
