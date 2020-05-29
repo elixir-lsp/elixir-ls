@@ -183,6 +183,10 @@ defmodule ElixirLS.LanguageServer.Server do
         _ -> handle_build_result(:error, [Build.exception_to_diagnostic(reason)], state)
       end
 
+    if reason == :normal do
+      WorkspaceSymbols.notify_build_complete()
+    end
+
     state = if state.needs_build?, do: trigger_build(state), else: state
     {:noreply, state}
   end
@@ -282,7 +286,8 @@ defmodule ElixirLS.LanguageServer.Server do
         # The source file was not marked as open either due to a bug in the
         # client or a restart of the server. So just ignore the message and do
         # not update the state
-        IO.warn(
+        JsonRpc.log_message(
+          :warning,
           "Received textDocument/didChange for file that is not open. Received uri: #{
             inspect(uri)
           }"
@@ -668,8 +673,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
         GenServer.reply(from, contracts)
       end
-
-      WorkspaceSymbols.notify_build_complete()
 
       %{state | analysis_ready?: true, awaiting_contracts: dirty}
     else

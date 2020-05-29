@@ -22,9 +22,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   setup context do
     unless context[:skip_server] do
-      server = start_supervised!({Server, nil})
-      packet_capture = start_supervised!({PacketCapture, self()})
-      Process.group_leader(server, packet_capture)
+      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+
       {:ok, %{server: server}}
     else
       :ok
@@ -47,7 +46,17 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     ]
 
     version = 2
+
     Server.receive_packet(server, did_change(uri, version, content_changes))
+
+    assert_receive %{
+      "method" => "window/logMessage",
+      "params" => %{
+        "message" =>
+          "Received textDocument/didChange for file that is not open. Received uri: \"file:///file.ex\"",
+        "type" => 2
+      }
+    }
 
     # Wait for the server to process the message and ensure that there is no exception
     _ = :sys.get_state(server)
@@ -258,15 +267,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" =>
-                             "(CompileError) undefined function does_not_exist" <>
-                               _,
+                           "message" => "(CompileError) undefined function does_not_exist" <> _,
                            "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
                            "severity" => 1
                          }
                        ]
                      }),
-                     300
+                     1000
     end)
   end
 
@@ -280,15 +287,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" =>
-                             "(SyntaxError) syntax error before: ','" <>
-                               _,
+                           "message" => "(SyntaxError) syntax error before: ','" <> _,
                            "range" => %{"end" => %{"line" => 1}, "start" => %{"line" => 1}},
                            "severity" => 1
                          }
                        ]
                      }),
-                     300
+                     1000
     end)
   end
 
