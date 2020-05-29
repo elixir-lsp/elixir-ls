@@ -2,7 +2,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   # TODO: Test loading and saving manifest
 
   alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile}
-  alias ElixirLS.Utils.PacketCapture
   import ExUnit.CaptureLog
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
