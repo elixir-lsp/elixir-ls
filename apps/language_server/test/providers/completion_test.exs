@@ -357,12 +357,33 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {line, char} = {4, 14}
       TestUtils.assert_has_cursor_char(text, line, char)
-      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+      {:ok, result} = Completion.completion(text, line, char, @supports)
+
+      assert result["isIncomplete"] == true
+      items = result["items"]
 
       assert ["__struct__", "other", "some"] ==
                items |> Enum.filter(&(&1["kind"] == 5)) |> Enum.map(& &1["label"]) |> Enum.sort()
 
       assert (items |> hd)["detail"] == "MyModule struct field"
+    end
+
+    test "isIncomplete is false when there are no results" do
+      text = """
+      defmodule MyModule do
+        defstruct [some: nil, other: 1]
+
+        def dummy_function() do
+          #                    ^
+      end
+      """
+
+      {line, char} = {3, 25}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, result} = Completion.completion(text, line, char, @supports)
+      assert result["isIncomplete"] == false
+      assert result["items"] == []
     end
   end
 end
