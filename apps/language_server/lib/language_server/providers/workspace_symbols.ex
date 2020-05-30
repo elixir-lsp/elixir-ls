@@ -53,36 +53,36 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   ## Client API
 
   @spec symbols(String.t()) :: {:ok, [symbol_information_t]}
-  def symbols(query) do
+  def symbols(query, server \\ __MODULE__) do
     results =
       case query do
         "f " <> fun_query ->
-          query(:functions, fun_query)
+          query(:functions, fun_query, server)
 
         "t " <> type_query ->
-          query(:types, type_query)
+          query(:types, type_query, server)
 
         "c " <> callback_query ->
-          query(:callbacks, callback_query)
+          query(:callbacks, callback_query, server)
 
         module_query ->
-          query(:modules, module_query)
+          query(:modules, module_query, server)
       end
 
     {:ok, results}
   end
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, :ok, opts |> Keyword.put(:name, __MODULE__))
+    GenServer.start_link(__MODULE__, :ok, opts |> Keyword.put_new(:name, __MODULE__))
   end
 
-  def notify_build_complete do
-    GenServer.cast(__MODULE__, :build_complete)
+  def notify_build_complete(server \\ __MODULE__) do
+    GenServer.cast(server, :build_complete)
   end
 
   @spec notify_uris_modified([String.t()]) :: :ok
-  def notify_uris_modified(uris) do
-    GenServer.cast(__MODULE__, {:uris_modified, uris})
+  def notify_uris_modified(uris, server \\ __MODULE__) do
+    GenServer.cast(server, {:uris_modified, uris})
   end
 
   ## Server Callbacks
@@ -351,13 +351,13 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     |> elem(0)
   end
 
-  defp query(kind, query) do
+  defp query(kind, query, server) do
     case String.trim(query) do
       "" ->
         []
 
       trimmed ->
-        GenServer.call(__MODULE__, {:query, kind, trimmed})
+        GenServer.call(server, {:query, kind, trimmed})
     end
   end
 

@@ -21,8 +21,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
             _ -> SourceFile.path_to_uri(file)
           end
 
-        ElixirLS.LanguageServer.JsonRpc.log_message(:info, "Returning location struct")
-
         {:ok,
          %Protocol.Location{
            uri: uri,

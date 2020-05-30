@@ -1,13 +1,15 @@
 defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
 
-  setup_all do
-    pid =
-      case WorkspaceSymbols.start_link([]) do
-        {:ok, pid} -> pid
-        {:error, {:already_started, pid}} -> pid
-      end
+  @server_name WorkspaceSymbolsTestServer
+
+  setup do
+    alias ElixirLS.Utils.PacketCapture
+    packet_capture = start_supervised!({PacketCapture, self()})
+    Process.register(packet_capture, :elixir_ls_test_process)
+
+    {:ok, pid} = WorkspaceSymbols.start_link(name: @server_name)
 
     state = :sys.get_state(pid)
 
@@ -27,19 +29,20 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
       }
     end)
 
-    WorkspaceSymbols.notify_build_complete()
+    WorkspaceSymbols.notify_build_complete(@server_name)
 
     wait_until_indexed(pid)
-
-    on_exit(fn ->
-      :sys.replace_state(pid, fn _ -> state end)
-    end)
 
     {:ok, %{}}
   end
 
   test "empty query" do
-    assert {:ok, []} == WorkspaceSymbols.symbols("")
+    assert {:ok, []} == WorkspaceSymbols.symbols("", @server_name)
+
+    assert_receive %{
+      "method" => "window/logMessage",
+      "params" => %{"message" => "[ElixirLS WorkspaceSymbols] Updating index..."}
+    }
   end
 
   test "returns modules" do
@@ -53,7 +56,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                 },
                 name: "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
               }
-            ]} = WorkspaceSymbols.symbols("ElixirLS.LanguageServer.Fixtures.")
+            ]} = WorkspaceSymbols.symbols("ElixirLS.LanguageServer.Fixtures.", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
 
@@ -67,7 +70,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                 },
                 name: "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
               }
-            ]} = WorkspaceSymbols.symbols("work")
+            ]} = WorkspaceSymbols.symbols("work", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
   end
@@ -120,7 +123,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                  name: "f ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.__info__/1"
                }
              ]
-           } = WorkspaceSymbols.symbols("f ElixirLS.LanguageServer.Fixtures.")
+           } = WorkspaceSymbols.symbols("f ElixirLS.LanguageServer.Fixtures.", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
 
@@ -134,7 +137,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                 },
                 name: "f ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_function/1"
               }
-            ]} = WorkspaceSymbols.symbols("f fun")
+            ]} = WorkspaceSymbols.symbols("f fun", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
   end
@@ -159,7 +162,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                  name: "t ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_opaque_type/0"
                }
              ]
-           } = WorkspaceSymbols.symbols("t ElixirLS.LanguageServer.Fixtures.")
+           } = WorkspaceSymbols.symbols("t ElixirLS.LanguageServer.Fixtures.", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
 
@@ -175,7 +178,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                  name: "t ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_opaque_type/0"
                }
              ]
-           } = WorkspaceSymbols.symbols("t opa")
+           } = WorkspaceSymbols.symbols("t opa", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
   end
@@ -200,7 +203,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                  name: "c ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_macrocallback/1"
                }
              ]
-           } = WorkspaceSymbols.symbols("c ElixirLS.LanguageServer.Fixtures.")
+           } = WorkspaceSymbols.symbols("c ElixirLS.LanguageServer.Fixtures.", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
 
@@ -214,7 +217,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
                 },
                 name: "c ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_macrocallback/1"
               }
-            ]} = WorkspaceSymbols.symbols("c macr")
+            ]} = WorkspaceSymbols.symbols("c macr", @server_name)
 
     assert uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
   end

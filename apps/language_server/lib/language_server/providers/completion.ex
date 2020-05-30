@@ -267,6 +267,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       insert_text = def_snippet(def_str, name, args, arity, options)
       label = "#{def_str}#{function_label(name, args, arity)}"
 
+      filter_text =
+        if def_str do
+          "#{def_str}#{name}"
+        else
+          name
+        end
+
       %__MODULE__{
         label: label,
         kind: :interface,
@@ -274,7 +281,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         documentation: summary,
         insert_text: insert_text,
         priority: 2,
-        filter_text: name,
+        filter_text: filter_text,
         tags: metadata_to_tags(metadata)
       }
     end
@@ -423,13 +430,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp def_snippet(def_str, name, args, arity, opts) do
     if Keyword.get(opts, :snippets_supported, false) do
-      "#{def_str}#{function_snippet(name, args, arity)} do\n\t$0\nend"
+      "#{def_str}#{function_snippet(name, args, arity, opts)} do\n\t$0\nend"
     else
       "#{def_str}#{name}"
     end
   end
 
-  defp function_snippet(name, args, arity, opts \\ []) do
+  defp function_snippet(name, args, arity, opts) do
     cond do
       Keyword.get(opts, :capture_before?) && arity <= 1 ->
         Enum.join([name, "/", arity])
