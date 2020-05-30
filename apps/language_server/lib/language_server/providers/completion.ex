@@ -132,10 +132,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> sort_items()
       |> items_to_json(options)
 
-    {:ok, %{"isIncomplete" => false, "items" => items_json}}
+    {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
   end
 
   ## Helpers
+
+  defp is_incomplete(items) do
+    if Enum.empty?(items) do
+      false
+    else
+      # By returning isIncomplete = true we tell the client that it should
+      # always fetch more results, this lets us control the ordering of
+      # completions accurately
+      true
+    end
+  end
 
   defp from_completion_item(
          %{type: :attribute, name: name},
