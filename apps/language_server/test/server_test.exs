@@ -239,13 +239,33 @@ defmodule ElixirLS.LanguageServer.ServerTest do
              "activeSignature" => 0,
              "signatures" => [
                %{
-                 "documentation" => "@spec inspect(item, keyword) :: item when item: var\n" <> _,
+                 "documentation" => %{
+                   "kind" => "markdown",
+                   "value" => """
+                   Inspects and writes the given `item` to the device.
+
+                   ```
+                   @spec inspect(item, keyword) :: item
+                   when item: var
+                   ```
+                   """
+                 },
                  "label" => "inspect(item, opts \\\\ [])",
                  "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
                },
                %{
-                 "documentation" =>
-                   "@spec inspect(device, item, keyword) :: item when item: var\n" <> _,
+                 "documentation" => %{
+                   "kind" => "markdown",
+                   "value" => """
+                   Inspects `item` according to the given options using the IO `device`.
+
+                   ```
+                   @spec inspect(device, item, keyword) ::
+                     item
+                   when item: var
+                   ```
+                   """
+                 },
                  "label" => "inspect(device, item, opts)",
                  "parameters" => [
                    %{"label" => "device"},
@@ -254,7 +274,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  ]
                }
              ]
-           }) = resp
+           }) == resp
   end
 
   test "reports build diagnostics", %{server: server} do

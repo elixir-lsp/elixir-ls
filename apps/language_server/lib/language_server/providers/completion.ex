@@ -10,7 +10,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   alias ElixirLS.LanguageServer.SourceFile
 
   @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
-  defstruct [:label, :kind, :detail, :documentation, :insert_text, :filter_text, :priority, :tags]
+  defstruct [
+    :label,
+    :kind,
+    :detail,
+    :documentation,
+    :insert_text,
+    :filter_text,
+    :priority,
+    :tags,
+    :command
+  ]
 
   @module_attr_snippets [
     {"doc", "doc \"\"\"\n$0\n\"\"\"", "Documents a function"},
@@ -130,7 +140,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       def_before: def_before,
       pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
       capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
-      scope: scope
+      scope: scope,
+      module: env.module
     }
 
     items =
@@ -434,12 +445,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     nil
   end
 
-  defp function_label(name, args, arity) do
-    if args && args != "" do
-      Enum.join([to_string(name), "(", args, ")"])
-    else
-      Enum.join([to_string(name), "/", arity])
-    end
+  defp function_label(name, _args, arity) do
+    Enum.join([to_string(name), "/", arity])
   end
 
   defp def_snippet(def_str, name, args, arity, opts) do
@@ -457,6 +464,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
       not Keyword.get(opts, :snippets_supported, false) ->
         name
+
+      Keyword.get(opts, :trigger_signature?, false) ->
+        text_after_cursor = Keyword.get(opts, :text_after_cursor, "")
+
+        if Regex.match?(~r/^[a-zA-Z0-9_:"'%<\[\{]/, text_after_cursor) do
+          "#{name}("
+        else
+          "#{name}($1)$0"
+        end
 
       true ->
         args_list =
@@ -478,7 +494,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           |> Enum.with_index()
           |> Enum.map(fn {arg, i} -> "${#{i + 1}:#{arg}}" end)
 
-        Enum.join([name, "(", Enum.join(tabstops, ", "), ")"])
+        {before_args, after_args} =
+          if Keyword.get(opts, :with_parens?, false) do
+            {"(", ")"}
+          else
+            {" ", ""}
+          end
+
+        Enum.join([name, before_args, Enum.join(tabstops, ", "), after_args])
     end
   end
 
@@ -527,6 +550,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     |> String.replace("$", "\\$")
     |> String.replace("}", "\\}")
     |> String.split(",")
+    |> Enum.reject(fn s -> String.contains?(s, "\\\\") end)
     |> Enum.map(&String.trim/1)
   end
 
@@ -575,6 +599,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp function_completion(info, context, options) do
     %{
       type: type,
+      visibility: visibility,
       args: args,
       name: name,
       summary: summary,
@@ -590,8 +615,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     %{
       pipe_before?: pipe_before?,
       capture_before?: capture_before?,
-      text_after_cursor: text_after_cursor
+      text_after_cursor: text_after_cursor,
+      module: module
     } = context
+
+    locals_without_parens = Keyword.get(options, :locals_without_parens)
+    with_parens? = formatted_with_parens?(name, arity, locals_without_parens)
+
+    trigger_signature? =
+      Keyword.get(options, :signature_help_supported, false) &&
+        Keyword.get(options, :snippets_supported, false) &&
+        arity > 0 &&
+        with_parens?
 
     {label, insert_text} =
       cond do
@@ -614,33 +649,48 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
               Keyword.merge(
                 options,
                 pipe_before?: pipe_before?,
-                capture_before?: capture_before?
+                capture_before?: capture_before?,
+                trigger_signature?: trigger_signature?,
+                locals_without_parens: locals_without_parens,
+                text_after_cursor: text_after_cursor,
+                with_parens?: with_parens?
               )
             )
 
           {label, insert_text}
       end
 
-    detail =
-      cond do
-        spec && spec != "" ->
-          spec
+    detail_header =
+      if inspect(module) == origin do
+        "#{visibility} #{type}"
+      else
+        "#{origin} #{type}"
+      end
 
-        String.starts_with?(type, ["private", "public"]) ->
-          String.replace(type, "_", " ")
+    footer =
+      if String.starts_with?(type, ["private", "public"]) do
+        String.replace(type, "_", " ")
+      else
+        SourceFile.format_spec(spec, line_length: 30)
+      end
 
-        true ->
-          "(#{origin}) #{type}"
+    command =
+      if trigger_signature? do
+        %{
+          "title" => "Trigger Parameter Hint",
+          "command" => "editor.action.triggerParameterHints"
+        }
       end
 
     %__MODULE__{
       label: label,
       kind: :function,
-      detail: detail,
-      documentation: summary,
+      detail: detail_header <> "\n\n" <> Enum.join([to_string(name), "(", args, ")"]),
+      documentation: summary <> footer,
       insert_text: insert_text,
       priority: 7,
-      tags: metadata_to_tags(metadata)
+      tags: metadata_to_tags(metadata),
+      command: command
     }
   end
 
@@ -678,6 +728,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       "filterText" => item.filter_text,
       "sortText" => String.pad_leading(to_string(idx), 8, "0"),
       "insertText" => item.insert_text,
+      "command" => item.command,
       "insertTextFormat" =>
         if Keyword.get(options, :snippets_supported, false) do
           insert_text_format(:snippet)
@@ -723,5 +774,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       nil -> []
       _ -> [:deprecated]
     end
+  end
+
+  defp formatted_with_parens?(name, arity, locals_without_parens) do
+    (locals_without_parens || MapSet.new())
+    |> MapSet.member?({String.to_atom(name), arity})
+    |> Kernel.not()
   end
 end

@@ -6,7 +6,18 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   alias ElixirLS.LanguageServer.Providers.Completion
   alias ElixirLS.Utils.TestUtils
 
-  @supports [snippets_supported: true, deprecated_supported: false, tags_supported: []]
+  @supports [
+    snippets_supported: true,
+    deprecated_supported: false,
+    tags_supported: [],
+    signature_help_supported: true,
+    locals_without_parens: MapSet.new()
+  ]
+
+  @signature_command %{
+    "title" => "Trigger Parameter Hint",
+    "command" => "editor.action.triggerParameterHints"
+  }
 
   test "returns all Logger completions on normal require" do
     text = """
@@ -26,7 +37,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     logger_labels =
       ["warn", "debug", "error", "info"]
-      |> Enum.map(&(&1 <> "(chardata_or_fun, metadata \\\\ [])"))
+      |> Enum.map(&(&1 <> "/1"))
 
     for lfn <- logger_labels do
       assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
@@ -51,7 +62,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     logger_labels =
       ["warn", "debug", "error", "info"]
-      |> Enum.map(&(&1 <> "(chardata_or_fun, metadata \\\\ [])"))
+      |> Enum.map(&(&1 <> "/1"))
 
     for lfn <- logger_labels do
       assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
@@ -87,35 +98,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert length(items) == 0
   end
 
-  test "function with snippets not supported does not have argument placeholders" do
-    text = """
-    defmodule MyModule do
-      def add(a, b), do: a + b
-
-      def dummy_function() do
-        ad
-        # ^
-      end
-    end
-    """
-
-    {line, char} = {4, 6}
-    TestUtils.assert_has_cursor_char(text, line, char)
-
-    {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
-    assert item["insertText"] == "add(${1:a}, ${2:b})"
-
-    {:ok, %{"items" => [item]}} =
-      Completion.completion(
-        text,
-        line,
-        char,
-        @supports |> Keyword.put(:snippets_supported, false)
-      )
-
-    assert item["insertText"] == "add"
-  end
-
   test "provides completions for protocol functions" do
     text = """
     defimpl ElixirLS.LanguageServer.Fixtures.ExampleProtocol, for: MyModule do
@@ -134,7 +116,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.map(& &1["label"])
 
     assert completions == [
-             "def my_fun(example, arg)"
+             "def my_fun/2"
            ]
   end
 
@@ -363,6 +345,239 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                items |> Enum.filter(&(&1["kind"] == 5)) |> Enum.map(& &1["label"]) |> Enum.sort()
 
       assert (items |> hd)["detail"] == "MyModule struct field"
+    end
+  end
+
+  describe "function completion" do
+    setup do
+      text = """
+      defmodule MyModule do
+        def add(a, b), do: a + b
+
+        def dummy_function() do
+          ad
+          # ^
+        end
+      end
+      """
+
+      %{text: text, location: {4, 6}}
+    end
+
+    test "without snippets support, complete with just the name", context do
+      %{text: text, location: {line, char}} = context
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      opts = Keyword.merge(@supports, snippets_supported: false)
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+
+      assert item["insertText"] == "add"
+      assert item["command"] == nil
+
+      opts = Keyword.merge(@supports, snippets_supported: false, signature_help_supported: false)
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+
+      assert item["insertText"] == "add"
+      assert item["command"] == nil
+
+      opts =
+        Keyword.merge(@supports,
+          snippets_supported: false,
+          locals_without_parens: MapSet.new(add: 2)
+        )
+
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+
+      assert item["insertText"] == "add"
+      assert item["command"] == nil
+    end
+
+    test "with snippets support and no signature support, complete with name and args",
+         context do
+      %{text: text, location: {line, char}} = context
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      opts = Keyword.merge(@supports, signature_help_supported: false)
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+
+      assert item["insertText"] == "add(${1:a}, ${2:b})"
+      assert item["command"] == nil
+    end
+
+    test "with snippets/signature support, add placeholder between parens and trigger signature",
+         context do
+      %{text: text, location: {line, char}} = context
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
+
+      assert item["insertText"] == "add($1)$0"
+      assert item["command"] == @signature_command
+    end
+
+    test "with snippets/signature support, before valid arg, do not close parens" do
+      text = """
+      defmodule MyModule do
+        def add(a, b), do: a + b
+
+        def dummy_function() do
+          ad100
+          # ^
+        end
+      end
+      """
+
+      {line, char} = {4, 6}
+
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
+
+      assert item["insertText"] == "add("
+      assert item["command"] == @signature_command
+    end
+
+    test "function in :locals_without_parens does not add parens nor triggers signature",
+         context do
+      %{text: text, location: {line, char}} = context
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(add: 2))
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+
+      assert item["insertText"] == "add ${1:a}, ${2:b}"
+      assert item["command"] == nil
+    end
+
+    test "function with arity 0 does not triggers signature" do
+      text = """
+      defmodule MyModule do
+        def my_func(), do: false
+
+        def dummy_function() do
+          my
+          # ^
+        end
+      end
+      """
+
+      {line, char} = {4, 6}
+
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
+
+      assert item["insertText"] == "my_func()"
+      assert item["command"] == nil
+    end
+
+    test "optional arguments are ignored in snippets" do
+      text = """
+      defmodule MyModule do
+        def my_func(text, opts \\\\ []), do: IO.inspect(text, opts)
+
+        def dummy_function() do
+          my
+          # ^
+        end
+      end
+      """
+
+      {line, char} = {4, 6}
+
+      opts = Keyword.merge(@supports, signature_help_supported: false)
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+
+      assert item["insertText"] == "my_func(${1:text})"
+    end
+
+    test "the detail of a local function is visibility + type + signature" do
+      text = """
+      defmodule MyModule do
+        def my_func(text), do: true
+        defp my_func_priv(text), do: true
+
+        def dummy_function() do
+          my
+          # ^
+        end
+      end
+      """
+
+      {line, char} = {5, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => [pub, priv]}} = Completion.completion(text, line, char, @supports)
+
+      assert pub["detail"] == """
+             public function
+
+             my_func(text)\
+             """
+
+      assert priv["detail"] == """
+             private function
+
+             my_func_priv(text)\
+             """
+    end
+
+    test "the detail of a remote function is origin + type + signature" do
+      text = """
+      defmodule RemoteMod do
+        def func(), do: true
+      end
+
+      defmodule MyModule do
+        def dummy_function() do
+          RemoteMod.
+          #         ^
+        end
+      end
+      """
+
+      {line, char} = {6, 14}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => [item | _]}} = Completion.completion(text, line, char, @supports)
+
+      assert item["detail"] == """
+             RemoteMod function
+
+             func()\
+             """
+    end
+
+    test "documentation is the markdown of summary + formatted spec" do
+      text = """
+      defmodule MyModule do
+        def dummy_function() do
+          ElixirLS.LanguageServer.Fixtures.ExampleDocs.ad
+          #                                              ^
+        end
+      end
+      """
+
+      {line, char} = {2, 51}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => [item | _]}} = Completion.completion(text, line, char, @supports)
+
+      assert item["documentation"] == %{
+               :kind => "markdown",
+               "value" => """
+               The summary
+               ```
+               @spec add(
+                 a_big_name :: integer,
+                 b_big_name :: integer
+               ) :: integer
+               ```
+               """
+             }
     end
   end
 end

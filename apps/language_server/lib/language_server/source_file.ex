@@ -181,4 +181,46 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       _other -> {function, arity}
     end
   end
+
+  @spec format_spec(String.t(), keyword()) :: String.t()
+  def format_spec(spec, _opts) when spec in [nil, ""] do
+    ""
+  end
+
+  def format_spec(spec, opts) do
+    line_length = Keyword.fetch!(opts, :line_length)
+
+    spec_str =
+      case format_code(spec, line_length: line_length) do
+        {:ok, code} ->
+          code
+          |> to_string()
+          |> String.split("\n")
+          |> Enum.with_index()
+          |> Enum.map(fn
+            {l, i} when i > 0 -> String.slice(l, 6..-1)
+            {l, _} -> l
+          end)
+          |> Enum.join("\n")
+
+        {:error, _} ->
+          spec
+      end
+
+    """
+
+    ```
+    #{spec_str}
+    ```
+    """
+  end
+
+  defp format_code(code, opts) do
+    try do
+      {:ok, Code.format_string!(code, opts)}
+    rescue
+      e ->
+        {:error, e}
+    end
+  end
 end

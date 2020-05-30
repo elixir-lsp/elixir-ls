@@ -1,4 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
+  alias ElixirLS.LanguageServer.SourceFile
+
   def signature(source_file, line, character) do
     response =
       case ElixirSense.signature(source_file.text, line + 1, character + 1) do
@@ -23,9 +25,19 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
     response = %{"label" => label, "parameters" => params_info}
 
     case {spec, documentation} do
-      {"", ""} -> response
-      {"", _} -> Map.put(response, "documentation", documentation)
-      {_, _} -> Map.put(response, "documentation", "#{spec}\n#{documentation}")
+      {"", ""} ->
+        response
+
+      {"", _} ->
+        put_documentation(response, documentation)
+
+      {_, _} ->
+        spec_str = SourceFile.format_spec(spec, line_length: 42)
+        put_documentation(response, "#{documentation}\n#{spec_str}")
     end
+  end
+
+  defp put_documentation(response, documentation) do
+    Map.put(response, "documentation", %{"kind" => "markdown", "value" => documentation})
   end
 end
