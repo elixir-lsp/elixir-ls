@@ -98,7 +98,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     resp = assert_receive(%{"id" => 1}, 1000)
 
     assert response(1, %{
-             "isIncomplete" => false,
+             "isIncomplete" => true,
              "items" => [
                %{
                  "detail" => "behaviour",
@@ -423,7 +423,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         resp = assert_receive(%{"id" => 3}, 5000)
 
         assert response(3, %{
-                 "isIncomplete" => false,
+                 "isIncomplete" => true,
                  "items" => [
                    %{
                      "detail" => "module",

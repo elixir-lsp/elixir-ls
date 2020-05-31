@@ -75,19 +75,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                    "ExUnit.Assertions"
                  ])
 
-  @keywords %{
-    "end" => "end",
-    "do" => "do\n\t$0\nend",
-    "true" => "true",
-    "false" => "false",
-    "nil" => "nil",
-    "when" => "when",
-    "else" => "else\n\t$0",
-    "rescue" => "rescue\n\t$0",
-    "catch" => "catch\n\t$0",
-    "after" => "after\n\t$0"
-  }
-
   def trigger_characters do
     # VS Code's 24x7 autocompletion triggers automatically on alphanumeric characters. We add these
     # for "SomeModule." calls and @module_attrs
@@ -148,7 +135,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       ElixirSense.suggestions(text, line + 1, character + 1)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> Enum.concat(module_attr_snippets(context))
-      |> Enum.concat(keyword_completions(context))
 
     items_json =
       items
@@ -157,10 +143,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> sort_items()
       |> items_to_json(options)
 
-    {:ok, %{"isIncomplete" => false, "items" => items_json}}
+    {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
   end
 
   ## Helpers
+
+  defp is_incomplete(items) do
+    if Enum.empty?(items) do
+      false
+    else
+      # By returning isIncomplete = true we tell the client that it should
+      # always fetch more results, this lets us control the ordering of
+      # completions accurately
+      true
+    end
+  end
 
   defp from_completion_item(
          %{type: :attribute, name: name},
@@ -584,23 +581,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp module_attr_snippets(_), do: []
-
-  # These aren't really useful, to be honest, and it interferes with the auto-indentation
-  # for "else", but better to show them even if there's no good reason to use them
-  defp keyword_completions(%{prefix: prefix}) do
-    @keywords
-    |> Enum.filter(fn {keyword, _} -> String.starts_with?(keyword, prefix) end)
-    |> Enum.map(fn {keyword, snippet} ->
-      %__MODULE__{
-        label: keyword,
-        kind: :keyword,
-        detail: "keyword",
-        insert_text: snippet,
-        tags: [],
-        priority: 1
-      }
-    end)
-  end
 
   defp function_completion(info, context, options) do
     %{
