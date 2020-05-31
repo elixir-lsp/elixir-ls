@@ -195,12 +195,8 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         {:ok, code} ->
           code
           |> to_string()
-          |> String.split("\n")
-          |> Enum.with_index()
-          |> Enum.map(fn
-            {l, i} when i > 0 -> String.slice(l, 6..-1)
-            {l, _} -> l
-          end)
+          |> lines()
+          |> remove_indentation(String.length("@spec "))
           |> Enum.join("\n")
 
         {:error, _} ->
@@ -215,6 +211,13 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
+  @spec formatter_opts(String.t()) :: keyword()
+  def formatter_opts(uri) do
+    uri
+    |> path_from_uri()
+    |> Mix.Tasks.Format.formatter_opts_for_file()
+  end
+
   defp format_code(code, opts) do
     try do
       {:ok, Code.format_string!(code, opts)}
@@ -223,4 +226,10 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         {:error, e}
     end
   end
+
+  defp remove_indentation([line | rest], length) do
+    [line | Enum.map(rest, &String.slice(&1, length..-1))]
+  end
+
+  defp remove_indentation(lines, _), do: lines
 end

@@ -476,8 +476,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     locals_without_parens =
       uri
-      |> SourceFile.path_from_uri()
-      |> Mix.Tasks.Format.formatter_opts_for_file()
+      |> SourceFile.formatter_opts()
       |> Keyword.get(:locals_without_parens, [])
       |> MapSet.new()
 

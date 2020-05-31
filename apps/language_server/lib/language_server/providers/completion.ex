@@ -468,6 +468,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       Keyword.get(opts, :trigger_signature?, false) ->
         text_after_cursor = Keyword.get(opts, :text_after_cursor, "")
 
+        # Don't add the closing parenthesis to the snippet if the cursor is
+        # immediately before a valid argument (this usually happens when we
+        # want to wrap an existing variable or literal, e.g. using IO.inspect)
         if Regex.match?(~r/^[a-zA-Z0-9_:"'%<\[\{]/, text_after_cursor) do
           "#{name}("
         else
@@ -550,9 +553,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     |> String.replace("$", "\\$")
     |> String.replace("}", "\\}")
     |> String.split(",")
-    |> Enum.reject(fn s -> String.contains?(s, "\\\\") end)
+    |> Enum.reject(&is_default_argument?/1)
     |> Enum.map(&String.trim/1)
   end
+
+  defp is_default_argument?(s), do: String.contains?(s, "\\\\")
 
   defp module_attr_snippets(%{prefix: prefix, scope: :module, def_before: nil}) do
     for {name, snippet, docs} <- @module_attr_snippets,
@@ -620,7 +625,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     } = context
 
     locals_without_parens = Keyword.get(options, :locals_without_parens)
-    with_parens? = formatted_with_parens?(name, arity, locals_without_parens)
+    with_parens? = function_name_with_parens?(name, arity, locals_without_parens)
 
     trigger_signature? =
       Keyword.get(options, :signature_help_supported, false) &&
@@ -776,7 +781,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp formatted_with_parens?(name, arity, locals_without_parens) do
+  defp function_name_with_parens?(name, arity, locals_without_parens) do
     (locals_without_parens || MapSet.new())
     |> MapSet.member?({String.to_atom(name), arity})
     |> Kernel.not()
