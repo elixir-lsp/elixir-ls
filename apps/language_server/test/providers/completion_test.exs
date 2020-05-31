@@ -138,6 +138,51 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
            ]
   end
 
+  test "provides completions for callbacks without `def` before" do
+    text = """
+    defmodule MyModule do
+      @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
+
+    # ^
+    end
+    """
+
+    {line, char} = {2, 2}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+    first_completion =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "callback"))
+      |> Enum.at(0)
+
+    assert first_completion["label"] =~ "def build_greeting"
+
+    assert first_completion["insertText"] == "def build_greeting(${1:name}) do\n\t$0\nend"
+  end
+
+  test "provides completions for callbacks with `def` before" do
+    text = """
+    defmodule MyModule do
+      @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
+
+      def
+       # ^
+    end
+    """
+
+    {line, char} = {3, 5}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+    first_completion =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "callback"))
+      |> Enum.at(0)
+
+    assert first_completion["label"] =~ "def build_greeting"
+  end
+
   test "returns module completions after pipe" do
     text = """
     defmodule MyModule do
