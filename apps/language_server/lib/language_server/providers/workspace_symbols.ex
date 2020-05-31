@@ -456,17 +456,28 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   defp module_paths do
-    app = Keyword.fetch!(Mix.Project.config(), :app)
+    app_names = app_names()
 
-    Application.load(app)
+    Enum.each(app_names, &Application.load/1)
 
-    Application.spec(app, :modules)
-    |> Enum.flat_map(fn app_module ->
-      case find_module_path(app_module) do
-        nil -> []
-        path -> [{app_module, path}]
-      end
+    app_names
+    |> Enum.map(fn app_name ->
+      Application.spec(app_name, :modules)
+      |> Enum.flat_map(fn app_module ->
+        case find_module_path(app_module) do
+          nil -> []
+          path -> [{app_module, path}]
+        end
+      end)
     end)
+  end
+
+  defp app_names do
+    if Mix.Project.umbrella?() do
+      Mix.Project.apps_paths() |> Map.keys()
+    else
+      Keyword.fetch!(Mix.Project.config(), :app)
+    end
   end
 
   @spec build_result(key_t, symbol_t, String.t(), nil | non_neg_integer) :: symbol_information_t
