@@ -47,7 +47,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     formatted =
       try do
         target_line_length =
-          Mix.Tasks.Format.formatter_opts_for_file(SourceFile.path_from_uri(uri))
+          uri
+          |> SourceFile.formatter_opts()
           |> Keyword.get(:line_length, 98)
 
         target_line_length = target_line_length - String.length(indentation)

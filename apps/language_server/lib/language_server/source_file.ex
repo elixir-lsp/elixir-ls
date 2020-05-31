@@ -181,4 +181,55 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       _other -> {function, arity}
     end
   end
+
+  @spec format_spec(String.t(), keyword()) :: String.t()
+  def format_spec(spec, _opts) when spec in [nil, ""] do
+    ""
+  end
+
+  def format_spec(spec, opts) do
+    line_length = Keyword.fetch!(opts, :line_length)
+
+    spec_str =
+      case format_code(spec, line_length: line_length) do
+        {:ok, code} ->
+          code
+          |> to_string()
+          |> lines()
+          |> remove_indentation(String.length("@spec "))
+          |> Enum.join("\n")
+
+        {:error, _} ->
+          spec
+      end
+
+    """
+
+    ```
+    #{spec_str}
+    ```
+    """
+  end
+
+  @spec formatter_opts(String.t()) :: keyword()
+  def formatter_opts(uri) do
+    uri
+    |> path_from_uri()
+    |> Mix.Tasks.Format.formatter_opts_for_file()
+  end
+
+  defp format_code(code, opts) do
+    try do
+      {:ok, Code.format_string!(code, opts)}
+    rescue
+      e ->
+        {:error, e}
+    end
+  end
+
+  defp remove_indentation([line | rest], length) do
+    [line | Enum.map(rest, &String.slice(&1, length..-1))]
+  end
+
+  defp remove_indentation(lines, _), do: lines
 end

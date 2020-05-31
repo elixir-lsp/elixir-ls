@@ -471,11 +471,22 @@ defmodule ElixirLS.LanguageServer.Server do
         %{"valueSet" => value_set} -> value_set
       end
 
+    signature_help_supported =
+      !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
+
+    locals_without_parens =
+      uri
+      |> SourceFile.formatter_opts()
+      |> Keyword.get(:locals_without_parens, [])
+      |> MapSet.new()
+
     fun = fn ->
       Completion.completion(state.source_files[uri].text, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
-        tags_supported: tags_supported
+        tags_supported: tags_supported,
+        signature_help_supported: signature_help_supported,
+        locals_without_parens: locals_without_parens
       )
     end
 
