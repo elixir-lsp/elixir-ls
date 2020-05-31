@@ -289,7 +289,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           end
         end
 
-      insert_text = def_snippet(def_str, name, args, arity, options)
+      opts = Keyword.put(options, :with_parens?, true)
+      insert_text = def_snippet(def_str, name, args, arity, opts)
       label = "#{def_str}#{function_label(name, args, arity)}"
 
       filter_text =
