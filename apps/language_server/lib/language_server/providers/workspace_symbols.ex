@@ -461,7 +461,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     Enum.each(app_names, &Application.load/1)
 
     app_names
-    |> Enum.map(fn app_name ->
+    |> Enum.flat_map(fn app_name ->
       Application.spec(app_name, :modules)
       |> Enum.flat_map(fn app_module ->
         case find_module_path(app_module) do
@@ -476,7 +476,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     if Mix.Project.umbrella?() do
       Mix.Project.apps_paths() |> Map.keys()
     else
-      Keyword.fetch!(Mix.Project.config(), :app)
+      [Keyword.fetch!(Mix.Project.config(), :app)]
     end
   end
 
