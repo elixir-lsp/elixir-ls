@@ -19,7 +19,7 @@ defmodule ElixirLS.Utils.Launch do
 
     IO.puts(
       "ElixirLS compiled with Elixir #{@compiled_elixir_version}" <>
-        " and erlang #{@compiled_ot_version}"
+        " and erlang #{@compiled_otp_version}"
     )
   end
 
