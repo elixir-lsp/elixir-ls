@@ -124,9 +124,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         end
       end)
 
-    # Remove extraneous newline from last line
-    [[last_line, ?\n] | rest] = acc
-    acc = [last_line | rest]
+    acc = case acc do
+      # Remove extraneous newline from last line
+      [[last_line, ?\n] | rest] ->
+        [last_line | rest]
+      _ -> []
+    end
 
     IO.iodata_to_binary(Enum.reverse(acc))
   end
