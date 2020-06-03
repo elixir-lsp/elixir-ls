@@ -42,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end)
   end
 
-  defp contents(%{docs: "No documentation available"}) do
+  defp contents(%{docs: "No documentation available\n"}) do
     []
   end
 
