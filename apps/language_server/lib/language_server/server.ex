@@ -35,6 +35,7 @@ defmodule ElixirLS.LanguageServer.Server do
   use Protocol
 
   defstruct [
+    :server_instance_id,
     :build_ref,
     :dialyzer_sup,
     :client_capabilities,
@@ -346,6 +347,9 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request(initialize_req(_id, root_uri, client_capabilities), state) do
     show_version_warnings()
 
+    server_instance_id =
+      :crypto.strong_rand_bytes(32) |> Base.url_encode64() |> binary_part(0, 32)
+
     state =
       case root_uri do
         "file://" <> _ ->
@@ -357,7 +361,11 @@ defmodule ElixirLS.LanguageServer.Server do
           state
       end
 
-    state = %{state | client_capabilities: client_capabilities}
+    state = %{
+      state
+      | client_capabilities: client_capabilities,
+        server_instance_id: server_instance_id
+    }
 
     # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
     Process.send_after(self(), :default_config, 5000)
@@ -374,7 +382,7 @@ defmodule ElixirLS.LanguageServer.Server do
       Process.send_after(self(), :send_file_watchers, 100)
     end
 
-    {:ok, %{"capabilities" => server_capabilities()}, state}
+    {:ok, %{"capabilities" => server_capabilities(server_instance_id)}, state}
   end
 
   defp handle_request(request(_id, "shutdown", _params), state) do
@@ -519,7 +527,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(code_lens_req(_id, uri), state) do
     if dialyzer_enabled?(state) and state.settings["suggestSpecs"] != false do
-      {:async, fn -> CodeLens.code_lens(uri, state.source_files[uri].text) end, state}
+      {:async,
+       fn -> CodeLens.code_lens(state.server_instance_id, uri, state.source_files[uri].text) end,
+       state}
     else
       {:ok, nil, state}
     end
@@ -556,7 +566,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end)
   end
 
-  defp server_capabilities do
+  defp server_capabilities(server_instance_id) do
     %{
       "macroExpansion" => true,
       "textDocumentSync" => %{
@@ -574,7 +584,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
-      "executeCommandProvider" => %{"commands" => ["spec"]},
+      "executeCommandProvider" => %{"commands" => ["spec:#{server_instance_id}"]},
       "workspace" => %{
         "workspaceFolders" => %{"supported" => true, "changeNotifications" => true}
       }

@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
   alias ElixirLS.LanguageServer.{JsonRpc, SourceFile}
   import ElixirLS.LanguageServer.Protocol
 
-  def execute("spec", args, source_files) do
+  def execute("spec:" <> _, args, source_files) do
     [
       %{
         "uri" => uri,

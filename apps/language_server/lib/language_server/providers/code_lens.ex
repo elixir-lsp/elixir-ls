@@ -110,7 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
     end
   end
 
-  def code_lens(uri, text) do
+  def code_lens(server_instance_id, uri, text) do
     resp =
       for {_, line, {mod, fun, arity}, contract, is_macro} <- Server.suggest_contracts(uri),
           SourceFile.function_def_on_line?(text, line, fun),
@@ -119,7 +119,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
           "range" => range(line - 1, 0, line - 1, 0),
           "command" => %{
             "title" => "@spec #{spec}",
-            "command" => "spec",
+            "command" => "spec:#{server_instance_id}",
             "arguments" => [
               %{
                 "uri" => uri,
