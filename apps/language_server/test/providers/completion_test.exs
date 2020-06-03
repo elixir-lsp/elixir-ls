@@ -749,5 +749,48 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                """
              }
     end
+
+    test "moduledoc completion" do
+      text = """
+      defmodule MyModule do
+        @mod
+        #   ^
+      end
+      """
+
+      {line, char} = {1, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+      labels = Enum.map(items, & &1["label"])
+
+      assert labels == [
+               ~s(@moduledoc """"""),
+               "@moduledoc",
+               "@moduledoc false"
+             ]
+    end
+
+    test "doc completion" do
+      text = """
+      defmodule MyModule do
+        @do
+        #  ^
+        end
+      """
+
+      {line, char} = {1, 5}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+      labels = Enum.map(items, & &1["label"])
+
+      assert labels == [
+               ~s(@doc """"""),
+               "@doc false"
+             ]
+    end
   end
 end

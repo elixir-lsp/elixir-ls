@@ -17,15 +17,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     :documentation,
     :insert_text,
     :filter_text,
+    # Lower priority is shown higher in the result list
     :priority,
     :tags,
     :command
   ]
 
+  # Format:
+  # {name, snippet, documentation, priority}
   @module_attr_snippets [
-    {"doc", "doc \"\"\"\n$0\n\"\"\"", "Documents a function"},
-    {"moduledoc", "moduledoc \"\"\"\n$0\n\"\"\"", "Documents a module"},
-    {"typedoc", "typedoc \"\"\"\n$0\n\"\"\"", "Documents a type specification"}
+    {~s(doc """"""), ~s(doc """\n$0\n"""), "Documents a function", 3},
+    {"doc false", "doc false", "Marks this function as internal", 5},
+    {~s(moduledoc """"""), ~s(moduledoc """\n$0\n"""), "Documents a module", 3},
+    {"moduledoc false", "moduledoc false", "Marks this module as internal", 5},
+    {"typedoc", ~s(typedoc """\n$0\n"""), "Documents a type specification", 3}
   ]
 
   @func_snippets %{
@@ -166,9 +171,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     capture_before? = context.capture_before?
 
     Enum.reject(suggestions, fn s ->
-      s.type in [:function, :macro] &&
-        !capture_before? &&
-        s.arity < s.def_arity &&
+      s.type in [:function, :macro] && !capture_before? && s.arity < s.def_arity &&
         signature_help_supported &&
         function_name_with_parens?(s.name, s.arity, locals_without_parens) &&
         function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
@@ -197,7 +200,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "module attribute",
         insert_text: insert_text,
         filter_text: name_only,
-        priority: 3,
+        priority: 4,
         tags: []
       }
     end
@@ -624,7 +627,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp module_attr_snippets(%{prefix: prefix, scope: :module, def_before: nil}) do
-    for {name, snippet, docs} <- @module_attr_snippets,
+    for {name, snippet, docs, priority} <- @module_attr_snippets,
         label = "@" <> name,
         String.starts_with?(label, prefix) do
       snippet =
@@ -637,11 +640,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         label: label,
         kind: :snippet,
         documentation: docs,
-        detail: "module attribute",
+        detail: "module attribute snippet",
         insert_text: snippet,
         filter_text: name,
         tags: [],
-        priority: 6
+        priority: priority
       }
     end
   end
