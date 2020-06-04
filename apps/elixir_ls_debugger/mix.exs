@@ -3,7 +3,7 @@ defmodule ElixirLS.Debugger.Mixfile do
 
   def project do
     [
-      app: :debugger,
+      app: :elixir_ls_debugger,
       version: "0.4.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
