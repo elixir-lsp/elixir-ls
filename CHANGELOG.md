@@ -3,12 +3,35 @@
 Improvements:
 - Vendor Jason library to prevent conflicts with user's code (thanks [Jason Axelson](https://github.com/axelson)) [#253](https://github.com/elixir-lsp/elixir-ls/pull/253)
 - Switch to new supervisor format (thanks [Jason Axelson](https://github.com/axelson)) [#260](https://github.com/elixir-lsp/elixir-ls/pull/260)
+- Only call DocumentSymbols (outline pane) for .ex and .exs files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#262](https://github.com/elixir-lsp/elixir-ls/pull/262)
+- Support WorkspaceSymbols (go to symbol in workspace) without dialyzer being enabled (thanks [Jason Axelson](https://github.com/axelson)) [#263](https://github.com/elixir-lsp/elixir-ls/pull/263)
+- Display the version of Elixir used to compile ELixirLS (thanks [Jason Axelson](https://github.com/axelson)) [#264](https://github.com/elixir-lsp/elixir-ls/pull/264)
+- Support completion of callback function definitions (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#265](https://github.com/elixir-lsp/elixir-ls/pull/265)
 
 Changes:
+- Major improvement/change: Improve autocomplete and signature help (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#273](https://github.com/elixir-lsp/elixir-ls/pull/273)
+  - Don't insert arguments when completing a function call (almost always had to be deleted)
+  - Autocomplete triggers signature help
+  - Don't insert a `()` around the function call if the formatter configuration does not require it
 - No longer always return a static list of keywords for completion (thanks [Jason Axelson](https://github.com/axelson)) [#259](https://github.com/elixir-lsp/elixir-ls/pull/259)
 
 Bug Fixes:
 - Formatting was returning invalid floating point number (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#250](https://github.com/elixir-lsp/elixir-ls/pull/250)
+- Fix detection of empty hover hints (thanks [Dmitry Gutov](https://github.com/dgutov)) [#279](https://github.com/elixir-lsp/elixir-ls/pull/279)
+
+House keeping:
+- Server runs with a unique id (and uses it to disambiguate commands) (thanks [Alessandro Tagliapietra](https://github.com/alex88)) [#278](https://github.com/elixir-lsp/elixir-ls/pull/278)
+- Improvements to the reliability of the test suite (thanks [Jason Axelson](https://github.com/axelson)) [#270](https://github.com/elixir-lsp/elixir-ls/pull/270), [#271](https://github.com/elixir-lsp/elixir-ls/pull/271)
+- Rename debugger app so that it does not conflict with otp debugger app (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#280](https://github.com/elixir-lsp/elixir-ls/pull/280)
+
+VSCode:
+- Support workspaces with multiple elixir projects (thanks [Alessandro Tagliapietra](https://github.com/alex88)) [#70](https://github.com/elixir-lsp/vscode-elixir-ls/pull/70)
+- Improved support for phoenix templates (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#93](https://github.com/elixir-lsp/vscode-elixir-ls/pull/93)
+  - Shows errors in `.eex` and `.leex` files (instead of associated `.ex` file)
+- Improve syntax highlighting following pipes (thanks [Dusty Pomerleau](https://github.com/dustypomerleau)) [#81](https://github.com/elixir-lsp/vscode-elixir-ls/pull/81)
+- Make `%` a dedicated punctuation scope in elixir syntax file (thanks [Dusty Pomerleau](https://github.com/dustypomerleau)) [#72](https://github.com/elixir-lsp/vscode-elixir-ls/pull/72)
+- Migrate generated tasks.json to 2.0.0 syntax (thanks [Dusty Pomerleau](https://github.com/dustypomerleau)) [#71](https://github.com/elixir-lsp/vscode-elixir-ls/pull/71)
+- Improve development instructions (thanks [Tan Jay Jun](https://github.com/jayjun)) [#97](https://github.com/elixir-lsp/vscode-elixir-ls/pull/97)
 
 ### v0.4.0: 16 May 2020
 
