@@ -29,7 +29,7 @@ defmodule ElixirLS.Utils.Launch do
   end
 
   def debugger_version do
-    {:ok, vsn} = :application.get_key(:debugger, :vsn)
+    {:ok, vsn} = :application.get_key(:elixir_ls_debugger, :vsn)
     vsn
   end
 
