@@ -20,7 +20,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:mix, :logger]]
+    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:mix, :logger, :dialyzer]]
   end
 
   defp deps do
