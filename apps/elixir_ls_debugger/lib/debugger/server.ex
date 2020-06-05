@@ -533,7 +533,9 @@ defmodule ElixirLS.Debugger.Server do
         :int.ni(mod)
       catch
         _, _ ->
-          IO.warn("Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`.")
+          IO.warn(
+            "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
+          )
       end
     end)
   end
