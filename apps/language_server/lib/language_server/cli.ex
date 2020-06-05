@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.CLI do
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
     Launch.start_mix()
 
-    Application.ensure_all_started(:language_server, :temporary)
+    {:ok, _} = Application.ensure_all_started(:language_server, :temporary)
     IO.puts("Started ElixirLS v#{Launch.language_server_version()}")
     Launch.print_versions()
 

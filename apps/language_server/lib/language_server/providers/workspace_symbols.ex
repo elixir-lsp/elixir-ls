@@ -106,7 +106,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @impl GenServer
   def handle_call({:query, key, query}, from, state) do
-    Task.start_link(fn ->
+    {:ok, _pid} = Task.start_link(fn ->
       results = get_results(state, key, query)
       GenServer.reply(from, results)
     end)
@@ -426,7 +426,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   defp index_async(key, fun) do
     self = self()
 
-    Task.start_link(fn ->
+    {:ok, _pid} = Task.start_link(fn ->
       results = fun.()
 
       send(self, {:indexing_complete, key, results})
@@ -436,6 +436,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         "[ElixirLS WorkspaceSymbols] #{length(results)} #{key} added to index"
       )
     end)
+    :ok
   end
 
   @spec get_results(state_t, key_t, String.t()) :: [symbol_information_t]

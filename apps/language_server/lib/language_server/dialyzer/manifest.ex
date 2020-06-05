@@ -54,7 +54,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
           File.mkdir_p!(Path.dirname(manifest_path))
           tmp_manifest_path = manifest_path <> ".new"
           File.write!(tmp_manifest_path, :erlang.term_to_binary(manifest_data, compressed: 1))
-          File.rename(tmp_manifest_path, manifest_path)
+          :ok = File.rename(tmp_manifest_path, manifest_path)
           File.touch!(manifest_path, timestamp)
         end)
 
