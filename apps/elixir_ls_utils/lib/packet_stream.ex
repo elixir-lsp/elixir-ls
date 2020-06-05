@@ -18,7 +18,9 @@ defmodule ElixirLS.Utils.PacketStream do
         end
       end,
       fn
-        :ok -> :ok
+        :ok ->
+          :ok
+
         {:error, reason} ->
           IO.warn("Unable to read from device: #{inspect(reason)}")
       end
@@ -39,10 +41,15 @@ defmodule ElixirLS.Utils.PacketStream do
     line = IO.binread(pid, :line)
 
     case line do
-      :eof -> :eof
-      {:error, reason} -> {:error, reason}
+      :eof ->
+        :eof
+
+      {:error, reason} ->
+        {:error, reason}
+
       line ->
         line = String.trim(line)
+
         if line == "" do
           header
         else
