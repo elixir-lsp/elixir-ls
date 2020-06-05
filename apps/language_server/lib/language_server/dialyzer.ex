@@ -330,7 +330,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         |> Stream.run()
 
         for file <- removed_files do
-          File.rm(temp_file_path(root_path, file))
+          path = temp_file_path(root_path, file)
+          case File.rm(path) do
+            :ok -> :ok
+            {:error, :enoent} -> :ok
+            {:error, reason} ->
+              IO.warn("Unable to remove temporary file #{path}: #{inspect(reason)}")
+          end
         end
 
         temp_modules =
