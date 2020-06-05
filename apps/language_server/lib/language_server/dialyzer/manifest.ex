@@ -82,13 +82,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       exported_types_list
     } = File.read!(manifest_path) |> :erlang.binary_to_term()
 
+    # FIXME: matching against opaque type
     plt(
       info: info,
       types: types,
       contracts: contracts,
       callbacks: callbacks,
       exported_types: exported_types
-    ) = active_plt = :dialyzer_plt.new()
+    ) = active_plt = apply(:dialyzer_plt, :new, [])
 
     for item <- info_list, do: :ets.insert(info, item)
     for item <- types_list, do: :ets.insert(types, item)
@@ -102,7 +103,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def load_elixir_plt() do
-    :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
+    apply(:dialyzer_plt, :from_file, [to_charlist(elixir_plt_path())])
   rescue
     _ -> build_elixir_plt()
   catch
@@ -172,6 +173,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   defp transfer_plt(active_plt, pid) do
+    # FIXME: matching against opaque type
     plt(
       info: info,
       types: types,
