@@ -7,7 +7,11 @@ defmodule ElixirLS.Utils.WireProtocol do
   def send(packet) do
     pid = io_dest()
     body = JasonVendored.encode!(packet) <> "\r\n\r\n"
-    IO.binwrite(pid, "Content-Length: #{byte_size(body)}\r\n\r\n" <> body)
+    case IO.binwrite(pid, "Content-Length: #{byte_size(body)}\r\n\r\n" <> body) do
+      :ok -> :ok
+      {:error, reason} ->
+        IO.warn("Unable to write to the device: #{inspect(reason)}")
+    end
   end
 
   case Mix.env() do

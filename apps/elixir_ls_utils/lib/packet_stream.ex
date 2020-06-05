@@ -13,37 +13,42 @@ defmodule ElixirLS.Utils.PacketStream do
       fn _acc ->
         case read_packet(pid) do
           :eof -> {:halt, :ok}
+          {:error, reason} -> {:halt, {:error, reason}}
           packet -> {[packet], :ok}
         end
       end,
-      fn _acc -> :ok end
+      fn
+        :ok -> :ok
+        {:error, reason} ->
+          IO.warn("Unable to read from device: #{inspect(reason)}")
+      end
     )
   end
 
   defp read_packet(pid) do
     header = read_header(pid)
 
-    if header == :eof do
-      :eof
-    else
-      read_body(pid, header)
+    case header do
+      :eof -> :eof
+      {:error, reason} -> {:error, reason}
+      header -> read_body(pid, header)
     end
   end
 
   defp read_header(pid, header \\ %{}) do
     line = IO.binread(pid, :line)
 
-    if line == :eof do
-      :eof
-    else
-      line = String.trim(line)
-
-      if line == "" do
-        header
-      else
-        [key, value] = String.split(line, ": ")
-        read_header(pid, Map.put(header, key, value))
-      end
+    case line do
+      :eof -> :eof
+      {:error, reason} -> {:error, reason}
+      line ->
+        line = String.trim(line)
+        if line == "" do
+          header
+        else
+          [key, value] = String.split(line, ": ")
+          read_header(pid, Map.put(header, key, value))
+        end
     end
   end
 
@@ -51,10 +56,10 @@ defmodule ElixirLS.Utils.PacketStream do
     %{"Content-Length" => content_length_str} = header
     body = IO.binread(pid, String.to_integer(content_length_str))
 
-    if body == :eof do
-      :eof
-    else
-      JasonVendored.decode!(body)
+    case body do
+      :eof -> :eof
+      {:error, reason} -> {:error, reason}
+      body -> JasonVendored.decode!(body)
     end
   end
 end
