@@ -1,15 +1,22 @@
 defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
   import ExUnit.Callbacks, only: [start_supervised!: 1]
+
   alias ElixirLS.LanguageServer.Server
+  alias ElixirLS.LanguageServer.JsonRpc
+  alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
   alias ElixirLS.Utils.PacketCapture
 
   def start_server do
-    server = start_supervised!({Server, nil})
     packet_capture = start_supervised!({PacketCapture, self()})
+
+    server = start_supervised!({Server, nil})
     Process.group_leader(server, packet_capture)
 
-    Process.whereis(ElixirLS.LanguageServer.Providers.WorkspaceSymbols)
-    |> Process.group_leader(packet_capture)
+    json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
+    Process.group_leader(json_rpc, packet_capture)
+
+    workspace_symbols = start_supervised!({WorkspaceSymbols, []})
+    Process.group_leader(workspace_symbols, packet_capture)
 
     server
   end

@@ -19,6 +19,18 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     "command" => "editor.action.triggerParameterHints"
   }
 
+  setup context do
+    ElixirLS.LanguageServer.Build.load_all_modules()
+
+    unless context[:skip_server] do
+      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+
+      {:ok, %{server: server}}
+    else
+      :ok
+    end
+  end
+
   test "returns all Logger completions on normal require" do
     text = """
     defmodule MyModule do

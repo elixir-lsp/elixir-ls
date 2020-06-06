@@ -4,6 +4,7 @@ defmodule ElixirLS.Mixfile do
   def project do
     [
       apps_path: "apps",
+      aliases: aliases(),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       build_per_environment: false,
@@ -26,5 +27,11 @@ defmodule ElixirLS.Mixfile do
   # and cannot be accessed from applications inside the apps folder
   defp deps do
     []
+  end
+
+  defp aliases do
+    [
+      test: "cmd mix test"
+    ]
   end
 end
