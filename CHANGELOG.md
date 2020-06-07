@@ -18,6 +18,7 @@ Changes:
 Bug Fixes:
 - Formatting was returning invalid floating point number (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#250](https://github.com/elixir-lsp/elixir-ls/pull/250)
 - Fix detection of empty hover hints (thanks [Dmitry Gutov](https://github.com/dgutov)) [#279](https://github.com/elixir-lsp/elixir-ls/pull/279)
+- Debugger doesn't fail when modules cannot be interpretted (thanks [Łukasz Samson](https://github.com/lukaszsamson)) (such as nifs) [#283](https://github.com/elixir-lsp/elixir-ls/pull/283)
 
 House keeping:
 - Server runs with a unique id (and uses it to disambiguate commands) (thanks [Alessandro Tagliapietra](https://github.com/alex88)) [#278](https://github.com/elixir-lsp/elixir-ls/pull/278)
