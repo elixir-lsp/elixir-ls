@@ -219,9 +219,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # ExUnit describe
-  defp extract_symbol(current_module, {:describe, location, [name | ast]}) do
-    [[do: module_body]] = ast
-
+  defp extract_symbol(current_module, {:describe, location, [name | [[do: module_body]]]}) do
     mod_defns =
       case module_body do
         {:__block__, [], mod_defns} -> mod_defns
