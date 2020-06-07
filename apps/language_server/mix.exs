@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:mix, :logger]]
+    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:mix, :logger, :dialyzer]]
   end
 
   defp deps do
@@ -30,7 +30,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
       {:forms, "~> 0.0.1"},
       {:erl2ex, github: "dazuma/erl2ex"},
-      {:dialyxir, "~> 1.0.0", runtime: false}
+      {:dialyxir, "~> 1.0.0", runtime: false},
+      {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"}
     ]
   end
 

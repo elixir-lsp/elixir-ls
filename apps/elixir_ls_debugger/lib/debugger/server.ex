@@ -54,7 +54,7 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def init(opts) do
-    :int.start()
+    {:ok, _pid} = :int.start()
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
@@ -595,9 +595,9 @@ defmodule ElixirLS.Debugger.Server do
   # test helpers before tests). We save the .beam files to a temporary folder which we add to the
   # code path.
   defp require_files(required_files) do
-    File.rm_rf(@temp_beam_dir)
-    File.mkdir_p(@temp_beam_dir)
-    Code.append_path(Path.expand(@temp_beam_dir))
+    {:ok, _} = File.rm_rf(@temp_beam_dir)
+    :ok = File.mkdir_p(@temp_beam_dir)
+    true = Code.append_path(Path.expand(@temp_beam_dir))
 
     for path <- required_files,
         file <- Path.wildcard(path),
@@ -608,7 +608,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp save_and_reload(module, beam_bin) do
-    File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
+    :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
     :code.delete(module)
     :int.ni(module)
   end

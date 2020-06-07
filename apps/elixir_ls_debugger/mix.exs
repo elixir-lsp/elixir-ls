@@ -19,7 +19,7 @@ defmodule ElixirLS.Debugger.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix, :logger]]
+    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix, :logger, :debugger]]
   end
 
   defp deps do

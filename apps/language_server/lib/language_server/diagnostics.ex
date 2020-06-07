@@ -100,10 +100,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end
   end
 
-  defp file_path(nil, _root_path) do
-    {:error, :file_not_found}
-  end
-
   defp file_path(file, root_path) do
     path = Path.join([root_path, file])
 

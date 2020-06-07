@@ -9,7 +9,7 @@ defmodule ElixirLS.Debugger do
   def start(_type, _args) do
     # We don't start this as a worker because if the debugger crashes, we want
     # this process to remain alive to print errors
-    ElixirLS.Debugger.Output.start(ElixirLS.Debugger.Output)
+    {:ok, _pid} = ElixirLS.Debugger.Output.start(ElixirLS.Debugger.Output)
 
     children = [
       {ElixirLS.Debugger.Server, name: ElixirLS.Debugger.Server}
