@@ -10,6 +10,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
+      aliases: aliases(),
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: false,
       start_permanent: true,
@@ -30,6 +31,12 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:forms, "~> 0.0.1"},
       {:erl2ex, github: "dazuma/erl2ex"},
       {:dialyxir, "~> 1.0.0", runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [
+      test: "test --no-start"
     ]
   end
 

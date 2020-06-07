@@ -166,7 +166,7 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
-  defp load_all_modules do
+  def load_all_modules do
     apps =
       cond do
         Mix.Project.umbrella?() ->
