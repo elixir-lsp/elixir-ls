@@ -10,6 +10,10 @@ defmodule ElixirLS.Debugger.Server do
   increment it any time we assign an ID.
   """
 
+  defmodule ServerError do
+    defexception [:message, :format, :variables]
+  end
+
   alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables}
   use GenServer
   use Protocol
@@ -61,9 +65,15 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def handle_cast({:receive_packet, request(_, _) = packet}, state) do
-    {response_body, state} = handle_request(packet, state)
-    Output.send_response(packet, response_body)
-    {:noreply, state}
+    try do
+      {response_body, state} = handle_request(packet, state)
+      Output.send_response(packet, response_body)
+      {:noreply, state}
+    rescue
+      e in ServerError ->
+        Output.send_error_response(packet, e.message, e.format, e.variables)
+        {:noreply, state}
+    end
   end
 
   @impl GenServer
@@ -319,6 +329,15 @@ defmodule ElixirLS.Debugger.Server do
 
     :int.finish(pid)
     {%{}, state}
+  end
+
+  defp handle_request(request(_, command), _state) when is_binary(command) do
+    raise ServerError,
+      message: "notSupported",
+      format: "Debugger request {command} is currently not supported",
+      variables: %{
+        "command" => command
+      }
   end
 
   defp remove_paused_process(state, pid) do

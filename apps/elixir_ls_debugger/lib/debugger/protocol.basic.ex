@@ -36,6 +36,26 @@ defmodule ElixirLS.Debugger.Protocol.Basic do
     end
   end
 
+  defmacro error_response(seq, request_seq, command, message, format, variables) do
+    quote do
+      %{
+        "type" => "response",
+        "command" => unquote(command),
+        "seq" => unquote(seq),
+        "request_seq" => unquote(request_seq),
+        "success" => false,
+        "message" => unquote(message),
+        "body" => %{
+          "error" => %{
+            "id" => unquote(seq),
+            "format" => unquote(format),
+            "variables" => unquote(variables)
+          }
+        }
+      }
+    end
+  end
+
   defmacro event(seq, event, body) do
     quote do
       %{
