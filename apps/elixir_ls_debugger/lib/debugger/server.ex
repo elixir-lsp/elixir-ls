@@ -111,11 +111,6 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | task_ref: nil}}
   end
 
-  @impl GenServer
-  def handle_info({:EXIT, _, :normal}, state) do
-    {:noreply, state}
-  end
-
   # If we get the disconnect request from the client, we send :disconnect to the server so it will
   # die right after responding to the request
   @impl GenServer
