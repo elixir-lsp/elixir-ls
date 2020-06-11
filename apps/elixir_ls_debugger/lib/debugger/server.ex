@@ -298,7 +298,7 @@ defmodule ElixirLS.Debugger.Server do
     pid = state.threads[thread_id]
     state = remove_paused_process(state, pid)
 
-    :int.continue(pid)
+    :ok = :int.continue(pid)
     {%{"allThreadsContinued" => false}, state}
   end
 
@@ -544,7 +544,7 @@ defmodule ElixirLS.Debugger.Server do
     |> Enum.filter(&interpretable?(&1, exclude_modules))
     |> Enum.map(fn mod ->
       try do
-        :int.ni(mod)
+        {:module, _} = :int.ni(mod)
       catch
         _, _ ->
           IO.warn(
@@ -623,8 +623,8 @@ defmodule ElixirLS.Debugger.Server do
 
   defp save_and_reload(module, beam_bin) do
     :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
-    :code.delete(module)
-    :int.ni(module)
+    true = :code.delete(module)
+    {:module, _} = :int.ni(module)
   end
 
   defp set_breakpoints(path, lines) do
@@ -654,7 +654,7 @@ defmodule ElixirLS.Debugger.Server do
   defp set_breakpoint(module, line) do
     case :int.ni(module) do
       {:module, _} ->
-        :int.break(module, line)
+        :ok = :int.break(module, line)
         {:ok, module, line}
 
       _ ->
