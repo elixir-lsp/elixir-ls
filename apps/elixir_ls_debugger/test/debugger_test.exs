@@ -127,9 +127,6 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(server, continue_req(10, thread_id))
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
-
-      assert_receive(event(_, "exited", %{"exitCode" => 0}))
-      assert_receive(event(_, "terminated", %{"restart" => false}))
     end)
   end
 
