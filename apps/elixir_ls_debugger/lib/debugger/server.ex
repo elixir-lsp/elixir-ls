@@ -58,7 +58,6 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def init(opts) do
-    {:ok, _pid} = :int.start()
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
