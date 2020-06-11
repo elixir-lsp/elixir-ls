@@ -26,8 +26,6 @@ defmodule ElixirLS.Debugger.ServerTest do
     {:ok, %{server: server}}
   end
 
-  # Causes test suite not to finish
-  @tag :pending
   test "basic debugging", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
@@ -128,13 +126,19 @@ defmodule ElixirLS.Debugger.ServerTest do
       Server.receive_packet(server, continue_req(10, thread_id))
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
 
-      assert_receive(event(_, "exited", %{"exitCode" => 0}))
-      assert_receive(event(_, "terminated", %{"restart" => false}))
+      Server.receive_packet(server, request(11, "someRequest", %{"threadId" => 123}))
+
+      assert_receive error_response(
+                       _,
+                       11,
+                       "someRequest",
+                       "notSupported",
+                       "Debugger request {command} is currently not supported",
+                       %{"command" => "someRequest"}
+                     )
     end)
   end
 
-  # Causes test suite not to finish
-  @tag :pending
   test "sets breakpoints in erlang modules", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))

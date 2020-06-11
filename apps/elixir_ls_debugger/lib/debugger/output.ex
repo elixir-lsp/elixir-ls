@@ -13,12 +13,16 @@ defmodule ElixirLS.Debugger.Output do
 
   ## Client API
 
-  def start(name \\ nil) do
+  def start(name \\ __MODULE__) do
     GenServer.start(__MODULE__, :ok, name: name)
   end
 
   def send_response(server \\ __MODULE__, request_packet, response_body) do
     GenServer.call(server, {:send_response, request_packet, response_body})
+  end
+
+  def send_error_response(server \\ __MODULE__, request_packet, message, format, variables) do
+    GenServer.call(server, {:send_error_response, request_packet, message, format, variables})
   end
 
   def send_event(server \\ __MODULE__, event, body) do
@@ -46,7 +50,21 @@ defmodule ElixirLS.Debugger.Output do
     {:reply, :ok, seq + 1}
   end
 
-  @impl GenServer
+  def handle_call({:send_error_response, request_packet, message, format, variables}, _from, seq) do
+    send(
+      error_response(
+        seq,
+        request_packet["seq"],
+        request_packet["command"],
+        message,
+        format,
+        variables
+      )
+    )
+
+    {:reply, :ok, seq + 1}
+  end
+
   def handle_call({:send_event, event, body}, _from, seq) do
     send(event(seq, event, body))
     {:reply, :ok, seq + 1}

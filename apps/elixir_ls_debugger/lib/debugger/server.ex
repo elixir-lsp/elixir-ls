@@ -10,6 +10,10 @@ defmodule ElixirLS.Debugger.Server do
   increment it any time we assign an ID.
   """
 
+  defmodule ServerError do
+    defexception [:message, :format, :variables]
+  end
+
   alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables}
   use GenServer
   use Protocol
@@ -54,16 +58,21 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def init(opts) do
-    {:ok, _pid} = :int.start()
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
 
   @impl GenServer
   def handle_cast({:receive_packet, request(_, _) = packet}, state) do
-    {response_body, state} = handle_request(packet, state)
-    Output.send_response(packet, response_body)
-    {:noreply, state}
+    try do
+      {response_body, state} = handle_request(packet, state)
+      Output.send_response(packet, response_body)
+      {:noreply, state}
+    rescue
+      e in ServerError ->
+        Output.send_error_response(packet, e.message, e.format, e.variables)
+        {:noreply, state}
+    end
   end
 
   @impl GenServer
@@ -79,6 +88,7 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, state}
   end
 
+  # the `:DOWN` message is not delivered under normal conditions as the process calls `Process.sleep(:infinity)`
   @impl GenServer
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{task_ref: ref} = state) do
     exit_code =
@@ -99,11 +109,6 @@ defmodule ElixirLS.Debugger.Server do
     Output.send_event("terminated", %{"restart" => false})
 
     {:noreply, %{state | task_ref: nil}}
-  end
-
-  @impl GenServer
-  def handle_info({:EXIT, _, :normal}, state) do
-    {:noreply, state}
   end
 
   # If we get the disconnect request from the client, we send :disconnect to the server so it will
@@ -293,7 +298,7 @@ defmodule ElixirLS.Debugger.Server do
     pid = state.threads[thread_id]
     state = remove_paused_process(state, pid)
 
-    :int.continue(pid)
+    :ok = :int.continue(pid)
     {%{"allThreadsContinued" => false}, state}
   end
 
@@ -319,6 +324,15 @@ defmodule ElixirLS.Debugger.Server do
 
     :int.finish(pid)
     {%{}, state}
+  end
+
+  defp handle_request(request(_, command), _state) when is_binary(command) do
+    raise ServerError,
+      message: "notSupported",
+      format: "Debugger request {command} is currently not supported",
+      variables: %{
+        "command" => command
+      }
   end
 
   defp remove_paused_process(state, pid) do
@@ -530,7 +544,7 @@ defmodule ElixirLS.Debugger.Server do
     |> Enum.filter(&interpretable?(&1, exclude_modules))
     |> Enum.map(fn mod ->
       try do
-        :int.ni(mod)
+        {:module, _} = :int.ni(mod)
       catch
         _, _ ->
           IO.warn(
@@ -609,8 +623,8 @@ defmodule ElixirLS.Debugger.Server do
 
   defp save_and_reload(module, beam_bin) do
     :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
-    :code.delete(module)
-    :int.ni(module)
+    true = :code.delete(module)
+    {:module, _} = :int.ni(module)
   end
 
   defp set_breakpoints(path, lines) do
@@ -640,7 +654,7 @@ defmodule ElixirLS.Debugger.Server do
   defp set_breakpoint(module, line) do
     case :int.ni(module) do
       {:module, _} ->
-        :int.break(module, line)
+        :ok = :int.break(module, line)
         {:ok, module, line}
 
       _ ->
