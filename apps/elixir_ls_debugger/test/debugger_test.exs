@@ -125,6 +125,17 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(server, continue_req(10, thread_id))
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
+
+      Server.receive_packet(server, request(11, "someRequest", %{"threadId" => 123}))
+
+      assert_receive error_response(
+                       _,
+                       11,
+                       "someRequest",
+                       "notSupported",
+                       "Debugger request {command} is currently not supported",
+                       %{"command" => "someRequest"}
+                     )
     end)
   end
 
