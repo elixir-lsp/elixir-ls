@@ -88,6 +88,7 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, state}
   end
 
+  # the `:DOWN` message is not delivered under normal conditions as the process calls `Process.sleep(:infinity)`
   @impl GenServer
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{task_ref: ref} = state) do
     exit_code =
