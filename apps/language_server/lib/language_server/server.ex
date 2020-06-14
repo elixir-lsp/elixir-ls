@@ -586,7 +586,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "codeLensProvider" => %{"resolveProvider" => false},
       "executeCommandProvider" => %{"commands" => ["spec:#{server_instance_id}"]},
       "workspace" => %{
-        "workspaceFolders" => %{"supported" => true, "changeNotifications" => true}
+        "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       }
     }
   end
