@@ -33,6 +33,7 @@ VSCode:
 - Make `%` a dedicated punctuation scope in elixir syntax file (thanks [Dusty Pomerleau](https://github.com/dustypomerleau)) [#72](https://github.com/elixir-lsp/vscode-elixir-ls/pull/72)
 - Migrate generated tasks.json to 2.0.0 syntax (thanks [Dusty Pomerleau](https://github.com/dustypomerleau)) [#71](https://github.com/elixir-lsp/vscode-elixir-ls/pull/71)
 - Improve development instructions (thanks [Tan Jay Jun](https://github.com/jayjun)) [#97](https://github.com/elixir-lsp/vscode-elixir-ls/pull/97)
+- Activate extension whenever workspace contains elixir files (thanks [Jason Axelson](https://github.com/axelson)) [#107](https://github.com/elixir-lsp/vscode-elixir-ls/pull/107)
 
 ### v0.4.0: 16 May 2020
 
