@@ -763,7 +763,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_dialyzer_enabled(state, enable_dialyzer) do
     cond do
       enable_dialyzer and state.dialyzer_sup == nil and is_binary(state.project_dir) ->
-        {:ok, pid} = Dialyzer.Supervisor.start_link(state.project_dir)
+        {:ok, pid} = Dialyzer.start_link({self(), state.project_dir})
         %{state | dialyzer_sup: pid}
 
       not enable_dialyzer and state.dialyzer_sup != nil ->

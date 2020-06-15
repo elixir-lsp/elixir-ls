@@ -24,6 +24,8 @@ The original repository has now been deprecated in favor of this one. Any IDE ex
 
 ![Screenshot](images/screenshot.png?raw=true)
 
+Note: On first run Dialyzer will build a PLT cache which will take a considerable amount of CPU time (usually 10+ minutes). After that is complete the CPU usage will go back to normal. Alternatively instead of waiting you can disable Dialyzer in the settings.
+
 ## Supported versions
 
 Elixir:
