@@ -748,11 +748,13 @@ defmodule ElixirLS.LanguageServer.Server do
       Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
 
     mix_env = Map.get(settings, "mixEnv", "test")
+    mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
 
     state =
       state
       |> set_mix_env(mix_env)
+      |> maybe_set_mix_target(mix_target)
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
 
@@ -782,6 +784,38 @@ defmodule ElixirLS.LanguageServer.Server do
       Mix.env(String.to_atom(env))
     else
       JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix env")
+    end
+
+    state
+  end
+
+  defp maybe_set_mix_target(state, nil), do: state
+
+  defp maybe_set_mix_target(state, target) do
+    if Version.match?(System.version(), ">= 1.8.0") do
+      set_mix_target(state, target)
+    else
+      JsonRpc.show_message(
+        :warning,
+        "MIX_TARGET was set, but it requires Elixir >= 1.8.0. This setting will be ignored"
+      )
+
+      state
+    end
+  end
+
+  defp set_mix_target(state, target) do
+    target = target || "host"
+
+    prev_target = state.settings["mixTarget"]
+
+    if is_nil(prev_target) or target == prev_target do
+      # We've already checked for Elixir >= 1.8.0 by this point
+      # but compilation will fail if we just call Mix.target/0
+      # so we get around that via apply/3
+      apply(Mix, :target, [String.to_atom(target)])
+    else
+      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix target")
     end
 
     state
