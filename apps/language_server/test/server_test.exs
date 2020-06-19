@@ -317,7 +317,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end)
   end
 
-  test "reports error if no mixfile", %{server: server} do
+  test "reports errors if no mixfile", %{server: server} do
     in_fixture(__DIR__, "no_mixfile", fn ->
       mixfile_uri = SourceFile.path_to_uri("mix.exs")
 
@@ -333,6 +333,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      5000
+
+      assert_receive notification("window/logMessage", %{
+                       "message" => "No mixfile found in project." <> _
+                     })
+
+      assert_receive notification("window/showMessage", %{
+                       "message" => "No mixfile found in project." <> _
+                     })
     end)
   end
 

@@ -162,6 +162,9 @@ defmodule ElixirLS.LanguageServer.Build do
         "No mixfile found in project. " <>
           "To use a subdirectory, set `elixirLS.projectDir` in your settings"
 
+      JsonRpc.log_message(:error, msg <> ". Looked for mixfile at #{inspect(mixfile)}")
+      JsonRpc.show_message(:error, msg)
+
       {:error, [mixfile_diagnostic({Path.absname(mixfile), nil, msg}, :error)]}
     end
   end
