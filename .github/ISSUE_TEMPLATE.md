@@ -12,6 +12,8 @@
 - [ ] Stop your editor, remove the entire `.elixir_ls` directory, then restart your editor
   * NOTE: This will cause you to have to re-run the dialyzer build for your project
 
+If you're experiencing high CPU usage, it is most likely Dialyzer building the PLTs; after it's done the CPU usage should go back to normal. You could also disable Dialyzer in the settings.
+
 ### Logs
 
 1.  If using a client other than VS Code, please try VSCode's "ElixirLS: Elixir support and debugger" extension. Does it reproduce your failure?
