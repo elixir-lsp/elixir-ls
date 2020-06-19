@@ -12,7 +12,7 @@
 - [ ] Stop your editor, remove the entire `.elixir_ls` directory, then restart your editor
   * NOTE: This will cause you to have to re-run the dialyzer build for your project
 
-If you're experiencing high CPU usage, it is most likely Dialyzer building the PLTs, after it builds those the CPU usage should go back to normal, but you could also disable Dialyzer in the settings.
+If you're experiencing high CPU usage, it is most likely Dialyzer building the PLTs; after it's done the CPU usage should go back to normal You could also disable Dialyzer in the settings.
 
 ### Logs
 
