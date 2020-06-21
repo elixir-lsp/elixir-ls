@@ -14,6 +14,7 @@ Changes:
   - Don't insert arguments when completing a function call (almost always had to be deleted)
   - Autocomplete triggers signature help
   - Don't insert a `()` around the function call if the formatter configuration does not require it
+  - Further autocomplete refinements (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#300](https://github.com/elixir-lsp/elixir-ls/pull/300)
 - No longer always return a static list of keywords for completion (thanks [Jason Axelson](https://github.com/axelson)) [#259](https://github.com/elixir-lsp/elixir-ls/pull/259)
 
 Bug Fixes:
@@ -29,6 +30,7 @@ House keeping:
 
 VSCode:
 - Support workspaces with multiple elixir projects (thanks [Alessandro Tagliapietra](https://github.com/alex88)) [#70](https://github.com/elixir-lsp/vscode-elixir-ls/pull/70)
+  - Support per-folder configuration for many settings (makes the multi-workspace support more powerful) (thanks [AJ Foster](https://github.com/aj-foster)) [#110](https://github.com/elixir-lsp/vscode-elixir-ls/pull/110)
 - Improved support for phoenix templates (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#93](https://github.com/elixir-lsp/vscode-elixir-ls/pull/93)
   - Shows errors in `.eex` and `.leex` files (instead of associated `.ex` file)
 - Improve syntax highlighting following pipes (thanks [Dusty Pomerleau](https://github.com/dustypomerleau)) [#81](https://github.com/elixir-lsp/vscode-elixir-ls/pull/81)
