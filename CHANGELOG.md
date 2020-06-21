@@ -8,6 +8,7 @@ Improvements:
 - Display the version of Elixir used to compile ELixirLS (thanks [Jason Axelson](https://github.com/axelson)) [#264](https://github.com/elixir-lsp/elixir-ls/pull/264)
 - Support completion of callback function definitions (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#265](https://github.com/elixir-lsp/elixir-ls/pull/265)
 - Give more direct warnings when mix.exs cannot be found (thanks [Jason Axelson](https://github.com/axelson)) [#297](https://github.com/elixir-lsp/elixir-ls/pull/297)
+- Add completions for `@moduledoc false` and `@doc false` (thanks [Jason Axelson](https://github.com/axelson)) [#288](https://github.com/elixir-lsp/elixir-ls/pull/288)
 
 Changes:
 - Major improvement/change: Improve autocomplete and signature help (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#273](https://github.com/elixir-lsp/elixir-ls/pull/273)
