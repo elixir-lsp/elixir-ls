@@ -133,13 +133,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     items =
       ElixirSense.suggestions(text, line + 1, character + 1)
+      |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> Enum.concat(module_attr_snippets(context))
 
     items_json =
       items
       |> Enum.reject(&is_nil/1)
-      |> Enum.uniq_by(& &1.insert_text)
+      |> Enum.uniq_by(&{&1.detail, &1.documentation, &1.insert_text})
       |> sort_items()
       |> items_to_json(options)
 
@@ -157,6 +158,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       # completions accurately
       true
     end
+  end
+
+  defp maybe_reject_derived_functions(suggestions, context, options) do
+    locals_without_parens = Keyword.get(options, :locals_without_parens)
+    signature_help_supported = Keyword.get(options, :signature_help_supported, false)
+    capture_before? = context.capture_before?
+
+    Enum.reject(suggestions, fn s ->
+      s.type in [:function, :macro] &&
+        !capture_before? &&
+        s.arity < s.def_arity &&
+        signature_help_supported &&
+        function_name_with_parens?(s.name, s.arity, locals_without_parens) &&
+        function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
+    end)
   end
 
   defp from_completion_item(
@@ -288,7 +304,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
       opts = Keyword.put(options, :with_parens?, true)
       insert_text = def_snippet(def_str, name, args, arity, opts)
-      label = "#{def_str}#{function_label(name, args, arity)}"
+      label = "#{def_str}#{name}/#{arity}"
 
       filter_text =
         if def_str do
@@ -327,7 +343,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     def_str = if(context[:def_before] == nil, do: "def ")
 
     insert_text = def_snippet(def_str, name, args, arity, options)
-    label = "#{def_str}#{function_label(name, args, arity)}"
+    label = "#{def_str}#{name}/#{arity}"
 
     %__MODULE__{
       label: label,
@@ -443,10 +459,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     nil
   end
 
-  defp function_label(name, _args, arity) do
-    Enum.join([to_string(name), "/", arity])
-  end
-
   defp def_snippet(def_str, name, args, arity, opts) do
     if Keyword.get(opts, :snippets_supported, false) do
       "#{def_str}#{function_snippet(name, args, arity, opts)} do\n\t$0\nend"
@@ -456,54 +468,91 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp function_snippet(name, args, arity, opts) do
-    cond do
-      Keyword.get(opts, :capture_before?) && arity <= 1 ->
-        Enum.join([name, "/", arity])
+    snippets_supported? = Keyword.get(opts, :snippets_supported, false)
+    trigger_signature? = Keyword.get(opts, :trigger_signature?, false)
+    capture_before? = Keyword.get(opts, :capture_before?, false)
 
-      not Keyword.get(opts, :snippets_supported, false) ->
+    cond do
+      capture_before? ->
+        function_snippet_with_capture_before(name, arity, snippets_supported?)
+
+      trigger_signature? ->
+        text_after_cursor = Keyword.get(opts, :text_after_cursor, "")
+        function_snippet_with_signature(name, text_after_cursor, snippets_supported?)
+
+      has_text_after_cursor?(opts) ->
         name
 
-      Keyword.get(opts, :trigger_signature?, false) ->
-        text_after_cursor = Keyword.get(opts, :text_after_cursor, "")
-
-        # Don't add the closing parenthesis to the snippet if the cursor is
-        # immediately before a valid argument (this usually happens when we
-        # want to wrap an existing variable or literal, e.g. using IO.inspect)
-        if Regex.match?(~r/^[a-zA-Z0-9_:"'%<\[\{]/, text_after_cursor) do
-          "#{name}("
-        else
-          "#{name}($1)$0"
-        end
+      snippets_supported? ->
+        pipe_before? = Keyword.get(opts, :pipe_before?, false)
+        with_parens? = Keyword.get(opts, :with_parens?, false)
+        function_snippet_with_args(name, arity, args, pipe_before?, with_parens?)
 
       true ->
-        args_list =
-          if args && args != "" do
-            split_args(args)
-          else
-            for i <- Enum.slice(0..arity, 1..-1), do: "arg#{i}"
-          end
-
-        args_list =
-          if Keyword.get(opts, :pipe_before?) do
-            Enum.slice(args_list, 1..-1)
-          else
-            args_list
-          end
-
-        tabstops =
-          args_list
-          |> Enum.with_index()
-          |> Enum.map(fn {arg, i} -> "${#{i + 1}:#{arg}}" end)
-
-        {before_args, after_args} =
-          if Keyword.get(opts, :with_parens?, false) do
-            {"(", ")"}
-          else
-            {" ", ""}
-          end
-
-        Enum.join([name, before_args, Enum.join(tabstops, ", "), after_args])
+        name
     end
+  end
+
+  defp function_snippet_with_args(name, arity, args, pipe_before?, with_parens?) do
+    args_list =
+      if args && args != "" do
+        split_args_for_snippet(args, arity)
+      else
+        for i <- Enum.slice(0..arity, 1..-1), do: "arg#{i}"
+      end
+
+    args_list =
+      if pipe_before? do
+        Enum.slice(args_list, 1..-1)
+      else
+        args_list
+      end
+
+    tabstops =
+      args_list
+      |> Enum.with_index()
+      |> Enum.map(fn {arg, i} -> "${#{i + 1}:#{arg}}" end)
+
+    {before_args, after_args} =
+      if with_parens? do
+        {"(", ")"}
+      else
+        {" ", ""}
+      end
+
+    Enum.join([name, before_args, Enum.join(tabstops, ", "), after_args])
+  end
+
+  defp function_snippet_with_signature(name, text_after_cursor, snippets_supported?) do
+    # Don't add the closing parenthesis to the snippet if the cursor is
+    # immediately before a valid argument. This usually happens when we
+    # want to wrap an existing variable or literal, e.g. using IO.inspect/2.
+    if !snippets_supported? || Regex.match?(~r/^[a-zA-Z0-9_:"'%<@\[\{]/, text_after_cursor) do
+      "#{name}("
+    else
+      "#{name}($1)$0"
+    end
+  end
+
+  defp function_snippet_with_capture_before(name, 0, _snippets_supported?) do
+    "#{name}/0"
+  end
+
+  defp function_snippet_with_capture_before(name, arity, snippets_supported?) do
+    if snippets_supported? do
+      "#{name}${1:/#{arity}}$0"
+    else
+      "#{name}/#{arity}"
+    end
+  end
+
+  defp has_text_after_cursor?(opts) do
+    text =
+      opts
+      |> Keyword.get(:text_after_cursor, "")
+      |> String.trim()
+
+    text != ""
   end
 
   defp completion_kind(type) do
@@ -545,17 +594,34 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp split_args(args) do
+  defp split_args_for_snippet(args, arity) do
     args
     |> String.replace("\\", "\\\\")
     |> String.replace("$", "\\$")
     |> String.replace("}", "\\}")
     |> String.split(",")
-    |> Enum.reject(&is_default_argument?/1)
-    |> Enum.map(&String.trim/1)
+    |> remove_unused_default_args(arity)
   end
 
-  defp is_default_argument?(s), do: String.contains?(s, "\\\\")
+  defp remove_unused_default_args(args, arity) do
+    reversed_args = Enum.reverse(args)
+    acc = {[], length(args) - arity}
+
+    {result, _} =
+      Enum.reduce(reversed_args, acc, fn arg, {result, remove_count} ->
+        parts = String.split(arg, "\\\\\\\\")
+        var = Enum.at(parts, 0) |> String.trim()
+        default_value = Enum.at(parts, 1)
+
+        if remove_count > 0 && default_value do
+          {result, remove_count - 1}
+        else
+          {[var | result], remove_count}
+        end
+      end)
+
+    result
+  end
 
   defp module_attr_snippets(%{prefix: prefix, scope: :module, def_before: nil}) do
     for {name, snippet, docs} <- @module_attr_snippets,
@@ -585,7 +651,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp function_completion(info, context, options) do
     %{
       type: type,
-      visibility: visibility,
       args: args,
       name: name,
       summary: summary,
@@ -606,13 +671,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     } = context
 
     locals_without_parens = Keyword.get(options, :locals_without_parens)
+    signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
     with_parens? = function_name_with_parens?(name, arity, locals_without_parens)
 
     trigger_signature? =
-      Keyword.get(options, :signature_help_supported, false) &&
-        Keyword.get(options, :snippets_supported, false) &&
-        arity > 0 &&
-        with_parens?
+      signature_help_supported? && with_parens? && ((arity == 1 && !pipe_before?) || arity > 1)
 
     {label, insert_text} =
       cond do
@@ -625,7 +688,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           {name, name}
 
         true ->
-          label = function_label(name, args, arity)
+          label = "#{name}/#{arity}"
 
           insert_text =
             function_snippet(
@@ -646,22 +709,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           {label, insert_text}
       end
 
-    detail_header =
+    detail_prefix =
       if inspect(module) == origin do
-        "#{visibility} #{type}"
+        "(#{type}) "
       else
-        "#{origin} #{type}"
+        "(#{type}) #{origin}."
       end
 
-    footer =
-      if String.starts_with?(type, ["private", "public"]) do
-        String.replace(type, "_", " ")
-      else
-        SourceFile.format_spec(spec, line_length: 30)
-      end
+    detail = Enum.join([detail_prefix, name, "(", args, ")"])
+
+    footer = SourceFile.format_spec(spec, line_length: 30)
 
     command =
-      if trigger_signature? do
+      if trigger_signature? && !capture_before? do
         %{
           "title" => "Trigger Parameter Hint",
           "command" => "editor.action.triggerParameterHints"
@@ -671,7 +731,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     %__MODULE__{
       label: label,
       kind: :function,
-      detail: detail_header <> "\n\n" <> Enum.join([to_string(name), "(", args, ")"]),
+      detail: detail,
       documentation: summary <> footer,
       insert_text: insert_text,
       priority: 7,
