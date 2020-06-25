@@ -858,7 +858,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp create_gitignore(%{project_dir: project_dir} = state) do
+  defp create_gitignore(%{project_dir: project_dir} = state) when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
          false <- File.exists?(gitignore_path),
          :ok <- gitignore_path |> Path.dirname() |> File.mkdir_p(),
@@ -876,5 +876,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
         state
     end
+  end
+
+  defp create_gitignore(state) do
+    JsonRpc.log_message(
+      :warning,
+      "Cannot create .elixir_ls/.gitignore, cause: project_dir not set"
+    )
+
+    state
   end
 end
