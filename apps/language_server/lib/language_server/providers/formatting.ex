@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   defp advance_pos({line, col}, str) do
     Enum.reduce(String.split(str, "", trim: true), {line, col}, fn char, {line, col} ->
-      if char == "\n" do
+      if char in ["\n", '\r'] do
         {line + 1, 0}
       else
         # LSP contentChanges positions are based on UTF-16 string representation

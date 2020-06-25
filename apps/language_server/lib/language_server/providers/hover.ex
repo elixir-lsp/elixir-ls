@@ -1,4 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.Hover do
+  alias ElixirLS.LanguageServer.SourceFile
+
   @moduledoc """
   Hover provider utilizing Elixir Sense
   """
@@ -10,7 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
           nil
 
         %{subject: subject, docs: docs} ->
-          line_text = Enum.at(String.split(text, "\n"), line)
+          line_text = Enum.at(SourceFile.lines(text), line)
           range = highlight_range(line_text, line, character, subject)
 
           %{"contents" => contents(docs), "range" => range}

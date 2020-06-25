@@ -1,4 +1,6 @@
 defmodule ElixirLS.LanguageServer.ErlangSourceFile do
+  alias ElixirLS.LanguageServer.SourceFile
+
   def get_beam_file(module, :preloaded) do
     case :code.get_object_code(module) do
       {_module, _binary, beam_file} -> beam_file
@@ -35,7 +37,7 @@ defmodule ElixirLS.LanguageServer.ErlangSourceFile do
     index =
       file
       |> File.read!()
-      |> String.split(["\n", "\r\n"])
+      |> SourceFile.lines()
       |> Enum.find_index(&String.match?(&1, regex))
 
     case index do

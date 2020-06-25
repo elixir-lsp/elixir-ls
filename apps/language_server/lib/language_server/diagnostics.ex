@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     {reversed_stacktrace, reversed_description} =
       diagnostic_message
       |> String.trim_trailing()
-      |> String.split("\n")
+      |> String.split(["\r\n", "\r", "\n"])
       |> Enum.reverse()
       |> Enum.split_while(&is_stack?/1)
 
