@@ -1,4 +1,6 @@
 defmodule ElixirLS.LanguageServer.Diagnostics do
+  alias ElixirLS.LanguageServer.SourceFile
+
   def normalize(diagnostics, root_path) do
     for diagnostic <- diagnostics do
       {type, file, line, description, stacktrace} =
@@ -21,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     {reversed_stacktrace, reversed_description} =
       diagnostic_message
       |> String.trim_trailing()
-      |> String.split("\n")
+      |> SourceFile.lines()
       |> Enum.reverse()
       |> Enum.split_while(&is_stack?/1)
 

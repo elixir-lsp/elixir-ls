@@ -152,7 +152,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
     try do
       {:ok, contents} = File.read(vsn_file)
-      String.split(contents, "\n", trim: true)
+      String.split(contents, ["\r\n", "\r", "\n"], trim: true)
     else
       [full] ->
         full

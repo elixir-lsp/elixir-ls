@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
 
         Code.format_string!("@spec #{spec}", line_length: target_line_length)
         |> IO.iodata_to_binary()
-        |> String.split("\n")
+        |> SourceFile.lines()
         |> Enum.map(&(indentation <> &1))
         |> Enum.join("\n")
         |> Kernel.<>("\n")

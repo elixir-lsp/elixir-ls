@@ -3,7 +3,7 @@ defmodule ElixirLS.Utils.TestUtils do
 
   def assert_has_cursor_char(text, line, character) do
     char =
-      String.split(text, "\n")
+      String.split(text, ["\r\n", "\r", "\n"])
       |> Enum.at(line + 1)
       |> String.graphemes()
       |> Enum.at(character)
