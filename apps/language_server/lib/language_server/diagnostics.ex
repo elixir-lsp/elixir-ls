@@ -1,4 +1,6 @@
 defmodule ElixirLS.LanguageServer.Diagnostics do
+  alias ElixirLS.LanguageServer.SourceFile
+
   def normalize(diagnostics, root_path) do
     for diagnostic <- diagnostics do
       {type, file, line, description, stacktrace} =
