@@ -3,12 +3,8 @@
 ### v0.5.0: 28 June 2020
 
 Improvements:
-- Vendor Jason library to prevent conflicts with user's code (thanks [Jason Axelson](https://github.com/axelson)) [#253](https://github.com/elixir-lsp/elixir-ls/pull/253)
-- Switch to new supervisor format (thanks [Jason Axelson](https://github.com/axelson)) [#260](https://github.com/elixir-lsp/elixir-ls/pull/260)
-- Only call DocumentSymbols (outline pane) for .ex and .exs files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#262](https://github.com/elixir-lsp/elixir-ls/pull/262)
-- Support WorkspaceSymbols (go to symbol in workspace) without dialyzer being enabled (thanks [Jason Axelson](https://github.com/axelson)) [#263](https://github.com/elixir-lsp/elixir-ls/pull/263)
-- Display the version of Elixir used to compile ELixirLS (thanks [Jason Axelson](https://github.com/axelson)) [#264](https://github.com/elixir-lsp/elixir-ls/pull/264)
 - Support completion of callback function definitions (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#265](https://github.com/elixir-lsp/elixir-ls/pull/265)
+- Support WorkspaceSymbols (go to symbol in workspace) without dialyzer being enabled (thanks [Jason Axelson](https://github.com/axelson)) [#263](https://github.com/elixir-lsp/elixir-ls/pull/263)
 - Give more direct warnings when mix.exs cannot be found (thanks [Jason Axelson](https://github.com/axelson)) [#297](https://github.com/elixir-lsp/elixir-ls/pull/297)
 - Add completions for `@moduledoc false` and `@doc false` (thanks [Jason Axelson](https://github.com/axelson)) [#288](https://github.com/elixir-lsp/elixir-ls/pull/288)
 
@@ -26,11 +22,15 @@ Bug Fixes:
 - Debugger doesn't fail when modules cannot be interpretted (thanks [Łukasz Samson](https://github.com/lukaszsamson)) (such as nifs) [#283](https://github.com/elixir-lsp/elixir-ls/pull/283)
 - Do not advertise `workspaceFolders` support (thanks [Jason Axelson](https://github.com/axelson)) [#298](https://github.com/elixir-lsp/elixir-ls/pull/298)
 - Do not try to create gitignore when project dir not set (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#306](https://github.com/elixir-lsp/elixir-ls/pull/306)
+- Only call DocumentSymbols (outline pane) for .ex and .exs files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#262](https://github.com/elixir-lsp/elixir-ls/pull/262)
 
 House keeping:
 - Server runs with a unique id (and uses it to disambiguate commands) (thanks [Alessandro Tagliapietra](https://github.com/alex88)) [#278](https://github.com/elixir-lsp/elixir-ls/pull/278)
 - Improvements to the reliability of the test suite (thanks [Jason Axelson](https://github.com/axelson)) [#270](https://github.com/elixir-lsp/elixir-ls/pull/270), [#271](https://github.com/elixir-lsp/elixir-ls/pull/271)
 - Rename debugger app so that it does not conflict with otp debugger app (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#280](https://github.com/elixir-lsp/elixir-ls/pull/280)
+- Vendor Jason library to prevent conflicts with user's code (thanks [Jason Axelson](https://github.com/axelson)) [#253](https://github.com/elixir-lsp/elixir-ls/pull/253)
+- Switch to new supervisor format (thanks [Jason Axelson](https://github.com/axelson)) [#260](https://github.com/elixir-lsp/elixir-ls/pull/260)
+- Display the version of Elixir used to compile ELixirLS (thanks [Jason Axelson](https://github.com/axelson)) [#264](https://github.com/elixir-lsp/elixir-ls/pull/264)
 
 VSCode:
 - Support workspaces with multiple elixir projects (thanks [Alessandro Tagliapietra](https://github.com/alex88)) [#70](https://github.com/elixir-lsp/vscode-elixir-ls/pull/70)
