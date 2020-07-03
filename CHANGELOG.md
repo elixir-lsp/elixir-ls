@@ -1,5 +1,8 @@
 ### Unreleased
 
+House keeping:
+- Fix the link in the README to releases (thanks [RJ Dellecese](https://github.com/rjdellecese)) [#312](https://github.com/elixir-lsp/elixir-ls/pull/312)
+
 ### v0.5.0: 28 June 2020
 
 Improvements:
