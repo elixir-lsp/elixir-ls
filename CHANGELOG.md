@@ -1,5 +1,8 @@
 ### Unreleased
 
+Bug Fixes:
+- Debugger does not successfully launch on Windows (thanks [Craig Tataryn](https://github.com/ctataryn)) [#115](https://github.com/elixir-lsp/vscode-elixir-ls/pull/115)
+
 House keeping:
 - Fix the link in the README to releases (thanks [RJ Dellecese](https://github.com/rjdellecese)) [#312](https://github.com/elixir-lsp/elixir-ls/pull/312)
 
