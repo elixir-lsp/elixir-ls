@@ -36,4 +36,3 @@ matrix:
       elixir: 1.10.3
       env:
         - CHECK_FORMATTED=1
-        - RUN_DIALYZER=1
