@@ -9,14 +9,19 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   def format(source_file, uri, project_dir) do
     if can_format?(uri, project_dir) do
       opts = SourceFile.formatter_opts(uri)
-      formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
-      response =
-        source_file.text
-        |> String.myers_difference(formatted)
-        |> myers_diff_to_text_edits()
+      if should_format?(uri, project_dir, opts[:inputs]) do
+        formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
-      {:ok, response}
+        response =
+          source_file.text
+          |> String.myers_difference(formatted)
+          |> myers_diff_to_text_edits()
+
+        {:ok, response}
+      else
+        {:ok, []}
+      end
     else
       msg =
         "Cannot format file from current directory " <>
@@ -39,6 +44,19 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     not String.starts_with?(file_path, project_dir) or
       String.starts_with?(Path.absname(file_path), cwd)
   end
+
+  def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
+    file = String.trim_leading(file_uri, "file://")
+
+    Enum.any?(inputs, fn glob ->
+      project_dir
+      |> Path.join(glob)
+      |> Path.wildcard(match_dot: true)
+      |> Enum.any?(&(file == &1))
+    end)
+  end
+
+  def should_format?(_file_uri, _project_dir, _inputs), do: true
 
   defp myers_diff_to_text_edits(myers_diff, starting_pos \\ {0, 0}) do
     myers_diff_to_text_edits(myers_diff, starting_pos, [])
