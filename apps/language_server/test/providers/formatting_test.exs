@@ -180,4 +180,19 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
              }
            ]
   end
+
+  test "honors :inputs when deciding to format" do
+    file = __ENV__.file
+    uri = "file://" <> file
+    project_dir = Path.dirname(file)
+
+    opts = []
+    assert Formatting.should_format?(uri, project_dir, opts[:inputs])
+
+    opts = [inputs: ["*.exs"]]
+    assert Formatting.should_format?(uri, project_dir, opts[:inputs])
+
+    opts = [inputs: ["*.ex"]]
+    refute Formatting.should_format?(uri, project_dir, opts[:inputs])
+  end
 end
