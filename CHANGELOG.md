@@ -1,10 +1,13 @@
 ### Unreleased
 
-Bug Fixes:
-- Debugger does not successfully launch on Windows (thanks [Craig Tataryn](https://github.com/ctataryn)) [#115](https://github.com/elixir-lsp/vscode-elixir-ls/pull/115)
+Potentially breaking changes:
+- Do not format files that are not listed in `inputs` of `.formatter.exs` (thanks [Tan Jay Jun](https://github.com/jayjun)) [#315](https://github.com/elixir-lsp/elixir-ls/pull/315)
 
 House keeping:
 - Fix the link in the README to releases (thanks [RJ Dellecese](https://github.com/rjdellecese)) [#312](https://github.com/elixir-lsp/elixir-ls/pull/312)
+
+VSCode:
+- Debugger does not successfully launch on Windows (thanks [Craig Tataryn](https://github.com/ctataryn)) [#115](https://github.com/elixir-lsp/vscode-elixir-ls/pull/115)
 
 ### v0.5.0: 28 June 2020
 
