@@ -483,9 +483,10 @@ defmodule ElixirLS.LanguageServer.Server do
       !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
 
     locals_without_parens =
-      uri
-      |> SourceFile.formatter_opts()
-      |> Keyword.get(:locals_without_parens, [])
+      case SourceFile.formatter_opts(uri) do
+        {:ok, opts} -> Keyword.get(opts, :locals_without_parens, [])
+        :error -> []
+      end
       |> MapSet.new()
 
     fun = fn ->

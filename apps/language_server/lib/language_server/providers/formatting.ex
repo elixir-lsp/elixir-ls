@@ -8,19 +8,23 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   def format(source_file, uri, project_dir) do
     if can_format?(uri, project_dir) do
-      opts = SourceFile.formatter_opts(uri)
+      case SourceFile.formatter_opts(uri) do
+        {:ok, opts} ->
+          if should_format?(uri, project_dir, opts[:inputs]) do
+            formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
-      if should_format?(uri, project_dir, opts[:inputs]) do
-        formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
+            response =
+              source_file.text
+              |> String.myers_difference(formatted)
+              |> myers_diff_to_text_edits()
 
-        response =
-          source_file.text
-          |> String.myers_difference(formatted)
-          |> myers_diff_to_text_edits()
+            {:ok, response}
+          else
+            {:ok, []}
+          end
 
-        {:ok, response}
-      else
-        {:ok, []}
+        :error ->
+          {:error, :internal_error, "Unable to fetch formatter options"}
       end
     else
       msg =
