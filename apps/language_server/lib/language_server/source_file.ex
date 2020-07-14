@@ -211,11 +211,21 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
-  @spec formatter_opts(String.t()) :: keyword()
+  @spec formatter_opts(String.t()) :: {:ok, keyword()} | :error
   def formatter_opts(uri) do
-    uri
-    |> path_from_uri()
-    |> Mix.Tasks.Format.formatter_opts_for_file()
+    path = path_from_uri(uri)
+
+    try do
+      opts =
+        path
+        |> Mix.Tasks.Format.formatter_opts_for_file()
+
+      {:ok, opts}
+    rescue
+      e in Mix.Error ->
+        IO.warn("Unable to get formatter options for #{path}: #{e.message}")
+        :error
+    end
   end
 
   defp format_code(code, opts) do

@@ -6,6 +6,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
   alias ElixirLS.LanguageServer.{JsonRpc, SourceFile}
   import ElixirLS.LanguageServer.Protocol
 
+  @default_target_line_length 98
+
   def execute("spec:" <> _, args, source_files) do
     [
       %{
@@ -47,9 +49,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     formatted =
       try do
         target_line_length =
-          uri
-          |> SourceFile.formatter_opts()
-          |> Keyword.get(:line_length, 98)
+          case SourceFile.formatter_opts(uri) do
+            {:ok, opts} -> Keyword.get(opts, :line_length, @default_target_line_length)
+            :error -> @default_target_line_length
+          end
 
         target_line_length = target_line_length - String.length(indentation)
 
