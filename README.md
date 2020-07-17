@@ -87,7 +87,7 @@ Starting in Elixir 1.6, Mix compilers adhere to the [Mix.Task.Compiler](https://
 
 ElixirLS will automatically analyze your project with [Dialyzer](http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html) after each successful build. It maintains a "manifest" file in `.elixir_ls/dialyzer_manifest` that stores the results of the analysis. The initial analysis for a project can take a few minutes, but after that's completed, modules are re-analyzed only if necessary, so subsequent analyses are typically very fast -- often less than a second. It also looks at your modules' abstract code to determine whether they reference any modules that haven't been analyzed and includes them automatically.
 
-You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. You can find available options in Erlang [docs](http://erlang.org/doc/man/dialyzer.html) at section "Warning options".
+You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. Find available options in Erlang [docs](http://erlang.org/doc/man/dialyzer.html) at section "Warning options".
 
 To disable it completely, set `elixirLS.dialyzerEnabled` to false.
 
