@@ -89,7 +89,7 @@ ElixirLS will automatically analyze your project with [Dialyzer](http://erlang.o
 
 You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. Find available options in Erlang [docs](http://erlang.org/doc/man/dialyzer.html) at section "Warning options".
 
-To disable it completely, set `elixirLS.dialyzerEnabled` to false.
+To disable Dialyzer completely, set `elixirLS.dialyzerEnabled` to false.
 
 You can also set the module attribute @dialyzer to show or hide warnings at a module or function level.
 
