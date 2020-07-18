@@ -91,7 +91,7 @@ You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` s
 
 To disable Dialyzer completely, set `elixirLS.dialyzerEnabled` to false.
 
-You can also set the module attribute @dialyzer to show or hide warnings at a module or function level.
+Check usage details in Dialyxir docs on [GitHub](https://github.com/jeremyjh/dialyxir#usage) and [hexdocs](https://hexdocs.pm/dialyxir/readme.html).
 
 ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
 
