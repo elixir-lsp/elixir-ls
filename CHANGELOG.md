@@ -3,8 +3,12 @@
 Potentially breaking changes:
 - Do not format files that are not listed in `inputs` of `.formatter.exs` (thanks [Tan Jay Jun](https://github.com/jayjun)) [#315](https://github.com/elixir-lsp/elixir-ls/pull/315)
 
+Improvements:
+- Use ElixirSense's error tolerant parser for document symbols (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#322](https://github.com/elixir-lsp/elixir-ls/pull/322)
+
 House keeping:
 - Fix the link in the README to releases (thanks [RJ Dellecese](https://github.com/rjdellecese)) [#312](https://github.com/elixir-lsp/elixir-ls/pull/312)
+- Update the dialyzer section in the readme (thanks [Serenity597](https://github.com/Serenity597)) [#323](https://github.com/elixir-lsp/elixir-ls/pull/323)
 
 VSCode:
 - Debugger does not successfully launch on Windows (thanks [Craig Tataryn](https://github.com/ctataryn)) [#115](https://github.com/elixir-lsp/vscode-elixir-ls/pull/115)
