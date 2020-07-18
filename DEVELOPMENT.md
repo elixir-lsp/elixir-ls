@@ -4,13 +4,14 @@ Bump the changelog
 Bump the version numbers in `apps/elixir_ls_debugger/mix.exs`, `apps/elixir_ls_utils/mix.exs`, and `apps/language_server/mix.exs`
 Make PR
 Merge PR
+Pull down the latest master
 Make the tag from the new master
-Push the tag
+Push the tag (`git push upstream --tags`)
 - `rm -rf _build release`
 - `mix elixir_ls.release`
 - `cd release`
 - `zip elixir-ls.zip *`
-- Attach elixir-ls.zip to the release on github https://github.com/elixir-lsp/elixir-ls/releases
+- Attach elixir-ls.zip to the release on github https://github.com/elixir-lsp/elixir-ls/releases (edit the tag to make it into a release)
 
 # Debugging
 
