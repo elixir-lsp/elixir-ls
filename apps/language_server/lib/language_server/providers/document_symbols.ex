@@ -45,7 +45,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp list_symbols(src) do
-    Code.string_to_quoted(src, columns: true, line: 0)
     case ElixirSense.string_to_quoted(src, 0, @max_parser_errors, line: 0) do
       {:ok, quoted_form} -> {:ok, extract_modules(quoted_form)}
       {:error, _error} -> {:error, :compilation_error}
