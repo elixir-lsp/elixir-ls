@@ -3,8 +3,7 @@
 * Elixir & Erlang versions (elixir --version): 
 * Operating system: 
 * Editor or IDE name (e.g. Emacs/VSCode): 
-* LSP Client name: 
-  * If using VSCode, are you using "ElixirLS: Elixir support and debugger"?
+* Editor Plugin/LSP Client name:
 
 ### Troubleshooting
 
