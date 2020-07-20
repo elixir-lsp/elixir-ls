@@ -43,7 +43,6 @@ You may want to install Elixir and Erlang from source, using the [kiex](https://
 | IDE          | Plugin                                                                        | Support                                        |
 | ------------ | ----------------------------------------------------------------------------- | ---------------------------------------------- |
 | VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                 |
-| Atom IDE     | [JakeBecker/ide-elixir](https://github.com/JakeBecker/ide-elixir)             | Does not support debugger or @spec suggestions |
 | Vim          | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions |
 | Neovim       | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger                      |
 | Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                      |
@@ -165,6 +164,7 @@ and you installed Elixir and Erlang from the Erlang Solutions repository, you ma
 * On-hover docs do not work with erlang modules or functions (better support of EEP-48 is needed)
 * On first launch dialyzer will cause high CPU usage for a considerable time
   * Possible mitigation in [#96](https://github.com/elixir-lsp/elixir-ls/issues/96)
+* ElixirLS requires a workspace to be opened. Editing single-files is not supported [#307](https://github.com/elixir-lsp/elixir-ls/issues/307)
 
 ## Building and running
 
