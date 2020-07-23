@@ -749,7 +749,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                """
              }
     end
+  end
 
+  describe "generic suggestions" do
     test "moduledoc completion" do
       text = """
       defmodule MyModule do
@@ -762,7 +764,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       TestUtils.assert_has_cursor_char(text, line, char)
 
-      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+      assert {:ok, %{"items" => [first | _] = items}} =
+               Completion.completion(text, line, char, @supports)
+
       labels = Enum.map(items, & &1["label"])
 
       assert labels == [
@@ -770,27 +774,17 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                "@moduledoc",
                "@moduledoc false"
              ]
-    end
 
-    test "doc completion" do
-      text = """
-      defmodule MyModule do
-        @do
-        #  ^
-        end
-      """
-
-      {line, char} = {1, 5}
-
-      TestUtils.assert_has_cursor_char(text, line, char)
-
-      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
-      labels = Enum.map(items, & &1["label"])
-
-      assert labels == [
-               ~s(@doc """"""),
-               "@doc false"
-             ]
+      assert first == %{
+               "detail" => "module attribute snippet",
+               "documentation" => %{:kind => "markdown", "value" => "Documents a module"},
+               "filterText" => "moduledoc",
+               "insertText" => ~s(moduledoc """\n$0\n"""),
+               "insertTextFormat" => 2,
+               "kind" => 15,
+               "label" => ~s(@moduledoc """"""),
+               "sortText" => "00000000"
+             }
     end
   end
 end
