@@ -20,6 +20,7 @@ Improvements:
 - Support WorkspaceSymbols (go to symbol in workspace) without dialyzer being enabled (thanks [Jason Axelson](https://github.com/axelson)) [#263](https://github.com/elixir-lsp/elixir-ls/pull/263)
 - Give more direct warnings when mix.exs cannot be found (thanks [Jason Axelson](https://github.com/axelson)) [#297](https://github.com/elixir-lsp/elixir-ls/pull/297)
 - Add completions for `@moduledoc false` and `@doc false` (thanks [Jason Axelson](https://github.com/axelson)) [#288](https://github.com/elixir-lsp/elixir-ls/pull/288)
+- Support `MIX_TARGET` so the language server can have target specific contexts, like with Nerves (thanks [Jon Carstens](https://github.com/jjcarstens)) [#299](https://github.com/elixir-lsp/elixir-ls/pull/299)
 
 Changes:
 - Major improvement/change: Improve autocomplete and signature help (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#273](https://github.com/elixir-lsp/elixir-ls/pull/273)
@@ -57,6 +58,7 @@ VSCode:
 - Activate extension whenever workspace contains elixir files (thanks [Jason Axelson](https://github.com/axelson)) [#107](https://github.com/elixir-lsp/vscode-elixir-ls/pull/107)
 - Make heredocs and most sigils auto-close when used with quotes and triple quotes (thanks [Jarrod Davis](https://github.com/jarrodldavis)) [#101](https://github.com/elixir-lsp/vscode-elixir-ls/pull/101)
 - Set a default for `elixirLS.projectDir` (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#112](https://github.com/elixir-lsp/vscode-elixir-ls/pull/112)
+- Support setting `elixirLS.mixTarget` to include target specific dependencies, like with Nerves (thanks [Jon Carstens](https://github.com/jjcarstens)) [#108](https://github.com/elixir-lsp/vscode-elixir-ls/pull/108)
 
 ### v0.4.0: 16 May 2020
 
