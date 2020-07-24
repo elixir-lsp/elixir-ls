@@ -160,10 +160,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     capture_before? = context.capture_before?
 
     Enum.reject(suggestions, fn s ->
-      s.type in [:function, :macro] && !capture_before? && s.arity < s.def_arity &&
-        signature_help_supported &&
-        function_name_with_parens?(s.name, s.arity, locals_without_parens) &&
-        function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
+      s.type in [:function, :macro] and
+        !capture_before? and
+        s.arity < s.def_arity and
+        signature_help_supported and
+        function_name_with_parens?(s.name, s.arity, locals_without_parens) ==
+          function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
     end)
   end
 
@@ -489,25 +491,31 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     snippets_supported? = Keyword.get(opts, :snippets_supported, false)
     trigger_signature? = Keyword.get(opts, :trigger_signature?, false)
     capture_before? = Keyword.get(opts, :capture_before?, false)
+    pipe_before? = Keyword.get(opts, :pipe_before?, false)
+    with_parens? = Keyword.get(opts, :with_parens?, false)
     snippet = Keyword.get(opts, :snippet)
 
     cond do
+      snippet && snippets_supported? && !pipe_before? && !capture_before? ->
+        snippet
+
       capture_before? ->
         function_snippet_with_capture_before(name, arity, snippets_supported?)
 
-      snippet && snippets_supported? ->
-        snippet
-
       trigger_signature? ->
         text_after_cursor = Keyword.get(opts, :text_after_cursor, "")
-        function_snippet_with_signature(name, text_after_cursor, snippets_supported?)
+
+        function_snippet_with_signature(
+          name,
+          text_after_cursor,
+          snippets_supported?,
+          with_parens?
+        )
 
       has_text_after_cursor?(opts) ->
         name
 
       snippets_supported? ->
-        pipe_before? = Keyword.get(opts, :pipe_before?, false)
-        with_parens? = Keyword.get(opts, :with_parens?, false)
         function_snippet_with_args(name, arity, args, pipe_before?, with_parens?)
 
       true ->
@@ -545,14 +553,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     Enum.join([name, before_args, Enum.join(tabstops, ", "), after_args])
   end
 
-  defp function_snippet_with_signature(name, text_after_cursor, snippets_supported?) do
-    # Don't add the closing parenthesis to the snippet if the cursor is
-    # immediately before a valid argument. This usually happens when we
-    # want to wrap an existing variable or literal, e.g. using IO.inspect/2.
-    if !snippets_supported? || Regex.match?(~r/^[a-zA-Z0-9_:"'%<@\[\{]/, text_after_cursor) do
-      "#{name}("
-    else
-      "#{name}($1)$0"
+  defp function_snippet_with_signature(name, text_after_cursor, snippets_supported?, with_parens?) do
+    cond do
+      !with_parens? ->
+        if String.starts_with?(text_after_cursor, " "), do: name, else: "#{name} "
+
+      # Don't add the closing parenthesis to the snippet if the cursor is
+      # immediately before a valid argument. This usually happens when we
+      # want to wrap an existing variable or literal, e.g. using IO.inspect/2.
+      !snippets_supported? || Regex.match?(~r/^[a-zA-Z0-9_:"'%<@\[\{]/, text_after_cursor) ->
+        "#{name}("
+
+      true ->
+        "#{name}($1)$0"
     end
   end
 
@@ -676,10 +689,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     locals_without_parens = Keyword.get(options, :locals_without_parens)
     signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
+    signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
     with_parens? = function_name_with_parens?(name, arity, locals_without_parens)
 
-    trigger_signature? =
-      signature_help_supported? && with_parens? && ((arity == 1 && !pipe_before?) || arity > 1)
+    trigger_signature? = signature_help_supported? && ((arity == 1 && !pipe_before?) || arity > 1)
 
     {label, insert_text} =
       cond do
@@ -703,6 +716,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                 options,
                 pipe_before?: pipe_before?,
                 capture_before?: capture_before?,
+                pipe_before?: pipe_before?,
                 trigger_signature?: trigger_signature?,
                 locals_without_parens: locals_without_parens,
                 text_after_cursor: text_after_cursor,
@@ -726,7 +740,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     footer = SourceFile.format_spec(spec, line_length: 30)
 
     command =
-      if trigger_signature? && !capture_before? do
+      if trigger_signature? && signature_after_complete? && !capture_before? do
         %{
           "title" => "Trigger Parameter Hint",
           "command" => "editor.action.triggerParameterHints"
