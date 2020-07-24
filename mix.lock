@@ -1,7 +1,7 @@
 %{
   "dialyxir": {:hex, :dialyxir, "1.0.0", "6a1fa629f7881a9f5aaf3a78f094b2a51a0357c843871b8bc98824e7342d00a5", [:mix], [{:erlex, ">= 0.2.6", [hex: :erlex, repo: "hexpm", optional: false]}], "hexpm", "aeb06588145fac14ca08d8061a142d52753dbc2cf7f0d00fc1013f53f8654654"},
   "docsh": {:hex, :docsh, "0.7.2", "f893d5317a0e14269dd7fe79cf95fb6b9ba23513da0480ec6e77c73221cae4f2", [:rebar3], [{:providers, "1.8.1", [hex: :providers, repo: "hexpm", optional: false]}], "hexpm", "4e7db461bb07540d2bc3d366b8513f0197712d0495bb85744f367d3815076134"},
-  "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "44f7b309268c491d5316aa5797f02c30b7e308ef", []},
+  "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "36484b2b5fd25278086fd3e88f84565011a616fc", []},
   "erl2ex": {:git, "https://github.com/dazuma/erl2ex.git", "244c2d9ed5805ef4855a491d8616b8842fef7ca4", []},
   "erlex": {:hex, :erlex, "0.2.6", "c7987d15e899c7a2f34f5420d2a2ea0d659682c06ac607572df55a43753aa12e", [:mix], [], "hexpm", "2ed2e25711feb44d52b17d2780eabf998452f6efda104877a3881c2f8c0c0c75"},
   "forms": {:hex, :forms, "0.0.1", "45f3b10b6f859f95f2c2c1a1de244d63855296d55ed8e93eb0dd116b3e86c4a6", [:rebar3], [], "hexpm", "530f63ed8ed5a171f744fc75bd69cb2e36496899d19dbef48101b4636b795868"},
