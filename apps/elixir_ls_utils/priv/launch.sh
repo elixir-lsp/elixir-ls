@@ -63,4 +63,4 @@ SCRIPT=$(readlink_f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 export ERL_LIBS="$SCRIPTPATH:$ERL_LIBS"
 
-exec elixir -e "$ELS_SCRIPT"
+exec elixir --erl "+sbwt none +sbwtdcpu none +sbwtdio none"  -e "$ELS_SCRIPT"
