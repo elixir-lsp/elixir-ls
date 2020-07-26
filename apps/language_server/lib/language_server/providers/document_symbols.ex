@@ -45,7 +45,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp list_symbols(src) do
-    case ElixirSense.string_to_quoted(src, 0, @max_parser_errors, line: 0) do
+    case ElixirSense.string_to_quoted(src, 1, @max_parser_errors, line: 1) do
       {:ok, quoted_form} -> {:ok, extract_modules(quoted_form)}
       {:error, _error} -> {:error, :compilation_error}
     end
@@ -315,8 +315,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp location_to_range(location) do
     %{
-      start: %{line: location[:line], character: location[:column] - 1},
-      end: %{line: location[:line], character: location[:column] - 1}
+      start: %{line: location[:line] - 1, character: location[:column] - 1},
+      end: %{line: location[:line] - 1, character: location[:column] - 1}
     }
   end
 
