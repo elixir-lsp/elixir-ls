@@ -9,13 +9,6 @@ script:
       echo "Not checking formatting"
     fi
   - mix test
-  - |
-    if [[ "$RUN_DIALYZER" -eq 1 ]]
-    then
-      travis_wait 30 mix dialyzer
-    else
-      echo "Not running Dialyzer"
-    fi
 env:
   global:
     - MIX_HOME=$HOME/.mix
@@ -36,4 +29,3 @@ matrix:
       elixir: 1.10.3
       env:
         - CHECK_FORMATTED=1
-        - RUN_DIALYZER=1
