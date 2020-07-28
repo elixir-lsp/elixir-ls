@@ -4,12 +4,19 @@ Potentially breaking changes:
 - Do not format files that are not listed in `inputs` of `.formatter.exs` (thanks [Tan Jay Jun](https://github.com/jayjun)) [#315](https://github.com/elixir-lsp/elixir-ls/pull/315)
 
 Improvements:
+- Add Ecto completion plugin from ElixirSense (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#333](https://github.com/elixir-lsp/elixir-ls/pull/333)
+  - Supports generic completion items and moves doc snippet completions to ElixirSense because there's more context there (more detail available in [elixir_sense#104](https://github.com/elixir-lsp/elixir_sense/issues/104))
 - Use ElixirSense's error tolerant parser for document symbols (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#322](https://github.com/elixir-lsp/elixir-ls/pull/322)
+- Add more auto-completion trigger characters: `& % ^ : !` (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#327](https://github.com/elixir-lsp/elixir-ls/pull/327)
 - Disable busy-wait in BEAM to reduce CPU usage (thanks [Jason Axelson](https://github.com/axelson)) [#331](https://github.com/elixir-lsp/elixir-ls/pull/331)
 
 House keeping:
+- Use error tolerant parser for WorkspaceSymbols (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#322](https://github.com/elixir-lsp/elixir-ls/pull/322)
 - Fix the link in the README to releases (thanks [RJ Dellecese](https://github.com/rjdellecese)) [#312](https://github.com/elixir-lsp/elixir-ls/pull/312)
 - Update the dialyzer section in the readme (thanks [Serenity597](https://github.com/Serenity597)) [#323](https://github.com/elixir-lsp/elixir-ls/pull/323)
+
+Note: `MIX_TARGET` support was added in 0.5.0 but wasn't added to the changelog until later:
+- Support `MIX_TARGET` so the language server can have target specific contexts, like with Nerves (thanks [Jon Carstens](https://github.com/jjcarstens)) [#299](https://github.com/elixir-lsp/elixir-ls/pull/299)
 
 VSCode:
 - Debugger does not successfully launch on Windows (thanks [Craig Tataryn](https://github.com/ctataryn)) [#115](https://github.com/elixir-lsp/vscode-elixir-ls/pull/115)
