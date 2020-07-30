@@ -23,16 +23,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     :command
   ]
 
-  # Format:
-  # {name, snippet, documentation, priority}
-  @module_attr_snippets [
-    {~s(doc """"""), ~s(doc """\n$0\n"""), "Documents a function", 3},
-    {"doc false", "doc false", "Marks this function as internal", 5},
-    {~s(moduledoc """"""), ~s(moduledoc """\n$0\n"""), "Documents a module", 3},
-    {"moduledoc false", "moduledoc false", "Marks this module as internal", 5},
-    {"typedoc", ~s(typedoc """\n$0\n"""), "Documents a type specification", 3}
-  ]
-
   @func_snippets %{
     {"Kernel.SpecialForms", "case"} => "case $1 do\n\t$2 ->\n\t\t$0\nend",
     {"Kernel.SpecialForms", "with"} => "with $2 <- $1 do\n\t$0\nend",
@@ -140,7 +130,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       ElixirSense.suggestions(text, line + 1, character + 1)
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
-      |> Enum.concat(module_attr_snippets(context))
 
     items_json =
       items
@@ -171,10 +160,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     capture_before? = context.capture_before?
 
     Enum.reject(suggestions, fn s ->
-      s.type in [:function, :macro] && !capture_before? && s.arity < s.def_arity &&
-        signature_help_supported &&
-        function_name_with_parens?(s.name, s.arity, locals_without_parens) &&
-        function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
+      s.type in [:function, :macro] and
+        !capture_before? and
+        s.arity < s.def_arity and
+        signature_help_supported and
+        function_name_with_parens?(s.name, s.arity, locals_without_parens) ==
+          function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
     end)
   end
 
@@ -200,7 +191,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "module attribute",
         insert_text: insert_text,
         filter_text: name_only,
-        priority: 4,
+        priority: 14,
         tags: []
       }
     end
@@ -220,7 +211,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       kind: :variable,
       detail: "variable",
       insert_text: name,
-      priority: 3,
+      priority: 13,
       tags: []
     }
   end
@@ -238,7 +229,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: "return value",
       documentation: spec,
       insert_text: snippet,
-      priority: 5,
+      priority: 15,
       tags: []
     }
   end
@@ -272,7 +263,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         documentation: summary,
         insert_text: name,
         filter_text: name,
-        priority: 4,
+        priority: 14,
         tags: metadata_to_tags(metadata)
       }
     end
@@ -322,7 +313,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "#{origin} callback",
         documentation: summary,
         insert_text: insert_text,
-        priority: 2,
+        priority: 12,
         filter_text: filter_text,
         tags: metadata_to_tags(metadata)
       }
@@ -354,7 +345,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: "#{origin} protocol function",
       documentation: summary,
       insert_text: insert_text,
-      priority: 2,
+      priority: 12,
       filter_text: name,
       tags: metadata_to_tags(metadata)
     }
@@ -376,7 +367,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       label: to_string(name),
       detail: detail,
       insert_text: if(call?, do: name, else: "#{name}: "),
-      priority: 0,
+      priority: 10,
       kind: :field,
       tags: []
     }
@@ -398,7 +389,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: "#{type_spec}",
       documentation: "#{doc}#{formatted_spec}",
       insert_text: "#{name}: ",
-      priority: 0,
+      priority: 10,
       kind: :field,
       tags: []
     }
@@ -431,9 +422,35 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: "typespec #{signature}",
       documentation: "#{doc}#{formatted_spec}",
       insert_text: snippet,
-      priority: 0,
+      priority: 10,
       kind: :class,
       tags: metadata_to_tags(metadata)
+    }
+  end
+
+  defp from_completion_item(%{type: :generic, kind: kind, label: label} = suggestion, _ctx, opts) do
+    insert_text =
+      cond do
+        suggestion[:snippet] && Keyword.get(opts, :snippets_supported, false) ->
+          suggestion[:snippet]
+
+        insert_text = suggestion[:insert_text] ->
+          insert_text
+
+        true ->
+          label
+      end
+
+    %__MODULE__{
+      label: label,
+      detail: suggestion[:detail] || "",
+      documentation: suggestion[:documentation] || "",
+      insert_text: insert_text,
+      filter_text: suggestion[:filter_text],
+      priority: suggestion[:priority] || 0,
+      kind: kind,
+      command: suggestion[:command],
+      tags: []
     }
   end
 
@@ -446,7 +463,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     completion =
       if origin == "Kernel" || origin == "Kernel.SpecialForms" do
-        %{completion | kind: :keyword, priority: 8}
+        %{completion | kind: :keyword, priority: 18}
       else
         completion
       end
@@ -474,21 +491,31 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     snippets_supported? = Keyword.get(opts, :snippets_supported, false)
     trigger_signature? = Keyword.get(opts, :trigger_signature?, false)
     capture_before? = Keyword.get(opts, :capture_before?, false)
+    pipe_before? = Keyword.get(opts, :pipe_before?, false)
+    with_parens? = Keyword.get(opts, :with_parens?, false)
+    snippet = Keyword.get(opts, :snippet)
 
     cond do
+      snippet && snippets_supported? && !pipe_before? && !capture_before? ->
+        snippet
+
       capture_before? ->
         function_snippet_with_capture_before(name, arity, snippets_supported?)
 
       trigger_signature? ->
         text_after_cursor = Keyword.get(opts, :text_after_cursor, "")
-        function_snippet_with_signature(name, text_after_cursor, snippets_supported?)
+
+        function_snippet_with_signature(
+          name,
+          text_after_cursor,
+          snippets_supported?,
+          with_parens?
+        )
 
       has_text_after_cursor?(opts) ->
         name
 
       snippets_supported? ->
-        pipe_before? = Keyword.get(opts, :pipe_before?, false)
-        with_parens? = Keyword.get(opts, :with_parens?, false)
         function_snippet_with_args(name, arity, args, pipe_before?, with_parens?)
 
       true ->
@@ -526,14 +553,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     Enum.join([name, before_args, Enum.join(tabstops, ", "), after_args])
   end
 
-  defp function_snippet_with_signature(name, text_after_cursor, snippets_supported?) do
-    # Don't add the closing parenthesis to the snippet if the cursor is
-    # immediately before a valid argument. This usually happens when we
-    # want to wrap an existing variable or literal, e.g. using IO.inspect/2.
-    if !snippets_supported? || Regex.match?(~r/^[a-zA-Z0-9_:"'%<@\[\{]/, text_after_cursor) do
-      "#{name}("
-    else
-      "#{name}($1)$0"
+  defp function_snippet_with_signature(name, text_after_cursor, snippets_supported?, with_parens?) do
+    cond do
+      !with_parens? ->
+        if String.starts_with?(text_after_cursor, " "), do: name, else: "#{name} "
+
+      # Don't add the closing parenthesis to the snippet if the cursor is
+      # immediately before a valid argument. This usually happens when we
+      # want to wrap an existing variable or literal, e.g. using IO.inspect/2.
+      !snippets_supported? || Regex.match?(~r/^[a-zA-Z0-9_:"'%<@\[\{]/, text_after_cursor) ->
+        "#{name}("
+
+      true ->
+        "#{name}($1)$0"
     end
   end
 
@@ -578,6 +610,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       :color -> 16
       :file -> 17
       :reference -> 18
+      :folder -> 19
+      :enum_member -> 20
+      :constant -> 21
+      :struct -> 22
+      :event -> 23
+      :operator -> 24
+      :type_parameter -> 25
     end
   end
 
@@ -626,31 +665,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     result
   end
 
-  defp module_attr_snippets(%{prefix: prefix, scope: :module, def_before: nil}) do
-    for {name, snippet, docs, priority} <- @module_attr_snippets,
-        label = "@" <> name,
-        String.starts_with?(label, prefix) do
-      snippet =
-        case prefix do
-          "@" <> _ -> snippet
-          _ -> "@" <> snippet
-        end
-
-      %__MODULE__{
-        label: label,
-        kind: :snippet,
-        documentation: docs,
-        detail: "module attribute snippet",
-        insert_text: snippet,
-        filter_text: name,
-        tags: [],
-        priority: priority
-      }
-    end
-  end
-
-  defp module_attr_snippets(_), do: []
-
   defp function_completion(info, context, options) do
     %{
       type: type,
@@ -675,10 +689,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     locals_without_parens = Keyword.get(options, :locals_without_parens)
     signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
+    signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
     with_parens? = function_name_with_parens?(name, arity, locals_without_parens)
 
-    trigger_signature? =
-      signature_help_supported? && with_parens? && ((arity == 1 && !pipe_before?) || arity > 1)
+    trigger_signature? = signature_help_supported? && ((arity == 1 && !pipe_before?) || arity > 1)
 
     {label, insert_text} =
       cond do
@@ -702,10 +716,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                 options,
                 pipe_before?: pipe_before?,
                 capture_before?: capture_before?,
+                pipe_before?: pipe_before?,
                 trigger_signature?: trigger_signature?,
                 locals_without_parens: locals_without_parens,
                 text_after_cursor: text_after_cursor,
-                with_parens?: with_parens?
+                with_parens?: with_parens?,
+                snippet: info[:snippet]
               )
             )
 
@@ -724,7 +740,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     footer = SourceFile.format_spec(spec, line_length: 30)
 
     command =
-      if trigger_signature? && !capture_before? do
+      if trigger_signature? && signature_after_complete? && !capture_before? do
         %{
           "title" => "Trigger Parameter Hint",
           "command" => "editor.action.triggerParameterHints"
@@ -737,7 +753,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       detail: detail,
       documentation: summary <> footer,
       insert_text: insert_text,
-      priority: 7,
+      priority: 17,
       tags: metadata_to_tags(metadata),
       command: command
     }

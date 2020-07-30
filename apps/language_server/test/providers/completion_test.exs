@@ -397,6 +397,20 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       %{text: text, location: {4, 6}}
     end
 
+    test "setting 'signature_after_complete'", context do
+      %{text: text, location: {line, char}} = context
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      opts = Keyword.merge(@supports, signature_after_complete: true)
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+      assert item["command"] == @signature_command
+
+      opts = Keyword.merge(@supports, signature_after_complete: false)
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+      assert item["command"] == nil
+    end
+
     test "without snippets nor signature support, complete with just the name", context do
       %{text: text, location: {line, char}} = context
 
@@ -416,8 +430,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
 
-      assert item["insertText"] == "add"
-      assert item["command"] == nil
+      assert item["insertText"] == "add "
+      assert item["command"] == @signature_command
     end
 
     test "with signature support and no snippets support, complete with the name and trigger signature",
@@ -479,19 +493,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item["command"] == @signature_command
     end
 
-    test "function in :locals_without_parens completes with name and args but doesn't add parens nor triggers signature",
-         context do
-      %{text: text, location: {line, char}} = context
-
-      TestUtils.assert_has_cursor_char(text, line, char)
-
-      opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(add: 2))
-      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
-
-      assert item["insertText"] == "add ${1:a}, ${2:b}"
-      assert item["command"] == nil
-    end
-
     test "function in :locals_without_parens doesn't complete with args if there's text after cursor" do
       text = """
       defmodule MyModule do
@@ -511,7 +512,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
 
       assert item["insertText"] == "add"
-      assert item["command"] == nil
+      assert item["command"] == @signature_command
     end
 
     test "function with arity 0 does not triggers signature" do
@@ -629,6 +630,29 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item["label"] == "my_func/3"
       assert item["insertText"] == "my_func($1)$0"
       assert item["command"] == @signature_command
+    end
+
+    test "with signature support, a function with a derived in locals_without_parens generate more than one suggestion" do
+      text = """
+      defmodule MyModule do
+        def timestamps, do: 1
+        def timestamps(a), do: a
+
+        def dummy_function() do
+          timestamps
+          #        ^
+        end
+      end
+      """
+
+      {line, char} = {5, 13}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(timestamps: 0))
+      {:ok, %{"items" => [item_1, item_2]}} = Completion.completion(text, line, char, opts)
+
+      assert item_1["label"] == "timestamps/0"
+      assert item_2["label"] == "timestamps/1"
     end
 
     test "with signature support, a function with 1 default argument triggers signature" do
@@ -749,7 +773,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                """
              }
     end
+  end
 
+  describe "generic suggestions" do
     test "moduledoc completion" do
       text = """
       defmodule MyModule do
@@ -762,7 +788,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       TestUtils.assert_has_cursor_char(text, line, char)
 
-      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+      assert {:ok, %{"items" => [first | _] = items}} =
+               Completion.completion(text, line, char, @supports)
+
       labels = Enum.map(items, & &1["label"])
 
       assert labels == [
@@ -770,27 +798,17 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                "@moduledoc",
                "@moduledoc false"
              ]
-    end
 
-    test "doc completion" do
-      text = """
-      defmodule MyModule do
-        @do
-        #  ^
-        end
-      """
-
-      {line, char} = {1, 5}
-
-      TestUtils.assert_has_cursor_char(text, line, char)
-
-      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
-      labels = Enum.map(items, & &1["label"])
-
-      assert labels == [
-               ~s(@doc """"""),
-               "@doc false"
-             ]
+      assert first == %{
+               "detail" => "module attribute snippet",
+               "documentation" => %{:kind => "markdown", "value" => "Documents a module"},
+               "filterText" => "moduledoc",
+               "insertText" => ~s(moduledoc """\n$0\n"""),
+               "insertTextFormat" => 2,
+               "kind" => 15,
+               "label" => ~s(@moduledoc """"""),
+               "sortText" => "00000000"
+             }
     end
   end
 end
