@@ -22,12 +22,65 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   setup context do
     unless context[:skip_server] do
-      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+      server_opts = Map.get(context, :server_opts, [])
+      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server(server_opts)
+      ElixirLS.LanguageServer.Test.ServerTestHelpers.assert_server_does_not_crash(server)
 
       {:ok, %{server: server}}
     else
       :ok
     end
+  end
+
+  test "textDocument/didChangeConfiguration with valid configuration", %{server: server} do
+    json_settings = %{"elixirLS" => %{"dialyzerEnabled" => false}}
+    Server.receive_packet(server, did_change_configuration(json_settings))
+
+    state = :sys.get_state(server)
+    assert state.settings.dialyzer_enabled == false
+
+    json_settings = %{"elixirLS" => %{"dialyzerEnabled" => true}}
+    Server.receive_packet(server, did_change_configuration(json_settings))
+
+    state = :sys.get_state(server)
+    assert state.settings.dialyzer_enabled == true
+  end
+
+  test "textDocument/didChangeConfiguration uses the defaults", %{server: server} do
+    json_settings = %{}
+    Server.receive_packet(server, did_change_configuration(json_settings))
+
+    state = :sys.get_state(server)
+    assert state.settings.dialyzer_enabled == true
+    assert state.settings.dialyzer_format == "dialyxir_long"
+  end
+
+  test "textDocument/didChangeConfiguration with invalid configuration", %{server: server} do
+    json_settings = %{"elixirLS" => %{"invalidConfig" => "abc"}}
+    Server.receive_packet(server, did_change_configuration(json_settings))
+
+    assert_receive %{
+      "method" => "window/logMessage",
+      "params" => %{
+        "message" => "Invalid configuration key: " <> error_details,
+        "type" => 2
+      }
+    }
+
+    assert error_details == "invalidConfig with value \"abc\""
+
+    _ = :sys.get_state(server)
+  end
+
+  @tag server_opts: [default_config_timeout_ms: 10]
+  test "uses the default settings if textDocument/didChangeConfiguration with invalid configuration not called",
+       %{server: server} do
+    Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+    Process.sleep(100)
+
+    state = :sys.get_state(server)
+    assert state.settings.dialyzer_enabled == true
+    assert state.settings.dialyzer_format == "dialyxir_long"
   end
 
   test "textDocument/didChange when the client hasn't claimed ownership with textDocument/didOpen",
@@ -447,7 +500,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   defp with_new_server(func) do
-    server = start_supervised!({Server, nil})
+    server = start_supervised!({Server, []})
     packet_capture = start_supervised!({PacketCapture, self()})
     Process.group_leader(server, packet_capture)
 

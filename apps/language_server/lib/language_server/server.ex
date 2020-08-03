@@ -17,6 +17,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use GenServer
   alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer}
+  alias ElixirLS.LanguageServer.ConfigLoader
 
   alias ElixirLS.LanguageServer.Providers.{
     Completion,
@@ -34,31 +35,37 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use Protocol
 
-  defstruct [
-    :server_instance_id,
-    :build_ref,
-    :dialyzer_sup,
-    :client_capabilities,
-    :root_uri,
-    :project_dir,
-    :settings,
-    build_diagnostics: [],
-    dialyzer_diagnostics: [],
-    needs_build?: false,
-    load_all_modules?: false,
-    build_running?: false,
-    analysis_ready?: false,
-    received_shutdown?: false,
-    requests: %{},
-    # Tracks source files that are currently open in the editor
-    source_files: %{},
-    awaiting_contracts: []
-  ]
+  @default_config_timeout_ms 5_000
+
+  defmodule State do
+    defstruct [
+      :server_instance_id,
+      :build_ref,
+      :dialyzer_sup,
+      :client_capabilities,
+      :root_uri,
+      :project_dir,
+      settings: %{},
+      build_diagnostics: [],
+      dialyzer_diagnostics: [],
+      needs_build?: false,
+      load_all_modules?: false,
+      build_running?: false,
+      analysis_ready?: false,
+      received_shutdown?: false,
+      requests: %{},
+      # Tracks source files that are currently open in the editor
+      source_files: %{},
+      awaiting_contracts: [],
+      default_config_timeout_ms: nil
+    ]
+  end
 
   ## Client API
 
-  def start_link(name \\ nil) do
-    GenServer.start_link(__MODULE__, :ok, name: name)
+  def start_link(opts \\ []) do
+    name = Keyword.get(opts, :name, nil)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   def receive_packet(server \\ __MODULE__, packet) do
@@ -84,8 +91,11 @@ defmodule ElixirLS.LanguageServer.Server do
   ## Server Callbacks
 
   @impl GenServer
-  def init(:ok) do
-    {:ok, %__MODULE__{}}
+  def init(opts) do
+    default_config_timeout_ms =
+      Keyword.get(opts, :default_config_timeout_ms, @default_config_timeout_ms)
+
+    {:ok, %State{default_config_timeout_ms: default_config_timeout_ms}}
   end
 
   @impl GenServer
@@ -158,14 +168,14 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_info(:default_config, state) do
     state =
       case state do
-        %{settings: nil} ->
+        %{settings: settings} when settings == %{} ->
           JsonRpc.show_message(
             :info,
             "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
-              "Using default settings."
+              "Using default settings. (This is expected if you have no editor configuration)"
           )
 
-          set_settings(state, %{})
+          set_settings(state, %{}, %{})
 
         _ ->
           state
@@ -235,18 +245,18 @@ defmodule ElixirLS.LanguageServer.Server do
   # the `projectDir` or `mixEnv` settings. If the settings don't match the format expected, leave
   # settings unchanged or set default settings if this is the first request.
   defp handle_notification(did_change_configuration(changed_settings), state) do
-    prev_settings = state.settings || %{}
+    case changed_settings do
+      %{"elixirLS" => changed_settings} when is_map(changed_settings) ->
+        prev_settings = state.settings
+        set_settings(state, prev_settings, changed_settings)
 
-    new_settings =
-      case changed_settings do
-        %{"elixirLS" => changed_settings} when is_map(changed_settings) ->
-          Map.merge(prev_settings, changed_settings)
-
-        _ ->
-          prev_settings
-      end
-
-    set_settings(state, new_settings)
+      _ ->
+        if state.settings == %{} do
+          set_settings(state, %{}, %{})
+        else
+          state
+        end
+    end
   end
 
   defp handle_notification(notification("exit"), state) do
@@ -367,8 +377,8 @@ defmodule ElixirLS.LanguageServer.Server do
         server_instance_id: server_instance_id
     }
 
-    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
-    Process.send_after(self(), :default_config, 5000)
+    # If we don't receive workspace/didChangeConfiguration before timeout, use default settings
+    Process.send_after(self(), :default_config, state.default_config_timeout_ms)
 
     # Explicitly request file watchers from the client if supported
     supports_dynamic =
@@ -530,7 +540,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(code_lens_req(_id, uri), state) do
-    if dialyzer_enabled?(state) and state.settings["suggestSpecs"] != false do
+    if dialyzer_enabled?(state) and state.settings.suggest_specs != false do
       {:async,
        fn -> CodeLens.code_lens(state.server_instance_id, uri, state.source_files[uri].text) end,
        state}
@@ -599,7 +609,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp trigger_build(state) do
     if build_enabled?(state) and not state.build_running? do
-      fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
+      fetch_deps? = state.settings.fetch_deps
 
       {_pid, build_ref} =
         Build.build(self(), state.project_dir,
@@ -607,7 +617,7 @@ defmodule ElixirLS.LanguageServer.Server do
           load_all_modules?: state.load_all_modules?
         )
 
-      %__MODULE__{
+      %State{
         state
         | build_ref: build_ref,
           needs_build?: false,
@@ -616,23 +626,24 @@ defmodule ElixirLS.LanguageServer.Server do
           load_all_modules?: false
       }
     else
-      %__MODULE__{state | needs_build?: true, analysis_ready?: false}
+      %State{state | needs_build?: true, analysis_ready?: false}
     end
   end
 
   defp dialyze(state) do
     warn_opts =
-      (state.settings["dialyzerWarnOpts"] || [])
+      state.settings.dialyzer_warn_opts
       |> Enum.map(&String.to_atom/1)
 
-    if dialyzer_enabled?(state),
-      do: Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state))
+    if dialyzer_enabled?(state) do
+      Dialyzer.analyze(
+        state.build_ref,
+        warn_opts,
+        state.settings.dialyzer_format
+      )
+    end
 
     state
-  end
-
-  defp dialyzer_default_format(state) do
-    state.settings["dialyzerFormat"] || "dialyxir_long"
   end
 
   defp handle_build_result(status, diagnostics, state) do
@@ -747,23 +758,44 @@ defmodule ElixirLS.LanguageServer.Server do
     :ok
   end
 
-  defp set_settings(state, settings) do
-    enable_dialyzer =
-      Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
+  defp notify_configuration_errors(errors) do
+    Enum.each(errors, fn
+      {:error, {:unrecognized_configuration_key, key, value}} ->
+        JsonRpc.show_message(
+          :warning,
+          "Invalid configuration setting found. Unrecognized key `#{key}` with value #{
+            inspect(value)
+          }"
+        )
+    end)
+  end
 
-    mix_env = Map.get(settings, "mixEnv", "test")
-    mix_target = Map.get(settings, "mixTarget")
-    project_dir = Map.get(settings, "projectDir")
+  defp set_settings(state, prev_settings, settings_map) do
+    {:ok, config, errors} = ConfigLoader.load(prev_settings, settings_map)
+    notify_configuration_errors(errors)
+
+    mix_target = config.mix_target
+
+    %{
+      dialyzer_enabled: dialyzer_enabled,
+      mix_env: mix_env,
+      project_dir: project_dir
+    } = config
+
+    dialyzer_supported = Dialyzer.check_support()
+
+    config = %{config | dialyzer_enabled: dialyzer_supported && config.dialyzer_enabled}
+    config = Map.merge(state.settings, config)
 
     state =
       state
       |> set_mix_env(mix_env)
       |> maybe_set_mix_target(mix_target)
       |> set_project_dir(project_dir)
-      |> set_dialyzer_enabled(enable_dialyzer)
+      |> set_dialyzer_enabled(dialyzer_enabled)
 
     state = create_gitignore(state)
-    trigger_build(%{state | settings: settings})
+    trigger_build(%{state | settings: config})
   end
 
   defp set_dialyzer_enabled(state, enable_dialyzer) do
@@ -782,7 +814,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp set_mix_env(state, env) do
-    prev_env = state.settings["mixEnv"]
+    prev_env = state.settings[:mix_env]
 
     if is_nil(prev_env) or env == prev_env do
       Mix.env(String.to_atom(env))
@@ -811,7 +843,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_mix_target(state, target) do
     target = target || "host"
 
-    prev_target = state.settings["mixTarget"]
+    prev_target = get_in(state.settings, [:mix_target])
 
     if is_nil(prev_target) or target == prev_target do
       # We've already checked for Elixir >= 1.8.0 by this point
