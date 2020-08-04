@@ -106,7 +106,7 @@ Configuration file location and precedence:
 
 ### Configuration File Contents
 
-The configuration file can include comments (e.g. lines starting with `//` are ignored)
+The configuration files are json but can include line-based comments (e.g. lines starting with `//` are ignored, although multi-line comments `/**/` are not supported)
 
 Configuration keys:
 - `dialyzerEnabled`: Run ElixirLS's rapid Dialyzer when code is saved

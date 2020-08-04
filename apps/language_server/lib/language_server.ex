@@ -7,7 +7,8 @@ defmodule ElixirLS.LanguageServer do
   @impl Application
   def start(_type, _args) do
     children = [
-      {ElixirLS.LanguageServer.Server, ElixirLS.LanguageServer.Server},
+      {ElixirLS.LanguageServer.Server,
+       name: ElixirLS.LanguageServer.Server},
       {ElixirLS.LanguageServer.JsonRpc, name: ElixirLS.LanguageServer.JsonRpc},
       {ElixirLS.LanguageServer.Providers.WorkspaceSymbols, []}
     ]

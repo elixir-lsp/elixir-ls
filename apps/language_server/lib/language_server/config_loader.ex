@@ -21,24 +21,32 @@ defmodule ElixirLS.LanguageServer.ConfigLoader do
 
   # Can we change this to load also from the workspace root? Note: might need multiple passes for that to work
 
-  def load(prev_config, editor_config, opts \\ []) do
+  def load(project_dir, prev_config, editor_config, opts \\ []) do
     user_home_config =
       Keyword.get_lazy(opts, :load_user_home_config, fn ->
         load_user_home_config()
+      end)
+
+    project_config =
+      Keyword.get_lazy(opts, :project_config, fn ->
+        load_project_config(project_dir)
       end)
 
     default_config = ConfigParser.default_config()
     editor_config = ConfigParser.parse_config(editor_config)
 
     config =
-      [default_config, prev_config, user_home_config, editor_config]
+      [default_config, prev_config, user_home_config, project_config, editor_config]
       |> Enum.reduce(%{}, fn
         {:ok, :skip}, acc ->
           acc
 
         {:ok, config, errors}, acc when is_map(config) ->
           Enum.each(errors, fn {:error, {:unrecognized_configuration_key, key, value}} ->
-            JsonRpc.log_message(:warning, "Invalid configuration key: #{key} with value #{inspect value}")
+            JsonRpc.log_message(
+              :warning,
+              "Invalid configuration key: #{key} with value #{inspect(value)}"
+            )
           end)
 
           Map.merge(acc, config)
@@ -64,5 +72,15 @@ defmodule ElixirLS.LanguageServer.ConfigLoader do
     end
   end
 
-   defp xdg_module, do: Application.fetch_env!(:language_server, :xdg_module)
+  defp load_project_config(nil), do: {:ok, :skip}
+
+  defp load_project_config(project_dir) do
+    path = Path.join(project_dir,  "/.elixir_ls_config.json")
+    case File.read(path) do
+      {:ok, file_contents} -> ConfigParser.load_config(file_contents)
+      {:error, _} -> {:ok, :skip}
+    end
+  end
+
+  defp xdg_module, do: Application.get_env(:language_server, :xdg_module, ElixirLS.Utils.XDG)
 end

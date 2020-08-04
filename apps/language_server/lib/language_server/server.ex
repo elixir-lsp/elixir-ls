@@ -771,7 +771,21 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp set_settings(state, prev_settings, settings_map) do
-    {:ok, config, errors} = ConfigLoader.load(prev_settings, settings_map)
+    root_dir = SourceFile.path_from_uri(state.root_uri)
+
+    project_dir =
+      case state.project_dir || settings_map["projectDir"] do
+        nil -> root_dir
+        project_dir -> Path.join(root_dir, project_dir)
+      end
+
+    {:ok, config, errors} =
+      ConfigLoader.load(
+        project_dir,
+        prev_settings,
+        settings_map
+      )
+
     notify_configuration_errors(errors)
 
     mix_target = config.mix_target
