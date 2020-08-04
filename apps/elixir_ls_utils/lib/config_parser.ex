@@ -160,7 +160,7 @@ defmodule ElixirLS.Utils.ConfigParser do
     |> String.split(["\n", "\r", "\r\n"], trim: true)
     |> Enum.map(&String.trim/1)
     # Ignore json comments
-    |> Enum.reject(&String.starts_with?(&1, "#"))
+    |> Enum.reject(&String.starts_with?(&1, "//"))
     |> Enum.join()
     |> JasonVendored.decode()
     |> case do

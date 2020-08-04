@@ -1,6 +1,6 @@
-# This is the configuration file for ElixirLS
+// This is the configuration file for ElixirLS
 {
-  # Disable dialyzer
+  // Disable dialyzer
   "dialyzerEnabled": false,
   "fetchDeps": false,
   "mixEnv": "dev"
