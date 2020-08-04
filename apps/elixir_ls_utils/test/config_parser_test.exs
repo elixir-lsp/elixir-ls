@@ -81,9 +81,9 @@ defmodule ElixirLS.Utils.ConfigParserTest do
 
   test "load_config/1 ignores lines with comments" do
     config_contents = """
-    # This is the configuration file for ElixirLS
+    // This is the configuration file for ElixirLS
     {
-      # Disable dialyzer
+      // Disable dialyzer
       "dialyzerEnabled": false
     }
     """
