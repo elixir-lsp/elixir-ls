@@ -83,7 +83,7 @@ For VSCode install the extension: https://marketplace.visualstudio.com/items?ite
 
 Elixir:
 
-- 1.7.0 minimum
+- 1.8.0 minimum
 
 Erlang:
 

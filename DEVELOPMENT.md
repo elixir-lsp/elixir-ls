@@ -6,7 +6,7 @@ https://hexdocs.pm/elixir/compatibility-and-deprecations.html#content
 OTP Supports the last 3 versions:
 http://erlang.2086793.n4.nabble.com/OTP-Versions-and-Maint-Branches-td4722416.html
 
-ElixirLS supports the last 4 versions of Elixir and the last 3 versions of OTP. However this is not a hard and fast rule and may change in the future.
+ElixirLS generally aims to support the last 3 versions of Elixir and the last 3 versions of OTP. However this is not a hard and fast rule and may change in the future.
 
 # Packaging
 
