@@ -19,8 +19,6 @@ cache:
   - _build
 matrix:
   include:
-    - otp_release: 20.3
-      elixir: 1.7.4
     - otp_release: 21.3
       elixir: 1.8.2
     - otp_release: 22.3

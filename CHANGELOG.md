@@ -2,6 +2,7 @@
 
 Potentially breaking changes:
 - Do not format files that are not listed in `inputs` of `.formatter.exs` (thanks [Tan Jay Jun](https://github.com/jayjun)) [#315](https://github.com/elixir-lsp/elixir-ls/pull/315)
+- Drop OTP 20 and Elixir 1.7.x support and set some version support guidelines (thanks [Jason Axelson](https://github.com/axelson)) [PR #337](https://github.com/elixir-lsp/elixir-ls/pull/337)
 
 Improvements:
 - Add Ecto completion plugin from ElixirSense (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#333](https://github.com/elixir-lsp/elixir-ls/pull/333)

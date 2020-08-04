@@ -83,11 +83,11 @@ For VSCode install the extension: https://marketplace.visualstudio.com/items?ite
 
 Elixir:
 
-- 1.7.0 minimum
+- 1.8.0 minimum
 
 Erlang:
 
-- OTP 20 minimum
+- OTP 21 minimum
 
 You may want to install Elixir and Erlang from source, using the [kiex](https://github.com/taylor/kiex) and [kerl](https://github.com/kerl/kerl) tools. This will let you go-to-definition for core Elixir and Erlang modules.
 
