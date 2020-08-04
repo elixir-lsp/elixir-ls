@@ -72,15 +72,18 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     _ = :sys.get_state(server)
   end
 
-  @tag server_opts: [default_config_timeout_ms: 10]
+  @tag server_opts: [default_config_timeout_ms: 100]
   test "uses the default settings if textDocument/didChangeConfiguration with invalid configuration not called",
        %{server: server} do
-    Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-    Process.sleep(100)
+    in_fixture(__DIR__, "references", fn ->
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      Server.receive_packet(server, notification("initialized"))
+      Process.sleep(1000)
 
-    state = :sys.get_state(server)
-    assert state.settings.dialyzer_enabled == true
-    assert state.settings.dialyzer_format == "dialyxir_long"
+      state = :sys.get_state(server)
+      assert state.settings.dialyzer_enabled == true
+      assert state.settings.dialyzer_format == "dialyxir_long"
+    end)
   end
 
   test "textDocument/didChange when the client hasn't claimed ownership with textDocument/didOpen",
