@@ -285,11 +285,10 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(request(_cmd, "evaluate", %{"expression" => expr} = _args), state) do
-    {term, _bindings} = Code.eval_string(expr)
+    timeout = 1_000
+    result = evaluate_code_expression(expr, timeout)
 
-    {%{"result" => inspect(term), "variablesReference" => 0}, state}
-  rescue error ->
-    {%{"result" => inspect(error), "variablesReference" => 0}, state}
+    {%{"result" => inspect(result), "variablesReference" => 0}, state}
   end
 
   defp handle_request(request(_, "disconnect"), state) do
@@ -377,6 +376,26 @@ defmodule ElixirLS.Debugger.Server do
 
       {state, result ++ [json]}
     end)
+  end
+
+  defp evaluate_code_expression(expr, timeout) do
+    task = Task.async(fn ->
+      try do
+        {term, _bindings} = Code.eval_string(expr)
+        term
+      catch
+        error -> error
+      end
+    end)
+    Process.unlink(task.pid)
+
+    result = Task.yield(task, timeout) || Task.shutdown(task)
+
+    case result do
+      {:ok, data} -> data
+      nil -> :elixir_ls_expression_timeout
+      _otherwise -> result
+    end
   end
 
   defp find_var(paused_processes, var_id) do

@@ -168,64 +168,105 @@ defmodule ElixirLS.Debugger.ServerTest do
   end
 
   describe "Watch section" do
-    test "Evaluate expression with OK result", %{server: server} do
-      packet = %{
+    defp gen_packet(expr) do
+      %{
         "arguments" => %{
           "context" => "watch",
-          "expression" => "1 + 2 + 3 + 4",
+          "expression" => expr,
           "frameId" => 123
         },
         "command" => "evaluate",
         "seq" => 1,
         "type" => "request"
       }
+    end
 
+    test "Evaluate expression with OK result", %{server: server} do
       Server.receive_packet(
         server,
-        packet
+        gen_packet("1 + 2 + 3 + 4")
       )
 
       assert_receive(
         %{
           "body" => %{"result" => "10", "variablesReference" => 0},
-          "command" => "evaluate",
-          "request_seq" => 1,
-          "seq" => _,
-          "success" => true,
-          "type" => "response"
         },
         1000
       )
+
+      assert Process.alive?(server)
     end
 
     test "Evaluate expression with ERROR result", %{server: server} do
-      packet = %{
-        "arguments" => %{
-          "context" => "watch",
-          "expression" => "1 = 2",
-          "frameId" => 123
-        },
-        "command" => "evaluate",
-        "seq" => 1,
-        "type" => "request"
-      }
-
       Server.receive_packet(
         server,
-        packet
+        gen_packet("1 = 2")
       )
 
       assert_receive(
         %{
-          "body" => %{"result" => "%MatchError{term: 2}", "variablesReference" => 0},
-          "command" => "evaluate",
-          "request_seq" => 1,
-          "seq" => _,
-          "success" => true,
-          "type" => "response"
+          "body" => %{"result" => result, "variablesReference" => 0},
         },
         1000
       )
+
+      assert result =~ ~r/badmatch/
+
+      assert Process.alive?(server)
+    end
+
+    test "Evaluate expression with attempt to exit debugger process", %{server: server} do
+      Server.receive_packet(
+        server,
+        gen_packet("Process.exit(self)")
+      )
+
+      assert_receive(
+        %{
+          "body" => %{"result" => result, "variablesReference" => 0},
+        },
+        1000
+      )
+
+      assert result =~ ~r/:exit/
+
+      assert Process.alive?(server)
+    end
+
+    test "Evaluate expression with attempt to throw debugger process", %{server: server} do
+      Server.receive_packet(
+        server,
+        gen_packet("throw(:goodmorning_bug)")
+      )
+
+      assert_receive(
+        %{
+          "body" => %{"result" => result, "variablesReference" => 0},
+        },
+        1000
+      )
+
+      assert result =~ ~r/:goodmorning_bug/
+
+      assert Process.alive?(server)
+    end
+
+    test "Evaluate expression which has long execution", %{server: server} do
+      Server.receive_packet(
+        server,
+        gen_packet(":timer.sleep(10_000)")
+      )
+
+      assert_receive(
+        %{
+          "body" => %{"result" => result, "variablesReference" => 0},
+        },
+        1_100
+      )
+
+      assert result =~ ~r/:elixir_ls_expression_timeout/
+
+      assert Process.alive?(server)
     end
   end
 end
