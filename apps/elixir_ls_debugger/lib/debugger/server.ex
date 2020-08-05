@@ -379,14 +379,16 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp evaluate_code_expression(expr, timeout) do
-    task = Task.async(fn ->
-      try do
-        {term, _bindings} = Code.eval_string(expr)
-        term
-      catch
-        error -> error
-      end
-    end)
+    task =
+      Task.async(fn ->
+        try do
+          {term, _bindings} = Code.eval_string(expr)
+          term
+        catch
+          error -> error
+        end
+      end)
+
     Process.unlink(task.pid)
 
     result = Task.yield(task, timeout) || Task.shutdown(task)
