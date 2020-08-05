@@ -166,4 +166,66 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert(:hello in :int.interpreted())
     end)
   end
+
+  describe "Watch section" do
+    test "Evaluate expression with OK result", %{server: server} do
+      packet = %{
+        "arguments" => %{
+          "context" => "watch",
+          "expression" => "1 + 2 + 3 + 4",
+          "frameId" => 123
+        },
+        "command" => "evaluate",
+        "seq" => 1,
+        "type" => "request"
+      }
+
+      Server.receive_packet(
+        server,
+        packet
+      )
+
+      assert_receive(
+        %{
+          "body" => %{"result" => "10", "variablesReference" => 0},
+          "command" => "evaluate",
+          "request_seq" => 1,
+          "seq" => _,
+          "success" => true,
+          "type" => "response"
+        },
+        1000
+      )
+    end
+
+    test "Evaluate expression with ERROR result", %{server: server} do
+      packet = %{
+        "arguments" => %{
+          "context" => "watch",
+          "expression" => "1 = 2",
+          "frameId" => 123
+        },
+        "command" => "evaluate",
+        "seq" => 1,
+        "type" => "request"
+      }
+
+      Server.receive_packet(
+        server,
+        packet
+      )
+
+      assert_receive(
+        %{
+          "body" => %{"result" => "%MatchError{term: 2}", "variablesReference" => 0},
+          "command" => "evaluate",
+          "request_seq" => 1,
+          "seq" => _,
+          "success" => true,
+          "type" => "response"
+        },
+        1000
+      )
+    end
+  end
 end

@@ -284,9 +284,12 @@ defmodule ElixirLS.Debugger.Server do
     {%{"variables" => vars_json}, state}
   end
 
-  defp handle_request(request(_, "evaluate"), state) do
-    msg = "(Debugger) Expression evaluation in Elixir debugger is not supported (yet)."
-    {%{"result" => msg, "variablesReference" => 0}, state}
+  defp handle_request(request(_cmd, "evaluate", %{"expression" => expr} = _args), state) do
+    {term, _bindings} = Code.eval_string(expr)
+
+    {%{"result" => inspect(term), "variablesReference" => 0}, state}
+  rescue error ->
+    {%{"result" => inspect(error), "variablesReference" => 0}, state}
   end
 
   defp handle_request(request(_, "disconnect"), state) do
