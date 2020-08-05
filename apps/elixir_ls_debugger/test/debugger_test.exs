@@ -187,12 +187,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         gen_packet("1 + 2 + 3 + 4")
       )
 
-      assert_receive(
-        %{
-          "body" => %{"result" => "10", "variablesReference" => 0},
-        },
-        1000
-      )
+      assert_receive(%{"body" => %{"result" => "10"}}, 1000)
 
       assert Process.alive?(server)
     end
@@ -203,12 +198,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         gen_packet("1 = 2")
       )
 
-      assert_receive(
-        %{
-          "body" => %{"result" => result, "variablesReference" => 0},
-        },
-        1000
-      )
+      assert_receive(%{"body" => %{"result" => result}}, 1000)
 
       assert result =~ ~r/badmatch/
 
@@ -221,12 +211,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         gen_packet("Process.exit(self)")
       )
 
-      assert_receive(
-        %{
-          "body" => %{"result" => result, "variablesReference" => 0},
-        },
-        1000
-      )
+      assert_receive(%{"body" => %{"result" => result}}, 1000)
 
       assert result =~ ~r/:exit/
 
@@ -239,12 +224,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         gen_packet("throw(:goodmorning_bug)")
       )
 
-      assert_receive(
-        %{
-          "body" => %{"result" => result, "variablesReference" => 0},
-        },
-        1000
-      )
+      assert_receive(%{"body" => %{"result" => result}}, 1000)
 
       assert result =~ ~r/:goodmorning_bug/
 
@@ -257,12 +237,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         gen_packet(":timer.sleep(10_000)")
       )
 
-      assert_receive(
-        %{
-          "body" => %{"result" => result, "variablesReference" => 0},
-        },
-        1_100
-      )
+      assert_receive(%{"body" => %{"result" => result}}, 1100)
 
       assert result =~ ~r/:elixir_ls_expression_timeout/
 
