@@ -405,14 +405,11 @@ defmodule ElixirLS.Debugger.Server do
 
   defp all_variables(paused_processes) do
     paused_processes
-    |> Enum.map(fn {_pid, paused_process} -> paused_process.frames end)
-    |> Enum.map(&Map.values/1)
-    |> List.flatten()
-    |> Enum.map(fn %Frame{bindings: bindings} -> bindings end)
-    |> Enum.filter(fn bindings -> is_map(bindings) end)
-    |> Enum.map(&Map.to_list/1)
-    |> List.flatten()
-    |> Enum.map(&rename_binding_to_classic_variable/1)
+    |> Enum.flat_map(fn {_pid, paused_process} -> paused_process.frames |> Map.values() end)
+    |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
+    |> Enum.flat_map(fn %Frame{bindings: bindings} ->
+      bindings |> Enum.map(&rename_binding_to_classic_variable/1)
+    end)
   end
 
   defp rename_binding_to_classic_variable({key, value}) do
