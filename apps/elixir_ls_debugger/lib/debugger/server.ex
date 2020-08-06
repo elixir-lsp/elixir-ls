@@ -15,6 +15,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables}
+  alias ElixirLS.Debugger.Stacktrace.Frame
   use GenServer
   use Protocol
 
@@ -286,7 +287,9 @@ defmodule ElixirLS.Debugger.Server do
 
   defp handle_request(request(_cmd, "evaluate", %{"expression" => expr} = _args), state) do
     timeout = 1_000
-    result = evaluate_code_expression(expr, timeout)
+    bindings = all_variables(state.paused_processes)
+
+    result = evaluate_code_expression(expr, bindings, timeout)
 
     {%{"result" => inspect(result), "variablesReference" => 0}, state}
   end
@@ -378,11 +381,11 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp evaluate_code_expression(expr, timeout) do
+  defp evaluate_code_expression(expr, bindings, timeout) do
     task =
       Task.async(fn ->
         try do
-          {term, _bindings} = Code.eval_string(expr)
+          {term, _bindings} = Code.eval_string(expr, bindings)
           term
         catch
           error -> error
@@ -398,6 +401,30 @@ defmodule ElixirLS.Debugger.Server do
       nil -> :elixir_ls_expression_timeout
       _otherwise -> result
     end
+  end
+
+  defp all_variables(paused_processes) do
+    paused_processes
+    |> Enum.map(fn {_pid, paused_process} -> paused_process.frames end)
+    |> Enum.map(&Map.values/1)
+    |> List.flatten()
+    |> Enum.map(fn %Frame{bindings: bindings} -> bindings end)
+    |> Enum.filter(fn bindings -> is_map(bindings) end)
+    |> Enum.map(&Map.to_list/1)
+    |> List.flatten()
+    |> Enum.map(&rename_binding_to_classic_variable/1)
+  end
+
+  defp rename_binding_to_classic_variable({key, value}) do
+    # binding is present with prefix _ and postfix @
+    # for example _key@1 and _value@1 are representations of current function variables
+    new_key =
+      key
+      |> Atom.to_string()
+      |> String.replace(~r/_(.*)@\d/, "\\1")
+      |> String.to_atom()
+
+    {new_key, value}
   end
 
   defp find_var(paused_processes, var_id) do
