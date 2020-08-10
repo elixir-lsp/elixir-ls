@@ -15,6 +15,7 @@ House keeping:
 - Use error tolerant parser for WorkspaceSymbols (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#322](https://github.com/elixir-lsp/elixir-ls/pull/322)
 - Fix the link in the README to releases (thanks [RJ Dellecese](https://github.com/rjdellecese)) [#312](https://github.com/elixir-lsp/elixir-ls/pull/312)
 - Update the dialyzer section in the readme (thanks [Serenity597](https://github.com/Serenity597)) [#323](https://github.com/elixir-lsp/elixir-ls/pull/323)
+- Add vim-lsp to plugin list (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#340](https://github.com/elixir-lsp/elixir-ls/pull/340)
 
 Note: `MIX_TARGET` support was added in 0.5.0 but wasn't added to the changelog until later:
 - Support `MIX_TARGET` so the language server can have target specific contexts, like with Nerves (thanks [Jon Carstens](https://github.com/jjcarstens)) [#299](https://github.com/elixir-lsp/elixir-ls/pull/299)
