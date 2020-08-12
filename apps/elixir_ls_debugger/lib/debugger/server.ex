@@ -15,6 +15,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables}
+  alias ElixirLS.Debugger.Stacktrace.Frame
   use GenServer
   use Protocol
 
@@ -284,9 +285,13 @@ defmodule ElixirLS.Debugger.Server do
     {%{"variables" => vars_json}, state}
   end
 
-  defp handle_request(request(_, "evaluate"), state) do
-    msg = "(Debugger) Expression evaluation in Elixir debugger is not supported (yet)."
-    {%{"result" => msg, "variablesReference" => 0}, state}
+  defp handle_request(request(_cmd, "evaluate", %{"expression" => expr} = _args), state) do
+    timeout = 1_000
+    bindings = all_variables(state.paused_processes)
+
+    result = evaluate_code_expression(expr, bindings, timeout)
+
+    {%{"result" => inspect(result), "variablesReference" => 0}, state}
   end
 
   defp handle_request(request(_, "disconnect"), state) do
@@ -374,6 +379,49 @@ defmodule ElixirLS.Debugger.Server do
 
       {state, result ++ [json]}
     end)
+  end
+
+  defp evaluate_code_expression(expr, bindings, timeout) do
+    task =
+      Task.async(fn ->
+        try do
+          {term, _bindings} = Code.eval_string(expr, bindings)
+          term
+        catch
+          error -> error
+        end
+      end)
+
+    Process.unlink(task.pid)
+
+    result = Task.yield(task, timeout) || Task.shutdown(task)
+
+    case result do
+      {:ok, data} -> data
+      nil -> :elixir_ls_expression_timeout
+      _otherwise -> result
+    end
+  end
+
+  defp all_variables(paused_processes) do
+    paused_processes
+    |> Enum.flat_map(fn {_pid, paused_process} -> paused_process.frames |> Map.values() end)
+    |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
+    |> Enum.flat_map(fn %Frame{bindings: bindings} ->
+      bindings |> Enum.map(&rename_binding_to_classic_variable/1)
+    end)
+  end
+
+  defp rename_binding_to_classic_variable({key, value}) do
+    # binding is present with prefix _ and postfix @
+    # for example _key@1 and _value@1 are representations of current function variables
+    new_key =
+      key
+      |> Atom.to_string()
+      |> String.replace(~r/_(.*)@\d/, "\\1")
+      |> String.to_atom()
+
+    {new_key, value}
   end
 
   defp find_var(paused_processes, var_id) do
