@@ -76,7 +76,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     resp = assert_receive(%{"id" => 1}, 1000)
 
     assert response(1, %{
-             "contents" => "> GenServer" <> _,
+             "contents" => %{
+               "kind" => "markdown",
+               "value" => "> GenServer" <> _
+             },
              "range" => %{
                "start" => %{"line" => 2, "character" => 12},
                "end" => %{"line" => 2, "character" => 21}
