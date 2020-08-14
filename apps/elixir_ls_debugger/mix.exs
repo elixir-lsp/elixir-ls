@@ -9,7 +9,7 @@ defmodule ElixirLS.Debugger.Mixfile do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: ">= 1.7.0",
+      elixir: ">= 1.8.0",
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
