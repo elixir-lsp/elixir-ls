@@ -130,7 +130,6 @@ defmodule ElixirLS.Debugger.Server do
   ## Helpers
 
   defp handle_request(initialize_req(_, client_info), state) do
-    check_erlang_version()
     {capabilities(), %{state | client_info: client_info}}
   end
 
@@ -605,17 +604,6 @@ defmodule ElixirLS.Debugger.Server do
   defp interpretable?(module, exclude_modules) do
     :int.interpretable(module) == true and !:code.is_sticky(module) and module != __MODULE__ and
       module not in exclude_modules
-  end
-
-  defp check_erlang_version do
-    version = String.to_integer(to_string(:erlang.system_info(:otp_release)))
-
-    if version < 20 do
-      IO.warn(
-        "Erlang version >= OTP 20 is required to debug Elixir. " <>
-          "(Current version: #{version})\n"
-      )
-    end
   end
 
   defp change_env(env) do
