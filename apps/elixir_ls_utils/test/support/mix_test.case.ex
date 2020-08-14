@@ -139,7 +139,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
   # FIXME: Private API
   defp clear_mix_cache do
     module =
-      if Version.match?(System.version(), ">= 1.10.0-rc.0") do
+      if Version.match?(System.version(), ">= 1.10.0") do
         Mix.State
       else
         Mix.ProjectStack
