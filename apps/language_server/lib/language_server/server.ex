@@ -805,10 +805,7 @@ defmodule ElixirLS.LanguageServer.Server do
     prev_target = state.settings["mixTarget"]
 
     if is_nil(prev_target) or target == prev_target do
-      # We've already checked for Elixir >= 1.8.0 by this point
-      # but compilation will fail if we just call Mix.target/0
-      # so we get around that via apply/3
-      apply(Mix, :target, [String.to_atom(target)])
+      Mix.target(String.to_atom(target))
     else
       JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix target")
     end
