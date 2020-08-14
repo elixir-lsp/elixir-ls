@@ -49,6 +49,9 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp contents(%{docs: markdown}) do
-    markdown
+    %{
+      kind: "markdown",
+      value: markdown
+    }
   end
 end
