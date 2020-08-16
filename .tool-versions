@@ -1,10 +1,10 @@
 # This file contains the recommended versions for developing and running
-# elixir-ls. However, elixir-ls supports a minumum version of Elixir 1.7.0 with
-# OTP 20 and should work with any later releases.
+# elixir-ls. However, elixir-ls supports a minumum version of Elixir 1.8.0 with
+# OTP 21 and should work with any later releases.
 # Using asdf to manage your elixir and OTP versions is not required, you can
 # use the system-installed version instead.
 #
 # The versions selected here are the versions that are used to build a binary
 # release for distribution
-elixir 1.7.4-otp-21
+elixir 1.8.2-otp-21
 erlang 21.3.8.17

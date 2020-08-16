@@ -25,34 +25,19 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   # Client API
 
   def check_support do
-    otp_release = String.to_integer(System.otp_release())
-    {compiled_with, _} = System.build_info() |> Map.fetch!(:otp_release) |> Integer.parse()
+    _otp_release = String.to_integer(System.otp_release())
+    {_compiled_with, _} = System.build_info() |> Map.fetch!(:otp_release) |> Integer.parse()
 
     cond do
-      otp_release < 20 ->
-        {:error,
-         "Dialyzer integration requires Erlang OTP 20 or higher (Currently OTP #{otp_release})"}
-
       not Code.ensure_loaded?(:dialyzer) ->
         {:error,
          "The current Erlang installation does not include Dialyzer. It may be available as a " <>
            "separate package."}
 
-      otp_release >= 21 and compiled_with < 20 ->
-        {:error,
-         "Dialyzer in Erlang/OTP versions >= 21 requires Elixir to have been compiled with an " <>
-           "Erlang/OTP version >= 20, but current Elixir was compiled with " <>
-           "version #{compiled_with}"}
-
       not dialyzable?(System) ->
         {:error,
          "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
            "You may need to recompile Elixir with Erlang >= OTP 20"}
-
-      Version.match?(System.version(), "1.7.0") ->
-        {:error,
-         "Dialyzer is disabled in Elixir v1.7.0 due to a bug in Dialyzer. " <>
-           "Upgrade Elixir to >= v1.7.1 to enable"}
 
       true ->
         :ok

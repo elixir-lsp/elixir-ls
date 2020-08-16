@@ -723,19 +723,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp show_version_warnings do
-    unless Version.match?(System.version(), ">= 1.7.0") do
+    unless Version.match?(System.version(), ">= 1.8.0") do
       JsonRpc.show_message(
         :warning,
-        "Elixir versions below 1.7 are not supported. (Currently v#{System.version()})"
+        "Elixir versions below 1.8 are not supported. (Currently v#{System.version()})"
       )
     end
 
     otp_release = String.to_integer(System.otp_release())
 
-    if otp_release < 20 do
+    if otp_release < 21 do
       JsonRpc.show_message(
         :info,
-        "Erlang OTP releases below 20 are not supported (Currently OTP #{otp_release})"
+        "Erlang OTP releases below 21 are not supported (Currently OTP #{otp_release})"
       )
     end
 
@@ -796,16 +796,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp maybe_set_mix_target(state, nil), do: state
 
   defp maybe_set_mix_target(state, target) do
-    if Version.match?(System.version(), ">= 1.8.0") do
-      set_mix_target(state, target)
-    else
-      JsonRpc.show_message(
-        :warning,
-        "MIX_TARGET was set, but it requires Elixir >= 1.8.0. This setting will be ignored"
-      )
-
-      state
-    end
+    set_mix_target(state, target)
   end
 
   defp set_mix_target(state, target) do
@@ -814,10 +805,7 @@ defmodule ElixirLS.LanguageServer.Server do
     prev_target = state.settings["mixTarget"]
 
     if is_nil(prev_target) or target == prev_target do
-      # We've already checked for Elixir >= 1.8.0 by this point
-      # but compilation will fail if we just call Mix.target/0
-      # so we get around that via apply/3
-      apply(Mix, :target, [String.to_atom(target)])
+      Mix.target(String.to_atom(target))
     else
       JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix target")
     end

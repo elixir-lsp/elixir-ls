@@ -11,14 +11,7 @@ defmodule ElixirLS.LanguageServer.Build do
           {us, _} =
             :timer.tc(fn ->
               IO.puts("MIX_ENV: #{Mix.env()}")
-
-              if function_exported?(Mix, :target, 0) do
-                # Even though we know we have the function here,
-                # Compilation will fail calling Mix.target/0 directly
-                # since Elixir 1.7 is used to compile - So we get around
-                # that with apply/3
-                IO.puts("MIX_TARGET: #{apply(Mix, :target, [])}")
-              end
+              IO.puts("MIX_TARGET: #{Mix.target()}")
 
               prev_deps = cached_deps()
               :ok = Mix.Project.clear_deps_cache()
