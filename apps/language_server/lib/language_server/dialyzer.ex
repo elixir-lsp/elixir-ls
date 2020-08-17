@@ -25,7 +25,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   # Client API
 
   def check_support do
-    _otp_release = String.to_integer(System.otp_release())
+    _ = String.to_integer(System.otp_release())
     {_compiled_with, _} = System.build_info() |> Map.fetch!(:otp_release) |> Integer.parse()
 
     cond do
