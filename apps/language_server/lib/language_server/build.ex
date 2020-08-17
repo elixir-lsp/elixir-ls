@@ -18,6 +18,8 @@ defmodule ElixirLS.LanguageServer.Build do
                   # FIXME: Private API
                   if Keyword.get(opts, :fetch_deps?) and
                        Mix.Dep.load_on_environment([]) != cached_deps() do
+                    # NOTE: Clear deps cache when deps in mix.exs has change to prevent
+                    # formatter crash from clearing deps during build.
                     :ok = Mix.Project.clear_deps_cache()
                     fetch_deps()
                   end
