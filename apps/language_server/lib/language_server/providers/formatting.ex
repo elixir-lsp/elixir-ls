@@ -52,12 +52,15 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
     file = String.trim_leading(file_uri, "file://")
 
-    Enum.any?(inputs, fn glob ->
-      project_dir
-      |> Path.join(glob)
-      |> Path.wildcard(match_dot: true)
-      |> Enum.any?(&(file == &1))
+    inputs
+    |> Stream.flat_map(fn glob ->
+      [
+        Path.join([project_dir, glob]),
+        Path.join([project_dir, "apps", "*", glob])
+      ]
     end)
+    |> Stream.flat_map(&Path.wildcard(&1, match_dot: true))
+    |> Enum.any?(&(file == &1))
   end
 
   def should_format?(_file_uri, _project_dir, _inputs), do: true
