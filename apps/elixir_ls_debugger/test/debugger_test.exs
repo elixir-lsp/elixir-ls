@@ -208,7 +208,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     test "Evaluate expression with attempt to exit debugger process", %{server: server} do
       Server.receive_packet(
         server,
-        gen_packet("Process.exit(self)")
+        gen_packet("Process.exit(self(), :normal)")
       )
 
       assert_receive(%{"body" => %{"result" => result}}, 1000)
