@@ -1,0 +1,7 @@
+# This file contains the recommended versions for building releases for
+# elixir-ls.
+#
+# The versions selected here are the versions that are used to build a binary
+# release for distribution
+elixir 1.8.2-otp-21
+erlang 21.3.8.17
