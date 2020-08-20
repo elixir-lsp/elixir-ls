@@ -18,6 +18,7 @@ Pull down the latest master
 Make the tag from the new master
 Push the tag (`git push upstream --tags`)
 - `rm -rf _build release`
+- `cp .release-tool-versions .tool-version`
 - `mix elixir_ls.release`
 - `cd release`
 - `zip elixir-ls.zip *`
