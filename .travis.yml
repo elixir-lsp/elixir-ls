@@ -1,7 +1,7 @@
 language: elixir
 script:
   - MIX_ENV=test mix compile --force --warnings-as-errors
-  - cp dialyxir_erlang-23.0.2_elixir-1.10.3.plt $HOME/.mix/dialyxir_erlang-23.0_elixir-1.10.3.plt
+  - wget https://github.com/elixir-lsp/dialyzer_plts/releases/download/test-erlang-23.0.2_elixir-1.10.3/dialyxir_erlang-23.0_elixir-1.10.3.plt -O $HOME/.mix/dialyxir_erlang-23.0_elixir-1.10.3.plt
   - |
     if [[ "$CHECK_FORMATTED" -eq 1 ]]
     then
