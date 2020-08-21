@@ -112,9 +112,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
   def elixir_plt_path() do
     # FIXME: Private API
-    path = Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
-    IO.puts(:user, "dialyzer plt path: #{path}")
-    path
+    Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
   end
 
   @elixir_apps [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
