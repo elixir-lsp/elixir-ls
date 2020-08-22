@@ -105,14 +105,20 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   def load_elixir_plt() do
     apply(:dialyzer_plt, :from_file, [to_charlist(elixir_plt_path())])
   rescue
-    _ -> build_elixir_plt()
+    e ->
+      IO.puts(:user, "unable to load existing plt. Rescued: #{inspect e}")
+      build_elixir_plt()
   catch
-    _ -> build_elixir_plt()
+    e ->
+      IO.puts(:user, "unable to load existing plt. Caught: #{inspect e}")
+      build_elixir_plt()
   end
 
   def elixir_plt_path() do
     # FIXME: Private API
-    Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
+    path = Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
+    IO.puts(:user, "dialyzer plt path: #{path}")
+    path
   end
 
   @elixir_apps [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
@@ -122,6 +128,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       :info,
       "Building core Dialyzer Elixir PLT. This will take a few minutes (often 15+) and can be disabled in the settings."
     )
+    IO.puts(:user, "Building elixir plt!")
 
     files =
       Enum.flat_map(@elixir_apps, fn app ->
