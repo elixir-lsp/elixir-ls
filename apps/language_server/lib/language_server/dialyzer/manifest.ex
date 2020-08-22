@@ -106,11 +106,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     apply(:dialyzer_plt, :from_file, [to_charlist(elixir_plt_path())])
   rescue
     e ->
-      IO.puts(:user, "unable to load existing plt. Rescued: #{inspect e}")
+      IO.puts(:user, "unable to load existing plt. Rescued: #{inspect(e)}")
       build_elixir_plt()
   catch
     e ->
-      IO.puts(:user, "unable to load existing plt. Caught: #{inspect e}")
+      IO.puts(:user, "unable to load existing plt. Caught: #{inspect(e)}")
       build_elixir_plt()
   end
 
@@ -128,6 +128,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       :info,
       "Building core Dialyzer Elixir PLT. This will take a few minutes (often 15+) and can be disabled in the settings."
     )
+
     IO.puts(:user, "Building elixir plt!")
 
     files =

@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
     packet_capture = start_supervised!({PacketCapture, self()})
 
     server = start_supervised!({Server, nil})
-    IO.puts(:user, "\nStarted server: #{inspect server}")
+    IO.puts(:user, "\nStarted server: #{inspect(server)}")
     Process.group_leader(server, packet_capture)
 
     json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
