@@ -240,9 +240,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
       capture_log(fn ->
         root_uri = SourceFile.path_to_uri(File.cwd!())
-        IO.puts(:user, "root_uri: #{inspect(root_uri)}")
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-        IO.puts(:user, "initialized server")
 
         packet =
           Server.receive_packet(
@@ -252,10 +250,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
             })
           )
 
-        IO.puts(:user, "got packet: #{inspect(packet)}")
-
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
-        IO.puts(:user, "publish diagnostic message: #{inspect(message)}")
 
         assert publish_diagnostics_notif(^file_a, [
                  %{

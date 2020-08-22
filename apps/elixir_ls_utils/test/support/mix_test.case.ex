@@ -65,7 +65,6 @@ defmodule ElixirLS.Utils.MixTest.Case do
     src = fixture_path(dir, which)
     dest = tmp_path(String.replace(tmp, ":", "_"))
     flag = String.to_charlist(tmp_path())
-    IO.puts(:user, "in_fixture: in_fixture start #{inspect(dest)}")
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -78,12 +77,10 @@ defmodule ElixirLS.Utils.MixTest.Case do
     try do
       File.cd!(dest, function)
     after
-      IO.puts(:user, "in_fixture: restoring path: #{inspect(get_path)}")
       :code.set_path(get_path)
 
       for {mod, file} <- :code.all_loaded() -- previous,
           file == :in_memory or (is_list(file) and :lists.prefix(flag, file)) do
-        IO.puts(:user, "in_fixture: purging: #{inspect(mod)}")
         purge([mod])
       end
 
