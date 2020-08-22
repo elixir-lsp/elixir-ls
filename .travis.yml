@@ -9,7 +9,7 @@ script:
     else
       echo "Not checking formatting"
     fi
-  - mix test
+  - mix test --trace
 env:
   global:
     - MIX_HOME=$HOME/.mix
