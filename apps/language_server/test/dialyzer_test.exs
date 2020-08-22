@@ -13,7 +13,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     {:ok, %{}}
   end
 
-  setup do
+  setup tags do
+    IO.puts(:user, "starting test: #{tags.test}")
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}
