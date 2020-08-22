@@ -1,4 +1,5 @@
 re-run tests again
+updated the dialyzer_plts release to be elixir-1.10.3-otp-23 (instead of 22)
 
 # Elixir Language Server (ElixirLS)
 
