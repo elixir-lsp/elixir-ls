@@ -8,7 +8,7 @@ script:
     else
       echo "Not checking formatting"
     fi
-  - mix test --trace
+  - mix test
   - ls -l $HOME/.mix/
 env:
   global:
