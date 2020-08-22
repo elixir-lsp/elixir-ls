@@ -12,7 +12,7 @@ script:
       echo "Not checking formatting"
     fi
   - mix test --trace
-  - ls $HOME/.mix/
+  - ls -l $HOME/.mix/
 env:
   global:
     - MIX_HOME=$HOME/.mix
