@@ -84,9 +84,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
         purge([mod])
       end
 
-      IO.puts(:user, "in_fixture: restoring project stack")
       restore_project_stack!(project_stack)
-      IO.puts(:user, "in_fixture: restored project stack")
     end
   end
 

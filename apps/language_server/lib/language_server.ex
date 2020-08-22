@@ -17,10 +17,7 @@ defmodule ElixirLS.LanguageServer do
   end
 
   @impl Application
-  def stop(state) do
-    IO.puts(:user, "server crashed for some reason!!")
-    IO.puts(:user, "state: #{inspect(state, pretty: true)}")
-
+  def stop(_state) do
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
       ElixirLS.LanguageServer.JsonRpc.show_message(
         :error,

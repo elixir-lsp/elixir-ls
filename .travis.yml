@@ -9,7 +9,6 @@ script:
       echo "Not checking formatting"
     fi
   - mix test
-  - ls -l $HOME/.mix/
 env:
   global:
     - MIX_HOME=$HOME/.mix

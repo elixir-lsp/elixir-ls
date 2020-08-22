@@ -105,20 +105,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   def load_elixir_plt() do
     apply(:dialyzer_plt, :from_file, [to_charlist(elixir_plt_path())])
   rescue
-    e ->
-      IO.puts(:user, "unable to load existing plt. Rescued: #{inspect(e)}")
-      build_elixir_plt()
+    _ -> build_elixir_plt()
   catch
-    e ->
-      IO.puts(:user, "unable to load existing plt. Caught: #{inspect(e)}")
-      build_elixir_plt()
+    _ -> build_elixir_plt()
   end
 
   def elixir_plt_path() do
     # FIXME: Private API
-    path = Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
-    IO.puts(:user, "dialyzer plt path: #{path}")
-    path
+    Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
   end
 
   @elixir_apps [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
