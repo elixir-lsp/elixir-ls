@@ -27,6 +27,7 @@ Note: `MIX_TARGET` support was added in 0.5.0 but wasn't added to the changelog 
 VSCode:
 - Debugger does not successfully launch on Windows (thanks [Craig Tataryn](https://github.com/ctataryn)) [#115](https://github.com/elixir-lsp/vscode-elixir-ls/pull/115)
 - Add support to highlight octal numbers correctly (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#128](https://github.com/elixir-lsp/vscode-elixir-ls/pull/128)
+- Add support to highlight binary numbers correctly (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#133](https://github.com/elixir-lsp/vscode-elixir-ls/pull/133)
 
 ### v0.5.0: 28 June 2020
 
