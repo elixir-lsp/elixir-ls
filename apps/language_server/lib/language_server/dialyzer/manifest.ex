@@ -123,8 +123,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       "Building core Dialyzer Elixir PLT. This will take a few minutes (often 15+) and can be disabled in the settings."
     )
 
-    IO.puts(:user, "Building elixir plt!")
-
     files =
       Enum.flat_map(@elixir_apps, fn app ->
         Path.join([Application.app_dir(app), "**/*.beam"])

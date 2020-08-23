@@ -132,7 +132,6 @@ defmodule ElixirLS.Utils.MixTest.Case do
       # It's important to use `compile_file` here instead of `require_file`
       # because we are recompiling this file to reload the mix project back onto
       # the project stack.
-      IO.puts(:user, "in_fixture: compiling: #{inspect(file)}")
       Code.compile_file(file)
     end
   end

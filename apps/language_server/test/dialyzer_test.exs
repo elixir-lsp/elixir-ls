@@ -14,7 +14,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   end
 
   setup tags do
-    IO.puts(:user, "starting test: #{tags.test}")
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}
@@ -242,13 +241,12 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         root_uri = SourceFile.path_to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
-        packet =
-          Server.receive_packet(
-            server,
-            did_change_configuration(%{
-              "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"}
-            })
-          )
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"}
+          })
+        )
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
