@@ -13,15 +13,16 @@ defmodule ElixirLS.LanguageServer.Build do
               IO.puts("MIX_ENV: #{Mix.env()}")
               IO.puts("MIX_TARGET: #{Mix.target()}")
 
-              prev_deps = cached_deps()
-              :ok = Mix.Project.clear_deps_cache()
-
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
                   # FIXME: Private API
                   if Keyword.get(opts, :fetch_deps?) and
-                       Mix.Dep.load_on_environment([]) != prev_deps,
-                     do: fetch_deps()
+                       Mix.Dep.load_on_environment([]) != cached_deps() do
+                    # NOTE: Clear deps cache when deps in mix.exs has change to prevent
+                    # formatter crash from clearing deps during build.
+                    :ok = Mix.Project.clear_deps_cache()
+                    fetch_deps()
+                  end
 
                   {status, diagnostics} = compile()
 
