@@ -16,6 +16,7 @@ Improvements:
 Bug Fixes:
 - Fix issue with formatting and deps handling (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#345](https://github.com/elixir-lsp/elixir-ls/pull/345)
   - This would manifest as `** (Mix.Error) Unknown dependency :ecto_sql given to :import_deps in the formatter configuration.`
+- Fix formatting files in umbrella projects (thanks [Drew Olson](https://github.com/drewolson))[#350](https://github.com/elixir-lsp/elixir-ls/pull/350)
 
 House keeping:
 - Use error tolerant parser for WorkspaceSymbols (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#322](https://github.com/elixir-lsp/elixir-ls/pull/322)
