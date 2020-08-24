@@ -42,9 +42,9 @@ defmodule Mix.Tasks.ElixirLs.Release do
   defp version_warning do
     {otp_version, _} = Integer.parse(to_string(:erlang.system_info(:otp_release)))
 
-    if otp_version > 20 do
+    if otp_version > 21 do
       IO.warn(
-        "Building with Erlang/OTP #{otp_version}. Make sure to build with OTP 20 if " <>
+        "Building with Erlang/OTP #{otp_version}. Make sure to build with OTP 21 if " <>
           "publishing the compiled packages because modules built with higher versions are not " <>
           "backwards-compatible.",
         []
