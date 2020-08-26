@@ -272,8 +272,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp from_completion_item(
          %{
            type: :callback,
+           subtype: subtype,
            args: args,
-           spec: spec,
            name: name,
            summary: summary,
            arity: arity,
@@ -283,13 +283,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          context,
          options
        ) do
-    if (context[:def_before] == :def && String.starts_with?(spec, "@macrocallback")) ||
-         (context[:def_before] == :defmacro && String.starts_with?(spec, "@callback")) do
+    if (context[:def_before] == :def && subtype == :macrocallback) ||
+         (context[:def_before] == :defmacro && subtype == :callback) do
       nil
     else
       def_str =
         if context[:def_before] == nil do
-          if String.starts_with?(spec, "@macrocallback") do
+          if subtype == :macrocallback do
             "defmacro "
           else
             "def "
@@ -310,7 +310,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       %__MODULE__{
         label: label,
         kind: :interface,
-        detail: "#{origin} callback",
+        detail: "#{origin} #{subtype}",
         documentation: summary,
         insert_text: insert_text,
         priority: 12,
