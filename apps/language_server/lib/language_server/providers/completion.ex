@@ -334,21 +334,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          context,
          options
        ) do
-    def_str = if(context[:def_before] == nil, do: "def ")
+    unless context[:def_before] == :defmacro do
+      def_str = if(context[:def_before] == nil, do: "def ")
 
-    insert_text = def_snippet(def_str, name, args, arity, options)
-    label = "#{def_str}#{name}/#{arity}"
+      opts = Keyword.put(options, :with_parens?, true)
+      insert_text = def_snippet(def_str, name, args, arity, opts)
+      label = "#{def_str}#{name}/#{arity}"
 
-    %__MODULE__{
-      label: label,
-      kind: :interface,
-      detail: "#{origin} protocol function",
-      documentation: summary,
-      insert_text: insert_text,
-      priority: 12,
-      filter_text: name,
-      tags: metadata_to_tags(metadata)
-    }
+      %__MODULE__{
+        label: label,
+        kind: :interface,
+        detail: "#{origin} protocol function",
+        documentation: summary,
+        insert_text: insert_text,
+        priority: 12,
+        filter_text: name,
+        tags: metadata_to_tags(metadata)
+      }
+    end
   end
 
   defp from_completion_item(
