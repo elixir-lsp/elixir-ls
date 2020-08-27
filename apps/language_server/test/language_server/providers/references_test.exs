@@ -21,15 +21,15 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
       [
         %{
           "range" => %{
-            "start" => %{"line" => 3, "character" => 4},
-            "end" => %{"line" => 3, "character" => 12}
+            "start" => %{"line" => 2, "character" => 4},
+            "end" => %{"line" => 2, "character" => 12}
           },
           "uri" => uri
         },
         %{
           "range" => %{
-            "start" => %{"line" => 5, "character" => 12},
-            "end" => %{"line" => 5, "character" => 20}
+            "start" => %{"line" => 4, "character" => 12},
+            "end" => %{"line" => 4, "character" => 20}
           },
           "uri" => uri
         }
