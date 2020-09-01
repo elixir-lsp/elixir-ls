@@ -54,10 +54,16 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
     inputs
     |> Stream.flat_map(fn glob ->
-      [
+      globs = [
         Path.join([project_dir, glob]),
         Path.join([project_dir, "apps", "*", glob])
       ]
+
+      if String.starts_with?(file, project_dir) do
+        globs ++ [Path.join([Path.dirname(file), glob])]
+      else
+        globs
+      end
     end)
     |> Stream.flat_map(&Path.wildcard(&1, match_dot: true))
     |> Enum.any?(&(file == &1))
