@@ -621,7 +621,6 @@ defmodule ElixirLS.Debugger.Server do
     module_name = module |> Atom.to_string()
 
     Enum.any?(exclude_module_pattern, &Regex.match?(&1, module_name))
-    |> IO.inspect(label: "exclude '" <> module_name <> "'?")
   end
 
   defp prefix_module_name(module_name) when is_binary(module_name) do
