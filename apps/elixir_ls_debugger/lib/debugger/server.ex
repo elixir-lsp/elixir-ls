@@ -583,11 +583,15 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp interpret_modules_in(path, exclude_module_names) do
+    exclude_module_pattern =
+      exclude_module_names
+      |> Enum.map(&wildcard_module_name_to_pattern/1)
+
     path
     |> Path.join("**/*.beam")
     |> Path.wildcard()
     |> Enum.map(&(Path.basename(&1, ".beam") |> String.to_atom()))
-    |> Enum.filter(&interpretable?(&1, exclude_module_names))
+    |> Enum.filter(&interpretable?(&1, exclude_module_pattern))
     |> Enum.map(fn mod ->
       try do
         {:module, _} = :int.ni(mod)
@@ -600,30 +604,30 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp interpretable?(module, exclude_module_names) do
-    module_name = module |> Atom.to_string()
-
-    :int.interpretable(module) == true and !:code.is_sticky(module) and module != __MODULE__ and
-      module_name not in exclude_module_names and
-      not Enum.any?(exclude_module_names, &module_matches_wildcard(module_name, &1))
+  defp wildcard_module_name_to_pattern(module_name) do
+    module_name
+    |> prefix_module_name()
+    |> Regex.escape()
+    |> String.replace("\\*", ~s(.+))
+    |> Regex.compile!()
   end
 
-  defp module_matches_wildcard(module_name, wildcard_pattern)
-       when is_binary(module_name) and is_binary(wildcard_pattern) do
-    regex_pattern =
-      wildcard_pattern
-      |> prefix_module_name()
-      |> String.replace(".", ~s(\.))
-      |> String.replace("*", ~s(.+))
-      |> Regex.compile!()
+  defp interpretable?(module, exclude_module_pattern) do
+    :int.interpretable(module) == true and !:code.is_sticky(module) and module != __MODULE__ and
+      not excluded_module?(module, exclude_module_pattern)
+  end
 
-    Regex.match?(regex_pattern, module_name)
+  defp excluded_module?(module, exclude_module_pattern) do
+    module_name = module |> Atom.to_string()
+
+    Enum.any?(exclude_module_pattern, &Regex.match?(&1, module_name))
+    |> IO.inspect(label: "exclude '" <> module_name <> "'?")
   end
 
   defp prefix_module_name(module_name) when is_binary(module_name) do
     case module_name do
       ":" <> name -> name
-      name -> "Elixir." <> name
+      _ -> "Elixir." <> module_name
     end
   end
 
