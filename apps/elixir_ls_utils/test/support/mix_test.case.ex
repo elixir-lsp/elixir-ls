@@ -80,9 +80,10 @@ defmodule ElixirLS.Utils.MixTest.Case do
       :code.set_path(get_path)
 
       for {mod, file} <- :code.all_loaded() -- previous,
-          file == :in_memory or (is_list(file) and :lists.prefix(flag, file)) do
-        purge([mod])
+          file == :in_memory or file == [] or (is_list(file) and :lists.prefix(flag, file)) do
+        mod
       end
+      |> purge
 
       restore_project_stack!(project_stack)
     end
