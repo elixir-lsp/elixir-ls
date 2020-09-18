@@ -15,7 +15,8 @@ defmodule ElixirLS.Utils.Mixfile do
       start_permanent: false,
       build_per_environment: false,
       consolidate_protocols: false,
-      deps: deps()
+      deps: deps(),
+      xref: [exclude: [JasonVendored, Logger]]
     ]
   end
 

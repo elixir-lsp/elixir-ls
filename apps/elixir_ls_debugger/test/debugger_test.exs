@@ -192,6 +192,7 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert Process.alive?(server)
     end
 
+    @tag :capture_log
     test "Evaluate expression with ERROR result", %{server: server} do
       Server.receive_packet(
         server,
