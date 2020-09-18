@@ -2426,8 +2426,18 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
-    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, text, true)
-    # IO.inspect(document_symbols, label: "document_symbols")
-    # assert String.contains?(message, "Compilation error")
+    assert {:ok,
+            [
+              %Protocol.DocumentSymbol{
+                children: [
+                  %Protocol.DocumentSymbol{
+                    name: "def hello"
+                  },
+                  %Protocol.DocumentSymbol{
+                    name: "defp greetings"
+                  }
+                ]
+              }
+            ]} = DocumentSymbols.symbols(uri, text, true)
   end
 end
