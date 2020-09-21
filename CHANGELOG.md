@@ -17,6 +17,7 @@ Bug Fixes:
 - Fix issue with formatting and deps handling (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#345](https://github.com/elixir-lsp/elixir-ls/pull/345)
   - This would manifest as `** (Mix.Error) Unknown dependency :ecto_sql given to :import_deps in the formatter configuration.`
 - Fix formatting files in umbrella projects (thanks [Drew Olson](https://github.com/drewolson))[#350](https://github.com/elixir-lsp/elixir-ls/pull/350)
+- Fix callback suggesions (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#359](https://github.com/elixir-lsp/elixir-ls/pull/359)
 
 House keeping:
 - Use error tolerant parser for WorkspaceSymbols (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#322](https://github.com/elixir-lsp/elixir-ls/pull/322)
@@ -37,6 +38,7 @@ VSCode:
   - Followup improvement [#137](https://github.com/elixir-lsp/vscode-elixir-ls/pull/137)
 - Add support to highlight binary numbers correctly (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#133](https://github.com/elixir-lsp/vscode-elixir-ls/pull/133)
 - Add support to highlight `...` correctly (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#130](https://github.com/elixir-lsp/vscode-elixir-ls/pull/130)
+- Highlight atoms as `constant.language.symbol.elixir` instead of `constant.other.symbol.elixir` (thanks [Omri Gabay](https://github.com/OmriSama)) [#142](https://github.com/elixir-lsp/vscode-elixir-ls/pull/142)
 
 ### v0.5.0: 28 June 2020
 
