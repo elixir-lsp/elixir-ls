@@ -12,6 +12,7 @@ Improvements:
 - Add more auto-completion trigger characters: `& % ^ : !` (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#327](https://github.com/elixir-lsp/elixir-ls/pull/327)
 - Disable busy-wait in BEAM to reduce CPU usage (thanks [Jason Axelson](https://github.com/axelson)) [#331](https://github.com/elixir-lsp/elixir-ls/pull/331)
 - Update HoverProvider to return MarkupContent (thanks [Jonathan Arnett](https://github.com/J3RN)) [#342](https://github.com/elixir-lsp/elixir-ls/pull/342)
+- In debugger, exclude modules with wildcards (thanks [Fabian Stegemann](https://github.com/zetaron)) [#363](https://github.com/elixir-lsp/elixir-ls/pull/363)
 
 Bug Fixes:
 - Fix issue with formatting and deps handling (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#345](https://github.com/elixir-lsp/elixir-ls/pull/345)
