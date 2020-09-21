@@ -530,12 +530,11 @@ defmodule ElixirLS.Debugger.Server do
       Mix.Task.run("app.start", [])
     end
 
-    exclude_modules =
+    exclude_module_names =
       config
       |> Map.get("excludeModules", [])
-      |> Enum.map(&string_to_module/1)
 
-    interpret_modules_in(Mix.Project.build_path(), exclude_modules)
+    interpret_modules_in(Mix.Project.build_path(), exclude_module_names)
 
     if required_files = config["requireFiles"], do: require_files(required_files)
 
@@ -583,12 +582,16 @@ defmodule ElixirLS.Debugger.Server do
     }
   end
 
-  defp interpret_modules_in(path, exclude_modules) do
+  defp interpret_modules_in(path, exclude_module_names) do
+    exclude_module_pattern =
+      exclude_module_names
+      |> Enum.map(&wildcard_module_name_to_pattern/1)
+
     path
     |> Path.join("**/*.beam")
     |> Path.wildcard()
     |> Enum.map(&(Path.basename(&1, ".beam") |> String.to_atom()))
-    |> Enum.filter(&interpretable?(&1, exclude_modules))
+    |> Enum.filter(&interpretable?(&1, exclude_module_pattern))
     |> Enum.map(fn mod ->
       try do
         {:module, _} = :int.ni(mod)
@@ -601,9 +604,30 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp interpretable?(module, exclude_modules) do
+  defp wildcard_module_name_to_pattern(module_name) do
+    module_name
+    |> prefix_module_name()
+    |> Regex.escape()
+    |> String.replace("\\*", ~s(.+))
+    |> Regex.compile!()
+  end
+
+  defp interpretable?(module, exclude_module_pattern) do
     :int.interpretable(module) == true and !:code.is_sticky(module) and module != __MODULE__ and
-      module not in exclude_modules
+      not excluded_module?(module, exclude_module_pattern)
+  end
+
+  defp excluded_module?(module, exclude_module_pattern) do
+    module_name = module |> Atom.to_string()
+
+    Enum.any?(exclude_module_pattern, &Regex.match?(&1, module_name))
+  end
+
+  defp prefix_module_name(module_name) when is_binary(module_name) do
+    case module_name do
+      ":" <> name -> name
+      _ -> "Elixir." <> module_name
+    end
   end
 
   defp change_env(env) do
@@ -695,13 +719,6 @@ defmodule ElixirLS.Debugger.Server do
 
       _ ->
         {:error, "Cannot interpret module #{inspect(module)}"}
-    end
-  end
-
-  defp string_to_module(str) when is_binary(str) do
-    case str do
-      ":" <> name -> String.to_atom(name)
-      name -> String.to_atom("Elixir." <> name)
     end
   end
 end
