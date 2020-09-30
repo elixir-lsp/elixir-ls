@@ -714,7 +714,14 @@ defmodule ElixirLS.Debugger.Server do
   defp set_breakpoint(module, line) do
     case :int.ni(module) do
       {:module, _} ->
-        :ok = :int.break(module, line)
+        case :int.break(module, line) do
+          :ok ->
+            :ok
+
+          {:error, :break_exists} ->
+            IO.warn("Breakpoint at line #{line} in #{module} is already set.")
+        end
+
         {:ok, module, line}
 
       _ ->
