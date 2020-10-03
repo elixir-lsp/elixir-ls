@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.6.0: 3 October 2020
+
 Potentially breaking changes:
 - Do not format files that are not listed in `inputs` of `.formatter.exs` (thanks [Tan Jay Jun](https://github.com/jayjun)) [#315](https://github.com/elixir-lsp/elixir-ls/pull/315)
 - Drop OTP 20 and Elixir 1.7.x support and set some version support guidelines (thanks [Jason Axelson](https://github.com/axelson)) [PR #337](https://github.com/elixir-lsp/elixir-ls/pull/337)
@@ -13,6 +15,7 @@ Improvements:
 - Disable busy-wait in BEAM to reduce CPU usage (thanks [Jason Axelson](https://github.com/axelson)) [#331](https://github.com/elixir-lsp/elixir-ls/pull/331)
 - Update HoverProvider to return MarkupContent (thanks [Jonathan Arnett](https://github.com/J3RN)) [#342](https://github.com/elixir-lsp/elixir-ls/pull/342)
 - In debugger, exclude modules with wildcards (thanks [Fabian Stegemann](https://github.com/zetaron)) [#363](https://github.com/elixir-lsp/elixir-ls/pull/363)
+- Support Elixir 1.11 (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#360](https://github.com/elixir-lsp/elixir-ls/pull/360)
 
 Bug Fixes:
 - Fix issue with formatting and deps handling (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#345](https://github.com/elixir-lsp/elixir-ls/pull/345)
