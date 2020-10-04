@@ -1,5 +1,10 @@
 ### Unreleased
 
+### v0.6.1: 4 October 2020
+
+VSCode:
+- Fix broken packaging (issue [#145](https://github.com/elixir-lsp/vscode-elixir-ls/issues/145))
+
 ### v0.6.0: 3 October 2020
 
 Potentially breaking changes:
