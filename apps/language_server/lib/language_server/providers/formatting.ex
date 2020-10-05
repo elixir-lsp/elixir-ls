@@ -50,7 +50,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   end
 
   def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
-    file = String.trim_leading(file_uri, "file://")
+    project_dir = project_dir |> String.downcase()
+    file_path = file_uri |> SourceFile.path_from_uri() |> String.downcase()
 
     inputs
     |> Stream.flat_map(fn glob ->
@@ -60,7 +61,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       ]
     end)
     |> Stream.flat_map(&Path.wildcard(&1, match_dot: true))
-    |> Enum.any?(&(file == &1))
+    |> Enum.any?(&(file_path == &1))
   end
 
   def should_format?(_file_uri, _project_dir, _inputs), do: true
