@@ -44,7 +44,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
 
     not String.starts_with?(file_path, project_dir) or
-      String.starts_with?(Path.absname(file_path), File.cwd!())
+      String.starts_with?(file_path, File.cwd!())
   end
 
   def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
