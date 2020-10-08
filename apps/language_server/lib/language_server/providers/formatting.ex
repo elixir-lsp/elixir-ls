@@ -41,16 +41,14 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
   # fine if the file we're trying to format is in that app. Otherwise, we return an error.
   defp can_format?(file_uri, project_dir) do
-    project_dir = project_dir |> String.downcase()
-    file_path = file_uri |> SourceFile.path_from_uri() |> String.downcase()
-    cwd = File.cwd!() |> String.downcase()
+    file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
 
     not String.starts_with?(file_path, project_dir) or
-      String.starts_with?(Path.absname(file_path), cwd)
+      String.starts_with?(file_path, File.cwd!())
   end
 
   def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
-    file = String.trim_leading(file_uri, "file://")
+    file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
 
     inputs
     |> Stream.flat_map(fn glob ->
@@ -60,7 +58,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       ]
     end)
     |> Stream.flat_map(&Path.wildcard(&1, match_dot: true))
-    |> Enum.any?(&(file == &1))
+    |> Enum.any?(&(file_path == &1))
   end
 
   def should_format?(_file_uri, _project_dir, _inputs), do: true

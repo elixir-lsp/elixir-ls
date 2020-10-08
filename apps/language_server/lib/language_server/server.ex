@@ -815,7 +815,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_project_dir(%{project_dir: prev_project_dir, root_uri: root_uri} = state, project_dir)
        when is_binary(root_uri) do
-    root_dir = SourceFile.path_from_uri(root_uri)
+    root_dir = root_uri |> SourceFile.path_from_uri() |> Path.absname()
 
     project_dir =
       if is_binary(project_dir) do
