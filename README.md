@@ -93,6 +93,73 @@ Erlang:
 
 You may want to install Elixir and Erlang from source, using the [kiex](https://github.com/taylor/kiex) and [kerl](https://github.com/kerl/kerl) tools. This will let you go-to-definition for core Elixir and Erlang modules.
 
+## Configuration
+
+ElixirLS can be configured through configuration/settings files
+
+Configuration file location and precedence:
+
+- $XDG_CONFIG_HOME/elixir_ls/config.json (e.g. `~/.config/elixir_ls/config.json`)
+- repo/.elixir_ls_config.json
+  - Or should this be the projectDir/.elixir_ls_config.json (which is a little tricky because the project directory can be set in `workspace/didChangeConfiguration`)
+  - I think this should be added in the future
+- Editor config (e.g. `workspace/didChangeConfiguration`)
+  - Note: Mainly supported via vscode-elixir-ls
+
+### Configuration File Contents
+
+The configuration files are json but can include line-based comments (e.g. lines starting with `//` are ignored, although multi-line comments `/**/` are not supported)
+
+Configuration keys:
+- `dialyzerEnabled`: Run ElixirLS's rapid Dialyzer when code is saved
+  - Allowed values: `true`, `false`
+  - default: `true`
+- `dialyzerWarnOpts`: Dialyzer options to enable or disable warnings. See
+  Dialyzer's documentation for options. Note that the `race_conditions` option
+  is unsupported
+  - Allowed values: "error_handling", "no_behaviours", "no_contracts",
+    "no_fail_call", "no_fun_app", "no_improper_lists", "no_match",
+    "no_missing_calls", "no_opaque", "no_return", "no_undefined_callbacks",
+    "no_unused", "underspecs", "unknown", "unmatched_returns", "overspecs",
+    "specdiffs"
+  - default: `[]`
+- `dialyzerFormat`: Formatter to use for Dialyzer warnings
+  - Allowed values: ["dialyzer", "dialyxir_short", "dialyxir_long"]
+  - default: `"dialyxir_long"`
+- `mixEnv`: Mix environment to use for compilation
+  - default: `"test"`
+- `projectDir`: Subdirectory containing Mix project if not in the project root
+  - default: `"."`
+- `fetchDeps`: Automatically fetch project dependencies when compiling
+  - Allowed values: `true`, `false`
+  - default: `true`
+- `suggestSpecs`: Suggest @spec annotations inline using Dialyzer's inferred
+  success typings (Requires Dialyzer)
+  - Allowed values: `true`, `false`
+  - default: `true`
+
+Example config:
+```jsonc
+{
+  // You may want to disable dialyzer if you find it unhelpful or your machine is underpowered
+  "dialyzerEnabled": false,
+
+  // You may want to disable fetching dependencies since it sometimes gets stuck/has race conditions
+  "fetchDeps": false
+}
+```
+
+### Local setup
+
+Because ElixirLS may get launched from an IDE that itself got launched from a
+graphical shell, the environment may not be complete enough to run or even find
+the correct Elixir/OTP version. The wrapper scripts try to configure `asdf-vm`
+if available, but that may not be what you want or need. Therefore, prior to
+executing Elixir, the script will source `$XDG_CONFIG_HOME/elixir_ls/setup.sh`
+(e.g. `~/.config/elixir_ls/setup.sh`), if available. The environment variable
+`ELS_MODE` is set to either `debugger` or `language_server` to help you decide
+what to do inside the script, if needed.
+
 ## Debugger support
 
 ElixirLS includes debugger support adhering to the [VS Code debugger protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging) which is closely related to the Language Server Protocol. At the moment, only line breakpoints are supported.
@@ -193,7 +260,7 @@ If you get an error like the following immediately on startup:
     ** (EXIT) no process: the process is not alive or there's no process currently associated with the given name, possibly because its application isn't started
 ```
 
-and you installed Elixir and Erlang from the Erlang Solutions repository, you may not have a full installation of erlang. This can be solved with `sudo apt-get install esl-erlang`. Originally reported in [#208](https://github.com/elixir-lsp/elixir-ls/issues/208).
+and you installed Elixir and Erlang from the Erlang Solutions repository, you may not have a full installation of erlang. This can be solved with `sudo apt-get install esl-erlang`. Originally reported in [#208](https://github.com/elixir-lsp/elixir-ls/issues/208). If you're running Fedora [you may need to run](https://github.com/JakeBecker/vscode-elixir-ls/issues/104#issuecomment-622414197) `sudo dnf install erlang`
 
 ## Known Issues/Limitations
 
@@ -211,14 +278,6 @@ and you installed Elixir and Erlang from the Erlang Solutions repository, you ma
 Run `mix compile`, then `mix elixir_ls.release -o <release_dir>`. This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
 
 If you're packaging these archives in an IDE plugin, make sure to build using the minimum supported OTP version for the best backwards-compatibility. Alternatively, you can use a [precompiled release](https://github.com/elixir-lsp/elixir-ls/releases).
-
-### Local setup
-
-Because ElixirLS may get launched from an IDE that itself got launched from a graphical shell, the environment may not
-be complete enough to run or even find the correct Elixir/OTP version. The wrapper scripts try to configure `asdf-vm`
-if available, but that may not be what you want or need. Therefore, prior to executing Elixir, the script will source
-`$XDG_CONFIG_HOME/elixir_ls/setup.sh` (e.g. `~/.config/elixir_ls/setup.sh`), if available. The environment variable
-`ELS_MODE` is set to either `debugger` or `language_server` to help you decide what to do inside the script, if needed.
 
 ## Acknowledgements and related projects
 

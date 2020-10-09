@@ -15,6 +15,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
   setup do
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+    ElixirLS.LanguageServer.Test.ServerTestHelpers.assert_server_does_not_crash(server)
 
     {:ok, %{server: server}}
   end

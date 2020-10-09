@@ -15,3 +15,11 @@ use Mix.Config
 #       level: :info,
 #       format: "$date $time [$level] $metadata$message\n",
 #       metadata: [:user_id]
+
+case Mix.env() do
+  :test ->
+    config :language_server, xdg_module: ElixirLS.Utils.Test.MockXDG
+
+  _ ->
+    config :language_server, xdg_module: ElixirLS.Utils.XDG
+end
