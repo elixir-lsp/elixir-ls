@@ -31,6 +31,7 @@ Note: On first run Dialyzer will build a PLT cache which will take a considerabl
 | IDE          | Plugin                                                                        | Support                                        |
 | ------------ | ----------------------------------------------------------------------------- | ---------------------------------------------- |
 | VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                 |
+| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)             | Does not support debugger                      |
 | Vim          | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions |
 | Vim          | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                          | Does not support debugger                      |
 | Neovim       | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                          | Does not support debugger                      |
