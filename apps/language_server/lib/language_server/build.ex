@@ -238,6 +238,10 @@ defmodule ElixirLS.LanguageServer.Build do
       )
 
       Mix.Task.run("deps.get")
+      JsonRpc.show_message(
+        :info,
+        "Done fetching deps"
+      )
     end
 
     :ok
