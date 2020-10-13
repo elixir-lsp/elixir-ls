@@ -1,0 +1,57 @@
+name: Elixir CI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and publish release asset
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Elixir
+        uses: actions/setup-elixir@v1
+        with:
+          elixir-version: '1.10.4'
+          otp-version: '23.1'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v2
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Build release
+        run: |
+          mkdir ./release
+          mix compile
+          mix elixir_ls.release -o ./release
+          zip -jr elixir-ls.zip ./release
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./elixir-ls.zip
+          asset_name: elixir-ls.zip
+          asset_content_type: application/zip
