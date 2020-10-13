@@ -40,6 +40,7 @@ jobs:
             otp-version: '22.3'
           - elixir-version: '1.8.2'
             otp-version: '21.3'
+            default: true
 
     steps:
       - uses: actions/checkout@v2
@@ -74,4 +75,15 @@ jobs:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: ./elixir-ls.zip
           asset_name: elixir-ls-${{ matrix.elixir-version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Default Release Asset
+        if: ${{ matrix.default == true }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./elixir-ls.zip
+          asset_name: elixir-ls.zip
           asset_content_type: application/zip
