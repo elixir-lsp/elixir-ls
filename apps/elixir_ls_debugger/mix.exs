@@ -14,12 +14,13 @@ defmodule ElixirLS.Debugger.Mixfile do
       start_permanent: true,
       build_per_environment: false,
       consolidate_protocols: false,
-      deps: deps()
+      deps: deps(),
+      xref: [exclude: [:int, :dbg_iserver]]
     ]
   end
 
   def application do
-    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix, :logger, :debugger]]
+    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix, :logger]]
   end
 
   defp deps do
