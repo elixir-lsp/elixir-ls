@@ -11,6 +11,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
   """
 
   alias ElixirLS.LanguageServer.{Server, SourceFile}
+  alias ElixirSense.Core.Parser
+  alias ElixirSense.Core.State
   alias Erl2ex.Convert.{Context, ErlForms}
   alias Erl2ex.Pipeline.{Parse, ModuleData, ExSpec}
   import ElixirLS.LanguageServer.Protocol
@@ -110,30 +112,104 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
     end
   end
 
-  def code_lens(server_instance_id, uri, text) do
+  def spec_code_lens(server_instance_id, uri, text) do
     resp =
       for {_, line, {mod, fun, arity}, contract, is_macro} <- Server.suggest_contracts(uri),
           SourceFile.function_def_on_line?(text, line, fun),
           spec = ContractTranslator.translate_contract(fun, contract, is_macro) do
-        %{
-          "range" => range(line - 1, 0, line - 1, 0),
-          "command" => %{
-            "title" => "@spec #{spec}",
-            "command" => "spec:#{server_instance_id}",
-            "arguments" => [
-              %{
-                "uri" => uri,
-                "mod" => to_string(mod),
-                "fun" => to_string(fun),
-                "arity" => arity,
-                "spec" => spec,
-                "line" => line
-              }
-            ]
+        build_code_lens(
+          line,
+          "@spec #{spec}",
+          "spec:#{server_instance_id}",
+          %{
+            "uri" => uri,
+            "mod" => to_string(mod),
+            "fun" => to_string(fun),
+            "arity" => arity,
+            "spec" => spec,
+            "line" => line
           }
-        }
+        )
       end
 
     {:ok, resp}
+  end
+
+  def test_code_lens(uri, src) do
+    file_path = SourceFile.path_from_uri(uri)
+
+    if imports?(src, ExUnit.Case) do
+      test_calls = calls_to(src, :test)
+      describe_calls = calls_to(src, :describe)
+
+      calls_lenses =
+        for {line, _col} <- test_calls ++ describe_calls do
+          test_filter = "#{file_path}:#{line}"
+
+          build_code_lens(line, "Run test", "elixir.test.run", test_filter)
+        end
+
+      file_lens = build_code_lens(1, "Run test", "elixir.test.run", file_path)
+
+      {:ok, [file_lens | calls_lenses]}
+    end
+  end
+
+  @spec imports?(String.t(), [atom()] | atom()) :: boolean()
+  defp imports?(buffer, modules) do
+    buffer_file_metadata =
+      buffer
+      |> Parser.parse_string(true, true, 1)
+
+    imports_set =
+      buffer_file_metadata.lines_to_env
+      |> get_imports()
+      |> MapSet.new()
+
+    modules
+    |> List.wrap()
+    |> MapSet.new()
+    |> MapSet.subset?(imports_set)
+  end
+
+  defp get_imports(lines_to_env) do
+    %State.Env{imports: imports} =
+      lines_to_env
+      |> Enum.max_by(fn {k, _v} -> k end)
+      |> elem(1)
+
+    imports
+  end
+
+  @spec calls_to(String.t(), atom() | {atom(), integer()}) :: [{pos_integer(), pos_integer()}]
+  defp calls_to(buffer, function) do
+    buffer_file_metadata =
+      buffer
+      |> Parser.parse_string(true, true, 1)
+
+    buffer_file_metadata.calls
+    |> Enum.map(fn {_k, v} -> v end)
+    |> List.flatten()
+    |> Enum.filter(&is_call_to(&1, function))
+    |> Enum.map(fn call -> call.position end)
+  end
+
+  defp is_call_to(%State.CallInfo{} = call_info, {function, arity}) do
+    call_info.func == function and call_info.arity == arity
+  end
+
+  defp is_call_to(%State.CallInfo{} = call_info, function) when is_atom(function) do
+    call_info.func == function
+  end
+
+  def build_code_lens(line, title, command, argument) do
+    %{
+      "range" => range(line - 1, 0, line - 1, 0),
+      "command" => %{
+        "title" => title,
+        "command" => command,
+        "arguments" => [argument]
+      }
+    }
   end
 end
