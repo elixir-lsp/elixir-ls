@@ -190,16 +190,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
     buffer_file_metadata.calls
     |> Enum.map(fn {_k, v} -> v end)
     |> List.flatten()
-    |> Enum.filter(&is_call_to(&1, function))
+    |> Enum.filter(fn call_info -> call_info.func == function end)
     |> Enum.map(fn call -> call.position end)
-  end
-
-  defp is_call_to(%State.CallInfo{} = call_info, {function, arity}) do
-    call_info.func == function and call_info.arity == arity
-  end
-
-  defp is_call_to(%State.CallInfo{} = call_info, function) when is_atom(function) do
-    call_info.func == function
   end
 
   def build_code_lens(line, title, command, argument) do
