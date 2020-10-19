@@ -114,7 +114,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp file_path(file, root_path) do
     path = Path.join([root_path, file])
 
-    if File.exists?(path) do
+    if File.exists?(path, [:raw]) do
       {:ok, path}
     else
       file_path_in_umbrella(file, root_path)
