@@ -221,6 +221,8 @@ if available, but that may not be what you want or need. Therefore, prior to exe
 `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (e.g. `~/.config/elixir_ls/setup.sh`), if available. The environment variable
 `ELS_MODE` is set to either `debugger` or `language_server` to help you decide what to do inside the script, if needed.
 
+Note: for windows the local setup script path is `%APPDATA%/elixir_ls/setup.bat` (which is often `C:\Users\<username>\AppData\Roaming\elixir_ls`)
+
 ## Acknowledgements and related projects
 
 ElixirLS isn't the first frontend-independent server for Elixir language support. The original was [Alchemist Server](https://github.com/tonini/alchemist-server/), which powers the [Alchemist](https://github.com/tonini/alchemist.el) plugin for Emacs. Another project, [Elixir Sense](https://github.com/elixir-lsp/elixir_sense), builds upon Alchemist and powers the [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir) as well as another VS Code plugin, [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). ElixirLS uses Elixir Sense for several code insight features. Credit for those projects goes to their respective authors.
