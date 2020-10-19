@@ -110,8 +110,8 @@ defmodule ElixirLS.LanguageServer.Build do
     }
   end
 
-  def with_build_lock(func) do
-    :global.trans({__MODULE__, self()}, func)
+  def with_build_lock(func, retries \\ :infinity) do
+    :global.trans({__MODULE__, self()}, func, [node()], retries)
   end
 
   defp reload_project do

@@ -1,13 +1,14 @@
 defmodule ElixirLS.LanguageServer.Providers.Formatting do
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
-  alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.{SourceFile, Build}
+  alias ElixirLS.LanguageServer.JsonRpc
 
   def supported? do
     function_exported?(Code, :format_string!, 2)
   end
 
   def format(source_file, uri, project_dir) do
-    if can_format?(uri, project_dir) do
+    try_format(fn ->
       case SourceFile.formatter_opts(uri) do
         {:ok, opts} ->
           if should_format?(uri, project_dir, opts[:inputs]) do
@@ -26,25 +27,30 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
         :error ->
           {:error, :internal_error, "Unable to fetch formatter options"}
       end
-    else
-      msg =
-        "Cannot format file from current directory " <>
-          "(Currently in #{Path.relative_to(File.cwd!(), project_dir)})"
-
-      {:error, :internal_error, msg}
-    end
+    end)
   rescue
     _e in [TokenMissingError, SyntaxError] ->
       {:error, :internal_error, "Unable to format due to syntax error"}
   end
 
-  # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
-  # fine if the file we're trying to format is in that app. Otherwise, we return an error.
-  defp can_format?(file_uri, project_dir) do
-    file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
+  def try_format(func) do
+    if Mix.Project.umbrella?() do
+      Build.with_build_lock(func, 3)
+      |> case do
+        :aborted ->
+          JsonRpc.log_message(
+            :warning,
+            "[ElixirLS Formatter] Failed to acquire build lock during formatting and will not format."
+          )
 
-    not String.starts_with?(file_path, project_dir) or
-      String.starts_with?(file_path, File.cwd!())
+          {:ok, []}
+
+        result ->
+          result
+      end
+    else
+      func.()
+    end
   end
 
   def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
