@@ -253,7 +253,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       with true <- Code.ensure_loaded?(module),
            path when not is_nil(path) <- module.module_info(:compile)[:source],
            path_binary = List.to_string(path),
-           true <- File.exists?(path_binary) do
+           true <- File.exists?(path_binary, [:raw]) do
         path_binary
       else
         _ -> nil
@@ -265,7 +265,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       with beam_file when not is_nil(beam_file) <-
              ErlangSourceFile.get_beam_file(module, beam_file),
            erl_file = ErlangSourceFile.beam_file_to_erl_file(beam_file),
-           true <- File.exists?(erl_file) do
+           true <- File.exists?(erl_file, [:raw]) do
         erl_file
       else
         _ -> nil
