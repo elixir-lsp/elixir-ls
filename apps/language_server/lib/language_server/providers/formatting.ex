@@ -34,22 +34,18 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   end
 
   def try_format(func) do
-    if Mix.Project.umbrella?() do
-      Build.with_build_lock(func, 3)
-      |> case do
-        :aborted ->
-          JsonRpc.log_message(
-            :warning,
-            "[ElixirLS Formatter] Failed to acquire build lock during formatting and will not format."
-          )
+    Build.with_build_lock(func, 3)
+    |> case do
+      :aborted ->
+        JsonRpc.log_message(
+          :warning,
+          "[ElixirLS Formatter] Failed to acquire build lock during formatting and will not format."
+        )
 
-          {:ok, []}
+        {:ok, []}
 
-        result ->
-          result
-      end
-    else
-      func.()
+      result ->
+        result
     end
   end
 
