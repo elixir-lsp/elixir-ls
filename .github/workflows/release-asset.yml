@@ -1,0 +1,89 @@
+name: Elixir CI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{steps.create_release.outputs.upload_url}}
+
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: false
+
+  build:
+    name: Build and publish release asset
+    runs-on: ubuntu-latest
+    needs: release
+
+    strategy:
+      matrix:
+        include:
+          - elixir-version: '1.11'
+            otp-version: '23.1'
+          - elixir-version: '1.10.4'
+            otp-version: '23.1'
+          - elixir-version: '1.9'
+            otp-version: '22.3'
+          - elixir-version: '1.8.2'
+            otp-version: '21.3'
+            default: true
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Elixir
+        uses: actions/setup-elixir@v1
+        with:
+          elixir-version: ${{ matrix.elixir-version }}
+          otp-version: ${{ matrix.otp-version }}
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v2
+        with:
+          path: deps
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Build release
+        run: |
+          mkdir ./release
+          mix compile
+          MIX_ENV=prod mix elixir_ls.release -o ./release
+          zip -jr elixir-ls.zip ./release
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./elixir-ls.zip
+          asset_name: elixir-ls-${{ matrix.elixir-version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Default Release Asset
+        if: ${{ matrix.default == true }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ./elixir-ls.zip
+          asset_name: elixir-ls.zip
+          asset_content_type: application/zip
