@@ -15,6 +15,13 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   use GenServer
 
+  defstruct [
+    :format_table,
+    :no_format_table,
+    :formatter_opts,
+    :project_dir
+  ]
+
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.LanguageServer.SourceFile
 
@@ -40,7 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
           {:ok, response}
 
         :ignore ->
-          :ok
+          {:ok, []}
 
         :error ->
           {:error, :internal_error, "Unable to fetch formatter options"}
@@ -118,8 +125,16 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   end
 
   def init(_) do
-    ets = :ets.new(__MODULE__, [:set, :private])
-    {:ok, %{ets: ets, formatter_opts: :error}}
+    format_table = :ets.new(__MODULE__, [:set, :private])
+    no_format_table = :ets.new(__MODULE__, [:set, :private])
+
+    state = %__MODULE__{
+      format_table: format_table,
+      no_format_table: no_format_table,
+      formatter_opts: :error
+    }
+
+    {:ok, state}
   end
 
   def handle_call({:opts_for_file, file_uri}, _, state) do
@@ -128,11 +143,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     reply =
       case state.formatter_opts do
         {:ok, opts} ->
-          if !opts[:input] || :ets.member(state.ets, file_path) do
-            {:format, opts}
-          else
-            :ignore
-          end
+          formatting_directive(state, opts, file_path)
 
         :error ->
           :error
@@ -143,12 +154,13 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   def handle_call({:build_cache, dir}, _, state) do
     opts_result = SourceFile.formatter_opts(dir)
-    :ets.delete_all_objects(state.ets)
+    :ets.delete_all_objects(state.format_table)
+    :ets.delete_all_objects(state.no_format_table)
 
     case opts_result do
       {:ok, opts} ->
         IO.puts("[ElixirLS FormattingCache] Formatter building cache")
-        populate_cache(dir, state.ets, opts)
+        populate_cache(dir, state.format_table, opts)
         IO.puts("[ElixirLS FormattingCache] Formatter cache built")
 
       :error ->
@@ -157,7 +169,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
         )
     end
 
-    {:reply, :ok, %{state | formatter_opts: opts_result}}
+    {:reply, :ok, %{state | project_dir: dir, formatter_opts: opts_result}}
   end
 
   defp populate_cache(project_dir, ets, opts) do
@@ -175,6 +187,37 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       |> Enum.each(fn file ->
         :ets.insert(ets, {file})
       end)
+    end
+  end
+
+  defp formatting_directive(state, opts, file_path) do
+    cond do
+      !opts[:inputs] ->
+        {:format, opts}
+
+      :ets.member(state.format_table, file_path) ->
+        {:format, opts}
+
+      :ets.member(state.no_format_table, file_path) ->
+        :ignore
+
+      true ->
+        # If the file is a path we have never seen before, we know there is
+        # a new file. We have no way of knowing whether that file should
+        # be formatted or not, so we have to rebuild the cache from the globs
+        # and re-check membership. If it's a member, great! If it is not,
+        # then we know for sure it should not be formatted and we cache that
+        # information for fast future lookup.
+        # :ets.insert(state.no_format_table, {file_path})
+
+        populate_cache(state.project_dir, state.format_table, opts)
+
+        if :ets.member(state.format_table, file_path) do
+          {:format, opts}
+        else
+          :ets.insert(state.no_format_table, {file_path})
+          :ignore
+        end
     end
   end
 end
