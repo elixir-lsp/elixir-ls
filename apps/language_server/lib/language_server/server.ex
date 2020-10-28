@@ -291,7 +291,9 @@ defmodule ElixirLS.LanguageServer.Server do
           prev_settings
       end
 
-    set_settings(state, new_settings)
+    state = set_settings(state, new_settings)
+    Formatting.build_cache(state.project_dir)
+    state
   end
 
   defp handle_notification(notification("exit"), state) do
