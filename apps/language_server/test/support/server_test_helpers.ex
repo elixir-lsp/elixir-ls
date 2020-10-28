@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
   alias ElixirLS.LanguageServer.Server
   alias ElixirLS.LanguageServer.JsonRpc
   alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
+  alias ElixirLS.LanguageServer.Providers.Formatting
   alias ElixirLS.Utils.PacketCapture
 
   def start_server do
@@ -14,6 +15,9 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
 
     json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
     Process.group_leader(json_rpc, packet_capture)
+
+    formatting = start_supervised!({Formatting, []})
+    Process.group_leader(formatting, packet_capture)
 
     workspace_symbols = start_supervised!({WorkspaceSymbols, []})
     Process.group_leader(workspace_symbols, packet_capture)
