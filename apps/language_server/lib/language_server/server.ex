@@ -431,6 +431,14 @@ defmodule ElixirLS.LanguageServer.Server do
     |> Enum.uniq()
     |> WorkspaceSymbols.notify_uris_modified()
 
+    formatter_changed? = Enum.any?(changes, fn %{"uri" => uri} ->
+      Path.basename(uri) == ".formatter.exs"
+    end)
+
+    if formatter_changed? do
+      Formatting.build_cache(state.project_dir)
+    end
+
     if needs_build, do: trigger_build(state), else: state
   end
 
