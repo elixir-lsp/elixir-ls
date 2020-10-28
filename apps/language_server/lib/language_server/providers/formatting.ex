@@ -3,6 +3,16 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   Formatting Provider. Caches the list of files to be formatted, and formats them.
   """
 
+  ## Approach
+  # On initialization, the GenServer in this module populates an `:ets` table
+  # with paths that should be formatted, allowing for rapid lookup when a given
+  # file is saved.
+  #
+  # Lookups _are_ serialized through this genserver to avoid race conditions
+  # when the server boots or when the cache has to be rebuilt due to changes in
+  # a .formatter.exs file. The GenServer call is extremely fast, since all of the
+  # actual formatting is accomplished client side.
+
   use GenServer
 
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
@@ -12,22 +22,25 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     GenServer.call(__MODULE__, {:build_cache, root_uri})
   end
 
+  def formatting_opts_for_file(uri) do
+    GenServer.call(__MODULE__, {:opts_for_file, uri})
+  end
+
   def format(%SourceFile{} = source_file, uri, project_dir) do
     if can_format?(uri, project_dir) do
-      case lookup_cached_opts() do
-        {:ok, opts} ->
-          if should_format?(uri, opts[:inputs]) do
-            formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
+      case formatting_opts_for_file(uri) do
+        {:format, opts} ->
+          formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
 
-            response =
-              source_file.text
-              |> String.myers_difference(formatted)
-              |> myers_diff_to_text_edits()
+          response =
+            source_file.text
+            |> String.myers_difference(formatted)
+            |> myers_diff_to_text_edits()
 
-            {:ok, response}
-          else
-            {:ok, []}
-          end
+          {:ok, response}
+
+        :ignore ->
+          :ok
 
         :error ->
           {:error, :internal_error, "Unable to fetch formatter options"}
@@ -52,13 +65,6 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     not String.starts_with?(file_path, project_dir) or
       String.starts_with?(file_path, File.cwd!())
   end
-
-  def should_format?(file_uri, inputs) when is_list(inputs) do
-    file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
-    :ets.member(__MODULE__, file_path)
-  end
-
-  def should_format?(_file_uri, _inputs), do: true
 
   defp myers_diff_to_text_edits(myers_diff, starting_pos \\ {0, 0}) do
     myers_diff_to_text_edits(myers_diff, starting_pos, [])
@@ -112,19 +118,37 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   end
 
   def init(_) do
-    _ = :ets.new(__MODULE__, [:set, :protected, :named_table, read_concurrency: true])
-    {:ok, nil}
+    ets = :ets.new(__MODULE__, [:set, :private])
+    {:ok, %{ets: ets, formatter_opts: :error}}
+  end
+
+  def handle_call({:opts_for_file, file_uri}, _, state) do
+    file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
+
+    reply =
+      case state.formatter_opts do
+        {:ok, opts} ->
+          if !opts[:input] || :ets.member(state.ets, file_path) do
+            {:format, opts}
+          else
+            :ignore
+          end
+
+        :error ->
+          :error
+      end
+
+    {:reply, reply, state}
   end
 
   def handle_call({:build_cache, dir}, _, state) do
     opts_result = SourceFile.formatter_opts(dir)
-    :ets.delete_all_objects(__MODULE__)
-    :ets.insert(__MODULE__, {:formatter_opts, opts_result})
+    :ets.delete_all_objects(state.ets)
 
     case opts_result do
       {:ok, opts} ->
         IO.puts("[ElixirLS FormattingCache] Formatter building cache")
-        populate_cache(dir, opts)
+        populate_cache(dir, state.ets, opts)
         IO.puts("[ElixirLS FormattingCache] Formatter cache built")
 
       :error ->
@@ -133,14 +157,13 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
         )
     end
 
-    {:reply, :ok, state}
+    {:reply, :ok, %{state | formatter_opts: opts_result}}
   end
 
-  defp populate_cache(project_dir, opts) do
+  defp populate_cache(project_dir, ets, opts) do
     IO.puts("formatting cache with #{inspect(opts)}")
-    inputs = opts[:inputs]
 
-    if inputs do
+    if inputs = opts[:inputs] do
       inputs
       |> Stream.flat_map(fn glob ->
         [
@@ -150,13 +173,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       end)
       |> Stream.flat_map(&Path.wildcard(&1, match_dot: true))
       |> Enum.each(fn file ->
-        :ets.insert(__MODULE__, {file})
+        :ets.insert(ets, {file})
       end)
     end
-  end
-
-  defp lookup_cached_opts() do
-    [{:formatter_opts, opts}] = :ets.lookup(__MODULE__, :formatter_opts)
-    opts
   end
 end
