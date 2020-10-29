@@ -23,6 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   ]
 
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
+  alias ElixirLS.LanguageServer.JsonRpc
   alias ElixirLS.LanguageServer.SourceFile
 
   def build_cache(root_uri) do
@@ -159,13 +160,13 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
     case opts_result do
       {:ok, opts} ->
-        IO.puts("[ElixirLS FormattingCache] Formatter building cache")
+        JsonRpc.log_message(:info, "[ElixirLS Formatting] Building cache...")
         populate_cache(dir, state.format_table, opts)
-        IO.puts("[ElixirLS FormattingCache] Formatter cache built")
+        JsonRpc.log_message(:info, "[ElixirLS Formatting] Cache built.")
 
       :error ->
-        IO.puts(
-          "[ElixirLS FormattingCache] Formatter cache will not be built: unable to handle formatter opts"
+        JsonRpc.log_message(:info,
+          "[ElixirLS Formatting] Cache will not be built: unable to handle formatter opts"
         )
     end
 
@@ -173,8 +174,6 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   end
 
   defp populate_cache(project_dir, ets, opts) do
-    IO.puts("formatting cache with #{inspect(opts)}")
-
     if inputs = opts[:inputs] do
       inputs
       |> Stream.flat_map(fn glob ->
