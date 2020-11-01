@@ -35,8 +35,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   defp get_function_lenses(%Metadata{} = metadata, file_path) do
     runnable_functions = [{:test, 3}, {:test, 2}, {:describe, 2}]
 
+    calls_list =
+      metadata.calls
+      |> Enum.map(fn {_k, v} -> v end)
+      |> List.flatten()
+
     for func <- runnable_functions do
-      for {line, _col} <- calls_to(metadata, func),
+      for {line, _col} <- calls_to(calls_list, func),
           is_test_module?(metadata.lines_to_env, line) do
         build_function_test_code_lens(func, file_path, line)
       end
@@ -61,10 +66,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     |> Enum.any?(fn module -> module == ExUnit.Case end)
   end
 
-  defp calls_to(%Metadata{} = metadata, {function, arity}) do
-    metadata.calls
-    |> Enum.map(fn {_k, v} -> v end)
-    |> List.flatten()
+  defp calls_to(calls_list, {function, arity}) do
+    calls_list
     |> Enum.filter(fn call_info -> call_info.func == function and call_info.arity === arity end)
     |> Enum.map(fn call -> call.position end)
   end
