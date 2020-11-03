@@ -118,14 +118,18 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     uri = "file:///file.ex"
     code = ~S(
       defmodule MyModule do
-        use GenServer
+        @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
       end
     )
 
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, definition_req(1, uri, 2, 17))
+    Server.receive_packet(server, definition_req(1, uri, 2, 58))
 
-    uri = "file://" <> to_string(GenServer.module_info()[:compile][:source])
+    uri =
+      "file://" <>
+        to_string(
+          ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
+        )
 
     assert_receive(
       response(1, %{
