@@ -54,20 +54,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @spec symbols(String.t()) :: {:ok, [symbol_information_t]}
   def symbols(query, server \\ __MODULE__) do
-    results =
-      case query do
-        "f " <> fun_query ->
-          query(:functions, fun_query, server)
-
-        "t " <> type_query ->
-          query(:types, type_query, server)
-
-        "c " <> callback_query ->
-          query(:callbacks, callback_query, server)
-
-        module_query ->
-          query(:modules, module_query, server)
-      end
+    results = query(query, server)
 
     {:ok, results}
   end
@@ -109,10 +96,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   @impl GenServer
-  def handle_call({:query, key, query}, from, state) do
+  def handle_call({:query, query}, from, state) do
     {:ok, _pid} =
       Task.start_link(fn ->
-        results = get_results(state, key, query)
+        results = get_results(state, query)
         GenServer.reply(from, results)
       end)
 
@@ -356,13 +343,13 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     |> elem(0)
   end
 
-  defp query(kind, query, server) do
+  defp query(query, server) do
     case String.trim(query) do
       "" ->
         []
 
       trimmed ->
-        GenServer.call(server, {:query, kind, trimmed})
+        GenServer.call(server, {:query, trimmed})
     end
   end
 
@@ -446,14 +433,13 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     :ok
   end
 
-  @spec get_results(state_t, key_t, String.t()) :: [symbol_information_t]
-  defp get_results(state, key, query) do
+  @spec get_results(state_t, String.t()) :: [symbol_information_t]
+  defp get_results(state, query) do
     query_downcase = String.downcase(query)
     query_length = String.length(query)
     arity_suffix = Regex.run(@arity_suffix_regex, query)
 
-    state
-    |> Map.fetch!(key)
+    (state.modules ++ state.functions ++ state.types ++ state.callbacks)
     |> process_chunked(fn chunk ->
       chunk
       |> Enum.map(&{&1, get_score(&1.name, query, query_downcase, query_length, arity_suffix)})
@@ -509,15 +495,15 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   defp symbol_name(:functions, {module, function, arity}) do
-    "f #{inspect(module)}.#{function}/#{arity}"
+    "#{inspect(module)}.#{function}/#{arity}"
   end
 
   defp symbol_name(:types, {module, type, arity}) do
-    "t #{inspect(module)}.#{type}/#{arity}"
+    "#{inspect(module)}.#{type}/#{arity}"
   end
 
   defp symbol_name(:callbacks, {module, callback, arity}) do
-    "c #{inspect(module)}.#{callback}/#{arity}"
+    "#{inspect(module)}.#{callback}/#{arity}"
   end
 
   @spec build_range(nil | non_neg_integer) :: range_t
