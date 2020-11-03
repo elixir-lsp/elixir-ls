@@ -76,13 +76,17 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     GenServer.start_link(__MODULE__, :ok, opts |> Keyword.put_new(:name, __MODULE__))
   end
 
-  def notify_build_complete(server \\ __MODULE__) do
-    GenServer.cast(server, :build_complete)
+  def notify_build_complete(server \\ __MODULE__, override_test_mode \\ false) do
+    unless Application.get_env(:language_server, :test_mode) && not override_test_mode do
+      GenServer.cast(server, :build_complete)
+    end
   end
 
   @spec notify_uris_modified([String.t()]) :: :ok
-  def notify_uris_modified(uris, server \\ __MODULE__) do
-    GenServer.cast(server, {:uris_modified, uris})
+  def notify_uris_modified(uris, server \\ __MODULE__, override_test_mode \\ false) do
+    unless Application.get_env(:language_server, :test_mode) && not override_test_mode do
+      GenServer.cast(server, {:uris_modified, uris})
+    end
   end
 
   ## Server Callbacks

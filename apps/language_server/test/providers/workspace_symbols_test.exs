@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
       }
     end)
 
-    WorkspaceSymbols.notify_build_complete(pid)
+    WorkspaceSymbols.notify_build_complete(pid, true)
 
     wait_until_indexed(pid)
 
