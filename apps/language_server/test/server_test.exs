@@ -114,8 +114,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
            }) = resp
   end
 
-  # Failing
-  @tag :pending
   test "go to definition", %{server: server} do
     uri = "file:///file.ex"
     code = ~S(
