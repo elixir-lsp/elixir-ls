@@ -127,15 +127,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     uri = "file://" <> to_string(GenServer.module_info()[:compile][:source])
 
-    resp = assert_receive(%{"id" => 1}, 1000)
-
-    assert response(1, %{
-             "range" => %{
-               "end" => %{"character" => column, "line" => 0},
-               "start" => %{"character" => column, "line" => 0}
-             },
-             "uri" => ^uri
-           }) = resp
+    assert_receive(
+      response(1, %{
+        "range" => %{
+          "end" => %{"character" => column, "line" => 0},
+          "start" => %{"character" => column, "line" => 0}
+        },
+        "uri" => ^uri
+      }),
+      3000
+    )
 
     assert column > 0
   end
