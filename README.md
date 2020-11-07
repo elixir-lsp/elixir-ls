@@ -117,6 +117,44 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
 }
 ```
 
+In order to debug a single test or a single test file it is currently necessary to modify `taskArgs` and make sure no other tests are requred in `requireFiles`.
+
+```
+{
+  "type": "mix_task",
+  "name": "mix test",
+  "request": "launch",
+  "task": "test",
+  "taskArgs": ["tests/some_test.exs:123"],
+  "projectDir": "${workspaceRoot}",
+  "requireFiles": [
+    "test/**/test_helper.exs",
+    "test/some_test.exs"
+  ]
+}
+```
+
+Please note that due to `:int` limitation NIF modules cannot be interpreted and need to be excluded via `excludeModules` option. This option can be also used to disable interpreting for some modules when it is not desirable e.g. when performance is not satisfactory.
+
+```
+{
+  "type": "mix_task",
+  "name": "mix test",
+  "request": "launch",
+  "task": "test",
+  "taskArgs": ["--trace"],
+  "projectDir": "${workspaceRoot}",
+  "requireFiles": [
+    "test/**/test_helper.exs",
+    "test/**/*_test.exs"
+  ],
+  "excludeModules": [
+    ":some_nif",
+    "Some.SlowModule"
+  ]
+}
+```
+
 ## Automatic builds and error reporting
 
 Builds are performed automatically when files are saved. If you want this to happen automatically when you type, you can turn on "autosave" in your IDE.
