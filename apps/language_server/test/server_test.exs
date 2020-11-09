@@ -128,6 +128,63 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end
   end
 
+  describe "not matched messages" do
+    test "not supported $/ notifications are skipped", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, notification("$/not_supported"))
+      :sys.get_state(server)
+      refute_receive(%{"method" => "window/logMessage"})
+    end
+
+    test "not matched notifications log warning", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, notification("not_matched"))
+      :sys.get_state(server)
+
+      assert_receive(%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Received unmatched notification" <> _, "type" => 2}
+      })
+    end
+
+    test "not supported $/ requests return -32601 MethodNotFound", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, request(1, "$/not_supported"))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32601
+          }
+        },
+        1000
+      )
+
+      refute_receive(%{"method" => "window/logMessage"})
+    end
+
+    test "not matched requests return -32600 InvalidRequest and log warning", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, request(1, "not_matched"))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32600
+          }
+        },
+        1000
+      )
+
+      assert_receive(%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
+      })
+    end
+  end
+
   setup context do
     unless context[:skip_server] do
       server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()

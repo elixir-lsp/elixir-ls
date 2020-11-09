@@ -234,11 +234,6 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_notification(notification("$/setTraceNotification"), state) do
-    # noop
-    state
-  end
-
   defp handle_notification(cancel_request(id), %{requests: requests} = state) do
     case requests do
       %{^id => pid} ->
@@ -347,6 +342,11 @@ defmodule ElixirLS.LanguageServer.Server do
     |> WorkspaceSymbols.notify_uris_modified()
 
     if needs_build, do: trigger_build(state), else: state
+  end
+
+  defp handle_notification(%{"method" => "$/" <> _}, state) do
+    # not supported "$/" notification may be safely ignored
+    state
   end
 
   defp handle_notification(packet, state) do
@@ -602,6 +602,11 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
     x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
     {:ok, x, state}
+  end
+
+  defp handle_request(%{"method" => "$/" <> _}, state) do
+    # "$/" requests that the server doesn't support must return method_not_found
+    {:error, :method_not_found, nil, state}
   end
 
   defp handle_request(req, state) do
