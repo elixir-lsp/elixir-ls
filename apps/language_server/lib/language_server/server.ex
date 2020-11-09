@@ -32,6 +32,8 @@ defmodule ElixirLS.LanguageServer.Server do
     ExecuteCommand
   }
 
+  alias ElixirLS.Utils.Launch
+
   use Protocol
 
   defstruct [
@@ -81,6 +83,8 @@ defmodule ElixirLS.LanguageServer.Server do
     GenServer.call(server, {:suggest_contracts, uri}, :infinity)
   end
 
+  defguardp is_initialized(server_instance_id) when not is_nil(server_instance_id)
+
   ## Server Callbacks
 
   @impl GenServer
@@ -126,13 +130,29 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, handle_request_packet(id, packet, state)}
   end
 
+  @impl GenServer
   def handle_cast({:receive_packet, request(id, method)}, state) do
     {:noreply, handle_request_packet(id, request(id, method, nil), state)}
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, notification(_) = packet}, state) do
+  def handle_cast(
+        {:receive_packet, notification(_) = packet},
+        state = %{received_shutdown?: false, server_instance_id: server_instance_id}
+      )
+      when is_initialized(server_instance_id) do
     {:noreply, handle_notification(packet, state)}
+  end
+
+  @impl GenServer
+  def handle_cast({:receive_packet, notification(_) = packet}, state) do
+    case packet do
+      notification("exit") ->
+        {:noreply, handle_notification(packet, state)}
+
+      _ ->
+        {:noreply, state}
+    end
   end
 
   @impl GenServer
@@ -251,7 +271,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(notification("exit"), state) do
     code = if state.received_shutdown?, do: 0, else: 1
-    System.halt(code)
+
+    unless Application.get_env(:language_server, :test_mode) do
+      System.halt(code)
+    else
+      Process.exit(self(), {:exit_code, code})
+    end
+
     state
   end
 
@@ -323,12 +349,26 @@ defmodule ElixirLS.LanguageServer.Server do
     if needs_build, do: trigger_build(state), else: state
   end
 
-  defp handle_notification(notification(_, _) = packet, state) do
-    IO.warn("Received unmatched notification: #{inspect(packet)}")
+  defp handle_notification(packet, state) do
+    JsonRpc.log_message(:warning, "Received unmatched notification: #{inspect(packet)}")
     state
   end
 
-  defp handle_request_packet(id, packet, state) do
+  defp handle_request_packet(id, packet, state = %{server_instance_id: server_instance_id})
+       when not is_initialized(server_instance_id) do
+    case packet do
+      initialize_req(_id, _root_uri, _client_capabilities) ->
+        {:ok, result, state} = handle_request(packet, state)
+        JsonRpc.respond(id, result)
+        state
+
+      _ ->
+        JsonRpc.respond_with_error(id, :server_not_initialized)
+        state
+    end
+  end
+
+  defp handle_request_packet(id, packet, state = %{received_shutdown?: false}) do
     case handle_request(packet, state) do
       {:ok, result, state} ->
         JsonRpc.respond(id, result)
@@ -344,7 +384,16 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_request(initialize_req(_id, root_uri, client_capabilities), state) do
+  defp handle_request_packet(id, _packet, state) do
+    JsonRpc.respond_with_error(id, :invalid_request)
+    state
+  end
+
+  defp handle_request(
+         initialize_req(_id, root_uri, client_capabilities),
+         state = %{server_instance_id: server_instance_id}
+       )
+       when not is_initialized(server_instance_id) do
     show_version_warnings()
 
     server_instance_id =
@@ -382,7 +431,14 @@ defmodule ElixirLS.LanguageServer.Server do
       Process.send_after(self(), :send_file_watchers, 100)
     end
 
-    {:ok, %{"capabilities" => server_capabilities(server_instance_id)}, state}
+    {:ok,
+     %{
+       "capabilities" => server_capabilities(server_instance_id),
+       "serverInfo" => %{
+         "name" => "ElixirLS",
+         "version" => "#{Launch.language_server_version()}"
+       }
+     }, state}
   end
 
   defp handle_request(request(_id, "shutdown", _params), state) do
@@ -548,16 +604,8 @@ defmodule ElixirLS.LanguageServer.Server do
     {:ok, x, state}
   end
 
-  defp handle_request(request(_, _) = req, state) do
-    handle_invalid_request(req, state)
-  end
-
-  defp handle_request(request(_, _, _) = req, state) do
-    handle_invalid_request(req, state)
-  end
-
-  defp handle_invalid_request(req, state) do
-    IO.inspect(req, label: "Unmatched request")
+  defp handle_request(req, state) do
+    JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
     {:error, :invalid_request, nil, state}
   end
 

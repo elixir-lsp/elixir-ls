@@ -74,7 +74,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     WireProtocol.send(response(id, result))
   end
 
-  def respond_with_error(id, type, message) do
+  def respond_with_error(id, type, message \\ nil) do
     {code, default_message} = error_code_and_message(type)
     WireProtocol.send(error_response(id, code, message || default_message))
   end
@@ -198,5 +198,9 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   defp error_code_and_message(:invalid_params), do: {-32602, "Invalid params"}
   defp error_code_and_message(:internal_error), do: {-32603, "Internal error"}
   defp error_code_and_message(:server_error), do: {-32000, "Server error"}
+  defp error_code_and_message(:server_not_initialized), do: {-32002, "Server not initialized"}
+  defp error_code_and_message(:unknown_error_code), do: {-32001, "Unknown error code"}
+
   defp error_code_and_message(:request_cancelled), do: {-32800, "Request cancelled"}
+  defp error_code_and_message(:content_modified), do: {-32801, "Content modified"}
 end
