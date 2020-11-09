@@ -196,25 +196,7 @@ The completions include:
 
 ## Workspace Symbols
 
-With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions. However due to sheer number of different symbols and fuzzy search utilized by the provider, ElixirLS uses query prefixes to improve search results relevance.
-
-Use the following rules when navigating to workspace symbols:
-* no prefix - search for modules
-  * `:erl`
-  * `Enu`
-* `f ` prefix - search for functions
-  * `f inse`
-  * `f :ets.inse`
-  * `f Enum.cou`
-  * `f count/0`
-* `t ` prefix - search for types
-  * `t t/0`
-  * `t :erlang.time_u`
-  * `t DateTime.`
-* `c ` prefix - search for callbacks
-  * `c handle_info`
-  * `c GenServer.in`
-  * `c :gen_statem`
+With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions.
 
 ## Troubleshooting
 
