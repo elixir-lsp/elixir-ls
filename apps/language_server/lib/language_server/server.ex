@@ -54,7 +54,8 @@ defmodule ElixirLS.LanguageServer.Server do
     requests: %{},
     # Tracks source files that are currently open in the editor
     source_files: %{},
-    awaiting_contracts: []
+    awaiting_contracts: [],
+    supports_dynamic: false
   ]
 
   ## Client API
@@ -161,20 +162,6 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_info(:send_file_watchers, state) do
-    JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
-      "watchers" => [
-        %{"globPattern" => "**/*.ex"},
-        %{"globPattern" => "**/*.exs"},
-        %{"globPattern" => "**/*.eex"},
-        %{"globPattern" => "**/*.leex"}
-      ]
-    })
-
-    {:noreply, state}
-  end
-
-  @impl GenServer
   def handle_info(:default_config, state) do
     state =
       case state do
@@ -231,6 +218,20 @@ defmodule ElixirLS.LanguageServer.Server do
   ## Helpers
 
   defp handle_notification(notification("initialized"), state) do
+    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
+    Process.send_after(self(), :default_config, 5000)
+
+    if state.supports_dynamic do
+      JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
+        "watchers" => [
+          %{"globPattern" => "**/*.ex"},
+          %{"globPattern" => "**/*.exs"},
+          %{"globPattern" => "**/*.eex"},
+          %{"globPattern" => "**/*.leex"}
+        ]
+      })
+    end
+
     state
   end
 
@@ -410,15 +411,6 @@ defmodule ElixirLS.LanguageServer.Server do
           state
       end
 
-    state = %{
-      state
-      | client_capabilities: client_capabilities,
-        server_instance_id: server_instance_id
-    }
-
-    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
-    Process.send_after(self(), :default_config, 5000)
-
     # Explicitly request file watchers from the client if supported
     supports_dynamic =
       get_in(client_capabilities, [
@@ -427,9 +419,12 @@ defmodule ElixirLS.LanguageServer.Server do
         "dynamicRegistration"
       ])
 
-    if supports_dynamic do
-      Process.send_after(self(), :send_file_watchers, 100)
-    end
+    state = %{
+      state
+      | client_capabilities: client_capabilities,
+        server_instance_id: server_instance_id,
+        supports_dynamic: supports_dynamic
+    }
 
     {:ok,
      %{
