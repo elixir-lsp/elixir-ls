@@ -41,6 +41,7 @@ Note: On first run Dialyzer will build a PLT cache which will take a considerabl
 | Emacs        | [eglot](https://github.com/joaotavora/eglot)                                  |                                                |
 | Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger |
 | Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                        | Does not support debugger                      |
+| Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)              |                                                |
 
 Feel free to create and publish your own client packages and add them to this list!
 
