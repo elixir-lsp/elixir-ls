@@ -223,7 +223,10 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       {:ok, opts}
     rescue
       e ->
-        IO.warn("Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{e.message}")
+        IO.warn(
+          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{e.message}"
+        )
+
         :error
     end
   end
