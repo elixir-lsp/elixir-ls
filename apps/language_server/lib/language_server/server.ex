@@ -753,7 +753,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "definitionProvider" => true,
       "referencesProvider" => References.supported?(),
       "documentFormattingProvider" => Formatting.supported?(),
-      "signatureHelpProvider" => %{"triggerCharacters" => ["("]},
+      "signatureHelpProvider" => %{"triggerCharacters" => SignatureHelp.trigger_characters()},
       "documentSymbolProvider" => true,
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
