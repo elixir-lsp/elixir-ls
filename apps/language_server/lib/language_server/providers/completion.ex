@@ -236,37 +236,26 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(
          %{type: :module, name: name, summary: summary, subtype: subtype, metadata: metadata},
-         %{
-           def_before: nil,
-           prefix: prefix
-         },
+         %{def_before: nil},
          _options
        ) do
-    capitalized? = String.first(name) == String.upcase(String.first(name))
+    detail =
+      if subtype do
+        Atom.to_string(subtype)
+      else
+        "module"
+      end
 
-    if String.ends_with?(prefix, ":") and capitalized? do
-      nil
-    else
-      label = if capitalized?, do: name, else: ":" <> name
-
-      detail =
-        if subtype do
-          Atom.to_string(subtype)
-        else
-          "module"
-        end
-
-      %__MODULE__{
-        label: label,
-        kind: :module,
-        detail: detail,
-        documentation: summary,
-        insert_text: name,
-        filter_text: name,
-        priority: 14,
-        tags: metadata_to_tags(metadata)
-      }
-    end
+    %__MODULE__{
+      label: name,
+      kind: :module,
+      detail: detail,
+      documentation: summary,
+      insert_text: name,
+      filter_text: name,
+      priority: 14,
+      tags: metadata_to_tags(metadata)
+    }
   end
 
   defp from_completion_item(
