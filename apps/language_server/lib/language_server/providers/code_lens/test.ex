@@ -7,16 +7,14 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   @run_test_command "elixir.test.run"
 
   def code_lens(uri, text) do
-    buffer_file_metadata =
-      text
-      |> Parser.parse_string(true, true, 1)
+    with {:ok, buffer_file_metadata} <- parse_source(text) do
+      file_path = SourceFile.path_from_uri(uri)
 
-    file_path = SourceFile.path_from_uri(uri)
+      function_lenses = get_function_lenses(buffer_file_metadata, file_path)
+      module_lenses = get_module_lenses(buffer_file_metadata, file_path)
 
-    function_lenses = get_function_lenses(buffer_file_metadata, file_path)
-    module_lenses = get_module_lenses(buffer_file_metadata, file_path)
-
-    {:ok, function_lenses ++ module_lenses}
+      {:ok, function_lenses ++ module_lenses}
+    end
   end
 
   defp get_module_lenses(%Metadata{} = metadata, file_path) do
@@ -91,4 +89,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
 
   defp build_function_test_code_lens({:describe, _arity}, file_path, line),
     do: build_function_test_code_lens("Run tests", file_path, line)
+
+  defp parse_source(text) do
+    buffer_file_metadata =
+      text
+      |> Parser.parse_string(true, true, 1)
+
+    if buffer_file_metadata.error != nil do
+      {:error, buffer_file_metadata}
+    else
+      {:ok, buffer_file_metadata}
+    end
+  end
 end
