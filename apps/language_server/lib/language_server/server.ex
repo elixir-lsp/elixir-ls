@@ -32,6 +32,8 @@ defmodule ElixirLS.LanguageServer.Server do
     ExecuteCommand
   }
 
+  alias ElixirLS.Utils.Launch
+
   use Protocol
 
   defstruct [
@@ -52,7 +54,8 @@ defmodule ElixirLS.LanguageServer.Server do
     requests: %{},
     # Tracks source files that are currently open in the editor
     source_files: %{},
-    awaiting_contracts: []
+    awaiting_contracts: [],
+    supports_dynamic: false
   ]
 
   ## Client API
@@ -80,6 +83,8 @@ defmodule ElixirLS.LanguageServer.Server do
   def suggest_contracts(server \\ __MODULE__, uri) do
     GenServer.call(server, {:suggest_contracts, uri}, :infinity)
   end
+
+  defguardp is_initialized(server_instance_id) when not is_nil(server_instance_id)
 
   ## Server Callbacks
 
@@ -126,32 +131,34 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, handle_request_packet(id, packet, state)}
   end
 
+  @impl GenServer
   def handle_cast({:receive_packet, request(id, method)}, state) do
     {:noreply, handle_request_packet(id, request(id, method, nil), state)}
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, notification(_) = packet}, state) do
+  def handle_cast(
+        {:receive_packet, notification(_) = packet},
+        state = %{received_shutdown?: false, server_instance_id: server_instance_id}
+      )
+      when is_initialized(server_instance_id) do
     {:noreply, handle_notification(packet, state)}
+  end
+
+  @impl GenServer
+  def handle_cast({:receive_packet, notification(_) = packet}, state) do
+    case packet do
+      notification("exit") ->
+        {:noreply, handle_notification(packet, state)}
+
+      _ ->
+        {:noreply, state}
+    end
   end
 
   @impl GenServer
   def handle_cast(:rebuild, state) do
     {:noreply, trigger_build(state)}
-  end
-
-  @impl GenServer
-  def handle_info(:send_file_watchers, state) do
-    JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
-      "watchers" => [
-        %{"globPattern" => "**/*.ex"},
-        %{"globPattern" => "**/*.exs"},
-        %{"globPattern" => "**/*.eex"},
-        %{"globPattern" => "**/*.leex"}
-      ]
-    })
-
-    {:noreply, state}
   end
 
   @impl GenServer
@@ -211,11 +218,20 @@ defmodule ElixirLS.LanguageServer.Server do
   ## Helpers
 
   defp handle_notification(notification("initialized"), state) do
-    state
-  end
+    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
+    Process.send_after(self(), :default_config, 5000)
 
-  defp handle_notification(notification("$/setTraceNotification"), state) do
-    # noop
+    if state.supports_dynamic do
+      JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
+        "watchers" => [
+          %{"globPattern" => "**/*.ex"},
+          %{"globPattern" => "**/*.exs"},
+          %{"globPattern" => "**/*.eex"},
+          %{"globPattern" => "**/*.leex"}
+        ]
+      })
+    end
+
     state
   end
 
@@ -251,7 +267,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(notification("exit"), state) do
     code = if state.received_shutdown?, do: 0, else: 1
-    System.halt(code)
+
+    unless Application.get_env(:language_server, :test_mode) do
+      System.halt(code)
+    else
+      Process.exit(self(), {:exit_code, code})
+    end
+
     state
   end
 
@@ -323,12 +345,31 @@ defmodule ElixirLS.LanguageServer.Server do
     if needs_build, do: trigger_build(state), else: state
   end
 
-  defp handle_notification(notification(_, _) = packet, state) do
-    IO.warn("Received unmatched notification: #{inspect(packet)}")
+  defp handle_notification(%{"method" => "$/" <> _}, state) do
+    # not supported "$/" notifications may be safely ignored
     state
   end
 
-  defp handle_request_packet(id, packet, state) do
+  defp handle_notification(packet, state) do
+    JsonRpc.log_message(:warning, "Received unmatched notification: #{inspect(packet)}")
+    state
+  end
+
+  defp handle_request_packet(id, packet, state = %{server_instance_id: server_instance_id})
+       when not is_initialized(server_instance_id) do
+    case packet do
+      initialize_req(_id, _root_uri, _client_capabilities) ->
+        {:ok, result, state} = handle_request(packet, state)
+        JsonRpc.respond(id, result)
+        state
+
+      _ ->
+        JsonRpc.respond_with_error(id, :server_not_initialized)
+        state
+    end
+  end
+
+  defp handle_request_packet(id, packet, state = %{received_shutdown?: false}) do
     case handle_request(packet, state) do
       {:ok, result, state} ->
         JsonRpc.respond(id, result)
@@ -344,7 +385,16 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_request(initialize_req(_id, root_uri, client_capabilities), state) do
+  defp handle_request_packet(id, _packet, state) do
+    JsonRpc.respond_with_error(id, :invalid_request)
+    state
+  end
+
+  defp handle_request(
+         initialize_req(_id, root_uri, client_capabilities),
+         state = %{server_instance_id: server_instance_id}
+       )
+       when not is_initialized(server_instance_id) do
     show_version_warnings()
 
     server_instance_id =
@@ -361,15 +411,6 @@ defmodule ElixirLS.LanguageServer.Server do
           state
       end
 
-    state = %{
-      state
-      | client_capabilities: client_capabilities,
-        server_instance_id: server_instance_id
-    }
-
-    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
-    Process.send_after(self(), :default_config, 5000)
-
     # Explicitly request file watchers from the client if supported
     supports_dynamic =
       get_in(client_capabilities, [
@@ -378,11 +419,21 @@ defmodule ElixirLS.LanguageServer.Server do
         "dynamicRegistration"
       ])
 
-    if supports_dynamic do
-      Process.send_after(self(), :send_file_watchers, 100)
-    end
+    state = %{
+      state
+      | client_capabilities: client_capabilities,
+        server_instance_id: server_instance_id,
+        supports_dynamic: supports_dynamic
+    }
 
-    {:ok, %{"capabilities" => server_capabilities(server_instance_id)}, state}
+    {:ok,
+     %{
+       "capabilities" => server_capabilities(server_instance_id),
+       "serverInfo" => %{
+         "name" => "ElixirLS",
+         "version" => "#{Launch.language_server_version()}"
+       }
+     }, state}
   end
 
   defp handle_request(request(_id, "shutdown", _params), state) do
@@ -548,16 +599,13 @@ defmodule ElixirLS.LanguageServer.Server do
     {:ok, x, state}
   end
 
-  defp handle_request(request(_, _) = req, state) do
-    handle_invalid_request(req, state)
+  defp handle_request(%{"method" => "$/" <> _}, state) do
+    # "$/" requests that the server doesn't support must return method_not_found
+    {:error, :method_not_found, nil, state}
   end
 
-  defp handle_request(request(_, _, _) = req, state) do
-    handle_invalid_request(req, state)
-  end
-
-  defp handle_invalid_request(req, state) do
-    IO.inspect(req, label: "Unmatched request")
+  defp handle_request(req, state) do
+    JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
     {:error, :invalid_request, nil, state}
   end
 

@@ -24,13 +24,18 @@ defmodule ElixirLS.Utils.Launch do
   end
 
   def language_server_version do
-    {:ok, vsn} = :application.get_key(:language_server, :vsn)
-    vsn
+    get_version(:language_server)
   end
 
   def debugger_version do
-    {:ok, vsn} = :application.get_key(:elixir_ls_debugger, :vsn)
-    vsn
+    get_version(:elixir_ls_debugger)
+  end
+
+  defp get_version(app) do
+    case :application.get_key(app, :vsn) do
+      {:ok, version} -> List.to_string(version)
+      :undefined -> "dev"
+    end
   end
 
   defp load_dot_config do
