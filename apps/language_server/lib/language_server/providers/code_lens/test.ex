@@ -38,36 +38,37 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
       |> Enum.map(fn {_k, v} -> v end)
       |> List.flatten()
 
-    for func <- runnable_functions do
-      for {line, _col} <- calls_to(calls_list, func),
-          is_test_module?(metadata.lines_to_env, line) do
-        build_function_test_code_lens(func, file_path, line)
-      end
+    lines_to_env_list = Map.to_list(metadata.lines_to_env)
+
+    for func <- runnable_functions,
+        {line, _col} <- calls_to(calls_list, func),
+        is_test_module?(lines_to_env_list, line) do
+      build_function_test_code_lens(func, file_path, line)
     end
-    |> List.flatten()
   end
 
   defp is_test_module?(lines_to_env), do: is_test_module?(lines_to_env, :infinity)
 
-  defp is_test_module?(lines_to_env, line) when is_map(lines_to_env) do
-    lines_to_env
-    |> Map.to_list()
-    |> is_test_module?(line)
-  end
-
   defp is_test_module?(lines_to_env, line) when is_list(lines_to_env) do
     lines_to_env
-    |> Enum.filter(fn {env_line, _env} -> env_line < line end)
-    |> List.last()
+    |> Enum.max_by(fn
+      {env_line, _env} when env_line < line -> env_line
+      _ -> -1
+    end)
     |> elem(1)
     |> Map.get(:imports)
     |> Enum.any?(fn module -> module == ExUnit.Case end)
   end
 
   defp calls_to(calls_list, {function, arity}) do
-    calls_list
-    |> Enum.filter(fn call_info -> call_info.func == function and call_info.arity === arity end)
-    |> Enum.map(fn call -> call.position end)
+    for call_info <- calls_list,
+        call_info.func == function and call_info.arity === arity do
+      call_info.position
+    end
+
+    # calls_list
+    # |> Enum.filter(fn call_info -> call_info.func == function and call_info.arity === arity end)
+    # |> Enum.map(fn call -> call.position end)
   end
 
   defp build_test_module_code_lens(file_path, {module, line}) do
