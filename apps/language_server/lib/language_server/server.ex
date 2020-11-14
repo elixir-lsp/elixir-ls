@@ -346,7 +346,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(%{"method" => "$/" <> _}, state) do
-    # not supported "$/" notification may be safely ignored
+    # not supported "$/" notifications may be safely ignored
     state
   end
 
