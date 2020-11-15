@@ -414,6 +414,9 @@ defmodule ElixirLS.Debugger.Server do
   defp evaluate_code_expression(expr, bindings, timeout) do
     task =
       Task.async(fn ->
+        receive do
+          :continue -> :ok
+        end
         try do
           {term, _bindings} = Code.eval_string(expr, bindings)
           term
@@ -423,6 +426,7 @@ defmodule ElixirLS.Debugger.Server do
       end)
 
     Process.unlink(task.pid)
+    send(task.pid, :continue)
 
     result = Task.yield(task, timeout) || Task.shutdown(task)
 
