@@ -417,6 +417,7 @@ defmodule ElixirLS.Debugger.Server do
         receive do
           :continue -> :ok
         end
+
         try do
           {term, _bindings} = Code.eval_string(expr, bindings)
           term
