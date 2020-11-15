@@ -2,12 +2,13 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   use ExUnit.Case, async: true
 
   alias ElixirLS.LanguageServer.Providers.References
+  alias ElixirLS.LanguageServer.SourceFile
   require ElixirLS.Test.TextLoc
 
   test "finds references to a function" do
-    file_path = Path.join(__DIR__, "../../support/references_b.ex") |> Path.expand()
+    file_path = Path.join(__DIR__, "../support/references_b.ex") |> Path.expand()
     text = File.read!(file_path)
-    uri = "file://#{file_path}"
+    uri = SourceFile.path_to_uri(file_path)
 
     {line, char} = {2, 8}
 
@@ -38,9 +39,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   end
 
   test "cannot find a references to a macro generated function call" do
-    file_path = Path.join(__DIR__, "../../support/uses_macro_a.ex") |> Path.expand()
+    file_path = Path.join(__DIR__, "../support/uses_macro_a.ex") |> Path.expand()
     text = File.read!(file_path)
-    uri = "file://#{file_path}"
+    uri = SourceFile.path_to_uri(file_path)
     {line, char} = {6, 13}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
@@ -52,9 +53,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   end
 
   test "finds a references to a macro imported function call" do
-    file_path = Path.join(__DIR__, "../../support/uses_macro_a.ex") |> Path.expand()
+    file_path = Path.join(__DIR__, "../support/uses_macro_a.ex") |> Path.expand()
     text = File.read!(file_path)
-    uri = "file://#{file_path}"
+    uri = SourceFile.path_to_uri(file_path)
     {line, char} = {10, 4}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
@@ -74,9 +75,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   end
 
   test "finds references to a variable" do
-    file_path = Path.join(__DIR__, "../../support/references_b.ex") |> Path.expand()
+    file_path = Path.join(__DIR__, "../support/references_b.ex") |> Path.expand()
     text = File.read!(file_path)
-    uri = "file://#{file_path}"
+    uri = SourceFile.path_to_uri(file_path)
     {line, char} = {4, 14}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
