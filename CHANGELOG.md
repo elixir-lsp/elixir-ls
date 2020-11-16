@@ -19,6 +19,7 @@ Housekeeping:
 VSCode:
 - Bump deps and switch to newer vscode platform version (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#148](https://github.com/elixir-lsp/vscode-elixir-ls/pull/148)
 - Subscribe Copy Debug Info command for disposal (thanks [Tan Jay Jun](https://github.com/jayjun)) [#149](https://github.com/elixir-lsp/vscode-elixir-ls/pull/149)
+- Turn files in stack traces into clickable links (thanks [Tan Jay Jun](https://github.com/jayjun)) [#152](https://github.com/elixir-lsp/vscode-elixir-ls/pull/152)
 
 ### v0.6.1: 4 October 2020
 
