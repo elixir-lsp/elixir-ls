@@ -1,7 +1,10 @@
 ### Unreleased
 
+### v0.6.2: 15 November 2020
+
 Improvements:
 - Add setup.bat support for windows (thanks [E14](https://github.com/E14)) [#374](https://github.com/elixir-lsp/elixir-ls/pull/374)
+- Add a message when done fetching deps [#380](https://github.com/elixir-lsp/elixir-ls/pull/380)
 
 Changes:
 - Remove query prefixes from workspace symbol search (the functionality is now longer supported by VSCode) (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#396](https://github.com/elixir-lsp/elixir-ls/pull/396)
