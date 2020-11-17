@@ -1,4 +1,13 @@
 defmodule DescribeBlock do
+  @moduledoc """
+  Identifies test execution targets and provides code lenses for automatically executing them.
+
+  Supports the following execution targets:
+  * Test modules (any module that imports ExUnit.Case)
+  * Describe blocks (any call to describe/2 inside a test module)
+  * Test blocks (any call to test/2 or test/3 inside a test module)
+  """
+
   alias ElixirSense.Core.State.Env
 
   @struct_keys [:line, :name, :body_scope_id]

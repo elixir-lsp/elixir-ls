@@ -1,4 +1,15 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec do
+  @moduledoc """
+  Collects the success typings inferred by Dialyzer, translates the syntax to Elixir, and shows them
+  inline in the editor as @spec suggestions.
+
+  The server, unfortunately, has no way to force the client to refresh the @spec code lenses when new
+  success typings, so we let this request block until we know we have up-to-date results from
+  Dialyzer. We rely on the client being able to await this result while still making other requests
+  in parallel. If the client is unable to perform requests in parallel, the client or user should
+  disable this feature.
+  """
+
   alias ElixirLS.LanguageServer.Providers.CodeLens
   alias ElixirLS.LanguageServer.{Server, SourceFile}
   alias Erl2ex.Convert.{Context, ErlForms}

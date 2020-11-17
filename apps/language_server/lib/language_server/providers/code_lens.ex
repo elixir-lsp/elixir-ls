@@ -1,13 +1,10 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeLens do
   @moduledoc """
-  Collects the success typings inferred by Dialyzer, translates the syntax to Elixir, and shows them
-  inline in the editor as @spec suggestions.
+  Provides different code lenses to the client.
 
-  The server, unfortunately, has no way to force the client to refresh the @spec code lenses when new
-  success typings, so we let this request block until we know we have up-to-date results from
-  Dialyzer. We rely on the client being able to await this result while still making other requests
-  in parallel. If the client is unable to perform requests in parallel, the client or user should
-  disable this feature.
+  Supports the following code lenses:
+  * Suggestions for Dialyzer @spec definitions
+  * Shortcuts for executing tests
   """
 
   alias ElixirLS.LanguageServer.Providers.CodeLens
