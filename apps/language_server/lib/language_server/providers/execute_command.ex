@@ -9,6 +9,30 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
 
   @default_target_line_length 98
 
+  def execute("expandMacro", [uri, text, line], state)
+      when is_binary(text) and is_integer(line) do
+    source_file = Server.get_source_file(state, uri)
+    cur_text = source_file.text
+
+    result = ElixirSense.expand_full(cur_text, text, line + 1)
+
+    formatted =
+      for {key, value} <- result,
+          into: %{},
+          do:
+            (
+              key =
+                key
+                |> Atom.to_string()
+                |> Macro.camelize()
+                |> String.replace("Expand", "expand")
+
+              {key, value |> Code.format_string!() |> List.to_string()}
+            )
+
+    {:ok, formatted}
+  end
+
   def execute("spec:" <> _, args, state) do
     [
       %{

@@ -779,7 +779,12 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
-      "executeCommandProvider" => %{"commands" => ["spec:#{server_instance_id}"]},
+      "executeCommandProvider" => %{
+        "commands" => [
+          "spec:#{server_instance_id}",
+          "expandMacro"
+        ]
+      },
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       }
