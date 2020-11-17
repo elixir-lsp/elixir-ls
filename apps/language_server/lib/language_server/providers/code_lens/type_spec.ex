@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Providers.CodeLens.Spec do
+defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec do
   alias ElixirLS.LanguageServer.Providers.CodeLens
   alias ElixirLS.LanguageServer.{Server, SourceFile}
   alias Erl2ex.Convert.{Context, ErlForms}

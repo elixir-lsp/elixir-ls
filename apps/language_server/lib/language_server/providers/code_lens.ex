@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
   import ElixirLS.LanguageServer.Protocol
 
   def spec_code_lens(server_instance_id, uri, text),
-    do: CodeLens.Spec.code_lens(server_instance_id, uri, text)
+    do: CodeLens.TypeSpec.code_lens(server_instance_id, uri, text)
 
   def test_code_lens(uri, text), do: CodeLens.Test.code_lens(uri, text)
 
