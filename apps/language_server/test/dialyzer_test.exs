@@ -347,4 +347,81 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       end)
     end)
   end
+
+  test "protocol rebuild does not trigger consolidation warnings", %{server: server} do
+    in_fixture(__DIR__, "protocols", fn ->
+      root_uri = SourceFile.path_to_uri(File.cwd!())
+      uri = SourceFile.path_to_uri(Path.absname("lib/implementations.ex"))
+
+      Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+      Server.receive_packet(server, notification("initialized"))
+
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => true}})
+      )
+
+      assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
+
+      assert_receive notification("window/logMessage", %{
+                       "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
+                     }),
+                     30000
+
+      v2_text = """
+      defimpl Protocols.Example, for: List do
+        def some(t), do: t
+      end
+
+      defimpl Protocols.Example, for: String do
+        def some(t), do: t
+      end
+
+      defimpl Protocols.Example, for: Map do
+        def some(t), do: t
+      end
+      """
+
+      Server.receive_packet(server, did_open(uri, "elixir", 1, v2_text))
+      File.write!("lib/implementations.ex", v2_text)
+      Server.receive_packet(server, did_save(uri))
+
+      assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
+
+      assert_receive notification("textDocument/publishDiagnostics", %{"diagnostics" => []}),
+                     30000
+
+      Process.sleep(2000)
+
+      v2_text = """
+      defimpl Protocols.Example, for: List do
+        def some(t), do: t
+      end
+
+      defimpl Protocols.Example, for: String do
+        def some(t), do: t
+      end
+
+      defimpl Protocols.Example, for: Map do
+        def some(t), do: t
+      end
+
+      defimpl Protocols.Example, for: Atom do
+        def some(t), do: t
+      end
+      """
+
+      Server.receive_packet(server, did_open(uri, "elixir", 1, v2_text))
+      File.write!("lib/implementations.ex", v2_text)
+      Server.receive_packet(server, did_save(uri))
+
+      assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
+
+      assert_receive notification("textDocument/publishDiagnostics", %{"diagnostics" => []}),
+                     30000
+
+      # we should not receive Protocol has already been consolidated warnings here
+      refute_receive notification("textDocument/publishDiagnostics", _), 3000
+    end)
+  end
 end
