@@ -24,6 +24,7 @@ defmodule ElixirLS.LanguageServer.Build do
                     fetch_deps()
                   end
 
+                  purge_consolidated_protocols()
                   {status, diagnostics} = compile()
 
                   if status in [:ok, :noop] and Keyword.get(opts, :load_all_modules?) do
@@ -123,8 +124,7 @@ defmodule ElixirLS.LanguageServer.Build do
         %{file: ^mixfile, name: module} ->
           # FIXME: Private API
           Mix.Project.pop()
-          :code.purge(module)
-          :code.delete(module)
+          purge_module(module)
 
         _ ->
           :ok
@@ -205,6 +205,22 @@ defmodule ElixirLS.LanguageServer.Build do
       _ ->
         {:ok, []}
     end
+  end
+
+  defp purge_consolidated_protocols do
+    config = Mix.Project.config()
+    path = Mix.Project.consolidation_path(config)
+
+    with {:ok, beams} <- File.ls(path) do
+      Enum.map(beams, &(&1 |> Path.rootname(".beam") |> String.to_atom() |> purge_module()))
+    end
+
+    # Code.delete_path(path)
+  end
+
+  defp purge_module(module) do
+    :code.purge(module)
+    :code.delete(module)
   end
 
   defp cached_deps do
