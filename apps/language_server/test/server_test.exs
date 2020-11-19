@@ -195,36 +195,161 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end
   end
 
-  test "textDocument/didChange when the client hasn't claimed ownership with textDocument/didOpen",
-       %{server: server} do
-    uri = "file:///file.ex"
+  describe "text synchronization" do
+    test "textDocument/didOpen", %{server: server} do
+      uri = "file:///file.ex"
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
-    content_changes = [
-      %{
-        "range" => %{
-          "end" => %{"character" => 2, "line" => 1},
-          "start" => %{"character" => 0, "line" => 2}
-        },
-        "rangeLength" => 1,
-        "text" => ""
-      }
-    ]
+      state = :sys.get_state(server)
+      assert %SourceFile{dirty?: false, text: ^code, version: 1} = Server.get_source_file(state, uri)
+      assert_receive notification("textDocument/publishDiagnostics", %{
+        "uri" => ^uri,
+        "diagnostics" => []
+      }),
+      1000
+    end
 
-    version = 2
-    fake_initialize(server)
-    Server.receive_packet(server, did_change(uri, version, content_changes))
+    test "textDocument/didOpen already open", %{server: server} do
+      uri = "file:///file.ex"
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
-    assert_receive %{
-      "method" => "window/logMessage",
-      "params" => %{
-        "message" =>
-          "Received textDocument/didChange for file that is not open. Received uri: \"file:///file.ex\"",
-        "type" => 2
-      }
-    }
+      assert_receive (%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Received textDocument/didOpen for file that is already open" <> _, "type" => 2}
+      }),
+      1000
+    end
+    
+    test "textDocument/didClose", %{server: server} do
+      uri = "file:///file.ex"
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, did_close(uri))
 
-    # Wait for the server to process the message and ensure that there is no exception
-    _ = :sys.get_state(server)
+      state = :sys.get_state(server)
+      assert_raise Server.InvalidURIError, fn -> Server.get_source_file(state, uri) end
+    end
+
+    test "textDocument/didClose not open", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_close(uri))
+
+      assert_receive (%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Received textDocument/didClose for file that is not open" <> _, "type" => 2}
+      }),
+      1000
+    end
+
+    test "textDocument/didChange", %{server: server} do
+      uri = "file:///file.ex"
+      content_changes = [
+        %{
+          "range" => %{
+            "end" => %{"character" => 2, "line" => 1},
+            "start" => %{"character" => 0, "line" => 2}
+          },
+          "rangeLength" => 1,
+          "text" => ""
+        }
+      ]
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, did_change(uri, 1, content_changes))
+
+      state = :sys.get_state(server)
+      assert %SourceFile{dirty?: true, version: 2} = Server.get_source_file(state, uri)
+    end
+
+    test "textDocument/didChange not open", %{server: server} do
+      uri = "file:///file.ex"
+      content_changes = [
+        %{
+          "range" => %{
+            "end" => %{"character" => 2, "line" => 1},
+            "start" => %{"character" => 0, "line" => 2}
+          },
+          "rangeLength" => 1,
+          "text" => ""
+        }
+      ]
+      fake_initialize(server)
+      Server.receive_packet(server, did_change(uri, 1, content_changes))
+
+      assert_receive (%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Received textDocument/didChange for file that is not open" <> _, "type" => 2}
+      }),
+      1000
+
+      state = :sys.get_state(server)
+      refute Map.has_key?(state.source_files, uri)
+    end
+
+    test "textDocument/didSave", %{server: server} do
+      uri = "file:///file.ex"
+      content_changes = [
+        %{
+          "range" => %{
+            "end" => %{"character" => 2, "line" => 1},
+            "start" => %{"character" => 0, "line" => 2}
+          },
+          "rangeLength" => 1,
+          "text" => ""
+        }
+      ]
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, did_change(uri, 1, content_changes))
+      Server.receive_packet(server, did_save(uri))
+
+      state = :sys.get_state(server)
+      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+    end
+
+    test "textDocument/didSave not open", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_save(uri))
+
+      assert_receive (%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Received textDocument/didSave for file that is not open" <> _, "type" => 2}
+      }),
+      1000
+
+      state = :sys.get_state(server)
+      refute Map.has_key?(state.source_files, uri)
+    end
   end
 
   test "hover", %{server: server} do

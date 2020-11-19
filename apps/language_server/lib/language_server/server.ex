@@ -288,56 +288,91 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_open(uri, _language_id, version, text), state) do
-    source_file = %SourceFile{text: text, version: version}
-
-    Build.publish_file_diagnostics(
-      uri,
-      state.build_diagnostics ++ state.dialyzer_diagnostics,
-      source_file
-    )
-
-    put_in(state.source_files[uri], source_file)
-  end
-
-  defp handle_notification(did_close(uri), state) do
-    awaiting_contracts =
-      Enum.reject(state.awaiting_contracts, fn
-        {from, ^uri} -> GenServer.reply(from, [])
-        _ -> false
-      end)
-
-    %{
-      state
-      | source_files: Map.delete(state.source_files, uri),
-        awaiting_contracts: awaiting_contracts
-    }
-  end
-
-  defp handle_notification(did_change(uri, version, content_changes), state) do
-    update_in(state.source_files[uri], fn
-      nil ->
-        # The source file was not marked as open either due to a bug in the
-        # client or a restart of the server. So just ignore the message and do
-        # not update the state
-        JsonRpc.log_message(
+    if Map.has_key?(state.source_files, uri) do
+      # An open notification must not be sent more than once without a corresponding
+      # close notification send before
+      JsonRpc.log_message(
           :warning,
-          "Received textDocument/didChange for file that is not open. Received uri: #{
+          "Received textDocument/didOpen for file that is already open. Received uri: #{
             inspect(uri)
           }"
         )
+      state
+    else
+      source_file = %SourceFile{text: text, version: version}
 
-        nil
+      Build.publish_file_diagnostics(
+        uri,
+        state.build_diagnostics ++ state.dialyzer_diagnostics,
+        source_file
+      )
+      
+      put_in(state.source_files[uri], source_file)
+    end
+  end
 
-      source_file ->
-        source_file = %{source_file | version: version, dirty?: true}
-        SourceFile.apply_content_changes(source_file, content_changes)
-    end)
+  defp handle_notification(did_close(uri), state) do
+    if not Map.has_key?(state.source_files, uri) do
+      # A close notification requires a previous open notification to be sent
+      JsonRpc.log_message(
+          :warning,
+          "Received textDocument/didClose for file that is not open. Received uri: #{
+            inspect(uri)
+          }"
+        )
+      state
+    else
+      # TODO is it ok
+      awaiting_contracts =
+        Enum.reject(state.awaiting_contracts, fn
+          {from, ^uri} -> GenServer.reply(from, [])
+          _ -> false
+        end)
+
+      %{
+        state
+        | source_files: Map.delete(state.source_files, uri),
+          awaiting_contracts: awaiting_contracts
+      }
+    end
+  end
+
+  defp handle_notification(did_change(uri, version, content_changes), state) do
+    if not Map.has_key?(state.source_files, uri) do
+      # The source file was not marked as open either due to a bug in the
+      # client or a restart of the server. So just ignore the message and do
+      # not update the state
+      JsonRpc.log_message(
+        :warning,
+        "Received textDocument/didChange for file that is not open. Received uri: #{
+          inspect(uri)
+        }"
+      )
+
+      state
+    else
+      update_in(state.source_files[uri], fn source_file ->
+        %SourceFile{source_file | version: version, dirty?: true}
+        |> SourceFile.apply_content_changes(content_changes)
+      end)
+    end
   end
 
   defp handle_notification(did_save(uri), state) do
-    WorkspaceSymbols.notify_uris_modified([uri])
-    state = update_in(state.source_files[uri], &%{&1 | dirty?: false})
-    trigger_build(state)
+    if not Map.has_key?(state.source_files, uri) do
+      JsonRpc.log_message(
+          :warning,
+          "Received textDocument/didSave for file that is not open. Received uri: #{
+            inspect(uri)
+          }"
+        )
+      state
+    else
+      JsonRpc.log_message(:warning, "saved #{uri}")
+      WorkspaceSymbols.notify_uris_modified([uri])
+      state = update_in(state.source_files[uri], &%{&1 | dirty?: false})
+      trigger_build(state)
+    end
   end
 
   defp handle_notification(did_change_watched_files(changes), state) do
