@@ -11,11 +11,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     String.split(text, ["\r\n", "\r", "\n"])
   end
 
-  def apply_content_changes(source_file, []) do
+  def apply_content_changes(%__MODULE__{} = source_file, []) do
     source_file
   end
 
-  def apply_content_changes(source_file, [edit | rest]) do
+  def apply_content_changes(%__MODULE__{} = source_file, [edit | rest]) do
     source_file =
       case edit do
         %{"range" => edited_range, "text" => new_text} when not is_nil(edited_range) ->

@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   alias ElixirLS.LanguageServer.SourceFile
   import ElixirLS.LanguageServer.Protocol
 
-  def format(source_file, line, character, "\n", _options) do
+  def format(%SourceFile{} = source_file, line, character, "\n", _options) do
     lines = SourceFile.lines(source_file)
     prev_line = Enum.at(lines, line - 1)
 
