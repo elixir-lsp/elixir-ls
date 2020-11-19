@@ -5,10 +5,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
 
   alias ElixirLS.LanguageServer.{JsonRpc, SourceFile}
   import ElixirLS.LanguageServer.Protocol
+  alias ElixirLS.LanguageServer.Server
 
   @default_target_line_length 98
 
-  def execute("spec:" <> _, args, source_files) do
+  def execute("spec:" <> _, args, state) do
     [
       %{
         "uri" => uri,
@@ -23,7 +24,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     mod = String.to_atom(mod)
     fun = String.to_atom(fun)
 
-    cur_text = source_files[uri].text
+    source_file = Server.get_source_file(state, uri)
+
+    cur_text = source_file.text
 
     # In case line has changed since this suggestion was generated, look for the function's current
     # line number and fall back to the previous line number if we can't guess the new one

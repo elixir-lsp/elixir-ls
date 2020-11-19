@@ -310,9 +310,11 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     assert column > 0
   end
 
-  test "requests cancellation", %{server: server} do
+  test "requests cancellation - known request", %{server: server} do
     fake_initialize(server)
-    Server.receive_packet(server, hover_req(1, "file:///file.ex", 1, 1))
+    uri = "file:///file.ex"
+    Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+    Server.receive_packet(server, hover_req(1, uri, 1, 1))
     Server.receive_packet(server, cancel_request(1))
 
     assert_receive %{
@@ -320,6 +322,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       "id" => 1,
       "jsonrpc" => "2.0"
     }
+  end
+
+  test "requests cancellation - unknown request", %{server: server} do
+    fake_initialize(server)
+    Process.monitor(server)
+    Server.receive_packet(server, cancel_request(1))
+
+    # TODO warn
+    refute_receive {:DOWN, _, _, _, _}
   end
 
   test "requests shutdown without params", %{server: server} do
@@ -334,17 +345,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     assert %{received_shutdown?: true} = :sys.get_state(server)
   end
 
-  test "document symbols request when there are no client capabilities and the source file is not loaded into the server",
+  test "uri request when the source file is not open returns -32602",
        %{server: server} do
     fake_initialize(server)
-    server_state = :sys.get_state(server)
-    assert server_state.client_capabilities == nil
-    assert server_state.source_files == %{}
 
     Server.receive_packet(server, document_symbol_req(1, "file:///file.ex"))
-
-    resp = assert_receive(%{"id" => 1}, 1000)
-    assert resp["result"] == []
+    assert_receive(%{"id" => 1, "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}}, 1000)
   end
 
   test "incremental formatter", %{server: server} do

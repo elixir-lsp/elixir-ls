@@ -58,6 +58,16 @@ defmodule ElixirLS.LanguageServer.Server do
     supports_dynamic: false
   ]
 
+  defmodule InvalidURIError do
+    defexception [:uri, :message]
+
+    @impl true
+    def exception(uri) do
+      msg = "invalid URI: #{inspect(uri)}"
+      %InvalidURIError{message: msg, uri: uri}
+    end
+  end
+
   ## Client API
 
   def start_link(name \\ nil) do
@@ -383,6 +393,11 @@ defmodule ElixirLS.LanguageServer.Server do
         {pid, _ref} = handle_request_async(id, fun)
         %{state | requests: Map.put(state.requests, id, pid)}
     end
+  rescue
+    e in InvalidURIError ->
+      JsonRpc.respond_with_error(id, :invalid_params, e.message)
+    other ->
+      JsonRpc.respond_with_error(id, :internal_error, other.message)
   end
 
   defp handle_request_packet(id, _packet, state) do
@@ -441,18 +456,20 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(definition_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
     fun = fn ->
-      Definition.definition(uri, state.source_files[uri].text, line, character)
+      Definition.definition(uri, source_file.text, line, character)
     end
 
     {:async, fun, state}
   end
 
   defp handle_request(references_req(_id, uri, line, character, include_declaration), state) do
+    source_file = get_source_file(state, uri)
     fun = fn ->
       {:ok,
        References.references(
-         state.source_files[uri].text,
+         source_file.text,
          uri,
          line,
          character,
@@ -464,14 +481,16 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(hover_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
     fun = fn ->
-      Hover.hover(state.source_files[uri].text, line, character)
+      Hover.hover(source_file.text, line, character)
     end
 
     {:async, fun, state}
   end
 
   defp handle_request(document_symbol_req(_id, uri), state) do
+    source_file = get_source_file(state, uri)
     fun = fn ->
       hierarchical? =
         get_in(state.client_capabilities, [
@@ -480,9 +499,7 @@ defmodule ElixirLS.LanguageServer.Server do
           "hierarchicalDocumentSymbolSupport"
         ]) || false
 
-      source_file = state.source_files[uri]
-
-      if source_file && String.ends_with?(uri, [".ex", ".exs"]) do
+      if String.ends_with?(uri, [".ex", ".exs"]) do
         DocumentSymbols.symbols(uri, source_file.text, hierarchical?)
       else
         {:ok, []}
@@ -494,7 +511,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(workspace_symbol_req(_id, query), state) do
     fun = fn ->
-      state.source_files
       WorkspaceSymbols.symbols(query)
     end
 
@@ -502,6 +518,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(completion_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
     snippets_supported =
       !!get_in(state.client_capabilities, [
         "textDocument",
@@ -543,7 +560,7 @@ defmodule ElixirLS.LanguageServer.Server do
     signature_after_complete = Map.get(state.settings || %{}, "signatureAfterComplete", true)
 
     fun = fn ->
-      Completion.completion(state.source_files[uri].text, line, character,
+      Completion.completion(source_file.text, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
         tags_supported: tags_supported,
@@ -557,33 +574,31 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(formatting_req(_id, uri, _options), state) do
-    case state.source_files[uri] do
-      nil ->
-        {:error, :server_error, "Missing source file", state}
-
-      source_file ->
-        fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
-        {:async, fun, state}
-    end
+    source_file = get_source_file(state, uri)
+    fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
+    {:async, fun, state}
   end
 
   defp handle_request(signature_help_req(_id, uri, line, character), state) do
-    fun = fn -> SignatureHelp.signature(state.source_files[uri], line, character) end
+    source_file = get_source_file(state, uri)
+    fun = fn -> SignatureHelp.signature(source_file, line, character) end
     {:async, fun, state}
   end
 
   defp handle_request(on_type_formatting_req(_id, uri, line, character, ch, options), state) do
+    source_file = get_source_file(state, uri)
     fun = fn ->
-      OnTypeFormatting.format(state.source_files[uri], line, character, ch, options)
+      OnTypeFormatting.format(source_file, line, character, ch, options)
     end
 
     {:async, fun, state}
   end
 
   defp handle_request(code_lens_req(_id, uri), state) do
+    source_file = get_source_file(state, uri)
     if dialyzer_enabled?(state) and state.settings["suggestSpecs"] != false do
       {:async,
-       fn -> CodeLens.code_lens(state.server_instance_id, uri, state.source_files[uri].text) end,
+       fn -> CodeLens.code_lens(state.server_instance_id, uri, source_file.text) end,
        state}
     else
       {:ok, nil, state}
@@ -591,7 +606,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(execute_command_req(_id, command, args), state) do
-    {:async, fn -> ExecuteCommand.execute(command, args, state.source_files) end, state}
+    {:async, fn -> ExecuteCommand.execute(command, args, state) end, state}
   end
 
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
@@ -924,5 +939,14 @@ defmodule ElixirLS.LanguageServer.Server do
     )
 
     state
+  end
+
+  def get_source_file(state, uri) do
+    case state.source_files[uri] do
+      nil ->
+        raise InvalidURIError, uri
+      source_file ->
+        source_file
+    end
   end
 end
