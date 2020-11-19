@@ -232,13 +232,10 @@ defmodule ElixirLS.LanguageServer.Server do
     Process.send_after(self(), :default_config, 5000)
 
     if state.supports_dynamic do
+      watchers = for ext <- @watched_extensions, do: 
+        %{"globPattern" => "**/*." <> ext}
       JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
-        "watchers" => [
-          %{"globPattern" => "**/*.ex"},
-          %{"globPattern" => "**/*.exs"},
-          %{"globPattern" => "**/*.eex"},
-          %{"globPattern" => "**/*.leex"}
-        ]
+        "watchers" => watchers
       })
     end
 
@@ -384,7 +381,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(did_change_watched_files(changes), state) do
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
-        Path.extname(uri) in [".ex", ".exs", ".erl", ".yrl", ".xrl", ".eex", ".leex"] and
+        Path.extname(uri) in @watched_extensions and
           (type in [1, 3] or not Map.has_key?(state.source_files, uri))
       end)
 
