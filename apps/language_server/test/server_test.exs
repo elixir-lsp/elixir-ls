@@ -435,39 +435,50 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     assert column > 0
   end
 
-  test "requests cancellation - known request", %{server: server} do
-    fake_initialize(server)
-    uri = "file:///file.ex"
-    Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-    Server.receive_packet(server, hover_req(1, uri, 1, 1))
-    Server.receive_packet(server, cancel_request(1))
+  describe "requests cancellation" do
+    test "known request", %{server: server} do
+      fake_initialize(server)
+      uri = "file:///file.ex"
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, hover_req(1, uri, 1, 1))
+      Server.receive_packet(server, cancel_request(1))
 
-    assert_receive %{
-      "error" => %{"code" => -32800, "message" => "Request cancelled"},
-      "id" => 1,
-      "jsonrpc" => "2.0"
-    }
+      state = :sys.get_state(server)
+      refute Map.has_key?(state.requests, 1)
+
+      assert_receive %{
+        "error" => %{"code" => -32800, "message" => "Request cancelled"},
+        "id" => 1,
+        "jsonrpc" => "2.0"
+      }
+    end
+
+    test "unknown request", %{server: server} do
+      fake_initialize(server)
+      Process.monitor(server)
+      Server.receive_packet(server, cancel_request(1))
+
+      assert_receive (%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Received $/cancelRequest for unknown request" <> _, "type" => 2}
+      }),
+      1000
+      refute_receive {:DOWN, _, _, _, _}
+    end
   end
 
-  test "requests cancellation - unknown request", %{server: server} do
-    fake_initialize(server)
-    Process.monitor(server)
-    Server.receive_packet(server, cancel_request(1))
+  describe "requests shutdown" do
+    test "without params", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, request(1, "shutdown"))
+      assert %{received_shutdown?: true} = :sys.get_state(server)
+    end
 
-    # TODO warn
-    refute_receive {:DOWN, _, _, _, _}
-  end
-
-  test "requests shutdown without params", %{server: server} do
-    fake_initialize(server)
-    Server.receive_packet(server, request(1, "shutdown"))
-    assert %{received_shutdown?: true} = :sys.get_state(server)
-  end
-
-  test "requests shutdown with params", %{server: server} do
-    fake_initialize(server)
-    Server.receive_packet(server, request(1, "shutdown", nil))
-    assert %{received_shutdown?: true} = :sys.get_state(server)
+    test "with params", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, request(1, "shutdown", nil))
+      assert %{received_shutdown?: true} = :sys.get_state(server)
+    end
   end
 
   test "uri request when the source file is not open returns -32602",

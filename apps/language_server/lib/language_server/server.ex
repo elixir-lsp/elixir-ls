@@ -253,6 +253,12 @@ defmodule ElixirLS.LanguageServer.Server do
         %{state | requests: Map.delete(requests, id)}
 
       _ ->
+        JsonRpc.log_message(
+          :warning,
+          "Received $/cancelRequest for unknown request id: #{
+            inspect(id)
+          }"
+        )
         state
     end
   end
