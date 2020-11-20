@@ -87,7 +87,9 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             # https://microsoft.github.io/language-server-protocol/specification#textDocuments
             beginning_utf8 =
               :unicode.characters_to_binary(line, :utf8, :utf16)
-              |> binary_part(0, start_character * 2)
+              |> (&binary_part(
+                &1, 0, min(start_character * 2, byte_size(&1))
+              )).()
               |> :unicode.characters_to_binary(:utf16, :utf8)
 
             [beginning_utf8 | acc]
@@ -112,8 +114,8 @@ defmodule ElixirLS.LanguageServer.SourceFile do
               :unicode.characters_to_binary(line, :utf8, :utf16)
               |> (&binary_part(
                     &1,
-                    end_character * 2,
-                    byte_size(&1) - end_character * 2
+                    min(end_character * 2, byte_size(&1)),
+                    max(byte_size(&1) - end_character * 2, 0)
                   )).()
               |> :unicode.characters_to_binary(:utf16, :utf8)
 
@@ -124,9 +126,18 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         end
       end)
 
-    # Remove extraneous newline from last line
-    [[last_line, ?\n] | rest] = acc
-    acc = [last_line | rest]
+    acc = case acc do
+      [[last_line, ?\n] | rest] ->
+        # Remove extraneous newline from last line
+        [last_line | rest]
+      [line, [line_before, ?\n] | rest] when is_binary(line) ->
+        # Degenerate case: start and end after document
+        # Remove extraneous newline from line before last line
+        [line, line_before | rest]
+      [line] when is_binary(line) ->
+        # Degenerate case: start before end after document
+        [line]
+    end
 
     IO.iodata_to_binary(Enum.reverse(acc))
   end
