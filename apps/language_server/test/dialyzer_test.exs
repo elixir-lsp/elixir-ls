@@ -113,18 +113,21 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         c_uri = SourceFile.path_to_uri("lib/c.ex")
 
+        Server.receive_packet(server, did_open(c_uri, "elixir", 1, c_text))
+
         # The dialyzer process checks a second back since mtime only has second
         # granularity, so we need to trigger one save that will set the
         # timestamp, and then wait a second and save again to get the actual
         # changed file.
         for _ <- 1..2 do
-          Server.receive_packet(server, did_open(c_uri, "elixir", 1, c_text))
+          IO.warn "write"
           File.write!("lib/c.ex", c_text)
           Server.receive_packet(server, did_save(c_uri))
           assert_receive publish_diagnostics_notif(^file_c, []), 20_000
-
           Process.sleep(1_500)
         end
+
+        
 
         assert_receive notification("window/logMessage", %{
                          "message" => "[ElixirLS Dialyzer] Found 1 changed files" <> _
@@ -411,7 +414,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       end
       """
 
-      Server.receive_packet(server, did_open(uri, "elixir", 1, v2_text))
       File.write!("lib/implementations.ex", v2_text)
       Server.receive_packet(server, did_save(uri))
 

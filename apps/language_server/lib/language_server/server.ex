@@ -216,6 +216,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case Enum.find(requests, &match?({_, ^pid}, &1)) do
         {id, _} ->
+          # TODO handle error
           error_msg = Exception.format_exit(reason)
           JsonRpc.respond_with_error(id, :server_error, error_msg)
           %{state | requests: Map.delete(requests, id)}
@@ -666,6 +667,7 @@ defmodule ElixirLS.LanguageServer.Server do
        fn -> CodeLens.code_lens(state.server_instance_id, uri, source_file.text) end,
        state}
     else
+      # TODO invalid request
       {:ok, nil, state}
     end
   end
