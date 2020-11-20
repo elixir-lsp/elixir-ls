@@ -334,6 +334,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       state = :sys.get_state(server)
       assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+      assert state.needs_build?
     end
 
     test "textDocument/didSave not open", %{server: server} do
@@ -350,6 +351,225 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       state = :sys.get_state(server)
       refute Map.has_key?(state.source_files, uri)
     end
+  end
+
+  describe "workspace/didChangeWatchedFiles" do
+    test "not watched file changed outside", %{server: server} do
+      uri = "file:///file.txt"
+      fake_initialize(server)
+
+      for change_type <- 1..3 do
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => change_type}]))
+
+        state = :sys.get_state(server)
+        refute state.needs_build?
+      end
+    end
+
+    test "watched file created outside", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+    end
+
+    test "watched file updated outside", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+    end
+
+    test "watched file deleted outside", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+    end
+
+    test "watched open file created in editor", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+    end
+
+    # this case compiles 2 times but cannot be easily fixed without breaking other cases
+    test "watched open file created in editor, didSave sent", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, did_save(uri))
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+    end
+
+    test "watched open file saved in editor", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, did_save(uri))
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+    end
+
+    test "watched open file deleted in editor", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, did_close(uri))
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+    end
+
+    test "watched open file created outside, contents same", %{server: server} do
+      content_changes = [
+        %{
+          "range" => %{
+            "end" => %{"character" => 2, "line" => 1},
+            "start" => %{"character" => 0, "line" => 2}
+          },
+          "rangeLength" => 1,
+          "text" => ""
+        }
+      ]
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      in_fixture(__DIR__, "references", fn ->
+        uri = SourceFile.path_to_uri("lib/a.ex")
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
+        state = :sys.get_state(server)
+        %SourceFile{text: updated_code} = Server.get_source_file(state, uri)
+        File.write!("lib/a.ex", updated_code)
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+
+        state = :sys.get_state(server)
+        assert state.needs_build?
+        assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+      end)
+    end
+
+    test "watched open file created outside, contents differ", %{server: server} do
+      content_changes = [
+        %{
+          "range" => %{
+            "end" => %{"character" => 2, "line" => 1},
+            "start" => %{"character" => 0, "line" => 2}
+          },
+          "rangeLength" => 1,
+          "text" => ""
+        }
+      ]
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      in_fixture(__DIR__, "references", fn ->
+        uri = SourceFile.path_to_uri("lib/a.ex")
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+
+        state = :sys.get_state(server)
+        assert state.needs_build?
+        assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
+      end)
+    end
+
+    test "watched open file created outside, read error", %{server: server} do
+      uri = "file:///file.ex"
+      content_changes = [
+        %{
+          "range" => %{
+            "end" => %{"character" => 2, "line" => 1},
+            "start" => %{"character" => 0, "line" => 2}
+          },
+          "rangeLength" => 1,
+          "text" => ""
+        }
+      ]
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, did_change(uri, 1, content_changes))
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+      assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
+
+      assert_receive (%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Unable to read file" <> _, "type" => 2}
+      }),
+      1000
+    end
+
+    test "watched open file updated outside, read error", %{server: server} do
+      uri = "file:///file.ex"
+      content_changes = [
+        %{
+          "range" => %{
+            "end" => %{"character" => 2, "line" => 1},
+            "start" => %{"character" => 0, "line" => 2}
+          },
+          "rangeLength" => 1,
+          "text" => ""
+        }
+      ]
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, did_change(uri, 1, content_changes))
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+
+      state = :sys.get_state(server)
+      assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
+      assert state.needs_build?
+    end
+
+    test "watched open file deleted outside", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build?
+    end    
   end
 
   test "hover", %{server: server} do

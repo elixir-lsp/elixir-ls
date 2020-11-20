@@ -68,6 +68,8 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
+  @watched_extensions [".ex", ".exs", ".erl", ".hrl", ".yrl", ".xrl", ".eex", ".leex"]
+
   ## Client API
 
   def start_link(name \\ nil) do
@@ -382,8 +384,33 @@ defmodule ElixirLS.LanguageServer.Server do
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
         Path.extname(uri) in @watched_extensions and
-          (type in [1, 3] or not Map.has_key?(state.source_files, uri))
+          (type in [1, 3] or not Map.has_key?(state.source_files, uri) or state.source_files[uri].dirty?)
       end)
+
+    source_files = changes
+    |> Enum.reduce(state.source_files, fn
+      %{"type" => 3}, acc ->
+        # deleted file still open in editor, keep dirty flag
+        acc
+      %{"uri" => uri}, acc ->
+        # file created/updated - set dirty flag to false if file contents are equal
+        case acc[uri] do
+          %SourceFile{text: source_file_text, dirty?: true} = source_file ->
+            case File.read(SourceFile.path_from_uri(uri)) do
+              {:ok, ^source_file_text} ->
+                Map.put(acc, uri, %SourceFile{source_file | dirty?: false})
+              {:ok, _} ->
+                acc
+              {:error, reason} ->
+                JsonRpc.log_message(:warning, "Unable to read #{uri}: #{inspect(reason)}")
+                # keep dirty if read fails
+                acc
+            end
+          _ -> acc
+        end
+    end)
+
+    state = %{state | source_files: source_files}
 
     changes
     |> Enum.map(& &1["uri"])
