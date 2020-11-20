@@ -403,4 +403,17 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       ])
     end
   end
+
+  test "lines" do
+    assert [""] == SourceFile.lines("")
+    assert ["abc"] == SourceFile.lines("abc")
+    assert ["", ""] == SourceFile.lines("\n")
+    assert ["a", ""] == SourceFile.lines("a\n")
+    assert ["", "a"] == SourceFile.lines("\na")
+    assert ["ABCDE", "FGHIJ"] == SourceFile.lines("ABCDE\rFGHIJ")
+    assert ["ABCDE", "FGHIJ"] == SourceFile.lines("ABCDE\r\nFGHIJ")
+    assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\nFGHIJ")
+    assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\r\rFGHIJ")
+    assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\rFGHIJ")
+  end
 end
