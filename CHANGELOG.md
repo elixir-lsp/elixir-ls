@@ -1,5 +1,29 @@
 ### Unreleased
 
+### v0.6.2: 15 November 2020
+
+Improvements:
+- Add setup.bat support for windows (thanks [E14](https://github.com/E14)) [#374](https://github.com/elixir-lsp/elixir-ls/pull/374)
+- Add a message when done fetching deps [#380](https://github.com/elixir-lsp/elixir-ls/pull/380)
+
+Changes:
+- Remove query prefixes from workspace symbol search (the functionality is now longer supported by VSCode) (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#396](https://github.com/elixir-lsp/elixir-ls/pull/396)
+
+Bug Fixes:
+- Fix formatting on windows (thanks [Po Chen](https://github.com/princemaple)) [#375](https://github.com/elixir-lsp/elixir-ls/pull/375)
+- Improve formatting speed (thanks [Matt Baker](https://github.com/mattbaker)) [#390](https://github.com/elixir-lsp/elixir-ls/pull/390)
+- Fix warnings and errors around starting wx (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#388](https://github.com/elixir-lsp/elixir-ls/pull/388)
+  - This fixes an issue when running ElixirLS in VSCode remote dev containers
+
+Housekeeping:
+- Add GitHub action to auto-publish releases (thanks [Po Chen](https://github.com/princemaple)) [#384](https://github.com/elixir-lsp/elixir-ls/pull/384)
+- Spec compliance, race condition fixes, and more tests (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#399](https://github.com/elixir-lsp/elixir-ls/pull/399)
+
+VSCode:
+- Bump deps and switch to newer vscode platform version (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#148](https://github.com/elixir-lsp/vscode-elixir-ls/pull/148)
+- Subscribe Copy Debug Info command for disposal (thanks [Tan Jay Jun](https://github.com/jayjun)) [#149](https://github.com/elixir-lsp/vscode-elixir-ls/pull/149)
+- Turn files in stack traces into clickable links (thanks [Tan Jay Jun](https://github.com/jayjun)) [#152](https://github.com/elixir-lsp/vscode-elixir-ls/pull/152)
+
 ### v0.6.1: 4 October 2020
 
 VSCode:

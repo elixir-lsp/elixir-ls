@@ -41,6 +41,7 @@ Note: On first run Dialyzer will build a PLT cache which will take a considerabl
 | Emacs        | [eglot](https://github.com/joaotavora/eglot)                                  |                                                |
 | Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger |
 | Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                        | Does not support debugger                      |
+| Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)              |                                                |
 
 Feel free to create and publish your own client packages and add them to this list!
 
@@ -117,6 +118,44 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
 }
 ```
 
+In order to debug a single test or a single test file it is currently necessary to modify `taskArgs` and make sure no other tests are requred in `requireFiles`.
+
+```
+{
+  "type": "mix_task",
+  "name": "mix test",
+  "request": "launch",
+  "task": "test",
+  "taskArgs": ["tests/some_test.exs:123"],
+  "projectDir": "${workspaceRoot}",
+  "requireFiles": [
+    "test/**/test_helper.exs",
+    "test/some_test.exs"
+  ]
+}
+```
+
+Please note that due to `:int` limitation NIF modules cannot be interpreted and need to be excluded via `excludeModules` option. This option can be also used to disable interpreting for some modules when it is not desirable e.g. when performance is not satisfactory.
+
+```
+{
+  "type": "mix_task",
+  "name": "mix test",
+  "request": "launch",
+  "task": "test",
+  "taskArgs": ["--trace"],
+  "projectDir": "${workspaceRoot}",
+  "requireFiles": [
+    "test/**/test_helper.exs",
+    "test/**/*_test.exs"
+  ],
+  "excludeModules": [
+    ":some_nif",
+    "Some.SlowModule"
+  ]
+}
+```
+
 ## Automatic builds and error reporting
 
 Builds are performed automatically when files are saved. If you want this to happen automatically when you type, you can turn on "autosave" in your IDE.
@@ -158,25 +197,7 @@ The completions include:
 
 ## Workspace Symbols
 
-With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions. However due to sheer number of different symbols and fuzzy search utilized by the provider, ElixirLS uses query prefixes to improve search results relevance.
-
-Use the following rules when navigating to workspace symbols:
-* no prefix - search for modules
-  * `:erl`
-  * `Enu`
-* `f ` prefix - search for functions
-  * `f inse`
-  * `f :ets.inse`
-  * `f Enum.cou`
-  * `f count/0`
-* `t ` prefix - search for types
-  * `t t/0`
-  * `t :erlang.time_u`
-  * `t DateTime.`
-* `c ` prefix - search for callbacks
-  * `c handle_info`
-  * `c GenServer.in`
-  * `c :gen_statem`
+With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions.
 
 ## Troubleshooting
 
@@ -195,6 +216,8 @@ If you get an error like the following immediately on startup:
 ```
 
 and you installed Elixir and Erlang from the Erlang Solutions repository, you may not have a full installation of erlang. This can be solved with `sudo apt-get install esl-erlang`. Originally reported in [#208](https://github.com/elixir-lsp/elixir-ls/issues/208).
+
+On fedora if you only install the elixir package you will not have a full erlang installation, this can be fixed by running `sudo dnf install erlang` (reported in [#231](https://github.com/elixir-lsp/elixir-ls/issues/231))
 
 ## Known Issues/Limitations
 
@@ -220,6 +243,8 @@ be complete enough to run or even find the correct Elixir/OTP version. The wrapp
 if available, but that may not be what you want or need. Therefore, prior to executing Elixir, the script will source
 `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (e.g. `~/.config/elixir_ls/setup.sh`), if available. The environment variable
 `ELS_MODE` is set to either `debugger` or `language_server` to help you decide what to do inside the script, if needed.
+
+Note: for windows the local setup script path is `%APPDATA%/elixir_ls/setup.bat` (which is often `C:\Users\<username>\AppData\Roaming\elixir_ls`)
 
 ## Acknowledgements and related projects
 

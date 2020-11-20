@@ -64,11 +64,33 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
+  def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state) do
+    Output.send_response(packet, %{})
+    {:noreply, state, {:continue, :disconnect}}
+  end
+
   def handle_cast({:receive_packet, request(_, _) = packet}, state) do
     try do
-      {response_body, state} = handle_request(packet, state)
-      Output.send_response(packet, response_body)
-      {:noreply, state}
+      if state.client_info == nil do
+        case packet do
+          request(_, "initialize") ->
+            {response_body, state} = handle_request(packet, state)
+            Output.send_response(packet, response_body)
+            {:noreply, state}
+
+          request(_, command) ->
+            raise ServerError,
+              message: "invalidRequest",
+              format: "Debugger request {command} was not expected",
+              variables: %{
+                "command" => command
+              }
+        end
+      else
+        {response_body, state} = handle_request(packet, state)
+        Output.send_response(packet, response_body)
+        {:noreply, state}
+      end
     rescue
       e in ServerError ->
         Output.send_error_response(packet, e.message, e.format, e.variables)
@@ -112,11 +134,16 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | task_ref: nil}}
   end
 
-  # If we get the disconnect request from the client, we send :disconnect to the server so it will
+  # If we get the disconnect request from the client, we continue with :disconnect so the server will
   # die right after responding to the request
   @impl GenServer
-  def handle_info(:disconnect, state) do
-    System.halt(0)
+  def handle_continue(:disconnect, state) do
+    unless Application.get_env(:elixir_ls_debugger, :test_mode) do
+      System.halt(0)
+    else
+      Process.exit(self(), {:exit_code, 0})
+    end
+
     {:noreply, state}
   end
 
@@ -129,8 +156,17 @@ defmodule ElixirLS.Debugger.Server do
 
   ## Helpers
 
-  defp handle_request(initialize_req(_, client_info), state) do
+  defp handle_request(initialize_req(_, client_info), %{client_info: nil} = state) do
     {capabilities(), %{state | client_info: client_info}}
+  end
+
+  defp handle_request(initialize_req(_, _client_info), _state) do
+    raise ServerError,
+      message: "invalidRequest",
+      format: "Debugger request {command} was not expected",
+      variables: %{
+        "command" => "initialize"
+      }
   end
 
   defp handle_request(launch_req(_, config), state) do
@@ -293,11 +329,6 @@ defmodule ElixirLS.Debugger.Server do
     {%{"result" => inspect(result), "variablesReference" => 0}, state}
   end
 
-  defp handle_request(request(_, "disconnect"), state) do
-    send(self(), :disconnect)
-    {%{}, state}
-  end
-
   defp handle_request(continue_req(_, thread_id), state) do
     pid = state.threads[thread_id]
     state = remove_paused_process(state, pid)
@@ -383,6 +414,10 @@ defmodule ElixirLS.Debugger.Server do
   defp evaluate_code_expression(expr, bindings, timeout) do
     task =
       Task.async(fn ->
+        receive do
+          :continue -> :ok
+        end
+
         try do
           {term, _bindings} = Code.eval_string(expr, bindings)
           term
@@ -392,6 +427,7 @@ defmodule ElixirLS.Debugger.Server do
       end)
 
     Process.unlink(task.pid)
+    send(task.pid, :continue)
 
     result = Task.yield(task, timeout) || Task.shutdown(task)
 

@@ -322,8 +322,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
-  # Failing and extremely slow (~3s)
-  @tag :pending
   test "clears diagnostics when source files are deleted", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
@@ -337,12 +335,12 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
           did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => true}})
         )
 
-        assert_receive publish_diagnostics_notif(^file_a, [_, _]), 5000
+        assert_receive publish_diagnostics_notif(^file_a, [_, _]), 20000
 
         # Delete file, warning diagnostics should be cleared
         File.rm("lib/a.ex")
         Server.receive_packet(server, did_change_watched_files([%{"uri" => file_a, "type" => 3}]))
-        assert_receive publish_diagnostics_notif(^file_a, []), 5000
+        assert_receive publish_diagnostics_notif(^file_a, []), 20000
 
         # Stop while we're still capturing logs to avoid log leakage
         GenServer.stop(server)

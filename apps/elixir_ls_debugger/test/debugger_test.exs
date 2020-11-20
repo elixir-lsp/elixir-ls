@@ -26,6 +26,69 @@ defmodule ElixirLS.Debugger.ServerTest do
     {:ok, %{server: server}}
   end
 
+  describe "initialize" do
+    test "succeedes", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, %{"clientID" => "some_id"}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+      assert :sys.get_state(server).client_info == %{"clientID" => "some_id"}
+    end
+
+    test "fails when already initialized", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, %{"clientID" => "some_id"}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+      Server.receive_packet(server, initialize_req(2, %{"clientID" => "some_id"}))
+
+      assert_receive(
+        error_response(
+          _,
+          2,
+          "initialize",
+          "invalidRequest",
+          "Debugger request {command} was not expected",
+          %{"command" => "initialize"}
+        )
+      )
+    end
+
+    test "rejects requests when not initialized", %{server: server} do
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(1, %{"path" => "lib/mix_project.ex"}, [%{"line" => 3}])
+      )
+
+      assert_receive(
+        error_response(
+          _,
+          1,
+          "setBreakpoints",
+          "invalidRequest",
+          "Debugger request {command} was not expected",
+          %{"command" => "setBreakpoints"}
+        )
+      )
+    end
+  end
+
+  describe "disconnect" do
+    test "succeedes when not initialized", %{server: server} do
+      Process.flag(:trap_exit, true)
+      Server.receive_packet(server, request(1, "disconnect"))
+      assert_receive(response(_, 1, "disconnect", %{}))
+      assert_receive({:EXIT, ^server, {:exit_code, 0}})
+      Process.flag(:trap_exit, false)
+    end
+
+    test "succeedes when initialized", %{server: server} do
+      Process.flag(:trap_exit, true)
+      Server.receive_packet(server, initialize_req(1, %{"clientID" => "some_id"}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+      Server.receive_packet(server, request(2, "disconnect"))
+      assert_receive(response(_, 2, "disconnect", %{}))
+      assert_receive({:EXIT, ^server, {:exit_code, 0}})
+      Process.flag(:trap_exit, false)
+    end
+  end
+
   test "basic debugging", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
@@ -182,6 +245,8 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
 
     test "Evaluate expression with OK result", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, %{}))
+
       Server.receive_packet(
         server,
         gen_packet("1 + 2 + 3 + 4")
@@ -194,6 +259,8 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     @tag :capture_log
     test "Evaluate expression with ERROR result", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, %{}))
+
       Server.receive_packet(
         server,
         gen_packet("1 = 2")
@@ -207,6 +274,8 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
 
     test "Evaluate expression with attempt to exit debugger process", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, %{}))
+
       Server.receive_packet(
         server,
         gen_packet("Process.exit(self(), :normal)")
@@ -220,6 +289,8 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
 
     test "Evaluate expression with attempt to throw debugger process", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, %{}))
+
       Server.receive_packet(
         server,
         gen_packet("throw(:goodmorning_bug)")
@@ -233,6 +304,8 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
 
     test "Evaluate expression which has long execution", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, %{}))
+
       Server.receive_packet(
         server,
         gen_packet(":timer.sleep(10_000)")

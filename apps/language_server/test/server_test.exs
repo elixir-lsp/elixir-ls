@@ -16,8 +16,173 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     )
   end
 
+  defp fake_initialize(server) do
+    :sys.replace_state(server, fn state -> %{state | server_instance_id: "123"} end)
+  end
+
   defp root_uri do
     SourceFile.path_to_uri(File.cwd!())
+  end
+
+  describe "initialize" do
+    test "returns error -32002 ServerNotInitialized when not initialized", %{server: server} do
+      uri = "file:///file.ex"
+      Server.receive_packet(server, completion_req(1, uri, 2, 25))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32002
+          }
+        },
+        1000
+      )
+    end
+
+    test "initializes", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+    end
+
+    test "returns -32600 InvalidRequest when already initialized", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32600
+          }
+        },
+        1000
+      )
+    end
+
+    test "skips notifications when not initialized", %{server: server} do
+      uri = "file:///file.ex"
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      assert :sys.get_state(server).source_files == %{}
+    end
+  end
+
+  describe "exit" do
+    test "exit notifications when not initialized", %{server: server} do
+      Process.monitor(server)
+      Server.receive_packet(server, notification("exit"))
+      assert_receive({:DOWN, _, :process, ^server, {:exit_code, 1}})
+    end
+
+    test "exit notifications after shutdown", %{server: server} do
+      Process.monitor(server)
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+      Server.receive_packet(server, request(2, "shutdown", %{}))
+      assert_receive(%{"id" => 2, "result" => nil}, 1000)
+      Server.receive_packet(server, notification("exit"))
+      assert_receive({:DOWN, _, :process, ^server, {:exit_code, 0}})
+    end
+
+    test "returns -32600 InvalidRequest when shutting down", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+      Server.receive_packet(server, request(2, "shutdown", %{}))
+      assert_receive(%{"id" => 2, "result" => nil}, 1000)
+
+      Server.receive_packet(server, hover_req(1, "file:///file.ex", 2, 17))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32600
+          }
+        },
+        1000
+      )
+    end
+
+    test "skips notifications when not shutting down", %{server: server} do
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+      Server.receive_packet(server, request(2, "shutdown", %{}))
+      assert_receive(%{"id" => 2, "result" => nil}, 1000)
+
+      uri = "file:///file.ex"
+      code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      assert :sys.get_state(server).source_files == %{}
+    end
+  end
+
+  describe "not matched messages" do
+    test "not supported $/ notifications are skipped", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, notification("$/not_supported"))
+      :sys.get_state(server)
+      refute_receive(%{"method" => "window/logMessage"})
+    end
+
+    test "not matched notifications log warning", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, notification("not_matched"))
+      :sys.get_state(server)
+
+      assert_receive(%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Received unmatched notification" <> _, "type" => 2}
+      })
+    end
+
+    test "not supported $/ requests return -32601 MethodNotFound", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, request(1, "$/not_supported"))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32601
+          }
+        },
+        1000
+      )
+
+      refute_receive(%{"method" => "window/logMessage"})
+    end
+
+    test "not matched requests return -32600 InvalidRequest and log warning", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, request(1, "not_matched"))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32600
+          }
+        },
+        1000
+      )
+
+      assert_receive(%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
+      })
+    end
   end
 
   setup context do
@@ -46,7 +211,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     ]
 
     version = 2
-
+    fake_initialize(server)
     Server.receive_packet(server, did_change(uri, version, content_changes))
 
     assert_receive %{
@@ -69,7 +234,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         use GenServer
       end
     )
-
+    fake_initialize(server)
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, hover_req(1, uri, 2, 17))
 
@@ -94,7 +259,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       def my_fn, do: GenSer
     end
     )
-
+    fake_initialize(server)
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, completion_req(1, uri, 2, 25))
 
@@ -114,35 +279,39 @@ defmodule ElixirLS.LanguageServer.ServerTest do
            }) = resp
   end
 
-  # Failing
-  @tag :pending
   test "go to definition", %{server: server} do
     uri = "file:///file.ex"
     code = ~S(
       defmodule MyModule do
-        use GenServer
+        @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
       end
     )
-
+    fake_initialize(server)
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, definition_req(1, uri, 2, 17))
+    Server.receive_packet(server, definition_req(1, uri, 2, 58))
 
-    uri = "file://" <> to_string(GenServer.module_info()[:compile][:source])
+    uri =
+      "file://" <>
+        to_string(
+          ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
+        )
 
-    resp = assert_receive(%{"id" => 1}, 1000)
-
-    assert response(1, %{
-             "range" => %{
-               "end" => %{"character" => column, "line" => 0},
-               "start" => %{"character" => column, "line" => 0}
-             },
-             "uri" => ^uri
-           }) = resp
+    assert_receive(
+      response(1, %{
+        "range" => %{
+          "end" => %{"character" => column, "line" => 0},
+          "start" => %{"character" => column, "line" => 0}
+        },
+        "uri" => ^uri
+      }),
+      3000
+    )
 
     assert column > 0
   end
 
   test "requests cancellation", %{server: server} do
+    fake_initialize(server)
     Server.receive_packet(server, hover_req(1, "file:///file.ex", 1, 1))
     Server.receive_packet(server, cancel_request(1))
 
@@ -154,17 +323,20 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   test "requests shutdown without params", %{server: server} do
+    fake_initialize(server)
     Server.receive_packet(server, request(1, "shutdown"))
     assert %{received_shutdown?: true} = :sys.get_state(server)
   end
 
   test "requests shutdown with params", %{server: server} do
+    fake_initialize(server)
     Server.receive_packet(server, request(1, "shutdown", nil))
     assert %{received_shutdown?: true} = :sys.get_state(server)
   end
 
   test "document symbols request when there are no client capabilities and the source file is not loaded into the server",
        %{server: server} do
+    fake_initialize(server)
     server_state = :sys.get_state(server)
     assert server_state.client_capabilities == nil
     assert server_state.source_files == %{}
@@ -231,7 +403,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       end
     end
     ]
-
+    fake_initialize(server)
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, signature_help_req(1, uri, 3, 19))
 

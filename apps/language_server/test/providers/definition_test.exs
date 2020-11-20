@@ -3,15 +3,16 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
   alias ElixirLS.LanguageServer.Providers.Definition
   alias ElixirLS.LanguageServer.Protocol.Location
+  alias ElixirLS.LanguageServer.SourceFile
   require ElixirLS.Test.TextLoc
 
   test "find definition" do
-    file_path = Path.join(__DIR__, "../../support/references_a.ex") |> Path.expand()
+    file_path = Path.join(__DIR__, "../support/references_a.ex") |> Path.expand()
     text = File.read!(file_path)
-    uri = "file://#{file_path}"
+    uri = SourceFile.path_to_uri(file_path)
 
-    b_file_path = Path.join(__DIR__, "../../support/references_b.ex") |> Path.expand()
-    b_uri = "file://#{b_file_path}"
+    b_file_path = Path.join(__DIR__, "../support/references_b.ex") |> Path.expand()
+    b_uri = SourceFile.path_to_uri(b_file_path)
 
     {line, char} = {2, 30}
 

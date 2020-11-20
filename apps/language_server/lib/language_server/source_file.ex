@@ -222,8 +222,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
       {:ok, opts}
     rescue
-      e in Mix.Error ->
-        IO.warn("Unable to get formatter options for #{path}: #{e.message}")
+      e ->
+        IO.warn(
+          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{e.message}"
+        )
+
         :error
     end
   end
