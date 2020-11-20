@@ -353,6 +353,26 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       ])
     end
 
+    test "windows line endings are preserved in document" do
+      sf = new("foooo\r\nbar\rbaz")
+      assert %SourceFile{text: "foooo\r\nbaz\rbaz", version: 1} = SourceFile.apply_content_changes(sf, [
+        %{
+          "text" => "z",
+          "range" => range_create(1, 2, 1, 3)
+        }
+      ])
+    end
+
+    test "windows line endings are preserved in inserted text" do
+      sf = new("foooo\nbar\nbaz")
+      assert %SourceFile{text: "foooo\nbaz\r\nz\rz\nbaz", version: 1} = SourceFile.apply_content_changes(sf, [
+        %{
+          "text" => "z\r\nz\rz",
+          "range" => range_create(1, 2, 1, 3)
+        }
+      ])
+    end
+
     test "utf8 codons are preserved in document" do
       sf = new("foooo\nb🏳️‍🌈r\nbaz")
       assert %SourceFile{text: "foooo\nb🏳️‍🌈z\nbaz", version: 1} = SourceFile.apply_content_changes(sf, [
@@ -435,6 +455,19 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\nFGHIJ")
     assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\r\rFGHIJ")
     assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\rFGHIJ")
+  end
+
+  test "lines_with_endings" do
+    assert [{"", nil}] == SourceFile.lines_with_endings("")
+    assert [{"abc", nil}] == SourceFile.lines_with_endings("abc")
+    assert [{"", "\n"}, {"", nil}] == SourceFile.lines_with_endings("\n")
+    assert [{"a", "\n"}, {"", nil}] == SourceFile.lines_with_endings("a\n")
+    assert [{"", "\n"}, {"a", nil}] == SourceFile.lines_with_endings("\na")
+    assert [{"ABCDE", "\r"}, {"FGHIJ", nil}] == SourceFile.lines_with_endings("ABCDE\rFGHIJ")
+    assert [{"ABCDE", "\r\n"}, {"FGHIJ", nil}] == SourceFile.lines_with_endings("ABCDE\r\nFGHIJ")
+    assert [{"ABCDE", "\n"}, {"", "\n"}, {"FGHIJ", nil}] == SourceFile.lines_with_endings("ABCDE\n\nFGHIJ")
+    assert [{"ABCDE", "\r"}, {"", "\r"}, {"FGHIJ", nil}] == SourceFile.lines_with_endings("ABCDE\r\rFGHIJ")
+    assert [{"ABCDE", "\n"}, {"", "\r"}, {"FGHIJ", nil}] == SourceFile.lines_with_endings("ABCDE\n\rFGHIJ")
   end
 
   test "full_range" do

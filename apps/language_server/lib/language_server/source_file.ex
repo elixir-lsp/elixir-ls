@@ -11,6 +11,35 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     String.split(text, ["\r\n", "\r", "\n"])
   end
 
+  def lines_with_endings(""), do: [{"", nil}]
+  def lines_with_endings(text) do
+    charlist = text
+    |> String.to_charlist
+
+    shifted = charlist
+      |> tl
+      |> Kernel.++([nil])
+
+    {lines, line, _} = Enum.zip(charlist, shifted)
+    |> Enum.reduce({[], [], :take}, fn
+      _, {lines, line, :skip} -> {lines, line, :take}
+      {c, cs}, {lines, line, :take} when c in [?\r, ?\n] ->
+        finished_line = line |> Enum.reverse |> List.to_string
+        if c == ?\r and cs == ?\n do
+          {[{finished_line, "\r\n"} | lines], [], :skip}
+        else
+          {[{finished_line, [c] |> List.to_string} | lines], [], :take}
+        end
+      {c, _cs}, {lines, line, :take} ->
+        {lines, [c | line], :take}
+    end)
+
+    finished_line = line |> Enum.reverse |> List.to_string
+
+    [{finished_line, nil} | lines]
+    |> Enum.reverse
+  end
+
   def apply_content_changes(%__MODULE__{} = source_file, []) do
     source_file
   end
@@ -74,17 +103,20 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     }
   end
 
+  defp prepend_line(line, nil, acc), do: [line | acc]
+  defp prepend_line(line, ending, acc), do: [[line, ending] | acc]
+
   def apply_edit(text, range(start_line, start_character, end_line, end_character), new_text) do
     lines_with_idx =
       text
-      |> lines()
+      |> lines_with_endings()
       |> Enum.with_index()
 
     acc =
-      Enum.reduce(lines_with_idx, [], fn {line, idx}, acc ->
+      Enum.reduce(lines_with_idx, [], fn {{line, ending}, idx}, acc ->
         cond do
           idx < start_line ->
-            [[line, ?\n] | acc]
+            prepend_line(line, ending, acc)
 
           idx == start_line ->
             # LSP contentChanges positions are based on UTF-16 string representation
@@ -106,7 +138,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     acc = [new_text | acc]
 
     acc =
-      Enum.reduce(lines_with_idx, acc, fn {line, idx}, acc ->
+      Enum.reduce(lines_with_idx, acc, fn {{line, ending}, idx}, acc ->
         cond do
           idx < end_line ->
             acc
@@ -123,25 +155,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
                   )).()
               |> :unicode.characters_to_binary(:utf16, :utf8)
 
-            [[ending_utf8, ?\n] | acc]
+            prepend_line(ending_utf8, ending, acc)
 
           idx > end_line ->
-            [[line, ?\n] | acc]
+            prepend_line(line, ending, acc)
         end
       end)
-
-    acc = case acc do
-      [[last_line, ?\n] | rest] ->
-        # Remove extraneous newline from last line
-        [last_line | rest]
-      [line, [line_before, ?\n] | rest] when is_binary(line) ->
-        # Degenerate case: start and end after document
-        # Remove extraneous newline from line before last line
-        [line, line_before | rest]
-      [line] when is_binary(line) ->
-        # Degenerate case: start before end after document
-        [line]
-    end
 
     IO.iodata_to_binary(Enum.reverse(acc))
   end
