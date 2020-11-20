@@ -214,6 +214,12 @@ defmodule ElixirLS.LanguageServer.Build do
 
     with {:ok, beams} <- File.ls(path) do
       Enum.map(beams, &(&1 |> Path.rootname(".beam") |> String.to_atom() |> purge_module()))
+    else
+      {:error, reason} ->
+        JsonRpc.show_message(
+          :warning,
+          "Unable to purge consolidated protocols from #{path}: #{inspect(reason)}"
+        )
     end
 
     # NOTE this implementation is based on https://github.com/phoenixframework/phoenix/commit/b5580e9
