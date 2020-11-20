@@ -1,13 +1,4 @@
 defmodule DescribeBlock do
-  @moduledoc """
-  Identifies test execution targets and provides code lenses for automatically executing them.
-
-  Supports the following execution targets:
-  * Test modules (any module that imports ExUnit.Case)
-  * Describe blocks (any call to describe/2 inside a test module)
-  * Test blocks (any call to test/2 or test/3 inside a test module)
-  """
-
   alias ElixirSense.Core.State.Env
 
   @struct_keys [:line, :name, :body_scope_id]
@@ -68,13 +59,22 @@ defmodule TestBlock do
 end
 
 defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
+  @moduledoc """
+  Identifies test execution targets and provides code lenses for automatically executing them.
+
+  Supports the following execution targets:
+  * Test modules (any module that imports ExUnit.Case)
+  * Describe blocks (any call to describe/2 inside a test module)
+  * Test blocks (any call to test/2 or test/3 inside a test module)
+  """
+
   alias ElixirLS.LanguageServer.Providers.CodeLens
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.State.Env
 
-  @run_test_command "elixir.test.run"
+  @run_test_command "elixir.lens.test.run"
 
   def code_lens(uri, text) do
     with {:ok, buffer_file_metadata} <- parse_source(text) do
