@@ -24,6 +24,7 @@ defmodule ElixirLS.LanguageServer.Build do
                     fetch_deps()
                   end
 
+                  # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
                   purge_consolidated_protocols()
                   {status, diagnostics} = compile()
 
@@ -215,7 +216,9 @@ defmodule ElixirLS.LanguageServer.Build do
       Enum.map(beams, &(&1 |> Path.rootname(".beam") |> String.to_atom() |> purge_module()))
     end
 
-    # Code.delete_path(path)
+    # NOTE this implementation is based on https://github.com/phoenixframework/phoenix/commit/b5580e9
+    # calling `Code.delete_path(path)` may be unnecessary in our case
+    Code.delete_path(path)
   end
 
   defp purge_module(module) do
