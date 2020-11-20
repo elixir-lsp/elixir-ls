@@ -353,6 +353,26 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       ])
     end
 
+    test "utf8 codons are preserved in document" do
+      sf = new("foooo\nb🏳️‍🌈r\nbaz")
+      assert %SourceFile{text: "foooo\nb🏳️‍🌈z\nbaz", version: 1} = SourceFile.apply_content_changes(sf, [
+        %{
+          "text" => "z",
+          "range" => range_create(1, 7, 1, 8)
+        }
+      ])
+    end
+
+    test "utf8 codonss are preserved in inserted text" do
+      sf = new("foooo\nbar\nbaz")
+      assert %SourceFile{text: "foooo\nbaz🏳️‍🌈z\nbaz", version: 1} = SourceFile.apply_content_changes(sf, [
+        %{
+          "text" => "z🏳️‍🌈z",
+          "range" => range_create(1, 2, 1, 3)
+        }
+      ])
+    end
+
     test "invalid update range - before the document starts -> before the document starts" do
       sf = new("foo\nbar")
       assert %SourceFile{text: "abc123foo\nbar", version: 1} = SourceFile.apply_content_changes(sf, [
