@@ -36,11 +36,11 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
            """
   end
 
-  describe "apply_content_changes" do
-    def new(text) do
-      %SourceFile{text: text, version: 0}
-    end
+  def new(text) do
+    %SourceFile{text: text, version: 0}
+  end
 
+  describe "apply_content_changes" do
     defp index_of(string, substring) do
       case String.split(string, substring, parts: 2) do
         [left, _] -> String.to_charlist(left) |> length
@@ -435,5 +435,14 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\nFGHIJ")
     assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\r\rFGHIJ")
     assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\rFGHIJ")
+  end
+
+  test "full_range" do
+    assert %{"end" => %{"character" => 0, "line" => 0}, "start" => %{"character" => 0, "line" => 0}} = SourceFile.full_range(new(""))
+    assert %{"end" => %{"character" => 1, "line" => 0}} = SourceFile.full_range(new("a"))
+    assert %{"end" => %{"character" => 0, "line" => 1}} = SourceFile.full_range(new("\n"))
+    assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\naa"))
+    assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\r\naa"))
+    assert %{"end" => %{"character" => 8, "line" => 1}} = SourceFile.full_range(new("a\naa🏳️‍🌈"))
   end
 end

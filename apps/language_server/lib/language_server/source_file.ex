@@ -63,10 +63,14 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def full_range(source_file) do
     lines = lines(source_file)
+    last_line = List.last(lines)
+    utf16_size = :unicode.characters_to_binary(last_line, :utf8, :utf16)
+    |> byte_size()
+    |> div(2)
 
     %{
       "start" => %{"line" => 0, "character" => 0},
-      "end" => %{"line" => Enum.count(lines) - 1, "character" => String.length(List.last(lines))}
+      "end" => %{"line" => Enum.count(lines) - 1, "character" => utf16_size}
     }
   end
 
