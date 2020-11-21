@@ -70,7 +70,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
           "#{indentation}@spec #{spec}\n"
       end
 
-    JsonRpc.send_request("workspace/applyEdit", %{
+    edit_result = JsonRpc.send_request("workspace/applyEdit", %{
       "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
       "edit" => %{
         "changes" => %{
@@ -79,7 +79,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
       }
     })
 
-    {:ok, nil}
+    case edit_result do
+      {:ok, %{"applied" => true}} ->
+        {:ok, nil}
+      other ->
+        {:error, :server_error, "cannot insert spec, workspace/applyEdit returned #{inspect(other)}"}
+    end
   end
 
   def execute(_command, _args, _state) do

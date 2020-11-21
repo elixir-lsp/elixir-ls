@@ -236,9 +236,20 @@ defmodule ElixirLS.LanguageServer.Server do
     if state.supports_dynamic do
       watchers = for ext <- @watched_extensions, do: 
         %{"globPattern" => "**/*." <> ext}
-      JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
+      register_capability_result = JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
         "watchers" => watchers
       })
+
+      case register_capability_result do
+        {:ok, nil} -> :ok
+        other ->
+          JsonRpc.log_message(
+            :error,
+            "client/registerCapability returned: #{
+              inspect(other)
+            }"
+          )
+      end
     end
 
     state
