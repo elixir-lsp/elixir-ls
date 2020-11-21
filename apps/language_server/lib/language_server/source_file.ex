@@ -12,32 +12,40 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   def lines_with_endings(""), do: [{"", nil}]
-  def lines_with_endings(text) do
-    charlist = text
-    |> String.to_charlist
 
-    shifted = charlist
+  def lines_with_endings(text) do
+    charlist =
+      text
+      |> String.to_charlist()
+
+    shifted =
+      charlist
       |> tl
       |> Kernel.++([nil])
 
-    {lines, line, _} = Enum.zip(charlist, shifted)
-    |> Enum.reduce({[], [], :take}, fn
-      _, {lines, line, :skip} -> {lines, line, :take}
-      {c, cs}, {lines, line, :take} when c in [?\r, ?\n] ->
-        finished_line = line |> Enum.reverse |> List.to_string
-        if c == ?\r and cs == ?\n do
-          {[{finished_line, "\r\n"} | lines], [], :skip}
-        else
-          {[{finished_line, [c] |> List.to_string} | lines], [], :take}
-        end
-      {c, _cs}, {lines, line, :take} ->
-        {lines, [c | line], :take}
-    end)
+    {lines, line, _} =
+      Enum.zip(charlist, shifted)
+      |> Enum.reduce({[], [], :take}, fn
+        _, {lines, line, :skip} ->
+          {lines, line, :take}
 
-    finished_line = line |> Enum.reverse |> List.to_string
+        {c, cs}, {lines, line, :take} when c in [?\r, ?\n] ->
+          finished_line = line |> Enum.reverse() |> List.to_string()
+
+          if c == ?\r and cs == ?\n do
+            {[{finished_line, "\r\n"} | lines], [], :skip}
+          else
+            {[{finished_line, [c] |> List.to_string()} | lines], [], :take}
+          end
+
+        {c, _cs}, {lines, line, :take} ->
+          {lines, [c | line], :take}
+      end)
+
+    finished_line = line |> Enum.reverse() |> List.to_string()
 
     [{finished_line, nil} | lines]
-    |> Enum.reverse
+    |> Enum.reverse()
   end
 
   def apply_content_changes(%__MODULE__{} = source_file, []) do
@@ -93,9 +101,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   def full_range(source_file) do
     lines = lines(source_file)
     last_line = List.last(lines)
-    utf16_size = :unicode.characters_to_binary(last_line, :utf8, :utf16)
-    |> byte_size()
-    |> div(2)
+
+    utf16_size =
+      :unicode.characters_to_binary(last_line, :utf8, :utf16)
+      |> byte_size()
+      |> div(2)
 
     %{
       "start" => %{"line" => 0, "character" => 0},
@@ -124,8 +134,10 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             beginning_utf8 =
               :unicode.characters_to_binary(line, :utf8, :utf16)
               |> (&binary_part(
-                &1, 0, min(start_character * 2, byte_size(&1))
-              )).()
+                    &1,
+                    0,
+                    min(start_character * 2, byte_size(&1))
+                  )).()
               |> :unicode.characters_to_binary(:utf16, :utf8)
 
             [beginning_utf8 | acc]

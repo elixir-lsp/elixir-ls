@@ -234,20 +234,21 @@ defmodule ElixirLS.LanguageServer.Server do
     Process.send_after(self(), :default_config, 5000)
 
     if state.supports_dynamic do
-      watchers = for ext <- @watched_extensions, do: 
-        %{"globPattern" => "**/*." <> ext}
-      register_capability_result = JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
-        "watchers" => watchers
-      })
+      watchers = for ext <- @watched_extensions, do: %{"globPattern" => "**/*." <> ext}
+
+      register_capability_result =
+        JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
+          "watchers" => watchers
+        })
 
       case register_capability_result do
-        {:ok, nil} -> :ok
+        {:ok, nil} ->
+          :ok
+
         other ->
           JsonRpc.log_message(
             :error,
-            "client/registerCapability returned: #{
-              inspect(other)
-            }"
+            "client/registerCapability returned: #{inspect(other)}"
           )
       end
     end
@@ -265,10 +266,9 @@ defmodule ElixirLS.LanguageServer.Server do
       _ ->
         JsonRpc.log_message(
           :warning,
-          "Received $/cancelRequest for unknown request id: #{
-            inspect(id)
-          }"
+          "Received $/cancelRequest for unknown request id: #{inspect(id)}"
         )
+
         state
     end
   end
@@ -308,11 +308,12 @@ defmodule ElixirLS.LanguageServer.Server do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
       JsonRpc.log_message(
-          :warning,
-          "Received textDocument/didOpen for file that is already open. Received uri: #{
-            inspect(uri)
-          }"
-        )
+        :warning,
+        "Received textDocument/didOpen for file that is already open. Received uri: #{
+          inspect(uri)
+        }"
+      )
+
       state
     else
       source_file = %SourceFile{text: text, version: version}
@@ -322,7 +323,7 @@ defmodule ElixirLS.LanguageServer.Server do
         state.build_diagnostics ++ state.dialyzer_diagnostics,
         source_file
       )
-      
+
       put_in(state.source_files[uri], source_file)
     end
   end
@@ -331,14 +332,12 @@ defmodule ElixirLS.LanguageServer.Server do
     if not Map.has_key?(state.source_files, uri) do
       # A close notification requires a previous open notification to be sent
       JsonRpc.log_message(
-          :warning,
-          "Received textDocument/didClose for file that is not open. Received uri: #{
-            inspect(uri)
-          }"
-        )
+        :warning,
+        "Received textDocument/didClose for file that is not open. Received uri: #{inspect(uri)}"
+      )
+
       state
     else
-      # TODO is it ok
       awaiting_contracts =
         Enum.reject(state.awaiting_contracts, fn
           {from, ^uri} -> GenServer.reply(from, [])
@@ -360,9 +359,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # not update the state
       JsonRpc.log_message(
         :warning,
-        "Received textDocument/didChange for file that is not open. Received uri: #{
-          inspect(uri)
-        }"
+        "Received textDocument/didChange for file that is not open. Received uri: #{inspect(uri)}"
       )
 
       state
@@ -377,11 +374,10 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(did_save(uri), state) do
     if not Map.has_key?(state.source_files, uri) do
       JsonRpc.log_message(
-          :warning,
-          "Received textDocument/didSave for file that is not open. Received uri: #{
-            inspect(uri)
-          }"
-        )
+        :warning,
+        "Received textDocument/didSave for file that is not open. Received uri: #{inspect(uri)}"
+      )
+
       state
     else
       WorkspaceSymbols.notify_uris_modified([uri])
@@ -394,31 +390,38 @@ defmodule ElixirLS.LanguageServer.Server do
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
         Path.extname(uri) in @watched_extensions and
-          (type in [1, 3] or not Map.has_key?(state.source_files, uri) or state.source_files[uri].dirty?)
+          (type in [1, 3] or not Map.has_key?(state.source_files, uri) or
+             state.source_files[uri].dirty?)
       end)
 
-    source_files = changes
-    |> Enum.reduce(state.source_files, fn
-      %{"type" => 3}, acc ->
-        # deleted file still open in editor, keep dirty flag
-        acc
-      %{"uri" => uri}, acc ->
-        # file created/updated - set dirty flag to false if file contents are equal
-        case acc[uri] do
-          %SourceFile{text: source_file_text, dirty?: true} = source_file ->
-            case File.read(SourceFile.path_from_uri(uri)) do
-              {:ok, ^source_file_text} ->
-                Map.put(acc, uri, %SourceFile{source_file | dirty?: false})
-              {:ok, _} ->
-                acc
-              {:error, reason} ->
-                JsonRpc.log_message(:warning, "Unable to read #{uri}: #{inspect(reason)}")
-                # keep dirty if read fails
-                acc
-            end
-          _ -> acc
-        end
-    end)
+    source_files =
+      changes
+      |> Enum.reduce(state.source_files, fn
+        %{"type" => 3}, acc ->
+          # deleted file still open in editor, keep dirty flag
+          acc
+
+        %{"uri" => uri}, acc ->
+          # file created/updated - set dirty flag to false if file contents are equal
+          case acc[uri] do
+            %SourceFile{text: source_file_text, dirty?: true} = source_file ->
+              case File.read(SourceFile.path_from_uri(uri)) do
+                {:ok, ^source_file_text} ->
+                  Map.put(acc, uri, %SourceFile{source_file | dirty?: false})
+
+                {:ok, _} ->
+                  acc
+
+                {:error, reason} ->
+                  JsonRpc.log_message(:warning, "Unable to read #{uri}: #{inspect(reason)}")
+                  # keep dirty if read fails
+                  acc
+              end
+
+            _ ->
+              acc
+          end
+      end)
 
     state = %{state | source_files: source_files}
 
@@ -472,6 +475,7 @@ defmodule ElixirLS.LanguageServer.Server do
     e in InvalidURIError ->
       JsonRpc.respond_with_error(id, :invalid_params, e.message)
       state
+
     other ->
       JsonRpc.respond_with_error(id, :internal_error, other.message)
       state
@@ -534,6 +538,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(definition_req(_id, uri, line, character), state) do
     source_file = get_source_file(state, uri)
+
     fun = fn ->
       Definition.definition(uri, source_file.text, line, character)
     end
@@ -543,6 +548,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(references_req(_id, uri, line, character, include_declaration), state) do
     source_file = get_source_file(state, uri)
+
     fun = fn ->
       {:ok,
        References.references(
@@ -559,6 +565,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(hover_req(_id, uri, line, character), state) do
     source_file = get_source_file(state, uri)
+
     fun = fn ->
       Hover.hover(source_file.text, line, character)
     end
@@ -568,6 +575,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(document_symbol_req(_id, uri), state) do
     source_file = get_source_file(state, uri)
+
     fun = fn ->
       hierarchical? =
         get_in(state.client_capabilities, [
@@ -596,6 +604,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(completion_req(_id, uri, line, character), state) do
     source_file = get_source_file(state, uri)
+
     snippets_supported =
       !!get_in(state.client_capabilities, [
         "textDocument",
@@ -664,6 +673,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(on_type_formatting_req(_id, uri, line, character, ch, options), state) do
     source_file = get_source_file(state, uri)
+
     fun = fn ->
       OnTypeFormatting.format(source_file, line, character, ch, options)
     end
@@ -673,9 +683,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(code_lens_req(_id, uri), state) do
     source_file = get_source_file(state, uri)
+
     if dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
-      {:async,
-       fn -> CodeLens.code_lens(state.server_instance_id, uri, source_file.text) end,
+      {:async, fn -> CodeLens.code_lens(state.server_instance_id, uri, source_file.text) end,
        state}
     else
       {:error, :invalid_request, "suggestSpecs is disabled", state}
@@ -683,14 +693,17 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(execute_command_req(_id, command, args) = req, state) do
-    {:async, fn -> 
-      case ExecuteCommand.execute(command, args, state) do
-        {:error, :invalid_request, _msg} = res ->
-          JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
-          res
-        other -> other
-      end
-    end, state}
+    {:async,
+     fn ->
+       case ExecuteCommand.execute(command, args, state) do
+         {:error, :invalid_request, _msg} = res ->
+           JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
+           res
+
+         other ->
+           other
+       end
+     end, state}
   end
 
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
@@ -712,14 +725,17 @@ defmodule ElixirLS.LanguageServer.Server do
     parent = self()
 
     spawn_monitor(fn ->
-      result = try do
-        func.()
-      rescue
-        e in InvalidURIError ->
-          {:error, :invalid_params, e.message}
-        other ->
-          {:error, :internal_error, other.message}
-      end
+      result =
+        try do
+          func.()
+        rescue
+          e in InvalidURIError ->
+            {:error, :invalid_params, e.message}
+
+          other ->
+            {:error, :internal_error, other.message}
+        end
+
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
     end)
   end
@@ -1036,6 +1052,7 @@ defmodule ElixirLS.LanguageServer.Server do
     case state.source_files[uri] do
       nil ->
         raise InvalidURIError, uri
+
       source_file ->
         source_file
     end

@@ -184,7 +184,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       })
     end
 
-    test "not matched executeCommand requests return -32600 InvalidRequest and log warning", %{server: server} do
+    test "not matched executeCommand requests return -32600 InvalidRequest and log warning", %{
+      server: server
+    } do
       fake_initialize(server)
       Server.receive_packet(server, execute_command_req(1, "not_matched", ["a", "bc"]))
 
@@ -227,12 +229,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
       state = :sys.get_state(server)
-      assert %SourceFile{dirty?: false, text: ^code, version: 1} = Server.get_source_file(state, uri)
+
+      assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+               Server.get_source_file(state, uri)
+
       assert_receive notification("textDocument/publishDiagnostics", %{
-        "uri" => ^uri,
-        "diagnostics" => []
-      }),
-      1000
+                       "uri" => ^uri,
+                       "diagnostics" => []
+                     }),
+                     1000
     end
 
     test "textDocument/didOpen already open", %{server: server} do
@@ -246,13 +251,17 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
-      assert_receive (%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Received textDocument/didOpen for file that is already open" <> _, "type" => 2}
-      }),
-      1000
+      assert_receive %{
+                       "method" => "window/logMessage",
+                       "params" => %{
+                         "message" =>
+                           "Received textDocument/didOpen for file that is already open" <> _,
+                         "type" => 2
+                       }
+                     },
+                     1000
     end
-    
+
     test "textDocument/didClose", %{server: server} do
       uri = "file:///file.ex"
       code = ~S(
@@ -273,15 +282,20 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       fake_initialize(server)
       Server.receive_packet(server, did_close(uri))
 
-      assert_receive (%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Received textDocument/didClose for file that is not open" <> _, "type" => 2}
-      }),
-      1000
+      assert_receive %{
+                       "method" => "window/logMessage",
+                       "params" => %{
+                         "message" =>
+                           "Received textDocument/didClose for file that is not open" <> _,
+                         "type" => 2
+                       }
+                     },
+                     1000
     end
 
     test "textDocument/didChange", %{server: server} do
       uri = "file:///file.ex"
+
       content_changes = [
         %{
           "range" => %{
@@ -292,6 +306,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "text" => ""
         }
       ]
+
       code = ~S(
         defmodule MyModule do
           use GenServer
@@ -307,6 +322,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didChange not open", %{server: server} do
       uri = "file:///file.ex"
+
       content_changes = [
         %{
           "range" => %{
@@ -317,14 +333,19 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "text" => ""
         }
       ]
+
       fake_initialize(server)
       Server.receive_packet(server, did_change(uri, 1, content_changes))
 
-      assert_receive (%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Received textDocument/didChange for file that is not open" <> _, "type" => 2}
-      }),
-      1000
+      assert_receive %{
+                       "method" => "window/logMessage",
+                       "params" => %{
+                         "message" =>
+                           "Received textDocument/didChange for file that is not open" <> _,
+                         "type" => 2
+                       }
+                     },
+                     1000
 
       state = :sys.get_state(server)
       refute Map.has_key?(state.source_files, uri)
@@ -332,6 +353,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didSave", %{server: server} do
       uri = "file:///file.ex"
+
       content_changes = [
         %{
           "range" => %{
@@ -342,6 +364,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "text" => ""
         }
       ]
+
       code = ~S(
         defmodule MyModule do
           use GenServer
@@ -362,11 +385,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       fake_initialize(server)
       Server.receive_packet(server, did_save(uri))
 
-      assert_receive (%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Received textDocument/didSave for file that is not open" <> _, "type" => 2}
-      }),
-      1000
+      assert_receive %{
+                       "method" => "window/logMessage",
+                       "params" => %{
+                         "message" =>
+                           "Received textDocument/didSave for file that is not open" <> _,
+                         "type" => 2
+                       }
+                     },
+                     1000
 
       state = :sys.get_state(server)
       refute Map.has_key?(state.source_files, uri)
@@ -379,7 +406,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       fake_initialize(server)
 
       for change_type <- 1..3 do
-        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => change_type}]))
+        Server.receive_packet(
+          server,
+          did_change_watched_files([%{"uri" => uri, "type" => change_type}])
+        )
 
         state = :sys.get_state(server)
         refute state.needs_build?
@@ -471,11 +501,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "text" => ""
         }
       ]
+
       code = ~S(
         defmodule MyModule do
           use GenServer
         end
       )
+
       in_fixture(__DIR__, "references", fn ->
         uri = SourceFile.path_to_uri("lib/a.ex")
         fake_initialize(server)
@@ -503,11 +535,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "text" => ""
         }
       ]
+
       code = ~S(
         defmodule MyModule do
           use GenServer
         end
       )
+
       in_fixture(__DIR__, "references", fn ->
         uri = SourceFile.path_to_uri("lib/a.ex")
         fake_initialize(server)
@@ -523,6 +557,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "watched open file created outside, read error", %{server: server} do
       uri = "file:///file.ex"
+
       content_changes = [
         %{
           "range" => %{
@@ -533,6 +568,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "text" => ""
         }
       ]
+
       code = ~S(
         defmodule MyModule do
           use GenServer
@@ -547,15 +583,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert state.needs_build?
       assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
 
-      assert_receive (%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Unable to read file" <> _, "type" => 2}
-      }),
-      1000
+      assert_receive %{
+                       "method" => "window/logMessage",
+                       "params" => %{"message" => "Unable to read file" <> _, "type" => 2}
+                     },
+                     1000
     end
 
     test "watched open file updated outside, read error", %{server: server} do
       uri = "file:///file.ex"
+
       content_changes = [
         %{
           "range" => %{
@@ -566,6 +603,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "text" => ""
         }
       ]
+
       code = ~S(
         defmodule MyModule do
           use GenServer
@@ -589,7 +627,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       state = :sys.get_state(server)
       assert state.needs_build?
-    end    
+    end
   end
 
   test "hover", %{server: server} do
@@ -698,11 +736,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Process.monitor(server)
       Server.receive_packet(server, cancel_request(1))
 
-      assert_receive (%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Received $/cancelRequest for unknown request" <> _, "type" => 2}
-      }),
-      1000
+      assert_receive %{
+                       "method" => "window/logMessage",
+                       "params" => %{
+                         "message" => "Received $/cancelRequest for unknown request" <> _,
+                         "type" => 2
+                       }
+                     },
+                     1000
+
       refute_receive {:DOWN, _, _, _, _}
     end
   end
@@ -726,22 +768,41 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     fake_initialize(server)
 
     Server.receive_packet(server, document_symbol_req(1, "file:///file.ex"))
-    assert_receive(%{"id" => 1, "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}}, 1000)
+
+    assert_receive(
+      %{
+        "id" => 1,
+        "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}
+      },
+      1000
+    )
   end
 
   test "uri async request when the source file is not open returns -32602",
        %{server: server} do
     fake_initialize(server)
 
-    Server.receive_packet(server, execute_command_req(1, "spec:1", [%{
-      "uri" => "file:///file.ex",
-      "mod" => "Mod",
-      "fun" => "fun",
-      "arity" => 1,
-      "spec" => "",
-      "line" => 1
-    }]))
-    assert_receive(%{"id" => 1, "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}}, 1000)
+    Server.receive_packet(
+      server,
+      execute_command_req(1, "spec:1", [
+        %{
+          "uri" => "file:///file.ex",
+          "mod" => "Mod",
+          "fun" => "fun",
+          "arity" => 1,
+          "spec" => "",
+          "line" => 1
+        }
+      ])
+    )
+
+    assert_receive(
+      %{
+        "id" => 1,
+        "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}
+      },
+      1000
+    )
   end
 
   test "incremental formatter", %{server: server} do

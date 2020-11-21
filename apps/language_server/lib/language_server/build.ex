@@ -218,6 +218,7 @@ defmodule ElixirLS.LanguageServer.Build do
       {:error, :enoent} ->
         # consolidation_path does not exist
         :ok
+
       {:error, reason} ->
         JsonRpc.show_message(
           :warning,
