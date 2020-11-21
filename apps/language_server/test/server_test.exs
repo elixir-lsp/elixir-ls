@@ -709,6 +709,21 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     assert_receive(%{"id" => 1, "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}}, 1000)
   end
 
+  test "uri async request when the source file is not open returns -32602",
+       %{server: server} do
+    fake_initialize(server)
+
+    Server.receive_packet(server, execute_command_req(1, "spec:1", [%{
+      "uri" => "file:///file.ex",
+      "mod" => "Mod",
+      "fun" => "fun",
+      "arity" => 1,
+      "spec" => "",
+      "line" => 1
+    }]))
+    assert_receive(%{"id" => 1, "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}}, 1000)
+  end
+
   test "incremental formatter", %{server: server} do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])

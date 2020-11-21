@@ -216,7 +216,6 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case Enum.find(requests, &match?({_, ^pid}, &1)) do
         {id, _} ->
-          # TODO handle error
           error_msg = Exception.format_exit(reason)
           JsonRpc.respond_with_error(id, :server_error, error_msg)
           %{state | requests: Map.delete(requests, id)}
@@ -462,8 +461,10 @@ defmodule ElixirLS.LanguageServer.Server do
   rescue
     e in InvalidURIError ->
       JsonRpc.respond_with_error(id, :invalid_params, e.message)
+      state
     other ->
       JsonRpc.respond_with_error(id, :internal_error, other.message)
+      state
   end
 
   defp handle_request_packet(id, _packet, state) do
@@ -694,7 +695,14 @@ defmodule ElixirLS.LanguageServer.Server do
     parent = self()
 
     spawn_monitor(fn ->
-      result = func.()
+      result = try do
+        func.()
+      rescue
+        e in InvalidURIError ->
+          {:error, :invalid_params, e.message}
+        other ->
+          {:error, :internal_error, other.message}
+      end
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
     end)
   end
