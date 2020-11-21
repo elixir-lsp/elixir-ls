@@ -662,13 +662,12 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(code_lens_req(_id, uri), state) do
     source_file = get_source_file(state, uri)
-    if dialyzer_enabled?(state) and state.settings["suggestSpecs"] != false do
+    if dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
       {:async,
        fn -> CodeLens.code_lens(state.server_instance_id, uri, source_file.text) end,
        state}
     else
-      # TODO invalid request
-      {:ok, nil, state}
+      {:error, :invalid_request, "suggestSpecs is disabled", state}
     end
   end
 
