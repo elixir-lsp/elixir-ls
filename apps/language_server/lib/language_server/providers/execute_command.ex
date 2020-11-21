@@ -81,4 +81,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
 
     {:ok, nil}
   end
+
+  def execute(_command, _args, _state) do
+    {:error, :invalid_request, nil}
+  end
 end

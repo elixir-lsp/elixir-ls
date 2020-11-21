@@ -183,6 +183,26 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
       })
     end
+
+    test "not matched executeCommand requests return -32600 InvalidRequest and log warning", %{server: server} do
+      fake_initialize(server)
+      Server.receive_packet(server, execute_command_req(1, "not_matched", ["a", "bc"]))
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{
+            "code" => -32600
+          }
+        },
+        1000
+      )
+
+      assert_receive(%{
+        "method" => "window/logMessage",
+        "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
+      })
+    end
   end
 
   setup context do

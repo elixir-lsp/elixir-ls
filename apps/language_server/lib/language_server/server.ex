@@ -373,7 +373,6 @@ defmodule ElixirLS.LanguageServer.Server do
         )
       state
     else
-      JsonRpc.log_message(:warning, "saved #{uri}")
       WorkspaceSymbols.notify_uris_modified([uri])
       state = update_in(state.source_files[uri], &%{&1 | dirty?: false})
       trigger_build(state)
@@ -672,8 +671,15 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_request(execute_command_req(_id, command, args), state) do
-    {:async, fn -> ExecuteCommand.execute(command, args, state) end, state}
+  defp handle_request(execute_command_req(_id, command, args) = req, state) do
+    {:async, fn -> 
+      case ExecuteCommand.execute(command, args, state) do
+        {:error, :invalid_request, _msg} = res ->
+          JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
+          res
+        other -> other
+      end
+    end, state}
   end
 
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
