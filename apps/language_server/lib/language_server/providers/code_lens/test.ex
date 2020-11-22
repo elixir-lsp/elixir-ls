@@ -40,10 +40,10 @@ defmodule DescribeBlock do
       lines_to_env_list
       |> Enum.at(env_index)
 
-    with true = env_index + 1 < lines_to_env_list_length,
+    with true <- env_index + 1 < lines_to_env_list_length,
          next_env = Enum.at(lines_to_env_list, env_index + 1),
          {_line, %Env{scope_id: body_scope_id}} <- next_env,
-         true = body_scope_id != declaration_scope_id do
+         true <- body_scope_id != declaration_scope_id do
       body_scope_id
     else
       _ -> nil
@@ -72,7 +72,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Metadata
-  alias ElixirSense.Core.State.Env
 
   @run_test_command "elixir.lens.test.run"
 
