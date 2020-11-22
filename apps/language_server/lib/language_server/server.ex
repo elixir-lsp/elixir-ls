@@ -585,6 +585,12 @@ defmodule ElixirLS.LanguageServer.Server do
       with {:ok, spec_code_lens} <- get_spec_code_lens(state, uri),
            {:ok, test_code_lens} <- CodeLens.test_code_lens(uri, state.source_files[uri].text) do
         {:ok, spec_code_lens ++ test_code_lens}
+      else
+        {:error, %ElixirSense.Core.Metadata{error: {line, error_msg}}} ->
+          {:error, :code_lens_error, "#{line}: #{error_msg}", state}
+
+        {:error, error} ->
+          {:error, :code_lens_error, "Error while building code lenses: #{inspect(error)}", state}
       end
     end
 
