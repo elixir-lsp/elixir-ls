@@ -274,7 +274,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_close(uri))
 
       state = :sys.get_state(server)
-      assert_raise Server.InvalidURIError, fn -> Server.get_source_file(state, uri) end
+      assert_raise Server.InvalidParamError, fn -> Server.get_source_file(state, uri) end
     end
 
     test "textDocument/didClose not open", %{server: server} do

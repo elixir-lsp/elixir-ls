@@ -58,13 +58,13 @@ defmodule ElixirLS.LanguageServer.Server do
     supports_dynamic: false
   ]
 
-  defmodule InvalidURIError do
+  defmodule InvalidParamError do
     defexception [:uri, :message]
 
     @impl true
     def exception(uri) do
       msg = "invalid URI: #{inspect(uri)}"
-      %InvalidURIError{message: msg, uri: uri}
+      %InvalidParamError{message: msg, uri: uri}
     end
   end
 
@@ -472,7 +472,7 @@ defmodule ElixirLS.LanguageServer.Server do
         %{state | requests: Map.put(state.requests, id, pid)}
     end
   rescue
-    e in InvalidURIError ->
+    e in InvalidParamError ->
       JsonRpc.respond_with_error(id, :invalid_params, e.message)
       state
 
@@ -729,7 +729,7 @@ defmodule ElixirLS.LanguageServer.Server do
         try do
           func.()
         rescue
-          e in InvalidURIError ->
+          e in InvalidParamError ->
             {:error, :invalid_params, e.message}
 
           other ->
@@ -1051,7 +1051,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def get_source_file(state, uri) do
     case state.source_files[uri] do
       nil ->
-        raise InvalidURIError, uri
+        raise InvalidParamError, uri
 
       source_file ->
         source_file
