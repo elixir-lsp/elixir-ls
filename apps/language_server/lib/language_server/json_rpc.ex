@@ -203,4 +203,5 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   defp error_code_and_message(:request_cancelled), do: {-32800, "Request cancelled"}
   defp error_code_and_message(:content_modified), do: {-32801, "Content modified"}
+  defp error_code_and_message(:code_lens_error), do: {-32900, "Error while building code lenses"}
 end
