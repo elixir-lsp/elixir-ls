@@ -105,23 +105,22 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     end
   end
 
-  def get_test_lenses(test_blocks, file_path) do
+  defp get_test_lenses(test_blocks, file_path) do
+    args = fn block ->
+      %{
+        "filePath" => file_path,
+        "testName" => block.name
+      }
+      |> Map.merge(if block.describe != nil, do: %{"describe" => block.describe.name}, else: %{})
+    end
+
     test_blocks
     |> Enum.map(fn block ->
-      CodeLens.build_code_lens(block.line, "Run test", @run_test_command, %{
-        "filePath" => file_path,
-        "describe" =>
-          if block.describe != nil do
-            block.describe.name
-          else
-            nil
-          end,
-        "testName" => block.name
-      })
+      CodeLens.build_code_lens(block.line, "Run test", @run_test_command, args.(block))
     end)
   end
 
-  def get_describe_lenses(describe_blocks, file_path) do
+  defp get_describe_lenses(describe_blocks, file_path) do
     describe_blocks
     |> Enum.map(fn block ->
       CodeLens.build_code_lens(block.line, "Run tests", @run_test_command, %{
