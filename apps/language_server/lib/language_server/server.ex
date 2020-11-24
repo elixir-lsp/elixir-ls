@@ -58,6 +58,18 @@ defmodule ElixirLS.LanguageServer.Server do
     supports_dynamic: false
   ]
 
+  defmodule InvalidParamError do
+    defexception [:uri, :message]
+
+    @impl true
+    def exception(uri) do
+      msg = "invalid URI: #{inspect(uri)}"
+      %InvalidParamError{message: msg, uri: uri}
+    end
+  end
+
+  @watched_extensions [".ex", ".exs", ".erl", ".hrl", ".yrl", ".xrl", ".eex", ".leex"]
+
   ## Client API
 
   def start_link(name \\ nil) do
@@ -222,14 +234,23 @@ defmodule ElixirLS.LanguageServer.Server do
     Process.send_after(self(), :default_config, 5000)
 
     if state.supports_dynamic do
-      JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
-        "watchers" => [
-          %{"globPattern" => "**/*.ex"},
-          %{"globPattern" => "**/*.exs"},
-          %{"globPattern" => "**/*.eex"},
-          %{"globPattern" => "**/*.leex"}
-        ]
-      })
+      watchers = for ext <- @watched_extensions, do: %{"globPattern" => "**/*." <> ext}
+
+      register_capability_result =
+        JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
+          "watchers" => watchers
+        })
+
+      case register_capability_result do
+        {:ok, nil} ->
+          :ok
+
+        other ->
+          JsonRpc.log_message(
+            :error,
+            "client/registerCapability returned: #{inspect(other)}"
+          )
+      end
     end
 
     state
@@ -243,6 +264,11 @@ defmodule ElixirLS.LanguageServer.Server do
         %{state | requests: Map.delete(requests, id)}
 
       _ ->
+        JsonRpc.log_message(
+          :warning,
+          "Received $/cancelRequest for unknown request id: #{inspect(id)}"
+        )
+
         state
     end
   end
@@ -278,64 +304,126 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_open(uri, _language_id, version, text), state) do
-    source_file = %SourceFile{text: text, version: version}
+    if Map.has_key?(state.source_files, uri) do
+      # An open notification must not be sent more than once without a corresponding
+      # close notification send before
+      JsonRpc.log_message(
+        :warning,
+        "Received textDocument/didOpen for file that is already open. Received uri: #{
+          inspect(uri)
+        }"
+      )
 
-    Build.publish_file_diagnostics(
-      uri,
-      state.build_diagnostics ++ state.dialyzer_diagnostics,
-      source_file
-    )
+      state
+    else
+      source_file = %SourceFile{text: text, version: version}
 
-    put_in(state.source_files[uri], source_file)
+      Build.publish_file_diagnostics(
+        uri,
+        state.build_diagnostics ++ state.dialyzer_diagnostics,
+        source_file
+      )
+
+      put_in(state.source_files[uri], source_file)
+    end
   end
 
   defp handle_notification(did_close(uri), state) do
-    awaiting_contracts =
-      Enum.reject(state.awaiting_contracts, fn
-        {from, ^uri} -> GenServer.reply(from, [])
-        _ -> false
-      end)
+    if not Map.has_key?(state.source_files, uri) do
+      # A close notification requires a previous open notification to be sent
+      JsonRpc.log_message(
+        :warning,
+        "Received textDocument/didClose for file that is not open. Received uri: #{inspect(uri)}"
+      )
 
-    %{
       state
-      | source_files: Map.delete(state.source_files, uri),
-        awaiting_contracts: awaiting_contracts
-    }
+    else
+      awaiting_contracts =
+        Enum.reject(state.awaiting_contracts, fn
+          {from, ^uri} -> GenServer.reply(from, [])
+          _ -> false
+        end)
+
+      %{
+        state
+        | source_files: Map.delete(state.source_files, uri),
+          awaiting_contracts: awaiting_contracts
+      }
+    end
   end
 
   defp handle_notification(did_change(uri, version, content_changes), state) do
-    update_in(state.source_files[uri], fn
-      nil ->
-        # The source file was not marked as open either due to a bug in the
-        # client or a restart of the server. So just ignore the message and do
-        # not update the state
-        JsonRpc.log_message(
-          :warning,
-          "Received textDocument/didChange for file that is not open. Received uri: #{
-            inspect(uri)
-          }"
-        )
+    if not Map.has_key?(state.source_files, uri) do
+      # The source file was not marked as open either due to a bug in the
+      # client or a restart of the server. So just ignore the message and do
+      # not update the state
+      JsonRpc.log_message(
+        :warning,
+        "Received textDocument/didChange for file that is not open. Received uri: #{inspect(uri)}"
+      )
 
-        nil
-
-      source_file ->
-        source_file = %{source_file | version: version, dirty?: true}
-        SourceFile.apply_content_changes(source_file, content_changes)
-    end)
+      state
+    else
+      update_in(state.source_files[uri], fn source_file ->
+        %SourceFile{source_file | version: version, dirty?: true}
+        |> SourceFile.apply_content_changes(content_changes)
+      end)
+    end
   end
 
   defp handle_notification(did_save(uri), state) do
-    WorkspaceSymbols.notify_uris_modified([uri])
-    state = update_in(state.source_files[uri], &%{&1 | dirty?: false})
-    trigger_build(state)
+    if not Map.has_key?(state.source_files, uri) do
+      JsonRpc.log_message(
+        :warning,
+        "Received textDocument/didSave for file that is not open. Received uri: #{inspect(uri)}"
+      )
+
+      state
+    else
+      WorkspaceSymbols.notify_uris_modified([uri])
+      state = update_in(state.source_files[uri], &%{&1 | dirty?: false})
+      trigger_build(state)
+    end
   end
 
   defp handle_notification(did_change_watched_files(changes), state) do
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
-        Path.extname(uri) in [".ex", ".exs", ".erl", ".yrl", ".xrl", ".eex", ".leex"] and
-          (type in [1, 3] or not Map.has_key?(state.source_files, uri))
+        Path.extname(uri) in @watched_extensions and
+          (type in [1, 3] or not Map.has_key?(state.source_files, uri) or
+             state.source_files[uri].dirty?)
       end)
+
+    source_files =
+      changes
+      |> Enum.reduce(state.source_files, fn
+        %{"type" => 3}, acc ->
+          # deleted file still open in editor, keep dirty flag
+          acc
+
+        %{"uri" => uri}, acc ->
+          # file created/updated - set dirty flag to false if file contents are equal
+          case acc[uri] do
+            %SourceFile{text: source_file_text, dirty?: true} = source_file ->
+              case File.read(SourceFile.path_from_uri(uri)) do
+                {:ok, ^source_file_text} ->
+                  Map.put(acc, uri, %SourceFile{source_file | dirty?: false})
+
+                {:ok, _} ->
+                  acc
+
+                {:error, reason} ->
+                  JsonRpc.log_message(:warning, "Unable to read #{uri}: #{inspect(reason)}")
+                  # keep dirty if read fails
+                  acc
+              end
+
+            _ ->
+              acc
+          end
+      end)
+
+    state = %{state | source_files: source_files}
 
     changes
     |> Enum.map(& &1["uri"])
@@ -383,6 +471,14 @@ defmodule ElixirLS.LanguageServer.Server do
         {pid, _ref} = handle_request_async(id, fun)
         %{state | requests: Map.put(state.requests, id, pid)}
     end
+  rescue
+    e in InvalidParamError ->
+      JsonRpc.respond_with_error(id, :invalid_params, e.message)
+      state
+
+    other ->
+      JsonRpc.respond_with_error(id, :internal_error, other.message)
+      state
   end
 
   defp handle_request_packet(id, _packet, state) do
@@ -441,18 +537,22 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(definition_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
+
     fun = fn ->
-      Definition.definition(uri, state.source_files[uri].text, line, character)
+      Definition.definition(uri, source_file.text, line, character)
     end
 
     {:async, fun, state}
   end
 
   defp handle_request(references_req(_id, uri, line, character, include_declaration), state) do
+    source_file = get_source_file(state, uri)
+
     fun = fn ->
       {:ok,
        References.references(
-         state.source_files[uri].text,
+         source_file.text,
          uri,
          line,
          character,
@@ -464,14 +564,18 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(hover_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
+
     fun = fn ->
-      Hover.hover(state.source_files[uri].text, line, character)
+      Hover.hover(source_file.text, line, character)
     end
 
     {:async, fun, state}
   end
 
   defp handle_request(document_symbol_req(_id, uri), state) do
+    source_file = get_source_file(state, uri)
+
     fun = fn ->
       hierarchical? =
         get_in(state.client_capabilities, [
@@ -480,9 +584,7 @@ defmodule ElixirLS.LanguageServer.Server do
           "hierarchicalDocumentSymbolSupport"
         ]) || false
 
-      source_file = state.source_files[uri]
-
-      if source_file && String.ends_with?(uri, [".ex", ".exs"]) do
+      if String.ends_with?(uri, [".ex", ".exs"]) do
         DocumentSymbols.symbols(uri, source_file.text, hierarchical?)
       else
         {:ok, []}
@@ -494,7 +596,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(workspace_symbol_req(_id, query), state) do
     fun = fn ->
-      state.source_files
       WorkspaceSymbols.symbols(query)
     end
 
@@ -502,6 +603,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(completion_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
+
     snippets_supported =
       !!get_in(state.client_capabilities, [
         "textDocument",
@@ -543,7 +646,7 @@ defmodule ElixirLS.LanguageServer.Server do
     signature_after_complete = Map.get(state.settings || %{}, "signatureAfterComplete", true)
 
     fun = fn ->
-      Completion.completion(state.source_files[uri].text, line, character,
+      Completion.completion(source_file.text, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
         tags_supported: tags_supported,
@@ -557,41 +660,50 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(formatting_req(_id, uri, _options), state) do
-    case state.source_files[uri] do
-      nil ->
-        {:error, :server_error, "Missing source file", state}
-
-      source_file ->
-        fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
-        {:async, fun, state}
-    end
+    source_file = get_source_file(state, uri)
+    fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
+    {:async, fun, state}
   end
 
   defp handle_request(signature_help_req(_id, uri, line, character), state) do
-    fun = fn -> SignatureHelp.signature(state.source_files[uri], line, character) end
+    source_file = get_source_file(state, uri)
+    fun = fn -> SignatureHelp.signature(source_file, line, character) end
     {:async, fun, state}
   end
 
   defp handle_request(on_type_formatting_req(_id, uri, line, character, ch, options), state) do
+    source_file = get_source_file(state, uri)
+
     fun = fn ->
-      OnTypeFormatting.format(state.source_files[uri], line, character, ch, options)
+      OnTypeFormatting.format(source_file, line, character, ch, options)
     end
 
     {:async, fun, state}
   end
 
   defp handle_request(code_lens_req(_id, uri), state) do
-    if dialyzer_enabled?(state) and state.settings["suggestSpecs"] != false do
-      {:async,
-       fn -> CodeLens.code_lens(state.server_instance_id, uri, state.source_files[uri].text) end,
+    source_file = get_source_file(state, uri)
+
+    if dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
+      {:async, fn -> CodeLens.code_lens(state.server_instance_id, uri, source_file.text) end,
        state}
     else
-      {:ok, nil, state}
+      {:error, :invalid_request, "suggestSpecs is disabled", state}
     end
   end
 
-  defp handle_request(execute_command_req(_id, command, args), state) do
-    {:async, fn -> ExecuteCommand.execute(command, args, state.source_files) end, state}
+  defp handle_request(execute_command_req(_id, command, args) = req, state) do
+    {:async,
+     fn ->
+       case ExecuteCommand.execute(command, args, state) do
+         {:error, :invalid_request, _msg} = res ->
+           JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
+           res
+
+         other ->
+           other
+       end
+     end, state}
   end
 
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
@@ -613,7 +725,17 @@ defmodule ElixirLS.LanguageServer.Server do
     parent = self()
 
     spawn_monitor(fn ->
-      result = func.()
+      result =
+        try do
+          func.()
+        rescue
+          e in InvalidParamError ->
+            {:error, :invalid_params, e.message}
+
+          other ->
+            {:error, :internal_error, other.message}
+        end
+
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
     end)
   end
@@ -673,8 +795,7 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    if dialyzer_enabled?(state),
-      do: Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state))
+    Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state))
 
     state
   end
@@ -925,5 +1046,15 @@ defmodule ElixirLS.LanguageServer.Server do
     )
 
     state
+  end
+
+  def get_source_file(state, uri) do
+    case state.source_files[uri] do
+      nil ->
+        raise InvalidParamError, uri
+
+      source_file ->
+        source_file
+    end
   end
 end

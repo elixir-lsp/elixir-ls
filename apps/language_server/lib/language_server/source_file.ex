@@ -11,11 +11,34 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     String.split(text, ["\r\n", "\r", "\n"])
   end
 
-  def apply_content_changes(source_file, []) do
+  @doc """
+  Takes text and splits it into lines, return each line as a tuple with the line
+  and the line-ending. Needed because the LSP spec requires us to preserve the
+  used line endings.
+  """
+  def lines_with_endings(text) do
+    do_lines_with_endings(text, "")
+  end
+
+  def do_lines_with_endings("", line) do
+    [{line, nil}]
+  end
+
+  for line_ending <- ["\r\n", "\r", "\n"] do
+    def do_lines_with_endings(<<unquote(line_ending), rest::binary>>, line) do
+      [{line, unquote(line_ending)} | do_lines_with_endings(rest, "")]
+    end
+  end
+
+  def do_lines_with_endings(<<char::utf8, rest::binary>>, line) do
+    do_lines_with_endings(rest, line <> <<char::utf8>>)
+  end
+
+  def apply_content_changes(%__MODULE__{} = source_file, []) do
     source_file
   end
 
-  def apply_content_changes(source_file, [edit | rest]) do
+  def apply_content_changes(%__MODULE__{} = source_file, [edit | rest]) do
     source_file =
       case edit do
         %{"range" => edited_range, "text" => new_text} when not is_nil(edited_range) ->
@@ -63,31 +86,44 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def full_range(source_file) do
     lines = lines(source_file)
+    last_line = List.last(lines)
+
+    utf16_size =
+      :unicode.characters_to_binary(last_line, :utf8, :utf16)
+      |> byte_size()
+      |> div(2)
 
     %{
       "start" => %{"line" => 0, "character" => 0},
-      "end" => %{"line" => Enum.count(lines) - 1, "character" => String.length(List.last(lines))}
+      "end" => %{"line" => Enum.count(lines) - 1, "character" => utf16_size}
     }
   end
+
+  defp prepend_line(line, nil, acc), do: [line | acc]
+  defp prepend_line(line, ending, acc), do: [[line, ending] | acc]
 
   def apply_edit(text, range(start_line, start_character, end_line, end_character), new_text) do
     lines_with_idx =
       text
-      |> lines()
+      |> lines_with_endings()
       |> Enum.with_index()
 
     acc =
-      Enum.reduce(lines_with_idx, [], fn {line, idx}, acc ->
+      Enum.reduce(lines_with_idx, [], fn {{line, ending}, idx}, acc ->
         cond do
           idx < start_line ->
-            [[line, ?\n] | acc]
+            prepend_line(line, ending, acc)
 
           idx == start_line ->
             # LSP contentChanges positions are based on UTF-16 string representation
             # https://microsoft.github.io/language-server-protocol/specification#textDocuments
             beginning_utf8 =
               :unicode.characters_to_binary(line, :utf8, :utf16)
-              |> binary_part(0, start_character * 2)
+              |> (&binary_part(
+                    &1,
+                    0,
+                    min(start_character * 2, byte_size(&1))
+                  )).()
               |> :unicode.characters_to_binary(:utf16, :utf8)
 
             [beginning_utf8 | acc]
@@ -100,7 +136,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     acc = [new_text | acc]
 
     acc =
-      Enum.reduce(lines_with_idx, acc, fn {line, idx}, acc ->
+      Enum.reduce(lines_with_idx, acc, fn {{line, ending}, idx}, acc ->
         cond do
           idx < end_line ->
             acc
@@ -112,21 +148,17 @@ defmodule ElixirLS.LanguageServer.SourceFile do
               :unicode.characters_to_binary(line, :utf8, :utf16)
               |> (&binary_part(
                     &1,
-                    end_character * 2,
-                    byte_size(&1) - end_character * 2
+                    min(end_character * 2, byte_size(&1)),
+                    max(byte_size(&1) - end_character * 2, 0)
                   )).()
               |> :unicode.characters_to_binary(:utf16, :utf8)
 
-            [[ending_utf8, ?\n] | acc]
+            prepend_line(ending_utf8, ending, acc)
 
           idx > end_line ->
-            [[line, ?\n] | acc]
+            prepend_line(line, ending, acc)
         end
       end)
-
-    # Remove extraneous newline from last line
-    [[last_line, ?\n] | rest] = acc
-    acc = [last_line | rest]
 
     IO.iodata_to_binary(Enum.reverse(acc))
   end

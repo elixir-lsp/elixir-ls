@@ -215,6 +215,10 @@ defmodule ElixirLS.LanguageServer.Build do
     with {:ok, beams} <- File.ls(path) do
       Enum.map(beams, &(&1 |> Path.rootname(".beam") |> String.to_atom() |> purge_module()))
     else
+      {:error, :enoent} ->
+        # consolidation_path does not exist
+        :ok
+
       {:error, reason} ->
         JsonRpc.show_message(
           :warning,

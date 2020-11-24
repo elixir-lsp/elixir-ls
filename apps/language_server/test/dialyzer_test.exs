@@ -113,22 +113,35 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         c_uri = SourceFile.path_to_uri("lib/c.ex")
 
-        # The dialyzer process checks a second back since mtime only has second
-        # granularity, so we need to trigger one save that will set the
-        # timestamp, and then wait a second and save again to get the actual
-        # changed file.
-        for _ <- 1..2 do
-          Server.receive_packet(server, did_open(c_uri, "elixir", 1, c_text))
-          File.write!("lib/c.ex", c_text)
-          Server.receive_packet(server, did_save(c_uri))
-          assert_receive publish_diagnostics_notif(^file_c, []), 20_000
-
-          Process.sleep(1_500)
-        end
+        assert_receive notification("window/logMessage", %{
+                         "message" => "[ElixirLS Dialyzer] Found " <> _
+                       })
 
         assert_receive notification("window/logMessage", %{
-                         "message" => "[ElixirLS Dialyzer] Found 1 changed files" <> _
-                       })
+                         "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
+                       }),
+                       3_000
+
+        Server.receive_packet(server, did_open(c_uri, "elixir", 1, c_text))
+
+        # The dialyzer process checks a second back since mtime only has second
+        # granularity, so we need to wait a second.
+
+        File.write!("lib/c.ex", c_text)
+        Process.sleep(1_500)
+        Server.receive_packet(server, did_save(c_uri))
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "[ElixirLS Dialyzer] Analyzing 1 modules: [C]"
+                       }),
+                       3_000
+
+        assert_receive publish_diagnostics_notif(^file_c, []), 20_000
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
+                       }),
+                       3_000
 
         # Stop while we're still capturing logs to avoid log leakage
         GenServer.stop(server)
@@ -411,14 +424,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       end
       """
 
-      Server.receive_packet(server, did_open(uri, "elixir", 1, v2_text))
       File.write!("lib/implementations.ex", v2_text)
       Server.receive_packet(server, did_save(uri))
 
       assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
-
-      assert_receive notification("textDocument/publishDiagnostics", %{"diagnostics" => []}),
-                     30000
 
       # we should not receive Protocol has already been consolidated warnings here
       refute_receive notification("textDocument/publishDiagnostics", _), 3000
