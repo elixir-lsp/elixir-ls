@@ -1,5 +1,9 @@
 ### Unreleased
 
+Bug Fixes:
+- Fix multiple issues with text synchronization (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#411](https://github.com/elixir-lsp/elixir-ls/pull/411)
+- Purge consolidated protocols before compilation (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#406](https://github.com/elixir-lsp/elixir-ls/pull/406)
+
 ### v0.6.2: 15 November 2020
 
 Improvements:
