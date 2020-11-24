@@ -632,12 +632,18 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     end
 
     property "always creates valid binaries" do
-      check all elements <- list_of(one_of([
-            string(:printable),
-            one_of([constant("\r\n"), constant("\n"), constant("\r")])
-          ])) do
+      check all(
+              elements <-
+                list_of(
+                  one_of([
+                    string(:printable),
+                    one_of([constant("\r\n"), constant("\n"), constant("\r")])
+                  ])
+                )
+            ) do
         text = List.to_string(elements)
         lines_w_endings = SourceFile.lines_with_endings(text)
+
         Enum.each(lines_w_endings, fn {line, ending} ->
           assert String.valid?(line)
           assert ending in ["\r\n", "\n", "\r", nil]
