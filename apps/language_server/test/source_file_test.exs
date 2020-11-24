@@ -43,6 +43,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
   describe "apply_content_changes" do
     # tests and helper functions ported from https://github.com/microsoft/vscode-languageserver-node
+    # note thet those functions are not production quality e.g. they don't deal with utf8/utf16 encoding issues
     defp index_of(string, substring) do
       case String.split(string, substring, parts: 2) do
         [left, _] -> String.to_charlist(left) |> length
