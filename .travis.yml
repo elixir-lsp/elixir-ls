@@ -9,6 +9,7 @@ script:
       echo "Not checking formatting"
     fi
   - mix test
+  - mix deps.unlock --check-unused
   - |
     if [[ "$RUN_DIALYZER" -eq 1 ]]
     then
