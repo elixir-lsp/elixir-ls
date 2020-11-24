@@ -551,25 +551,6 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\rFGHIJ")
   end
 
-  test "lines_with_endings" do
-    assert [{"", nil}] == SourceFile.lines_with_endings("")
-    assert [{"abc", nil}] == SourceFile.lines_with_endings("abc")
-    assert [{"", "\n"}, {"", nil}] == SourceFile.lines_with_endings("\n")
-    assert [{"a", "\n"}, {"", nil}] == SourceFile.lines_with_endings("a\n")
-    assert [{"", "\n"}, {"a", nil}] == SourceFile.lines_with_endings("\na")
-    assert [{"ABCDE", "\r"}, {"FGHIJ", nil}] == SourceFile.lines_with_endings("ABCDE\rFGHIJ")
-    assert [{"ABCDE", "\r\n"}, {"FGHIJ", nil}] == SourceFile.lines_with_endings("ABCDE\r\nFGHIJ")
-
-    assert [{"ABCDE", "\n"}, {"", "\n"}, {"FGHIJ", nil}] ==
-             SourceFile.lines_with_endings("ABCDE\n\nFGHIJ")
-
-    assert [{"ABCDE", "\r"}, {"", "\r"}, {"FGHIJ", nil}] ==
-             SourceFile.lines_with_endings("ABCDE\r\rFGHIJ")
-
-    assert [{"ABCDE", "\n"}, {"", "\r"}, {"FGHIJ", nil}] ==
-             SourceFile.lines_with_endings("ABCDE\n\rFGHIJ")
-  end
-
   test "full_range" do
     assert %{
              "end" => %{"character" => 0, "line" => 0},
@@ -588,6 +569,11 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert SourceFile.lines_with_endings("") == [{"", nil}]
     end
 
+    test "begining with endline" do
+      assert SourceFile.lines_with_endings("\n") == [{"", "\n"}, {"", nil}]
+      assert SourceFile.lines_with_endings("\nbasic") == [{"", "\n"}, {"basic", nil}]
+    end
+
     test "without any endings" do
       assert SourceFile.lines_with_endings("basic") == [{"basic", nil}]
     end
@@ -598,6 +584,10 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
     test "with a CR LF" do
       assert SourceFile.lines_with_endings("text\r\n") == [{"text", "\r\n"}, {"", nil}]
+    end
+
+    test "with a CR" do
+      assert SourceFile.lines_with_endings("text\r") == [{"text", "\r"}, {"", nil}]
     end
 
     test "with multiple LF lines" do
