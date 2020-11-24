@@ -11,41 +11,27 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     String.split(text, ["\r\n", "\r", "\n"])
   end
 
-  def lines_with_endings(""), do: [{"", nil}]
-
+  @doc """
+  Takes text and splits it into lines, return each line as a tuple with the line
+  and the line-ending. Needed because the LSP spec requires us to preserve the
+  used line endings.
+  """
   def lines_with_endings(text) do
-    charlist =
-      text
-      |> String.to_charlist()
+    do_lines_with_endings(text, "")
+  end
 
-    shifted =
-      charlist
-      |> tl
-      |> Kernel.++([nil])
+  def do_lines_with_endings("", line) do
+    [{line, nil}]
+  end
 
-    {lines, line, _} =
-      Enum.zip(charlist, shifted)
-      |> Enum.reduce({[], [], :take}, fn
-        _, {lines, line, :skip} ->
-          {lines, line, :take}
+  for line_ending <- ["\r\n", "\r", "\n"] do
+    def do_lines_with_endings(<<unquote(line_ending), rest::binary>>, line) do
+      [{line, unquote(line_ending)} | do_lines_with_endings(rest, "")]
+    end
+  end
 
-        {c, cs}, {lines, line, :take} when c in [?\r, ?\n] ->
-          finished_line = line |> Enum.reverse() |> List.to_string()
-
-          if c == ?\r and cs == ?\n do
-            {[{finished_line, "\r\n"} | lines], [], :skip}
-          else
-            {[{finished_line, [c] |> List.to_string()} | lines], [], :take}
-          end
-
-        {c, _cs}, {lines, line, :take} ->
-          {lines, [c | line], :take}
-      end)
-
-    finished_line = line |> Enum.reverse() |> List.to_string()
-
-    [{finished_line, nil} | lines]
-    |> Enum.reverse()
+  def do_lines_with_endings(<<char::utf8, rest::binary>>, line) do
+    do_lines_with_endings(rest, line <> <<char::utf8>>)
   end
 
   def apply_content_changes(%__MODULE__{} = source_file, []) do

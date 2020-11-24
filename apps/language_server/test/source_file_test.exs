@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.SourceFileTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   alias ElixirLS.LanguageServer.SourceFile
 
@@ -579,5 +580,69 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\naa"))
     assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\r\naa"))
     assert %{"end" => %{"character" => 8, "line" => 1}} = SourceFile.full_range(new("a\naa🏳️‍🌈"))
+  end
+
+  describe "lines_with_endings/1" do
+    test "with an empty string" do
+      assert SourceFile.lines_with_endings("") == [{"", nil}]
+    end
+
+    test "without any endings" do
+      assert SourceFile.lines_with_endings("basic") == [{"basic", nil}]
+    end
+
+    test "with a LF" do
+      assert SourceFile.lines_with_endings("text\n") == [{"text", "\n"}, {"", nil}]
+    end
+
+    test "with a CR LF" do
+      assert SourceFile.lines_with_endings("text\r\n") == [{"text", "\r\n"}, {"", nil}]
+    end
+
+    test "with multiple LF lines" do
+      assert SourceFile.lines_with_endings("line1\nline2\nline3") == [
+               {"line1", "\n"},
+               {"line2", "\n"},
+               {"line3", nil}
+             ]
+    end
+
+    test "with multiple CR LF line endings" do
+      text = "A\r\nB\r\n\r\nC"
+
+      assert SourceFile.lines_with_endings(text) == [
+               {"A", "\r\n"},
+               {"B", "\r\n"},
+               {"", "\r\n"},
+               {"C", nil}
+             ]
+    end
+
+    test "with an emoji" do
+      text = "👨‍👩‍👦 test"
+      assert SourceFile.lines_with_endings(text) == [{"👨‍👩‍👦 test", nil}]
+    end
+
+    test "example multi-byte string" do
+      text = "𐂀"
+      assert String.valid?(text)
+      [{line, ending}] = SourceFile.lines_with_endings(text)
+      assert String.valid?(line)
+      assert ending in ["\r\n", "\n", "\r", nil]
+    end
+
+    property "always creates valid binaries" do
+      check all elements <- list_of(one_of([
+            string(:printable),
+            one_of([constant("\r\n"), constant("\n"), constant("\r")])
+          ])) do
+        text = List.to_string(elements)
+        lines_w_endings = SourceFile.lines_with_endings(text)
+        Enum.each(lines_w_endings, fn {line, ending} ->
+          assert String.valid?(line)
+          assert ending in ["\r\n", "\n", "\r", nil]
+        end)
+      end
+    end
   end
 end
