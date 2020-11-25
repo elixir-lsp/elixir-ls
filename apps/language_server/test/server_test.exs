@@ -621,6 +621,62 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end)
   end
 
+  test "returns code lenses for runnable tests", %{server: server} do
+    in_fixture(__DIR__, "test_code_lens", fn ->
+      file_path = "test/fixture_test.exs"
+      file_uri = SourceFile.path_to_uri(file_path)
+      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      text = File.read!(file_path)
+
+      initialize(server)
+      Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+
+      Server.receive_packet(
+        server,
+        code_lens_req(4, file_uri)
+      )
+
+      # :timer.sleep(1000)
+      # %{"result" => resp} = assert_received(%{"id" => 4})
+      resp = assert_receive(%{"id" => 4}, 5000)
+
+      assert response(4, [
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => ^file_absolute_path,
+                       "testName" => "fixture test"
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run test"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 3},
+                   "start" => %{"character" => 0, "line" => 3}
+                 }
+               },
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => file_absolute_path,
+                       "module" => "Elixir.TestCodeLensTest"
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run tests in module"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 0},
+                   "start" => %{"character" => 0, "line" => 0}
+                 }
+               }
+             ]) = resp
+    end)
+  end
+
   defp with_new_server(func) do
     server = start_supervised!({Server, nil})
     packet_capture = start_supervised!({PacketCapture, self()})
