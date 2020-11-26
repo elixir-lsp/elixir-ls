@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   alias ElixirLS.LanguageServer.SourceFile
 
   test "Formats a file" do
-    uri = "file:///project/file.ex"
+    uri = "file://project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -53,7 +53,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     do: is_integer(ch) and is_integer(line)
 
   test "returns an error when formatting a file with a syntax error" do
-    uri = "file:///project/file.ex"
+    uri = "file://project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   end
 
   test "Proper utf-16 format: emoji 😀" do
-    uri = "file:///project/file.ex"
+    uri = "file://project/file.ex"
 
     text = """
     IO.puts "😀"
@@ -113,7 +113,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   end
 
   test "Proper utf-16 format: emoji 🏳️‍🌈" do
-    uri = "file:///project/file.ex"
+    uri = "file://project/file.ex"
 
     text = """
     IO.puts "🏳️‍🌈"
@@ -148,7 +148,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   end
 
   test "Proper utf-16 format: zalgo" do
-    uri = "file:///project/file.ex"
+    uri = "file://project/file.ex"
 
     text = """
     IO.puts "ẕ̸͇̞̲͇͕̹̙̄͆̇͂̏̊͒̒̈́́̕͘͠͝à̵̢̛̟̞͚̟͖̻̹̮̘͚̻͍̇͂̂̅́̎̉͗́́̃̒l̴̻̳͉̖̗͖̰̠̗̃̈́̓̓̍̅͝͝͝g̷̢͚̠̜̿̊́̋͗̔ȍ̶̹̙̅̽̌̒͌͋̓̈́͑̏͑͊͛͘ ̸̨͙̦̫̪͓̠̺̫̖͙̫̏͂̒̽́̿̂̊́͂͋͜͠͝͝ṭ̴̜͎̮͉̙͍͔̜̾͋͒̓̏̉̄͘͠͝ͅę̷̡̭̹̰̺̩̠͓͌̃̕͜͝ͅͅx̵̧͍̦͈͍̝͖͙̘͎̥͕̾̾̍̀̿̔̄̑̈͝t̸̛͇̀̕"
