@@ -693,11 +693,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, definition_req(1, uri, 2, 58))
 
-    uri =
-      "file://" <>
-        to_string(
-          ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
-        )
+    uri = ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
+    |> to_string
+    |> SourceFile.path_to_uri()
 
     assert_receive(
       response(1, %{
