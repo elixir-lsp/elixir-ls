@@ -1,11 +1,8 @@
 [
   inputs: [
     "*.exs",
-    "config/**/*.exs"
-  ],
-  subdirectories: [
-    "apps/elixir_ls_utils",
-    "apps/elixir_ls_debugger",
-    "apps/language_server"
+    "config/**/*.exs",
+    "apps/*/{config,lib,test}/**/*.{ex,exs}",
+    "apps/*/mix.exs"
   ]
 ]
