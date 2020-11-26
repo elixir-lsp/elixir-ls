@@ -695,9 +695,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       Server.receive_packet(server, definition_req(1, uri, 2, 58))
 
-      uri = ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
-      |> to_string
-      |> SourceFile.path_to_uri()
+      uri =
+        ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
+        |> to_string
+        |> SourceFile.path_to_uri()
 
       assert_receive(
         response(1, %{
@@ -736,13 +737,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, implementation_req(1, uri, 0, 43))
 
       assert_receive(
-        response(1, [%{
-          "range" => %{
-            "end" => %{"character" => _, "line" => _},
-            "start" => %{"character" => _, "line" => _}
-          },
-          "uri" => ^uri
-        }]),
+        response(1, [
+          %{
+            "range" => %{
+              "end" => %{"character" => _, "line" => _},
+              "start" => %{"character" => _, "line" => _}
+            },
+            "uri" => ^uri
+          }
+        ]),
         15000
       )
     end
