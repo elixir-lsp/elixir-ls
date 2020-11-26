@@ -746,7 +746,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
             "uri" => ^uri
           }
         ]),
-        15000
+        30000
       )
     end
 
@@ -758,7 +758,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       assert_receive(
         response(1, []),
-        15000
+        30000
       )
     end
   end
