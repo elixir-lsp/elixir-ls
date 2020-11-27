@@ -9,6 +9,13 @@ script:
       echo "Not checking formatting"
     fi
   - mix test
+  - |
+    if [[ "$CHECK_UNUSED_DEPS" -eq 1 ]]
+    then
+      mix deps.unlock --check-unused
+    else
+      echo "Not checking unused deps"
+    fi
   - mix deps.unlock --check-unused
   - |
     if [[ "$RUN_DIALYZER" -eq 1 ]]
@@ -33,8 +40,11 @@ matrix:
       elixir: 1.9.4
     - otp_release: 23.0.4
       elixir: 1.10.4
+      env:
+        - CHECK_UNUSED_DEPS=1
     - otp_release: 23.0.4
       elixir: 1.11.1
       env:
         - CHECK_FORMATTED=1
         - RUN_DIALYZER=1
+        - CHECK_UNUSED_DEPS=1
