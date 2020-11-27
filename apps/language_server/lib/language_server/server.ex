@@ -22,6 +22,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Completion,
     Hover,
     Definition,
+    Implementation,
     References,
     Formatting,
     SignatureHelp,
@@ -475,10 +476,6 @@ defmodule ElixirLS.LanguageServer.Server do
     e in InvalidParamError ->
       JsonRpc.respond_with_error(id, :invalid_params, e.message)
       state
-
-    other ->
-      JsonRpc.respond_with_error(id, :internal_error, other.message)
-      state
   end
 
   defp handle_request_packet(id, _packet, state) do
@@ -541,6 +538,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
     fun = fn ->
       Definition.definition(uri, source_file.text, line, character)
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(implementation_req(_id, uri, line, character), state) do
+    fun = fn ->
+      Implementation.implementation(uri, state.source_files[uri].text, line, character)
     end
 
     {:async, fun, state}
@@ -731,9 +736,6 @@ defmodule ElixirLS.LanguageServer.Server do
         rescue
           e in InvalidParamError ->
             {:error, :invalid_params, e.message}
-
-          other ->
-            {:error, :internal_error, other.message}
         end
 
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
@@ -751,9 +753,10 @@ defmodule ElixirLS.LanguageServer.Server do
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
       "definitionProvider" => true,
-      "referencesProvider" => References.supported?(),
-      "documentFormattingProvider" => Formatting.supported?(),
-      "signatureHelpProvider" => %{"triggerCharacters" => ["("]},
+      "implementationProvider" => true,
+      "referencesProvider" => true,
+      "documentFormattingProvider" => true,
+      "signatureHelpProvider" => %{"triggerCharacters" => SignatureHelp.trigger_characters()},
       "documentSymbolProvider" => true,
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},

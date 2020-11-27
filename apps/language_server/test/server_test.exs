@@ -1,6 +1,7 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
   alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile}
   alias ElixirLS.Utils.PacketCapture
+  alias ElixirLS.LanguageServer.Test.FixtureHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -682,35 +683,89 @@ defmodule ElixirLS.LanguageServer.ServerTest do
            }) = resp
   end
 
-  test "go to definition", %{server: server} do
-    uri = "file:///file.ex"
-    code = ~S(
-      defmodule MyModule do
-        @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
-      end
-    )
-    fake_initialize(server)
-    Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, definition_req(1, uri, 2, 58))
+  describe "textDocument/definition" do
+    test "definition found", %{server: server} do
+      uri = "file:///file.ex"
+      code = ~S(
+        defmodule MyModule do
+          @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
+        end
+      )
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, definition_req(1, uri, 2, 58))
 
-    uri =
-      "file://" <>
-        to_string(
-          ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
-        )
+      uri =
+        ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
+        |> to_string
+        |> SourceFile.path_to_uri()
 
-    assert_receive(
-      response(1, %{
-        "range" => %{
-          "end" => %{"character" => column, "line" => 0},
-          "start" => %{"character" => column, "line" => 0}
-        },
-        "uri" => ^uri
-      }),
-      3000
-    )
+      assert_receive(
+        response(1, %{
+          "range" => %{
+            "end" => %{"character" => column, "line" => 0},
+            "start" => %{"character" => column, "line" => 0}
+          },
+          "uri" => ^uri
+        }),
+        3000
+      )
 
-    assert column > 0
+      assert column > 0
+    end
+
+    test "definition not found", %{server: server} do
+      fake_initialize(server)
+      uri = "file:///file.ex"
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, definition_req(1, uri, 0, 43))
+
+      assert_receive(
+        response(1, nil),
+        3000
+      )
+    end
+  end
+
+  describe "textDocument/implementation" do
+    test "implementations found", %{server: server} do
+      file_path = FixtureHelpers.get_path("example_behaviour.ex")
+      text = File.read!(file_path)
+      uri = SourceFile.path_to_uri(file_path)
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, text))
+
+      # force load as currently only loaded or loadable modules that are a part
+      # of an application are found
+      Code.ensure_loaded?(ElixirLS.LanguageServer.Fixtures.ExampleBehaviourImpl)
+
+      Server.receive_packet(server, implementation_req(1, uri, 0, 43))
+
+      assert_receive(
+        response(1, [
+          %{
+            "range" => %{
+              "end" => %{"character" => _, "line" => _},
+              "start" => %{"character" => _, "line" => _}
+            },
+            "uri" => ^uri
+          }
+        ]),
+        15000
+      )
+    end
+
+    test "implementations not found", %{server: server} do
+      fake_initialize(server)
+      uri = "file:///file.ex"
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+      Server.receive_packet(server, implementation_req(1, uri, 0, 43))
+
+      assert_receive(
+        response(1, []),
+        15000
+      )
+    end
   end
 
   describe "requests cancellation" do

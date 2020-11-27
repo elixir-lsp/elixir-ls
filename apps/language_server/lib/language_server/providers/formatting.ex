@@ -2,10 +2,6 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.LanguageServer.SourceFile
 
-  def supported? do
-    function_exported?(Code, :format_string!, 2)
-  end
-
   def format(%SourceFile{} = source_file, uri, project_dir) do
     if can_format?(uri, project_dir) do
       case SourceFile.formatter_opts(uri) do

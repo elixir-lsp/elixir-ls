@@ -3,32 +3,18 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
   Go-to-definition provider utilizing Elixir Sense
   """
 
-  alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Protocol
 
   def definition(uri, text, line, character) do
-    case ElixirSense.definition(text, line + 1, character + 1) do
-      %ElixirSense.Location{found: false} ->
-        {:ok, []}
+    result =
+      case ElixirSense.definition(text, line + 1, character + 1) do
+        nil ->
+          nil
 
-      %ElixirSense.Location{file: file, line: line, column: column} ->
-        line = line || 0
-        column = column || 0
+        %ElixirSense.Location{} = location ->
+          Protocol.Location.new(location, uri)
+      end
 
-        uri =
-          case file do
-            nil -> uri
-            _ -> SourceFile.path_to_uri(file)
-          end
-
-        {:ok,
-         %Protocol.Location{
-           uri: uri,
-           range: %{
-             "start" => %{"line" => line - 1, "character" => column - 1},
-             "end" => %{"line" => line - 1, "character" => column - 1}
-           }
-         }}
-    end
+    {:ok, result}
   end
 end
