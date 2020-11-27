@@ -16,7 +16,6 @@ script:
     else
       echo "Not checking unused deps"
     fi
-  - mix deps.unlock --check-unused
   - |
     if [[ "$RUN_DIALYZER" -eq 1 ]]
     then
