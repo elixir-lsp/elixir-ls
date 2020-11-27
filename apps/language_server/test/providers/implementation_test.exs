@@ -8,6 +8,10 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
   require ElixirLS.Test.TextLoc
 
   test "find implementations" do
+    # force load as currently only loaded or loadable modules that are a part
+    # of an application are found
+    Code.ensure_loaded?(ElixirLS.LanguageServer.Fixtures.ExampleBehaviourImpl)
+
     file_path = FixtureHelpers.get_path("example_behaviour.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)

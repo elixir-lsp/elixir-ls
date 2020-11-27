@@ -734,6 +734,11 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       uri = SourceFile.path_to_uri(file_path)
       fake_initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, text))
+
+      # force load as currently only loaded or loadable modules that are a part
+      # of an application are found
+      Code.ensure_loaded?(ElixirLS.LanguageServer.Fixtures.ExampleBehaviourImpl)
+
       Server.receive_packet(server, implementation_req(1, uri, 0, 43))
 
       assert_receive(
@@ -746,7 +751,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
             "uri" => ^uri
           }
         ]),
-        30000
+        15000
       )
     end
 
@@ -758,7 +763,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       assert_receive(
         response(1, []),
-        30000
+        15000
       )
     end
   end
