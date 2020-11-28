@@ -115,7 +115,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
   end
 
-  @elixir_apps [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
+  @elixir_apps [:elixir, :ex_unit, :mix, :iex, :logger, :eex]
+  @erlang_apps [:erts, :kernel, :stdlib, :compiler]
 
   defp build_elixir_plt() do
     JsonRpc.show_message(
@@ -123,7 +124,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       "Building core Dialyzer Elixir PLT. This will take a few minutes (often 15+) and can be disabled in the settings."
     )
 
-    modules_to_paths = for app <- @elixir_apps,
+    modules_to_paths = for app <- @erlang_apps ++ @elixir_apps,
     path <- Path.join([Application.app_dir(app), "**/*.beam"]) |> Path.wildcard(),
     into: %{},
     do:
