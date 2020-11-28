@@ -250,6 +250,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       case subtype do
         :behaviour -> :interface
         :protocol -> :interface
+        :exception -> :struct
         :struct -> :struct
         _ -> :module
       end

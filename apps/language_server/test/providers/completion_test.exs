@@ -174,6 +174,28 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert item["label"] == "ExampleBehaviour (behaviour)"
   end
 
+  test "completions of exceptions are rendered as a struct" do
+      text = """
+      defmodule MyModule do
+        def dummy_function() do
+          ElixirLS.LanguageServer.Fixtures.ExampleE
+          #                                        ^
+        end
+      end
+      """
+
+      {line, char} = {2, 45}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert [item] = items
+
+      # 22 is struct
+      assert item["kind"] == 22
+      assert item["label"] == "ExampleException (exception)"
+  end
+
   test "provides completions for callbacks without `def` before" do
     text = """
     defmodule MyModule do
