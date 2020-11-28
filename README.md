@@ -93,7 +93,7 @@ Erlang:
 
 - OTP 21 minimum
 
-You may want to install Elixir and Erlang from source, using the [kiex](https://github.com/taylor/kiex) and [kerl](https://github.com/kerl/kerl) tools. This will let you go-to-definition for core Elixir and Erlang modules.
+Installing Elixir and Erlang from [ASDF](https://github.com/asdf-vm/asdf) is generally recommended so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS will detect and use the version of Elixir and Erlang that you have configured in asdf.
 
 ## Debugger support
 
