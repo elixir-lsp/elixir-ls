@@ -246,9 +246,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         "module"
       end
 
+    kind =
+      case subtype do
+        :behaviour -> :interface
+        :protocol -> :interface
+        :exception -> :struct
+        :struct -> :struct
+        _ -> :module
+      end
+
+    label =
+      if subtype do
+        "#{name} (#{subtype})"
+      else
+        name
+      end
+
     %__MODULE__{
-      label: name,
-      kind: :module,
+      label: label,
+      kind: kind,
       detail: detail,
       documentation: summary,
       insert_text: name,
@@ -582,8 +598,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     text != ""
   end
 
-  defp completion_kind(type) do
-    case type do
+  # LSP CompletionItemKind enumeration
+  defp completion_kind(kind) do
+    case kind do
       :text -> 1
       :method -> 2
       :function -> 3
