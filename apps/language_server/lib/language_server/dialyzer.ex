@@ -212,17 +212,18 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     # FIXME: Private API
     consolidation_path = Mix.Project.consolidation_path()
-    consolidated_protocol_beams = for path <- Path.join(consolidation_path, "*.beam") |> Path.wildcard do
-      Path.basename(path)
-    end
-    |> MapSet.new
+
+    consolidated_protocol_beams =
+      for path <- Path.join(consolidation_path, "*.beam") |> Path.wildcard() do
+        Path.basename(path)
+      end
+      |> MapSet.new()
 
     # FIXME: Private API
     all_paths =
       for path <- Mix.Utils.extract_files([Mix.Project.build_path()], [:beam]),
-        Path.basename(path) not in consolidated_protocol_beams or
-        Path.dirname(path) == consolidation_path
-      do
+          Path.basename(path) not in consolidated_protocol_beams or
+            Path.dirname(path) == consolidation_path do
         Path.relative_to_cwd(path)
       end
       |> MapSet.new()
@@ -391,7 +392,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
             {file, hash}
           end
 
-
         {active_plt, mod_deps, md5, warnings}
       end)
 
@@ -404,11 +404,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp update_mod_deps(mod_deps, new_mod_deps, removed_modules) do
-
     for {mod, deps} <- mod_deps,
-    mod not in removed_modules,
-    into: new_mod_deps
-    do
+        mod not in removed_modules,
+        into: new_mod_deps do
       {mod, deps -- removed_modules}
     end
   end

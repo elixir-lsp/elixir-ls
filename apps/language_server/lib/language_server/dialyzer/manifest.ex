@@ -124,20 +124,22 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       "Building core Dialyzer Elixir PLT. This will take a few minutes (often 15+) and can be disabled in the settings."
     )
 
-    modules_to_paths = for app <- @erlang_apps ++ @elixir_apps,
-    path <- Path.join([Application.app_dir(app), "**/*.beam"]) |> Path.wildcard(),
-    into: %{},
-    do:
-      {pathname_to_module(path), path |> String.to_charlist}
+    modules_to_paths =
+      for app <- @erlang_apps ++ @elixir_apps,
+          path <- Path.join([Application.app_dir(app), "**/*.beam"]) |> Path.wildcard(),
+          into: %{},
+          do: {pathname_to_module(path), path |> String.to_charlist()}
 
-    modules = modules_to_paths
-    |> Map.keys
-    |> expand_references
+    modules =
+      modules_to_paths
+      |> Map.keys()
+      |> expand_references
 
-    files = for mod <- modules,
-    path = modules_to_paths[mod] || Utils.get_beam_file(mod),
-    is_list(path),
-    do: path
+    files =
+      for mod <- modules,
+          path = modules_to_paths[mod] || Utils.get_beam_file(mod),
+          is_list(path),
+          do: path
 
     File.mkdir_p!(Path.dirname(elixir_plt_path()))
 
