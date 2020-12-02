@@ -11,7 +11,9 @@
 
 did_relaunch=$1
 
-asdf_vm="${HOME}/.asdf/asdf.sh"
+ASDF_DIR=${ASDF_DIR:-"${HOME}/.asdf"}
+
+asdf_vm="${ASDF_DIR}/asdf.sh"
 if test -f "${asdf_vm}"
 then
   # asdf-vm does not support the plain posix shell. Figure out
