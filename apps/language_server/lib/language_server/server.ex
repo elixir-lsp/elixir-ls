@@ -583,7 +583,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request(code_lens_req(_id, uri), state) do
     fun = fn ->
       with {:ok, spec_code_lens} <- get_spec_code_lens(state, uri),
-           {:ok, test_code_lens} <- CodeLens.test_code_lens(uri, state.source_files[uri].text) do
+           {:ok, test_code_lens} <- get_test_code_lens(state, uri) do
         {:ok, spec_code_lens ++ test_code_lens}
       else
         {:error, %ElixirSense.Core.Metadata{error: {line, error_msg}}} ->
@@ -653,6 +653,14 @@ defmodule ElixirLS.LanguageServer.Server do
   defp get_spec_code_lens(state, uri) do
     if dialyzer_enabled?(state) and state.settings["suggestSpecs"] != false do
       CodeLens.spec_code_lens(state.server_instance_id, uri, state.source_files[uri].text)
+    else
+      {:ok, []}
+    end
+  end
+
+  defp get_test_code_lens(state, uri) do
+    if state.settings["enableTestLenses"] == true do
+      CodeLens.test_code_lens(uri, state.source_files[uri].text)
     else
       {:ok, []}
     end
