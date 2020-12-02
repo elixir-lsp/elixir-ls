@@ -1,7 +1,9 @@
 defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
   alias ElixirLS.LanguageServer.SourceFile
 
-  def signature(source_file, line, character) do
+  def trigger_characters(), do: ["("]
+
+  def signature(%SourceFile{} = source_file, line, character) do
     response =
       case ElixirSense.signature(source_file.text, line + 1, character + 1) do
         %{active_param: active_param, signatures: signatures} ->

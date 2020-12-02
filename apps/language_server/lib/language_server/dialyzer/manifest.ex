@@ -115,7 +115,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     Path.join([Mix.Utils.mix_home(), "elixir-ls-#{otp_vsn()}_elixir-#{System.version()}"])
   end
 
-  @elixir_apps [:elixir, :eex, :ex_unit, :iex, :logger, :mix]
+  @elixir_apps [:elixir, :ex_unit, :mix, :iex, :logger, :eex]
+  @erlang_apps [:erts, :kernel, :stdlib, :compiler]
 
   defp build_elixir_plt() do
     JsonRpc.show_message(
@@ -123,15 +124,22 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       "Building core Dialyzer Elixir PLT. This will take a few minutes (often 15+) and can be disabled in the settings."
     )
 
+    modules_to_paths =
+      for app <- @erlang_apps ++ @elixir_apps,
+          path <- Path.join([Application.app_dir(app), "**/*.beam"]) |> Path.wildcard(),
+          into: %{},
+          do: {pathname_to_module(path), path |> String.to_charlist()}
+
+    modules =
+      modules_to_paths
+      |> Map.keys()
+      |> expand_references
+
     files =
-      Enum.flat_map(@elixir_apps, fn app ->
-        Path.join([Application.app_dir(app), "**/*.beam"])
-        |> Path.wildcard()
-        |> Enum.map(&pathname_to_module/1)
-        |> expand_references()
-        |> Enum.map(&Utils.get_beam_file/1)
-        |> Enum.filter(&is_list/1)
-      end)
+      for mod <- modules,
+          path = modules_to_paths[mod] || Utils.get_beam_file(mod),
+          is_list(path),
+          do: path
 
     File.mkdir_p!(Path.dirname(elixir_plt_path()))
 

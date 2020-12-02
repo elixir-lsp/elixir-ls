@@ -110,6 +110,26 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert length(items) == 0
   end
 
+  test "completions of protocols are rendered as an interface" do
+    text = """
+    defmodule MyModule do
+      def dummy_function() do
+        ElixirLS.LanguageServer.Fixtures.ExampleP
+        #                                        ^
+      end
+    end
+    """
+
+    {line, char} = {2, 45}
+    TestUtils.assert_has_cursor_char(text, line, char)
+
+    {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
+
+    # 8 is interface
+    assert item["kind"] == 8
+    assert item["label"] == "ExampleProtocol (protocol)"
+  end
+
   test "provides completions for protocol functions" do
     text = """
     defimpl ElixirLS.LanguageServer.Fixtures.ExampleProtocol, for: MyModule do
@@ -130,6 +150,50 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert completions == [
              "def my_fun/2"
            ]
+  end
+
+  test "completions of behaviours are rendered as an interface" do
+    text = """
+    defmodule MyModule do
+      def dummy_function() do
+        ElixirLS.LanguageServer.Fixtures.ExampleB
+        #                                        ^
+      end
+    end
+    """
+
+    {line, char} = {2, 45}
+    TestUtils.assert_has_cursor_char(text, line, char)
+
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+    assert [item, _] = items
+
+    # 8 is interface
+    assert item["kind"] == 8
+    assert item["label"] == "ExampleBehaviour (behaviour)"
+  end
+
+  test "completions of exceptions are rendered as a struct" do
+    text = """
+    defmodule MyModule do
+      def dummy_function() do
+        ElixirLS.LanguageServer.Fixtures.ExampleE
+        #                                        ^
+      end
+    end
+    """
+
+    {line, char} = {2, 45}
+    TestUtils.assert_has_cursor_char(text, line, char)
+
+    {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+    assert [item] = items
+
+    # 22 is struct
+    assert item["kind"] == 22
+    assert item["label"] == "ExampleException (exception)"
   end
 
   test "provides completions for callbacks without `def` before" do
@@ -199,7 +263,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.filter(&(&1["detail"] =~ "struct"))
       |> Enum.map(& &1["label"])
 
-    assert "NaiveDateTime" in completions
+    assert "NaiveDateTime (struct)" in completions
 
     {line, char} = {4, 17}
     TestUtils.assert_has_cursor_char(text, line, char)
@@ -221,7 +285,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.filter(&(&1["detail"] =~ "struct"))
       |> Enum.map(& &1["label"])
 
-    assert "NaiveDateTime" in completions
+    assert "NaiveDateTime (struct)" in completions
   end
 
   describe "deprecated" do
@@ -257,6 +321,28 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   end
 
   describe "structs and maps" do
+    test "completions of structs are rendered as a struct" do
+      text = """
+      defmodule MyModule do
+        def dummy_function() do
+          ElixirLS.LanguageServer.Fixtures.ExampleS
+          #                                        ^
+        end
+      end
+      """
+
+      {line, char} = {2, 45}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert [item] = items
+
+      # 22 is struct
+      assert item["kind"] == 22
+      assert item["label"] == "ExampleStruct (struct)"
+    end
+
     test "returns struct fields in call syntax" do
       text = """
       defmodule MyModule do

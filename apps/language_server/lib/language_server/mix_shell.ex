@@ -47,8 +47,12 @@ defmodule ElixirLS.LanguageServer.MixShell do
         ])
 
       case response do
-        {:ok, %{"result" => result}} -> result
-        _ -> true
+        {:ok, %{"result" => result}} ->
+          result
+
+        other ->
+          error("[ElixirLS] unexpected client response #{inspect(other)}, assuming yes")
+          true
       end
     else
       Mix.Shell.IO.yes?(message)

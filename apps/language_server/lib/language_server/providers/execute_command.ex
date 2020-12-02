@@ -5,10 +5,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
 
   alias ElixirLS.LanguageServer.{JsonRpc, SourceFile}
   import ElixirLS.LanguageServer.Protocol
+  alias ElixirLS.LanguageServer.Server
 
   @default_target_line_length 98
 
-  def execute("spec:" <> _, args, source_files) do
+  def execute("spec:" <> _, args, state) do
     [
       %{
         "uri" => uri,
@@ -23,7 +24,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     mod = String.to_atom(mod)
     fun = String.to_atom(fun)
 
-    cur_text = source_files[uri].text
+    source_file = Server.get_source_file(state, uri)
+
+    cur_text = source_file.text
 
     # In case line has changed since this suggestion was generated, look for the function's current
     # line number and fall back to the previous line number if we can't guess the new one
@@ -67,15 +70,27 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
           "#{indentation}@spec #{spec}\n"
       end
 
-    JsonRpc.send_request("workspace/applyEdit", %{
-      "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
-      "edit" => %{
-        "changes" => %{
-          uri => [%{"range" => range(line - 1, 0, line - 1, 0), "newText" => formatted}]
+    edit_result =
+      JsonRpc.send_request("workspace/applyEdit", %{
+        "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
+        "edit" => %{
+          "changes" => %{
+            uri => [%{"range" => range(line - 1, 0, line - 1, 0), "newText" => formatted}]
+          }
         }
-      }
-    })
+      })
 
-    {:ok, nil}
+    case edit_result do
+      {:ok, %{"applied" => true}} ->
+        {:ok, nil}
+
+      other ->
+        {:error, :server_error,
+         "cannot insert spec, workspace/applyEdit returned #{inspect(other)}"}
+    end
+  end
+
+  def execute(_command, _args, _state) do
+    {:error, :invalid_request, nil}
   end
 end

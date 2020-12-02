@@ -1,6 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   use ExUnit.Case
   alias ElixirLS.LanguageServer.Providers.Formatting
+  alias ElixirLS.LanguageServer.SourceFile
 
   test "Formats a file" do
     uri = "file://project/file.ex"
@@ -15,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     end
     """
 
-    source_file = %ElixirLS.LanguageServer.SourceFile{
+    source_file = %SourceFile{
       text: text,
       version: 1,
       dirty?: true
@@ -64,7 +65,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     end
     """
 
-    source_file = %ElixirLS.LanguageServer.SourceFile{
+    source_file = %SourceFile{
       text: text,
       version: 1,
       dirty?: true
@@ -83,7 +84,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     IO.puts "😀"
     """
 
-    source_file = %ElixirLS.LanguageServer.SourceFile{
+    source_file = %SourceFile{
       text: text,
       version: 1,
       dirty?: true
@@ -118,7 +119,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     IO.puts "🏳️‍🌈"
     """
 
-    source_file = %ElixirLS.LanguageServer.SourceFile{
+    source_file = %SourceFile{
       text: text,
       version: 1,
       dirty?: true
@@ -153,7 +154,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     IO.puts "ẕ̸͇̞̲͇͕̹̙̄͆̇͂̏̊͒̒̈́́̕͘͠͝à̵̢̛̟̞͚̟͖̻̹̮̘͚̻͍̇͂̂̅́̎̉͗́́̃̒l̴̻̳͉̖̗͖̰̠̗̃̈́̓̓̍̅͝͝͝g̷̢͚̠̜̿̊́̋͗̔ȍ̶̹̙̅̽̌̒͌͋̓̈́͑̏͑͊͛͘ ̸̨͙̦̫̪͓̠̺̫̖͙̫̏͂̒̽́̿̂̊́͂͋͜͠͝͝ṭ̴̜͎̮͉̙͍͔̜̾͋͒̓̏̉̄͘͠͝ͅę̷̡̭̹̰̺̩̠͓͌̃̕͜͝ͅͅx̵̧͍̦͈͍̝͖͙̘͎̥͕̾̾̍̀̿̔̄̑̈͝t̸̛͇̀̕"
     """
 
-    source_file = %ElixirLS.LanguageServer.SourceFile{
+    source_file = %SourceFile{
       text: text,
       version: 1,
       dirty?: true
@@ -183,7 +184,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
   test "honors :inputs when deciding to format" do
     file = __ENV__.file
-    uri = "file://" <> file
+    uri = SourceFile.path_to_uri(file)
     project_dir = Path.dirname(file)
 
     opts = []

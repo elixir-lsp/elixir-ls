@@ -16,7 +16,7 @@ defmodule Mix.Tasks.ElixirLs.Release do
 
     Mix.Task.run("archive.build.deps", [
       "--skip",
-      "mix_task_archive_deps",
+      "mix_task_archive_deps stream_data",
       "--destination",
       destination
     ])

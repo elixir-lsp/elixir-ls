@@ -24,10 +24,6 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     end)
   end
 
-  def supported? do
-    Mix.Tasks.Xref.__info__(:functions) |> Enum.member?({:calls, 0})
-  end
-
   defp build_reference(ref, current_file_uri) do
     %{
       range: %{

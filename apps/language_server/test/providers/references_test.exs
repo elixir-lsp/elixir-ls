@@ -3,10 +3,11 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   alias ElixirLS.LanguageServer.Providers.References
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.Test.FixtureHelpers
   require ElixirLS.Test.TextLoc
 
   test "finds references to a function" do
-    file_path = Path.join(__DIR__, "../support/references_b.ex") |> Path.expand()
+    file_path = FixtureHelpers.get_path("references_b.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)
 
@@ -39,7 +40,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   end
 
   test "cannot find a references to a macro generated function call" do
-    file_path = Path.join(__DIR__, "../support/uses_macro_a.ex") |> Path.expand()
+    file_path = FixtureHelpers.get_path("uses_macro_a.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)
     {line, char} = {6, 13}
@@ -53,7 +54,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   end
 
   test "finds a references to a macro imported function call" do
-    file_path = Path.join(__DIR__, "../support/uses_macro_a.ex") |> Path.expand()
+    file_path = FixtureHelpers.get_path("uses_macro_a.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)
     {line, char} = {10, 4}
@@ -75,7 +76,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   end
 
   test "finds references to a variable" do
-    file_path = Path.join(__DIR__, "../support/references_b.ex") |> Path.expand()
+    file_path = FixtureHelpers.get_path("references_b.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)
     {line, char} = {4, 14}

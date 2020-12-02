@@ -25,7 +25,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
     String.to_atom(Path.basename(path, ".beam"))
   end
 
-  def expand_references(modules, exclude \\ [], result \\ MapSet.new())
+  def expand_references(modules, exclude \\ MapSet.new(), result \\ MapSet.new())
 
   def expand_references([], _, result) do
     result
@@ -60,8 +60,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
           forms
         )
 
-      modules = for {:call, _, {:remote, _, {:atom, _, module}, _}, _} <- calls, do: module
-      Enum.uniq(modules)
+      for {:call, _, {:remote, _, {:atom, _, module}, _}, _} <- calls, uniq: true, do: module
     rescue
       _ -> []
     catch

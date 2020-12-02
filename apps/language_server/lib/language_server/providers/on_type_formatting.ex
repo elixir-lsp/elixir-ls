@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   alias ElixirLS.LanguageServer.SourceFile
   import ElixirLS.LanguageServer.Protocol
 
-  def format(source_file, line, character, "\n", _options) do
+  def format(%SourceFile{} = source_file, line, character, "\n", _options) do
     lines = SourceFile.lines(source_file)
     prev_line = Enum.at(lines, line - 1)
 
@@ -56,7 +56,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   end
 
   defp tokens(line) do
-    Regex.scan(Regex.recompile!(~r/(?:->)|(?:\w+)/), line) |> List.flatten()
+    Regex.scan(Regex.recompile!(~r/(?:->)|(?:[\w\:]+)/), line) |> List.flatten()
   end
 
   defp indentation(line) do

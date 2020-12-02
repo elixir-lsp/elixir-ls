@@ -211,10 +211,20 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     prev_paths = Map.keys(md5) |> MapSet.new()
 
     # FIXME: Private API
+    consolidation_path = Mix.Project.consolidation_path()
+
+    consolidated_protocol_beams =
+      for path <- Path.join(consolidation_path, "*.beam") |> Path.wildcard(),
+          into: MapSet.new(),
+          do: Path.basename(path)
+
+    # FIXME: Private API
     all_paths =
-      Mix.Utils.extract_files([Mix.Project.build_path()], [:beam])
-      |> Enum.map(&Path.relative_to_cwd(&1))
-      |> MapSet.new()
+      for path <- Mix.Utils.extract_files([Mix.Project.build_path()], [:beam]),
+          Path.basename(path) not in consolidated_protocol_beams or
+            Path.dirname(path) == consolidation_path,
+          into: MapSet.new(),
+          do: Path.relative_to_cwd(path)
 
     removed =
       prev_paths
@@ -373,12 +383,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         mod_deps = update_mod_deps(mod_deps, new_mod_deps, removed_modules)
         warnings = add_warnings(warnings, raw_warnings)
 
+        md5 = Map.drop(md5, removed_files)
+
         md5 =
           for {file, {_, hash}} <- file_changes, into: md5 do
             {file, hash}
           end
-
-        md5 = remove_files(md5, removed_files)
 
         {active_plt, mod_deps, md5, warnings}
       end)
@@ -392,14 +402,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp update_mod_deps(mod_deps, new_mod_deps, removed_modules) do
-    mod_deps
-    |> Map.merge(new_mod_deps)
-    |> Map.drop(removed_modules)
-    |> Map.new(fn {mod, deps} -> {mod, deps -- removed_modules} end)
-  end
-
-  defp remove_files(md5, removed_files) do
-    Map.drop(md5, removed_files)
+    for {mod, deps} <- mod_deps,
+        mod not in removed_modules,
+        into: new_mod_deps do
+      {mod, deps -- removed_modules}
+    end
   end
 
   defp add_warnings(warnings, raw_warnings) do

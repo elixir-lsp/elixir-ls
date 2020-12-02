@@ -17,12 +17,9 @@ Merge PR
 Pull down the latest master
 Make the tag from the new master
 Push the tag (`git push upstream --tags`)
-- `rm -rf _build release`
-- `cp .release-tool-versions .tool-version`
-- `mix elixir_ls.release`
-- `cd release`
-- `zip elixir-ls.zip *`
-- Attach elixir-ls.zip to the release on github https://github.com/elixir-lsp/elixir-ls/releases (edit the tag to make it into a release)
+Wait for github actions to push up a draft release https://github.com/elixir-lsp/elixir-ls/releases
+Edit the draft release with a link to the changelog
+Publish the draft release
 
 # Debugging
 
