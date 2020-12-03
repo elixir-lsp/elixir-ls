@@ -783,7 +783,7 @@ defmodule ElixirLS.LanguageServer.Server do
     if dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
       CodeLens.spec_code_lens(state.server_instance_id, uri, source_file.text)
     else
-      {:error, :invalid_request, "suggestSpecs is disabled"}
+      {:ok, []}
     end
   end
 
@@ -791,7 +791,7 @@ defmodule ElixirLS.LanguageServer.Server do
     if state.settings["enableTestLenses"] == true do
       CodeLens.test_code_lens(uri, source_file.text)
     else
-      {:error, :invalid_request, "enableTestLenses is disabled"}
+      {:ok, []}
     end
   end
 
