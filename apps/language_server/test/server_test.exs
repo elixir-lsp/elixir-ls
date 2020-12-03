@@ -1142,6 +1142,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
 
       initialize(server)
+
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{"elixirLS" => %{"enableTestLenses" => true}})
+      )
+
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
       Server.receive_packet(
@@ -1149,8 +1155,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         code_lens_req(4, file_uri)
       )
 
-      # :timer.sleep(1000)
-      # %{"result" => resp} = assert_received(%{"id" => 4})
       resp = assert_receive(%{"id" => 4}, 5000)
 
       assert response(4, [
@@ -1174,7 +1178,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "command" => %{
                    "arguments" => [
                      %{
-                       "filePath" => file_absolute_path,
+                       "filePath" => ^file_absolute_path,
                        "module" => "Elixir.TestCodeLensTest"
                      }
                    ],
@@ -1187,6 +1191,29 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+    end)
+  end
+
+  test "does not return code lenses for runnable tests when test lenses settings is not set", %{
+    server: server
+  } do
+    in_fixture(__DIR__, "test_code_lens", fn ->
+      file_path = "test/fixture_test.exs"
+      file_uri = SourceFile.path_to_uri(file_path)
+      text = File.read!(file_path)
+
+      initialize(server)
+
+      Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+
+      Server.receive_packet(
+        server,
+        code_lens_req(4, file_uri)
+      )
+
+      resp = assert_receive(%{"id" => 4}, 5000)
+
+      assert response(4, []) = resp
     end)
   end
 
