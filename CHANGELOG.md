@@ -2,12 +2,21 @@
 
 Improvements:
 - Add support for `textDocument/implementation` ("Go to Implmentations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
+- More specific `CompletionItemKind` for autocomplete (thanks [Jason Axelson](https://github.com/axelson)) [#419](https://github.com/elixir-lsp/elixir-ls/pull/419)
+- Support ASDF installed via homebrew on macOS (thanks [Fabian Stegemann](https://github.com/zetaron)) [#428](https://github.com/elixir-lsp/elixir-ls/pull/428)
 
 Bug Fixes:
 - Fix multiple issues with text synchronization (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#411](https://github.com/elixir-lsp/elixir-ls/pull/411)
 - Purge consolidated protocols before compilation (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#406](https://github.com/elixir-lsp/elixir-ls/pull/406)
 - Don't add stream_data to release archive (thanks [Tomasz Kowal](https://github.com/tomekowal)) [#417](https://github.com/elixir-lsp/elixir-ls/pull/417)
   - Fixes bug introduced in [#411](https://github.com/elixir-lsp/elixir-ls/pull/411) so it doesn't affect a released version of ElixirLS
+- Do not insert `end` after `do:` (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#426](https://github.com/elixir-lsp/elixir-ls/pull/426)
+
+Housekeeping:
+- Switch from Travis CI to GitHub actions (thanks [Jason Axelson](https://github.com/axelson)) [#420](https://github.com/elixir-lsp/elixir-ls/pull/420)
+
+VSCode:
+- Fix debugger not starting on windows (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#154](https://github.com/elixir-lsp/vscode-elixir-ls/pull/154)
 
 ### v0.6.2: 15 November 2020
 
@@ -233,7 +242,7 @@ Major Improvements:
 - Upgrade ElixirSense (thanks to [Jason Axelson](https://github.com/axelson)) [#82](https://github.com/elixir-lsp/elixir-ls/pull/82)
   - Main changes: return results by arity, return all type signatures, typespec and dialyzer fixes
 
-Improvements: 
+Improvements:
 
 - Update dialyxir to 1.0.0-rc.7
 - Improvements to `textDocument/documentSymbol`, now `DocumentSymbol` is returned instead of the more simplistic `SymbolInformation` (thanks to [Łukasz Samson](https://github.com/lukaszsamson) and [kent-medin](https://github.com/kent-medin)) [#76](https://github.com/elixir-lsp/elixir-ls/pull/76)
@@ -249,7 +258,7 @@ Potentially Breaking Changes:
 
 - Fix debugger tasks not continuing to run on Elixir 1.9 (thanks to [joshua-andrassy](https://github.com/joshua-andrassy) for doing the legwork)
   - Fixes [JakeBecker/elixir-ls#194](https://github.com/JakeBecker/elixir-ls/issues/194) and [JakeBecker/elixir-ls#185](https://github.com/JakeBecker/elixir-ls/issues/185)
-- Improve supervision tree when writing dialyzer manifest files 
+- Improve supervision tree when writing dialyzer manifest files
 
 VSCode:
 
@@ -278,7 +287,7 @@ VSCode:
 - Fix compatibility with Elixir 1.9
 - Fix bug where Mix file is not reloaded on change if it had errors
 - Remove unneccessary empty parens from suggested specs
-- Add 'dialyzerFormat' setting to select which warning formatter to use. Options are `"dialyzer"` (default), `"dialyxir_short"`, `"dialyxir_long"` 
+- Add 'dialyzerFormat' setting to select which warning formatter to use. Options are `"dialyzer"` (default), `"dialyxir_short"`, `"dialyxir_long"`
 - (VS Code) Support syntax highlighting in Phoenix LiveView (.leex) files, including ~L sigil (Thanks to @rrichardsonv)
 - (VS Code) Improved syntax highlighting and other automatic behavior (Thanks to @crbelaus)
 - Fix crash when yecc grammar file has conflicts
