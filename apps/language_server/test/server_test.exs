@@ -1141,7 +1141,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       file_absolute_path = SourceFile.path_from_uri(file_uri)
       text = File.read!(file_path)
 
-      initialize(server)
+      fake_initialize(server)
 
       Server.receive_packet(
         server,
@@ -1202,7 +1202,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       file_uri = SourceFile.path_to_uri(file_path)
       text = File.read!(file_path)
 
-      initialize(server)
+      fake_initialize(server)
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
