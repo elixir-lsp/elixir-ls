@@ -1,0 +1,4 @@
+Content-Length: 16
+Content-Type: application/vscode-jsonrpc; charset=utf-8
+
+{"some":"value"}

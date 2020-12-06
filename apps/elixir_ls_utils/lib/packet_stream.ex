@@ -12,9 +12,18 @@ defmodule ElixirLS.Utils.PacketStream do
       fn -> :ok end,
       fn _acc ->
         case read_packet(pid) do
-          :eof -> {:halt, :ok}
-          {:error, reason} -> {:halt, {:error, reason}}
-          {:ok, packet} -> {[packet], :ok}
+          :eof ->
+            {:halt, :ok}
+
+          {:error, reason} ->
+            # jsonrpc 2.0 requires that server responds with
+            # {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}
+            # when message fails to parse
+            # instead we halt on any error - it's not woth to handle faulty clients
+            {:halt, {:error, reason}}
+
+          {:ok, packet} ->
+            {[packet], :ok}
         end
       end,
       fn
@@ -70,9 +79,22 @@ defmodule ElixirLS.Utils.PacketStream do
     case get_content_length(header) do
       {:ok, content_length} ->
         case IO.binread(pid, content_length) do
-          :eof -> :eof
-          {:error, reason} -> {:error, reason}
-          body -> JasonVendored.decode(body)
+          :eof ->
+            :eof
+
+          {:error, reason} ->
+            {:error, reason}
+
+          body ->
+            case IO.iodata_length(body) do
+              ^content_length ->
+                # though jason docs suggest using `strings: :copy` when parts of binary may be stored
+                # processes/ets in our case it does not help (as of OTP 23)
+                JasonVendored.decode(body)
+
+              _other ->
+                {:error, :truncated}
+            end
         end
 
       other ->

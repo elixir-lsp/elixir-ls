@@ -4,16 +4,24 @@ defmodule ElixirLS.Utils.WireProtocol do
   """
   alias ElixirLS.Utils.{PacketStream, OutputDevice}
 
+  @separator "\r\n\r\n"
+
   def send(packet) do
     pid = io_dest()
-    body = JasonVendored.encode!(packet) <> "\r\n\r\n"
+    body = JasonVendored.encode_to_iodata!(packet)
 
-    case IO.binwrite(pid, "Content-Length: #{byte_size(body)}\r\n\r\n" <> body) do
+    case IO.binwrite(pid, [
+           "Content-Length: ",
+           IO.iodata_length(body) |> Integer.to_string(),
+           @separator,
+           body
+         ]) do
       :ok ->
         :ok
 
       {:error, reason} ->
         IO.warn("Unable to write to the device: #{inspect(reason)}")
+        :ok
     end
   end
 
