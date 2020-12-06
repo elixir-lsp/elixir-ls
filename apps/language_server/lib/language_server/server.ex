@@ -878,17 +878,16 @@ defmodule ElixirLS.LanguageServer.Server do
           state.source_files[uri].dirty?
         end)
 
-      contracts =
+      contracts_by_file =
         not_dirty
-        |> Enum.uniq()
         |> Enum.map(fn {_from, uri} -> SourceFile.path_from_uri(uri) end)
         |> Dialyzer.suggest_contracts()
+        |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
       for {from, uri} <- not_dirty do
         contracts =
-          Enum.filter(contracts, fn {file, _, _, _, _} ->
-            SourceFile.path_from_uri(uri) == file
-          end)
+          contracts_by_file
+          |> Map.get(SourceFile.path_from_uri(uri), [])
 
         GenServer.reply(from, contracts)
       end
