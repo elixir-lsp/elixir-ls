@@ -77,7 +77,12 @@ defmodule ElixirLS.Utils.PacketStream do
         case IO.binread(pid, content_length) do
           :eof -> :eof
           {:error, reason} -> {:error, reason}
-          body -> JasonVendored.decode(body)
+          body ->
+            case IO.iodata_length(body) do
+              ^content_length -> JasonVendored.decode(body)
+              other ->
+                {:error, :truncated}
+            end
         end
 
       other ->
