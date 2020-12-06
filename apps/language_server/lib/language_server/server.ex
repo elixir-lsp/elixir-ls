@@ -874,9 +874,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {dirty, not_dirty} =
         state.awaiting_contracts
-        |> Enum.filter(fn {_, uri} ->
-          state.source_files[uri] != nil
-        end)
         |> Enum.split_with(fn {_, uri} ->
           state.source_files[uri].dirty?
         end)
