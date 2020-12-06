@@ -71,8 +71,10 @@ defmodule ElixirLS.Utils.PacketStreamTest do
   describe "read protocol messages" do
     test "valid" do
       {:ok, pid} = File.open("test/fixtures/protocol_messages/valid_message", [:read, :binary])
-      [message] = PacketStream.stream(pid)
-      |> Enum.to_list
+
+      [message] =
+        PacketStream.stream(pid)
+        |> Enum.to_list()
 
       assert message == %{"some" => "value"}
 
@@ -80,9 +82,12 @@ defmodule ElixirLS.Utils.PacketStreamTest do
     end
 
     test "valid utf" do
-      {:ok, pid} = File.open("test/fixtures/protocol_messages/valid_message_utf", [:read, :binary])
-      [message] = PacketStream.stream(pid)
-      |> Enum.to_list
+      {:ok, pid} =
+        File.open("test/fixtures/protocol_messages/valid_message_utf", [:read, :binary])
+
+      [message] =
+        PacketStream.stream(pid)
+        |> Enum.to_list()
 
       assert message == %{"some" => "👨‍👩‍👦 test"}
 
@@ -91,8 +96,10 @@ defmodule ElixirLS.Utils.PacketStreamTest do
 
     test "valid with content type" do
       {:ok, pid} = File.open("test/fixtures/protocol_messages/valid_message", [:read, :binary])
-      [message] = PacketStream.stream(pid)
-      |> Enum.to_list
+
+      [message] =
+        PacketStream.stream(pid)
+        |> Enum.to_list()
 
       assert message == %{"some" => "value"}
 
@@ -101,8 +108,10 @@ defmodule ElixirLS.Utils.PacketStreamTest do
 
     test "valid many" do
       {:ok, pid} = File.open("test/fixtures/protocol_messages/valid_messages", [:read, :binary])
-      [message1, message2] = PacketStream.stream(pid)
-      |> Enum.to_list
+
+      [message1, message2] =
+        PacketStream.stream(pid)
+        |> Enum.to_list()
 
       assert message1 == %{"some" => "value"}
       assert message2 == %{"some" => "value1"}
@@ -111,23 +120,27 @@ defmodule ElixirLS.Utils.PacketStreamTest do
     end
 
     test "invalid content length" do
-      {:ok, pid} = File.open("test/fixtures/protocol_messages/invalid_content_length", [:read, :binary])
+      {:ok, pid} =
+        File.open("test/fixtures/protocol_messages/invalid_content_length", [:read, :binary])
 
-      assert capture_io(:stderr, fn -> 
-        assert [] = PacketStream.stream(pid)
-        |> Enum.to_list
-      end) =~ "Unable to read from device: :truncated"
+      assert capture_io(:stderr, fn ->
+               assert [] =
+                        PacketStream.stream(pid)
+                        |> Enum.to_list()
+             end) =~ "Unable to read from device: :truncated"
 
       File.close(pid)
     end
 
     test "invalid content type" do
-      {:ok, pid} = File.open("test/fixtures/protocol_messages/invalid_content_type", [:read, :binary])
+      {:ok, pid} =
+        File.open("test/fixtures/protocol_messages/invalid_content_type", [:read, :binary])
 
-      assert capture_io(:stderr, fn -> 
-        assert [] = PacketStream.stream(pid)
-        |> Enum.to_list
-      end) =~ "Unable to read from device: :not_supported_content_type"
+      assert capture_io(:stderr, fn ->
+               assert [] =
+                        PacketStream.stream(pid)
+                        |> Enum.to_list()
+             end) =~ "Unable to read from device: :not_supported_content_type"
 
       File.close(pid)
     end
@@ -136,9 +149,10 @@ defmodule ElixirLS.Utils.PacketStreamTest do
       for i <- 0..6 do
         {:ok, pid} = File.open("test/fixtures/protocol_messages/no_body_#{i}", [:read, :binary])
 
-        capture_io(:stderr, fn -> 
-          assert [] = PacketStream.stream(pid)
-          |> Enum.to_list
+        capture_io(:stderr, fn ->
+          assert [] =
+                   PacketStream.stream(pid)
+                   |> Enum.to_list()
         end)
 
         File.close(pid)
@@ -148,22 +162,25 @@ defmodule ElixirLS.Utils.PacketStreamTest do
     test "invalid JSON" do
       {:ok, pid} = File.open("test/fixtures/protocol_messages/invalid_json", [:read, :binary])
 
-      assert capture_io(:stderr, fn -> 
-        assert [] = PacketStream.stream(pid)
-        |> Enum.to_list
-      end) =~ "Unable to read from device: %JasonVendored.DecodeError"
+      assert capture_io(:stderr, fn ->
+               assert [] =
+                        PacketStream.stream(pid)
+                        |> Enum.to_list()
+             end) =~ "Unable to read from device: %JasonVendored.DecodeError"
 
       File.close(pid)
     end
 
     test "invalid after valid" do
-      {:ok, pid} = File.open("test/fixtures/protocol_messages/invalid_after_valid", [:read, :binary])
+      {:ok, pid} =
+        File.open("test/fixtures/protocol_messages/invalid_after_valid", [:read, :binary])
 
-      assert capture_io(:stderr, fn -> 
-        # note that we halt the stream and discard any further valid messages
-        assert [%{"some" => "value"}] = PacketStream.stream(pid)
-        |> Enum.to_list
-      end) =~ "Unable to read from device: %JasonVendored.DecodeError"
+      assert capture_io(:stderr, fn ->
+               # note that we halt the stream and discard any further valid messages
+               assert [%{"some" => "value"}] =
+                        PacketStream.stream(pid)
+                        |> Enum.to_list()
+             end) =~ "Unable to read from device: %JasonVendored.DecodeError"
 
       File.close(pid)
     end

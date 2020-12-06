@@ -10,7 +10,12 @@ defmodule ElixirLS.Utils.WireProtocol do
     pid = io_dest()
     body = JasonVendored.encode_to_iodata!(packet)
 
-    case IO.binwrite(pid, ["Content-Length: ", IO.iodata_length(body) |> Integer.to_string, @separator, body]) do
+    case IO.binwrite(pid, [
+           "Content-Length: ",
+           IO.iodata_length(body) |> Integer.to_string(),
+           @separator,
+           body
+         ]) do
       :ok ->
         :ok
 
