@@ -73,6 +73,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         b_uri = SourceFile.path_to_uri("lib/b.ex")
         Server.receive_packet(server, did_open(b_uri, "elixir", 1, b_text))
+        Process.sleep(1500)
         File.write!("lib/b.ex", b_text)
 
         Server.receive_packet(server, did_save(b_uri))
@@ -81,7 +82,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         assert_receive notification("window/logMessage", %{
                          "message" => "[ElixirLS Dialyzer] Analyzing 2 modules: [A, B]"
-                       })
+                       }),
+                       40000
 
         # Stop while we're still capturing logs to avoid log leakage
         GenServer.stop(server)
