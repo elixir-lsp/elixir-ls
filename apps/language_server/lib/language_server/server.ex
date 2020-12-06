@@ -124,7 +124,9 @@ defmodule ElixirLS.LanguageServer.Server do
         {:reply, Dialyzer.suggest_contracts([SourceFile.path_from_uri(uri)]), state}
 
       _ ->
-        {:noreply, %{state | awaiting_contracts: [{from, uri} | state.awaiting_contracts]}}
+        awaiting_contracts = reject_awaiting_contracts(state.awaiting_contracts, uri)
+
+        {:noreply, %{state | awaiting_contracts: [{from, uri} | awaiting_contracts]}}
     end
   end
 
@@ -339,11 +341,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       state
     else
-      awaiting_contracts =
-        Enum.reject(state.awaiting_contracts, fn
-          {from, ^uri} -> GenServer.reply(from, [])
-          _ -> false
-        end)
+      awaiting_contracts = reject_awaiting_contracts(state.awaiting_contracts, uri)
 
       %{
         state
@@ -1086,5 +1084,12 @@ defmodule ElixirLS.LanguageServer.Server do
       source_file ->
         source_file
     end
+  end
+
+  defp reject_awaiting_contracts(awaiting_contracts, uri) do
+    Enum.reject(awaiting_contracts, fn
+      {from, ^uri} -> GenServer.reply(from, [])
+      _ -> false
+    end)
   end
 end
