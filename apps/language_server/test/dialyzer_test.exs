@@ -82,7 +82,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         assert_receive notification("window/logMessage", %{
                          "message" => "[ElixirLS Dialyzer] Analyzing 2 modules: [A, B]"
-                       }), 40000
+                       }),
+                       40000
 
         # Stop while we're still capturing logs to avoid log leakage
         GenServer.stop(server)
