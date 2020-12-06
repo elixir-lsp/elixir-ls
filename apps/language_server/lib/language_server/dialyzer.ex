@@ -126,7 +126,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         do_analyze(state)
       else
         if state.write_manifest_pid, do: Process.exit(state.write_manifest_pid, :kill)
-        pid = Manifest.write(state.root_path, active_plt, mod_deps, md5, warnings, timestamp)
+        {:ok, pid} = Manifest.write(state.root_path, active_plt, mod_deps, md5, warnings, timestamp)
         %{state | write_manifest_pid: pid}
       end
 

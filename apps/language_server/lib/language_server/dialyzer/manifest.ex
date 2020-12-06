@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def write(_, _, _, _, _, nil) do
-    nil
+    {:ok, nil}
   end
 
   def write(root_path, active_plt, mod_deps, md5, warnings, timestamp) do
