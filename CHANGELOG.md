@@ -11,9 +11,13 @@ Bug Fixes:
 - Don't add stream_data to release archive (thanks [Tomasz Kowal](https://github.com/tomekowal)) [#417](https://github.com/elixir-lsp/elixir-ls/pull/417)
   - Fixes bug introduced in [#411](https://github.com/elixir-lsp/elixir-ls/pull/411) so it doesn't affect a released version of ElixirLS
 - Do not insert `end` after `do:` (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#426](https://github.com/elixir-lsp/elixir-ls/pull/426)
+- Fix awaiting_contracts not getting responses (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#433](https://github.com/elixir-lsp/elixir-ls/pull/433)
+- Fix invalid value set in write_manifest_pid (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#430](https://github.com/elixir-lsp/elixir-ls/pull/430)
 
 Housekeeping:
 - Switch from Travis CI to GitHub actions (thanks [Jason Axelson](https://github.com/axelson)) [#420](https://github.com/elixir-lsp/elixir-ls/pull/420)
+- Add an .editorconfig for the project (thanks [Jeff Jewiss](https://github.com/jeffjewiss)) [#432](https://github.com/elixir-lsp/elixir-ls/pull/432)
+- Add test coverage to packet stream and wire protocol modules (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#429](https://github.com/elixir-lsp/elixir-ls/pull/429)
 
 VSCode:
 - Fix debugger not starting on windows (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#154](https://github.com/elixir-lsp/vscode-elixir-ls/pull/154)
