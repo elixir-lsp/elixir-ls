@@ -125,7 +125,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       if not is_nil(state.build_ref) do
         do_analyze(state)
       else
-        cancel_write_manifest(state)
+        maybe_cancel_write_manifest(state)
 
         {:ok, pid} =
           Manifest.write(state.root_path, active_plt, mod_deps, md5, warnings, timestamp)
@@ -192,7 +192,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp do_analyze(state) do
     # Cancel writing to the manifest, since we'll end up overwriting it anyway
-    cancel_write_manifest(state)
+    maybe_cancel_write_manifest(state)
 
     parent = self()
     analysis_pid = spawn_link(fn -> compile(parent, state) end)
@@ -538,9 +538,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     :calendar.gregorian_seconds_to_datetime(seconds - 1)
   end
 
-  defp cancel_write_manifest(%{write_manifest_pid: nil}), do: :ok
+  defp maybe_cancel_write_manifest(%{write_manifest_pid: nil}), do: :ok
 
-  defp cancel_write_manifest(%{write_manifest_pid: pid}) do
+  defp maybe_cancel_write_manifest(%{write_manifest_pid: pid}) do
     Process.unlink(pid)
     Process.exit(pid, :kill)
   end
