@@ -220,7 +220,7 @@ defmodule ElixirLS.LanguageServer.Build do
         :ok
 
       {:error, reason} ->
-        JsonRpc.show_message(
+        JsonRpc.log_message(
           :warning,
           "Unable to purge consolidated protocols from #{path}: #{inspect(reason)}"
         )
