@@ -262,12 +262,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         name
       end
 
+    insert_text =
+      case name do
+        ":" <> rest -> rest
+        other -> other
+      end
+
     %__MODULE__{
       label: label,
       kind: kind,
       detail: detail,
       documentation: summary,
-      insert_text: name,
+      insert_text: insert_text,
       filter_text: name,
       priority: 14,
       tags: metadata_to_tags(metadata)
