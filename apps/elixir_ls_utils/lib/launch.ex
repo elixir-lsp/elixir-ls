@@ -31,6 +31,16 @@ defmodule ElixirLS.Utils.Launch do
     get_version(:elixir_ls_debugger)
   end
 
+  def limit_num_schedulers do
+    case System.schedulers_online() do
+      num_schedulers when num_schedulers >= 4 ->
+        :erlang.system_flag(:schedulers_online, num_schedulers - 2)
+
+      _ ->
+        :ok
+    end
+  end
+
   defp get_version(app) do
     case :application.get_key(app, :vsn) do
       {:ok, version} -> List.to_string(version)

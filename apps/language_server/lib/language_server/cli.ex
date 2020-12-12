@@ -10,6 +10,7 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     IO.puts("Started ElixirLS v#{Launch.language_server_version()}")
     Launch.print_versions()
+    Launch.limit_num_schedulers()
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
     # FIXME: Private API
