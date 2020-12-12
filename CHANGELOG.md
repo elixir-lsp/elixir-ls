@@ -13,6 +13,7 @@ Bug Fixes:
 - Do not insert `end` after `do:` (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#426](https://github.com/elixir-lsp/elixir-ls/pull/426)
 - Fix awaiting_contracts not getting responses (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#433](https://github.com/elixir-lsp/elixir-ls/pull/433)
 - Fix invalid value set in write_manifest_pid (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#430](https://github.com/elixir-lsp/elixir-ls/pull/430)
+- Give better warning for incomplete erlang install (thanks [Jason Axelson](https://github.com/axelson)) [#434](https://github.com/elixir-lsp/elixir-ls/pull/434)
 
 Housekeeping:
 - Switch from Travis CI to GitHub actions (thanks [Jason Axelson](https://github.com/axelson)) [#420](https://github.com/elixir-lsp/elixir-ls/pull/420)
@@ -21,6 +22,7 @@ Housekeeping:
 
 VSCode:
 - Fix debugger not starting on windows (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#154](https://github.com/elixir-lsp/vscode-elixir-ls/pull/154)
+- Add fodling markers for @doc, @moduledoc, @typedoc, and #region (thanks [Michael Johnston](https://github.com/lastobelus)) [#157](https://github.com/elixir-lsp/vscode-elixir-ls/pull/157)
 
 ### v0.6.2: 15 November 2020
 
