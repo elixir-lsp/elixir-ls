@@ -8,6 +8,7 @@ defmodule ElixirLS.Debugger.CLI do
     {:ok, _} = Application.ensure_all_started(:elixir_ls_debugger, :permanent)
     IO.puts("Started ElixirLS debugger v#{Launch.debugger_version()}")
     Launch.print_versions()
+    Launch.limit_num_schedulers()
     warn_if_unsupported_version()
     WireProtocol.stream_packets(&Server.receive_packet/1)
   end
