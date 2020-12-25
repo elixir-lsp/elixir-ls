@@ -123,6 +123,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     lines_to_env
     |> Enum.group_by(fn {_line, env} -> env.module end)
     |> Enum.filter(fn {_module, module_lines_to_env} -> is_test_module?(module_lines_to_env) end)
+    |> Enum.map(fn {module, module_lines_to_env} ->
+      {module, Enum.sort_by(module_lines_to_env, &elem(&1, 0))}
+    end)
     |> Enum.map(fn {module, [{line, _env} | _rest]} -> {module, line} end)
   end
 
