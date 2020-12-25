@@ -118,11 +118,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   ## GenServer Callbacks
   #####################
   def start_link(opts) do
-    if supported?() do
-      GenServer.start_link(__MODULE__, :ok, opts |> Keyword.put_new(:name, __MODULE__))
-    else
-      :ignore
-    end
+    GenServer.start_link(__MODULE__, :ok, opts |> Keyword.put_new(:name, __MODULE__))
   end
 
   def init(_) do
@@ -165,7 +161,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
         JsonRpc.log_message(:info, "[ElixirLS Formatting] Cache built.")
 
       :error ->
-        JsonRpc.log_message(:info,
+        JsonRpc.log_message(
+          :info,
           "[ElixirLS Formatting] Cache will not be built: unable to handle formatter opts"
         )
     end
