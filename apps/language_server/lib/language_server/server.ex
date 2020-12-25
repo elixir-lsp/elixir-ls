@@ -208,6 +208,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     if reason == :normal do
       WorkspaceSymbols.notify_build_complete()
+      Formatting.build_cache(state.project_dir)
     end
 
     state = if state.needs_build?, do: trigger_build(state), else: state
