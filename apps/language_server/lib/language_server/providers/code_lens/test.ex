@@ -13,7 +13,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   alias ElixirLS.LanguageServer.Providers.CodeLens.Test.TestBlock
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.Parser
-  alias ElixirSense.Core.Metadata
 
   @run_test_command "elixir.lens.test.run"
 
@@ -28,7 +27,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         |> Enum.map(fn {_k, v} -> v end)
         |> List.flatten()
 
-      lines_to_env_list = Map.to_list(buffer_file_metadata.lines_to_env)
+      lines_to_env_list =
+        buffer_file_metadata.lines_to_env
+        |> Enum.sort_by(&elem(&1, 0))
 
       describe_blocks = find_describe_blocks(lines_to_env_list, calls_list, source_lines)
       describe_lenses = get_describe_lenses(describe_blocks, file_path)
@@ -39,7 +40,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         |> get_test_lenses(file_path)
 
       module_lenses =
-        buffer_file_metadata
+        lines_to_env_list
         |> get_test_modules()
         |> get_module_lenses(file_path)
 
@@ -119,13 +120,10 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     end)
   end
 
-  defp get_test_modules(%Metadata{lines_to_env: lines_to_env}) do
+  defp get_test_modules(lines_to_env) do
     lines_to_env
     |> Enum.group_by(fn {_line, env} -> env.module end)
     |> Enum.filter(fn {_module, module_lines_to_env} -> is_test_module?(module_lines_to_env) end)
-    |> Enum.map(fn {module, module_lines_to_env} ->
-      {module, Enum.sort_by(module_lines_to_env, &elem(&1, 0))}
-    end)
     |> Enum.map(fn {module, [{line, _env} | _rest]} -> {module, line} end)
   end
 
