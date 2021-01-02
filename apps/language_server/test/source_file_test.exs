@@ -1,6 +1,7 @@
 defmodule ElixirLS.LanguageServer.SourceFileTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
+  import ElixirLS.LanguageServer.Test.PlatformTestHelpers
 
   alias ElixirLS.LanguageServer.SourceFile
 
@@ -649,7 +650,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       path = SourceFile.path_from_uri("file:///some/path")
 
       if is_windows() do
-        assert path == "/some/path"
+        assert path == "\\some\\path"
       else
         assert path == "/some/path"
       end
@@ -657,13 +658,18 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       path = SourceFile.path_from_uri("file:///some/path/")
 
       if is_windows() do
-        assert path == "/some/path/"
+        assert path == "\\some\\path\\"
       else
         assert path == "/some/path/"
       end
 
       path = SourceFile.path_from_uri("file:///nodes%2B%23.ex")
-      assert path == "/nodes+#.ex"
+
+      if is_windows() do
+        assert path == "\\nodes+#.ex"
+      else
+        assert path == "/nodes+#.ex"
+      end
     end
 
     test "UNC" do
@@ -682,6 +688,14 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       else
         assert path == "//monacotools1/certificates/SSL/"
       end
+
+      path = SourceFile.path_from_uri("file://monacotools1/")
+
+      if is_windows() do
+        assert path == "\\\\monacotools1\\"
+      else
+        assert path == "//monacotools1/"
+      end
     end
     
     test "no `path` in URI" do
@@ -696,6 +710,14 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
     test "windows drive letter" do
       path = SourceFile.path_from_uri("file:///c:/test/me")
+
+      if is_windows() do
+        assert path == "c:\\test\\me"
+      else
+        assert path == "c:/test/me"
+      end
+
+      path = SourceFile.path_from_uri("file:///c%3A/test/me")
 
       if is_windows() do
         assert path == "c:\\test\\me"
@@ -754,7 +776,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       if is_windows() do
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:/win/path")
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("C:/win/path")
-        assert "file:///c%3A/win/path/" == SourceFile.path_to_uri("c:/win/path/")
+        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:/win/path/")
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("/c:/win/path")
 
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win\\path")
@@ -769,10 +791,10 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       cwd = File.cwd!
 
       uri = SourceFile.path_to_uri("a.file")
-      assert SourceFile.path_from_uri(uri) == Path.join(cwd, "a.file")
+      assert SourceFile.path_from_uri(uri) == maybe_convert_path_separators(Path.join(cwd, "a.file"))
 
       uri =  SourceFile.path_to_uri("./foo/bar")
-      assert SourceFile.path_from_uri(uri) == Path.join(cwd, "foo/bar")
+      assert SourceFile.path_from_uri(uri) == maybe_convert_path_separators(Path.join(cwd, "foo/bar"))
     end
 
     test "UNC path" do
@@ -780,13 +802,6 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
         assert "file://sh%C3%A4res/path/c%23/plugin.json" == SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
         assert "file://localhost/c%24/GitDevelopment/express" == SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
       end
-    end
-  end
-
-  defp is_windows() do
-    case :os.type() do
-      {:win32, _} -> true
-      _ -> false
     end
   end
 end

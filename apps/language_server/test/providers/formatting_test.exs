@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   use ExUnit.Case
+  import ElixirLS.LanguageServer.Test.PlatformTestHelpers
   alias ElixirLS.LanguageServer.Providers.Formatting
   alias ElixirLS.LanguageServer.SourceFile
 
@@ -22,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       dirty?: true
     }
 
-    project_dir = "/project"
+    project_dir = maybe_convert_path_separators("/project")
 
     assert {:ok, changes} = Formatting.format(source_file, uri, project_dir)
 
@@ -71,7 +72,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       dirty?: true
     }
 
-    project_dir = "/project"
+    project_dir = maybe_convert_path_separators("/project")
 
     assert {:error, :internal_error, msg} = Formatting.format(source_file, uri, project_dir)
     assert String.contains?(msg, "Unable to format")
@@ -90,7 +91,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       dirty?: true
     }
 
-    project_dir = "/project"
+    project_dir = maybe_convert_path_separators("/project")
 
     assert {:ok, changes} = Formatting.format(source_file, uri, project_dir)
 
@@ -125,7 +126,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       dirty?: true
     }
 
-    project_dir = "/project"
+    project_dir = maybe_convert_path_separators("/project")
 
     assert {:ok, changes} = Formatting.format(source_file, uri, project_dir)
 
@@ -160,7 +161,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       dirty?: true
     }
 
-    project_dir = "/project"
+    project_dir = maybe_convert_path_separators("/project")
 
     assert {:ok, changes} = Formatting.format(source_file, uri, project_dir)
 

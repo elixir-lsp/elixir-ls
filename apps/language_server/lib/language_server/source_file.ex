@@ -70,13 +70,17 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       authority != "" and path != "" ->
         # UNC path
         "//#{URI.decode(authority)}#{URI.decode(path)}"
-      String.match?(path, ~r/^\/[a-zA-Z]:/) ->
-        # Windows drive letter path
-        # drop leading `/` and downcase drive letter
-        <<_, letter, path_rest::binary>> = path
-        <<downcase(letter)>> <> URI.decode(path_rest)
       true ->
-        URI.decode(path)
+        decoded_path = URI.decode(path)
+        if match?({:win32, _}, :os.type()) and
+          String.match?(decoded_path, ~r/^\/[a-zA-Z]:/) do
+          # Windows drive letter path
+          # drop leading `/` and downcase drive letter
+          <<_, letter, path_rest::binary>> = decoded_path
+          <<downcase(letter), path_rest::binary>>
+        else
+          decoded_path
+        end
     end
 
     case :os.type() do
@@ -113,21 +117,13 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             # empty path part, use root path
             {a, "/"}
           [a, p] ->
-            {a, p}
+            {a, "/" <> p}
         end
       "/" <> _rest ->
         {"", path}
       other ->
         # treat as relative to root path
         {"", "/" <> other}
-    end
-
-    path = if String.match?(path, ~r/^\/[a-zA-Z]:/) do
-      # downcase Windows drive letter
-      <<slash, letter, rest::binary>> = path
-      <<slash, downcase(letter), rest::binary>>
-    else
-      path
     end
 
     %URI{
