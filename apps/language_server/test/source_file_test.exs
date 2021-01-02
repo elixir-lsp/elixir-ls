@@ -642,4 +642,150 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       end
     end
   end
+
+  # tests basing on cases from https://github.com/microsoft/vscode-uri/blob/master/src/test/uri.test.ts
+  describe "path_from_uri" do
+    test "unix" do
+      path = SourceFile.path_from_uri("file:///some/path")
+
+      if is_windows() do
+        assert path == "/some/path"
+      else
+        assert path == "/some/path"
+      end
+
+      path = SourceFile.path_from_uri("file:///some/path/")
+
+      if is_windows() do
+        assert path == "/some/path/"
+      else
+        assert path == "/some/path/"
+      end
+
+      path = SourceFile.path_from_uri("file:///nodes%2B%23.ex")
+      assert path == "/nodes+#.ex"
+    end
+
+    test "UNC" do
+      path = SourceFile.path_from_uri("file://shares/files/c%23/p.cs")
+
+      if is_windows() do
+        assert path == "\\\\shares\\files\\c#\\p.cs"
+      else
+        assert path == "//shares/files/c#/p.cs"
+      end
+
+      path = SourceFile.path_from_uri("file://monacotools1/certificates/SSL/")
+
+      if is_windows() do
+        assert path == "\\\\monacotools1\\certificates\\SSL\\"
+      else
+        assert path == "//monacotools1/certificates/SSL/"
+      end
+    end
+    
+    test "no `path` in URI" do
+      path = SourceFile.path_from_uri("file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp")
+
+      if is_windows() do
+        assert path == "\\"
+      else
+        assert path == "/"
+      end
+    end
+
+    test "windows drive letter" do
+      path = SourceFile.path_from_uri("file:///c:/test/me")
+
+      if is_windows() do
+        assert path == "c:\\test\\me"
+      else
+        assert path == "c:/test/me"
+      end
+
+      path = SourceFile.path_from_uri("file:///C:/test/me/")
+
+      if is_windows() do
+        assert path == "c:\\test\\me\\"
+      else
+        assert path == "c:/test/me/"
+      end
+
+      path = SourceFile.path_from_uri("file:///_:/path")
+
+      if is_windows() do
+        assert path == "\\_:\\path"
+      else
+        assert path == "/_:/path"
+      end
+
+      path = SourceFile.path_from_uri("file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins")
+
+      if is_windows() do
+        assert path == "c:\\Source\\Zürich or Zurich (ˈzjʊərɪk,\\Code\\resources\\app\\plugins"
+      else
+        assert path == "c:/Source/Zürich or Zurich (ˈzjʊərɪk,/Code/resources/app/plugins"
+      end
+    end
+
+    test "wrong schema" do
+      assert_raise ArgumentError, fn ->
+        SourceFile.path_from_uri("untitled:Untitled-1")
+      end
+      assert_raise ArgumentError, fn ->
+        SourceFile.path_from_uri("unsaved://343C3EE7-D575-486D-9D33-93AFFAF773BD")
+      end
+    end
+  end
+
+  # tests basing on cases from https://github.com/microsoft/vscode-uri/blob/master/src/test/uri.test.ts
+  describe "path_to_uri" do
+    test "basic" do
+      assert "file:///nodes%2B%23.ex" == SourceFile.path_to_uri("/nodes+#.ex")
+      assert "file:///coding/c%23/project1" == SourceFile.path_to_uri("/coding/c#/project1")
+
+      assert "file:///a.file" == SourceFile.path_to_uri("a.file")
+
+      assert "file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js" == SourceFile.path_to_uri("/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js")
+
+      assert "file:///./foo/bar" == SourceFile.path_to_uri("./foo/bar")
+      assert "file:///foo/%25A0.txt" == SourceFile.path_to_uri("/foo/%A0.txt")
+      assert "file:///foo/%252e.txt" == SourceFile.path_to_uri("/foo/%2e.txt")
+    end
+
+    test "windows path" do
+      assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:/win/path")
+      assert "file:///c%3A/win/path" == SourceFile.path_to_uri("C:/win/path")
+      assert "file:///c%3A/win/path/" == SourceFile.path_to_uri("c:/win/path/")
+      assert "file:///c%3A/win/path" == SourceFile.path_to_uri("/c:/win/path")
+
+      if is_windows() do
+        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win\\path")
+        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win/path")
+
+        assert "file:///c%3A/test%20with%20%25/path" == SourceFile.path_to_uri("c:\\test with %\\path")
+        assert "file:///c%3A/test%20with%20%2525/c%23code" == SourceFile.path_to_uri("c:\\test with %25\\c#code")
+      else
+        assert "file:///c%3A%5Cwin%5Cpath" == SourceFile.path_to_uri("c:\\win\\path")
+        assert "file:///c%3A%5Cwin/path" == SourceFile.path_to_uri("c:\\win/path")
+      end
+    end
+
+    test "UNC path" do
+      if is_windows() do
+        assert "file://sh%C3%A4res/path/c%23/plugin.json" == SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
+        assert "file://localhost/c%24/GitDevelopment/express" == SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
+      else
+        assert "file:///%5C%5Csh%C3%A4res%5Cpath%5Cc%23%5Cplugin.json" == SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
+        assert "file:///%5C%5Clocalhost%5Cc%24%5CGitDevelopment%5Cexpress" == SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
+      end
+    end
+  end
+
+  defp is_windows() do
+    case :os.type() do
+      {:win32, _} -> true
+      _ -> false
+    end
+  end
 end
