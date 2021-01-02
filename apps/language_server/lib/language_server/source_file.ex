@@ -94,6 +94,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   def path_to_uri(path) do
+    path = Path.expand(path)
     path = case :os.type() do
       {:win32, _} ->
         # convert path separators from Windows to URI

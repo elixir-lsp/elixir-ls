@@ -740,44 +740,45 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
   # tests basing on cases from https://github.com/microsoft/vscode-uri/blob/master/src/test/uri.test.ts
   describe "path_to_uri" do
-    test "basic" do
-      assert "file:///nodes%2B%23.ex" == SourceFile.path_to_uri("/nodes+#.ex")
-      assert "file:///coding/c%23/project1" == SourceFile.path_to_uri("/coding/c#/project1")
-
-      assert "file:///a.file" == SourceFile.path_to_uri("a.file")
-
-      assert "file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js" == SourceFile.path_to_uri("/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js")
-
-      assert "file:///./foo/bar" == SourceFile.path_to_uri("./foo/bar")
-      assert "file:///foo/%25A0.txt" == SourceFile.path_to_uri("/foo/%A0.txt")
-      assert "file:///foo/%252e.txt" == SourceFile.path_to_uri("/foo/%2e.txt")
+    test "unix path" do
+      unless is_windows() do
+        assert "file:///nodes%2B%23.ex" == SourceFile.path_to_uri("/nodes+#.ex")
+        assert "file:///coding/c%23/project1" == SourceFile.path_to_uri("/coding/c#/project1")
+        assert "file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js" == SourceFile.path_to_uri("/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js")
+        assert "file:///foo/%25A0.txt" == SourceFile.path_to_uri("/foo/%A0.txt")
+        assert "file:///foo/%252e.txt" == SourceFile.path_to_uri("/foo/%2e.txt")
+      end
     end
 
     test "windows path" do
-      assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:/win/path")
-      assert "file:///c%3A/win/path" == SourceFile.path_to_uri("C:/win/path")
-      assert "file:///c%3A/win/path/" == SourceFile.path_to_uri("c:/win/path/")
-      assert "file:///c%3A/win/path" == SourceFile.path_to_uri("/c:/win/path")
-
       if is_windows() do
+        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:/win/path")
+        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("C:/win/path")
+        assert "file:///c%3A/win/path/" == SourceFile.path_to_uri("c:/win/path/")
+        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("/c:/win/path")
+
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win\\path")
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win/path")
 
         assert "file:///c%3A/test%20with%20%25/path" == SourceFile.path_to_uri("c:\\test with %\\path")
         assert "file:///c%3A/test%20with%20%2525/c%23code" == SourceFile.path_to_uri("c:\\test with %25\\c#code")
-      else
-        assert "file:///c%3A%5Cwin%5Cpath" == SourceFile.path_to_uri("c:\\win\\path")
-        assert "file:///c%3A%5Cwin/path" == SourceFile.path_to_uri("c:\\win/path")
       end
+    end
+
+    test "relative path" do
+      cwd = File.cwd!
+
+      uri = SourceFile.path_to_uri("a.file")
+      assert SourceFile.path_from_uri(uri) == Path.join(cwd, "a.file")
+
+      uri =  SourceFile.path_to_uri("./foo/bar")
+      assert SourceFile.path_from_uri(uri) == Path.join(cwd, "foo/bar")
     end
 
     test "UNC path" do
       if is_windows() do
         assert "file://sh%C3%A4res/path/c%23/plugin.json" == SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
         assert "file://localhost/c%24/GitDevelopment/express" == SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
-      else
-        assert "file:///%5C%5Csh%C3%A4res%5Cpath%5Cc%23%5Cplugin.json" == SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
-        assert "file:///%5C%5Clocalhost%5Cc%24%5CGitDevelopment%5Cexpress" == SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
       end
     end
   end
