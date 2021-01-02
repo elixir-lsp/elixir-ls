@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
   end
 
   test "returns all module code lenses" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -32,13 +32,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert lenses ==
              [
-               build_code_lens(0, :module, "/file.ex", %{"module" => MyModule}),
-               build_code_lens(4, :module, "/file.ex", %{"module" => MyModule2})
+               build_code_lens(0, :module, "/project/file.ex", %{"module" => MyModule}),
+               build_code_lens(4, :module, "/project/file.ex", %{"module" => MyModule2})
              ]
   end
 
   test "returns all nested module code lenses" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -54,13 +54,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert lenses ==
              [
-               build_code_lens(0, :module, "/file.ex", %{"module" => MyModule}),
-               build_code_lens(3, :module, "/file.ex", %{"module" => MyModule.MyModule2})
+               build_code_lens(0, :module, "/project/file.ex", %{"module" => MyModule}),
+               build_code_lens(3, :module, "/project/file.ex", %{"module" => MyModule.MyModule2})
              ]
   end
 
   test "does not return lenses for modules that don't import ExUnit.case" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -73,7 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
   end
 
   test "returns lenses for all describe blocks" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -91,17 +91,17 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert Enum.member?(
              lenses,
-             build_code_lens(3, :describe, "/file.ex", %{"describe" => "describe1"})
+             build_code_lens(3, :describe, "/project/file.ex", %{"describe" => "describe1"})
            )
 
     assert Enum.member?(
              lenses,
-             build_code_lens(6, :describe, "/file.ex", %{"describe" => "describe2"})
+             build_code_lens(6, :describe, "/project/file.ex", %{"describe" => "describe2"})
            )
   end
 
   test "returns lenses for all test blocks" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -119,17 +119,17 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert Enum.member?(
              lenses,
-             build_code_lens(3, :test, "/file.ex", %{"testName" => "test1"})
+             build_code_lens(3, :test, "/project/file.ex", %{"testName" => "test1"})
            )
 
     assert Enum.member?(
              lenses,
-             build_code_lens(6, :test, "/file.ex", %{"testName" => "test2"})
+             build_code_lens(6, :test, "/project/file.ex", %{"testName" => "test2"})
            )
   end
 
   test "given test blocks inside describe blocks, should return code lenses with the test and describe name" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -146,7 +146,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert Enum.member?(
              lenses,
-             build_code_lens(4, :test, "/file.ex", %{
+             build_code_lens(4, :test, "/project/file.ex", %{
                "testName" => "test1",
                "describe" => "describe1"
              })
