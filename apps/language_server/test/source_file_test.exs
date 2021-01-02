@@ -697,7 +697,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
         assert path == "//monacotools1/"
       end
     end
-    
+
     test "no `path` in URI" do
       path = SourceFile.path_from_uri("file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp")
 
@@ -741,7 +741,10 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
         assert path == "/_:/path"
       end
 
-      path = SourceFile.path_from_uri("file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins")
+      path =
+        SourceFile.path_from_uri(
+          "file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins"
+        )
 
       if is_windows() do
         assert path == "c:\\Source\\Zürich or Zurich (ˈzjʊərɪk,\\Code\\resources\\app\\plugins"
@@ -754,6 +757,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert_raise ArgumentError, fn ->
         SourceFile.path_from_uri("untitled:Untitled-1")
       end
+
       assert_raise ArgumentError, fn ->
         SourceFile.path_from_uri("unsaved://343C3EE7-D575-486D-9D33-93AFFAF773BD")
       end
@@ -766,7 +770,12 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       unless is_windows() do
         assert "file:///nodes%2B%23.ex" == SourceFile.path_to_uri("/nodes+#.ex")
         assert "file:///coding/c%23/project1" == SourceFile.path_to_uri("/coding/c#/project1")
-        assert "file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js" == SourceFile.path_to_uri("/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js")
+
+        assert "file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js" ==
+                 SourceFile.path_to_uri(
+                   "/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js"
+                 )
+
         assert "file:///foo/%25A0.txt" == SourceFile.path_to_uri("/foo/%A0.txt")
         assert "file:///foo/%252e.txt" == SourceFile.path_to_uri("/foo/%2e.txt")
       end
@@ -782,25 +791,35 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win\\path")
         assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win/path")
 
-        assert "file:///c%3A/test%20with%20%25/path" == SourceFile.path_to_uri("c:\\test with %\\path")
-        assert "file:///c%3A/test%20with%20%2525/c%23code" == SourceFile.path_to_uri("c:\\test with %25\\c#code")
+        assert "file:///c%3A/test%20with%20%25/path" ==
+                 SourceFile.path_to_uri("c:\\test with %\\path")
+
+        assert "file:///c%3A/test%20with%20%2525/c%23code" ==
+                 SourceFile.path_to_uri("c:\\test with %25\\c#code")
       end
     end
 
     test "relative path" do
-      cwd = File.cwd!
+      cwd = File.cwd!()
 
       uri = SourceFile.path_to_uri("a.file")
-      assert SourceFile.path_from_uri(uri) == maybe_convert_path_separators(Path.join(cwd, "a.file"))
 
-      uri =  SourceFile.path_to_uri("./foo/bar")
-      assert SourceFile.path_from_uri(uri) == maybe_convert_path_separators(Path.join(cwd, "foo/bar"))
+      assert SourceFile.path_from_uri(uri) ==
+               maybe_convert_path_separators(Path.join(cwd, "a.file"))
+
+      uri = SourceFile.path_to_uri("./foo/bar")
+
+      assert SourceFile.path_from_uri(uri) ==
+               maybe_convert_path_separators(Path.join(cwd, "foo/bar"))
     end
 
     test "UNC path" do
       if is_windows() do
-        assert "file://sh%C3%A4res/path/c%23/plugin.json" == SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
-        assert "file://localhost/c%24/GitDevelopment/express" == SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
+        assert "file://sh%C3%A4res/path/c%23/plugin.json" ==
+                 SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
+
+        assert "file://localhost/c%24/GitDevelopment/express" ==
+                 SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
       end
     end
   end

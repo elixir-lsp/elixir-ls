@@ -33,8 +33,12 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert lenses ==
              [
-               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{"module" => MyModule}),
-               build_code_lens(4, :module, maybe_convert_path_separators("/project/file.ex"), %{"module" => MyModule2})
+               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
+                 "module" => MyModule
+               }),
+               build_code_lens(4, :module, maybe_convert_path_separators("/project/file.ex"), %{
+                 "module" => MyModule2
+               })
              ]
   end
 
@@ -55,8 +59,12 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert lenses ==
              [
-               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{"module" => MyModule}),
-               build_code_lens(3, :module, maybe_convert_path_separators("/project/file.ex"), %{"module" => MyModule.MyModule2})
+               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
+                 "module" => MyModule
+               }),
+               build_code_lens(3, :module, maybe_convert_path_separators("/project/file.ex"), %{
+                 "module" => MyModule.MyModule2
+               })
              ]
   end
 
@@ -92,12 +100,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert Enum.member?(
              lenses,
-             build_code_lens(3, :describe, maybe_convert_path_separators("/project/file.ex"), %{"describe" => "describe1"})
+             build_code_lens(3, :describe, maybe_convert_path_separators("/project/file.ex"), %{
+               "describe" => "describe1"
+             })
            )
 
     assert Enum.member?(
              lenses,
-             build_code_lens(6, :describe, maybe_convert_path_separators("/project/file.ex"), %{"describe" => "describe2"})
+             build_code_lens(6, :describe, maybe_convert_path_separators("/project/file.ex"), %{
+               "describe" => "describe2"
+             })
            )
   end
 
@@ -120,12 +132,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     assert Enum.member?(
              lenses,
-             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{"testName" => "test1"})
+             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "testName" => "test1"
+             })
            )
 
     assert Enum.member?(
              lenses,
-             build_code_lens(6, :test, maybe_convert_path_separators("/project/file.ex"), %{"testName" => "test2"})
+             build_code_lens(6, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "testName" => "test2"
+             })
            )
   end
 
