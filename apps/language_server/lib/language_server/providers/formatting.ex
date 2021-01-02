@@ -39,7 +39,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   defp can_format?(file_uri, project_dir) do
     file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
 
-    not String.starts_with?(file_path, project_dir) or
+    String.starts_with?(file_path, project_dir) or
       String.starts_with?(file_path, File.cwd!())
   end
 
