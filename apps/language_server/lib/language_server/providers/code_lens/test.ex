@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
 
   @run_test_command "elixir.lens.test.run"
 
-  def code_lens(uri, text) do
+  def code_lens(uri = "file:" <> _, text) do
     with {:ok, buffer_file_metadata} <- parse_source(text) do
       source_lines = SourceFile.lines(text)
 
@@ -47,6 +47,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
       {:ok, test_lenses ++ describe_lenses ++ module_lenses}
     end
   end
+
+  def code_lens(_uri, _text), do: {:ok, []}
 
   defp get_test_lenses(test_blocks, file_path) do
     args = fn block ->

@@ -317,7 +317,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   @spec formatter_opts(String.t()) :: {:ok, keyword()} | :error
-  def formatter_opts(uri) do
+  def formatter_opts(uri = "file:" <> _) do
     path = path_from_uri(uri)
 
     try do
@@ -335,6 +335,8 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         :error
     end
   end
+
+  def formatter_opts(_), do: :error
 
   defp format_code(code, opts) do
     try do
