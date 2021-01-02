@@ -69,7 +69,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
           # treat no path as root path
           "/"
 
-        authority != "" and path != "" ->
+        authority not in ["", nil] and path not in ["", nil] ->
           # UNC path
           "//#{URI.decode(authority)}#{URI.decode(path)}"
 
