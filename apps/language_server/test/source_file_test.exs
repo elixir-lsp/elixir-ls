@@ -714,7 +714,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       if is_windows() do
         assert path == "c:\\test\\me"
       else
-        assert path == "c:/test/me"
+        assert path == "/c:/test/me"
       end
 
       path = SourceFile.path_from_uri("file:///c%3A/test/me")
@@ -722,7 +722,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       if is_windows() do
         assert path == "c:\\test\\me"
       else
-        assert path == "c:/test/me"
+        assert path == "/c:/test/me"
       end
 
       path = SourceFile.path_from_uri("file:///C:/test/me/")
@@ -730,7 +730,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       if is_windows() do
         assert path == "c:\\test\\me\\"
       else
-        assert path == "c:/test/me/"
+        assert path == "/C:/test/me/"
       end
 
       path = SourceFile.path_from_uri("file:///_:/path")
@@ -746,7 +746,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       if is_windows() do
         assert path == "c:\\Source\\Zürich or Zurich (ˈzjʊərɪk,\\Code\\resources\\app\\plugins"
       else
-        assert path == "c:/Source/Zürich or Zurich (ˈzjʊərɪk,/Code/resources/app/plugins"
+        assert path == "/c:/Source/Zürich or Zurich (ˈzjʊərɪk,/Code/resources/app/plugins"
       end
     end
 
