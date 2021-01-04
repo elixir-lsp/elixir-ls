@@ -298,26 +298,26 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
 
     test "returns module lens on the module declaration line", %{text: text} do
-      uri = "file://project/file.ex"
+      uri = "file:///project/file.ex"
 
       {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
 
       assert Enum.member?(
                lenses,
-               build_code_lens(0, :module, "/file.ex", %{
+               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
                  "module" => ElixirLS.LanguageServer.DiagnosticsTest
                })
              )
     end
 
     test "returns test lenses with describe info", %{text: text} do
-      uri = "file://project/file.ex"
+      uri = "file:///project/file.ex"
 
       {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
 
       assert Enum.member?(
                lenses,
-               build_code_lens(5, :test, "/file.ex", %{
+               build_code_lens(5, :test, maybe_convert_path_separators("/project/file.ex"), %{
                  "testName" => "extract the stacktrace from the message and format it",
                  "describe" => "normalize/2"
                })
