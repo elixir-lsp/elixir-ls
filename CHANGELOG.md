@@ -4,6 +4,7 @@ Improvements:
 - Add support for `textDocument/implementation` ("Go to Implmentations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
 - More specific `CompletionItemKind` for autocomplete (thanks [Jason Axelson](https://github.com/axelson)) [#419](https://github.com/elixir-lsp/elixir-ls/pull/419)
 - Support ASDF installed via homebrew on macOS (thanks [Fabian Stegemann](https://github.com/zetaron)) [#428](https://github.com/elixir-lsp/elixir-ls/pull/428)
+- Make launcher script more robust and support symlinks (thanks [Joshua Trees](https://github.com/jtrees)) [#445](https://github.com/elixir-lsp/elixir-ls/pull/445)
 
 Bug Fixes:
 - Fix multiple issues with text synchronization (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#411](https://github.com/elixir-lsp/elixir-ls/pull/411)
@@ -14,6 +15,7 @@ Bug Fixes:
 - Fix awaiting_contracts not getting responses (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#433](https://github.com/elixir-lsp/elixir-ls/pull/433)
 - Fix invalid value set in write_manifest_pid (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#430](https://github.com/elixir-lsp/elixir-ls/pull/430)
 - Give better warning for incomplete erlang install (thanks [Jason Axelson](https://github.com/axelson)) [#434](https://github.com/elixir-lsp/elixir-ls/pull/434)
+- Fix some test lenses bugs (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#443](https://github.com/elixir-lsp/elixir-ls/pull/443)
 
 Housekeeping:
 - Switch from Travis CI to GitHub actions (thanks [Jason Axelson](https://github.com/axelson)) [#420](https://github.com/elixir-lsp/elixir-ls/pull/420)
@@ -23,6 +25,7 @@ Housekeeping:
 VSCode:
 - Fix debugger not starting on windows (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#154](https://github.com/elixir-lsp/vscode-elixir-ls/pull/154)
 - Add fodling markers for @doc, @moduledoc, @typedoc, and #region (thanks [Michael Johnston](https://github.com/lastobelus)) [#157](https://github.com/elixir-lsp/vscode-elixir-ls/pull/157)
+- README update to reflect editor.acceptSuggestionOnEnter change (thanks [Maximilien Mellen](https://github.com/maxmellen)) [#159](https://github.com/elixir-lsp/vscode-elixir-ls/pull/159)
 
 ### v0.6.2: 15 November 2020
 
