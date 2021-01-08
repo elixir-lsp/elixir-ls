@@ -32,19 +32,7 @@ defmodule ElixirLS.Utils.OutputDevice do
   end
 
   @impl GenServer
-  def handle_info({:io_request, from, reply_as, {:put_chars, characters}}, s) do
-    output(from, reply_as, characters, s)
-    {:noreply, s}
-  end
-
-  @impl GenServer
   def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, module, func, args}}, s) do
-    output(from, reply_as, apply(module, func, args), s)
-    {:noreply, s}
-  end
-
-  @impl GenServer
-  def handle_info({:io_request, from, reply_as, {:put_chars, module, func, args}}, s) do
     output(from, reply_as, apply(module, func, args), s)
     {:noreply, s}
   end
