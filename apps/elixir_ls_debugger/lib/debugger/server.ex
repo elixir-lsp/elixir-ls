@@ -341,7 +341,12 @@ defmodule ElixirLS.Debugger.Server do
     pid = state.threads[thread_id]
     state = remove_paused_process(state, pid)
 
-    :int.next(pid)
+    try do
+      :int.next(pid)
+    rescue
+      e in MatchError ->
+        IO.warn ":int.next failed, #{Exception.message(e)}"
+    end
     {%{}, state}
   end
 
@@ -349,7 +354,12 @@ defmodule ElixirLS.Debugger.Server do
     pid = state.threads[thread_id]
     state = remove_paused_process(state, pid)
 
-    :int.step(pid)
+    try do
+      :int.step(pid)
+    rescue
+      e in MatchError ->
+        IO.warn ":int.step failed, #{Exception.message(e)}"
+    end
     {%{}, state}
   end
 
@@ -357,7 +367,12 @@ defmodule ElixirLS.Debugger.Server do
     pid = state.threads[thread_id]
     state = remove_paused_process(state, pid)
 
-    :int.finish(pid)
+    try do
+      :int.finish(pid)
+    rescue
+      e in MatchError ->
+        IO.warn ":int.finish failed, #{Exception.message(e)}"
+    end
     {%{}, state}
   end
 
