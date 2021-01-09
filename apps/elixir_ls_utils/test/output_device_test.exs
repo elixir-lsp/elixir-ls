@@ -71,10 +71,12 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
     {:ok, fake_user} = FakeOutput.start_link([])
     {:ok, fake_wire_protocol} = FakeWireProtocol.start_link([])
     {:ok, output_device} = OutputDevice.start_link(fake_user, &FakeWireProtocol.send/1)
+    {:ok, output_device_error} = OutputDevice.start_link(fake_user, fn _ -> {:error, :emfile} end)
 
     {:ok,
      %{
        output_device: output_device,
+       output_device_error: output_device_error,
        fake_wire_protocol: fake_wire_protocol,
        fake_user: fake_user
      }}
@@ -203,6 +205,14 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
   end
 
   describe "put_chars" do
+    test "returns error from output function", %{
+      output_device_error: output_device
+    } do
+      request = {:put_chars, :unicode, "sąme👨‍👩‍👦"}
+      send(output_device, {:io_request, self(), 123, request})
+      assert_receive({:io_reply, 123, {:error, :emfile}})
+    end
+
     test "unicode binary", %{
       output_device: output_device
     } do
