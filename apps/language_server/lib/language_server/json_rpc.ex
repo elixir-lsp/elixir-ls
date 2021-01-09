@@ -108,12 +108,12 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   # Used to intercept :user/:standard_io output
-  def print(str) do
+  def print(str) when is_binary(str) do
     log_message(:log, String.replace_suffix(str, "\n", ""))
   end
 
   # Used to intercept :standard_error output
-  def print_err(str) do
+  def print_err(str) when is_binary(str) do
     log_message(:warning, String.replace_suffix(str, "\n", ""))
   end
 
