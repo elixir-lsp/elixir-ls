@@ -52,7 +52,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
         [first_frame | other_frames]
 
       error ->
-        IO.warn("Failed to obtain meta pid for #{inspect(pid)}: #{error}")
+        IO.warn("Failed to obtain meta pid for #{inspect(pid)}: #{inspect(error)}")
         []
     end
   end
