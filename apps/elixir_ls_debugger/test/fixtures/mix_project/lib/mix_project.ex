@@ -6,4 +6,26 @@ defmodule MixProject do
   def double(y) do
     2 * y
   end
+
+  def exit do
+    Task.start(fn ->
+      Task.start_link(fn ->
+        Process.sleep(1000)
+        raise ArgumentError
+      end)
+
+      Process.sleep(:infinity)
+    end)
+
+    Process.sleep(:infinity)
+  end
+
+  def exit_self do
+    Task.start_link(fn ->
+      Process.sleep(1000)
+      raise ArgumentError
+    end)
+
+    Process.sleep(:infinity)
+  end
 end

@@ -202,6 +202,122 @@ defmodule ElixirLS.Debugger.ServerTest do
     end)
   end
 
+  test "notifies about process exit", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "run",
+          "taskArgs" => ["-e", "MixProject.exit()"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [%{"line" => 17}])
+      )
+
+      assert_receive(
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}), 1000
+      )
+
+      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
+      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+      # ensure thread ids are unique
+      thread_ids = Enum.map(threads, & &1["id"])
+      assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => thread_id
+                     })
+
+      assert_receive event(_, "thread", %{
+                       "reason" => "exited",
+                       "threadId" => ^thread_id
+                     }),
+                     5000
+    end)
+  end
+
+  test "notifies about mix task exit", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "run",
+          "taskArgs" => ["-e", "MixProject.exit_self()"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [%{"line" => 29}])
+      )
+
+      assert_receive(
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+      )
+
+      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
+      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+      # ensure thread ids are unique
+      thread_ids = Enum.map(threads, & &1["id"])
+      assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => thread_id
+                     })
+
+      assert_receive event(_, "thread", %{
+                       "reason" => "exited",
+                       "threadId" => ^thread_id
+                     }),
+                     5000
+
+      assert_receive event(_, "exited", %{
+                       "exitCode" => 1
+                     })
+
+      assert_receive event(_, "terminated", %{
+                       "restart" => false
+                     })
+    end)
+  end
+
   test "sets breakpoints in erlang modules", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))

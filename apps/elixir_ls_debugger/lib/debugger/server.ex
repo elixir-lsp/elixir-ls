@@ -100,13 +100,23 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def handle_cast({:breakpoint_reached, pid}, state) do
-    {state, thread_id} = ensure_thread_id(state, pid)
+    # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
+    # check if process is alive to not debug dead ones
+    state =
+      if Process.alive?(pid) do
+        # monitor to clanup state if process dies
+        Process.monitor(pid)
+        {state, thread_id} = ensure_thread_id(state, pid)
 
-    paused_process = %PausedProcess{stack: Stacktrace.get(pid)}
-    state = put_in(state.paused_processes[pid], paused_process)
+        paused_process = %PausedProcess{stack: Stacktrace.get(pid)}
+        state = put_in(state.paused_processes[pid], paused_process)
 
-    body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
-    Output.send_event("stopped", body)
+        body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
+        Output.send_event("stopped", body)
+        state
+      else
+        state
+      end
 
     {:noreply, state}
   end
@@ -132,6 +142,29 @@ defmodule ElixirLS.Debugger.Server do
     Output.send_event("terminated", %{"restart" => false})
 
     {:noreply, %{state | task_ref: nil}}
+  end
+
+  def handle_info({:DOWN, _ref, :process, pid, reason}, state) do
+    IO.puts(
+      :standard_error,
+      "debugged process #{inspect(pid)} exited with reason #{inspect(reason)}"
+    )
+
+    thread_id = state.threads_inverse[pid]
+    state = remove_paused_process(state, pid)
+
+    state = %{
+      state
+      | threads: state.threads |> Map.delete(thread_id),
+        threads_inverse: state.threads_inverse |> Map.delete(pid)
+    }
+
+    Output.send_event("thread", %{
+      "reason" => "exited",
+      "threadId" => thread_id
+    })
+
+    {:noreply, state}
   end
 
   # If we get the disconnect request from the client, we continue with :disconnect so the server will
