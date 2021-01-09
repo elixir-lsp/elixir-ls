@@ -51,16 +51,17 @@ defmodule ElixirLS.Debugger.Output do
   end
 
   def handle_call({:send_error_response, request_packet, message, format, variables}, _from, seq) do
-    res = WireProtocol.send(
-      error_response(
-        seq,
-        request_packet["seq"],
-        request_packet["command"],
-        message,
-        format,
-        variables
+    res =
+      WireProtocol.send(
+        error_response(
+          seq,
+          request_packet["seq"],
+          request_packet["command"],
+          message,
+          format,
+          variables
+        )
       )
-    )
 
     {:reply, res, seq + 1}
   end

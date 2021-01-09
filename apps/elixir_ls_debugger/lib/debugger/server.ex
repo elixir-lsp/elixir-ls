@@ -287,68 +287,89 @@ defmodule ElixirLS.Debugger.Server do
 
   defp handle_request(request(_, "stackTrace", %{"threadId" => thread_id} = args), state) do
     pid = state.threads[thread_id]
-    paused_process = state.paused_processes[pid]
 
-    total_frames = Enum.count(paused_process.stack)
+    case state.paused_processes[pid] do
+      %PausedProcess{} = paused_process ->
+        total_frames = Enum.count(paused_process.stack)
 
-    start_frame =
-      case args do
-        %{"startFrame" => start_frame} when is_integer(start_frame) -> start_frame
-        _ -> 0
-      end
+        start_frame =
+          case args do
+            %{"startFrame" => start_frame} when is_integer(start_frame) -> start_frame
+            _ -> 0
+          end
 
-    end_frame =
-      case args do
-        %{"levels" => levels} when is_integer(levels) and levels > 0 -> start_frame + levels
-        _ -> -1
-      end
+        end_frame =
+          case args do
+            %{"levels" => levels} when is_integer(levels) and levels > 0 -> start_frame + levels
+            _ -> -1
+          end
 
-    stack_frames = Enum.slice(paused_process.stack, start_frame..end_frame)
-    {state, frame_ids} = ensure_frame_ids(state, pid, stack_frames)
+        stack_frames = Enum.slice(paused_process.stack, start_frame..end_frame)
+        {state, frame_ids} = ensure_frame_ids(state, pid, stack_frames)
 
-    stack_frames_json =
-      for {stack_frame, frame_id} <- List.zip([stack_frames, frame_ids]) do
-        %{
-          "id" => frame_id,
-          "name" => Stacktrace.Frame.name(stack_frame),
-          "line" => stack_frame.line,
-          "column" => 0,
-          "source" => %{"path" => stack_frame.file}
-        }
-      end
+        stack_frames_json =
+          for {%Frame{} = stack_frame, frame_id} <- List.zip([stack_frames, frame_ids]) do
+            %{
+              "id" => frame_id,
+              "name" => Stacktrace.Frame.name(stack_frame),
+              "line" => stack_frame.line,
+              "column" => 0,
+              "source" => %{"path" => stack_frame.file}
+            }
+          end
 
-    {%{"stackFrames" => stack_frames_json, "totalFrames" => total_frames}, state}
+        {%{"stackFrames" => stack_frames_json, "totalFrames" => total_frames}, state}
+
+      nil ->
+        IO.warn("unable to get stacktrace for thread_id #{thread_id}")
+        {%{"stackFrames" => [], "totalFrames" => 0}, state}
+    end
   end
 
   defp handle_request(request(_, "scopes", %{"frameId" => frame_id}), state) do
-    {pid, frame} = find_frame(state.paused_processes, frame_id)
+    {state, scopes} =
+      case find_frame(state.paused_processes, frame_id) do
+        {pid, %Frame{} = frame} ->
+          {state, args_id} = ensure_var_id(state, pid, frame.args)
+          {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
 
-    {state, args_id} = ensure_var_id(state, pid, frame.args)
-    {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
+          vars_scope = %{
+            "name" => "variables",
+            "variablesReference" => bindings_id,
+            "namedVariables" => Enum.count(frame.bindings),
+            "indexedVariables" => 0,
+            "expensive" => false
+          }
 
-    vars_scope = %{
-      "name" => "variables",
-      "variablesReference" => bindings_id,
-      "namedVariables" => Enum.count(frame.bindings),
-      "indexedVariables" => 0,
-      "expensive" => false
-    }
+          args_scope = %{
+            "name" => "arguments",
+            "variablesReference" => args_id,
+            "namedVariables" => 0,
+            "indexedVariables" => Enum.count(frame.args),
+            "expensive" => false
+          }
 
-    args_scope = %{
-      "name" => "arguments",
-      "variablesReference" => args_id,
-      "namedVariables" => 0,
-      "indexedVariables" => Enum.count(frame.args),
-      "expensive" => false
-    }
+          scopes = if Enum.count(frame.args) > 0, do: [vars_scope, args_scope], else: [vars_scope]
+          {state, scopes}
 
-    scopes = if Enum.count(frame.args) > 0, do: [vars_scope, args_scope], else: [vars_scope]
+        nil ->
+          IO.warn("frameId #{inspect(frame_id)} not found")
+          {state, []}
+      end
+
     {%{"scopes" => scopes}, state}
   end
 
   defp handle_request(request(_, "variables", %{"variablesReference" => var_id} = args), state) do
-    {pid, var} = find_var(state.paused_processes, var_id)
-    {state, vars_json} = variables(state, pid, var, args["start"], args["count"], args["filter"])
+    {state, vars_json} =
+      case find_var(state.paused_processes, var_id) do
+        {pid, var} ->
+          variables(state, pid, var, args["start"], args["count"], args["filter"])
+
+        nil ->
+          IO.warn("variablesReference #{inspect(var_id)} not found")
+          {state, []}
+      end
 
     {%{"variables" => vars_json}, state}
   end
@@ -363,49 +384,80 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(continue_req(_, thread_id), state) do
-    pid = state.threads[thread_id]
-    state = remove_paused_process(state, pid)
+    state =
+      case state.threads[thread_id] do
+        nil ->
+          IO.warn("thread_id #{thread_id} not found")
+          state
 
-    :ok = :int.continue(pid)
+        pid ->
+          :ok = :int.continue(pid)
+          remove_paused_process(state, pid)
+      end
+
     {%{"allThreadsContinued" => false}, state}
   end
 
   defp handle_request(next_req(_, thread_id), state) do
-    pid = state.threads[thread_id]
-    state = remove_paused_process(state, pid)
+    state =
+      case state.threads[thread_id] do
+        nil ->
+          IO.warn("thread_id #{thread_id} not found")
+          state
 
-    try do
-      :int.next(pid)
-    rescue
-      e in MatchError ->
-        IO.warn ":int.next failed, #{Exception.message(e)}"
-    end
+        pid ->
+          try do
+            :int.next(pid)
+          rescue
+            e in MatchError ->
+              IO.warn(":int.next failed, #{Exception.message(e)}")
+          end
+
+          remove_paused_process(state, pid)
+      end
+
     {%{}, state}
   end
 
   defp handle_request(step_in_req(_, thread_id), state) do
-    pid = state.threads[thread_id]
-    state = remove_paused_process(state, pid)
+    state =
+      case state.threads[thread_id] do
+        nil ->
+          IO.warn("thread_id #{thread_id} not found")
+          state
 
-    try do
-      :int.step(pid)
-    rescue
-      e in MatchError ->
-        IO.warn ":int.step failed, #{Exception.message(e)}"
-    end
+        pid ->
+          try do
+            :int.step(pid)
+          rescue
+            e in MatchError ->
+              IO.warn(":int.step failed, #{Exception.message(e)}")
+          end
+
+          remove_paused_process(state, pid)
+      end
+
     {%{}, state}
   end
 
   defp handle_request(step_out_req(_, thread_id), state) do
-    pid = state.threads[thread_id]
-    state = remove_paused_process(state, pid)
+    state =
+      case state.threads[thread_id] do
+        nil ->
+          IO.warn("thread_id #{thread_id} not found")
+          state
 
-    try do
-      :int.finish(pid)
-    rescue
-      e in MatchError ->
-        IO.warn ":int.finish failed, #{Exception.message(e)}"
-    end
+        pid ->
+          try do
+            :int.finish(pid)
+          rescue
+            e in MatchError ->
+              IO.warn(":int.finish failed, #{Exception.message(e)}")
+          end
+
+          remove_paused_process(state, pid)
+      end
+
     {%{}, state}
   end
 
@@ -488,7 +540,9 @@ defmodule ElixirLS.Debugger.Server do
 
   defp all_variables(paused_processes) do
     paused_processes
-    |> Enum.flat_map(fn {_pid, paused_process} -> paused_process.frames |> Map.values() end)
+    |> Enum.flat_map(fn {_pid, %PausedProcess{} = paused_process} ->
+      paused_process.frames |> Map.values()
+    end)
     |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
     |> Enum.flat_map(fn %Frame{bindings: bindings} ->
       bindings |> Enum.map(&rename_binding_to_classic_variable/1)
@@ -508,7 +562,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp find_var(paused_processes, var_id) do
-    Enum.find_value(paused_processes, fn {pid, paused_process} ->
+    Enum.find_value(paused_processes, fn {pid, %PausedProcess{} = paused_process} ->
       if Map.has_key?(paused_process.vars, var_id) do
         {pid, paused_process.vars[var_id]}
       end
@@ -516,7 +570,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp find_frame(paused_processes, frame_id) do
-    Enum.find_value(paused_processes, fn {pid, paused_process} ->
+    Enum.find_value(paused_processes, fn {pid, %PausedProcess{} = paused_process} ->
       if Map.has_key?(paused_process.frames, frame_id) do
         {pid, paused_process.frames[frame_id]}
       end
@@ -543,6 +597,10 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp ensure_var_id(state, pid, var) do
+    unless Map.has_key?(state.paused_processes, pid) do
+      raise ArgumentError, message: "paused process not found"
+    end
+
     if Map.has_key?(state.paused_processes[pid].vars_inverse, var) do
       {state, state.paused_processes[pid].vars_inverse[var]}
     else
@@ -561,7 +619,11 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp ensure_frame_id(state, pid, frame) do
+  defp ensure_frame_id(state, pid, %Frame{} = frame) do
+    unless Map.has_key?(state.paused_processes, pid) do
+      raise ArgumentError, message: "paused process not found"
+    end
+
     if Map.has_key?(state.paused_processes[pid].frames_inverse, frame) do
       {state, state.paused_processes[pid].frames_inverse[frame]}
     else

@@ -227,7 +227,8 @@ defmodule ElixirLS.Debugger.ServerTest do
       )
 
       assert_receive(
-        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}), 1000
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+        1000
       )
 
       Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
