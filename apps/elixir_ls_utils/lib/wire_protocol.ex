@@ -10,19 +10,12 @@ defmodule ElixirLS.Utils.WireProtocol do
     pid = io_dest()
     body = JasonVendored.encode_to_iodata!(packet)
 
-    case IO.binwrite(pid, [
-           "Content-Length: ",
-           IO.iodata_length(body) |> Integer.to_string(),
-           @separator,
-           body
-         ]) do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
-        IO.warn("Unable to write to the device: #{inspect(reason)}")
-        :ok
-    end
+    IO.binwrite(pid, [
+      "Content-Length: ",
+      IO.iodata_length(body) |> Integer.to_string(),
+      @separator,
+      body
+    ])
   end
 
   defp io_dest do
