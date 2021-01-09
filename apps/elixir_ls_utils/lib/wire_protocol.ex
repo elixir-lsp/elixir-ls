@@ -32,7 +32,7 @@ defmodule ElixirLS.Utils.WireProtocol do
     :ok = :io.setopts(raw_user, binary: true, encoding: :latin1)
 
     {:ok, user} = OutputDevice.start_link(raw_user, print_fn)
-    {:ok, standard_error} = OutputDevice.start_link(raw_standard_error, print_err_fn)
+    {:ok, standard_error} = OutputDevice.start_link(raw_user, print_err_fn)
 
     Process.unregister(:user)
     Process.register(raw_user, :raw_user)
