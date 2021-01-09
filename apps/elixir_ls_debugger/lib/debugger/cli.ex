@@ -6,6 +6,7 @@ defmodule ElixirLS.Debugger.CLI do
     WireProtocol.intercept_output(&Output.print/1, &Output.print_err/1)
     Launch.start_mix()
     {:ok, _} = Application.ensure_all_started(:elixir_ls_debugger, :permanent)
+
     IO.puts("Started ElixirLS debugger v#{Launch.debugger_version()}")
     Launch.print_versions()
     Launch.limit_num_schedulers()
