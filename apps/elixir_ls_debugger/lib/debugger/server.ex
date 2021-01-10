@@ -505,7 +505,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp remove_paused_process(state = %__MODULE__{}, pid) do
-    {process = %PausedProcess{}, paused_processes} = Map.pop!(state.paused_processes, pid)
+    {process = %PausedProcess{}, paused_processes} = Map.pop(state.paused_processes, pid)
     true = Process.demonitor(process.ref, [:flush])
     %__MODULE__{state | paused_processes: paused_processes}
   end
