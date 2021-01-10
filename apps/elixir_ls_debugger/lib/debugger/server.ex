@@ -36,7 +36,8 @@ defmodule ElixirLS.Debugger.Server do
               frames: %{},
               frames_inverse: %{},
               vars: %{},
-              vars_inverse: %{}
+              vars_inverse: %{},
+              ref: nil
   end
 
   ## Client API
@@ -64,12 +65,12 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state) do
+  def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state = %__MODULE__{}) do
     Output.send_response(packet, %{})
     {:noreply, state, {:continue, :disconnect}}
   end
 
-  def handle_cast({:receive_packet, request(_, _) = packet}, state) do
+  def handle_cast({:receive_packet, request(_, _) = packet}, state = %__MODULE__{}) do
     try do
       if state.client_info == nil do
         case packet do
@@ -99,16 +100,16 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
-  def handle_cast({:breakpoint_reached, pid}, state) do
+  def handle_cast({:breakpoint_reached, pid}, state = %__MODULE__{}) do
     # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
     # check if process is alive to not debug dead ones
     state =
       if Process.alive?(pid) do
         # monitor to clanup state if process dies
-        Process.monitor(pid)
+        ref = Process.monitor(pid)
         {state, thread_id} = ensure_thread_id(state, pid)
 
-        paused_process = %PausedProcess{stack: Stacktrace.get(pid)}
+        paused_process = %PausedProcess{stack: Stacktrace.get(pid), ref: ref}
         state = put_in(state.paused_processes[pid], paused_process)
 
         body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
@@ -123,7 +124,7 @@ defmodule ElixirLS.Debugger.Server do
 
   # the `:DOWN` message is not delivered under normal conditions as the process calls `Process.sleep(:infinity)`
   @impl GenServer
-  def handle_info({:DOWN, ref, :process, _pid, reason}, %{task_ref: ref} = state) do
+  def handle_info({:DOWN, ref, :process, _pid, reason}, %__MODULE__{task_ref: ref} = state) do
     exit_code =
       case reason do
         :normal ->
@@ -144,10 +145,10 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | task_ref: nil}}
   end
 
-  def handle_info({:DOWN, _ref, :process, pid, reason}, state) do
+  def handle_info({:DOWN, _ref, :process, pid, reason}, state = %__MODULE__{}) do
     IO.puts(
       :standard_error,
-      "debugged process #{inspect(pid)} exited with reason #{inspect(reason)}"
+      "debugged process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
     )
 
     thread_id = state.threads_inverse[pid]
@@ -170,7 +171,7 @@ defmodule ElixirLS.Debugger.Server do
   # If we get the disconnect request from the client, we continue with :disconnect so the server will
   # die right after responding to the request
   @impl GenServer
-  def handle_continue(:disconnect, state) do
+  def handle_continue(:disconnect, state = %__MODULE__{}) do
     unless Application.get_env(:elixir_ls_debugger, :test_mode) do
       System.halt(0)
     else
@@ -181,7 +182,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
-  def terminate(reason, _state) do
+  def terminate(reason, _state = %__MODULE__{}) do
     if reason != :normal do
       IO.puts(:standard_error, "(Debugger) Terminating because #{Exception.format_exit(reason)}")
     end
@@ -189,11 +190,11 @@ defmodule ElixirLS.Debugger.Server do
 
   ## Helpers
 
-  defp handle_request(initialize_req(_, client_info), %{client_info: nil} = state) do
+  defp handle_request(initialize_req(_, client_info), %__MODULE__{client_info: nil} = state) do
     {capabilities(), %{state | client_info: client_info}}
   end
 
-  defp handle_request(initialize_req(_, _client_info), _state) do
+  defp handle_request(initialize_req(_, _client_info), _state = %__MODULE__{}) do
     raise ServerError,
       message: "invalidRequest",
       format: "Debugger request {command} was not expected",
@@ -202,7 +203,7 @@ defmodule ElixirLS.Debugger.Server do
       }
   end
 
-  defp handle_request(launch_req(_, config), state) do
+  defp handle_request(launch_req(_, config), state = %__MODULE__{}) do
     {_, ref} = spawn_monitor(fn -> initialize(config) end)
 
     receive do
@@ -221,7 +222,10 @@ defmodule ElixirLS.Debugger.Server do
     {%{}, %{state | config: config}}
   end
 
-  defp handle_request(set_breakpoints_req(_, %{"path" => path}, breakpoints), state) do
+  defp handle_request(
+         set_breakpoints_req(_, %{"path" => path}, breakpoints),
+         state = %__MODULE__{}
+       ) do
     new_lines = for %{"line" => line} <- breakpoints, do: line
     existing_bps = state.breakpoints[path] || []
     existing_bp_lines = for {_module, line} <- existing_bps, do: line
@@ -245,11 +249,11 @@ defmodule ElixirLS.Debugger.Server do
     {%{"breakpoints" => breakpoints_json}, state}
   end
 
-  defp handle_request(set_exception_breakpoints_req(_), state) do
+  defp handle_request(set_exception_breakpoints_req(_), state = %__MODULE__{}) do
     {%{}, state}
   end
 
-  defp handle_request(configuration_done_req(_), state) do
+  defp handle_request(configuration_done_req(_), state = %__MODULE__{}) do
     server = :erlang.process_info(self())[:registered_name] || self()
     :int.auto_attach([:break], {__MODULE__, :breakpoint_reached, [server]})
 
@@ -260,7 +264,7 @@ defmodule ElixirLS.Debugger.Server do
     {%{}, %{state | task_ref: task_ref}}
   end
 
-  defp handle_request(threads_req(_), state) do
+  defp handle_request(threads_req(_), state = %__MODULE__{}) do
     pids = :erlang.processes()
     {state, thread_ids} = ensure_thread_ids(state, pids)
 
@@ -285,8 +289,11 @@ defmodule ElixirLS.Debugger.Server do
     {%{"threads" => threads}, state}
   end
 
-  defp handle_request(request(_, "stackTrace", %{"threadId" => thread_id} = args), state) do
-    pid = state.threads[thread_id]
+  defp handle_request(
+         request(_, "stackTrace", %{"threadId" => thread_id} = args),
+         state = %__MODULE__{}
+       ) do
+    pid = get_pid_by_thread_id!(state, thread_id)
 
     case state.paused_processes[pid] do
       %PausedProcess{} = paused_process ->
@@ -321,12 +328,16 @@ defmodule ElixirLS.Debugger.Server do
         {%{"stackFrames" => stack_frames_json, "totalFrames" => total_frames}, state}
 
       nil ->
-        IO.warn("unable to get stacktrace for thread_id #{thread_id}")
-        {%{"stackFrames" => [], "totalFrames" => 0}, state}
+        raise ServerError,
+          message: "invalidArgument",
+          format: "process not paused: {threadId}",
+          variables: %{
+            "threadId" => inspect(thread_id)
+          }
     end
   end
 
-  defp handle_request(request(_, "scopes", %{"frameId" => frame_id}), state) do
+  defp handle_request(request(_, "scopes", %{"frameId" => frame_id}), state = %__MODULE__{}) do
     {state, scopes} =
       case find_frame(state.paused_processes, frame_id) do
         {pid, %Frame{} = frame} ->
@@ -353,28 +364,42 @@ defmodule ElixirLS.Debugger.Server do
           {state, scopes}
 
         nil ->
-          IO.warn("frameId #{inspect(frame_id)} not found")
-          {state, []}
+          raise ServerError,
+            message: "invalidArgument",
+            format: "frameId not found: {frameId}",
+            variables: %{
+              "frameId" => inspect(frame_id)
+            }
       end
 
     {%{"scopes" => scopes}, state}
   end
 
-  defp handle_request(request(_, "variables", %{"variablesReference" => var_id} = args), state) do
+  defp handle_request(
+         request(_, "variables", %{"variablesReference" => var_id} = args),
+         state = %__MODULE__{}
+       ) do
     {state, vars_json} =
       case find_var(state.paused_processes, var_id) do
         {pid, var} ->
           variables(state, pid, var, args["start"], args["count"], args["filter"])
 
         nil ->
-          IO.warn("variablesReference #{inspect(var_id)} not found")
-          {state, []}
+          raise ServerError,
+            message: "invalidArgument",
+            format: "variablesReference not found: {variablesReference}",
+            variables: %{
+              "variablesReference" => inspect(var_id)
+            }
       end
 
     {%{"variables" => vars_json}, state}
   end
 
-  defp handle_request(request(_cmd, "evaluate", %{"expression" => expr} = _args), state) do
+  defp handle_request(
+         request(_cmd, "evaluate", %{"expression" => expr} = _args),
+         state = %__MODULE__{}
+       ) do
     timeout = 1_000
     bindings = all_variables(state.paused_processes)
 
@@ -383,85 +408,79 @@ defmodule ElixirLS.Debugger.Server do
     {%{"result" => inspect(result), "variablesReference" => 0}, state}
   end
 
-  defp handle_request(continue_req(_, thread_id), state) do
-    state =
-      case state.threads[thread_id] do
-        nil ->
-          IO.warn("thread_id #{thread_id} not found")
-          state
+  defp handle_request(continue_req(_, thread_id), state = %__MODULE__{}) do
+    pid = get_pid_by_thread_id!(state, thread_id)
 
-        pid ->
-          :ok = :int.continue(pid)
-          remove_paused_process(state, pid)
-      end
-
-    {%{"allThreadsContinued" => false}, state}
+    try do
+      :int.continue(pid)
+      state = remove_paused_process(state, pid)
+      {%{"allThreadsContinued" => false}, state}
+    rescue
+      e in MatchError ->
+        raise ServerError,
+          message: "serverError",
+          format: ":int.continue failed: {message}",
+          variables: %{
+            "message" => inspect(Exception.message(e))
+          }
+    end
   end
 
-  defp handle_request(next_req(_, thread_id), state) do
-    state =
-      case state.threads[thread_id] do
-        nil ->
-          IO.warn("thread_id #{thread_id} not found")
-          state
+  defp handle_request(next_req(_, thread_id), state = %__MODULE__{}) do
+    pid = get_pid_by_thread_id!(state, thread_id)
 
-        pid ->
-          try do
-            :int.next(pid)
-          rescue
-            e in MatchError ->
-              IO.warn(":int.next failed, #{Exception.message(e)}")
-          end
-
-          remove_paused_process(state, pid)
-      end
-
-    {%{}, state}
+    try do
+      :int.next(pid)
+      state = remove_paused_process(state, pid)
+      {%{}, state}
+    rescue
+      e in MatchError ->
+        raise ServerError,
+          message: "serverError",
+          format: ":int.next failed: {message}",
+          variables: %{
+            "message" => inspect(Exception.message(e))
+          }
+    end
   end
 
-  defp handle_request(step_in_req(_, thread_id), state) do
-    state =
-      case state.threads[thread_id] do
-        nil ->
-          IO.warn("thread_id #{thread_id} not found")
-          state
+  defp handle_request(step_in_req(_, thread_id), state = %__MODULE__{}) do
+    pid = get_pid_by_thread_id!(state, thread_id)
 
-        pid ->
-          try do
-            :int.step(pid)
-          rescue
-            e in MatchError ->
-              IO.warn(":int.step failed, #{Exception.message(e)}")
-          end
-
-          remove_paused_process(state, pid)
-      end
-
-    {%{}, state}
+    try do
+      :int.step(pid)
+      state = remove_paused_process(state, pid)
+      {%{}, state}
+    rescue
+      e in MatchError ->
+        raise ServerError,
+          message: "serverError",
+          format: ":int.stop failed: {message}",
+          variables: %{
+            "message" => inspect(Exception.message(e))
+          }
+    end
   end
 
-  defp handle_request(step_out_req(_, thread_id), state) do
-    state =
-      case state.threads[thread_id] do
-        nil ->
-          IO.warn("thread_id #{thread_id} not found")
-          state
+  defp handle_request(step_out_req(_, thread_id), state = %__MODULE__{}) do
+    pid = get_pid_by_thread_id!(state, thread_id)
 
-        pid ->
-          try do
-            :int.finish(pid)
-          rescue
-            e in MatchError ->
-              IO.warn(":int.finish failed, #{Exception.message(e)}")
-          end
-
-          remove_paused_process(state, pid)
-      end
-
-    {%{}, state}
+    try do
+      :int.finish(pid)
+      state = remove_paused_process(state, pid)
+      {%{}, state}
+    rescue
+      e in MatchError ->
+        raise ServerError,
+          message: "serverError",
+          format: ":int.finish failed: {message}",
+          variables: %{
+            "message" => inspect(Exception.message(e))
+          }
+    end
   end
 
-  defp handle_request(request(_, command), _state) when is_binary(command) do
+  defp handle_request(request(_, command), _state = %__MODULE__{}) when is_binary(command) do
     raise ServerError,
       message: "notSupported",
       format: "Debugger request {command} is currently not supported",
@@ -470,13 +489,28 @@ defmodule ElixirLS.Debugger.Server do
       }
   end
 
-  defp remove_paused_process(state, pid) do
-    update_in(state.paused_processes, fn paused_processes ->
-      Map.delete(paused_processes, pid)
-    end)
+  defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id) do
+    case state.threads[thread_id] do
+      nil ->
+        raise ServerError,
+          message: "invalidArgument",
+          format: "threadId not found: {threadId}",
+          variables: %{
+            "threadId" => inspect(thread_id)
+          }
+
+      pid ->
+        pid
+    end
   end
 
-  defp variables(state, pid, var, start, count, filter) do
+  defp remove_paused_process(state = %__MODULE__{}, pid) do
+    {process = %PausedProcess{}, paused_processes} = Map.pop!(state.paused_processes, pid)
+    true = Process.demonitor(process.ref, [:flush])
+    %__MODULE__{state | paused_processes: paused_processes}
+  end
+
+  defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
     children =
       if (filter == "named" and Variables.child_type(var) == :indexed) or
            (filter == "indexed" and Variables.child_type(var) == :named) do
@@ -485,7 +519,7 @@ defmodule ElixirLS.Debugger.Server do
         Variables.children(var, start, count)
       end
 
-    Enum.reduce(children, {state, []}, fn {name, value}, {state, result} ->
+    Enum.reduce(children, {state, []}, fn {name, value}, {state = %__MODULE__{}, result} ->
       {state, var_id} =
         if Variables.expandable?(value) do
           ensure_var_id(state, pid, value)
@@ -577,7 +611,7 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp ensure_thread_id(state, pid) do
+  defp ensure_thread_id(state = %__MODULE__{}, pid) do
     if Map.has_key?(state.threads_inverse, pid) do
       {state, state.threads_inverse[pid]}
     else
@@ -589,16 +623,16 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp ensure_thread_ids(state, pids) do
+  defp ensure_thread_ids(state = %__MODULE__{}, pids) do
     Enum.reduce(pids, {state, []}, fn pid, {state, ids} ->
       {state, id} = ensure_thread_id(state, pid)
       {state, ids ++ [id]}
     end)
   end
 
-  defp ensure_var_id(state, pid, var) do
+  defp ensure_var_id(state = %__MODULE__{}, pid, var) do
     unless Map.has_key?(state.paused_processes, pid) do
-      raise ArgumentError, message: "paused process not found"
+      raise ArgumentError, message: "paused process #{inspect(pid)} not found"
     end
 
     if Map.has_key?(state.paused_processes[pid].vars_inverse, var) do
@@ -612,16 +646,16 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp ensure_frame_ids(state, pid, stack_frames) do
+  defp ensure_frame_ids(state = %__MODULE__{}, pid, stack_frames) do
     Enum.reduce(stack_frames, {state, []}, fn stack_frame, {state, ids} ->
       {state, id} = ensure_frame_id(state, pid, stack_frame)
       {state, ids ++ [id]}
     end)
   end
 
-  defp ensure_frame_id(state, pid, %Frame{} = frame) do
+  defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) do
     unless Map.has_key?(state.paused_processes, pid) do
-      raise ArgumentError, message: "paused process not found"
+      raise ArgumentError, message: "paused process #{inspect(pid)} not found"
     end
 
     if Map.has_key?(state.paused_processes[pid].frames_inverse, frame) do
