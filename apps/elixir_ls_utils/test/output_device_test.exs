@@ -85,32 +85,41 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
   test "passes optional io_request to underlying device", %{
     output_device: output_device
   } do
-    FakeOutput.set_responses([[:some_opt], {:error, :enotsup}])
+    FakeOutput.set_responses([{:ok, 77}, {:error, :enotsup}, :ok])
 
-    send(output_device, {:io_request, self(), 123, :getopts})
-    assert_receive({:io_reply, 123, [:some_opt]})
+    send(output_device, {:io_request, self(), 123, {:get_geometry, :rows}})
+    assert_receive({:io_reply, 123, {:ok, 77}})
 
-    send(output_device, {:io_request, self(), 123, {:setopts, [:abc]}})
+    send(output_device, {:io_request, self(), 123, {:get_geometry, :columns}})
     assert_receive({:io_reply, 123, {:error, :enotsup}})
 
-    assert FakeOutput.get_requests() == [:getopts, {:setopts, [:abc]}]
+    send(output_device, {:io_request, self(), 123, :some_unknown})
+    assert_receive({:io_reply, 123, :ok})
+
+    assert FakeOutput.get_requests() == [
+             {:get_geometry, :rows},
+             {:get_geometry, :columns},
+             :some_unknown
+           ]
   end
 
   describe "handles multi requests" do
     test "all passed, all succeed, last response returned naked `:ok`", %{
       output_device: output_device
     } do
-      FakeOutput.set_responses([:ok, :ok])
+      FakeOutput.set_responses([:ok, {:ok, ""}, :eof, :ok])
 
       requests = [
-        {:setopts, [:abc]},
-        {:setopts, [:cde]}
+        :some,
+        :other1,
+        :other2,
+        :another
       ]
 
       send(output_device, {:io_request, self(), 123, {:requests, requests}})
       assert_receive({:io_reply, 123, :ok})
 
-      assert FakeOutput.get_requests() == [{:setopts, [:abc]}, {:setopts, [:cde]}]
+      assert FakeOutput.get_requests() == [:some, :other1, :other2, :another]
     end
 
     test "all passed, all succeed, last response returned wrapped", %{
@@ -119,14 +128,14 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
       FakeOutput.set_responses([:ok, [:abc]])
 
       requests = [
-        {:setopts, [:abc]},
-        :getopts
+        {:other, [:abc]},
+        :some
       ]
 
       send(output_device, {:io_request, self(), 123, {:requests, requests}})
       assert_receive({:io_reply, 123, {:ok, [:abc]}})
 
-      assert FakeOutput.get_requests() == [{:setopts, [:abc]}, :getopts]
+      assert FakeOutput.get_requests() == [{:other, [:abc]}, :some]
     end
 
     test "all passed, error breaks processing, last response returned", %{
@@ -135,14 +144,14 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
       FakeOutput.set_responses([{:error, :notsup}])
 
       requests = [
-        {:setopts, [:abc]},
+        {:get_geometry, :rows},
         :getopts
       ]
 
       send(output_device, {:io_request, self(), 123, {:requests, requests}})
       assert_receive({:io_reply, 123, {:error, :notsup}})
 
-      assert FakeOutput.get_requests() == [{:setopts, [:abc]}]
+      assert FakeOutput.get_requests() == [{:get_geometry, :rows}]
     end
   end
 
@@ -261,6 +270,60 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
       assert_receive({:io_reply, 123, {:error, :put_chars}})
 
       assert FakeWireProtocol.get() == []
+    end
+  end
+
+  describe "opts" do
+    test "returns", %{
+      output_device: output_device
+    } do
+      send(output_device, {:io_request, self(), 123, :getopts})
+      assert_receive({:io_reply, 123, [binary: true, encoding: :unicode]})
+    end
+
+    test "valid can be set", %{
+      output_device: output_device
+    } do
+      send(
+        output_device,
+        {:io_request, self(), 123, {:setopts, [:binary, {:encoding, :unicode}]}}
+      )
+
+      assert_receive({:io_reply, 123, :ok})
+
+      send(
+        output_device,
+        {:io_request, self(), 123, {:setopts, [{:encoding, :unicode}, {:binary, true}]}}
+      )
+
+      assert_receive({:io_reply, 123, :ok})
+    end
+
+    test "rejects invalid", %{
+      output_device: output_device
+    } do
+      send(output_device, {:io_request, self(), 123, {:setopts, [:list, {:encoding, :unicode}]}})
+      assert_receive({:io_reply, 123, {:error, :enotsup}})
+
+      send(
+        output_device,
+        {:io_request, self(), 123, {:setopts, [{:encoding, :latin1}, {:binary, true}]}}
+      )
+
+      assert_receive({:io_reply, 123, {:error, :enotsup}})
+
+      send(
+        output_device,
+        {:io_request, self(), 123, {:setopts, [:binary, {:encoding, :unicode}, {:some, :value}]}}
+      )
+
+      assert_receive({:io_reply, 123, {:error, :enotsup}})
+
+      send(output_device, {:io_request, self(), 123, {:setopts, [:binary]}})
+      assert_receive({:io_reply, 123, {:error, :enotsup}})
+
+      send(output_device, {:io_request, self(), 123, {:setopts, [{:encoding, :unicode}]}})
+      assert_receive({:io_reply, 123, {:error, :enotsup}})
     end
   end
 end

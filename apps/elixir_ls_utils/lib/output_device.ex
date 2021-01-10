@@ -10,11 +10,15 @@ defmodule ElixirLS.Utils.OutputDevice do
   server with the correct category ("stdout" or "stderr").
   """
 
+  @opts binary: true, encoding: :unicode
+
   ## Client API
 
   def start_link(device, output_fn) do
     Task.start_link(fn -> loop({device, output_fn}) end)
   end
+
+  def get_opts, do: @opts
 
   ## Implementation
 
@@ -69,6 +73,14 @@ defmodule ElixirLS.Utils.OutputDevice do
     end
   end
 
+  defp io_request(:getopts, _state, _reply_as) do
+    @opts
+  end
+
+  defp io_request({:setopts, new_opts}, _state, _reply_as) do
+    validate_otps(new_opts, {:ok, 0})
+  end
+
   defp io_request(unknown, {device, _output_fn}, reply_as) do
     # forward requests to underlying device
     send(device, {:io_request, self(), reply_as, unknown})
@@ -103,4 +115,16 @@ defmodule ElixirLS.Utils.OutputDevice do
       _, _ -> :error
     end
   end
+
+  defp validate_otps([opt | rest], {:ok, acc}) do
+    validate_otps(rest, opt_valid?(opt, acc))
+  end
+
+  defp validate_otps([], {:ok, 2}), do: :ok
+  defp validate_otps(_, _acc), do: {:error, :enotsup}
+
+  defp opt_valid?(:binary, acc), do: {:ok, acc + 1}
+  defp opt_valid?({:binary, true}, acc), do: {:ok, acc + 1}
+  defp opt_valid?({:encoding, :unicode}, acc), do: {:ok, acc + 1}
+  defp opt_valid?(_opt, _acc), do: :error
 end
