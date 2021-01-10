@@ -386,7 +386,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "allThreadsStopped" => false,
                        "reason" => "breakpoint",
                        "threadId" => thread_id
-                     }), 500
+                     }),
+                     500
 
       assert_receive event(_, "thread", %{
                        "reason" => "exited",
