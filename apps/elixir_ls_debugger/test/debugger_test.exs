@@ -188,16 +188,155 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(server, continue_req(10, thread_id))
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
+    end)
+  end
 
-      Server.receive_packet(server, request(11, "someRequest", %{"threadId" => 123}))
+  test "handles invalid requests", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "test",
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [%{"line" => 3}])
+      )
+
+      assert_receive(
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+      )
+
+      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
+      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+      # ensure thread ids are unique
+      thread_ids = Enum.map(threads, & &1["id"])
+      assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => thread_id
+                     })
+
+      Server.receive_packet(server, stacktrace_req(7, "not existing"))
+
+      assert_receive error_response(
+                       _,
+                       7,
+                       "stackTrace",
+                       "invalidArgument",
+                       "threadId not found: {threadId}",
+                       %{"threadId" => "\"not existing\""}
+                     )
+
+      Server.receive_packet(server, scopes_req(8, "not existing"))
+
+      assert_receive error_response(
+                       _,
+                       8,
+                       "scopes",
+                       "invalidArgument",
+                       "frameId not found: {frameId}",
+                       %{"frameId" => "\"not existing\""}
+                     )
+
+      Server.receive_packet(server, vars_req(9, "not existing"))
+
+      assert_receive error_response(
+                       _,
+                       9,
+                       "variables",
+                       "invalidArgument",
+                       "variablesReference not found: {variablesReference}",
+                       %{"variablesReference" => "\"not existing\""}
+                     )
+
+      Server.receive_packet(server, next_req(10, "not existing"))
+
+      assert_receive error_response(
+                       _,
+                       10,
+                       "next",
+                       "invalidArgument",
+                       "threadId not found: {threadId}",
+                       %{"threadId" => "\"not existing\""}
+                     )
+
+      Server.receive_packet(server, step_in_req(11, "not existing"))
 
       assert_receive error_response(
                        _,
                        11,
+                       "stepIn",
+                       "invalidArgument",
+                       "threadId not found: {threadId}",
+                       %{"threadId" => "\"not existing\""}
+                     )
+
+      Server.receive_packet(server, step_out_req(12, "not existing"))
+
+      assert_receive error_response(
+                       _,
+                       12,
+                       "stepOut",
+                       "invalidArgument",
+                       "threadId not found: {threadId}",
+                       %{"threadId" => "\"not existing\""}
+                     )
+
+      Server.receive_packet(server, continue_req(13, "not existing"))
+
+      assert_receive error_response(
+                       _,
+                       13,
+                       "continue",
+                       "invalidArgument",
+                       "threadId not found: {threadId}",
+                       %{"threadId" => "\"not existing\""}
+                     )
+
+      Server.receive_packet(server, request(14, "someRequest", %{"threadId" => 123}))
+
+      assert_receive error_response(
+                       _,
+                       14,
                        "someRequest",
                        "notSupported",
                        "Debugger request {command} is currently not supported",
                        %{"command" => "someRequest"}
+                     )
+
+      Server.receive_packet(server, continue_req(15, thread_id))
+      assert_receive response(_, 15, "continue", %{"allThreadsContinued" => false})
+
+      Server.receive_packet(server, stacktrace_req(7, thread_id))
+      thread_id_str = inspect(thread_id)
+
+      assert_receive error_response(
+                       _,
+                       7,
+                       "stackTrace",
+                       "invalidArgument",
+                       "process not paused: {threadId}",
+                       %{"threadId" => ^thread_id_str}
                      )
     end)
   end
