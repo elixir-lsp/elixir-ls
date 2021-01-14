@@ -7,7 +7,7 @@ defmodule ElixirLS.Debugger.Output do
   are sent with sequence numbers that are unique and sequential, and includes client functions for
   sending these messages.
   """
-  import ElixirLS.Utils.WireProtocol, only: [send: 1]
+  alias ElixirLS.Utils.WireProtocol
   use GenServer
   use ElixirLS.Debugger.Protocol
 
@@ -29,12 +29,12 @@ defmodule ElixirLS.Debugger.Output do
     GenServer.call(server, {:send_event, event, body})
   end
 
-  def print(server \\ __MODULE__, str) do
-    send_event(server, "output", %{"category" => "stdout", "output" => to_string(str)})
+  def print(server \\ __MODULE__, str) when is_binary(str) do
+    send_event(server, "output", %{"category" => "stdout", "output" => str})
   end
 
-  def print_err(server \\ __MODULE__, str) do
-    send_event(server, "output", %{"category" => "stderr", "output" => to_string(str)})
+  def print_err(server \\ __MODULE__, str) when is_binary(str) do
+    send_event(server, "output", %{"category" => "stderr", "output" => str})
   end
 
   ## Server callbacks
@@ -46,27 +46,28 @@ defmodule ElixirLS.Debugger.Output do
 
   @impl GenServer
   def handle_call({:send_response, request_packet, body}, _from, seq) do
-    send(response(seq, request_packet["seq"], request_packet["command"], body))
-    {:reply, :ok, seq + 1}
+    res = WireProtocol.send(response(seq, request_packet["seq"], request_packet["command"], body))
+    {:reply, res, seq + 1}
   end
 
   def handle_call({:send_error_response, request_packet, message, format, variables}, _from, seq) do
-    send(
-      error_response(
-        seq,
-        request_packet["seq"],
-        request_packet["command"],
-        message,
-        format,
-        variables
+    res =
+      WireProtocol.send(
+        error_response(
+          seq,
+          request_packet["seq"],
+          request_packet["command"],
+          message,
+          format,
+          variables
+        )
       )
-    )
 
-    {:reply, :ok, seq + 1}
+    {:reply, res, seq + 1}
   end
 
   def handle_call({:send_event, event, body}, _from, seq) do
-    send(event(seq, event, body))
-    {:reply, :ok, seq + 1}
+    res = WireProtocol.send(event(seq, event, body))
+    {:reply, res, seq + 1}
   end
 end

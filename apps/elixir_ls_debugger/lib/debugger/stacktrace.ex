@@ -6,7 +6,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
   defmodule Frame do
     defstruct [:level, :file, :module, :function, :args, :line, :bindings]
 
-    def name(frame) do
+    def name(%__MODULE__{} = frame) do
       "#{inspect(frame.module)}.#{frame.function}/#{Enum.count(frame.args)}"
     end
   end
@@ -52,7 +52,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
         [first_frame | other_frames]
 
       error ->
-        IO.warn("Failed to obtain meta pid for #{inspect(pid)}: #{error}")
+        IO.warn("Failed to obtain meta pid for #{inspect(pid)}: #{inspect(error)}")
         []
     end
   end
