@@ -118,7 +118,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_call({:suggest_contracts, uri}, from, state) do
+  def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
         {:reply, Dialyzer.suggest_contracts([SourceFile.path_from_uri(uri)]), state}
@@ -128,6 +128,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
         {:noreply, %{state | awaiting_contracts: [{from, uri} | awaiting_contracts]}}
     end
+  end
+
+  def handle_call({:suggest_contracts, _uri}, _from, state) do
+    {:reply, [], state}
   end
 
   @impl GenServer
@@ -400,7 +404,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # deleted file still open in editor, keep dirty flag
           acc
 
-        %{"uri" => uri}, acc ->
+        %{"uri" => uri = "file:" <> _}, acc ->
           # file created/updated - set dirty flag to false if file contents are equal
           case acc[uri] do
             %SourceFile{text: source_file_text, dirty?: true} = source_file ->
