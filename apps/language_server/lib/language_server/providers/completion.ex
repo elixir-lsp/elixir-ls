@@ -284,7 +284,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          %{
            type: :callback,
            subtype: subtype,
-           args: args,
+           args_list: args_list,
            name: name,
            summary: summary,
            arity: arity,
@@ -308,7 +308,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         end
 
       opts = Keyword.put(options, :with_parens?, true)
-      insert_text = def_snippet(def_str, name, args, arity, opts)
+      insert_text = def_snippet(def_str, name, args_list, arity, opts)
       label = "#{def_str}#{name}/#{arity}"
 
       filter_text =
@@ -334,7 +334,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp from_completion_item(
          %{
            type: :protocol_function,
-           args: args,
+           args_list: args_list,
            spec: _spec,
            name: name,
            summary: summary,
@@ -349,7 +349,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       def_str = if(context[:def_before] == nil, do: "def ")
 
       opts = Keyword.put(options, :with_parens?, true)
-      insert_text = def_snippet(def_str, name, args, arity, opts)
+      insert_text = def_snippet(def_str, name, args_list, arity, opts)
       label = "#{def_str}#{name}/#{arity}"
 
       %__MODULE__{
@@ -501,7 +501,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp function_snippet(name, args, arity, opts) do
+  def function_snippet(name, args, arity, opts) do
     snippets_supported? = Keyword.get(opts, :snippets_supported, false)
     trigger_signature? = Keyword.get(opts, :trigger_signature?, false)
     capture_before? = Keyword.get(opts, :capture_before?, false)
@@ -537,17 +537,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp function_snippet_with_args(name, arity, args, pipe_before?, with_parens?) do
+  defp function_snippet_with_args(name, arity, args_list, pipe_before?, with_parens?) do
     args_list =
-      if args && args != "" do
-        split_args_for_snippet(args, arity)
-      else
-        for i <- Enum.slice(0..arity, 1..-1), do: "arg#{i}"
-      end
+      args_list
+      |> Enum.map(&format_arg_for_snippet/1)
+      |> remove_unused_default_args(arity)
 
     args_list =
       if pipe_before? do
-        Enum.slice(args_list, 1..-1)
+        tl(args_list)
       else
         args_list
       end
@@ -651,13 +649,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp split_args_for_snippet(args, arity) do
-    args
+  defp format_arg_for_snippet(arg) do
+    arg
     |> String.replace("\\", "\\\\")
     |> String.replace("$", "\\$")
     |> String.replace("}", "\\}")
-    |> String.split(",")
-    |> remove_unused_default_args(arity)
   end
 
   defp remove_unused_default_args(args, arity) do
@@ -684,6 +680,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     %{
       type: type,
       args: args,
+      args_list: args_list,
       name: name,
       summary: summary,
       arity: arity,
@@ -725,13 +722,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           insert_text =
             function_snippet(
               name,
-              args,
+              args_list,
               arity,
               Keyword.merge(
                 options,
                 pipe_before?: pipe_before?,
                 capture_before?: capture_before?,
-                pipe_before?: pipe_before?,
                 trigger_signature?: trigger_signature?,
                 locals_without_parens: locals_without_parens,
                 text_after_cursor: text_after_cursor,

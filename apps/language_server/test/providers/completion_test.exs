@@ -897,4 +897,26 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
              }
     end
   end
+
+  describe "function_snippets" do
+    test "return valid for record arg" do
+      opts = [
+        snippets_supported: true,
+        deprecated_supported: true,
+        tags_supported: [1],
+        signature_help_supported: true,
+        signature_after_complete: true,
+        pipe_before?: true,
+        capture_before?: false,
+        trigger_signature?: false,
+        locals_without_parens: MapSet.new(),
+        text_after_cursor: "",
+        with_parens?: true,
+        snippet: nil
+      ]
+
+      assert "do_sth()" ==
+               Completion.function_snippet("do_sth", ["My.record(x: x0, y: y0)"], 1, opts)
+    end
+  end
 end
