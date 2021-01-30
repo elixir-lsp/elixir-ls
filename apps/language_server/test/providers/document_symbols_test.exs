@@ -90,21 +90,21 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "defguard my_guard(a) when is_integer(a)",
-                    range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}},
+                    name: "defguard my_guard(a)",
+                    range: %{end: %{character: 17, line: 7}, start: %{character: 17, line: 7}},
                     selectionRange: %{
-                      end: %{character: 29, line: 7},
-                      start: %{character: 29, line: 7}
+                      end: %{character: 17, line: 7},
+                      start: %{character: 17, line: 7}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "defguardp my_private_guard(a) when is_integer(a)",
-                    range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}},
+                    name: "defguardp my_private_guard(a)",
+                    range: %{end: %{character: 18, line: 8}, start: %{character: 18, line: 8}},
                     selectionRange: %{
-                      end: %{character: 38, line: 8},
-                      start: %{character: 38, line: 8}
+                      end: %{character: 18, line: 8},
+                      start: %{character: 18, line: 8}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -120,11 +120,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "defguard my_guard when 1 == 1",
-                    range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}},
+                    name: "defguard my_guard",
+                    range: %{end: %{character: 17, line: 10}, start: %{character: 17, line: 10}},
                     selectionRange: %{
-                      end: %{character: 26, line: 10},
-                      start: %{character: 26, line: 10}
+                      end: %{character: 17, line: 10},
+                      start: %{character: 17, line: 10}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -140,11 +140,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "def my_fn_with_guard(arg) when is_integer(arg)",
-                    range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}},
+                    name: "def my_fn_with_guard(arg)",
+                    range: %{end: %{character: 12, line: 12}, start: %{character: 12, line: 12}},
                     selectionRange: %{
-                      end: %{character: 34, line: 12},
-                      start: %{character: 34, line: 12}
+                      end: %{character: 12, line: 12},
+                      start: %{character: 12, line: 12}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -245,18 +245,18 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "defguard my_guard(a) when is_integer(a)",
+                name: "defguard my_guard(a)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}}
+                  range: %{end: %{character: 17, line: 7}, start: %{character: 17, line: 7}}
                 },
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "defguardp my_private_guard(a) when is_integer(a)",
+                name: "defguardp my_private_guard(a)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}}
+                  range: %{end: %{character: 18, line: 8}, start: %{character: 18, line: 8}}
                 },
                 containerName: "MyModule"
               },
@@ -269,10 +269,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "defguard my_guard when 1 == 1",
+                name: "defguard my_guard",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}}
+                  range: %{end: %{character: 17, line: 10}, start: %{character: 17, line: 10}}
                 },
                 containerName: "MyModule"
               },
@@ -285,10 +285,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "def my_fn_with_guard(arg) when is_integer(arg)",
+                name: "def my_fn_with_guard(arg)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}}
+                  range: %{end: %{character: 12, line: 12}, start: %{character: 12, line: 12}}
                 },
                 containerName: "MyModule"
               },

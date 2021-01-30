@@ -5,6 +5,7 @@ Improvements:
 - More specific `CompletionItemKind` for autocomplete (thanks [Jason Axelson](https://github.com/axelson)) [#419](https://github.com/elixir-lsp/elixir-ls/pull/419)
 - Support ASDF installed via homebrew on macOS (thanks [Fabian Stegemann](https://github.com/zetaron)) [#428](https://github.com/elixir-lsp/elixir-ls/pull/428)
 - Make launcher script more robust and support symlinks (thanks [Joshua Trees](https://github.com/jtrees)) [#445](https://github.com/elixir-lsp/elixir-ls/pull/445)
+- ElixirSense: Fix autocomplete for many_to_many associations (thanks [Damon Janis](https://github.com/damonvjanis)) [elixir_sense #120](https://github.com/elixir-lsp/elixir_sense/pull/120)
 
 Bug Fixes:
 - Fix multiple issues with text synchronization (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#411](https://github.com/elixir-lsp/elixir-ls/pull/411)
@@ -16,6 +17,11 @@ Bug Fixes:
 - Fix invalid value set in write_manifest_pid (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#430](https://github.com/elixir-lsp/elixir-ls/pull/430)
 - Give better warning for incomplete erlang install (thanks [Jason Axelson](https://github.com/axelson)) [#434](https://github.com/elixir-lsp/elixir-ls/pull/434)
 - Fix some test lenses bugs (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#443](https://github.com/elixir-lsp/elixir-ls/pull/443)
+- URI - file system path conversion fixes (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#447](https://github.com/elixir-lsp/elixir-ls/pull/447)
+- Significantly improve debugger stability (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#457](https://github.com/elixir-lsp/elixir-ls/pull/457)
+- URI - file system path conversion fixes (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#447](https://github.com/elixir-lsp/elixir-ls/pull/447)
+- Fix invalid snippet inserted when completing fun with record argument (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#458](https://github.com/elixir-lsp/elixir-ls/issues/458)
+- Return correct location for defs with when (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#464](https://github.com/elixir-lsp/elixir-ls/pull/464)
 
 Housekeeping:
 - Switch from Travis CI to GitHub actions (thanks [Jason Axelson](https://github.com/axelson)) [#420](https://github.com/elixir-lsp/elixir-ls/pull/420)

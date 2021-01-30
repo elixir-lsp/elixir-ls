@@ -186,7 +186,23 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{type: :constant, name: "@#{name}", location: location, children: []}
   end
 
-  # Function, macro, guard, delegate
+  # Function, macro, guard with when
+  defp extract_symbol(
+         _current_module,
+         {defname, _, [{:when, _, [{_, location, _} = fn_head, _]} | _]}
+       )
+       when defname in @defs do
+    name = Macro.to_string(fn_head)
+
+    %Info{
+      type: :function,
+      name: "#{defname} #{name}",
+      location: location,
+      children: []
+    }
+  end
+
+  # Function, macro, delegate
   defp extract_symbol(_current_module, {defname, _, [{_, location, _} = fn_head | _]})
        when defname in @defs do
     name = Macro.to_string(fn_head)
