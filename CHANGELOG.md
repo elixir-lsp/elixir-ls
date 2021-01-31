@@ -1,11 +1,15 @@
 ### Unreleased
 
+### v0.6.3: 30 January 2021
+
 Improvements:
 - Add support for `textDocument/implementation` ("Go to Implmentations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
 - More specific `CompletionItemKind` for autocomplete (thanks [Jason Axelson](https://github.com/axelson)) [#419](https://github.com/elixir-lsp/elixir-ls/pull/419)
 - Support ASDF installed via homebrew on macOS (thanks [Fabian Stegemann](https://github.com/zetaron)) [#428](https://github.com/elixir-lsp/elixir-ls/pull/428)
 - Make launcher script more robust and support symlinks (thanks [Joshua Trees](https://github.com/jtrees)) [#445](https://github.com/elixir-lsp/elixir-ls/pull/445)
 - ElixirSense: Fix autocomplete for many_to_many associations (thanks [Damon Janis](https://github.com/damonvjanis)) [elixir_sense #120](https://github.com/elixir-lsp/elixir_sense/pull/120)
+- Experimental: Add code lens to run tests (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#389](https://github.com/elixir-lsp/elixir-ls/pull/389)
+  - Note: This is disabled by default for now
 
 Bug Fixes:
 - Fix multiple issues with text synchronization (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#411](https://github.com/elixir-lsp/elixir-ls/pull/411)
