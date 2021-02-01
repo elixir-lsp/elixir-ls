@@ -23,7 +23,6 @@ Bug Fixes:
 - Fix some test lenses bugs (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#443](https://github.com/elixir-lsp/elixir-ls/pull/443)
 - URI - file system path conversion fixes (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#447](https://github.com/elixir-lsp/elixir-ls/pull/447)
 - Significantly improve debugger stability (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#457](https://github.com/elixir-lsp/elixir-ls/pull/457)
-- URI - file system path conversion fixes (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#447](https://github.com/elixir-lsp/elixir-ls/pull/447)
 - Fix invalid snippet inserted when completing fun with record argument (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#458](https://github.com/elixir-lsp/elixir-ls/issues/458)
 - Return correct location for defs with when (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#464](https://github.com/elixir-lsp/elixir-ls/pull/464)
 
