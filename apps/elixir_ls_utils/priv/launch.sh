@@ -67,6 +67,7 @@ if [ -z "${ELS_INSTALL_PREFIX}" ]; then
 else
   SCRIPTPATH=${ELS_INSTALL_PREFIX}
 fi
+
 export ERL_LIBS="$SCRIPTPATH:$ERL_LIBS"
 
 exec elixir --erl "+sbwt none +sbwtdcpu none +sbwtdio none"  -e "$ELS_SCRIPT"
