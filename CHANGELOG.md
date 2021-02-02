@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.6.4: 2 February 2021
+
 Bug Fixes:
 - Revert "Make wrapper script more robust" (thanks [Jason Axelson](https://github.com/axelson)) [#471](https://github.com/elixir-lsp/elixir-ls/pull/471)
 
