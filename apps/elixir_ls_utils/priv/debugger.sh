@@ -2,7 +2,7 @@
 # Launches the debugger. This script must be in the same directory as the compiled .ez archives.
 
 if [ -z "${ELS_INSTALL_PREFIX}" ]; then
-  dir=$(dirname $(readlink_f "$0"))
+  dir=$(dirname "$0")
 else
   dir=${ELS_INSTALL_PREFIX}
 fi
