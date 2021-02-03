@@ -629,6 +629,18 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       state = :sys.get_state(server)
       assert state.needs_build?
     end
+
+    test "gracefully skip not supported URI scheme", %{server: server} do
+      uri = "git://github.com/user/repo.git"
+      fake_initialize(server)
+
+      Server.receive_packet(
+        server,
+        did_change_watched_files([%{"uri" => uri, "type" => 2}])
+      )
+
+      :sys.get_state(server)
+    end
   end
 
   test "hover", %{server: server} do
