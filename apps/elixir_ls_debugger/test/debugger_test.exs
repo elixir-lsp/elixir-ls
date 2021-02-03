@@ -441,7 +441,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "allThreadsStopped" => false,
                        "reason" => "breakpoint",
                        "threadId" => thread_id
-                     })
+                     }),
+                     5000
 
       assert_receive event(_, "thread", %{
                        "reason" => "exited",
@@ -480,7 +481,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       assert_receive(
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-        1000
+        3000
       )
 
       assert(:hello in :int.interpreted())
