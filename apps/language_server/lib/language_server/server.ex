@@ -390,9 +390,13 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change_watched_files(changes), state) do
+    changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
+
     needs_build =
-      Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
-        Path.extname(uri) in @watched_extensions and
+      Enum.any?(changes, fn %{"uri" => uri = "file:" <> _, "type" => type} ->
+        path = SourceFile.path_from_uri(uri)
+
+        Path.extname(path) in @watched_extensions and
           (type in [1, 3] or not Map.has_key?(state.source_files, uri) or
              state.source_files[uri].dirty?)
       end)
@@ -422,6 +426,7 @@ defmodule ElixirLS.LanguageServer.Server do
               end
 
             _ ->
+              # file not open or not dirty
               acc
           end
       end)
