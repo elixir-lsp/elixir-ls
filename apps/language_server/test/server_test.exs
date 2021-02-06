@@ -1136,7 +1136,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   test "returns code lenses for runnable tests", %{server: server} do
     in_fixture(__DIR__, "test_code_lens", fn ->
-      file_path = "test/fixture_test.ex"
+      file_path = "test/fixture_test.exs"
       file_uri = SourceFile.path_to_uri(file_path)
       file_absolute_path = SourceFile.path_from_uri(file_uri)
       text = File.read!(file_path)
@@ -1198,7 +1198,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     server: server
   } do
     in_fixture(__DIR__, "test_code_lens", fn ->
-      file_path = "test/fixture_test.ex"
+      file_path = "test/fixture_test.exs"
       file_uri = SourceFile.path_to_uri(file_path)
       text = File.read!(file_path)
 

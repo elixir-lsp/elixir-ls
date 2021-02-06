@@ -37,7 +37,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   def tmp_path do
-    Path.expand("../tmp", __DIR__)
+    Path.expand("../../.tmp", __DIR__)
   end
 
   def tmp_path(extension) do

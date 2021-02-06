@@ -3,6 +3,8 @@ defmodule ElixirLS.Utils.WireProtocolTest do
   import ExUnit.CaptureIO
   alias ElixirLS.Utils.WireProtocol
 
+  @tmp_folder_path ".tmp"
+
   test "sends valid json" do
     packet = %{"some" => "value"}
 
@@ -18,9 +20,9 @@ defmodule ElixirLS.Utils.WireProtocolTest do
   end
 
   test "sends valid json with unicode" do
-    File.mkdir_p("test/tmp")
-    File.rm_rf!("test/tmp/packet_stream")
-    {:ok, pid} = File.open("test/tmp/packet_stream", [:write, :binary])
+    File.mkdir_p(@tmp_folder_path)
+    File.rm_rf!("#{@tmp_folder_path}/packet_stream")
+    {:ok, pid} = File.open("#{@tmp_folder_path}/packet_stream", [:write, :binary])
 
     packet = %{"some" => "👨‍👩‍👦 test"}
 
@@ -33,7 +35,7 @@ defmodule ElixirLS.Utils.WireProtocolTest do
     Task.await(task)
     File.close(pid)
 
-    bytes = File.read!("test/tmp/packet_stream")
+    bytes = File.read!("#{@tmp_folder_path}/packet_stream")
     assert "Content-Length: 34\r\n\r\n" <> body = bytes
     assert byte_size(body) == 34
     assert JasonVendored.decode!(body) == packet
