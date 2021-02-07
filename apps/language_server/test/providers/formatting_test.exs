@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
 
+  @tag :fixture
   test "Formats a file" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
@@ -57,6 +58,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   defp assert_position_type(%{"character" => ch, "line" => line}),
     do: is_integer(ch) and is_integer(line)
 
+  @tag :fixture
   test "returns an error when formatting a file with a syntax error" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
@@ -85,6 +87,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     end)
   end
 
+  @tag :fixture
   test "Proper utf-16 format: emoji 😀" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
@@ -123,6 +126,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     end)
   end
 
+  @tag :fixture
   test "Proper utf-16 format: emoji 🏳️‍🌈" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
@@ -161,6 +165,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     end)
   end
 
+  @tag :fixture
   test "Proper utf-16 format: zalgo" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"

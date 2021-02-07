@@ -11,7 +11,7 @@ defmodule MixProject do
     Task.start(fn ->
       Task.start_link(fn ->
         Process.sleep(1000)
-        raise ArgumentError
+        raise "Fixture MixProject expected error"
       end)
 
       Process.sleep(:infinity)
@@ -23,7 +23,7 @@ defmodule MixProject do
   def exit_self do
     Task.start_link(fn ->
       Process.sleep(1000)
-      raise ArgumentError
+      raise "Fixture MixProject raise for exit_self/0"
     end)
 
     Process.sleep(:infinity)

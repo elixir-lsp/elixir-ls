@@ -89,6 +89,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
   end
 
+  @tag :fixture
   test "basic debugging", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
@@ -100,6 +101,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           "request" => "launch",
           "type" => "mix_task",
           "task" => "test",
+          "taskArgs" => ["--only", "quadruple"],
           "projectDir" => File.cwd!()
         })
       )
@@ -132,7 +134,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "allThreadsStopped" => false,
                        "reason" => "breakpoint",
                        "threadId" => thread_id
-                     })
+                     }),
+                     5_000
 
       Server.receive_packet(server, stacktrace_req(7, thread_id))
 
@@ -191,6 +194,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     end)
   end
 
+  @tag :fixture
   test "handles invalid requests", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
@@ -234,7 +238,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "allThreadsStopped" => false,
                        "reason" => "breakpoint",
                        "threadId" => thread_id
-                     })
+                     }),
+                     1_000
 
       Server.receive_packet(server, stacktrace_req(7, "not existing"))
 
@@ -341,6 +346,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     end)
   end
 
+  @tag :fixture
   test "notifies about process exit", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
@@ -377,7 +383,7 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive(response(_, 5, "configurationDone", %{}))
 
       Server.receive_packet(server, request(6, "threads", %{}))
-      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
       # ensure thread ids are unique
       thread_ids = Enum.map(threads, & &1["id"])
       assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
@@ -389,14 +395,21 @@ defmodule ElixirLS.Debugger.ServerTest do
                      }),
                      500
 
-      assert_receive event(_, "thread", %{
-                       "reason" => "exited",
-                       "threadId" => ^thread_id
-                     }),
-                     5000
+      {log, stderr} =
+        capture_log_and_io(:standard_error, fn ->
+          assert_receive event(_, "thread", %{
+                           "reason" => "exited",
+                           "threadId" => ^thread_id
+                         }),
+                         5000
+        end)
+
+      assert log =~ "Fixture MixProject expected error"
+      assert stderr =~ "Fixture MixProject expected error"
     end)
   end
 
+  @tag :fixture
   test "notifies about mix task exit", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
@@ -444,11 +457,17 @@ defmodule ElixirLS.Debugger.ServerTest do
                      }),
                      5000
 
-      assert_receive event(_, "thread", %{
-                       "reason" => "exited",
-                       "threadId" => ^thread_id
-                     }),
-                     5000
+      {log, io} =
+        capture_log_and_io(:stderr, fn ->
+          assert_receive event(_, "thread", %{
+                           "reason" => "exited",
+                           "threadId" => ^thread_id
+                         }),
+                         5000
+        end)
+
+      assert log =~ "Fixture MixProject raise for exit_self/0"
+      assert io =~ "Fixture MixProject raise for exit_self/0"
 
       assert_receive event(_, "exited", %{
                        "exitCode" => 1
@@ -460,6 +479,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     end)
   end
 
+  @tag :fixture
   test "sets breakpoints in erlang modules", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))

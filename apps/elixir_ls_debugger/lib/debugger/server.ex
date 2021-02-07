@@ -835,6 +835,10 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp launch_task(task, args) do
+    # This fixes a race condition in  the tests and likely improves reliability when using the
+    # debugger as well.
+    Process.sleep(100)
+
     Mix.Task.run(task, args)
 
     # Starting from Elixir 1.9 Mix.Task.run will return so we need to sleep our
