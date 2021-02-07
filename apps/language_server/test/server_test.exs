@@ -1152,8 +1152,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       file_uri = SourceFile.path_to_uri(file_path)
       file_absolute_path = SourceFile.path_from_uri(file_uri)
       text = File.read!(file_path)
+      project_dir = SourceFile.path_from_uri(root_uri())
 
-      fake_initialize(server)
+      initialize(server)
 
       Server.receive_packet(
         server,
@@ -1175,7 +1176,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    "arguments" => [
                      %{
                        "filePath" => ^file_absolute_path,
-                       "testName" => "fixture test"
+                       "testName" => "fixture test",
+                       "projectDir" => ^project_dir
                      }
                    ],
                    "command" => "elixir.lens.test.run",
@@ -1191,7 +1193,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    "arguments" => [
                      %{
                        "filePath" => ^file_absolute_path,
-                       "module" => "Elixir.TestCodeLensTest"
+                       "module" => "Elixir.TestCodeLensTest",
+                       "projectDir" => ^project_dir
                      }
                    ],
                    "command" => "elixir.lens.test.run",
