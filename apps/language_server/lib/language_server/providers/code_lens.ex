@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
   def spec_code_lens(server_instance_id, uri, text),
     do: CodeLens.TypeSpec.code_lens(server_instance_id, uri, text)
 
-  def test_code_lens(uri, text), do: CodeLens.Test.code_lens(uri, text)
+  def test_code_lens(uri, text, project_dir), do: CodeLens.Test.code_lens(uri, text, project_dir)
 
   def build_code_lens(line, title, command, argument) do
     %{

@@ -796,7 +796,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(state, uri, source_file) do
     if state.settings["enableTestLenses"] == true do
-      CodeLens.test_code_lens(uri, source_file.text)
+      CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
     else
       {:ok, []}
     end
