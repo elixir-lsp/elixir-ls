@@ -72,7 +72,10 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
     get_path = :code.get_path()
     previous = :code.all_loaded()
-    project_stack = clear_project_stack!()
+    # project_stack = clear_project_stack!()
+
+    ExUnit.CaptureLog.capture_log(fn -> Application.stop(:mix) end)
+    Application.start(:mix)
 
     try do
       File.cd!(dest, function)
@@ -85,7 +88,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
       end
       |> purge
 
-      restore_project_stack!(project_stack)
+      # restore_project_stack!(project_stack)
     end
   end
 
@@ -94,58 +97,58 @@ defmodule ElixirLS.Utils.MixTest.Case do
     for path <- :code.get_path(), :string.str(path, tmp) != 0, do: :code.del_path(path)
   end
 
-  defp clear_project_stack! do
-    stack = clear_project_stack!([])
+  # defp clear_project_stack! do
+  #   stack = clear_project_stack!([])
 
-    clear_mix_cache()
+  #   clear_mix_cache()
 
-    # Attempt to purge mixfiles for dependencies to avoid module redefinition warnings
-    mix_exs = System.get_env("MIX_EXS") || "mix.exs"
+  #   # Attempt to purge mixfiles for dependencies to avoid module redefinition warnings
+  #   mix_exs = System.get_env("MIX_EXS") || "mix.exs"
 
-    for {mod, :in_memory} <- :code.all_loaded(),
-        source = mod.module_info[:compile][:source],
-        is_list(source),
-        String.ends_with?(to_string(source), mix_exs),
-        do: purge([mod])
+  #   for {mod, :in_memory} <- :code.all_loaded(),
+  #       source = mod.module_info[:compile][:source],
+  #       is_list(source),
+  #       String.ends_with?(to_string(source), mix_exs),
+  #       do: purge([mod])
 
-    stack
-  end
+  #   stack
+  # end
 
-  defp clear_project_stack!(stack) do
-    # FIXME: Private API
-    case Mix.Project.pop() do
-      nil ->
-        stack
+  # defp clear_project_stack!(stack) do
+  #   # FIXME: Private API
+  #   case Mix.Project.pop() do
+  #     nil ->
+  #       stack
 
-      project ->
-        clear_project_stack!([project | stack])
-    end
-  end
+  #     project ->
+  #       clear_project_stack!([project | stack])
+  #   end
+  # end
 
-  defp restore_project_stack!(stack) do
-    # FIXME: Private API
-    Mix.ProjectStack.clear_stack()
-    clear_mix_cache()
+  # defp restore_project_stack!(stack) do
+  #   # FIXME: Private API
+  #   Mix.ProjectStack.clear_stack()
+  #   clear_mix_cache()
 
-    for %{name: module, file: file} <- stack do
-      :code.purge(module)
-      :code.delete(module)
-      # It's important to use `compile_file` here instead of `require_file`
-      # because we are recompiling this file to reload the mix project back onto
-      # the project stack.
-      Code.compile_file(file)
-    end
-  end
+  #   for %{name: module, file: file} <- stack do
+  #     :code.purge(module)
+  #     :code.delete(module)
+  #     # It's important to use `compile_file` here instead of `require_file`
+  #     # because we are recompiling this file to reload the mix project back onto
+  #     # the project stack.
+  #     Code.compile_file(file)
+  #   end
+  # end
 
-  # FIXME: Private API
-  defp clear_mix_cache do
-    module =
-      if Version.match?(System.version(), ">= 1.10.0") do
-        Mix.State
-      else
-        Mix.ProjectStack
-      end
+  # # FIXME: Private API
+  # defp clear_mix_cache do
+  #   module =
+  #     if Version.match?(System.version(), ">= 1.10.0") do
+  #       Mix.State
+  #     else
+  #       Mix.ProjectStack
+  #     end
 
-    module.clear_cache()
-  end
+  #   module.clear_cache()
+  # end
 end
