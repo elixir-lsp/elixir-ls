@@ -1,5 +1,13 @@
 ### Unreleased
 
+### v0.6.5: 9 February 2021
+
+Bug Fixes:
+- Skip non file: URI scheme notifications (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#475](https://github.com/elixir-lsp/elixir-ls/pull/475)
+
+Housekeeping:
+- Fixes tests not compiling after first run (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#463](https://github.com/elixir-lsp/elixir-ls/pull/463)
+
 ### v0.6.4: 2 February 2021
 
 Bug Fixes:
