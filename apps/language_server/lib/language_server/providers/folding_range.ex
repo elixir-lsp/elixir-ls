@@ -8,11 +8,13 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   alias ElixirSense.Core.Normalized.Tokenizer
 
-  @range_pairs %{
+  @basic_pairs %{
     do: :end,
     "(": :")",
     "[": :"]",
-    "{": :"}",
+    "{": :"}"
+  }
+  @heredoc_pairs %{
     bin_heredoc: :eol
   }
 
@@ -87,14 +89,14 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   # startLines but different endLines.
   # It's not clear if that case is actually a problem.
   defp fold_tokens_into_ranges(tokens) when is_list(tokens) do
-    tokens
-    |> pair_tokens([], [])
-    |> Enum.map(fn {{_, {start_line, _, _}, _}, {_, {end_line, _, _}, _}} ->
-      # -1 for both because the server expects 0-indexing
-      # Another -1 for end_line because the range should stop 1 short
-      # e.g. both "do" and "end" should be visible when collapsed
-      {start_line - 1, end_line - 2}
-    end)
+    ranges_from_pairs = tokens |> pair_tokens(@basic_pairs)
+    ranges_from_heredocs = tokens |> pair_tokens(@heredoc_pairs)
+    ranges = ranges_from_pairs ++ ranges_from_heredocs
+    ranges |> convert_to_spec_ranges()
+  end
+
+  defp convert_to_spec_ranges(ranges) do
+    ranges
     |> Enum.filter(fn {start_line, end_line} -> end_line > start_line end)
     |> Enum.sort()
     |> Enum.dedup()
@@ -109,6 +111,17 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
     end)
   end
 
+  defp pair_tokens(tokens, kind_map) do
+    tokens
+    |> do_pair_tokens([], [], kind_map)
+    |> Enum.map(fn {{_, {start_line, _, _}, _}, {_, {end_line, _, _}, _}} ->
+      # -1 for both because the server expects 0-indexing
+      # Another -1 for end_line because the range should stop 1 short
+      # e.g. both "do" and "end" should be visible when collapsed
+      {start_line - 1, end_line - 2}
+    end)
+  end
+
   # A stack-based approach to match range pairs
   # Notes
   # - The returned pairs will be ordered by the line of the 2nd element.
@@ -118,30 +131,31 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   #   Therefore, the stack may not be empty when the base clause is hit.
   #   We're choosing to return the successfully paired tokens rather than to
   #   return an error if not all tokens could be paired.
-  defp pair_tokens([], _stack, pairs), do: pairs
+  defp do_pair_tokens([], _stack, pairs, _kind_map), do: pairs
 
-  defp pair_tokens([{start_kind, _, _} = start | tail_tokens], [], pairs) do
-    new_stack = if Map.get(@range_pairs, start_kind), do: [start], else: []
-    pair_tokens(tail_tokens, new_stack, pairs)
+  defp do_pair_tokens([{start_kind, _, _} = start | tail_tokens], [], pairs, kind_map) do
+    new_stack = if Map.get(kind_map, start_kind), do: [start], else: []
+    do_pair_tokens(tail_tokens, new_stack, pairs, kind_map)
   end
 
-  defp pair_tokens(
+  defp do_pair_tokens(
          [{start_kind, _, _} = start | tail_tokens],
          [{top_kind, _, _} = top | tail_stack] = stack,
-         pairs
+         pairs,
+         kind_map
        ) do
     {new_stack, new_pairs} =
       cond do
-        Map.get(@range_pairs, top_kind) == start_kind ->
+        Map.get(kind_map, top_kind) == start_kind ->
           {tail_stack, [{top, start} | pairs]}
 
-        Map.get(@range_pairs, start_kind) ->
+        Map.get(kind_map, start_kind) ->
           {[start | stack], pairs}
 
         true ->
           {stack, pairs}
       end
 
-    pair_tokens(tail_tokens, new_stack, new_pairs)
+    do_pair_tokens(tail_tokens, new_stack, new_pairs, kind_map)
   end
 end
