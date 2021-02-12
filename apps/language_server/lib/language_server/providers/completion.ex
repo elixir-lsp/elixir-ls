@@ -469,6 +469,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp from_completion_item(
+         %{
+           arity: 0
+         },
+         %{
+           pipe_before?: true
+         },
+         _options
+       ),
+       do: nil
+
+  defp from_completion_item(
          %{name: name, origin: origin} = item,
          %{def_before: nil} = context,
          options

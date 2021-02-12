@@ -919,4 +919,25 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                Completion.function_snippet("do_sth", ["My.record(x: x0, y: y0)"], 1, opts)
     end
   end
+
+  describe "do not suggest 0 arity functions after pipe" do
+    test "moduledoc completion" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          Date.today() |> 
+          #               ^
+        end
+      end
+      """
+
+      {line, char} = {2, 20}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      refute Enum.any?(items, fn i -> i["label"] == "make_ref/0" end)
+    end
+  end
 end
