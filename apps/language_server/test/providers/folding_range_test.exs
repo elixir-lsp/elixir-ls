@@ -85,27 +85,27 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
 
     @tag text: """
-         defmodule A do                                             # 0
-           def f(%{"key" => value} = map) do                        # 1
-             case NaiveDateTime.from_iso8601(value) do              # 2
-               {:ok, ndt} ->                                        # 3
-                 dt =                                               # 4
-                  ndt                                               # 5
-                  |> DateTime.from_naive!("Etc/UTC")                # 6
-                  |> Map.put(:microsecond, {0, 6})                  # 7
-                                                                    # 8
-                 %{map | "key" => dt}                               # 9
-                                                                    # 10
-               e ->                                                 # 11
+         defmodule A do                                         # 0
+           def f(%{"key" => value} = map) do                    # 1
+             case NaiveDateTime.from_iso8601(value) do          # 2
+               {:ok, ndt} ->                                    # 3
+                 dt =                                           # 4
+                  ndt                                           # 5
+                  |> DateTime.from_naive!("Etc/UTC")            # 6
+                  |> Map.put(:microsecond, {0, 6})              # 7
+                                                                # 8
+                 %{map | "key" => dt}                           # 9
+                                                                # 10
+               e ->                                             # 11
                  Logger.warn(\"\"\"
-                 Could not use data map from #\{inspect(value)\}    # 13
-                 #\{inspect(e)\}                                    # 14
+                 Could not use data map from #\{inspect(value)\}  # 13
+                 #\{inspect(e)\}                                  # 14
                  \"\"\")
-                                                                    # 16
-                 :could_not_parse_value                             # 17
-             end                                                    # 18
-           end                                                      # 19
-         end                                                        # 20
+                                                                # 16
+                 :could_not_parse_value                         # 17
+             end                                                # 18
+           end                                                  # 19
+         end                                                    # 20
          """
     test "can fold heredoc w/ closing paren", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
