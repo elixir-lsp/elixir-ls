@@ -1018,7 +1018,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          }
                        ]
                      }),
-                     1000
+                     2000
     end)
   end
 
