@@ -18,6 +18,16 @@ defmodule ElixirLS.Utils.OutputDevice do
     Task.start_link(fn -> loop({device, output_fn}) end)
   end
 
+  def child_spec(arguments) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, arguments},
+      type: :worker,
+      restart: :permanent,
+      shutdown: 500
+    }
+  end
+
   def get_opts, do: @opts
 
   ## Implementation

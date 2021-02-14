@@ -68,10 +68,16 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
   end
 
   setup do
-    {:ok, fake_user} = FakeOutput.start_link([])
-    {:ok, fake_wire_protocol} = FakeWireProtocol.start_link([])
-    {:ok, output_device} = OutputDevice.start_link(fake_user, &FakeWireProtocol.send/1)
-    {:ok, output_device_error} = OutputDevice.start_link(fake_user, fn _ -> {:error, :emfile} end)
+    fake_user = start_supervised!({FakeOutput, []})
+    fake_wire_protocol = start_supervised!({FakeWireProtocol, []})
+
+    output_device =
+      start_supervised!({OutputDevice, [fake_user, &FakeWireProtocol.send/1]}, id: :output_device)
+
+    output_device_error =
+      start_supervised!({OutputDevice, [fake_user, fn _ -> {:error, :emfile} end]},
+        id: :output_device_error
+      )
 
     {:ok,
      %{
