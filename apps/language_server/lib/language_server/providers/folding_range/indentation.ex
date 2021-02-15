@@ -84,7 +84,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
           {[cur | tail_stack], [], [{top, cur, empties} | pairs]}
 
         col_cur < col_top ->
-          # If the current column is further to the left than that of the top
+          # If the current column is farther to the left than that of the top
           # of the stack, then we need to pair it with everything on the stack
           # to the right of it.
           # E.g.: The end with the clause of a case-do-end block
