@@ -88,9 +88,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
           # of the stack, then we need to pair it with everything on the stack
           # to the right of it.
           # E.g.: The end with the clause of a case-do-end block
+          # And as with the == clause, the current cell could also be the start
+          # of a new block.
           {leftovers, new_tail_stack} = stack |> Enum.split_while(fn {_, c} -> col_cur <= c end)
           new_pairs = leftovers |> Enum.map(&{&1, cur, empties})
-          {new_tail_stack, [], new_pairs ++ pairs}
+          {[cur | new_tail_stack], [], new_pairs ++ pairs}
       end
 
     do_pair_cells(tail_cells, new_stack, new_empties, new_pairs)
