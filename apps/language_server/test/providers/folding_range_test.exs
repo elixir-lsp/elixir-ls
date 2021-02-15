@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
   end
 
   describe "indentation" do
-    setup [:fold_cells]
+    setup [:pair_cells]
 
     # defmodule A do    # 0
     #   def hello() do  # 1
@@ -86,35 +86,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                {{4, 8}, {7, nil}},
                {{11, 6}, {18, 4}}
              ]
-
-      # """
-      # defmodule A do                                         # 0
-      #   def f(%{"key" => value} = map) do                    # 1
-      #     case NaiveDateTime.from_iso8601(value) do          # 2
-      #       {:ok, ndt} ->                                    # 3
-      #         dt =                                           # 4
-      #           ndt                                          # 5
-      #           |> DateTime.from_naive!("Etc/UTC")           # 6
-      #           |> Map.put(:microsecond, {0, 6})             # 7
-
-      #         %{map | "key" => dt}                           # 9
-
-      #       e ->                                             # 11
-      #         Logger.warn(\"\"\"
-      #         Could not use data map from #\{inspect(value)\}  # 13
-      #         #\{inspect(e)\}                                  # 14
-      #         \"\"\")
-
-      #         :could_not_parse_value                         # 17
-      #     end                                                # 18
-      #   end                                                  # 19
-      # end                                                    # 20
-      # """
-      # |> IO.puts()
     end
 
-    defp fold_cells(%{cells: cells} = context) do
-      pairs = FoldingRange.Indentation.pair_cells_2(cells)
+    defp pair_cells(%{cells: cells} = context) do
+      pairs = FoldingRange.Indentation.pair_cells(cells)
       {:ok, Map.put(context, :pairs, pairs)}
     end
   end
