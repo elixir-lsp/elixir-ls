@@ -88,6 +88,45 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
              ]
     end
 
+    # defmodule A do                      # 0
+    #   def get_info(args) do             # 1
+    #     org =                           # 2
+    #       args                          # 3
+    #       |> Ecto.assoc(:organization)  # 4
+    #       |> Repo.one!()                # 5
+    #                                     # 6
+    #     user =                          # 7
+    #       org                           # 8
+    #       |> Organization.user!()       # 9
+    #                                     # 10
+    #     {:ok, %{org: org, user: user}}  # 11
+    #   end                               # 12
+    # end                                 # 13
+    @tag cells: [
+           {0, 0},
+           {1, 2},
+           {2, 4},
+           {3, 6},
+           {4, 6},
+           {5, 6},
+           {6, nil},
+           {7, 4},
+           {8, 6},
+           {9, 6},
+           {10, nil},
+           {11, 4},
+           {12, 2},
+           {13, 0}
+         ]
+    test "indent w/ different complicated function", %{pairs: pairs} do
+      assert pairs == [
+               {{0, 0}, {13, 0}},
+               {{1, 2}, {12, 2}},
+               {{2, 4}, {6, nil}},
+               {{7, 4}, {10, nil}}
+             ]
+    end
+
     defp pair_cells(%{cells: cells} = context) do
       pairs = FoldingRange.Indentation.pair_cells(cells)
       {:ok, Map.put(context, :pairs, pairs)}
