@@ -4,6 +4,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   See specification here:
     https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_foldingRange
+
+  ## TODO
+
+  - [ ] Indentation pass
+  - [ ] Add priorities and do a proper merge
   """
 
   alias ElixirSense.Core.Normalized.Tokenizer
@@ -50,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   end
 
   defp do_provide(text) do
-    ranges =
+    _ranges =
       text
       |> Tokenizer.tokenize()
       |> format_tokens()
@@ -58,6 +63,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
         {:ok, formatted_tokens} -> formatted_tokens |> fold_tokens_into_ranges()
         _ -> []
       end
+
+    ranges = text |> from_indentation()
 
     {:ok, ranges}
   end
@@ -157,5 +164,126 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
       end
 
     do_pair_tokens(tail_tokens, new_stack, new_pairs, kind_map)
+  end
+
+  defp from_indentation(text) do
+    cells =
+      text
+      |> String.split("\n")
+      |> Enum.with_index()
+      |> Enum.map(fn {line, row} ->
+        full = line |> String.length()
+        trimmed = line |> String.trim_leading() |> String.length()
+        col = if {full, trimmed} == {0, 0}, do: nil, else: full - trimmed + 1
+        {row, col}
+      end)
+
+    # |> Enum.chunk_by(fn {_, col} -> col end)
+    # |> Enum.map(fn
+    #   [x] -> x
+    #   list -> list |> List.last()
+    # end)
+    # |> IO.inspect()
+    cells
+    # |> pair_cells([], [])
+    |> pair_cells_nsq([])
+    # |> Enum.sort()
+    |> IO.inspect()
+    |> collapse_nil(cells)
+    |> IO.inspect()
+    |> Enum.reject(fn {{r1, _}, {r2, _}} -> r1 >= r2 end)
+    |> IO.inspect()
+    |> Enum.map(fn {{start_line, _}, {end_line, _}} ->
+      %{"startLine" => start_line, "endLine" => end_line}
+    end)
+  end
+
+  # defp pair_cells([], _, pairs), do: pairs
+
+  # defp pair_cells([cell | rest], [], pairs) do
+  #   pair_cells(rest, [cell], pairs)
+  # end
+
+  # defp pair_cells(
+  #        [{row_cur, col_cur} = cur | rest],
+  #        [{_, col_top} = top | tail_stack] = stack,
+  #        pairs
+  #      ) do
+  #   # cur |> IO.inspect(label: :current)
+  #   # top |> IO.inspect(label: :top_stack)
+  #   # tail_stack |> IO.inspect(label: :tail_stack)
+  #   # pairs |> IO.inspect(label: :pairs)
+  #   # "" |> IO.puts()
+
+  #   {new_stack, new_pairs} =
+  #     cond do
+  #       is_nil(col_cur) ->
+  #         case stack do
+  #           [right | [left | new_tail_stack]] ->
+  #             {new_tail_stack, [{left, right} | pairs]}
+
+  #           _ ->
+  #             {tail_stack, pairs}
+  #         end
+
+  #       col_cur > col_top ->
+  #         {[cur | stack], pairs}
+
+  #       col_cur == col_top ->
+  #         {tail_stack, [{top, {row_cur - 1, col_cur}} | pairs]}
+
+  #       col_cur < col_top ->
+  #         case tail_stack do
+  #           [match | new_tail_stack] ->
+  #             {new_tail_stack, [{match, {row_cur - 1, col_cur}} | pairs]}
+
+  #           _ ->
+  #             {tail_stack, pairs}
+  #         end
+  #     end
+
+  #   pair_cells(rest, new_stack, new_pairs)
+  # end
+
+  defp pair_cells_nsq([], pairs) do
+    pairs
+    |> IO.inspect()
+    |> Enum.reduce([], fn {{_r1, c1}, {_r2, c2}} = pair, pairs ->
+      if c1 > c2 do
+        pairs
+      else
+        [pair | pairs]
+      end
+    end)
+  end
+
+  defp pair_cells_nsq([{_, nil} | tail], pairs) do
+    pair_cells_nsq(tail, pairs)
+  end
+
+  defp pair_cells_nsq([{_, ch} = head | tail], pairs) do
+    first_leq = Enum.find(tail, fn {_, ct} -> ct <= ch end)
+    # head |> IO.inspect(label: :head)
+    # first_leq |> IO.inspect(label: :first_leq)
+    # pairs |> IO.inspect(label: :pairs)
+    # "" |> IO.puts()
+
+    new_pairs =
+      case first_leq do
+        nil -> pairs
+        first_leq -> [{head, first_leq} | pairs]
+      end
+
+    pair_cells_nsq(tail, new_pairs)
+  end
+
+  defp collapse_nil(pairs, cells) do
+    search = cells |> Enum.reverse()
+
+    pairs
+    |> Enum.map(fn {cell1, {r2, _}} ->
+      cell2 = Enum.find(search, fn {r, c} -> r <= r2 and !is_nil(c) end)
+      {cell1, cell2}
+    end)
   end
 end
