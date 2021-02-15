@@ -91,7 +91,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
         [{first_empty_row, _} | _] = empties |> Enum.reverse()
         {cell1, {first_empty_row - 1, nil}}
     end)
-    |> Enum.reject(fn {{r1, _}, {r2, _}} -> r2 <= r1 + 1 end)
+    |> Enum.reject(fn {{r1, _}, {r2, _}} -> r1 + 1 >= r2 end)
     |> Enum.sort()
   end
 
@@ -112,37 +112,37 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
          empties,
          pairs
        ) do
-    cur |> IO.inspect(label: :cur)
-    stack |> IO.inspect(label: :stack)
-    empties |> IO.inspect(label: :empties)
-    pairs |> IO.inspect(label: :pairs)
+    # cur |> IO.inspect(label: :cur)
+    # stack |> IO.inspect(label: :stack)
+    # empties |> IO.inspect(label: :empties)
+    # pairs |> IO.inspect(label: :pairs)
 
     {new_stack, new_empties, new_pairs} =
       cond do
         is_nil(col_cur) ->
-          "is_nil" |> IO.inspect(label: :clause)
+          # "is_nil" |> IO.inspect(label: :clause)
           {stack, [cur | empties], pairs}
 
         col_cur > col_top ->
-          ">" |> IO.inspect(label: :clause)
+          # ">" |> IO.inspect(label: :clause)
           {[cur | stack], [], pairs}
 
         col_cur == col_top ->
-          "==" |> IO.inspect(label: :clause)
+          # "==" |> IO.inspect(label: :clause)
           {[cur | tail_stack], [], [{top, cur, empties} | pairs]}
 
         col_cur < col_top ->
-          "<" |> IO.inspect(label: :clause)
+          # "<" |> IO.inspect(label: :clause)
           gr? = fn {_, c} -> col_cur <= c end
           {leftovers, new_tail_stack} = stack |> Enum.split_while(gr?)
-          stack |> Enum.split_while(gr?) |> IO.inspect(label: :lists)
-          leftovers |> IO.inspect()
-          new_tail_stack |> IO.inspect(label: :new_tail_stack)
+          # stack |> Enum.split_while(gr?) |> IO.inspect(label: :lists)
+          # leftovers |> IO.inspect()
+          # new_tail_stack |> IO.inspect(label: :new_tail_stack)
           new_pairs = leftovers |> Enum.map(&{&1, cur, empties})
           {new_tail_stack, [], new_pairs ++ pairs}
       end
 
-    "" |> IO.puts()
+    # "" |> IO.puts()
     do_pair_cells_2(tail_cells, new_stack, new_empties, new_pairs)
   end
 

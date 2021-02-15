@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     # end               # 7
     @tag cells: [{0, 0}, {1, 2}, {2, 4}, {3, 4}, {4, 6}, {5, 4}, {6, 2}, {7, 0}]
     test "indent w/ successive matching levels", %{pairs: pairs} do
-      assert pairs == [{{0, 0}, {7, 0}}, {{1, 2}, {6, 2}}, {{3, 4}, {5, 4}}, {{2, 4}, {3, 4}}]
+      assert pairs == [{{0, 0}, {7, 0}}, {{1, 2}, {6, 2}}, {{3, 4}, {5, 4}}]
     end
 
     # defmodule A do                                         # 0
@@ -78,32 +78,39 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            {20, 0}
          ]
     test "indent w/ complicated function", %{pairs: pairs} do
-      pairs |> IO.inspect(label: :pairs)
+      assert pairs == [
+               {{0, 0}, {20, 0}},
+               {{1, 2}, {19, 2}},
+               {{2, 4}, {18, 4}},
+               {{3, 6}, {9, nil}},
+               {{4, 8}, {7, nil}},
+               {{11, 6}, {18, 4}}
+             ]
 
-      """
-      defmodule A do                                         # 0
-        def f(%{"key" => value} = map) do                    # 1
-          case NaiveDateTime.from_iso8601(value) do          # 2
-            {:ok, ndt} ->                                    # 3
-              dt =                                           # 4
-                ndt                                          # 5
-                |> DateTime.from_naive!("Etc/UTC")           # 6
-                |> Map.put(:microsecond, {0, 6})             # 7
+      # """
+      # defmodule A do                                         # 0
+      #   def f(%{"key" => value} = map) do                    # 1
+      #     case NaiveDateTime.from_iso8601(value) do          # 2
+      #       {:ok, ndt} ->                                    # 3
+      #         dt =                                           # 4
+      #           ndt                                          # 5
+      #           |> DateTime.from_naive!("Etc/UTC")           # 6
+      #           |> Map.put(:microsecond, {0, 6})             # 7
 
-              %{map | "key" => dt}                           # 9
+      #         %{map | "key" => dt}                           # 9
 
-            e ->                                             # 11
-              Logger.warn(\"\"\"
-              Could not use data map from #\{inspect(value)\}  # 13
-              #\{inspect(e)\}                                  # 14
-              \"\"\")
+      #       e ->                                             # 11
+      #         Logger.warn(\"\"\"
+      #         Could not use data map from #\{inspect(value)\}  # 13
+      #         #\{inspect(e)\}                                  # 14
+      #         \"\"\")
 
-              :could_not_parse_value                         # 17
-          end                                                # 18
-        end                                                  # 19
-      end                                                    # 20
-      """
-      |> IO.puts()
+      #         :could_not_parse_value                         # 17
+      #     end                                                # 18
+      #   end                                                  # 19
+      # end                                                    # 20
+      # """
+      # |> IO.puts()
     end
 
     defp fold_cells(%{cells: cells} = context) do
