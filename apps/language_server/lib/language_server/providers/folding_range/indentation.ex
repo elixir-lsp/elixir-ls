@@ -53,49 +53,29 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
     |> Enum.sort()
   end
 
-  # Empty stack with empty row
-  defp do_pair_cells([{_, nil} = cell | tail], [], empties, pairs) do
-    do_pair_cells(tail, [], [cell | empties], pairs)
+  # Empty row
+  defp do_pair_cells([{_, nil} = head | tail], stack, empties, pairs) do
+    do_pair_cells(tail, stack, [head | empties], pairs)
   end
 
   # Empty stack
-  defp do_pair_cells([cell | tail], [], empties, pairs) do
-    do_pair_cells(tail, [cell], empties, pairs)
+  defp do_pair_cells([head | tail], [], empties, pairs) do
+    do_pair_cells(tail, [head], empties, pairs)
   end
 
-  # Non-empty stack
-  defp do_pair_cells(
-         [{_, col_cur} = cur | tail_cells],
-         [{_, col_top} = top | tail_stack] = stack,
-         empties,
-         pairs
-       ) do
-    {new_stack, new_empties, new_pairs} =
-      cond do
-        is_nil(col_cur) ->
-          {stack, [cur | empties], pairs}
+  # Non-empty stack: head is to the right of the top of the stack
+  defp do_pair_cells([{_, x} = head | tail], [{_, y} | _] = stack, _, pairs) when x > y do
+    do_pair_cells(tail, [head | stack], [], pairs)
+  end
 
-        col_cur > col_top ->
-          {[cur | stack], [], pairs}
-
-        col_cur == col_top ->
-          # An exact match can be the end of one pair and the start of another.
-          # E.g.: The else in an if-do-else-end block
-          {[cur | tail_stack], [], [{top, cur, empties} | pairs]}
-
-        col_cur < col_top ->
-          # If the current column is farther to the left than that of the top
-          # of the stack, then we need to pair it with everything on the stack
-          # to the right of it.
-          # E.g.: The end with the clause of a case-do-end block
-          # And as with the == clause, the current cell could also be the start
-          # of a new block.
-          {leftovers, new_tail_stack} = stack |> Enum.split_while(fn {_, c} -> col_cur <= c end)
-          new_pairs = leftovers |> Enum.map(&{&1, cur, empties})
-          {[cur | new_tail_stack], [], new_pairs ++ pairs}
-      end
-
-    do_pair_cells(tail_cells, new_stack, new_empties, new_pairs)
+  # Non-empty stack: head is equal to or to the left of the top of the stack
+  defp do_pair_cells([{_, x} = head | tail], stack, empties, pairs) do
+    # If the head is <= to the top of the stack, then we need to pair it with
+    # everything on the stack to the right of it.
+    # The head can also be the start of a new region, so it's pushed onto the stack.
+    {leftovers, new_tail_stack} = stack |> Enum.split_while(fn {_, y} -> x <= y end)
+    new_pairs = leftovers |> Enum.map(&{&1, head, empties})
+    do_pair_cells(tail, [head | new_tail_stack], [], new_pairs ++ pairs)
   end
 
   defp pairs_to_ranges(pairs) do
