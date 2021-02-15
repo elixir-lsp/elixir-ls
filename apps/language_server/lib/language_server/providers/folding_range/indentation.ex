@@ -34,6 +34,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
     end)
   end
 
+  @doc """
+  Pairs cells into {start, end} tuples of regions
+  Public function for testing
+  """
   def pair_cells(cells) do
     do_pair_cells(cells, [], [], [])
   end
@@ -42,12 +46,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   defp do_pair_cells([], _, _, pairs) do
     pairs
     |> Enum.map(fn
-      {cell1, cell2, []} ->
-        {cell1, cell2}
-
-      {cell1, _, empties} ->
-        [first_empty_cell | _] = empties |> Enum.reverse()
-        {cell1, first_empty_cell}
+      {cell1, cell2, []} -> {cell1, cell2}
+      {cell1, _, empties} -> {cell1, List.last(empties)}
     end)
     |> Enum.reject(fn {{r1, _}, {r2, _}} -> r1 + 1 >= r2 end)
     |> Enum.sort()
