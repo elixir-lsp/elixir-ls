@@ -7,6 +7,111 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     assert {:error, _} = %{} |> FoldingRange.provide()
   end
 
+  describe "indentation" do
+    setup [:fold_cells]
+
+    # defmodule A do    # 0
+    #   def hello() do  # 1
+    #     :world        # 2
+    #   end             # 3
+    # end               # 4
+    @tag cells: [{0, 0}, {1, 2}, {2, 4}, {3, 2}, {4, 0}]
+    test "basic indentation test", %{pairs: pairs} do
+      assert pairs == [{{0, 0}, {4, 0}}, {{1, 2}, {3, 2}}]
+    end
+
+    # defmodule A do    # 0
+    #   def hello() do  # 1
+    #     # world       # 2
+    #     if true do    # 3
+    #       :world      # 4
+    #     end           # 5
+    #   end             # 6
+    # end               # 7
+    @tag cells: [{0, 0}, {1, 2}, {2, 4}, {3, 4}, {4, 6}, {5, 4}, {6, 2}, {7, 0}]
+    test "indent w/ successive matching levels", %{pairs: pairs} do
+      assert pairs == [{{0, 0}, {7, 0}}, {{1, 2}, {6, 2}}, {{3, 4}, {5, 4}}, {{2, 4}, {3, 4}}]
+    end
+
+    # defmodule A do                                         # 0
+    #   def f(%{"key" => value} = map) do                    # 1
+    #     case NaiveDateTime.from_iso8601(value) do          # 2
+    #       {:ok, ndt} ->                                    # 3
+    #         dt =                                           # 4
+    #           ndt                                          # 5
+    #           |> DateTime.from_naive!("Etc/UTC")           # 6
+    #           |> Map.put(:microsecond, {0, 6})             # 7
+    #                                                        # 8
+    #         %{map | "key" => dt}                           # 9
+    #                                                        # 10
+    #       e ->                                             # 11
+    #         Logger.warn("""                                # 12
+    #         Could not use data map from #{inspect(value)}  # 13
+    #         #{inspect(e)}                                  # 14
+    #         """)                                           # 15
+    #                                                        # 16
+    #         :could_not_parse_value                         # 17
+    #     end                                                # 18
+    #   end                                                  # 19
+    # end                                                    # 20
+    @tag cells: [
+           {0, 0},
+           {1, 2},
+           {2, 4},
+           {3, 6},
+           {4, 8},
+           {5, 10},
+           {6, 10},
+           {7, 10},
+           {8, nil},
+           {9, 8},
+           {10, nil},
+           {11, 6},
+           {12, 8},
+           {13, 8},
+           {14, 8},
+           {15, 8},
+           {16, nil},
+           {17, 8},
+           {18, 4},
+           {19, 2},
+           {20, 0}
+         ]
+    test "indent w/ complicated function", %{pairs: pairs} do
+      pairs |> IO.inspect(label: :pairs)
+
+      """
+      defmodule A do                                         # 0
+        def f(%{"key" => value} = map) do                    # 1
+          case NaiveDateTime.from_iso8601(value) do          # 2
+            {:ok, ndt} ->                                    # 3
+              dt =                                           # 4
+                ndt                                          # 5
+                |> DateTime.from_naive!("Etc/UTC")           # 6
+                |> Map.put(:microsecond, {0, 6})             # 7
+
+              %{map | "key" => dt}                           # 9
+
+            e ->                                             # 11
+              Logger.warn(\"\"\"
+              Could not use data map from #\{inspect(value)\}  # 13
+              #\{inspect(e)\}                                  # 14
+              \"\"\")
+
+              :could_not_parse_value                         # 17
+          end                                                # 18
+        end                                                  # 19
+      end                                                    # 20
+      """
+      |> IO.puts()
+    end
+
+    defp fold_cells(%{cells: cells} = context) do
+      pairs = FoldingRange.Indentation.pair_cells_2(cells)
+      {:ok, Map.put(context, :pairs, pairs)}
+    end
+  end
+
   describe "genuine source files" do
     setup [:fold_text]
 
