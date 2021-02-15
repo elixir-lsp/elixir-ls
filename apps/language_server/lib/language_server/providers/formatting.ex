@@ -61,8 +61,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   def should_format?(_file_uri, _project_dir, _inputs), do: true
 
-  defp myers_diff_to_text_edits(myers_diff, starting_pos \\ {0, 0}) do
-    myers_diff_to_text_edits(myers_diff, starting_pos, [])
+  defp myers_diff_to_text_edits(myers_diff) do
+    myers_diff_to_text_edits(myers_diff, {0, 0}, [])
   end
 
   defp myers_diff_to_text_edits([], _pos, edits) do
@@ -92,7 +92,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   defp advance_pos({line, col}, str) do
     Enum.reduce(String.split(str, "", trim: true), {line, col}, fn char, {line, col} ->
-      if char in ["\n", "\r"] do
+      if char in ["\r\n", "\n", "\r"] do
         {line + 1, 0}
       else
         # LSP contentChanges positions are based on UTF-16 string representation
