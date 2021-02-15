@@ -72,7 +72,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   defp do_pair_cells([{_, x} = head | tail], stack, empties, pairs) do
     # If the head is <= to the top of the stack, then we need to pair it with
     # everything on the stack to the right of it.
-    # The head can also be the start of a new region, so it's pushed onto the stack.
+    # The head can also start a new region, so it's pushed onto the stack.
     {leftovers, new_tail_stack} = stack |> Enum.split_while(fn {_, y} -> x <= y end)
     new_pairs = leftovers |> Enum.map(&{&1, head, empties})
     do_pair_cells(tail, [head | new_tail_stack], [], new_pairs ++ pairs)
