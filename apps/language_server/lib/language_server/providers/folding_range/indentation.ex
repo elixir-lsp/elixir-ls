@@ -4,10 +4,16 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   """
 
   @doc """
+  Provides ranges for the source text based on the indentation level.
+  Note that we trim trailing empy rows from regions.
   """
   def provide_ranges(text) do
-    cells = find_cells(text)
-    ranges = pair_cells(cells)
+    ranges =
+      text
+      |> find_cells()
+      |> pair_cells()
+      |> pairs_to_ranges()
+
     {:ok, ranges}
   end
 
@@ -88,5 +94,12 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
       end
 
     do_pair_cells(tail_cells, new_stack, new_empties, new_pairs)
+  end
+
+  defp pairs_to_ranges(pairs) do
+    pairs
+    |> Enum.map(fn
+      {{r1, _}, {r2, _}} -> %{"startLine" => r1, "endLine" => r2, "kind?" => "region"}
+    end)
   end
 end
