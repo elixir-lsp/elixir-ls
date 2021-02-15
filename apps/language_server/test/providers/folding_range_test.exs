@@ -82,8 +82,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                {{0, 0}, {20, 0}},
                {{1, 2}, {19, 2}},
                {{2, 4}, {18, 4}},
-               {{3, 6}, {9, nil}},
-               {{4, 8}, {7, nil}},
+               {{3, 6}, {10, nil}},
+               {{4, 8}, {8, nil}},
                {{11, 6}, {18, 4}}
              ]
     end

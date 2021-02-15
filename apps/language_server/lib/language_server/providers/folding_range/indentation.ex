@@ -46,8 +46,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
         {cell1, cell2}
 
       {cell1, _, empties} ->
-        [{first_empty_row, _} | _] = empties |> Enum.reverse()
-        {cell1, {first_empty_row - 1, nil}}
+        [first_empty_cell | _] = empties |> Enum.reverse()
+        {cell1, first_empty_cell}
     end)
     |> Enum.reject(fn {{r1, _}, {r2, _}} -> r1 + 1 >= r2 end)
     |> Enum.sort()
@@ -99,7 +99,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   defp pairs_to_ranges(pairs) do
     pairs
     |> Enum.map(fn
-      {{r1, _}, {r2, _}} -> %{"startLine" => r1, "endLine" => r2, "kind?" => "region"}
+      {{r1, _}, {r2, _}} -> %{"startLine" => r1, "endLine" => r2 - 1, "kind?" => "region"}
     end)
   end
 end
