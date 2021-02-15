@@ -73,9 +73,15 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
           {[cur | stack], [], pairs}
 
         col_cur == col_top ->
+          # An exact match can be the end of one pair and the start of another.
+          # E.g.: The else in an if-do-else-end block
           {[cur | tail_stack], [], [{top, cur, empties} | pairs]}
 
         col_cur < col_top ->
+          # If the current column is further to the left than that of the top
+          # of the stack, then we need to pair it with everything on the stack
+          # to the right of it.
+          # E.g.: The end with the clause of a case-do-end block
           {leftovers, new_tail_stack} = stack |> Enum.split_while(fn {_, c} -> col_cur <= c end)
           new_pairs = leftovers |> Enum.map(&{&1, cur, empties})
           {new_tail_stack, [], new_pairs ++ pairs}
