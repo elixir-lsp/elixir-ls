@@ -52,13 +52,33 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   defp do_provide(text) do
     formatted_tokens = __MODULE__.Token.format_string(text)
     {:ok, token_pair_ranges} = formatted_tokens |> __MODULE__.TokenPairs.provide_ranges()
-    # {:ok, indentation_ranges} = text |> __MODULE__.Indentation.provide_ranges()
-    indentation_ranges = []
-    ranges = merge_ranges(token_pair_ranges ++ indentation_ranges)
+    {:ok, indentation_ranges} = text |> __MODULE__.Indentation.provide_ranges()
+
+    ranges =
+      merge_ranges_with_priorities([
+        {1, indentation_ranges},
+        {2, token_pair_ranges}
+      ])
+
     {:ok, ranges}
   end
 
-  defp merge_ranges(list_of_range_lists) do
-    list_of_range_lists
+  defp merge_ranges_with_priorities(range_lists_with_priorities) do
+    range_lists_with_priorities
+    |> Enum.reduce(%{}, fn {priority, ranges}, acc ->
+      ranges
+      |> Enum.reduce(acc, fn %{startLine: start} = range, acc ->
+        ranges_with_priority = Map.get(acc, start, [])
+        Map.put(acc, start, [{priority, range} | ranges_with_priority])
+      end)
+    end)
+    |> Enum.map(fn {_start, ranges_with_priority} ->
+      {_priority, range} =
+        ranges_with_priority
+        |> Enum.max_by(fn {priority, range} -> {priority, range.endLine} end)
+
+      range
+    end)
+    |> Enum.sort_by(& &1.startLine)
   end
 end
