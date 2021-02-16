@@ -93,7 +93,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
   end
 
-  describe "genuine source files" do
+  describe "token pairs" do
     setup [:fold_via_token_pairs]
 
     @tag text: """
@@ -104,6 +104,18 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          end               # 4
          """
     test "can fold 1 defmodule, 1 def", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
+    end
+
+    @tag text: """
+         defmodule A do    # 0
+           def hello() do  # 1
+             :world        # 2
+               end         # 3
+                 end       # 4
+         """
+    test "unusual indentation", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
     end
@@ -190,6 +202,44 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     defp fold_via_token_pairs(%{text: text} = context) do
       formatted_tokens = FoldingRange.Token.format_string(text)
       ranges_result = formatted_tokens |> FoldingRange.TokenPairs.provide_ranges()
+      {:ok, Map.put(context, :ranges_result, ranges_result)}
+    end
+  end
+
+  describe "end to end" do
+    setup [:fold_text]
+
+    @tag text: """
+         defmodule A do                                         # 0
+           def f(%{"key" => value} = map) do                    # 1
+             case NaiveDateTime.from_iso8601(value) do          # 2
+               {:ok, ndt} ->                                    # 3
+                 dt =                                           # 4
+                   ndt                                          # 5
+                   |> DateTime.from_naive!("Etc/UTC")           # 6
+                   |> Map.put(:microsecond, {0, 6})             # 7
+
+                 %{map | "key" => dt}                           # 9
+
+               e ->                                             # 11
+                 Logger.warn(\"\"\"
+                 Could not use data map from #\{inspect(value)\}  # 13
+                 #\{inspect(e)\}                                  # 14
+                 \"\"\")
+
+                 :could_not_parse_value                         # 17
+             end                                                # 18
+           end                                                  # 19
+         end                                                    # 20
+         """
+    test "can fold heredoc w/ closing paren", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 19}, {1, 18}, {2, 17}, {3, 9}, {4, 7}, {11, 17}, {12, 14}]
+      assert compare_condensed_ranges(ranges, expected)
+    end
+
+    defp fold_text(%{text: _text} = context) do
+      ranges_result = FoldingRange.provide(context)
       {:ok, Map.put(context, :ranges_result, ranges_result)}
     end
   end
