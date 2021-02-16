@@ -4,11 +4,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   See specification here:
     https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_foldingRange
-
-  ## TODO
-
-  - [x] Indentation pass
-  - [ ] Add priorities and do a proper merge
   """
 
   @type t :: %{
