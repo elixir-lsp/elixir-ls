@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
     fn: [:end]
   }
 
-  @spec provide_ranges([FoldingRange.Token.t()]) :: [FoldingRange.t()]
+  @spec provide_ranges([FoldingRange.Token.t()]) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(formatted_tokens) do
     ranges = fold_tokens_into_ranges(formatted_tokens)
     {:ok, ranges}

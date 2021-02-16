@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   Provides ranges for the source text based on the indentation level.
   Note that we trim trailing empy rows from regions.
   """
-  @spec provide_ranges(String.t()) :: [FoldingRange.t()]
+  @spec provide_ranges(String.t()) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(text) do
     ranges =
       text
