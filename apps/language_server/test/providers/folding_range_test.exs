@@ -8,128 +8,88 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
   end
 
   describe "indentation" do
-    setup [:pair_cells]
+    setup [:fold_via_indentation]
 
-    # defmodule A do    # 0
-    #   def hello() do  # 1
-    #     :world        # 2
-    #   end             # 3
-    # end               # 4
-    @tag cells: [{0, 0}, {1, 2}, {2, 4}, {3, 2}, {4, 0}]
-    test "basic indentation test", %{pairs: pairs} do
-      assert pairs == [{{0, 0}, {4, 0}}, {{1, 2}, {3, 2}}]
+    @tag text: """
+         defmodule A do    # 0
+           def hello() do  # 1
+             :world        # 2
+           end             # 3
+         end               # 4
+         """
+    test "basic indentation test", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
     end
 
-    # defmodule A do    # 0
-    #   def hello() do  # 1
-    #     # world       # 2
-    #     if true do    # 3
-    #       :world      # 4
-    #     end           # 5
-    #   end             # 6
-    # end               # 7
-    @tag cells: [{0, 0}, {1, 2}, {2, 4}, {3, 4}, {4, 6}, {5, 4}, {6, 2}, {7, 0}]
-    test "indent w/ successive matching levels", %{pairs: pairs} do
-      assert pairs == [{{0, 0}, {7, 0}}, {{1, 2}, {6, 2}}, {{3, 4}, {5, 4}}]
+    @tag text: """
+         defmodule A do    # 0
+           def hello() do  # 1
+             # world       # 2
+             if true do    # 3
+               :world      # 4
+             end           # 5
+           end             # 6
+         end               # 7
+         """
+    test "indent w/ successive matching levels", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 6}, {1, 5}, {3, 4}])
     end
 
-    # defmodule A do                                         # 0
-    #   def f(%{"key" => value} = map) do                    # 1
-    #     case NaiveDateTime.from_iso8601(value) do          # 2
-    #       {:ok, ndt} ->                                    # 3
-    #         dt =                                           # 4
-    #           ndt                                          # 5
-    #           |> DateTime.from_naive!("Etc/UTC")           # 6
-    #           |> Map.put(:microsecond, {0, 6})             # 7
-    #                                                        # 8
-    #         %{map | "key" => dt}                           # 9
-    #                                                        # 10
-    #       e ->                                             # 11
-    #         Logger.warn("""                                # 12
-    #         Could not use data map from #{inspect(value)}  # 13
-    #         #{inspect(e)}                                  # 14
-    #         """)                                           # 15
-    #                                                        # 16
-    #         :could_not_parse_value                         # 17
-    #     end                                                # 18
-    #   end                                                  # 19
-    # end                                                    # 20
-    @tag cells: [
-           {0, 0},
-           {1, 2},
-           {2, 4},
-           {3, 6},
-           {4, 8},
-           {5, 10},
-           {6, 10},
-           {7, 10},
-           {8, nil},
-           {9, 8},
-           {10, nil},
-           {11, 6},
-           {12, 8},
-           {13, 8},
-           {14, 8},
-           {15, 8},
-           {16, nil},
-           {17, 8},
-           {18, 4},
-           {19, 2},
-           {20, 0}
-         ]
-    test "indent w/ complicated function", %{pairs: pairs} do
-      assert pairs == [
-               {{0, 0}, {20, 0}},
-               {{1, 2}, {19, 2}},
-               {{2, 4}, {18, 4}},
-               {{3, 6}, {10, nil}},
-               {{4, 8}, {8, nil}},
-               {{11, 6}, {18, 4}}
-             ]
+    @tag text: """
+         defmodule A do                                         # 0
+           def f(%{"key" => value} = map) do                    # 1
+             case NaiveDateTime.from_iso8601(value) do          # 2
+               {:ok, ndt} ->                                    # 3
+                 dt =                                           # 4
+                   ndt                                          # 5
+                   |> DateTime.from_naive!("Etc/UTC")           # 6
+                   |> Map.put(:microsecond, {0, 6})             # 7
+
+                 %{map | "key" => dt}                           # 9
+
+               e ->                                             # 11
+                 Logger.warn(\"\"\"
+                 Could not use data map from #\{inspect(value)\}  # 13
+                 #\{inspect(e)\}                                  # 14
+                 \"\"\")
+
+                 :could_not_parse_value                         # 17
+             end                                                # 18
+           end                                                  # 19
+         end                                                    # 20
+         """
+    test "indent w/ complicated function", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 19}, {1, 18}, {2, 17}, {3, 9}, {4, 7}, {11, 17}]
+      assert compare_condensed_ranges(ranges, expected)
     end
 
-    # defmodule A do                      # 0
-    #   def get_info(args) do             # 1
-    #     org =                           # 2
-    #       args                          # 3
-    #       |> Ecto.assoc(:organization)  # 4
-    #       |> Repo.one!()                # 5
-    #                                     # 6
-    #     user =                          # 7
-    #       org                           # 8
-    #       |> Organization.user!()       # 9
-    #                                     # 10
-    #     {:ok, %{org: org, user: user}}  # 11
-    #   end                               # 12
-    # end                                 # 13
-    @tag cells: [
-           {0, 0},
-           {1, 2},
-           {2, 4},
-           {3, 6},
-           {4, 6},
-           {5, 6},
-           {6, nil},
-           {7, 4},
-           {8, 6},
-           {9, 6},
-           {10, nil},
-           {11, 4},
-           {12, 2},
-           {13, 0}
-         ]
-    test "indent w/ different complicated function", %{pairs: pairs} do
-      assert pairs == [
-               {{0, 0}, {13, 0}},
-               {{1, 2}, {12, 2}},
-               {{2, 4}, {6, nil}},
-               {{7, 4}, {10, nil}}
-             ]
+    @tag text: """
+         defmodule A do                      # 0
+           def get_info(args) do             # 1
+             org =                           # 2
+               args                          # 3
+               |> Ecto.assoc(:organization)  # 4
+               |> Repo.one!()                # 5
+
+             user =                          # 7
+               org                           # 8
+               |> Organization.user!()       # 9
+
+             {:ok, %{org: org, user: user}}  # 11
+           end                               # 12
+         end                                 # 13
+         """
+    test "indent w/ different complicated function", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 12}, {1, 11}, {2, 5}, {7, 9}])
     end
 
-    defp pair_cells(%{cells: cells} = context) do
-      pairs = FoldingRange.Indentation.pair_cells(cells)
-      {:ok, Map.put(context, :pairs, pairs)}
+    defp fold_via_indentation(%{text: text} = context) do
+      ranges_result = text |> FoldingRange.Indentation.provide_ranges()
+      {:ok, Map.put(context, :ranges_result, ranges_result)}
     end
   end
 
