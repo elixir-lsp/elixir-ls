@@ -94,7 +94,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
   end
 
   describe "genuine source files" do
-    setup [:fold_text]
+    setup [:fold_via_token_pairs]
 
     @tag text: """
          defmodule A do    # 0
@@ -106,20 +106,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     test "can fold 1 defmodule, 1 def", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
-    end
-
-    @tag text: """
-         defmodule A do    # 0
-           def hello() do  # 1
-             \"\"\"
-             hello         # 3
-             \"\"\"
-           end             # 5
-         end               # 6
-         """
-    test "can fold 1 defmodule, 1 def, 1 heredoc", %{ranges_result: ranges_result} do
-      assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 5}, {1, 4}, {2, 3}])
     end
 
     @tag text: """
@@ -198,13 +184,14 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          """
     test "can fold heredoc w/ closing paren", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}])
+      assert compare_condensed_ranges(ranges, [{0, 19}, {1, 18}, {2, 17}, {12, 14}])
     end
-  end
 
-  defp fold_text(%{text: text} = context) do
-    ranges_result = %{text: text} |> FoldingRange.provide()
-    {:ok, Map.put(context, :ranges_result, ranges_result)}
+    defp fold_via_token_pairs(%{text: text} = context) do
+      formatted_tokens = FoldingRange.Token.format_string(text)
+      ranges_result = formatted_tokens |> FoldingRange.TokenPairs.provide_ranges()
+      {:ok, Map.put(context, :ranges_result, ranges_result)}
+    end
   end
 
   defp compare_condensed_ranges(result, condensed_expected) do
