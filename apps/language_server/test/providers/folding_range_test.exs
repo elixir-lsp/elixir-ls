@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 3
          end               # 4
          """
-    test "basic indentation test", %{ranges_result: ranges_result} do
+    test "basic test", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
     end
@@ -32,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 6
          end               # 7
          """
-    test "indent w/ successive matching levels", %{ranges_result: ranges_result} do
+    test "consecutive matching levels", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 6}, {1, 5}, {3, 4}])
     end
@@ -60,7 +60,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                                  # 19
          end                                                    # 20
          """
-    test "indent w/ complicated function", %{ranges_result: ranges_result} do
+    test "complicated function", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       expected = [{0, 19}, {1, 18}, {2, 17}, {3, 9}, {4, 7}, {11, 17}]
       assert compare_condensed_ranges(ranges, expected)
@@ -82,7 +82,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                               # 12
          end                                 # 13
          """
-    test "indent w/ different complicated function", %{ranges_result: ranges_result} do
+    test "different complicated function", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 12}, {1, 11}, {2, 5}, {7, 9}])
     end
@@ -103,7 +103,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 3
          end               # 4
          """
-    test "can fold 1 defmodule, 1 def", %{ranges_result: ranges_result} do
+    test "basic test", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
     end
@@ -135,7 +135,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end              # 11
          end                # 12
          """
-    test "can fold 1 defmodule, 1 complex def", %{ranges_result: ranges_result} do
+    test "1 defmodule, 1 def, 1 case", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 11}, {1, 10}, {4, 9}])
     end
@@ -149,7 +149,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            @moduledoc "This is module B"  # 5
          end                              # 6
          """
-    test "can fold 2 defmodules in the top-level of file", %{ranges_result: ranges_result} do
+    test "2 defmodules in the top-level of file", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 1}, {4, 5}])
     end
@@ -166,7 +166,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                # 8
          end                                  # 9
          """
-    test "can fold 1 defmodule, 1 def, 1 list", %{ranges_result: ranges_result} do
+    test "1 defmodule, 1 def, 1 list", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}])
     end
@@ -194,7 +194,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                                  # 19
          end                                                    # 20
          """
-    test "can fold heredoc w/ closing paren", %{ranges_result: ranges_result} do
+    test "complicated function", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       assert compare_condensed_ranges(ranges, [{0, 19}, {1, 18}, {2, 17}, {12, 14}])
     end
@@ -232,7 +232,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                                  # 19
          end                                                    # 20
          """
-    test "can fold heredoc w/ closing paren", %{ranges_result: ranges_result} do
+    test "complicated function", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
       expected = [{0, 19}, {1, 18}, {2, 17}, {3, 9}, {4, 7}, {11, 17}, {12, 14}]
       assert compare_condensed_ranges(ranges, expected)
