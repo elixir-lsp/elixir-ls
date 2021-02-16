@@ -80,8 +80,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
 
   defp pairs_to_ranges(pairs) do
     pairs
-    |> Enum.map(fn
-      {{r1, _}, {r2, _}} -> %{"startLine" => r1, "endLine" => r2 - 1, "kind?" => "region"}
+    |> Enum.map(fn {{r1, _}, {r2, _}} ->
+      %{"startLine" => r1, "endLine" => r2 - 1, "kind?" => "region"}
     end)
   end
 end
