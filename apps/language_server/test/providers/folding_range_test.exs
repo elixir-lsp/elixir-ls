@@ -203,8 +203,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
   end
 
   defp fold_text(%{text: text} = context) do
-    # "" |> IO.puts()
-    # text |> IO.puts()
     ranges_result = %{text: text} |> FoldingRange.provide()
     {:ok, Map.put(context, :ranges_result, ranges_result)}
   end
