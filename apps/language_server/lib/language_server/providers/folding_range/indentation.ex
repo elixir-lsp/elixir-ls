@@ -3,10 +3,15 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   Code folding based on indentation only.
   """
 
+  alias ElixirLS.LanguageServer.Providers.FoldingRange
+
+  @type cell :: {non_neg_integer(), non_neg_integer() | nil}
+
   @doc """
   Provides ranges for the source text based on the indentation level.
   Note that we trim trailing empy rows from regions.
   """
+  @spec provide_ranges(String.t()) :: [FoldingRange.t()]
   def provide_ranges(text) do
     ranges =
       text
@@ -20,7 +25,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   # If we think of the code text as a grid, this function finds the cells whose
   # columns are the start of each row (line).
   # Empty rows are represented as {row, nil}.
-  @spec find_cells(String.t()) :: [{non_neg_integer(), non_neg_integer()}]
+  @spec find_cells(String.t()) :: [cell()]
   defp find_cells(text) do
     text
     |> String.trim()
@@ -38,6 +43,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   Pairs cells into {start, end} tuples of regions
   Public function for testing
   """
+  @spec pair_cells([cell()]) :: [{cell(), cell()}]
   def pair_cells(cells) do
     do_pair_cells(cells, [], [], [])
   end
@@ -78,10 +84,15 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
     do_pair_cells(tail, [head | new_tail_stack], [], new_pairs ++ pairs)
   end
 
+  @spec pairs_to_ranges([{cell(), cell()}]) :: [FoldingRange.t()]
   defp pairs_to_ranges(pairs) do
     pairs
     |> Enum.map(fn {{r1, _}, {r2, _}} ->
-      %{"startLine" => r1, "endLine" => r2 - 1, "kind?" => "region"}
+      %{
+        startLine: r1,
+        endLine: r2 - 1,
+        kind?: :region
+      }
     end)
   end
 end
