@@ -36,8 +36,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
     ranges
     # [
-    #   %{"startLine" => 0, "endLine" => 3},
-    #   %{"startLine" => 1, "endLine" => 2}
+    #   %{startLine: 0, endLine: 3},
+    #   %{startLine: 1, endLine: 2}
     # ]
   """
   @spec provide(%{text: String.t()}) :: {:ok, [t()]} | {:error, String.t()}
