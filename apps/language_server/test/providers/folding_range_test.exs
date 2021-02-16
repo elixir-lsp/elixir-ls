@@ -144,8 +144,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          end               # 4
          """
     test "can fold 1 defmodule, 1 def", %{ranges_result: ranges_result} do
-      assert {:ok, _ranges} = ranges_result
-      # assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
     end
 
     @tag text: """
@@ -158,8 +158,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          end               # 6
          """
     test "can fold 1 defmodule, 1 def, 1 heredoc", %{ranges_result: ranges_result} do
-      assert {:ok, _ranges} = ranges_result
-      # assert compare_condensed_ranges(ranges, [{0, 5}, {1, 4}, {2, 3}])
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 5}, {1, 4}, {2, 3}])
     end
 
     @tag text: """
@@ -178,8 +178,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          end                # 12
          """
     test "can fold 1 defmodule, 1 complex def", %{ranges_result: ranges_result} do
-      assert {:ok, _ranges} = ranges_result
-      # assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {4, 6}])
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 11}, {1, 10}, {4, 9}])
     end
 
     @tag text: """
@@ -192,8 +192,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          end                              # 6
          """
     test "can fold 2 defmodules in the top-level of file", %{ranges_result: ranges_result} do
-      assert {:ok, _ranges} = ranges_result
-      # assert compare_condensed_ranges(ranges, [{0, 1}, {4, 5}])
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 1}, {4, 5}])
     end
 
     @tag text: """
@@ -209,8 +209,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          end                                  # 9
          """
     test "can fold 1 defmodule, 1 def, 1 list", %{ranges_result: ranges_result} do
-      assert {:ok, _ranges} = ranges_result
-      # assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}])
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}])
     end
 
     @tag text: """
@@ -237,25 +237,20 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          end                                                    # 20
          """
     test "can fold heredoc w/ closing paren", %{ranges_result: ranges_result} do
-      assert {:ok, _ranges} = ranges_result
-      # ranges |> IO.inspect()
-      # assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}])
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}])
     end
   end
 
   defp fold_text(%{text: text} = context) do
-    "" |> IO.puts()
-    text |> IO.puts()
+    # "" |> IO.puts()
+    # text |> IO.puts()
     ranges_result = %{text: text} |> FoldingRange.provide()
     {:ok, Map.put(context, :ranges_result, ranges_result)}
   end
 
-  # defp compare_condensed_ranges(result, condensed_expected) do
-  #   condensed_result = result |> Enum.map(&condense_range/1)
-  #   assert condensed_result == condensed_expected
-  # end
-
-  # defp condense_range(range) do
-  #   {range["startLine"], range["endLine"]}
-  # end
+  defp compare_condensed_ranges(result, condensed_expected) do
+    condensed_result = result |> Enum.map(&{&1.startLine, &1.endLine})
+    assert condensed_result == condensed_expected
+  end
 end

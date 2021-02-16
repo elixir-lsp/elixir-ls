@@ -11,8 +11,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   - [ ] Add priorities and do a proper merge
   """
 
-  alias ElixirSense.Core.Normalized.Tokenizer
-
   @type t :: %{
           required(:startLine) => non_neg_integer(),
           required(:endLine) => non_neg_integer(),
@@ -52,9 +50,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   end
 
   defp do_provide(text) do
-    formatted_tokens = text |> Tokenizer.tokenize() |> format_tokens()
+    formatted_tokens = __MODULE__.Token.format_string(text)
     {:ok, token_pair_ranges} = formatted_tokens |> __MODULE__.TokenPairs.provide_ranges()
-    {:ok, indentation_ranges} = text |> __MODULE__.Indentation.provide_ranges()
+    # {:ok, indentation_ranges} = text |> __MODULE__.Indentation.provide_ranges()
+    indentation_ranges = []
     ranges = merge_ranges(token_pair_ranges ++ indentation_ranges)
     {:ok, ranges}
   end
@@ -87,6 +86,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   end
 
   defp merge_ranges(list_of_range_lists) do
-    list_of_range_lists |> List.first()
+    list_of_range_lists
   end
 end
