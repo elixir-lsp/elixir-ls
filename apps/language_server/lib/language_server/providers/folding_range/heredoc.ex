@@ -10,7 +10,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
       tokens
       |> group_heredoc_tokens()
       |> convert_heredoc_groups_to_ranges()
-      |> Enum.sort_by(& &1.startLine)
 
     {:ok, ranges}
   end

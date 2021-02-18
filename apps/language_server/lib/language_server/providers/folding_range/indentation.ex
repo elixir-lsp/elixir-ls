@@ -40,7 +40,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
       {cell1, _, empties} -> {cell1, List.last(empties)}
     end)
     |> Enum.reject(fn {{r1, _}, {r2, _}} -> r1 + 1 >= r2 end)
-    |> Enum.sort()
   end
 
   # Empty row

@@ -347,8 +347,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
         {9, 15},
         {10, 13},
         {17, 23},
-        {18, 20},
-        {20, 20}
+        {18, 20}
       ]
 
       assert compare_condensed_ranges(ranges, expected)
@@ -362,6 +361,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
   defp compare_condensed_ranges(result, condensed_expected) do
     condensed_result = result |> Enum.map(&{&1.startLine, &1.endLine})
-    assert condensed_result == condensed_expected
+    assert Enum.sort(condensed_result) == Enum.sort(condensed_expected)
   end
 end
