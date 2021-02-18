@@ -40,8 +40,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
 
   defp convert_heredoc_groups_to_ranges(heredoc_groups) do
     heredoc_groups
-    |> Enum.map(&FoldingRange.Helpers.first_and_last_of_list/1)
-    |> Enum.map(fn {last, first} -> classify_group(first, last) end)
+    |> Enum.map(fn group ->
+      # Each group comes out of group_heredoc_tokens/1 reversed
+      {last, first} = FoldingRange.Helpers.first_and_last_of_list(group)
+      classify_group(first, last)
+    end)
   end
 
   defp classify_group({:bin_heredoc, {start_line, _, _}, _}, {_, {end_line, _, _}, _}) do
