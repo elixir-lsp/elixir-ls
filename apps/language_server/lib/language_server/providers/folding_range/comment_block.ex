@@ -40,10 +40,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
       _, acc ->
         acc
     end)
-    |> case do
-      [[] | groups] -> groups
-      groups -> groups
-    end
+    |> Enum.filter(fn group -> length(group) > 1 end)
   end
 
   defp convert_comment_group_to_range(group) do

@@ -266,6 +266,19 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     @tag text: """
          defmodule A do                 # 0
            def hello() do               # 1
+             # single comment           # 2
+             do_hello()                 # 3
+           end                          # 4
+         end                            # 5
+         """
+    test "no single line comment blocks", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [])
+    end
+
+    @tag text: """
+         defmodule A do                 # 0
+           def hello() do               # 1
              do_hello()                 # 2
            end                          # 3
 
