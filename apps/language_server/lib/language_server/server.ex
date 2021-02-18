@@ -731,7 +731,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(folding_range_req(_id, uri), state) do
-    case state.source_files[uri] do
+    case get_source_file(state, uri) do
       nil ->
         {:error, :server_error, "Missing source file", state}
 
