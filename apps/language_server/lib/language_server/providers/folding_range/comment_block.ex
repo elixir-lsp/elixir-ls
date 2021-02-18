@@ -1,6 +1,9 @@
 defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
   @moduledoc """
-  Code folding based on indentation only.
+  Code folding based on comment blocks.
+
+  Note that this can create comment regions inside heredocs.
+  It's a little sloppy, but I don't think it's a big problem.
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
