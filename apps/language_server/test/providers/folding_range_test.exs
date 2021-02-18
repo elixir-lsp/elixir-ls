@@ -125,6 +125,48 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
 
     @tag text: """
+         defmodule A do    # 0
+           def hello() do  # 1
+             if true do    # 2
+               :hello      # 3
+             else          # 4
+               :error      # 5
+             end           # 6
+           end             # 7
+         end               # 8
+         """
+    test "if-do-else-end", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 7}, {1, 6}, {2, 3}, {4, 5}])
+    end
+
+    @tag text: """
+         defmodule A do             # 0
+           def hello() do           # 1
+             try do                 # 2
+               :hello               # 3
+             rescue                 # 4
+               ArgumentError ->     # 5
+                 IO.puts("rescue")  # 6
+             catch                  # 7
+               value ->             # 8
+                 IO.puts("catch")   # 9
+             else                   # 10
+               value ->             # 11
+                 IO.puts("else")    # 12
+             after                  # 13
+               IO.puts("after")     # 14
+             end                    # 15
+           end                      # 16
+         end                        # 17
+         """
+    test "try block", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 16}, {1, 15}, {2, 3}, {4, 6}, {7, 9}, {10, 12}, {13, 14}]
+      assert compare_condensed_ranges(ranges, expected)
+    end
+
+    @tag text: """
          defmodule A do     # 0
            def hello() do   # 1
              a = 20         # 2

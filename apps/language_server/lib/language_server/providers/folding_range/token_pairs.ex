@@ -9,11 +9,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
     "[": [:"]"],
     "{": [:"}"],
     # do blocks
-    do: [:catch, :rescue, :after, :else, :end],
-    catch: [:rescue, :after, :else, :end],
-    rescue: [:after, :else, :end],
-    after: [:else, :end],
-    else: [:end],
+    do: [:block_identifier, :end],
+    block_identifier: [:block_identifier, :end],
     # other special forms
     with: [:do],
     for: [:do],
