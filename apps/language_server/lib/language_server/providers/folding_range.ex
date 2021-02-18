@@ -48,11 +48,13 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
     formatted_tokens = __MODULE__.Token.format_string(text)
     {:ok, token_pair_ranges} = formatted_tokens |> __MODULE__.TokenPairs.provide_ranges()
     {:ok, indentation_ranges} = text |> __MODULE__.Indentation.provide_ranges()
+    {:ok, heredoc_ranges} = formatted_tokens |> __MODULE__.Heredoc.provide_ranges()
 
     ranges =
       merge_ranges_with_priorities([
         {1, indentation_ranges},
-        {2, token_pair_ranges}
+        {2, token_pair_ranges},
+        {2, heredoc_ranges}
       ])
 
     {:ok, ranges}

@@ -206,35 +206,83 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
   end
 
+  describe "heredocs" do
+    setup [:fold_via_heredocs]
+
+    @tag text: """
+         defmodule A do                                 # 0
+          @moduledoc \"\"\"
+          I'm a @moduledoc heredoc.                     # 2
+          \"\"\"
+
+          @doc \"\"\"
+          I'm a @doc heredoc.                           # 6
+          \"\"\"
+           def f(%{"key" => value} = map) do            # 8
+             case NaiveDateTime.from_iso8601(value) do  # 9
+               {:ok, ndt} ->                            # 10
+                 dt =                                   # 11
+                   ndt                                  # 12
+                   |> DateTime.from_naive!("Etc/UTC")   # 13
+                   |> Map.put(:microsecond, {0, 6})     # 14
+
+                 %{map | "key" => dt}                   # 16
+
+               e ->                                     # 18
+                 Logger.warn(\"\"\"
+                 I'm a regular heredoc                  # 20
+                 \"\"\")
+
+                 :could_not_parse_value                 # 23
+             end                                        # 24
+           end                                          # 25
+         end                                            # 26
+         """
+    test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{1, 2}, {5, 6}, {19, 20}])
+    end
+
+    defp fold_via_heredocs(%{text: text} = context) do
+      formatted_tokens = FoldingRange.Token.format_string(text)
+      ranges_result = formatted_tokens |> FoldingRange.Heredoc.provide_ranges()
+      {:ok, Map.put(context, :ranges_result, ranges_result)}
+    end
+  end
+
   describe "end to end" do
     setup [:fold_text]
 
     @tag text: """
          defmodule A do                                         # 0
-           def f(%{"key" => value} = map) do                    # 1
-             case NaiveDateTime.from_iso8601(value) do          # 2
-               {:ok, ndt} ->                                    # 3
-                 dt =                                           # 4
-                   ndt                                          # 5
-                   |> DateTime.from_naive!("Etc/UTC")           # 6
-                   |> Map.put(:microsecond, {0, 6})             # 7
+           @moduledoc \"\"\"
+           I'm a @moduledoc heredoc.                            # 2
+           \"\"\"
 
-                 %{map | "key" => dt}                           # 9
+           def f(%{"key" => value} = map) do                    # 5
+             case NaiveDateTime.from_iso8601(value) do          # 6
+               {:ok, ndt} ->                                    # 7
+                 dt =                                           # 8
+                   ndt                                          # 9
+                   |> DateTime.from_naive!("Etc/UTC")           # 10
+                   |> Map.put(:microsecond, {0, 6})             # 11
 
-               e ->                                             # 11
+                 %{map | "key" => dt}                           # 13
+
+               e ->                                             # 15
                  Logger.warn(\"\"\"
-                 Could not use data map from #\{inspect(value)\}  # 13
-                 #\{inspect(e)\}                                  # 14
+                 Could not use data map from #\{inspect(value)\}  # 17
+                 #\{inspect(e)\}                                  # 18
                  \"\"\")
 
-                 :could_not_parse_value                         # 17
-             end                                                # 18
-           end                                                  # 19
-         end                                                    # 20
+                 :could_not_parse_value                         # 21
+             end                                                # 22
+           end                                                  # 23
+         end                                                    # 24
          """
     test "complicated function", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
-      expected = [{0, 19}, {1, 18}, {2, 17}, {3, 9}, {4, 7}, {11, 17}, {12, 14}]
+      expected = [{0, 23}, {1, 2}, {5, 22}, {6, 21}, {7, 13}, {8, 11}, {15, 21}, {16, 18}]
       assert compare_condensed_ranges(ranges, expected)
     end
 
