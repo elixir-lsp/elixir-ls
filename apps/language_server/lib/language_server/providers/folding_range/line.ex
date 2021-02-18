@@ -3,21 +3,16 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Line do
   FoldingRange helpers for lines.
   """
 
+  alias ElixirLS.LanguageServer.SourceFile
+
   @type cell :: {non_neg_integer(), non_neg_integer() | nil}
   @type t :: {String.t(), cell(), String.t()}
 
   @spec format_string(String.t()) :: [cell()]
   def format_string(text) do
     text
-    |> text_to_lines()
+    |> SourceFile.lines()
     |> embellish_lines_with_metadata()
-  end
-
-  @spec embellish_lines_with_metadata(String.t()) :: [String.t()]
-  defp text_to_lines(text) do
-    text
-    |> String.trim()
-    |> String.split(["\r\n", "\n", "\r"])
   end
 
   # If we think of the code text as a grid, this function finds the cells whose
@@ -29,9 +24,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Line do
     lines
     |> Enum.with_index()
     |> Enum.map(fn {line, row} ->
-      full_length = line |> String.length()
+      full_length = line |> SourceFile.line_length_utf16()
       trimmed = line |> String.trim_leading()
-      trimmed_length = trimmed |> String.length()
+      trimmed_length = trimmed |> SourceFile.line_length_utf16()
       first = trimmed |> String.first()
 
       col =
