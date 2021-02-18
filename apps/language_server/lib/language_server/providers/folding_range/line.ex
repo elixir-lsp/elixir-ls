@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Line do
   defp text_to_lines(text) do
     text
     |> String.trim()
-    |> String.split("\n")
+    |> String.split(["\r\n", "\n", "\r"])
   end
 
   # If we think of the code text as a grid, this function finds the cells whose
