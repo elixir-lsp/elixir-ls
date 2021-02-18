@@ -88,7 +88,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
 
     defp fold_via_indentation(%{text: text} = context) do
-      ranges_result = text |> FoldingRange.Indentation.provide_ranges()
+      ranges_result =
+        text
+        |> FoldingRange.convert_text_to_input()
+        |> FoldingRange.Indentation.provide_ranges()
+
       {:ok, Map.put(context, :ranges_result, ranges_result)}
     end
   end
@@ -200,8 +204,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
 
     defp fold_via_token_pairs(%{text: text} = context) do
-      formatted_tokens = FoldingRange.Token.format_string(text)
-      ranges_result = formatted_tokens |> FoldingRange.TokenPairs.provide_ranges()
+      ranges_result =
+        text
+        |> FoldingRange.convert_text_to_input()
+        |> FoldingRange.TokenPairs.provide_ranges()
+
       {:ok, Map.put(context, :ranges_result, ranges_result)}
     end
   end
@@ -244,8 +251,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
 
     defp fold_via_heredocs(%{text: text} = context) do
-      formatted_tokens = FoldingRange.Token.format_string(text)
-      ranges_result = formatted_tokens |> FoldingRange.Heredoc.provide_ranges()
+      ranges_result =
+        text
+        |> FoldingRange.convert_text_to_input()
+        |> FoldingRange.Heredoc.provide_ranges()
+
       {:ok, Map.put(context, :ranges_result, ranges_result)}
     end
   end

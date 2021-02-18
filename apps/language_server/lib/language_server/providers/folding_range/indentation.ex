@@ -4,46 +4,30 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
-
-  @type cell :: {non_neg_integer(), non_neg_integer() | nil}
+  alias ElixirLS.LanguageServer.Providers.FoldingRange.Line
 
   @doc """
   Provides ranges for the source text based on the indentation level.
   Note that we trim trailing empy rows from regions.
   """
-  @spec provide_ranges(String.t()) :: {:ok, [FoldingRange.t()]}
-  def provide_ranges(text) do
+  @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
+  def provide_ranges(%{lines: lines}) do
     ranges =
-      text
-      |> find_cells()
+      lines
+      |> Enum.map(&extract_cell/1)
       |> pair_cells()
       |> pairs_to_ranges()
 
     {:ok, ranges}
   end
 
-  # If we think of the code text as a grid, this function finds the cells whose
-  # columns are the start of each row (line).
-  # Empty rows are represented as {row, nil}.
-  @spec find_cells(String.t()) :: [cell()]
-  defp find_cells(text) do
-    text
-    |> String.trim()
-    |> String.split("\n")
-    |> Enum.with_index()
-    |> Enum.map(fn {line, row} ->
-      full = line |> String.length()
-      trimmed = line |> String.trim_leading() |> String.length()
-      col = if {full, trimmed} == {0, 0}, do: nil, else: full - trimmed
-      {row, col}
-    end)
-  end
+  defp extract_cell({_line, cell, _first}), do: cell
 
   @doc """
   Pairs cells into {start, end} tuples of regions
   Public function for testing
   """
-  @spec pair_cells([cell()]) :: [{cell(), cell()}]
+  @spec pair_cells([Line.cell()]) :: [{Line.cell(), Line.cell()}]
   def pair_cells(cells) do
     do_pair_cells(cells, [], [], [])
   end
@@ -84,7 +68,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
     do_pair_cells(tail, [head | new_tail_stack], [], new_pairs ++ pairs)
   end
 
-  @spec pairs_to_ranges([{cell(), cell()}]) :: [FoldingRange.t()]
+  @spec pairs_to_ranges([{Line.cell(), Line.cell()}]) :: [FoldingRange.t()]
   defp pairs_to_ranges(pairs) do
     pairs
     |> Enum.map(fn {{r1, _}, {r2, _}} ->

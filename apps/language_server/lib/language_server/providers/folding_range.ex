@@ -6,6 +6,13 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
     https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_foldingRange
   """
 
+  alias __MODULE__
+
+  @type input :: %{
+          tokens: [FoldingRange.Token.t()],
+          lines: [FoldingRange.Line.t()]
+        }
+
   @type t :: %{
           required(:startLine) => non_neg_integer(),
           required(:endLine) => non_neg_integer(),
@@ -45,10 +52,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   end
 
   defp do_provide(text) do
-    formatted_tokens = __MODULE__.Token.format_string(text)
-    {:ok, token_pair_ranges} = formatted_tokens |> __MODULE__.TokenPairs.provide_ranges()
-    {:ok, indentation_ranges} = text |> __MODULE__.Indentation.provide_ranges()
-    {:ok, heredoc_ranges} = formatted_tokens |> __MODULE__.Heredoc.provide_ranges()
+    input = convert_text_to_input(text)
+    {:ok, token_pair_ranges} = input |> FoldingRange.TokenPairs.provide_ranges()
+    {:ok, indentation_ranges} = input |> FoldingRange.Indentation.provide_ranges()
+    {:ok, heredoc_ranges} = input |> FoldingRange.Heredoc.provide_ranges()
 
     ranges =
       merge_ranges_with_priorities([
@@ -58,6 +65,13 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
       ])
 
     {:ok, ranges}
+  end
+
+  def convert_text_to_input(text) do
+    %{
+      tokens: FoldingRange.Token.format_string(text),
+      lines: FoldingRange.Line.format_string(text)
+    }
   end
 
   defp merge_ranges_with_priorities(range_lists_with_priorities) do

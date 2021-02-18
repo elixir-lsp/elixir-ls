@@ -4,10 +4,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
 
-  @spec provide_ranges([FoldingRange.Token.t()]) :: {:ok, [FoldingRange.t()]}
-  def provide_ranges(formatted_tokens) do
+  @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
+  def provide_ranges(%{tokens: tokens}) do
     ranges =
-      formatted_tokens
+      tokens
       |> group_heredoc_tokens()
       |> convert_heredoc_groups_to_ranges()
       |> Enum.sort_by(& &1.startLine)

@@ -17,20 +17,18 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
     fn: [:end]
   }
 
-  @spec provide_ranges([FoldingRange.Token.t()]) :: {:ok, [FoldingRange.t()]}
-  def provide_ranges(formatted_tokens) do
-    ranges = fold_tokens_into_ranges(formatted_tokens)
-    {:ok, ranges}
-  end
-
   # Note
   # This implementation allows for the possibility of 2 ranges with the same
   # startLines but different endLines.
   # It's not clear if that case is actually a problem.
-  defp fold_tokens_into_ranges(tokens) when is_list(tokens) do
-    tokens
-    |> pair_tokens(@token_pairs)
-    |> convert_to_spec_ranges()
+  @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
+  def provide_ranges(%{tokens: tokens}) do
+    ranges =
+      tokens
+      |> pair_tokens(@token_pairs)
+      |> convert_to_spec_ranges()
+
+    {:ok, ranges}
   end
 
   defp pair_tokens(tokens, kind_map) do
