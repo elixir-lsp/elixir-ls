@@ -56,12 +56,14 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
     {:ok, token_pair_ranges} = input |> FoldingRange.TokenPairs.provide_ranges()
     {:ok, indentation_ranges} = input |> FoldingRange.Indentation.provide_ranges()
     {:ok, heredoc_ranges} = input |> FoldingRange.Heredoc.provide_ranges()
+    {:ok, comment_block_ranges} = input |> FoldingRange.CommentBlock.provide_ranges()
 
     ranges =
       merge_ranges_with_priorities([
         {1, indentation_ranges},
-        {2, token_pair_ranges},
-        {2, heredoc_ranges}
+        {2, comment_block_ranges},
+        {3, token_pair_ranges},
+        {3, heredoc_ranges}
       ])
 
     {:ok, ranges}

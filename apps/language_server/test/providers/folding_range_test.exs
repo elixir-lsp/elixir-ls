@@ -260,6 +260,36 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
   end
 
+  describe "comment blocks" do
+    setup [:fold_via_comment_blocks]
+
+    @tag text: """
+         defmodule A do                 # 0
+           def hello() do               # 1
+             do_hello()                 # 2
+           end                          # 3
+
+           # comment block 0            # 5
+           # comment block 1            # 6
+           # comment block 2            # 7
+           defp do_hello(), do: :world  # 8
+         end                            # 9
+         """
+    test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{5, 7}])
+    end
+
+    defp fold_via_comment_blocks(%{text: text} = context) do
+      ranges_result =
+        text
+        |> FoldingRange.convert_text_to_input()
+        |> FoldingRange.CommentBlock.provide_ranges()
+
+      {:ok, Map.put(context, :ranges_result, ranges_result)}
+    end
+  end
+
   describe "end to end" do
     setup [:fold_text]
 
@@ -270,29 +300,44 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            \"\"\"
 
            def f(%{"key" => value} = map) do                    # 5
-             case NaiveDateTime.from_iso8601(value) do          # 6
-               {:ok, ndt} ->                                    # 7
-                 dt =                                           # 8
-                   ndt                                          # 9
-                   |> DateTime.from_naive!("Etc/UTC")           # 10
-                   |> Map.put(:microsecond, {0, 6})             # 11
+             # comment block 0                                  # 6
+             # comment block 1                                  # 7
+             case NaiveDateTime.from_iso8601(value) do          # 8
+               {:ok, ndt} ->                                    # 9
+                 dt =                                           # 10
+                   ndt                                          # 11
+                   |> DateTime.from_naive!("Etc/UTC")           # 12
+                   |> Map.put(:microsecond, {0, 6})             # 13
 
-                 %{map | "key" => dt}                           # 13
+                 %{map | "key" => dt}                           # 15
 
-               e ->                                             # 15
+               e ->                                             # 17
                  Logger.warn(\"\"\"
-                 Could not use data map from #\{inspect(value)\}  # 17
-                 #\{inspect(e)\}                                  # 18
+                 Could not use data map from #\{inspect(value)\}  # 19
+                 #\{inspect(e)\}                                  # 20
                  \"\"\")
 
-                 :could_not_parse_value                         # 21
-             end                                                # 22
-           end                                                  # 23
-         end                                                    # 24
+                 :could_not_parse_value                         # 23
+             end                                                # 24
+           end                                                  # 25
+         end                                                    # 26
          """
     test "complicated function", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
-      expected = [{0, 23}, {1, 2}, {5, 22}, {6, 21}, {7, 13}, {8, 11}, {15, 21}, {16, 18}]
+
+      expected = [
+        {0, 25},
+        {1, 2},
+        {5, 24},
+        {6, 7},
+        {8, 23},
+        {9, 15},
+        {10, 13},
+        {17, 23},
+        {18, 20},
+        {20, 20}
+      ]
+
       assert compare_condensed_ranges(ranges, expected)
     end
 
