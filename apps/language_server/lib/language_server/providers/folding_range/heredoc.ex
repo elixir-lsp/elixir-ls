@@ -41,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
 
   defp convert_heredoc_groups_to_ranges(heredoc_groups) do
     heredoc_groups
-    |> Enum.map(&first_and_last_of_list/1)
+    |> Enum.map(&FoldingRange.Helpers.first_and_last_of_list/1)
     |> Enum.map(fn {last, first} -> classify_group(first, last) end)
   end
 
@@ -52,13 +52,4 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
   defp classify_group({:identifier, {start_line, _, _}, _}, {_, {end_line, _, _}, _}) do
     %{startLine: start_line, endLine: end_line - 1, kind?: :comment}
   end
-
-  defp first_and_last_of_list(list) when is_list(list) do
-    [head | tail] = list
-    do_falo_list(tail, head)
-  end
-
-  defp do_falo_list([], first), do: {first, first}
-  defp do_falo_list([last | []], first), do: {first, last}
-  defp do_falo_list([_ | tail], first), do: do_falo_list(tail, first)
 end
