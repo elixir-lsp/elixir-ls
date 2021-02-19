@@ -26,15 +26,15 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
   def provide_ranges(%{tokens: tokens}) do
     ranges =
       tokens
-      |> pair_tokens(@token_pairs)
+      |> pair_tokens()
       |> convert_to_spec_ranges()
 
     {:ok, ranges}
   end
 
-  defp pair_tokens(tokens, kind_map) do
+  defp pair_tokens(tokens) do
     tokens
-    |> do_pair_tokens([], [], kind_map)
+    |> do_pair_tokens([], [])
     |> Enum.map(fn {{_, {start_line, _, _}, _}, {_, {end_line, _, _}, _}} ->
       # -1 for end_line because the range should stop 1 short
       # e.g. both "do" and "end" should be visible when collapsed
@@ -51,22 +51,21 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
   #   Therefore, the stack may not be empty when the base clause is hit.
   #   We're choosing to return the successfully paired tokens rather than to
   #   return an error if not all tokens could be paired.
-  defp do_pair_tokens([], _stack, pairs, _kind_map), do: pairs
+  defp do_pair_tokens([], _stack, pairs), do: pairs
 
-  defp do_pair_tokens([{head_kind, _, _} = head | tail_tokens], [], pairs, kind_map) do
-    new_stack = if kind_map |> Map.has_key?(head_kind), do: [head], else: []
-    do_pair_tokens(tail_tokens, new_stack, pairs, kind_map)
+  defp do_pair_tokens([{head_kind, _, _} = head | tail_tokens], [], pairs) do
+    new_stack = if @token_pairs |> Map.has_key?(head_kind), do: [head], else: []
+    do_pair_tokens(tail_tokens, new_stack, pairs)
   end
 
   defp do_pair_tokens(
          [{head_kind, _, _} = head | tail_tokens],
          [{top_kind, _, _} = top | tail_stack] = stack,
-         pairs,
-         kind_map
+         pairs
        ) do
-    head_matches_any? = kind_map |> Map.has_key?(head_kind)
+    head_matches_any? = @token_pairs |> Map.has_key?(head_kind)
     # Map.get/2 will always succeed because we only push matches to the stack.
-    head_matches_top? = kind_map |> Map.get(top_kind) |> Enum.member?(head_kind)
+    head_matches_top? = @token_pairs |> Map.get(top_kind) |> Enum.member?(head_kind)
 
     {new_stack, new_pairs} =
       case {head_matches_any?, head_matches_top?} do
@@ -76,7 +75,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
         {true, true} -> {[head | tail_stack], [{top, head} | pairs]}
       end
 
-    do_pair_tokens(tail_tokens, new_stack, new_pairs, kind_map)
+    do_pair_tokens(tail_tokens, new_stack, new_pairs)
   end
 
   defp convert_to_spec_ranges(ranges) do
