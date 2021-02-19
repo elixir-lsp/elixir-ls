@@ -78,13 +78,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   defp merge_ranges_with_priorities(range_lists_with_priorities) do
     range_lists_with_priorities
-    |> Enum.reduce(%{}, fn {priority, ranges}, acc ->
-      ranges
-      |> Enum.reduce(acc, fn %{startLine: start} = range, acc ->
-        ranges_with_priority = Map.get(acc, start, [])
-        Map.put(acc, start, [{priority, range} | ranges_with_priority])
-      end)
-    end)
+    |> Enum.flat_map(fn {priority, ranges} -> Enum.zip(Stream.cycle([priority]), ranges) end)
+    |> Enum.group_by(fn {priority, range} -> range.startLine end)
     |> Enum.map(fn {_start, ranges_with_priority} ->
       {_priority, range} =
         ranges_with_priority
