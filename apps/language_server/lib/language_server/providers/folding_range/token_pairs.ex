@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
+  alias ElixirLS.LanguageServer.Providers.FoldingRange.Token
 
   @token_pairs %{
     "(": [:")"],
@@ -27,19 +28,14 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
     ranges =
       tokens
       |> pair_tokens()
-      |> convert_to_spec_ranges()
+      |> convert_token_pairs_to_ranges()
 
     {:ok, ranges}
   end
 
+  @spec pair_tokens([Token.t()]) :: [{Token.t(), Token.t()}]
   defp pair_tokens(tokens) do
-    tokens
-    |> do_pair_tokens([], [])
-    |> Enum.map(fn {{_, {start_line, _, _}, _}, {_, {end_line, _, _}, _}} ->
-      # -1 for end_line because the range should stop 1 short
-      # e.g. both "do" and "end" should be visible when collapsed
-      {start_line, end_line - 1}
-    end)
+    do_pair_tokens(tokens, [], [])
   end
 
   # A stack-based approach to match range pairs
@@ -78,17 +74,15 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
     do_pair_tokens(tail_tokens, new_stack, new_pairs)
   end
 
-  defp convert_to_spec_ranges(ranges) do
-    ranges
+  @spec convert_token_pairs_to_ranges([{Token.t(), Token.t()}]) :: [FoldingRange.t()]
+  defp convert_token_pairs_to_ranges(token_pairs) do
+    token_pairs
+    |> Enum.map(fn {{_, {start_line, _, _}, _}, {_, {end_line, _, _}, _}} ->
+      # -1 for end_line because the range should stop 1 short
+      # e.g. both "do" and "end" should be visible when collapsed
+      {start_line, end_line - 1}
+    end)
     |> Enum.filter(fn {start_line, end_line} -> end_line > start_line end)
-    |> Enum.sort()
-    |> Enum.dedup()
-    ## Remove the above sort + dedup lines and uncomment the following if no
-    ## two ranges may share a startLine
-    # |> Enum.group_by(fn {start_line, _} -> start_line end)
-    # |> Enum.map(fn {_, ranges} ->
-    #   Enum.max_by(ranges, fn {_, end_line} -> end_line end)
-    # end)
     |> Enum.map(fn {start_line, end_line} ->
       %{startLine: start_line, endLine: end_line, kind?: :region}
     end)
