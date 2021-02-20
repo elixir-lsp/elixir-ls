@@ -271,62 +271,114 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
   end
 
-  describe "heredocs" do
-    setup [:fold_via_heredocs]
+  describe "special tokens" do
+    setup [:fold_via_special_tokens]
 
     @tag text: """
-         defmodule A do                                 # 0
+         defmodule A do       # 0
           @moduledoc \"\"\"
-          I'm a @moduledoc heredoc.                     # 2
+          @moduledoc heredoc  # 2
           \"\"\"
 
           @doc \"\"\"
-          I'm a @doc heredoc.                           # 6
+          @doc heredoc        # 6
           \"\"\"
-           def f(%{"key" => value} = map) do            # 8
-             case NaiveDateTime.from_iso8601(value) do  # 9
-               {:ok, ndt} ->                            # 10
-                 dt =                                   # 11
-                   ndt                                  # 12
-                   |> DateTime.from_naive!("Etc/UTC")   # 13
-                   |> Map.put(:microsecond, {0, 6})     # 14
-
-                 %{map | "key" => dt}                   # 16
-
-               e ->                                     # 18
-                 Logger.warn(\"\"\"
-                 I'm a regular heredoc                  # 20
-                 \"\"\")
-
-                 :could_not_parse_value                 # 23
-             end                                        # 24
-           end                                          # 25
-         end                                            # 26
+           def hello() do     # 8
+             \"\"\"
+             regular heredoc  # 10
+             \"\"\"
+           end                # 12
+         end                  # 13
          """
     test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{1, 2}, {5, 6}, {19, 20}])
+      expected = [{1, 2, :comment}, {5, 6, :comment}, {9, 10, :region}]
+      assert compare_condensed_ranges(ranges, expected)
     end
 
     @tag text: """
          defmodule A do        # 0
            def hello() do      # 1
+             "
+             regular string    # 3
+             "
+             '
+             charlist string   # 6
+             '
+             \"\"\"
+             regular heredoc   # 9
+             \"\"\"
              '''
-             charlist heredoc  # 3
+             charlist heredoc  # 12
              '''
-           end                 # 5
-         end                   # 6
+           end                 # 14
+         end                   # 15
          """
     test "charlist heredocs", %{ranges_result: ranges_result} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{2, 3}])
+      assert compare_condensed_ranges(ranges, [{2, 3}, {5, 6}, {8, 9}, {11, 12}])
     end
 
-    defp fold_via_heredocs(%{text: text} = context) do
+    @tag text: """
+         defmodule A do    # 0
+           def hello() do  # 1
+             ~r/
+               hello       # 3
+             /
+             ~r|
+               hello       # 6
+             |
+             ~r"
+               hello       # 9
+             "
+             ~r'
+               hello       # 12
+             '
+             ~r(
+               hello       # 15
+               )
+             ~r[
+               hello       # 18
+             ]
+             ~r{
+               hello       # 21
+             }
+             ~r<
+               hello       # 24
+             >
+           end             # 26
+         end               # 27
+         """
+    test "sigil delimiters", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{2, 3}, {5, 6}, {8, 9}, {11, 12}, {14, 15}, {17, 18}, {20, 21}, {23, 24}]
+      assert compare_condensed_ranges(ranges, expected)
+    end
+
+    @tag text: """
+         defmodule A do          # 0
+           @module doc ~S\"\"\"
+           sigil @moduledoc      # 2
+           \"\"\"
+
+           @doc ~S\"\"\"
+           sigil @doc            # 6
+           \"\"\"
+           def hello() do        # 8
+             :world              # 9
+           end                   # 10
+         end                     # 11
+         """
+    test "@doc with ~S sigil", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{1, 2, :comment}, {5, 6, :comment}])
+    end
+
+    defp fold_via_special_tokens(%{text: text} = context) do
       ranges_result =
         text
         |> FoldingRange.convert_text_to_input()
-        |> FoldingRange.Heredoc.provide_ranges()
+        |> FoldingRange.SpecialToken.provide_ranges()
 
       {:ok, Map.put(context, :ranges_result, ranges_result)}
     end
@@ -380,7 +432,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
     @tag text: """
          defmodule A do                                         # 0
-           @moduledoc \"\"\"
+           @moduledoc ~S\"\"\"
            I'm a @moduledoc heredoc.                            # 2
            \"\"\"
 

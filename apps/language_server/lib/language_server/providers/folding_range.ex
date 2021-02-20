@@ -53,17 +53,17 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   defp do_provide(text) do
     input = convert_text_to_input(text)
-    {:ok, token_pair_ranges} = input |> FoldingRange.TokenPairs.provide_ranges()
     {:ok, indentation_ranges} = input |> FoldingRange.Indentation.provide_ranges()
-    {:ok, heredoc_ranges} = input |> FoldingRange.Heredoc.provide_ranges()
     {:ok, comment_block_ranges} = input |> FoldingRange.CommentBlock.provide_ranges()
+    {:ok, token_pair_ranges} = input |> FoldingRange.TokenPairs.provide_ranges()
+    {:ok, special_token_ranges} = input |> FoldingRange.SpecialToken.provide_ranges()
 
     ranges =
       merge_ranges_with_priorities([
         {1, indentation_ranges},
         {2, comment_block_ranges},
         {3, token_pair_ranges},
-        {3, heredoc_ranges}
+        {3, special_token_ranges}
       ])
 
     {:ok, ranges}
