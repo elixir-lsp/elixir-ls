@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
+defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
   @moduledoc """
   """
 

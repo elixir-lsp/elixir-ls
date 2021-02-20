@@ -265,7 +265,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
       ranges_result =
         text
         |> FoldingRange.convert_text_to_input()
-        |> FoldingRange.TokenPairs.provide_ranges()
+        |> FoldingRange.TokenPair.provide_ranges()
 
       {:ok, Map.put(context, :ranges_result, ranges_result)}
     end

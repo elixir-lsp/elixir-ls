@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
     input = convert_text_to_input(text)
     {:ok, indentation_ranges} = input |> FoldingRange.Indentation.provide_ranges()
     {:ok, comment_block_ranges} = input |> FoldingRange.CommentBlock.provide_ranges()
-    {:ok, token_pair_ranges} = input |> FoldingRange.TokenPairs.provide_ranges()
+    {:ok, token_pair_ranges} = input |> FoldingRange.TokenPair.provide_ranges()
     {:ok, special_token_ranges} = input |> FoldingRange.SpecialToken.provide_ranges()
 
     ranges =
