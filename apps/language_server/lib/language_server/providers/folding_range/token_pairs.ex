@@ -9,6 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPairs do
     "(": [:")"],
     "[": [:"]"],
     "{": [:"}"],
+    "<<": [:">>"],
     # do blocks
     do: [:block_identifier, :end],
     block_identifier: [:block_identifier, :end],

@@ -187,6 +187,22 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
 
     @tag text: """
+         defmodule A do    # 0
+           def hello() do  # 1
+             <<0>>         # 2
+             <<            # 3
+               1, 2, 3,    # 4
+               4, 5, 6     # 5
+             >>            # 6
+           end             # 7
+         end               # 8
+         """
+    test "binaries", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 7}, {1, 6}, {3, 5}])
+    end
+
+    @tag text: """
          defmodule A do                   # 0
            @moduledoc "This is module A"  # 1
          end                              # 2
