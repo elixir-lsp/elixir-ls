@@ -4,6 +4,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
 
+  @heredoc_kinds [:bin_heredoc, :list_heredoc]
+
   @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{tokens: tokens}) do
     ranges =
@@ -14,23 +16,19 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
     {:ok, ranges}
   end
 
-  # The :bin_heredoc token will be either
-  #   - by itself or
-  #   - directly after an :identifier (either :doc or :moduledoc).
-  # :bin_heredoc regions are ended by an :eol token.
   defp group_heredoc_tokens(tokens) do
     tokens
     |> Enum.reduce([], fn
       {:identifier, _, x} = token, acc when x in [:doc, :moduledoc] ->
         [[token] | acc]
 
-      {:bin_heredoc, _, _} = token, [[{:identifier, _, _}] = head | tail] ->
+      {kind, _, _} = token, [[{:identifier, _, _}] = head | tail] when kind in @heredoc_kinds ->
         [[token | head] | tail]
 
-      {:bin_heredoc, _, _} = token, acc ->
+      {kind, _, _} = token, acc when kind in @heredoc_kinds ->
         [[token] | acc]
 
-      {:eol, _, _} = token, [[{:bin_heredoc, _, _} | _] = head | tail] ->
+      {:eol, _, _} = token, [[{kind, _, _} | _] = head | tail] when kind in @heredoc_kinds ->
         [[token | head] | tail]
 
       _, acc ->
@@ -47,7 +45,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Heredoc do
     end)
   end
 
-  defp classify_group({:bin_heredoc, {start_line, _, _}, _}, {_, {end_line, _, _}, _}) do
+  defp classify_group({kind, {start_line, _, _}, _}, {_, {end_line, _, _}, _})
+       when kind in @heredoc_kinds do
     %{startLine: start_line, endLine: end_line - 1, kind?: :region}
   end
 

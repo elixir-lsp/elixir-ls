@@ -292,6 +292,20 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
       assert compare_condensed_ranges(ranges, [{1, 2}, {5, 6}, {19, 20}])
     end
 
+    @tag text: """
+         defmodule A do        # 0
+           def hello() do      # 1
+             '''
+             charlist heredoc  # 3
+             '''
+           end                 # 5
+         end                   # 6
+         """
+    test "charlist heredocs", %{ranges_result: ranges_result} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{2, 3}])
+    end
+
     defp fold_via_heredocs(%{text: text} = context) do
       ranges_result =
         text
