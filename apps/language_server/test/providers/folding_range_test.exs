@@ -431,8 +431,40 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
   end
 
-  defp compare_condensed_ranges(result, condensed_expected) do
-    condensed_result = result |> Enum.map(&{&1.startLine, &1.endLine})
-    assert Enum.sort(condensed_result) == Enum.sort(condensed_expected)
+  defp compare_condensed_ranges(result, expected_condensed) do
+    result_condensed =
+      result
+      |> Enum.map(fn
+        %{startLine: start_line, endLine: end_line, kind?: kind} ->
+          {start_line, end_line, kind}
+
+        %{startLine: start_line, endLine: end_line} ->
+          {start_line, end_line, :any}
+      end)
+      |> Enum.sort()
+
+    expected_condensed =
+      expected_condensed
+      |> Enum.map(fn
+        {start_line, end_line, kind} ->
+          {start_line, end_line, kind}
+
+        {start_line, end_line} ->
+          {start_line, end_line, :any}
+      end)
+      |> Enum.sort()
+
+    {result_condensed, expected_condensed} =
+      Enum.zip(result_condensed, expected_condensed)
+      |> Enum.map(fn
+        {{rs, re, rk}, {es, ee, ek}} when rk == :any or ek == :any ->
+          {{rs, re, :any}, {es, ee, :any}}
+
+        otherwise ->
+          otherwise
+      end)
+      |> Enum.unzip()
+
+    assert result_condensed == expected_condensed
   end
 end
