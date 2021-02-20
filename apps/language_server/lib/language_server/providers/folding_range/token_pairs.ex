@@ -20,10 +20,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
     fn: [:end]
   }
 
-  # Note
-  # This implementation allows for the possibility of 2 ranges with the same
-  # startLines but different endLines.
-  # It's not clear if that case is actually a problem.
   @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{tokens: tokens}) do
     ranges =
@@ -39,10 +35,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
     do_pair_tokens(tokens, [], [])
   end
 
-  # A stack-based approach to match range pairs
-  # Notes
-  # - The returned pairs will be ordered by the line of the 2nd element.
-  # - Tokenizer.tokenize/1 doesn't differentiate between successful and failed
+  # Note
+  #   Tokenizer.tokenize/1 doesn't differentiate between successful and failed
   #   attempts to tokenize the string.
   #   This could mean the returned tokens are unbalanced.
   #   Therefore, the stack may not be empty when the base clause is hit.
