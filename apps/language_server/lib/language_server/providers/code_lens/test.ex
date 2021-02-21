@@ -93,7 +93,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         end)
 
       %{"name" => test_name} =
-        ~r/^\s*test "(?<name>.*)"(,.*)? do/
+        ~r/^\s*test "(?<name>.*)"(,.*)?/
         |> Regex.named_captures(Enum.at(source_lines, line - 1))
 
       %TestBlock{name: test_name, describe: describe, line: line}
