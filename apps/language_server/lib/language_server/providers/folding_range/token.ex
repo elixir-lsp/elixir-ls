@@ -29,6 +29,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
           {:sigil, {b1, b2, b3}, _, _, _, _, delimiter} ->
             {:sigil, {b1 - 1, b2 - 1, b3}, delimiter}
 
+          # Older versions of Tokenizer.tokenize/1
+          {:sigil, {b1, b2, b3}, _, _, _, delimiter} ->
+            {:sigil, {b1 - 1, b2 - 1, b3}, delimiter}
+
           # raise here?
           _ ->
             :error
