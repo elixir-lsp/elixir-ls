@@ -1,17 +1,39 @@
 defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
   @moduledoc """
-  Code folding based on comment blocks.
+  Code folding based on comment blocks
 
-  Note that this can create comment regions inside heredocs.
-  It's a little sloppy, but I don't think it's a big problem.
+  Note that this implementation can create comment ranges inside heredocs.
+  It's a little sloppy, but it shouldn't be very impactful.
+  We'd have to merge the token and line representations of the source text to
+  mitigate this issue, so we've left it as is for now.
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
   alias ElixirLS.LanguageServer.Providers.FoldingRange.Line
 
   @doc """
-  Provides ranges for the source text based on the indentation level.
-  Note that we trim trailing empy rows from regions.
+  Provides ranges for the source text based on comment blocks.
+
+  ## Example
+
+  text =
+    \"\"\"
+    defmodule SomeModule do   # 0
+      def some_function() do  # 1
+        # I'm                 # 2
+        # a                   # 3
+        # comment block       # 4
+        nil                   # 5
+      end                     # 6
+    end                       # 7
+    \"\"\"
+
+  {:ok, ranges} =
+    text
+    |> FoldingRange.convert_text_to_input()
+    |> CommentBlock.provide_ranges()
+
+  # ranges == [%{startLine: 2, endLine: 4, kind?: :comment}]
   """
   @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{lines: lines}) do

@@ -1,6 +1,9 @@
 defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   @moduledoc """
-  Code folding based on indentation only.
+  Code folding based on indentation level
+
+  Note that we trim trailing empty rows from regions.
+  See the example.
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
@@ -8,7 +11,40 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
 
   @doc """
   Provides ranges for the source text based on the indentation level.
-  Note that we trim trailing empy rows from regions.
+
+  ## Example
+
+  text =
+    \"\"\"
+    defmodule A do                      # 0
+      def get_info(args) do             # 1
+        org =                           # 2
+          args                          # 3
+          |> Ecto.assoc(:organization)  # 4
+          |> Repo.one!()                # 5
+
+        user =                          # 7
+          org                           # 8
+          |> Organization.user!()       # 9
+
+        {:ok, %{org: org, user: user}}  # 11
+      end                               # 12
+    end                                 # 13
+    \"\"\"
+
+  {:ok, ranges} =
+    text
+    |> FoldingRange.convert_text_to_input()
+    |> Indentation.provide_ranges()
+
+  # ranges == [
+  #   %{startLine: 0, endLine: 12, kind?: :region},
+  #   %{startLine: 1, endLine: 11, kind?: :region},
+  #   %{startLine: 2, endLine: 5, kind?: :region},
+  #   %{startLine: 7, endLine: 9, kind?: :region},
+  # ]
+
+  Note that the empty lines 6 and 10 do not appear in the inner most ranges.
   """
   @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{lines: lines}) do

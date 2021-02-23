@@ -1,6 +1,10 @@
 defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
   @moduledoc """
-  TODO: document this
+  Code folding based on "special" tokens.
+
+  Several tokens, like `"..."`s, define ranges all on their own.
+  This module converts these tokens to ranges.
+  These ranges can be either `kind?: :comment` or `kind?: :region`.
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
@@ -14,6 +18,35 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
     :sigil
   ]
 
+  @doc """
+  Provides ranges based on "special" tokens
+
+  ## Example
+
+  text =
+    \"\"\"
+    defmodule A do        # 0
+      def hello() do      # 1
+        "
+        regular string    # 3
+        "
+        '
+        charlist string   # 6
+        '
+      end                 # 8
+    end                   # 9
+    \"\"\"
+
+  {:ok, ranges} =
+    text
+    |> FoldingRange.convert_text_to_input()
+    |> SpecialToken.provide_ranges()
+
+  # ranges == [
+  #   %{startLine: 2, endLine, 3, kind?: :region},
+  #   %{startLine: 5, endLine, 6, kind?: :region}
+  # ]
+  """
   @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{tokens: tokens}) do
     ranges =

@@ -2,8 +2,51 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   @moduledoc """
   A textDocument/foldingRange provider implementation.
 
+  ## Background
+
   See specification here:
-    https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_foldingRange
+
+  https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_foldingRange
+
+  ## Methodology
+
+  ### High level
+
+  We make multiple passes (currently 4) through the source text and create
+  folding ranges from each pass.
+  Then we merge the ranges from each pass to provide the final ranges.
+  Each pass gets a priority to help break ties (the priority is an integer,
+  higher integers win).
+
+  ### Indentation pass (priority: 1)
+
+  We use the indentation level -- determined by the column of the first
+  non-whitespace character on each line -- to provide baseline ranges.
+  All ranges from this pass are `kind?: :region` ranges.
+
+  ### Comment block pass (priority: 2)
+
+  We let "comment blocks", consecutive lines starting with `#`, from regions.
+  All ranges from this pass are `kind?: :comment` ranges.
+
+  ### Token-pairs pass (priority: 3)
+
+  We use pairs of tokens, e.g. `do` and `end`, to provide another pass of
+  ranges.
+  All ranges from this pass are `kind?: :region` ranges.
+
+  ### Special tokens pass (priority: 3)
+
+  We find strings (regular/charlist strings/heredocs) and sigils in a pass as
+  they're delimited by a few special tokens.
+  Ranges from this pass are either
+  - `kind?: :comment` if the token is paired with `@doc` or `@moduledoc`, or
+  - `kind?: :region` otherwise.
+
+  ## Notes
+
+  Each pass may return ranges in any order.
+  But all ranges are valid, i.e. endLine > startLine.
   """
 
   alias __MODULE__
@@ -26,21 +69,23 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   ## Example
 
-    text = \"\"\"
-    defmodule A do    # 0
-      def hello() do  # 1
-        :world        # 2
-      end             # 3
-    end               # 4
-    \"\"\"
+  text = \"\"\"
+  defmodule A do    # 0
+    def hello() do  # 1
+      :world        # 2
+    end             # 3
+  end               # 4
+  \"\"\"
 
-    {:ok, ranges} = FoldingRange.provide(%{text: text})
+  {:ok, ranges} =
+    text
+    |> convert_text_to_input()
+    |> provide()
 
-    ranges
-    # [
-    #   %{startLine: 0, endLine: 3},
-    #   %{startLine: 1, endLine: 2}
-    # ]
+  # ranges == [
+  #   %{startLine: 0, endLine: 3, kind?: :region},
+  #   %{startLine: 1, endLine: 2, kind?: :region}
+  # ]
   """
   @spec provide(%{text: String.t()}) :: {:ok, [t()]} | {:error, String.t()}
   def provide(%{text: text}) do
@@ -53,18 +98,21 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   defp do_provide(text) do
     input = convert_text_to_input(text)
-    {:ok, indentation_ranges} = input |> FoldingRange.Indentation.provide_ranges()
-    {:ok, comment_block_ranges} = input |> FoldingRange.CommentBlock.provide_ranges()
-    {:ok, token_pair_ranges} = input |> FoldingRange.TokenPair.provide_ranges()
-    {:ok, special_token_ranges} = input |> FoldingRange.SpecialToken.provide_ranges()
+
+    passes_with_priority = [
+      {1, FoldingRange.Indentation},
+      {2, FoldingRange.CommentBlock},
+      {3, FoldingRange.TokenPair},
+      {3, FoldingRange.SpecialToken}
+    ]
 
     ranges =
-      merge_ranges_with_priorities([
-        {1, indentation_ranges},
-        {2, comment_block_ranges},
-        {3, token_pair_ranges},
-        {3, special_token_ranges}
-      ])
+      passes_with_priority
+      |> Enum.map(fn {priority, pass} ->
+        ranges = ranges_from_pass(pass, input)
+        {priority, ranges}
+      end)
+      |> merge_ranges_with_priorities()
 
     {:ok, ranges}
   end
@@ -74,6 +122,14 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
       tokens: FoldingRange.Token.format_string(text),
       lines: FoldingRange.Line.format_string(text)
     }
+  end
+
+  defp ranges_from_pass(pass, input) do
+    with {:ok, ranges} <- pass.provide_ranges(input) do
+      ranges
+    else
+      _ -> []
+    end
   end
 
   defp merge_ranges_with_priorities(range_lists_with_priorities) do

@@ -1,5 +1,12 @@
 defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
   @moduledoc """
+  Code folding based on pairs of tokens
+
+  Certain pairs of tokens, like `do` and `end`, natrually define ranges.
+  These ranges all have `kind?: :region`.
+
+  Note that we exclude the line that the 2nd of the pair, e.g. `end`, is on.
+  This is so that when collapsed, both tokens are visible.
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
@@ -20,6 +27,30 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
     fn: [:end]
   }
 
+  @doc """
+  Provides ranges based on token pairs
+
+  ## Example
+
+  text =
+    \"\"\"
+    defmodule Module do       # 0
+      def some_function() do  # 1
+        4                     # 2
+      end                     # 3
+    end                       # 4
+    \"\"\"
+
+  {:ok, ranges} =
+    text
+    |> FoldingRange.convert_text_to_input()
+    |> TokenPair.provide_ranges()
+
+  # ranges == [
+  #   %{startLine: 0, endLine: 3, kind?: :region},
+  #   %{startLine: 1, endLine: 2, kind?: :region}
+  # ]
+  """
   @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{tokens: tokens}) do
     ranges =

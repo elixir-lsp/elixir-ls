@@ -1,5 +1,8 @@
 defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
   @moduledoc """
+  This module normalizes the tokens provided by
+
+    `ElixirSense.Core.Normalized.Tokenizer`
   """
 
   alias ElixirSense.Core.Normalized.Tokenizer
