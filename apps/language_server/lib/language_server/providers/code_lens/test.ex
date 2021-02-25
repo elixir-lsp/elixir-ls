@@ -48,8 +48,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     end
   end
 
-  def code_lens(_uri, _text), do: {:ok, []}
-
   defp get_test_lenses(test_blocks, file_path, project_dir) do
     args = fn block ->
       %{
@@ -93,7 +91,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         end)
 
       %{"name" => test_name} =
-        ~r/^\s*test "(?<name>.*)"(,.*)? do/
+        ~r/^\s*test "(?<name>.*)"(,.*)?/
         |> Regex.named_captures(Enum.at(source_lines, line - 1))
 
       %TestBlock{name: test_name, describe: describe, line: line}
