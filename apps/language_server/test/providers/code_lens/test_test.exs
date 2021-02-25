@@ -340,7 +340,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     uri = "file:///project/file.ex"
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
     assert Enum.member?(
              lenses,

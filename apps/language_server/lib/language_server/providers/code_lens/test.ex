@@ -48,8 +48,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     end
   end
 
-  def code_lens(_uri, _text), do: {:ok, []}
-
   defp get_test_lenses(test_blocks, file_path, project_dir) do
     args = fn block ->
       %{
