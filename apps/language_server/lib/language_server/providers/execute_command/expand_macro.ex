@@ -14,22 +14,39 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
     source_file = Server.get_source_file(state, uri)
     cur_text = source_file.text
 
-    result = ElixirSense.expand_full(cur_text, text, line + 1)
+    if String.trim(text) != "" do
+      result = ElixirSense.expand_full(cur_text, text, line + 1)
 
-    formatted =
-      for {key, value} <- result,
-          into: %{},
-          do:
-            (
-              key =
-                key
-                |> Atom.to_string()
-                |> Macro.camelize()
-                |> String.replace("Expand", "expand")
+      formatted =
+        for {key, value} <- result,
+            into: %{},
+            do:
+              (
+                key =
+                  key
+                  |> Atom.to_string()
+                  |> Macro.camelize()
+                  |> String.replace("Expand", "expand")
 
-              {key, value |> Code.format_string!() |> List.to_string()}
-            )
+                formatted = value |> Code.format_string!() |> List.to_string()
 
-    {:ok, formatted}
+                {key, formatted <> "\n"}
+              )
+
+      {:ok, formatted}
+    else
+      # special case to avoid
+      # warning: invalid expression (). If you want to invoke or define a function, make sure there are
+      # no spaces between the function name and its arguments. If you wanted to pass an empty block or code,
+      # pass a value instead, such as a nil or an atom
+      # nofile:1
+      {:ok,
+       %{
+         "expand" => "\n",
+         "expandAll" => "\n",
+         "expandOnce" => "\n",
+         "expandPartial" => "\n"
+       }}
+    end
   end
 end
