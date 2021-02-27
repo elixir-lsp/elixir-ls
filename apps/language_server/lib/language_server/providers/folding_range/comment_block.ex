@@ -16,24 +16,22 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
 
   ## Example
 
-  text =
-    \"\"\"
-    defmodule SomeModule do   # 0
-      def some_function() do  # 1
-        # I'm                 # 2
-        # a                   # 3
-        # comment block       # 4
-        nil                   # 5
-      end                     # 6
-    end                       # 7
-    \"\"\"
-
-  {:ok, ranges} =
-    text
-    |> FoldingRange.convert_text_to_input()
-    |> CommentBlock.provide_ranges()
-
-  # ranges == [%{startLine: 2, endLine: 4, kind?: :comment}]
+      iex> alias ElixirLS.LanguageServer.Providers.FoldingRange
+      iex> text = \"""
+      ...>   defmodule SomeModule do   # 0
+      ...>     def some_function() do  # 1
+      ...>       # I'm                 # 2
+      ...>       # a                   # 3
+      ...>       # comment block       # 4
+      ...>       nil                   # 5
+      ...>     end                     # 6
+      ...>   end                       # 7
+      ...>   \"""
+      iex> FoldingRange.convert_text_to_input(text)
+      iex> |> CommentBlock.provide_ranges()
+      {:ok, [
+        %{startLine: 2, endLine: 4, kind?: :comment}
+      ]}
   """
   @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{lines: lines}) do

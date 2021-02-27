@@ -3,6 +3,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
 
+  doctest(FoldingRange)
+
   test "returns an :error tuple if input is not a source file" do
     assert {:error, _} = %{} |> FoldingRange.provide()
   end
@@ -17,9 +19,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 3
          end               # 4
          """
-    test "basic test", %{ranges_result: ranges_result} do
+    test "basic test", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
+      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}], text)
     end
 
     @tag text: """
@@ -32,9 +34,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 6
          end               # 7
          """
-    test "consecutive matching levels", %{ranges_result: ranges_result} do
+    test "consecutive matching levels", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 6}, {1, 5}, {3, 4}])
+      assert compare_condensed_ranges(ranges, [{0, 6}, {1, 5}, {3, 4}], text)
     end
 
     @tag text: """
@@ -60,10 +62,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                                  # 19
          end                                                    # 20
          """
-    test "complicated function", %{ranges_result: ranges_result} do
+    test "complicated function", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
       expected = [{0, 19}, {1, 18}, {2, 17}, {3, 9}, {4, 7}, {11, 17}]
-      assert compare_condensed_ranges(ranges, expected)
+      assert compare_condensed_ranges(ranges, expected, text)
     end
 
     @tag text: """
@@ -82,9 +84,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                               # 12
          end                                 # 13
          """
-    test "different complicated function", %{ranges_result: ranges_result} do
+    test "different complicated function", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 12}, {1, 11}, {2, 5}, {7, 9}])
+      assert compare_condensed_ranges(ranges, [{0, 12}, {1, 11}, {2, 5}, {7, 9}], text)
     end
 
     defp fold_via_indentation(%{text: text} = context) do
@@ -107,9 +109,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 3
          end               # 4
          """
-    test "basic test", %{ranges_result: ranges_result} do
+    test "basic test", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
+      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}], text)
     end
 
     @tag text: """
@@ -119,9 +121,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                end         # 3
                  end       # 4
          """
-    test "unusual indentation", %{ranges_result: ranges_result} do
+    test "unusual indentation", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}])
+      assert compare_condensed_ranges(ranges, [{0, 3}, {1, 2}], text)
     end
 
     @tag text: """
@@ -135,9 +137,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 7
          end               # 8
          """
-    test "if-do-else-end", %{ranges_result: ranges_result} do
+    test "if-do-else-end", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 7}, {1, 6}, {2, 3}, {4, 5}])
+      assert compare_condensed_ranges(ranges, [{0, 7}, {1, 6}, {2, 3}, {4, 5}], text)
     end
 
     @tag text: """
@@ -160,10 +162,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                      # 16
          end                        # 17
          """
-    test "try block", %{ranges_result: ranges_result} do
+    test "try block", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
       expected = [{0, 16}, {1, 15}, {2, 3}, {4, 6}, {7, 9}, {10, 12}, {13, 14}]
-      assert compare_condensed_ranges(ranges, expected)
+      assert compare_condensed_ranges(ranges, expected, text)
     end
 
     @tag text: """
@@ -181,9 +183,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end              # 11
          end                # 12
          """
-    test "1 defmodule, 1 def, 1 case", %{ranges_result: ranges_result} do
+    test "1 defmodule, 1 def, 1 case", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 11}, {1, 10}, {4, 9}])
+      assert compare_condensed_ranges(ranges, [{0, 11}, {1, 10}, {4, 9}], text)
     end
 
     @tag text: """
@@ -197,9 +199,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 7
          end               # 8
          """
-    test "binaries", %{ranges_result: ranges_result} do
+    test "binaries", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 7}, {1, 6}, {3, 5}])
+      assert compare_condensed_ranges(ranges, [{0, 7}, {1, 6}, {3, 5}], text)
     end
 
     @tag text: """
@@ -211,9 +213,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            @moduledoc "This is module B"  # 5
          end                              # 6
          """
-    test "2 defmodules in the top-level of file", %{ranges_result: ranges_result} do
+    test "2 defmodules in the top-level of file", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 1}, {4, 5}])
+      assert compare_condensed_ranges(ranges, [{0, 1}, {4, 5}], text)
     end
 
     @tag text: """
@@ -228,9 +230,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                # 8
          end                                  # 9
          """
-    test "1 defmodule, 1 def, 1 list", %{ranges_result: ranges_result} do
+    test "1 defmodule, 1 def, 1 list", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}])
+      assert compare_condensed_ranges(ranges, [{0, 8}, {1, 7}, {2, 4}], text)
     end
 
     @tag text: """
@@ -256,9 +258,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                                  # 19
          end                                                    # 20
          """
-    test "complicated function", %{ranges_result: ranges_result} do
+    test "complicated function", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{0, 19}, {1, 18}, {2, 17}, {12, 14}])
+      assert compare_condensed_ranges(ranges, [{0, 19}, {1, 18}, {2, 17}, {12, 14}], text)
     end
 
     defp fold_via_token_pairs(%{text: text} = context) do
@@ -290,10 +292,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                # 12
          end                  # 13
          """
-    test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result} do
+    test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
       expected = [{1, 2, :comment}, {5, 6, :comment}, {9, 10, :region}]
-      assert compare_condensed_ranges(ranges, expected)
+      assert compare_condensed_ranges(ranges, expected, text)
     end
 
     @tag text: """
@@ -314,9 +316,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                 # 14
          end                   # 15
          """
-    test "charlist heredocs", %{ranges_result: ranges_result} do
+    test "charlist heredocs", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{2, 3}, {5, 6}, {8, 9}, {11, 12}])
+      assert compare_condensed_ranges(ranges, [{2, 3}, {5, 6}, {8, 9}, {11, 12}], text)
     end
 
     @tag text: """
@@ -349,10 +351,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end             # 26
          end               # 27
          """
-    test "sigil delimiters", %{ranges_result: ranges_result} do
+    test "sigil delimiters", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
       expected = [{2, 3}, {5, 6}, {8, 9}, {11, 12}, {14, 15}, {17, 18}, {20, 21}, {23, 24}]
-      assert compare_condensed_ranges(ranges, expected)
+      assert compare_condensed_ranges(ranges, expected, text)
     end
 
     @tag text: """
@@ -369,9 +371,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                   # 10
          end                     # 11
          """
-    test "@doc with ~S sigil", %{ranges_result: ranges_result} do
+    test "@doc with ~S sigil", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{1, 2, :comment}, {5, 6, :comment}])
+      assert compare_condensed_ranges(ranges, [{1, 2, :comment}, {5, 6, :comment}], text)
     end
 
     defp fold_via_special_tokens(%{text: text} = context) do
@@ -395,9 +397,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                          # 4
          end                            # 5
          """
-    test "no single line comment blocks", %{ranges_result: ranges_result} do
+    test "no single line comment blocks", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [])
+      assert compare_condensed_ranges(ranges, [], text)
     end
 
     @tag text: """
@@ -412,9 +414,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            defp do_hello(), do: :world  # 8
          end                            # 9
          """
-    test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result} do
+    test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{5, 7}])
+      assert compare_condensed_ranges(ranges, [{5, 7}], text)
     end
 
     defp fold_via_comment_blocks(%{text: text} = context) do
@@ -459,7 +461,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end                                                  # 25
          end                                                    # 26
          """
-    test "complicated function", %{ranges_result: ranges_result} do
+    test "complicated function", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
 
       expected = [
@@ -474,7 +476,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
         {18, 20}
       ]
 
-      assert compare_condensed_ranges(ranges, expected)
+      assert compare_condensed_ranges(ranges, expected, text)
     end
 
     defp fold_text(%{text: _text} = context) do
@@ -483,7 +485,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
   end
 
-  defp compare_condensed_ranges(result, expected_condensed) do
+  defp compare_condensed_ranges(result, expected_condensed, text) do
     result_condensed =
       result
       |> Enum.map(fn
@@ -517,6 +519,32 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
       end)
       |> Enum.unzip()
 
+    if result_condensed != expected_condensed do
+      visualize_folding(text, result_condensed)
+    end
+
     assert result_condensed == expected_condensed
+  end
+
+  def visualize_folding(nil, _), do: :ok
+
+  def visualize_folding(text, result_condensed) do
+    lines =
+      String.split(text, "\n")
+      |> Enum.with_index()
+      |> Enum.map(fn {line, index} ->
+        String.pad_leading(to_string(index), 2, " ") <> ": " <> line
+      end)
+
+    result_condensed
+    |> Enum.map(fn {line_start, line_end, :any} ->
+      out =
+        Enum.slice(lines, line_start, line_end - line_start + 2)
+        |> Enum.join("\n")
+
+      IO.puts("Folding lines #{line_start}, #{line_end}:")
+      IO.puts(out)
+      IO.puts("\n")
+    end)
   end
 end

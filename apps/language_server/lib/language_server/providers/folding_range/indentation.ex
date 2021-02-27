@@ -14,35 +14,31 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
 
   ## Example
 
-  text =
-    \"\"\"
-    defmodule A do                      # 0
-      def get_info(args) do             # 1
-        org =                           # 2
-          args                          # 3
-          |> Ecto.assoc(:organization)  # 4
-          |> Repo.one!()                # 5
-
-        user =                          # 7
-          org                           # 8
-          |> Organization.user!()       # 9
-
-        {:ok, %{org: org, user: user}}  # 11
-      end                               # 12
-    end                                 # 13
-    \"\"\"
-
-  {:ok, ranges} =
-    text
-    |> FoldingRange.convert_text_to_input()
-    |> Indentation.provide_ranges()
-
-  # ranges == [
-  #   %{startLine: 0, endLine: 12, kind?: :region},
-  #   %{startLine: 1, endLine: 11, kind?: :region},
-  #   %{startLine: 2, endLine: 5, kind?: :region},
-  #   %{startLine: 7, endLine: 9, kind?: :region},
-  # ]
+      iex> alias ElixirLS.LanguageServer.Providers.FoldingRange
+      iex> text = \"""
+      ...> defmodule A do                      # 0
+      ...>   def get_info(args) do             # 1
+      ...>     org =                           # 2
+      ...>       args                          # 3
+      ...>       |> Ecto.assoc(:organization)  # 4
+      ...>       |> Repo.one!()                # 5
+      ...>
+      ...>     user =                          # 7
+      ...>       org                           # 8
+      ...>       |> Organization.user!()       # 9
+      ...>
+      ...>     {:ok, %{org: org, user: user}}  # 11
+      ...>   end                               # 12
+      ...> end                                 # 13
+      ...> \"""
+      iex> FoldingRange.convert_text_to_input(text)
+      ...> |> FoldingRange.Indentation.provide_ranges()
+      {:ok, [
+        %{startLine: 0, endLine: 12, kind?: :region},
+        %{startLine: 1, endLine: 11, kind?: :region},
+        %{startLine: 7, endLine: 9, kind?: :region},
+        %{startLine: 2, endLine: 5, kind?: :region},
+      ]}
 
   Note that the empty lines 6 and 10 do not appear in the inner most ranges.
   """
