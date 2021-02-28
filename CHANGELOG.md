@@ -1,8 +1,9 @@
 ### Unreleased
 
 Improvements:
-- Use fuzzy matching for completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491)
+- Use fuzzy matching for function completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491/files)
   - For example: "valp" will match `validate_password` and "Enum.chub" will match `Enum.chunk_by/2`
+  - Note: the plan is to extend this fuzzy matching to other types of completion in the future
 
 Bug Fixes:
 - Make expandMacro a custom command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#498](https://github.com/elixir-lsp/elixir-ls/pull/498)
