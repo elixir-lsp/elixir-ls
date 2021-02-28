@@ -1,11 +1,12 @@
 ### Unreleased
 
 Improvements:
-- Use fuzzy matching for completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491/files)
+- Use fuzzy matching for completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491)
   - For example: "valp" will match `validate_password` and "Enum.chub" will match `Enum.chunk_by/2`
 
 Bug Fixes:
 - Make expandMacro a custom command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#498](https://github.com/elixir-lsp/elixir-ls/pull/498)
+- Suppress setup script stdout output on windows(thanks [Po Chen](https://github.com/princemaple)) [#497](https://github.com/elixir-lsp/elixir-ls/pull/497)
 
 VSCode:
 - Fix test lens shell escaping on Windows (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#175](https://github.com/elixir-lsp/vscode-elixir-ls/pull/175)
