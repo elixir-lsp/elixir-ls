@@ -23,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
             |> Atom.to_string()
             |> Macro.camelize()
             |> String.replace("Expand", "expand")
-                  
+
           formatted = value |> Code.format_string!() |> List.to_string()
           {key, formatted <> "\n"}
         end)
