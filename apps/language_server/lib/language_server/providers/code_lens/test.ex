@@ -79,8 +79,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     runnable_functions = [{:test, 3}, {:test, 2}]
 
     for func <- runnable_functions,
-        {line, _col} <- calls_to(calls_list, func),
-        is_test_module?(lines_to_env_list, line) do
+        {line, _col} <- calls_to(calls_list, func) do
       {_line, %{scope_id: scope_id}} =
         Enum.find(lines_to_env_list, fn {env_line, _env} -> env_line == line end)
 
@@ -101,8 +100,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   defp find_describe_blocks(lines_to_env_list, calls_list, source_lines) do
     lines_to_env_list_length = length(lines_to_env_list)
 
-    for {line, _col} <- calls_to(calls_list, {:describe, 2}),
-        is_test_module?(lines_to_env_list, line) do
+    for {line, _col} <- calls_to(calls_list, {:describe, 2}) do
       DescribeBlock.find_block_info(
         line,
         lines_to_env_list,
@@ -126,21 +124,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   defp get_test_modules(lines_to_env) do
     lines_to_env
     |> Enum.group_by(fn {_line, env} -> env.module end)
-    |> Enum.filter(fn {_module, module_lines_to_env} -> is_test_module?(module_lines_to_env) end)
     |> Enum.map(fn {module, [{line, _env} | _rest]} -> {module, line} end)
-  end
-
-  defp is_test_module?(lines_to_env), do: is_test_module?(lines_to_env, :infinity)
-
-  defp is_test_module?(lines_to_env, line) when is_list(lines_to_env) do
-    lines_to_env
-    |> Enum.max_by(fn
-      {env_line, _env} when env_line < line -> env_line
-      _ -> -1
-    end)
-    |> elem(1)
-    |> Map.get(:imports)
-    |> Enum.any?(fn module -> module == ExUnit.Case end)
   end
 
   defp calls_to(calls_list, {function, arity}) do
