@@ -729,7 +729,7 @@ defmodule ElixirLS.LanguageServer.Server do
      end, state}
   end
 
-  # TODO remove in 0.8
+  # TODO remove in ElixirLS 0.8
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
     IO.warn(
       "Custom `elixirDocument/macroExpansion` request is deprecated. Switch to command `executeMacro` via `workspace/executeCommand`"

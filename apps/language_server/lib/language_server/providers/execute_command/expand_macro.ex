@@ -15,23 +15,18 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
     cur_text = source_file.text
 
     if String.trim(text) != "" do
-      result = ElixirSense.expand_full(cur_text, text, line + 1)
-
       formatted =
-        for {key, value} <- result,
-            into: %{},
-            do:
-              (
-                key =
-                  key
-                  |> Atom.to_string()
-                  |> Macro.camelize()
-                  |> String.replace("Expand", "expand")
-
-                formatted = value |> Code.format_string!() |> List.to_string()
-
-                {key, formatted <> "\n"}
-              )
+        ElixirSense.expand_full(cur_text, text, line + 1)
+        |> Map.new(fn {key, value} ->
+          key =
+            key
+            |> Atom.to_string()
+            |> Macro.camelize()
+            |> String.replace("Expand", "expand")
+                  
+          formatted = value |> Code.format_string!() |> List.to_string()
+          {key, formatted <> "\n"}
+        end)
 
       {:ok, formatted}
     else
