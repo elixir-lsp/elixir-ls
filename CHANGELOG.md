@@ -1,5 +1,20 @@
 ### Unreleased
 
+Improvements:
+- Use fuzzy matching for completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491/files)
+  - For example: "valp" will match `validate_password` and "Enum.chub" will match `Enum.chunk_by/2`
+
+Bug Fixes:
+- Make expandMacro a custom command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#498](https://github.com/elixir-lsp/elixir-ls/pull/498)
+
+VSCode:
+- Fix test lens shell escaping on Windows (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#175](https://github.com/elixir-lsp/vscode-elixir-ls/pull/175)
+-  Add hrl to watched files (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#177](https://github.com/elixir-lsp/vscode-elixir-ls/pull/177)
+- Fix CI issues (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#178](https://github.com/elixir-lsp/vscode-elixir-ls/pull/178)
+
+**Deprecations**
+Deprecate non-standard `elixirDocument/macroExpansion` command. It is being replaced with the `expandMacro` custom command. See [#498](https://github.com/elixir-lsp/elixir-ls/pull/498) for details. It is planned to be fully removed in 0.8
+
 ### v0.6.5: 9 February 2021
 
 Bug Fixes:
