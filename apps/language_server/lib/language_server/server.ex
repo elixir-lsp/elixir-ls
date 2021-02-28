@@ -729,7 +729,12 @@ defmodule ElixirLS.LanguageServer.Server do
      end, state}
   end
 
+  # TODO remove in ElixirLS 0.8
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
+    IO.warn(
+      "Custom `elixirDocument/macroExpansion` request is deprecated. Switch to command `executeMacro` via `workspace/executeCommand`"
+    )
+
     x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
     {:ok, x, state}
   end
@@ -779,7 +784,12 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
-      "executeCommandProvider" => %{"commands" => ["spec:#{server_instance_id}"]},
+      "executeCommandProvider" => %{
+        "commands" => [
+          "spec:#{server_instance_id}",
+          "expandMacro"
+        ]
+      },
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       }
