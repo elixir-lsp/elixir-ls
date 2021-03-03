@@ -477,7 +477,16 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end)
   end
 
-  @spec build_result(key_t, symbol_t, String.t(), nil | non_neg_integer) :: symbol_information_t
+  @spec build_result(
+          key_t,
+          symbol_t,
+          String.t(),
+          nil | non_neg_integer | {non_neg_integer, non_neg_integer}
+        ) :: symbol_information_t
+  defp build_result(key, symbol, path, {line, _}) do
+    build_result(key, symbol, path, line)
+  end
+
   defp build_result(key, symbol, path, line) do
     %{
       kind: @symbol_codes |> Map.fetch!(key),
