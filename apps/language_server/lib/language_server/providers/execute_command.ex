@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     handler =
       case command do
         "spec:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec
-        "expandMacro" -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro
+        "expandMacro:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro
         _ -> nil
       end
 
