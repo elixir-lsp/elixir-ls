@@ -4,11 +4,17 @@ Improvements:
 - Use fuzzy matching for function completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491/files)
   - For example: "valp" will match `validate_password` and "Enum.chub" will match `Enum.chunk_by/2`
   - Note: the plan is to extend this fuzzy matching to other types of completion in the future
+- Snippet variants with n-1 placeholders to use after pipe (thanks [Leonardo Donelli](https://github.com/LeartS)) [#501](https://github.com/elixir-lsp/elixir-ls/pull/501)
+- Make launcher script more robust and support symlinks... more robustly (thanks [Joshua Trees](https://github.com/jtrees)) [#473](https://github.com/elixir-lsp/elixir-ls/pull/473)
 
 Bug Fixes:
 - Make expandMacro a custom command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#498](https://github.com/elixir-lsp/elixir-ls/pull/498)
   - Scope expandMacro command to ElixirLS server instance (thanks [Tom Crossland](https://github.com/tcrossland)) [#505](https://github.com/elixir-lsp/elixir-ls/pull/505)
 - Suppress setup script stdout output on windows(thanks [Po Chen](https://github.com/princemaple)) [#497](https://github.com/elixir-lsp/elixir-ls/pull/497)
+
+Housekeeping:
+- Improved support for OTP 24 (thanks [Tom Crossland](https://github.com/tcrossland)) [#504](https://github.com/elixir-lsp/elixir-ls/pull/504)
+  - Note that OTP 24 isn't officially supported since it is not yet released
 
 VSCode:
 - Fix test lens shell escaping on Windows (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#175](https://github.com/elixir-lsp/vscode-elixir-ls/pull/175)
