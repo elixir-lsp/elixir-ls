@@ -7,6 +7,7 @@ Improvements:
 
 Bug Fixes:
 - Make expandMacro a custom command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#498](https://github.com/elixir-lsp/elixir-ls/pull/498)
+  - Scope expandMacro command to ElixirLS server instance (thanks [Tom Crossland](https://github.com/tcrossland)) [#505](https://github.com/elixir-lsp/elixir-ls/pull/505)
 - Suppress setup script stdout output on windows(thanks [Po Chen](https://github.com/princemaple)) [#497](https://github.com/elixir-lsp/elixir-ls/pull/497)
 
 VSCode:
