@@ -52,9 +52,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       # Example: https://github.com/elixir-lsp/elixir-ls/pull/505
 
       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-      assert_receive(%{"id" => 1, "result" => all = %{"capabilities" => capabilities}}, 1000)
+      assert_receive(%{"id" => 1, "result" => result}, 1000)
 
-      commands = get_in(capabilities, ["executeCommandProvider", "commands"])
+      commands = get_in(result, ["capabilities", "executeCommandProvider", "commands"])
       server_instance_id = :sys.get_state(server).server_instance_id
 
       Enum.each(commands, fn command ->
