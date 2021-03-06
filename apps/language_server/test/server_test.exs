@@ -46,6 +46,24 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
     end
 
+    test "Execute commands should include the server instance id", %{server: server} do
+      # If a command does not include the server instance id then it will cause
+      # vscode-elixir-ls to fail to start up on multi-root workspaces.
+      # Example: https://github.com/elixir-lsp/elixir-ls/pull/505
+
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => result}, 1000)
+
+      commands = get_in(result, ["capabilities", "executeCommandProvider", "commands"])
+      server_instance_id = :sys.get_state(server).server_instance_id
+
+      Enum.each(commands, fn command ->
+        assert String.contains?(command, server_instance_id)
+      end)
+
+      refute Enum.empty?(commands)
+    end
+
     test "returns -32600 InvalidRequest when already initialized", %{server: server} do
       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
