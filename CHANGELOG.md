@@ -15,11 +15,13 @@ Bug Fixes:
 Housekeeping:
 - Improved support for OTP 24 (thanks [Tom Crossland](https://github.com/tcrossland)) [#504](https://github.com/elixir-lsp/elixir-ls/pull/504)
   - Note that OTP 24 isn't officially supported since it is not yet released
+- Add meta-test to ensure that all commands include the server instance id (thanks [Jason Axelson](https://github.com/axelson)) [#507](https://github.com/elixir-lsp/elixir-ls/pull/507)
 
 VSCode:
 - Fix test lens shell escaping on Windows (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#175](https://github.com/elixir-lsp/vscode-elixir-ls/pull/175)
 -  Add hrl to watched files (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#177](https://github.com/elixir-lsp/vscode-elixir-ls/pull/177)
 - Fix CI issues (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#178](https://github.com/elixir-lsp/vscode-elixir-ls/pull/178)
+- Add support for `expandMacro` command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#176](https://github.com/elixir-lsp/vscode-elixir-ls/pull/176)
 
 **Deprecations**
 Deprecate non-standard `elixirDocument/macroExpansion` command. It is being replaced with the `expandMacro` custom command. See [#498](https://github.com/elixir-lsp/elixir-ls/pull/498) for details. It is planned to be fully removed in 0.8
