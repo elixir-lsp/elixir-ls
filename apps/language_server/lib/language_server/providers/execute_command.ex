@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
   Adds a @spec annotation to the document when the user clicks on a code lens.
   """
 
-  @callback execute(String.t(), [any], %ElixirLS.LanguageServer.Server{}) ::
+  @callback execute([any], %ElixirLS.LanguageServer.Server{}) ::
               {:ok, any} | {:error, atom, String.t()}
 
   def execute(command, args, state) do
@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
       end
 
     if handler do
-      handler.execute(command, args, state)
+      handler.execute(args, state)
     else
       {:error, :invalid_request, nil}
     end

@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
     """
 
     assert {:ok, res} =
-             ExpandMacro.execute("expandMacro", [uri, "", 1], %Server{
+             ExpandMacro.execute([uri, "", 1], %Server{
                source_files: %{
                  uri => %SourceFile{
                    text: text
@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
            }
 
     assert {:ok, res} =
-             ExpandMacro.execute("expandMacro", [uri, "abc", 1], %Server{
+             ExpandMacro.execute([uri, "abc", 1], %Server{
                source_files: %{
                  uri => %SourceFile{
                    text: text
@@ -56,7 +56,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
     """
 
     assert {:ok, res} =
-             ExpandMacro.execute("expandMacro", [uri, "use ElixirLS.Test.MacroA", 1], %Server{
+             ExpandMacro.execute([uri, "use ElixirLS.Test.MacroA", 1], %Server{
                source_files: %{
                  uri => %SourceFile{
                    text: text
