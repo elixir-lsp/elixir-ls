@@ -704,6 +704,8 @@ defmodule ElixirLS.Debugger.Server do
       end
     end
 
+    if env_file = config["envFile"], do: Envy.load([env_file])
+
     # Some tasks (such as Phoenix tests) expect apps to already be running before the test files are
     # required
     if config["startApps"] do

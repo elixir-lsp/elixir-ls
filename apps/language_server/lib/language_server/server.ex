@@ -966,6 +966,7 @@ defmodule ElixirLS.LanguageServer.Server do
     mix_env = Map.get(settings, "mixEnv", "test")
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
+    env_file = Map.get(settings, "envFile")
 
     state =
       state
@@ -973,6 +974,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> maybe_set_mix_target(mix_target)
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
+      |> set_env_vars_from_file(env_file)
 
     state = create_gitignore(state)
     trigger_build(%{state | settings: settings})
@@ -1060,6 +1062,67 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_project_dir(state, _) do
     state
+  end
+
+  defp set_env_vars_from_file(%{env_file: previous_env_file} = state, env_file) do
+    JsonRpc.log_message(
+      :info,
+      "Switching env_file from: #{previous_env_file} to#{env_file}"
+    )
+
+    case Envy.load([env_file]) do
+      [nil] ->
+        JsonRpc.log_message(
+          :warning,
+          "Failed to read env_file #{env_file}, does it exist?"
+        )
+        state
+      [:ok] ->
+        JsonRpc.log_message(
+          :info,
+          "Successfully loaded env_file #{env_file}."
+        )
+        %{ state | env_file: env_file}
+    end
+  end
+
+  defp set_env_vars_from_file(state, env_file) do
+    JsonRpc.log_message(
+      :info,
+      "Attempting to load env_file #{env_file}"
+    )
+    case Envy.load([env_file]) do
+      [nil] ->
+        JsonRpc.log_message(
+          :warning,
+          "Cannot read env_file #{env_file}, does it exist?"
+        )
+        state
+      [:ok] ->
+        JsonRpc.log_message(
+          :info,
+          "Successfully loaded env_file #{env_file}."
+        )
+        Map.put(state, :env_file, env_file)
+    end
+  end
+
+  defp set_env_vars_from_file(state, env_file) do
+    case Envy.load([env_file]) do
+      [nil] ->
+        JsonRpc.log_message(
+          :warning,
+          "Cannot read env_file #{env_file}, does it exist?"
+        )
+        state
+
+      [:ok] ->
+        JsonRpc.log_message(
+          :warning,
+          "Successfully loaded env_file #{env_file}."
+        )
+        %{ state | env_file: env_file}
+    end
   end
 
   defp create_gitignore(%{project_dir: project_dir} = state) when is_binary(project_dir) do

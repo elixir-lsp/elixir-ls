@@ -25,6 +25,7 @@ defmodule ElixirLS.Debugger.Mixfile do
 
   defp deps do
     [
+      {:envy, "~> 1.1.1"},
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
       {:elixir_ls_utils, in_umbrella: true}
     ]
