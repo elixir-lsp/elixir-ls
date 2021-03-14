@@ -16,6 +16,7 @@ Housekeeping:
 - Improved support for OTP 24 (thanks [Tom Crossland](https://github.com/tcrossland)) [#504](https://github.com/elixir-lsp/elixir-ls/pull/504)
   - Note that OTP 24 isn't officially supported since it is not yet released
 - Add meta-test to ensure that all commands include the server instance id (thanks [Jason Axelson](https://github.com/axelson)) [#507](https://github.com/elixir-lsp/elixir-ls/pull/507)
+- Fix test flakiness by ensuring build is complete (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#511](https://github.com/elixir-lsp/elixir-ls/pull/511)
 
 VSCode:
 - Fix test lens shell escaping on Windows (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#175](https://github.com/elixir-lsp/vscode-elixir-ls/pull/175)
