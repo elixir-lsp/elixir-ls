@@ -1076,13 +1076,16 @@ defmodule ElixirLS.LanguageServer.Server do
           :warning,
           "Failed to read env_file #{env_file}, does it exist?"
         )
+
         state
+
       [:ok] ->
         JsonRpc.log_message(
           :info,
           "Successfully loaded env_file #{env_file}."
         )
-        %{ state | env_file: env_file}
+
+        %{state | env_file: env_file}
     end
   end
 
@@ -1091,18 +1094,22 @@ defmodule ElixirLS.LanguageServer.Server do
       :info,
       "Attempting to load env_file #{env_file}"
     )
+
     case Envy.load([env_file]) do
       [nil] ->
         JsonRpc.log_message(
           :warning,
           "Cannot read env_file #{env_file}, does it exist?"
         )
+
         state
+
       [:ok] ->
         JsonRpc.log_message(
           :info,
           "Successfully loaded env_file #{env_file}."
         )
+
         Map.put(state, :env_file, env_file)
     end
   end
@@ -1114,6 +1121,7 @@ defmodule ElixirLS.LanguageServer.Server do
           :warning,
           "Cannot read env_file #{env_file}, does it exist?"
         )
+
         state
 
       [:ok] ->
@@ -1121,7 +1129,8 @@ defmodule ElixirLS.LanguageServer.Server do
           :warning,
           "Successfully loaded env_file #{env_file}."
         )
-        %{ state | env_file: env_file}
+
+        %{state | env_file: env_file}
     end
   end
 
