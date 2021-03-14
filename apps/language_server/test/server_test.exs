@@ -937,6 +937,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       # File is already formatted
       assert response(3, []) == resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1016,6 +1018,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      1000
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1037,6 +1041,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      2000
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1065,6 +1071,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert_receive notification("window/showMessage", %{
                        "message" => "No mixfile found in project." <> _
                      })
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1092,6 +1100,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1119,6 +1129,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1233,6 +1245,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
