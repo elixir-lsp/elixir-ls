@@ -1114,26 +1114,6 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp set_env_vars_from_file(state, env_file) do
-    case Envy.load([env_file]) do
-      [nil] ->
-        JsonRpc.log_message(
-          :warning,
-          "Cannot read env_file #{env_file}, does it exist?"
-        )
-
-        state
-
-      [:ok] ->
-        JsonRpc.log_message(
-          :warning,
-          "Successfully loaded env_file #{env_file}."
-        )
-
-        %{state | env_file: env_file}
-    end
-  end
-
   defp create_gitignore(%{project_dir: project_dir} = state) when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
          false <- File.exists?(gitignore_path),
