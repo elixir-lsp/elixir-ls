@@ -1064,53 +1064,31 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp set_env_vars_from_file(%{env_file: previous_env_file} = state, env_file) do
-    JsonRpc.log_message(
-      :info,
-      "Switching env_file from: #{previous_env_file} to#{env_file}"
-    )
+  defp set_env_vars_from_file(state, env_file) when is_nil(env_file), do: state
 
-    case Envy.load([env_file]) do
-      [nil] ->
+  defp set_env_vars_from_file(state, env_file) when is_bitstring(env_file) do
+    cond do
+      File.exists?(env_file) == false ->
         JsonRpc.log_message(
           :warning,
-          "Failed to read env_file #{env_file}, does it exist?"
+          "Did not find env_file #{env_file} "
         )
 
         state
 
-      [:ok] ->
-        JsonRpc.log_message(
-          :info,
-          "Successfully loaded env_file #{env_file}."
-        )
+      true ->
+        case Envy.load([env_file]) do
+          [nil] ->
+            JsonRpc.log_message(
+              :warning,
+              "Failed to read env_file #{env_file} "
+            )
 
-        %{state | env_file: env_file}
-    end
-  end
+            state
 
-  defp set_env_vars_from_file(state, env_file) do
-    JsonRpc.log_message(
-      :info,
-      "Attempting to load env_file #{env_file}"
-    )
-
-    case Envy.load([env_file]) do
-      [nil] ->
-        JsonRpc.log_message(
-          :warning,
-          "Cannot read env_file #{env_file}, does it exist?"
-        )
-
-        state
-
-      [:ok] ->
-        JsonRpc.log_message(
-          :info,
-          "Successfully loaded env_file #{env_file}."
-        )
-
-        Map.put(state, :env_file, env_file)
+          [:ok] ->
+            Map.put(state, :env_file, env_file)
+        end
     end
   end
 
