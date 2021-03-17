@@ -1,24 +1,34 @@
-defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ToPipe do
+defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   @moduledoc """
   This module implements a custom command for converting function calls
-  to pipe operators.
+  to pipe operators and pipes to function calls.
 
   Returns a formatted source fragment.
   """
   import ElixirLS.LanguageServer.Protocol
 
-  alias ElixirLS.LanguageServer.{JsonRpc, Server, SourceFile}
+  alias ElixirLS.LanguageServer.{JsonRpc, Server}
 
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
-  def execute(%{"uri" => uri, "cursor_line" => line, "cursor_column" => col}, state)
-      when is_integer(line) and is_integer(col) and is_binary(uri) do
+  def execute(
+        %{"uri" => uri, "cursor_line" => line, "cursor_column" => col, "operation" => operation},
+        state
+      )
+      when is_integer(line) and is_integer(col) and is_binary(uri) and
+             operation in ["to_pipe", "from_pipe"] do
     # line and col are assumed to be 1-indexed
     source_file = Server.get_source_file(state, uri)
 
     {:ok, %{edited_text: edited_text, edit_range: edit_range}} =
-      to_pipe_at_cursor(source_file, line, col)
+      case operation do
+        "to_pipe" ->
+          to_pipe_at_cursor(source_file, line, col)
+
+        "from_pipe" ->
+          raise ArgumentError, "from pipe not implemented"
+      end
 
     edit_result =
       JsonRpc.send_request("workspace/applyEdit", %{
@@ -47,15 +57,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ToPipe do
         %{walked_text: "", function_call: nil, range: nil},
         fn current_char, remaining_text, current_line, current_col, acc ->
           if current_line == line and current_col == col do
-            tail = get_function_call_tail(remaining_text)
-            {:ok, head} = get_function_call_head(acc.walked_text)
+            {:ok, function_call, call_range} =
+              get_function_call(line, col, acc.walked_text, current_char, remaining_text)
 
             {remaining_text,
              %{
                acc
                | walked_text: acc.walked_text <> current_char,
-                 function_call: head <> current_char <> tail,
-                 range: get_range(line, col, head, current_char, tail)
+                 function_call: function_call,
+                 range: call_range
              }}
           else
             {remaining_text, %{acc | walked_text: acc.walked_text <> current_char}}
@@ -78,36 +88,58 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ToPipe do
     end
   end
 
-  defp get_range(line, col, head, current_char, tail) do
-    start_line = line
-    start_col = col - String.length(head)
+  def get_function_call(line, col, head, current, original_tail) do
+    tail = do_get_function_call(original_tail, "(", ")")
 
-    tail_lines = String.split(head <> current_char <> tail, "\n", trim: true)
-    line_offset = length(tail_lines) - 1
-    col_offset = tail_lines |> List.last() |> String.length()
+    split_tail = String.split(tail, "\n")
 
-    end_col = if line_offset == 0, do: start_col + col_offset, else: col_offset
+    end_line =
+      if current == "\n" do
+        line + length(split_tail)
+      else
+        line + length(split_tail) - 1
+      end
 
-    range(start_line, start_col, start_line + line_offset, end_col)
-  end
+    col_offset =
+      split_tail
+      |> Enum.at(-1, "")
+      |> String.length()
 
-  defp get_function_call_head(text) do
-    middle_of_call_regex = ~r/((?:\S+\.)+(?:\S+\.?)?\()$/
+    end_col = if length(split_tail) == 1, do: col + col_offset + 1, else: col + col_offset
 
-    case Regex.scan(middle_of_call_regex, text, capture: :all_but_first) do
-      [[head]] -> {:ok, head}
-      _ -> {:error, :invalid_function_call_position}
+    text = head <> current <> tail
+
+    function_call_args =
+      String.reverse(text)
+      |> do_get_function_call(")", "(")
+      |> String.reverse()
+
+    text_without_call = String.trim_trailing(text, function_call_args)
+
+    case Regex.scan(~r/((?:\S+\.)*(?:\S+\.?))$/, text_without_call, capture: :all_but_first) do
+      [[call_name]] ->
+        call = call_name <> function_call_args
+
+        {head, _tail} = String.split_at(call, -String.length(tail))
+        require IEx
+        IEx.pry()
+        col = col - String.length(head) + 1
+
+        {:ok, call, range(line, col, end_line, end_col)}
+
+      _ ->
+        {:error, :not_a_function_call}
     end
   end
 
-  def get_function_call_tail(text) do
+  def do_get_function_call(text, start_char, end_char) do
     text
     |> String.graphemes()
     |> Enum.reduce_while(%{paren_count: 0, text: ""}, fn
-      c = "(", acc ->
+      c = ^start_char, acc ->
         {:cont, %{acc | paren_count: acc.paren_count + 1, text: [acc.text | [c]]}}
 
-      c = ")", acc ->
+      c = ^end_char, acc ->
         acc = %{acc | paren_count: acc.paren_count - 1, text: [acc.text | [c]]}
 
         if acc.paren_count <= 0 do
