@@ -91,21 +91,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   def get_function_call(line, col, head, current, original_tail) do
     tail = do_get_function_call(original_tail, "(", ")")
 
-    split_tail = String.split(tail, "\n")
-
-    end_line =
-      if current == "\n" do
-        line + length(split_tail)
+    {end_line, end_col} =
+      if String.contains?(tail, "\n") do
+        tail_list = String.split(tail, "\n")
+        end_line = line + length(tail_list) - 1
+        end_col = tail_list |> Enum.at(-1) |> String.length()
+        {end_line, end_col}
       else
-        line + length(split_tail) - 1
+        {line, col + String.length(tail)}
       end
-
-    col_offset =
-      split_tail
-      |> Enum.at(-1, "")
-      |> String.length()
-
-    end_col = if length(split_tail) == 1, do: col + col_offset + 1, else: col + col_offset
 
     text = head <> current <> tail
 
@@ -121,8 +115,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         call = call_name <> function_call_args
 
         {head, _tail} = String.split_at(call, -String.length(tail))
-        require IEx
-        IEx.pry()
         col = col - String.length(head) + 1
 
         {:ok, call, range(line, col, end_line, end_col)}
@@ -155,7 +147,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     |> IO.iodata_to_binary()
   end
 
-  defp to_pipe(code) do
+  @doc false
+  def to_pipe(code) do
     {piped_ast, _} = Macro.prewalk(code, %{has_piped: false}, &to_pipe/2)
     piped_ast
   end
@@ -171,9 +164,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     {{:|>, line, [h, {anonymous_function_node, line, t}]}, Map.put(acc, :has_piped, true)}
   end
 
-  defp to_pipe({{:., line, _args} = function, _meta, [h | t]}, %{has_piped: false} = acc)
-       when t != [] do
-    {{:|>, line, [h, {function, line, t}]}, Map.put(acc, :has_piped, true)}
+  defp to_pipe({{:., line, _args} = function, _meta, args}, %{has_piped: false} = acc)
+       when args != [] do
+    {{:|>, line, [hd(args), {function, line, tl(args)}]}, Map.put(acc, :has_piped, true)}
   end
 
   defp to_pipe({function, line, [h | t]}, %{has_piped: false} = acc)
