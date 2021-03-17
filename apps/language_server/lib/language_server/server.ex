@@ -1064,8 +1064,6 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp set_env_vars_from_file(state, env_file) when is_nil(env_file), do: state
-
   defp set_env_vars_from_file(state, env_file) when is_bitstring(env_file) do
     cond do
       File.exists?(env_file) == false ->
@@ -1091,6 +1089,8 @@ defmodule ElixirLS.LanguageServer.Server do
         end
     end
   end
+
+  defp set_env_vars_from_file(state, _), do: state
 
   defp create_gitignore(%{project_dir: project_dir} = state) when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
