@@ -28,7 +28,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
   end
 
-  describe "execute/2" do
+  describe "execute/2 to_pipe" do
     test "can pipe remote calls in single lines" do
       {:ok, _} =
         JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
@@ -189,6 +189,177 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                        "range" => %{
                          "end" => %{"character" => 23, "line" => 3},
                          "start" => %{"character" => 4, "line" => 3}
+                       }
+                     }
+                   ]
+                 }
+               },
+               "label" => "Convert function call to pipe operator"
+             }
+    end
+  end
+
+  describe "execute/2 from_pipe" do
+    test "can unpipe remote calls in single lines" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule A do
+        def f(x) do
+          g(1) |> Kernel.+(1)
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert {:ok, nil} =
+               ManipulatePipes.execute(
+                 %{
+                   "uri" => uri,
+                   "cursor_line" => 3,
+                   "cursor_column" => 9,
+                   "operation" => "from_pipe"
+                 },
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      assert_receive {:request, "workspace/applyEdit", params}
+
+      assert params == %{
+               "edit" => %{
+                 "changes" => %{
+                   uri => [
+                     %{
+                       "newText" => "Kernel.+(g(1), 1)",
+                       "range" => %{
+                         "end" => %{"character" => 23, "line" => 3},
+                         "start" => %{"character" => 5, "line" => 3}
+                       }
+                     }
+                   ]
+                 }
+               },
+               "label" => "Convert function call to pipe operator"
+             }
+    end
+
+    test "can unpipe remote calls when there are multi-line args" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule A do
+        def f(x) do
+          x
+          |> Kernel.+(
+            1
+          )
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert {:ok, nil} =
+               ManipulatePipes.execute(
+                 %{
+                   "uri" => uri,
+                   "cursor_line" => 4,
+                   "cursor_column" => 6,
+                   "operation" => "from_pipe"
+                 },
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      assert_receive {:request, "workspace/applyEdit", params}
+
+      assert params == %{
+               "edit" => %{
+                 "changes" => %{
+                   uri => [
+                     %{
+                       "newText" => "Kernel.+(x, 1)",
+                       "range" => %{
+                         "end" => %{"character" => 5, "line" => 6},
+                         "start" => %{"character" => 3, "line" => 3}
+                       }
+                     }
+                   ]
+                 }
+               },
+               "label" => "Convert function call to pipe operator"
+             }
+    end
+
+    test "can unpipe local calls in single line" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule A do
+        def f(x) do
+          h(x, 2) |> g(h(3, 4))
+          |> Kernel.+(2)
+        end
+
+        def g(x, y), do: x + y
+
+        def h(a, b), do: a - b
+      end
+      """
+
+      assert {:ok, nil} =
+               ManipulatePipes.execute(
+                 %{
+                   "uri" => uri,
+                   "cursor_line" => 3,
+                   "cursor_column" => 12,
+                   "operation" => "from_pipe"
+                 },
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      assert_receive {:request, "workspace/applyEdit", params}
+
+      assert params == %{
+               "edit" => %{
+                 "changes" => %{
+                   uri => [
+                     %{
+                       "newText" => "g(h(x, 2), h(3, 4))",
+                       "range" => %{
+                         "end" => %{"character" => 25, "line" => 3},
+                         "start" => %{"character" => 5, "line" => 3}
                        }
                      }
                    ]

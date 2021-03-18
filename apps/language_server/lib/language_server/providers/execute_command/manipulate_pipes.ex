@@ -80,11 +80,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         {:error, :function_call_not_found}
 
       %{function_call: function_call, range: range} ->
-        piped_text =
-          function_call
-          |> Code.string_to_quoted!()
-          |> AST.to_pipe()
-          |> Macro.to_string()
+        piped_text = AST.to_pipe(function_call)
 
         {:ok, %{edited_text: piped_text, edit_range: range}}
     end
@@ -144,6 +140,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       |> do_get_function_call(")", "(")
       |> String.reverse()
 
+    #  call get_function_call_before(text)
+
     text_without_call = String.trim_trailing(text, function_call_args)
 
     case Regex.scan(~r/((?:\S+\.)*(?:\S+\.?))$/, text_without_call, capture: :all_but_first) do
@@ -186,20 +184,38 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   defp get_pipe_call(line, col, head, current, tail) do
     pipe_right = do_get_function_call(tail, "(", ")") |> IO.inspect()
 
-    pipe_left_without_function_name =
-      head
-      |> String.reverse()
-      |> do_get_function_call(")", "(")
-      |> String.reverse()
-      |> IO.inspect()
+    reversed_head = String.reverse(head)
 
-    function_name =
-      head
-      |> String.trim_trailing(pipe_left_without_function_name)
-      |> get_function_name_from_tail()
-      |> IO.inspect()
+    {pipe_left, _, _} =
+      for <<x::binary-size(1) <- reversed_head>>, reduce: {"", false, false} do
+        {acc, _, true} ->
+          {acc, true, true}
 
-    pipe_left = function_name <> pipe_left_without_function_name
+        {acc, has_passed_through_non_whitespace, _should_halt} ->
+          is_whitespace = String.match?(x, ~r/\s/)
+
+          cond do
+            is_whitespace and has_passed_through_non_whitespace ->
+              {x <> acc, true, true}
+
+            is_whitespace and not has_passed_through_non_whitespace ->
+              {x <> acc, false, false}
+
+            not is_whitespace and (x == "|" or x == ">") ->
+              {x <> acc, false, false}
+
+            true ->
+              {x <> acc, true, false}
+          end
+      end
+
+    pipe_left =
+      if String.contains?(pipe_left, ")") do
+        get_function_call_before(head)
+      else
+        pipe_left
+      end
+
     pipe_call = pipe_left <> current <> pipe_right
 
     {line_offset, tail_length} = pipe_left |> String.reverse() |> count_newlines_and_get_tail()
@@ -229,6 +245,21 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       end
 
     {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
+  end
+
+  defp get_function_call_before(head) do
+    call_without_function_name =
+      head
+      |> String.reverse()
+      |> do_get_function_call(")", "(")
+      |> String.reverse()
+
+    function_name =
+      head
+      |> String.trim_trailing(call_without_function_name)
+      |> get_function_name_from_tail()
+
+    function_name <> call_without_function_name
   end
 
   defp get_function_name_from_tail(s) do
