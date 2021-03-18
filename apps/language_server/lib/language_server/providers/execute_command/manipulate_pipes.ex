@@ -29,7 +29,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
           to_pipe_at_cursor(source_file, line, col)
 
         "from_pipe" ->
-          raise ArgumentError, "from pipe not implemented"
+          from_pipe_at_cursor(source_file, line, col)
       end
 
     edit_result =
@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
-  def to_pipe_at_cursor(source_file, line, col) do
+  defp to_pipe_at_cursor(source_file, line, col) do
     result =
       ElixirSense.Core.Source.walk_text(
         source_file.text,
@@ -90,7 +90,41 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
-  def get_function_call(line, col, head, current, original_tail) do
+  defp from_pipe_at_cursor(source_file, line, col) do
+    result =
+      ElixirSense.Core.Source.walk_text(
+        source_file.text,
+        %{walked_text: "", pipe_call: nil, range: nil},
+        fn current_char, remaining_text, current_line, current_col, acc ->
+          if current_line == line and current_col == col do
+            {:ok, pipe_call, call_range} =
+              get_pipe_call(line, col, acc.walked_text, current_char, remaining_text)
+
+            {remaining_text,
+             %{
+               acc
+               | walked_text: acc.walked_text <> current_char,
+                 pipe_call: pipe_call,
+                 range: call_range
+             }}
+          else
+            {remaining_text, %{acc | walked_text: acc.walked_text <> current_char}}
+          end
+        end
+      )
+
+    case result do
+      %{pipe_call: nil} ->
+        {:error, :pipe_not_found}
+
+      %{pipe_call: pipe_call, range: range} ->
+        unpiped_text = AST.from_pipe(pipe_call)
+
+        {:ok, %{edited_text: unpiped_text, edit_range: range}}
+    end
+  end
+
+  defp get_function_call(line, col, head, current, original_tail) do
     tail = do_get_function_call(original_tail, "(", ")")
 
     {end_line, end_col} =
@@ -126,7 +160,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
-  def do_get_function_call(text, start_char, end_char) do
+  defp do_get_function_call(text, start_char, end_char) do
     text
     |> String.graphemes()
     |> Enum.reduce_while(%{paren_count: 0, text: ""}, fn
@@ -147,5 +181,78 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end)
     |> Map.get(:text)
     |> IO.iodata_to_binary()
+  end
+
+  defp get_pipe_call(line, col, head, current, tail) do
+    pipe_right = do_get_function_call(tail, "(", ")") |> IO.inspect()
+
+    pipe_left_without_function_name =
+      head
+      |> String.reverse()
+      |> do_get_function_call(")", "(")
+      |> String.reverse()
+      |> IO.inspect()
+
+    function_name =
+      head
+      |> String.trim_trailing(pipe_left_without_function_name)
+      |> get_function_name_from_tail()
+      |> IO.inspect()
+
+    pipe_left = function_name <> pipe_left_without_function_name
+    pipe_call = pipe_left <> current <> pipe_right
+
+    {line_offset, tail_length} = pipe_left |> String.reverse() |> count_newlines_and_get_tail()
+
+    start_line = line - line_offset
+
+    start_col =
+      if line_offset != 0 do
+        head
+        |> String.trim_trailing(pipe_left)
+        |> String.split("\n")
+        |> Enum.at(-1, "")
+        |> String.length()
+      else
+        col - tail_length
+      end
+
+    {line_offset, tail_length} = (current <> pipe_right) |> count_newlines_and_get_tail()
+
+    end_line = line + line_offset
+
+    end_col =
+      if line_offset != 0 do
+        tail_length
+      else
+        col + tail_length - 1
+      end
+
+    {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
+  end
+
+  defp get_function_name_from_tail(s) do
+    s
+    |> String.reverse()
+    |> String.graphemes()
+    |> Enum.reduce_while([], fn c, acc ->
+      if String.match?(c, ~r/\s/) do
+        {:halt, acc}
+      else
+        {:cont, [c | acc]}
+      end
+    end)
+    |> IO.iodata_to_binary()
+  end
+
+  defp count_newlines_and_get_tail(s) do
+    for <<c::binary-size(1) <- s>>, reduce: {0, 0} do
+      {count, tail} ->
+        if c == "\n" do
+          {count + 1, 0}
+        else
+          {count, tail + 1}
+        end
+    end
   end
 end
