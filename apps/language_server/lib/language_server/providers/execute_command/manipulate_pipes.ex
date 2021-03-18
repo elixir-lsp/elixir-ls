@@ -135,27 +135,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
     text = head <> current <> tail
 
-    function_call_args =
-      String.reverse(text)
-      |> do_get_function_call(")", "(")
-      |> String.reverse()
+    call = get_function_call_before(text)
 
-    #  call get_function_call_before(text)
+    {head, _tail} = String.split_at(call, -String.length(tail))
+    col = col - String.length(head) + 1
 
-    text_without_call = String.trim_trailing(text, function_call_args)
-
-    case Regex.scan(~r/((?:\S+\.)*(?:\S+\.?))$/, text_without_call, capture: :all_but_first) do
-      [[call_name]] ->
-        call = call_name <> function_call_args
-
-        {head, _tail} = String.split_at(call, -String.length(tail))
-        col = col - String.length(head) + 1
-
-        {:ok, call, range(line, col, end_line, end_col)}
-
-      _ ->
-        {:error, :not_a_function_call}
-    end
+    {:ok, call, range(line, col, end_line, end_col)}
   end
 
   defp do_get_function_call(text, start_char, end_char) do
@@ -182,7 +167,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   end
 
   defp get_pipe_call(line, col, head, current, tail) do
-    pipe_right = do_get_function_call(tail, "(", ")") |> IO.inspect()
+    pipe_right = do_get_function_call(tail, "(", ")")
 
     reversed_head = String.reverse(head)
 
