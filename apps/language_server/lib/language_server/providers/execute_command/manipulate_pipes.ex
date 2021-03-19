@@ -20,7 +20,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       )
       when is_integer(line) and is_integer(col) and is_binary(uri) and
              operation in ["to_pipe", "from_pipe"] do
-    # line and col are assumed to be 1-indexed
+    # line and col are assumed to be 0-indexed
     source_file = Server.get_source_file(state, uri)
 
     {:ok, %{edited_text: edited_text, edit_range: edit_range}} =
@@ -58,7 +58,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         source_file.text,
         %{walked_text: "", function_call: nil, range: nil},
         fn current_char, remaining_text, current_line, current_col, acc ->
-          if current_line == line and current_col == col do
+          if current_line - 1 == line and current_col - 1 == col do
             {:ok, function_call, call_range} =
               get_function_call(line, col, acc.walked_text, current_char, remaining_text)
 
@@ -92,7 +92,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         source_file.text,
         %{walked_text: "", pipe_call: nil, range: nil},
         fn current_char, remaining_text, current_line, current_col, acc ->
-          if current_line == line and current_col == col do
+          if current_line - 1 == line and current_col - 1 == col do
             {:ok, pipe_call, call_range} =
               get_pipe_call(line, col, acc.walked_text, current_char, remaining_text)
 

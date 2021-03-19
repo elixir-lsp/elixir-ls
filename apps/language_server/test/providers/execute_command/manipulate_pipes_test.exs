@@ -51,8 +51,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                ManipulatePipes.execute(
                  %{
                    "uri" => uri,
-                   "cursor_line" => 3,
-                   "cursor_column" => 14,
+                   "cursor_line" => 2,
+                   "cursor_column" => 13,
                    "operation" => "to_pipe"
                  },
                  %Server{
@@ -73,8 +73,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "x |> Kernel.+(1)",
                        "range" => %{
-                         "end" => %{"character" => 18, "line" => 3},
-                         "start" => %{"character" => 5, "line" => 3}
+                         "end" => %{"character" => 17, "line" => 2},
+                         "start" => %{"character" => 4, "line" => 2}
                        }
                      }
                    ]
@@ -109,8 +109,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                ManipulatePipes.execute(
                  %{
                    "uri" => uri,
-                   "cursor_line" => 3,
-                   "cursor_column" => 13,
+                   "cursor_line" => 2,
+                   "cursor_column" => 12,
                    "operation" => "to_pipe"
                  },
                  %Server{
@@ -131,8 +131,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "x |> Kernel.+(1)",
                        "range" => %{
-                         "end" => %{"character" => 5, "line" => 6},
-                         "start" => %{"character" => 5, "line" => 3}
+                         "end" => %{"character" => 5, "line" => 5},
+                         "start" => %{"character" => 4, "line" => 2}
                        }
                      }
                    ]
@@ -165,8 +165,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                ManipulatePipes.execute(
                  %{
                    "uri" => uri,
-                   "cursor_line" => 3,
-                   "cursor_column" => 3,
+                   "cursor_line" => 2,
+                   "cursor_column" => 2,
                    "operation" => "to_pipe"
                  },
                  %Server{
@@ -187,8 +187,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "h(x, 2) |> g(h(3, 4))",
                        "range" => %{
-                         "end" => %{"character" => 23, "line" => 3},
-                         "start" => %{"character" => 4, "line" => 3}
+                         "end" => %{"character" => 22, "line" => 2},
+                         "start" => %{"character" => 3, "line" => 2}
                        }
                      }
                    ]
@@ -222,8 +222,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                ManipulatePipes.execute(
                  %{
                    "uri" => uri,
-                   "cursor_line" => 3,
-                   "cursor_column" => 9,
+                   "cursor_line" => 2,
+                   "cursor_column" => 8,
                    "operation" => "from_pipe"
                  },
                  %Server{
@@ -244,8 +244,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "Kernel.+(g(1), 1)",
                        "range" => %{
-                         "end" => %{"character" => 23, "line" => 3},
-                         "start" => %{"character" => 5, "line" => 3}
+                         "end" => %{"character" => 22, "line" => 2},
+                         "start" => %{"character" => 4, "line" => 2}
                        }
                      }
                    ]
@@ -280,8 +280,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                ManipulatePipes.execute(
                  %{
                    "uri" => uri,
-                   "cursor_line" => 4,
-                   "cursor_column" => 6,
+                   "cursor_line" => 3,
+                   "cursor_column" => 5,
                    "operation" => "from_pipe"
                  },
                  %Server{
@@ -302,8 +302,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "Kernel.+(x, 1)",
                        "range" => %{
-                         "end" => %{"character" => 5, "line" => 6},
-                         "start" => %{"character" => 3, "line" => 3}
+                         "end" => %{"character" => 5, "line" => 5},
+                         "start" => %{"character" => 3, "line" => 2}
                        }
                      }
                    ]
@@ -336,8 +336,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                ManipulatePipes.execute(
                  %{
                    "uri" => uri,
-                   "cursor_line" => 3,
-                   "cursor_column" => 12,
+                   "cursor_line" => 2,
+                   "cursor_column" => 11,
                    "operation" => "from_pipe"
                  },
                  %Server{
@@ -358,8 +358,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "g(h(x, 2), h(3, 4))",
                        "range" => %{
-                         "end" => %{"character" => 25, "line" => 3},
-                         "start" => %{"character" => 5, "line" => 3}
+                         "end" => %{"character" => 24, "line" => 2},
+                         "start" => %{"character" => 4, "line" => 2}
                        }
                      }
                    ]
