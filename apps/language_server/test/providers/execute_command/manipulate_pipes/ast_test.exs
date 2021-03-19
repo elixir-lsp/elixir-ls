@@ -14,8 +14,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
     end
 
     test "single-line selection with two args in anonymous function" do
-      assert AST.to_pipe("X.Y.Z.function_name.(A.B.C.a(), b)") ==
-               "A.B.C.a() |> X.Y.Z.function_name.(b)"
+      assert AST.to_pipe("function_name.(A.B.C.a(), b)") ==
+               "A.B.C.a() |> function_name.(b)"
     end
 
     test "single-line selection with single arg in anonymous function" do
