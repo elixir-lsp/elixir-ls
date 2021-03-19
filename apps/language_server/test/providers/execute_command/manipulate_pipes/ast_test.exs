@@ -5,30 +5,31 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
 
   describe "to_pipe/1" do
     test "single-line selection with two args in named function" do
-      assert AST.to_pipe("X.Y.Z.function_name(A.B.C.a, b)") == "A.B.C.a |> X.Y.Z.function_name(b)"
+      assert AST.to_pipe("X.Y.Z.function_name(A.B.C.a(), b)") ==
+               "A.B.C.a() |> X.Y.Z.function_name(b)"
     end
 
     test "single-line selection with single arg in named function" do
-      assert AST.to_pipe("X.Y.Z.function_name(A.B.C.a)") == "A.B.C.a |> X.Y.Z.function_name()"
+      assert AST.to_pipe("X.Y.Z.function_name(A.B.C.a())") == "A.B.C.a() |> X.Y.Z.function_name()"
     end
 
     test "single-line selection with two args in anonymous function" do
-      assert AST.to_pipe("X.Y.Z.function_name.(A.B.C.a, b)") ==
-               "A.B.C.a |> X.Y.Z.function_name.(b)"
+      assert AST.to_pipe("X.Y.Z.function_name.(A.B.C.a(), b)") ==
+               "A.B.C.a() |> X.Y.Z.function_name.(b)"
     end
 
     test "single-line selection with single arg in anonymous function" do
-      assert AST.to_pipe("function_name.(A.B.C.a)") == "A.B.C.a |> function_name.()"
+      assert AST.to_pipe("function_name.(A.B.C.a())") == "A.B.C.a() |> function_name.()"
     end
 
     test "multi-line selection with two args in named function" do
       assert AST.to_pipe("""
                X.Y.Z.function_name(
-               X.Y.Z.a,
+               X.Y.Z.a(),
                b,
                c
              )
-             """) == "X.Y.Z.a |> X.Y.Z.function_name(b, c)"
+             """) == "X.Y.Z.a() |> X.Y.Z.function_name(b, c)"
     end
   end
 
@@ -133,12 +134,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
 
     test "single arg in anonymous function" do
       piped = """
-      a
+      MyModule.f(a)
       |> function_name.()
       |> after_call
       """
 
-      unpiped = "function_name.(a) |> after_call"
+      unpiped = "function_name.(MyModule.f(a)) |> after_call"
 
       assert AST.from_pipe(piped) == unpiped
     end
