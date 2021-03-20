@@ -20,7 +20,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
     # do blocks
     do: [:block_identifier, :end],
     block_identifier: [:block_identifier, :end],
-    # other special forms
+    # other special forms that are not covered by :block_identifier
     with: [:do],
     for: [:do],
     case: [:do],
