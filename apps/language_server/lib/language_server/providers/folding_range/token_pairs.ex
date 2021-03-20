@@ -32,24 +32,20 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
 
   ## Example
 
-  text =
-    \"\"\"
-    defmodule Module do       # 0
-      def some_function() do  # 1
-        4                     # 2
-      end                     # 3
-    end                       # 4
-    \"\"\"
-
-  {:ok, ranges} =
-    text
-    |> FoldingRange.convert_text_to_input()
-    |> TokenPair.provide_ranges()
-
-  # ranges == [
-  #   %{startLine: 0, endLine: 3, kind?: :region},
-  #   %{startLine: 1, endLine: 2, kind?: :region}
-  # ]
+      iex> alias ElixirLS.LanguageServer.Providers.FoldingRange
+      iex> text = \"""
+      ...>   defmodule Module do       # 0
+      ...>     def some_function() do  # 1
+      ...>       4                     # 2
+      ...>     end                     # 3
+      ...>   end                       # 4
+      ...>   \"""
+      iex> FoldingRange.convert_text_to_input(text)
+      ...> |> TokenPair.provide_ranges()
+      {:ok, [
+        %{startLine: 0, endLine: 3, kind?: :region},
+        %{startLine: 1, endLine: 2, kind?: :region}
+      ]}
   """
   @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{tokens: tokens}) do

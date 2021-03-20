@@ -69,23 +69,20 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
 
   ## Example
 
-  text = \"\"\"
-  defmodule A do    # 0
-    def hello() do  # 1
-      :world        # 2
-    end             # 3
-  end               # 4
-  \"\"\"
+      iex> alias ElixirLS.LanguageServer.Providers.FoldingRange
+      iex> text = \"""
+      ...> defmodule A do    # 0
+      ...>   def hello() do  # 1
+      ...>     :world        # 2
+      ...>   end             # 3
+      ...> end               # 4
+      ...> \"""
+      iex> FoldingRange.provide(%{text: text})
+      {:ok, [
+        %{startLine: 0, endLine: 3, kind?: :region},
+        %{startLine: 1, endLine: 2, kind?: :region}
+      ]}
 
-  {:ok, ranges} =
-    text
-    |> convert_text_to_input()
-    |> provide()
-
-  # ranges == [
-  #   %{startLine: 0, endLine: 3, kind?: :region},
-  #   %{startLine: 1, endLine: 2, kind?: :region}
-  # ]
   """
   @spec provide(%{text: String.t()}) :: {:ok, [t()]} | {:error, String.t()}
   def provide(%{text: text}) do
