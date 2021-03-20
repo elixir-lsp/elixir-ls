@@ -159,17 +159,23 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def full_range(source_file) do
     lines = lines(source_file)
-    last_line = List.last(lines)
 
     utf16_size =
-      :unicode.characters_to_binary(last_line, :utf8, :utf16)
-      |> byte_size()
-      |> div(2)
+      lines
+      |> List.last()
+      |> line_length_utf16()
 
     %{
       "start" => %{"line" => 0, "character" => 0},
       "end" => %{"line" => Enum.count(lines) - 1, "character" => utf16_size}
     }
+  end
+
+  def line_length_utf16(line) do
+    line
+    |> :unicode.characters_to_binary(:utf8, :utf16)
+    |> byte_size()
+    |> div(2)
   end
 
   defp prepend_line(line, nil, acc), do: [line | acc]

@@ -30,7 +30,8 @@ defmodule ElixirLS.LanguageServer.Server do
     WorkspaceSymbols,
     OnTypeFormatting,
     CodeLens,
-    ExecuteCommand
+    ExecuteCommand,
+    FoldingRange
   }
 
   alias ElixirLS.Utils.Launch
@@ -729,6 +730,17 @@ defmodule ElixirLS.LanguageServer.Server do
      end, state}
   end
 
+  defp handle_request(folding_range_req(_id, uri), state) do
+    case get_source_file(state, uri) do
+      nil ->
+        {:error, :server_error, "Missing source file", state}
+
+      source_file ->
+        fun = fn -> FoldingRange.provide(source_file) end
+        {:async, fun, state}
+    end
+  end
+
   # TODO remove in ElixirLS 0.8
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
     IO.warn(
@@ -792,7 +804,8 @@ defmodule ElixirLS.LanguageServer.Server do
       },
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
-      }
+      },
+      "foldingRangeProvider" => true
     }
   end
 
