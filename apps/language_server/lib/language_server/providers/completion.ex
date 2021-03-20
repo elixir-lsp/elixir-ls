@@ -56,6 +56,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     {"ExUnit.Case", "describe"} => "describe \"$1\" do\n\t$0\nend"
   }
 
+  # Alternative snippets versions to be preferred when preceded by a pipe
+  @pipe_func_snippets %{
+    {"Kernel.SpecialForms", "case"} => "case do\n\t$1 ->\n\t\t$0\nend",
+    {"Kernel", "if"} => "if do\n\t$0\nend",
+    {"Kernel", "unless"} => "unless do\n\t$0\nend"
+  }
+
   @use_name_only MapSet.new([
                    {"Kernel", "not"},
                    {"Kernel", "use"},
@@ -469,6 +476,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp from_completion_item(
+         %{
+           arity: 0
+         },
+         %{
+           pipe_before?: true
+         },
+         _options
+       ),
+       do: nil
+
+  defp from_completion_item(
          %{name: name, origin: origin} = item,
          %{def_before: nil} = context,
          options
@@ -482,7 +500,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         completion
       end
 
-    if snippet = Map.get(@func_snippets, {origin, name}) do
+    if snippet = snippet_for({origin, name}, context) do
       %{completion | insert_text: snippet, kind: :snippet, label: name}
     else
       completion
@@ -491,6 +509,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(_suggestion, _context, _options) do
     nil
+  end
+
+  defp snippet_for(key, %{pipe_before?: true}) do
+    # Get pipe-friendly version of snippet if available, otherwise fallback to standard
+    Map.get(@pipe_func_snippets, key) || Map.get(@func_snippets, key)
+  end
+
+  defp snippet_for(key, _context) do
+    Map.get(@func_snippets, key)
   end
 
   defp def_snippet(def_str, name, args, arity, opts) do

@@ -4,6 +4,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
   import ElixirLS.LanguageServer.Test.PlatformTestHelpers
   alias ElixirLS.LanguageServer.Providers.CodeLens
 
+  @project_dir "/project"
+
   setup context do
     ElixirLS.LanguageServer.Build.load_all_modules()
 
@@ -29,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
     assert lenses ==
              [
@@ -55,7 +57,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
     assert lenses ==
              [
@@ -76,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
     assert lenses == []
   end
@@ -96,7 +98,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
     assert Enum.member?(
              lenses,
@@ -128,7 +130,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
     assert Enum.member?(
              lenses,
@@ -159,7 +161,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
     assert Enum.member?(
              lenses,
@@ -300,7 +302,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     test "returns module lens on the module declaration line", %{text: text} do
       uri = "file:///project/file.ex"
 
-      {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+      {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
       assert Enum.member?(
                lenses,
@@ -313,7 +315,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     test "returns test lenses with describe info", %{text: text} do
       uri = "file:///project/file.ex"
 
-      {:ok, lenses} = CodeLens.Test.code_lens(uri, text)
+      {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
       assert Enum.member?(
                lenses,
@@ -325,10 +327,34 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
   end
 
+  test "returns lenses for tests with multiline context parameters" do
+    text = """
+    defmodule MyModule do
+      use ExUnit.Case
+
+      test "test1", %{
+      } do
+      end
+    end
+    """
+
+    uri = "file:///project/file.ex"
+
+    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "testName" => "test1"
+             })
+           )
+  end
+
   defp build_code_lens(line, target, file_path, args) do
     arguments =
       %{
-        "filePath" => file_path
+        "filePath" => file_path,
+        "projectDir" => @project_dir
       }
       |> Map.merge(args)
 

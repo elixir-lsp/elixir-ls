@@ -471,16 +471,16 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     setup do
       text = """
       defmodule MyModule do
-        def add(a, b), do: a + b
+        def add_2_numbers(a, b), do: a + b
 
         def dummy_function() do
-          ad
-          # ^
+          ad2n
+            # ^
         end
       end
       """
 
-      %{text: text, location: {4, 6}}
+      %{text: text, location: {4, 8}}
     end
 
     test "setting 'signature_after_complete'", context do
@@ -505,18 +505,18 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, snippets_supported: false, signature_help_supported: false)
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
 
-      assert item["insertText"] == "add"
+      assert item["insertText"] == "add_2_numbers"
       assert item["command"] == nil
 
       opts =
         Keyword.merge(@supports,
           snippets_supported: false,
-          locals_without_parens: MapSet.new(add: 2)
+          locals_without_parens: MapSet.new(add_2_numbers: 2)
         )
 
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
 
-      assert item["insertText"] == "add "
+      assert item["insertText"] == "add_2_numbers "
       assert item["command"] == @signature_command
     end
 
@@ -529,7 +529,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, snippets_supported: false)
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
 
-      assert item["insertText"] == "add("
+      assert item["insertText"] == "add_2_numbers("
       assert item["command"] == @signature_command
     end
 
@@ -542,7 +542,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, signature_help_supported: false)
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
 
-      assert item["insertText"] == "add(${1:a}, ${2:b})"
+      assert item["insertText"] == "add_2_numbers(${1:a}, ${2:b})"
       assert item["command"] == nil
     end
 
@@ -554,50 +554,50 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
 
-      assert item["insertText"] == "add($1)$0"
+      assert item["insertText"] == "add_2_numbers($1)$0"
       assert item["command"] == @signature_command
     end
 
     test "with snippets/signature support, before valid arg, do not close parens" do
       text = """
       defmodule MyModule do
-        def add(a, b), do: a + b
+        def add_2_numbers(a, b), do: a + b
 
         def dummy_function() do
-          ad100
-          # ^
+          ad2n100
+            # ^
         end
       end
       """
 
-      {line, char} = {4, 6}
+      {line, char} = {4, 8}
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
 
-      assert item["insertText"] == "add("
+      assert item["insertText"] == "add_2_numbers("
       assert item["command"] == @signature_command
     end
 
     test "function in :locals_without_parens doesn't complete with args if there's text after cursor" do
       text = """
       defmodule MyModule do
-        def add(a, b), do: a + b
+        def add_2_numbers(a, b), do: a + b
 
         def dummy_function() do
-          ad 100
-          # ^
+          ad2n 100
+            # ^
         end
       end
       """
 
-      {line, char} = {4, 6}
+      {line, char} = {4, 8}
       TestUtils.assert_has_cursor_char(text, line, char)
 
-      opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(add: 2))
+      opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(add_2_numbers: 2))
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
 
-      assert item["insertText"] == "add"
+      assert item["insertText"] == "add_2_numbers"
       assert item["command"] == @signature_command
     end
 
@@ -917,6 +917,91 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       assert "do_sth()" ==
                Completion.function_snippet("do_sth", ["My.record(x: x0, y: y0)"], 1, opts)
+    end
+  end
+
+  describe "do not suggest 0 arity functions after pipe" do
+    test "moduledoc completion" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          Date.today() |> 
+          #               ^
+        end
+      end
+      """
+
+      {line, char} = {2, 20}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      refute Enum.any?(items, fn i -> i["label"] == "make_ref/0" end)
+    end
+  end
+
+  describe "use the (arity - 1) version of snippets after pipe" do
+    test "case/2 snippet skips the condition argument" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          [1, 2]
+          |> Enum.random()
+          |> ca
+          #    ^
+        end
+      end
+      """
+
+      {line, char} = {4, 9}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+      assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "case"}, &1))
+      assert insert_text =~ "case do\n\t"
+    end
+
+    test "unless/2 snippet skips the condition argument" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          [1, 2]
+          |> Enum.random()
+          |> unl
+          #     ^
+        end
+      end
+      """
+
+      {line, char} = {4, 10}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert %{"insertText" => insert_text} =
+               Enum.find(items, &match?(%{"label" => "unless"}, &1))
+
+      assert insert_text =~ "unless do\n\t"
+    end
+
+    test "if/2 snippet skips the condition argument" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          [1, 2]
+          |> Enum.random()
+          |> if
+          #    ^
+        end
+      end
+      """
+
+      {line, char} = {4, 9}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "if"}, &1))
+
+      assert insert_text =~ "if do\n\t"
     end
   end
 end

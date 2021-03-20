@@ -741,7 +741,12 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
+  # TODO remove in ElixirLS 0.8
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
+    IO.warn(
+      "Custom `elixirDocument/macroExpansion` request is deprecated. Switch to command `executeMacro` via `workspace/executeCommand`"
+    )
+
     x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
     {:ok, x, state}
   end
@@ -791,7 +796,12 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
-      "executeCommandProvider" => %{"commands" => ["spec:#{server_instance_id}"]},
+      "executeCommandProvider" => %{
+        "commands" => [
+          "spec:#{server_instance_id}",
+          "expandMacro:#{server_instance_id}"
+        ]
+      },
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       },
@@ -809,7 +819,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(state, uri, source_file) do
     if state.settings["enableTestLenses"] == true do
-      CodeLens.test_code_lens(uri, source_file.text)
+      CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
     else
       {:ok, []}
     end

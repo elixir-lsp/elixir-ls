@@ -19,6 +19,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     {:ok, %{server: server}}
   end
 
+  @tag slow: true, fixture: true
   test "reports diagnostics then clears them once problems are fixed", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
@@ -91,6 +92,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  @tag slow: true, fixture: true
   test "only analyzes the changed files", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_c = SourceFile.path_to_uri(Path.absname("lib/c.ex"))
@@ -151,6 +153,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  @tag slow: true, fixture: true
   test "reports dialyxir_long formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
@@ -204,6 +207,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  @tag slow: true, fixture: true
   test "reports dialyxir_short formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
@@ -248,6 +252,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  @tag slow: true, fixture: true
   test "reports dialyzer_formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
@@ -293,6 +298,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  @tag slow: true, fixture: true
   test "reports dialyxir_short error in umbrella", %{server: server} do
     in_fixture(__DIR__, "umbrella_dialyzer", fn ->
       file_a = SourceFile.path_to_uri(Path.absname("apps/app1/lib/app1.ex"))
@@ -363,6 +369,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     end)
   end
 
+  @tag slow: true, fixture: true
   test "protocol rebuild does not trigger consolidation warnings", %{server: server} do
     in_fixture(__DIR__, "protocols", fn ->
       root_uri = SourceFile.path_to_uri(File.cwd!())

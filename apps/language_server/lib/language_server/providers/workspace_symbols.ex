@@ -34,6 +34,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           location: location_t
         }
 
+  # Location in annotations from OTP 23 and previous contain only line number.
+  # OTP 24 annotations may also be {line, column}, depending on compiler
+  # options.
+  @typep erl_location_t :: non_neg_integer | {non_neg_integer, non_neg_integer}
   @typep key_t :: :modules | :functions | :types | :callbacks
   @typep symbol_t :: module | {module, atom, non_neg_integer}
   @typep state_t :: %{
@@ -223,7 +227,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   ## Helpers
 
-  defp find_module_line(module, path) do
+  defp find_module_location(module, path) do
     if String.ends_with?(path, ".erl") do
       ErlangSourceFile.module_line(path)
     else
@@ -231,7 +235,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end
   end
 
-  defp find_function_line(module, function, arity, path) do
+  defp find_function_location(module, function, arity, path) do
     if String.ends_with?(path, ".erl") do
       ErlangSourceFile.function_line(path, function)
     else
@@ -360,8 +364,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       chunked_module_paths
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk do
-          line = find_module_line(module, path)
-          build_result(:modules, module, path, line)
+          location = find_module_location(module, path)
+          build_result(:modules, module, path, location)
         end
       end)
     end)
@@ -373,9 +377,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
             Code.ensure_loaded?(module),
             {function, arity} <- module.module_info(:exports) do
           {function, arity} = SourceFile.strip_macro_prefix({function, arity})
-          line = find_function_line(module, function, arity, path)
+          location = find_function_location(module, function, arity, path)
 
-          build_result(:functions, {module, function, arity}, path, line)
+          build_result(:functions, {module, function, arity}, path, location)
         end
       end)
     end)
@@ -388,13 +392,13 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
             {kind, {type, type_ast, args}} <-
               ElixirSense.Core.Normalized.Typespec.get_types(module),
             kind in [:type, :opaque] do
-          line =
+          location =
             case type_ast do
-              {_, line, _, _} -> line
-              {_, line, _} -> line
+              {_, location, _, _} -> location
+              {_, location, _} -> location
             end
 
-          build_result(:types, {module, type, length(args)}, path, line)
+          build_result(:types, {module, type, length(args)}, path, location)
         end
       end)
     end)
@@ -405,11 +409,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         for {module, path} <- chunk,
             function_exported?(module, :behaviour_info, 1),
             # TODO: Don't call into here directly
-            {{callback, arity}, [{:type, line, _, _}]} <-
+            {{callback, arity}, [{:type, location, _, _}]} <-
               ElixirSense.Core.Normalized.Typespec.get_callbacks(module) do
           {callback, arity} = SourceFile.strip_macro_prefix({callback, arity})
 
-          build_result(:callbacks, {module, callback, arity}, path, line)
+          build_result(:callbacks, {module, callback, arity}, path, location)
         end
       end)
     end)
@@ -477,14 +481,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end)
   end
 
-  @spec build_result(key_t, symbol_t, String.t(), nil | non_neg_integer) :: symbol_information_t
-  defp build_result(key, symbol, path, line) do
+  @spec build_result(key_t, symbol_t, String.t(), nil | erl_location_t) :: symbol_information_t
+  defp build_result(key, symbol, path, location) do
     %{
       kind: @symbol_codes |> Map.fetch!(key),
       name: symbol_name(key, symbol),
       location: %{
         uri: SourceFile.path_to_uri(path),
-        range: build_range(line)
+        range: build_range(location)
       }
     }
   end
@@ -506,13 +510,15 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     "#{inspect(module)}.#{callback}/#{arity}"
   end
 
-  @spec build_range(nil | non_neg_integer) :: range_t
+  @spec build_range(nil | erl_location_t) :: range_t
   defp build_range(nil) do
     %{
       start: %{line: 0, character: 0},
       end: %{line: 1, character: 0}
     }
   end
+
+  defp build_range({line, _column}), do: build_range(line)
 
   defp build_range(line) do
     %{
