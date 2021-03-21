@@ -4,15 +4,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   command.
   """
 
-  # We replace newlines with \n because Code.string_to_quoted!()
-  # doesn't work when the line separator is purely \r
-  @newlines ["\n", "\r", "\r\n"]
-
   @doc "Parses a string and converts the first function call, pre-order depth-first, into a pipe."
   def to_pipe(code_string) do
     {piped_ast, _} =
       code_string
-      |> String.replace(@newlines, "\n")
       |> Code.string_to_quoted!()
       |> Macro.prewalk(%{has_piped: false}, &do_to_pipe/2)
 
@@ -23,7 +18,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   def from_pipe(code_string) do
     {unpiped_ast, _} =
       code_string
-      |> String.replace(@newlines, "\n")
       |> Code.string_to_quoted!()
       |> Macro.postwalk(%{has_unpiped: false}, fn
         {:|>, line, [h, {{:., line, [{_, _, nil}]} = anonymous_function_node, line, t}]},
