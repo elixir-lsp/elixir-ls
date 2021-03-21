@@ -31,6 +31,28 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
              )
              """) == "X.Y.Z.a() |> X.Y.Z.function_name(b, c)"
     end
+
+    test "on 0 arity function call" do
+      assert AST.to_pipe("f.()") == "f.()"
+      assert AST.to_pipe("f()") == "f()"
+      assert AST.to_pipe("My.Nested.Module.f()") == "My.Nested.Module.f()"
+    end
+
+    test "on atom" do
+      assert AST.to_pipe(":asdf") == ":asdf"
+      assert AST.to_pipe("MyModule") == "MyModule"
+    end
+
+    test "calls with no parens" do
+      assert AST.to_pipe("f 1, 2") == "1 |> f(2)"
+      assert AST.to_pipe("MyModule.f 1, 2") == "1 |> MyModule.f(2)"
+    end
+
+    test "already a piped call (idempotency check)" do
+      assert AST.to_pipe("1 |> f(2)") == "1 |> f(2)"
+      assert AST.to_pipe("1 |> MyModule.f(2)") == "1 |> MyModule.f(2)"
+      assert AST.to_pipe("g(1) |> MyModule.f(2)") == "g(1) |> MyModule.f(2)"
+    end
   end
 
   describe "from_pipe/1 single-line" do

@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   end
 
   defp do_to_pipe({function, line, [h | t]}, %{has_piped: false} = acc)
-       when is_atom(function) and t != [] do
+       when is_atom(function) and function not in [:., :__aliases__, :"::", :{}, :|>] and t != [] do
     {{:|>, line, [h, {function, line, t}]}, Map.put(acc, :has_piped, true)}
   end
 
