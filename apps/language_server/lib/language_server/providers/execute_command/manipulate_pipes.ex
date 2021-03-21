@@ -125,7 +125,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
     {end_line, end_col} =
       if String.contains?(tail, "\n") do
-        tail_list = String.split(tail, "\r\n", "\n", "\r")
+        tail_list = String.split(tail, ["\r\n", "\n", "\r"])
         end_line = line + length(tail_list) - 1
         end_col = tail_list |> Enum.at(-1) |> String.length()
         {end_line, end_col}
@@ -219,7 +219,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       if line_offset != 0 do
         head
         |> String.trim_trailing(pipe_left)
-        |> String.split("\r\n", "\n", "\r")
+        |> String.split(["\r\n", "\n", "\r"])
         |> Enum.at(-1, "")
         |> String.length()
       else

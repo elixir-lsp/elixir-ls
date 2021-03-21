@@ -34,6 +34,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
   end
 
   describe "from_pipe/1 single-line" do
+    test "does not change code without pipes" do
+      code = "f(a, b, c)"
+
+      assert AST.from_pipe(code) == code
+    end
+
     test "three args in named function" do
       piped = "a |> function_name(b, c) |> after_call"
       unpiped = "function_name(a, b, c) |> after_call"
