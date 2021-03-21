@@ -13,6 +13,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
+  @newlines ["\r\n", "\n", "\r"]
+
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
   def execute(
         %{"uri" => uri, "cursor_line" => line, "cursor_column" => col, "operation" => operation},
@@ -124,8 +126,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     tail = do_get_function_call(original_tail, "(", ")")
 
     {end_line, end_col} =
-      if String.contains?(tail, "\n") do
-        tail_list = String.split(tail, ["\r\n", "\n", "\r"])
+      if String.contains?(tail, @newlines) do
+        tail_list = String.split(tail, @newlines)
         end_line = line + length(tail_list) - 1
         end_col = tail_list |> Enum.at(-1) |> String.length()
         {end_line, end_col}
@@ -179,28 +181,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
     reversed_head = String.reverse(head)
 
-    {pipe_left, _, _} =
-      for <<x::binary-size(1) <- reversed_head>>, reduce: {"", false, false} do
-        {acc, _, true} ->
-          {acc, true, true}
-
-        {acc, has_passed_through_non_whitespace, _should_halt} ->
-          is_whitespace = String.match?(x, ~r/\s/)
-
-          cond do
-            is_whitespace and has_passed_through_non_whitespace ->
-              {x <> acc, true, true}
-
-            is_whitespace and not has_passed_through_non_whitespace ->
-              {x <> acc, false, false}
-
-            not is_whitespace and (x == "|" or x == ">") ->
-              {x <> acc, false, false}
-
-            true ->
-              {x <> acc, true, false}
-          end
-      end
+    pipe_left = do_get_pipe_call(reversed_head)
 
     pipe_left =
       if String.contains?(pipe_left, ")") do
@@ -239,6 +220,29 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
     {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
   end
+
+  defp do_get_pipe_call(text, acc \\ {"", false, false})
+
+  defp do_get_pipe_call(_text, {acc, _, true}), do: acc
+  defp do_get_pipe_call(<<?\r, ?\n, _::bitstring>>, {acc, true, _}), do: "\r\n" <> acc
+
+  defp do_get_pipe_call(<<c::utf8, _::bitstring>>, {acc, true, _})
+       when c in [?\t, ?\v, ?\r, ?\n, ?\s],
+       do: <<c, acc::bitstring>>
+
+  defp do_get_pipe_call(<<?\r, ?\n, text::bitstring>>, {acc, false, _}),
+    do: do_get_pipe_call(text, {"\r\n" <> acc, false, false})
+
+  defp do_get_pipe_call(<<c::utf8, text::bitstring>>, {acc, false, _})
+       when c in [?\t, ?\v, ?\n, ?\s],
+       do: do_get_pipe_call(text, {<<c, acc::bitstring>>, false, false})
+
+  defp do_get_pipe_call(<<c::binary-size(1), text::bitstring>>, {acc, _, _})
+       when c == "|" or c == ">",
+       do: do_get_pipe_call(text, {c <> acc, false, false})
+
+  defp do_get_pipe_call(<<c::binary-size(1), text::bitstring>>, {acc, _, _}),
+    do: do_get_pipe_call(text, {c <> acc, true, false})
 
   defp get_function_call_before(head) do
     call_without_function_name =

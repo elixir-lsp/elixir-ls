@@ -197,6 +197,65 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "label" => "Convert function call to pipe operator"
              }
     end
+
+    for line_sep <- ["\r", "\r\n", "\n"] do
+      test "can pipe correctly when the line separator is #{line_sep}" do
+        {:ok, _} =
+          JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+        uri = "file:/some_file.ex"
+
+        base_code = [
+          "defmodule A do",
+          "  def f(x)  do",
+          "    Kernel.+(",
+          "      x,",
+          "      y",
+          "    )",
+          "    |> B.g()",
+          "  end",
+          "end"
+        ]
+
+        text = Enum.join(base_code, unquote(line_sep))
+
+        assert {:ok, nil} =
+                 ManipulatePipes.execute(
+                   %{
+                     "uri" => uri,
+                     "cursor_line" => 2,
+                     "cursor_column" => 12,
+                     "operation" => "to_pipe"
+                   },
+                   %Server{
+                     source_files: %{
+                       uri => %SourceFile{
+                         text: text
+                       }
+                     }
+                   }
+                 )
+
+        assert_receive {:request, "workspace/applyEdit", params}
+
+        assert params == %{
+                 "edit" => %{
+                   "changes" => %{
+                     uri => [
+                       %{
+                         "newText" => "x |> Kernel.+(y)",
+                         "range" => %{
+                           "end" => %{"character" => 5, "line" => 5},
+                           "start" => %{"character" => 4, "line" => 2}
+                         }
+                       }
+                     ]
+                   }
+                 },
+                 "label" => "Convert function call to pipe operator"
+               }
+      end
+    end
   end
 
   describe "execute/2 from_pipe" do
@@ -367,6 +426,63 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                },
                "label" => "Convert function call to pipe operator"
              }
+    end
+
+    for line_sep <- ["\r", "\r\n", "\n"] do
+      test "can unpipe correctly when the line separator is #{line_sep}" do
+        {:ok, _} =
+          JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+        uri = "file:/some_file.ex"
+
+        base_code = [
+          "defmodule A do",
+          "  def f(x)  do",
+          "    x",
+          "    |> Kernel.+(y)",
+          "    |> B.g()",
+          "  end",
+          "end"
+        ]
+
+        text = Enum.join(base_code, unquote(line_sep))
+
+        assert {:ok, nil} =
+                 ManipulatePipes.execute(
+                   %{
+                     "uri" => uri,
+                     "cursor_line" => 3,
+                     "cursor_column" => 4,
+                     "operation" => "from_pipe"
+                   },
+                   %Server{
+                     source_files: %{
+                       uri => %SourceFile{
+                         text: text
+                       }
+                     }
+                   }
+                 )
+
+        assert_receive {:request, "workspace/applyEdit", params}
+
+        assert params == %{
+                 "edit" => %{
+                   "changes" => %{
+                     uri => [
+                       %{
+                         "newText" => "Kernel.+(x, y)",
+                         "range" => %{
+                           "end" => %{"character" => 17, "line" => 3},
+                           "start" => %{"character" => 3, "line" => 2}
+                         }
+                       }
+                     ]
+                   }
+                 },
+                 "label" => "Convert function call to pipe operator"
+               }
+      end
     end
   end
 end
