@@ -53,6 +53,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
       assert AST.to_pipe("1 |> MyModule.f(2)") == "1 |> MyModule.f(2)"
       assert AST.to_pipe("g(1) |> MyModule.f(2)") == "g(1) |> MyModule.f(2)"
     end
+
+    test "does not pipe operators" do
+      assert AST.to_pipe("1 + 2") == "1 + 2"
+      assert AST.to_pipe("+2") == "+2"
+      # ensure that fully qualified operators are piped
+      assert AST.to_pipe("Kernel.+(1, 2)") == "1 |> Kernel.+(2)"
+    end
   end
 
   describe "from_pipe/1 single-line" do
