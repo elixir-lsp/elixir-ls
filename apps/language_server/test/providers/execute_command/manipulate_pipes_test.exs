@@ -33,7 +33,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       {:ok, _} =
         JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
 
-      uri = "file:/some_file.ex"
+      uri = "file:///some_file.ex"
 
       text = """
       defmodule A do
