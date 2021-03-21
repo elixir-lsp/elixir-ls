@@ -145,25 +145,33 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
   defp do_get_function_call(text, start_char, end_char) do
     text
-    |> String.graphemes()
-    |> Enum.reduce_while(%{paren_count: 0, text: ""}, fn
-      c = ^start_char, acc ->
-        {:cont, %{acc | paren_count: acc.paren_count + 1, text: [acc.text | [c]]}}
-
-      c = ^end_char, acc ->
-        acc = %{acc | paren_count: acc.paren_count - 1, text: [acc.text | [c]]}
-
-        if acc.paren_count <= 0 do
-          {:halt, acc}
-        else
-          {:cont, acc}
-        end
-
-      c, acc ->
-        {:cont, %{acc | text: [acc.text | [c]]}}
-    end)
+    |> do_get_function_call(start_char, end_char, %{paren_count: 0, text: ""})
     |> Map.get(:text)
     |> IO.iodata_to_binary()
+  end
+
+  defp do_get_function_call(<<c::binary-size(1), tail::bitstring>>, start_char, end_char, acc)
+       when c == start_char do
+    do_get_function_call(tail, start_char, end_char, %{
+      acc
+      | paren_count: acc.paren_count + 1,
+        text: [acc.text | [c]]
+    })
+  end
+
+  defp do_get_function_call(<<c::binary-size(1), tail::bitstring>>, start_char, end_char, acc)
+       when c == end_char do
+    acc = %{acc | paren_count: acc.paren_count - 1, text: [acc.text | [c]]}
+
+    if acc.paren_count <= 0 do
+      acc
+    else
+      do_get_function_call(tail, start_char, end_char, acc)
+    end
+  end
+
+  defp do_get_function_call(<<c::binary-size(1), tail::bitstring>>, start_char, end_char, acc) do
+    do_get_function_call(tail, start_char, end_char, %{acc | text: [acc.text | [c]]})
   end
 
   defp get_pipe_call(line, col, head, current, tail) do
@@ -261,14 +269,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     |> IO.iodata_to_binary()
   end
 
-  defp count_newlines_and_get_tail(s) do
-    for <<c::binary-size(1) <- s>>, reduce: {0, 0} do
-      {count, tail} ->
-        if c == "\n" do
-          {count + 1, 0}
-        else
-          {count, tail + 1}
-        end
-    end
+  defp count_newlines_and_get_tail(s, acc \\ {0, 0})
+
+  defp count_newlines_and_get_tail("", result), do: result
+
+  defp count_newlines_and_get_tail(<<?\r, ?\n, tail::bitstring>>, {count, _tail_length}) do
+    count_newlines_and_get_tail(tail, {count + 1, 0})
+  end
+
+  defp count_newlines_and_get_tail(<<c::utf8, tail::bitstring>>, {count, _tail_length})
+       when c == ?\r or c == ?\n do
+    count_newlines_and_get_tail(tail, {count + 1, 0})
+  end
+
+  defp count_newlines_and_get_tail(<<_::binary-size(1), tail::bitstring>>, {count, tail_length}) do
+    count_newlines_and_get_tail(tail, {count, tail_length + 1})
   end
 end
