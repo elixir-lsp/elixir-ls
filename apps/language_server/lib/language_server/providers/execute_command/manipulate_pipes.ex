@@ -147,7 +147,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
     {head, _tail} = String.split_at(call, -String.length(tail))
 
-    col = col - String.length(head) + 1
+    col = if head == "", do: col + 2, else: col - String.length(head) + 1
 
     {:ok, call, range(line, col, end_line, end_col)}
   end
@@ -199,6 +199,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       else
         pipe_left
       end
+
+    pipe_left = String.trim_leading(pipe_left)
 
     pipe_call = pipe_left <> current <> pipe_right
 

@@ -99,12 +99,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
 
     test "can pipe remote calls when there are multi-line args" do
@@ -180,12 +179,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
 
     test "can pipe local calls in single line" do
@@ -228,7 +226,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       expected_range = %{
         "end" => %{"character" => 23, "line" => 2},
-        "start" => %{"character" => 3, "line" => 2}
+        "start" => %{"character" => 4, "line" => 2}
       }
 
       expected_substitution = "h(x, 2) |> g(h(3, 4))"
@@ -250,7 +248,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       edited_text = """
       defmodule A do
         def f(x) do
-         h(x, 2) |> g(h(3, 4))
+          h(x, 2) |> g(h(3, 4))
           |> Kernel.+(2)
         end
 
@@ -260,12 +258,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
 
     for line_sep <- ["\r\n", "\n"] do
@@ -415,12 +412,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
   end
 
@@ -495,12 +491,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
 
     test "can unpipe remote calls when there are multi-line args" do
@@ -545,7 +540,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       expected_range = %{
         "end" => %{"character" => 5, "line" => 5},
-        "start" => %{"character" => 3, "line" => 2}
+        "start" => %{"character" => 4, "line" => 2}
       }
 
       expected_substitution = "Kernel.+(x, 1)"
@@ -567,7 +562,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       edited_text = """
       defmodule A do
         def f(x) do
-         Kernel.+(x, 1)
+          Kernel.+(x, 1)
           |> Kernel.+(2)
           |> g()
         end
@@ -576,12 +571,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
 
     test "can unpipe local calls in single line" do
@@ -656,12 +650,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
 
     for line_sep <- ["\r\n", "\n"] do
@@ -704,7 +697,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
         expected_range = %{
           "end" => %{"character" => 18, "line" => 3},
-          "start" => %{"character" => 3, "line" => 2}
+          "start" => %{"character" => 4, "line" => 2}
         }
 
         expected_substitution = "Kernel.+(x, y)"
@@ -726,7 +719,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         expected_base_code = [
           "defmodule A do",
           "  def f(x)  do",
-          "   Kernel.+(x, y)",
+          "    Kernel.+(x, y)",
           "    |> B.g()",
           "  end",
           "end"
@@ -781,7 +774,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       expected_range = %{
         "end" => %{"character" => 18, "line" => 3},
-        "start" => %{"character" => 3, "line" => 2}
+        "start" => %{"character" => 4, "line" => 2}
       }
 
       expected_substitution = ~s{g(x, "éééççç")}
@@ -803,19 +796,18 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       edited_text = """
       defmodule A do
         def f(x) do
-         g(x, "éééççç")
+          g(x, "éééççç")
         end
 
         def g(a, b), do: a <> b
       end
       """
 
-      assert edited_text ==
-               ElixirLS.LanguageServer.SourceFile.apply_edit(
-                 text,
-                 expected_range,
-                 expected_substitution
-               )
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
     end
   end
 end
