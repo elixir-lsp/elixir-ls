@@ -265,8 +265,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
              ) == edited_text
     end
 
-    for line_sep <- ["\r\n", "\n"] do
-      test "can pipe correctly when the line separator is #{line_sep}" do
+    for {line_sep, test_name_suffix} <- [{"\r\n", "\\r\\n"} {"\n", "\\n"}] do
+      test "can pipe correctly when the line separator is #{test_name_suffix}" do
         {:ok, _} =
           JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
 
@@ -657,8 +657,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
              ) == edited_text
     end
 
-    for line_sep <- ["\r\n", "\n"] do
-      test "can unpipe correctly when the line separator is #{line_sep}" do
+    for {line_sep, test_name_suffix} <- [{"\r\n", "\\r\\n"}, {"\n", "\\n"}] do
+      test "can unpipe correctly when the line separator is #{test_name_suffix}" do
         {:ok, _} =
           JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
 
