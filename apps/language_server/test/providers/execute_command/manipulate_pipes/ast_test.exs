@@ -32,9 +32,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
              """) == "X.Y.Z.a() |> X.Y.Z.function_name(b, c)"
     end
 
-    test "multi-line with \r as separator and \r\n inside strings" do
-      assert AST.to_pipe(~s{X.Y.Z.function_name(\r1,\r"asdf\nghjk")}) ==
-               ~s{1 |> X.Y.Z.function_name("asdf\nghjk")}
+    test "multi-line with \r as separator and \r\n inside strings raises syntax error" do
+      # This test shows that the parser is limited to Elixir's parser's capabilities
+      assert_raise SyntaxError, fn ->
+        AST.to_pipe(~s{X.Y.Z.function_name(\r1,\r"asdf\nghjk")})
+      end
     end
 
     test "on 0 arity function call" do
