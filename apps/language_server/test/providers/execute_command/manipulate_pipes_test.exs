@@ -73,7 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "x |> Kernel.+(1)",
                        "range" => %{
-                         "end" => %{"character" => 17, "line" => 2},
+                         "end" => %{"character" => 18, "line" => 2},
                          "start" => %{"character" => 4, "line" => 2}
                        }
                      }
@@ -187,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "h(x, 2) |> g(h(3, 4))",
                        "range" => %{
-                         "end" => %{"character" => 22, "line" => 2},
+                         "end" => %{"character" => 23, "line" => 2},
                          "start" => %{"character" => 3, "line" => 2}
                        }
                      }
@@ -256,6 +256,59 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                }
       end
     end
+
+    test "can handle utf 16 characters" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule A do
+        def f(x) do
+          g("éééççç", x)
+        end
+
+        def g(a, b), do: a <> b
+      end
+      """
+
+      assert {:ok, nil} =
+               ManipulatePipes.execute(
+                 %{
+                   "uri" => uri,
+                   "cursor_line" => 2,
+                   "cursor_column" => 14,
+                   "operation" => "to_pipe"
+                 },
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      assert_receive {:request, "workspace/applyEdit", params}
+
+      assert params == %{
+               "edit" => %{
+                 "changes" => %{
+                   uri => [
+                     %{
+                       "newText" => ~s{"éééççç" |> g(x)},
+                       "range" => %{
+                         "end" => %{"character" => 18, "line" => 2},
+                         "start" => %{"character" => 4, "line" => 2}
+                       }
+                     }
+                   ]
+                 }
+               },
+               "label" => "Convert function call to pipe operator"
+             }
+    end
   end
 
   describe "execute/2 from_pipe" do
@@ -303,14 +356,14 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "Kernel.+(g(1), 1)",
                        "range" => %{
-                         "end" => %{"character" => 22, "line" => 2},
+                         "end" => %{"character" => 23, "line" => 2},
                          "start" => %{"character" => 4, "line" => 2}
                        }
                      }
                    ]
                  }
                },
-               "label" => "Convert function call to pipe operator"
+               "label" => "Convert pipe operator to function call"
              }
     end
 
@@ -368,7 +421,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                    ]
                  }
                },
-               "label" => "Convert function call to pipe operator"
+               "label" => "Convert pipe operator to function call"
              }
     end
 
@@ -417,14 +470,14 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                      %{
                        "newText" => "g(h(x, 2), h(3, 4))",
                        "range" => %{
-                         "end" => %{"character" => 24, "line" => 2},
+                         "end" => %{"character" => 25, "line" => 2},
                          "start" => %{"character" => 4, "line" => 2}
                        }
                      }
                    ]
                  }
                },
-               "label" => "Convert function call to pipe operator"
+               "label" => "Convert pipe operator to function call"
              }
     end
 
@@ -473,14 +526,14 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                        %{
                          "newText" => "Kernel.+(x, y)",
                          "range" => %{
-                           "end" => %{"character" => 17, "line" => 3},
+                           "end" => %{"character" => 18, "line" => 3},
                            "start" => %{"character" => 3, "line" => 2}
                          }
                        }
                      ]
                    }
                  },
-                 "label" => "Convert function call to pipe operator"
+                 "label" => "Convert pipe operator to function call"
                }
       end
     end

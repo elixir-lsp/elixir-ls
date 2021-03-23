@@ -34,9 +34,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
           from_pipe_at_cursor(source_file, line, col)
       end
 
+    label =
+      case operation do
+        "to_pipe" -> "Convert function call to pipe operator"
+        "from_pipe" -> "Convert pipe operator to function call"
+      end
+
     edit_result =
       JsonRpc.send_request("workspace/applyEdit", %{
-        "label" => "Convert function call to pipe operator",
+        "label" => label,
         "edit" => %{
           "changes" => %{
             uri => [%{"range" => edit_range, "newText" => edited_text}]
@@ -132,7 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         end_col = tail_list |> Enum.at(-1) |> String.length()
         {end_line, end_col}
       else
-        {line, col + String.length(tail)}
+        {line, col + String.length(tail) + 1}
       end
 
     text = head <> current <> tail
@@ -215,7 +221,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       if line_offset != 0 do
         tail_length
       else
-        col + tail_length - 1
+        col + tail_length
       end
 
     {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
