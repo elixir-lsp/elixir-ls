@@ -28,10 +28,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     {:ok, %{edited_text: edited_text, edit_range: edit_range}} =
       case operation do
         "to_pipe" ->
-          to_pipe_at_cursor(source_file, line, col)
+          to_pipe_at_cursor(source_file.text, line, col)
 
         "from_pipe" ->
-          from_pipe_at_cursor(source_file, line, col)
+          from_pipe_at_cursor(source_file.text, line, col)
       end
 
     label =
@@ -60,10 +60,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
-  defp to_pipe_at_cursor(source_file, line, col) do
+  defp to_pipe_at_cursor(text, line, col) do
     result =
       ElixirSense.Core.Source.walk_text(
-        source_file.text,
+        text,
         %{walked_text: "", function_call: nil, range: nil},
         fn current_char, remaining_text, current_line, current_col, acc ->
           if current_line - 1 == line and current_col - 1 == col do
@@ -94,10 +94,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
-  defp from_pipe_at_cursor(source_file, line, col) do
+  defp from_pipe_at_cursor(text, line, col) do
     result =
       ElixirSense.Core.Source.walk_text(
-        source_file.text,
+        text,
         %{walked_text: "", pipe_call: nil, range: nil},
         fn current_char, remaining_text, current_line, current_col, acc ->
           if current_line - 1 == line and current_col - 1 == col do
@@ -146,6 +146,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     call = get_function_call_before(text)
 
     {head, _tail} = String.split_at(call, -String.length(tail))
+
     col = col - String.length(head) + 1
 
     {:ok, call, range(line, col, end_line, end_col)}
@@ -185,9 +186,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   defp get_pipe_call(line, col, head, current, tail) do
     pipe_right = do_get_function_call(tail, "(", ")")
 
-    reversed_head = String.reverse(head)
-
-    pipe_left = do_get_pipe_call(reversed_head)
+    pipe_left =
+      head
+      |> String.reverse()
+      |> :unicode.characters_to_binary(:utf8, :utf16)
+      |> do_get_pipe_call()
+      |> :unicode.characters_to_binary(:utf16, :utf8)
 
     pipe_left =
       if String.contains?(pipe_left, ")") do
@@ -198,7 +202,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
     pipe_call = pipe_left <> current <> pipe_right
 
-    {line_offset, tail_length} = pipe_left |> String.reverse() |> count_newlines_and_get_tail()
+    {line_offset, tail_length} =
+      pipe_left
+      |> String.reverse()
+      |> count_newlines_and_get_tail()
 
     start_line = line - line_offset
 
@@ -227,28 +234,32 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
   end
 
+  # do_get_pipe_call(text :: utf16 binary, {utf16 binary, has_passed_through_whitespace, should_halt})
   defp do_get_pipe_call(text, acc \\ {"", false, false})
 
   defp do_get_pipe_call(_text, {acc, _, true}), do: acc
-  defp do_get_pipe_call(<<?\r, ?\n, _::bitstring>>, {acc, true, _}), do: "\r\n" <> acc
+  defp do_get_pipe_call("", {acc, _, _}), do: acc
 
-  defp do_get_pipe_call(<<c::utf8, _::bitstring>>, {acc, true, _})
+  defp do_get_pipe_call(<<?\r::utf16, ?\n::utf16, _::bitstring>>, {acc, true, _}),
+    do: <<?\r::utf16, ?\n::utf16, acc::bitstring>>
+
+  defp do_get_pipe_call(<<0, c::utf8, _::bitstring>>, {acc, true, _})
        when c in [?\t, ?\v, ?\r, ?\n, ?\s],
-       do: <<c, acc::bitstring>>
+       do: <<c::utf16, acc::bitstring>>
 
-  defp do_get_pipe_call(<<?\r, ?\n, text::bitstring>>, {acc, false, _}),
-    do: do_get_pipe_call(text, {"\r\n" <> acc, false, false})
+  defp do_get_pipe_call(<<0, ?\r, 0, ?\n, text::bitstring>>, {acc, false, _}),
+    do: do_get_pipe_call(text, {<<?\r::utf16, ?\n::utf16, acc::bitstring>>, false, false})
 
-  defp do_get_pipe_call(<<c::utf8, text::bitstring>>, {acc, false, _})
+  defp do_get_pipe_call(<<0, c::utf8, text::bitstring>>, {acc, false, _})
        when c in [?\t, ?\v, ?\n, ?\s],
-       do: do_get_pipe_call(text, {<<c, acc::bitstring>>, false, false})
+       do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, false, false})
 
-  defp do_get_pipe_call(<<c::binary-size(1), text::bitstring>>, {acc, _, _})
-       when c == "|" or c == ">",
-       do: do_get_pipe_call(text, {c <> acc, false, false})
+  defp do_get_pipe_call(<<0, c::utf8, text::bitstring>>, {acc, _, _})
+       when c in [?|, ?>],
+       do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, false, false})
 
-  defp do_get_pipe_call(<<c::binary-size(1), text::bitstring>>, {acc, _, _}),
-    do: do_get_pipe_call(text, {c <> acc, true, false})
+  defp do_get_pipe_call(<<c::utf16, text::bitstring>>, {acc, _, _}),
+    do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, true, false})
 
   defp get_function_call_before(head) do
     call_without_function_name =
@@ -281,18 +292,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
   defp count_newlines_and_get_tail(s, acc \\ {0, 0})
 
-  defp count_newlines_and_get_tail("", result), do: result
+  defp count_newlines_and_get_tail("", acc), do: acc
 
-  defp count_newlines_and_get_tail(<<?\r, ?\n, tail::bitstring>>, {count, _tail_length}) do
-    count_newlines_and_get_tail(tail, {count + 1, 0})
-  end
+  defp count_newlines_and_get_tail(s, {line_count, tail_length}) do
+    case String.next_grapheme(s) do
+      {g, tail} when g in ["\r\n", "\r", "\n"] ->
+        count_newlines_and_get_tail(tail, {line_count + 1, 0})
 
-  defp count_newlines_and_get_tail(<<c::utf8, tail::bitstring>>, {count, _tail_length})
-       when c == ?\r or c == ?\n do
-    count_newlines_and_get_tail(tail, {count + 1, 0})
-  end
-
-  defp count_newlines_and_get_tail(<<_::binary-size(1), tail::bitstring>>, {count, tail_length}) do
-    count_newlines_and_get_tail(tail, {count, tail_length + 1})
+      {_, tail} ->
+        count_newlines_and_get_tail(tail, {line_count, tail_length + 1})
+    end
   end
 end

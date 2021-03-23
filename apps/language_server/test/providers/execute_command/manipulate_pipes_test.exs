@@ -66,22 +66,45 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_receive {:request, "workspace/applyEdit", params}
 
+      expected_range = %{
+        "end" => %{"character" => 18, "line" => 2},
+        "start" => %{"character" => 4, "line" => 2}
+      }
+
+      expected_substitution = "x |> Kernel.+(1)"
+
       assert params == %{
                "edit" => %{
                  "changes" => %{
                    uri => [
                      %{
-                       "newText" => "x |> Kernel.+(1)",
-                       "range" => %{
-                         "end" => %{"character" => 18, "line" => 2},
-                         "start" => %{"character" => 4, "line" => 2}
-                       }
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
                },
                "label" => "Convert function call to pipe operator"
              }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+          x |> Kernel.+(1)
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
 
     test "can pipe remote calls when there are multi-line args" do
@@ -124,22 +147,45 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_receive {:request, "workspace/applyEdit", params}
 
+      expected_range = %{
+        "end" => %{"character" => 5, "line" => 5},
+        "start" => %{"character" => 4, "line" => 2}
+      }
+
+      expected_substitution = "x |> Kernel.+(1)"
+
       assert params == %{
                "edit" => %{
                  "changes" => %{
                    uri => [
                      %{
-                       "newText" => "x |> Kernel.+(1)",
-                       "range" => %{
-                         "end" => %{"character" => 5, "line" => 5},
-                         "start" => %{"character" => 4, "line" => 2}
-                       }
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
                },
                "label" => "Convert function call to pipe operator"
              }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+          x |> Kernel.+(1)
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
 
     test "can pipe local calls in single line" do
@@ -180,25 +226,49 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_receive {:request, "workspace/applyEdit", params}
 
+      expected_range = %{
+        "end" => %{"character" => 23, "line" => 2},
+        "start" => %{"character" => 3, "line" => 2}
+      }
+
+      expected_substitution = "h(x, 2) |> g(h(3, 4))"
+
       assert params == %{
                "edit" => %{
                  "changes" => %{
                    uri => [
                      %{
-                       "newText" => "h(x, 2) |> g(h(3, 4))",
-                       "range" => %{
-                         "end" => %{"character" => 23, "line" => 2},
-                         "start" => %{"character" => 3, "line" => 2}
-                       }
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
                },
                "label" => "Convert function call to pipe operator"
              }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+         h(x, 2) |> g(h(3, 4))
+          |> Kernel.+(2)
+        end
+
+        def g(x, y), do: x + y
+
+        def h(a, b), do: a - b
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
 
-    for line_sep <- ["\r", "\r\n", "\n"] do
+    for line_sep <- ["\r\n", "\n"] do
       test "can pipe correctly when the line separator is #{line_sep}" do
         {:ok, _} =
           JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
@@ -238,22 +308,44 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
         assert_receive {:request, "workspace/applyEdit", params}
 
+        expected_range = %{
+          "end" => %{"character" => 5, "line" => 5},
+          "start" => %{"character" => 4, "line" => 2}
+        }
+
+        expected_substitution = "x |> Kernel.+(y)"
+
         assert params == %{
                  "edit" => %{
                    "changes" => %{
                      uri => [
                        %{
-                         "newText" => "x |> Kernel.+(y)",
-                         "range" => %{
-                           "end" => %{"character" => 5, "line" => 5},
-                           "start" => %{"character" => 4, "line" => 2}
-                         }
+                         "newText" => expected_substitution,
+                         "range" => expected_range
                        }
                      ]
                    }
                  },
                  "label" => "Convert function call to pipe operator"
                }
+
+        expected_base_code = [
+          "defmodule A do",
+          "  def f(x)  do",
+          "    x |> Kernel.+(y)",
+          "    |> B.g()",
+          "  end",
+          "end"
+        ]
+
+        edited_text = Enum.join(expected_base_code, unquote(line_sep))
+
+        assert edited_text ==
+                 ElixirLS.LanguageServer.SourceFile.apply_edit(
+                   text,
+                   expected_range,
+                   expected_substitution
+                 )
       end
     end
 
@@ -292,22 +384,43 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_receive {:request, "workspace/applyEdit", params}
 
+      expected_range = %{
+        "end" => %{"character" => 18, "line" => 2},
+        "start" => %{"character" => 4, "line" => 2}
+      }
+
+      expected_substitution = ~s{"éééççç" |> g(x)}
+
       assert params == %{
                "edit" => %{
                  "changes" => %{
                    uri => [
                      %{
-                       "newText" => ~s{"éééççç" |> g(x)},
-                       "range" => %{
-                         "end" => %{"character" => 18, "line" => 2},
-                         "start" => %{"character" => 4, "line" => 2}
-                       }
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
                },
                "label" => "Convert function call to pipe operator"
              }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+          "éééççç" |> g(x)
+        end
+
+        def g(a, b), do: a <> b
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
   end
 
@@ -349,22 +462,45 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_receive {:request, "workspace/applyEdit", params}
 
+      expected_range = %{
+        "end" => %{"character" => 23, "line" => 2},
+        "start" => %{"character" => 4, "line" => 2}
+      }
+
+      expected_substitution = "Kernel.+(g(1), 1)"
+
       assert params == %{
                "edit" => %{
                  "changes" => %{
                    uri => [
                      %{
-                       "newText" => "Kernel.+(g(1), 1)",
-                       "range" => %{
-                         "end" => %{"character" => 23, "line" => 2},
-                         "start" => %{"character" => 4, "line" => 2}
-                       }
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
                },
                "label" => "Convert pipe operator to function call"
              }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+          Kernel.+(g(1), 1)
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
 
     test "can unpipe remote calls when there are multi-line args" do
@@ -407,22 +543,45 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_receive {:request, "workspace/applyEdit", params}
 
+      expected_range = %{
+        "end" => %{"character" => 5, "line" => 5},
+        "start" => %{"character" => 3, "line" => 2}
+      }
+
+      expected_substitution = "Kernel.+(x, 1)"
+
       assert params == %{
                "edit" => %{
                  "changes" => %{
                    uri => [
                      %{
-                       "newText" => "Kernel.+(x, 1)",
-                       "range" => %{
-                         "end" => %{"character" => 5, "line" => 5},
-                         "start" => %{"character" => 3, "line" => 2}
-                       }
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
                },
                "label" => "Convert pipe operator to function call"
              }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+         Kernel.+(x, 1)
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
 
     test "can unpipe local calls in single line" do
@@ -463,25 +622,49 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_receive {:request, "workspace/applyEdit", params}
 
+      expected_range = %{
+        "end" => %{"character" => 25, "line" => 2},
+        "start" => %{"character" => 4, "line" => 2}
+      }
+
+      expected_substitution = "g(h(x, 2), h(3, 4))"
+
       assert params == %{
                "edit" => %{
                  "changes" => %{
                    uri => [
                      %{
-                       "newText" => "g(h(x, 2), h(3, 4))",
-                       "range" => %{
-                         "end" => %{"character" => 25, "line" => 2},
-                         "start" => %{"character" => 4, "line" => 2}
-                       }
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
                },
                "label" => "Convert pipe operator to function call"
              }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+          g(h(x, 2), h(3, 4))
+          |> Kernel.+(2)
+        end
+
+        def g(x, y), do: x + y
+
+        def h(a, b), do: a - b
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
 
-    for line_sep <- ["\r", "\r\n", "\n"] do
+    for line_sep <- ["\r\n", "\n"] do
       test "can unpipe correctly when the line separator is #{line_sep}" do
         {:ok, _} =
           JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
@@ -519,23 +702,120 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
         assert_receive {:request, "workspace/applyEdit", params}
 
+        expected_range = %{
+          "end" => %{"character" => 18, "line" => 3},
+          "start" => %{"character" => 3, "line" => 2}
+        }
+
+        expected_substitution = "Kernel.+(x, y)"
+
         assert params == %{
                  "edit" => %{
                    "changes" => %{
                      uri => [
                        %{
-                         "newText" => "Kernel.+(x, y)",
-                         "range" => %{
-                           "end" => %{"character" => 18, "line" => 3},
-                           "start" => %{"character" => 3, "line" => 2}
-                         }
+                         "newText" => expected_substitution,
+                         "range" => expected_range
                        }
                      ]
                    }
                  },
                  "label" => "Convert pipe operator to function call"
                }
+
+        expected_base_code = [
+          "defmodule A do",
+          "  def f(x)  do",
+          "   Kernel.+(x, y)",
+          "    |> B.g()",
+          "  end",
+          "end"
+        ]
+
+        edited_text = Enum.join(expected_base_code, unquote(line_sep))
+
+        assert edited_text ==
+                 ElixirLS.LanguageServer.SourceFile.apply_edit(
+                   text,
+                   expected_range,
+                   expected_substitution
+                 )
       end
+    end
+
+    test "can handle utf 16 characters" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule A do
+        def f(x) do
+          x
+          |> g("éééççç")
+        end
+
+        def g(a, b), do: a <> b
+      end
+      """
+
+      assert {:ok, nil} =
+               ManipulatePipes.execute(
+                 %{
+                   "uri" => uri,
+                   "cursor_line" => 3,
+                   "cursor_column" => 5,
+                   "operation" => "from_pipe"
+                 },
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      assert_receive {:request, "workspace/applyEdit", params}
+
+      expected_range = %{
+        "end" => %{"character" => 18, "line" => 3},
+        "start" => %{"character" => 3, "line" => 2}
+      }
+
+      expected_substitution = ~s{g(x, "éééççç")}
+
+      assert params == %{
+               "edit" => %{
+                 "changes" => %{
+                   uri => [
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
+                     }
+                   ]
+                 }
+               },
+               "label" => "Convert pipe operator to function call"
+             }
+
+      edited_text = """
+      defmodule A do
+        def f(x) do
+         g(x, "éééççç")
+        end
+
+        def g(a, b), do: a <> b
+      end
+      """
+
+      assert edited_text ==
+               ElixirLS.LanguageServer.SourceFile.apply_edit(
+                 text,
+                 expected_range,
+                 expected_substitution
+               )
     end
   end
 end
