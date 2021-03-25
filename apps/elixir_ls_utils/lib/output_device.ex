@@ -1,7 +1,7 @@
 defmodule ElixirLS.Utils.OutputDevice do
   @moduledoc """
   Intercepts IO request messages and forwards them to the Output server to be sent as events to
-  the IDE.
+  the IDE. Implements Erlang I/O Protocol https://erlang.org/doc/apps/stdlib/io_protocol.html
 
   In order to send console output to Visual Studio Code, the debug adapter needs to send events
   using the usual wire protocol. In order to intercept the debugged code's output, we replace the
@@ -10,65 +10,131 @@ defmodule ElixirLS.Utils.OutputDevice do
   server with the correct category ("stdout" or "stderr").
   """
 
-  use GenServer
+  @opts binary: true, encoding: :unicode
 
   ## Client API
 
-  def start_link(device, output_fn, opts \\ []) do
-    GenServer.start_link(__MODULE__, {device, output_fn}, opts)
+  def start_link(device, output_fn) do
+    Task.start_link(fn -> loop({device, output_fn}) end)
   end
 
-  ## Server callbacks
-
-  @impl GenServer
-  def init({device, output_fn}) do
-    {:ok, {device, output_fn}}
+  def child_spec(arguments) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, arguments},
+      type: :worker,
+      restart: :permanent,
+      shutdown: 500
+    }
   end
 
-  @impl GenServer
-  def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, characters}}, s) do
-    output(from, reply_as, characters, s)
-    {:noreply, s}
-  end
+  def get_opts, do: @opts
 
-  @impl GenServer
-  def handle_info({:io_request, from, reply_as, {:put_chars, characters}}, s) do
-    output(from, reply_as, characters, s)
-    {:noreply, s}
-  end
+  ## Implementation
 
-  @impl GenServer
-  def handle_info({:io_request, from, reply_as, {:put_chars, _encoding, module, func, args}}, s) do
-    output(from, reply_as, apply(module, func, args), s)
-    {:noreply, s}
-  end
+  defp loop(state) do
+    receive do
+      {:io_request, from, reply_as, request} ->
+        result = io_request(request, state, reply_as)
+        send(from, {:io_reply, reply_as, result})
 
-  @impl GenServer
-  def handle_info({:io_request, from, reply_as, {:put_chars, module, func, args}}, s) do
-    output(from, reply_as, apply(module, func, args), s)
-    {:noreply, s}
-  end
-
-  @impl GenServer
-  def handle_info({:io_request, from, reply_as, {:requests, reqs}}, s) do
-    for req <- reqs do
-      handle_info({:io_request, from, reply_as, req}, s)
+        loop(state)
     end
-
-    {:noreply, s}
   end
 
-  # Any other message (get_geometry, set_opts, etc.) goes directly to original device
-  @impl GenServer
-  def handle_info(msg, {device, _} = s) do
-    send(device, msg)
-    {:noreply, s}
+  defp send_to_output(encoding, characters, {_device, output_fn}) do
+    # convert to unicode binary if necessary
+    case wrap_characters_to_binary(characters, encoding) do
+      binary when is_binary(binary) ->
+        output_fn.(binary)
+
+      _ ->
+        {:error, :put_chars}
+    end
   end
 
-  ## Helpers
-
-  defp output(from, reply_as, characters, {_, output_fn}) do
-    output_fn.(IO.iodata_to_binary(characters))
-    send(from, {:io_reply, reply_as, :ok})
+  defp io_request({:put_chars, encoding, characters}, state, _reply_as) do
+    send_to_output(encoding, characters, state)
   end
+
+  defp io_request({:put_chars, encoding, module, func, args}, state, _reply_as) do
+    # apply mfa to get binary or list
+    # return error in other cases
+    try do
+      case apply(module, func, args) do
+        characters when is_list(characters) or is_binary(characters) ->
+          send_to_output(encoding, characters, state)
+
+        _ ->
+          {:error, :put_chars}
+      end
+    catch
+      _, _ -> {:error, :put_chars}
+    end
+  end
+
+  defp io_request({:requests, list}, state, reply_as) do
+    # process request sequentially until error or end of data
+    # return last result
+    case io_requests(list, {:ok, :ok}, state, reply_as) do
+      :ok -> :ok
+      {:error, error} -> {:error, error}
+      other -> {:ok, other}
+    end
+  end
+
+  defp io_request(:getopts, _state, _reply_as) do
+    @opts
+  end
+
+  defp io_request({:setopts, new_opts}, _state, _reply_as) do
+    validate_otps(new_opts, {:ok, 0})
+  end
+
+  defp io_request(unknown, {device, _output_fn}, reply_as) do
+    # forward requests to underlying device
+    send(device, {:io_request, self(), reply_as, unknown})
+
+    receive do
+      {:io_reply, ^reply_as, reply} -> reply
+    end
+  end
+
+  defp io_requests(_, {:error, error}, _, _), do: {:error, error}
+
+  defp io_requests([request | rest], _, state, reply_as) do
+    result = io_request(request, state, reply_as)
+    io_requests(rest, result, state, reply_as)
+  end
+
+  defp io_requests([], result, _, _), do: result
+
+  defp wrap_characters_to_binary(bin, :unicode) when is_binary(bin), do: bin
+
+  defp wrap_characters_to_binary(chars, from) do
+    # :unicode.characters_to_binary may throw, return error or incomplete result
+    try do
+      case :unicode.characters_to_binary(chars, from, :unicode) do
+        bin when is_binary(bin) ->
+          bin
+
+        _ ->
+          :error
+      end
+    catch
+      _, _ -> :error
+    end
+  end
+
+  defp validate_otps([opt | rest], {:ok, acc}) do
+    validate_otps(rest, opt_valid?(opt, acc))
+  end
+
+  defp validate_otps([], {:ok, 2}), do: :ok
+  defp validate_otps(_, _acc), do: {:error, :enotsup}
+
+  defp opt_valid?(:binary, acc), do: {:ok, acc + 1}
+  defp opt_valid?({:binary, true}, acc), do: {:ok, acc + 1}
+  defp opt_valid?({:encoding, :unicode}, acc), do: {:ok, acc + 1}
+  defp opt_valid?(_opt, _acc), do: :error
 end

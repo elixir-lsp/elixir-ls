@@ -52,7 +52,7 @@ fi
 # include the local .ez files, and then do what we were asked to do.
 
 readlink_f () {
-  cd "$(dirname "$1")" > /dev/null
+  cd "$(dirname "$1")" > /dev/null || exit 1
   filename="$(basename "$1")"
   if [ -h "$filename" ]; then
     readlink_f "$(readlink "$filename")"
@@ -61,8 +61,13 @@ readlink_f () {
   fi
 }
 
-SCRIPT=$(readlink_f "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
+if [ -z "${ELS_INSTALL_PREFIX}" ]; then
+  SCRIPT=$(readlink_f "$0")
+  SCRIPTPATH=$(dirname "$SCRIPT")
+else
+  SCRIPTPATH=${ELS_INSTALL_PREFIX}
+fi
+
 export ERL_LIBS="$SCRIPTPATH:$ERL_LIBS"
 
 exec elixir --erl "+sbwt none +sbwtdcpu none +sbwtdio none"  -e "$ELS_SCRIPT"

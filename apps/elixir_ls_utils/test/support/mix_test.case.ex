@@ -37,7 +37,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   def tmp_path do
-    Path.expand("../tmp", __DIR__)
+    Path.expand("../../.tmp", __DIR__)
   end
 
   def tmp_path(extension) do
@@ -73,6 +73,9 @@ defmodule ElixirLS.Utils.MixTest.Case do
     get_path = :code.get_path()
     previous = :code.all_loaded()
     project_stack = clear_project_stack!()
+
+    ExUnit.CaptureLog.capture_log(fn -> Application.stop(:mix) end)
+    Application.start(:mix)
 
     try do
       File.cd!(dest, function)
@@ -147,5 +150,20 @@ defmodule ElixirLS.Utils.MixTest.Case do
       end
 
     module.clear_cache()
+  end
+
+  def capture_log_and_io(device, fun) when is_function(fun, 0) do
+    # Logger gets stopped during some tests so restart it to be able to capture logs (and keept the
+    # test output clean)
+    Application.ensure_started(:logger)
+
+    log =
+      ExUnit.CaptureLog.capture_log(fn ->
+        io = ExUnit.CaptureIO.capture_io(device, fun)
+        send(self(), {:block_result, io})
+      end)
+
+    assert_received {:block_result, io_result}
+    {log, io_result}
   end
 end

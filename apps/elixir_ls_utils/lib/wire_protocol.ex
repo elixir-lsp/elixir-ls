@@ -10,19 +10,12 @@ defmodule ElixirLS.Utils.WireProtocol do
     pid = io_dest()
     body = JasonVendored.encode_to_iodata!(packet)
 
-    case IO.binwrite(pid, [
-           "Content-Length: ",
-           IO.iodata_length(body) |> Integer.to_string(),
-           @separator,
-           body
-         ]) do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
-        IO.warn("Unable to write to the device: #{inspect(reason)}")
-        :ok
-    end
+    IO.binwrite(pid, [
+      "Content-Length: ",
+      IO.iodata_length(body) |> Integer.to_string(),
+      @separator,
+      body
+    ])
   end
 
   defp io_dest do
@@ -36,10 +29,11 @@ defmodule ElixirLS.Utils.WireProtocol do
   def intercept_output(print_fn, print_err_fn) do
     raw_user = Process.whereis(:user)
     raw_standard_error = Process.whereis(:standard_error)
-    :ok = :io.setopts(raw_user, binary: true, encoding: :latin1)
+
+    :ok = :io.setopts(raw_user, OutputDevice.get_opts())
 
     {:ok, user} = OutputDevice.start_link(raw_user, print_fn)
-    {:ok, standard_error} = OutputDevice.start_link(raw_standard_error, print_err_fn)
+    {:ok, standard_error} = OutputDevice.start_link(raw_user, print_err_fn)
 
     Process.unregister(:user)
     Process.register(raw_user, :raw_user)

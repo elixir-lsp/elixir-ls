@@ -30,7 +30,8 @@ defmodule ElixirLS.LanguageServer.Server do
     WorkspaceSymbols,
     OnTypeFormatting,
     CodeLens,
-    ExecuteCommand
+    ExecuteCommand,
+    FoldingRange
   }
 
   alias ElixirLS.Utils.Launch
@@ -118,7 +119,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_call({:suggest_contracts, uri}, from, state) do
+  def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
         {:reply, Dialyzer.suggest_contracts([SourceFile.path_from_uri(uri)]), state}
@@ -128,6 +129,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
         {:noreply, %{state | awaiting_contracts: [{from, uri} | awaiting_contracts]}}
     end
+  end
+
+  def handle_call({:suggest_contracts, _uri}, _from, state) do
+    {:reply, [], state}
   end
 
   @impl GenServer
@@ -389,9 +394,13 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change_watched_files(changes), state) do
+    changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
+
     needs_build =
-      Enum.any?(changes, fn %{"uri" => uri, "type" => type} ->
-        Path.extname(uri) in @watched_extensions and
+      Enum.any?(changes, fn %{"uri" => uri = "file:" <> _, "type" => type} ->
+        path = SourceFile.path_from_uri(uri)
+
+        Path.extname(path) in @watched_extensions and
           (type in [1, 3] or not Map.has_key?(state.source_files, uri) or
              state.source_files[uri].dirty?)
       end)
@@ -403,7 +412,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # deleted file still open in editor, keep dirty flag
           acc
 
-        %{"uri" => uri}, acc ->
+        %{"uri" => uri = "file:" <> _}, acc ->
           # file created/updated - set dirty flag to false if file contents are equal
           case acc[uri] do
             %SourceFile{text: source_file_text, dirty?: true} = source_file ->
@@ -421,6 +430,7 @@ defmodule ElixirLS.LanguageServer.Server do
               end
 
             _ ->
+              # file not open or not dirty
               acc
           end
       end)
@@ -732,7 +742,23 @@ defmodule ElixirLS.LanguageServer.Server do
      end, state}
   end
 
+  defp handle_request(folding_range_req(_id, uri), state) do
+    case get_source_file(state, uri) do
+      nil ->
+        {:error, :server_error, "Missing source file", state}
+
+      source_file ->
+        fun = fn -> FoldingRange.provide(source_file) end
+        {:async, fun, state}
+    end
+  end
+
+  # TODO remove in ElixirLS 0.8
   defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
+    IO.warn(
+      "Custom `elixirDocument/macroExpansion` request is deprecated. Switch to command `executeMacro` via `workspace/executeCommand`"
+    )
+
     x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
     {:ok, x, state}
   end
@@ -782,10 +808,16 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
-      "executeCommandProvider" => %{"commands" => ["spec:#{server_instance_id}"]},
+      "executeCommandProvider" => %{
+        "commands" => [
+          "spec:#{server_instance_id}",
+          "expandMacro:#{server_instance_id}"
+        ]
+      },
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
-      }
+      },
+      "foldingRangeProvider" => true
     }
   end
 
@@ -799,7 +831,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(state, uri, source_file) do
     if state.settings["enableTestLenses"] == true do
-      CodeLens.test_code_lens(uri, source_file.text)
+      CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
     else
       {:ok, []}
     end

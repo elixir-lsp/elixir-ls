@@ -67,15 +67,15 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
   # fine if the file we're trying to format is in that app. Otherwise, we return an error.
-  defp can_format?(file_uri, project_dir) do
+  defp can_format?(file_uri = "file:" <> _, project_dir) do
     file_path = file_uri |> SourceFile.path_from_uri() |> Path.absname()
 
-    not String.starts_with?(file_path, project_dir) or
+    String.starts_with?(file_path, Path.absname(project_dir)) or
       String.starts_with?(file_path, File.cwd!())
   end
 
-  defp myers_diff_to_text_edits(myers_diff, starting_pos \\ {0, 0}) do
-    myers_diff_to_text_edits(myers_diff, starting_pos, [])
+  defp myers_diff_to_text_edits(myers_diff) do
+    myers_diff_to_text_edits(myers_diff, {0, 0}, [])
   end
 
   defp myers_diff_to_text_edits([], _pos, edits) do
@@ -105,7 +105,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   defp advance_pos({line, col}, str) do
     Enum.reduce(String.split(str, "", trim: true), {line, col}, fn char, {line, col} ->
-      if char in ["\n", "\r"] do
+      if char in ["\r\n", "\n", "\r"] do
         {line + 1, 0}
       else
         # LSP contentChanges positions are based on UTF-16 string representation

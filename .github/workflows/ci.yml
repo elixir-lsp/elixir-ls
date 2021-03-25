@@ -17,21 +17,21 @@ jobs:
       matrix:
         include:
           - elixir: 1.8.x
-            otp: 21.3.8.18
+            otp: 21.3.8.20
             tests_may_fail: false
           - elixir: 1.9.x
-            otp: 21.3.8.18
+            otp: 21.3.8.20
             tests_may_fail: false
           - elixir: 1.10.x
-            otp: 21.3.8.18
+            otp: 21.3.8.20
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.11.x
-            otp: 21.3.8.18
+            otp: 21.3.8.20
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.11.x
-            otp: 23.1.4
+            otp: 23.2.x
             tests_may_fail: false
             warnings_as_errors: true
             check_formatted: true
@@ -41,7 +41,7 @@ jobs:
       MIX_ENV: test
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
@@ -62,11 +62,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - elixir: 1.11.0
-            otp: 23.1.1
+          - elixir: 1.11.x
+            otp: 23.2.x
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-elixir@v1
+      - uses: erlef/setup-elixir@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}

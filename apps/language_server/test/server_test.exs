@@ -46,6 +46,24 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
     end
 
+    test "Execute commands should include the server instance id", %{server: server} do
+      # If a command does not include the server instance id then it will cause
+      # vscode-elixir-ls to fail to start up on multi-root workspaces.
+      # Example: https://github.com/elixir-lsp/elixir-ls/pull/505
+
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => result}, 1000)
+
+      commands = get_in(result, ["capabilities", "executeCommandProvider", "commands"])
+      server_instance_id = :sys.get_state(server).server_instance_id
+
+      Enum.each(commands, fn command ->
+        assert String.contains?(command, server_instance_id)
+      end)
+
+      refute Enum.empty?(commands)
+    end
+
     test "returns -32600 InvalidRequest when already initialized", %{server: server} do
       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
@@ -491,6 +509,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert state.needs_build?
     end
 
+    @tag :fixture
     test "watched open file created outside, contents same", %{server: server} do
       content_changes = [
         %{
@@ -525,6 +544,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       end)
     end
 
+    @tag :fixture
     test "watched open file created outside, contents differ", %{server: server} do
       content_changes = [
         %{
@@ -628,6 +648,18 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       state = :sys.get_state(server)
       assert state.needs_build?
+    end
+
+    test "gracefully skip not supported URI scheme", %{server: server} do
+      uri = "git://github.com/user/repo.git"
+      fake_initialize(server)
+
+      Server.receive_packet(
+        server,
+        did_change_watched_files([%{"uri" => uri, "type" => 2}])
+      )
+
+      :sys.get_state(server)
     end
   end
 
@@ -860,6 +892,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     )
   end
 
+  @tag :fixture
   test "incremental formatter", %{server: server} do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])
@@ -904,6 +937,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       # File is already formatted
       assert response(3, []) == resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -965,6 +1000,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
            }) == resp
   end
 
+  @tag :fixture
   test "reports build diagnostics", %{server: server} do
     in_fixture(__DIR__, "build_errors", fn ->
       error_file = SourceFile.path_to_uri("lib/has_error.ex")
@@ -982,9 +1018,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      1000
+
+      wait_until_compiled(server)
     end)
   end
 
+  @tag :fixture
   test "reports build diagnostics on external resources", %{server: server} do
     in_fixture(__DIR__, "build_errors_on_external_resource", fn ->
       error_file = SourceFile.path_to_uri("lib/template.eex")
@@ -1001,10 +1040,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          }
                        ]
                      }),
-                     1000
+                     2000
+
+      wait_until_compiled(server)
     end)
   end
 
+  @tag :fixture
   test "reports errors if no mixfile", %{server: server} do
     in_fixture(__DIR__, "no_mixfile", fn ->
       mixfile_uri = SourceFile.path_to_uri("mix.exs")
@@ -1029,9 +1071,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert_receive notification("window/showMessage", %{
                        "message" => "No mixfile found in project." <> _
                      })
+
+      wait_until_compiled(server)
     end)
   end
 
+  @tag :fixture
   test "finds references in non-umbrella project", %{server: server} do
     in_fixture(__DIR__, "references", fn ->
       file_path = "lib/b.ex"
@@ -1055,9 +1100,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
+  @tag :fixture
   test "finds references in umbrella project", %{server: server} do
     in_fixture(__DIR__, "umbrella", fn ->
       file_path = "apps/app2/lib/app2.ex"
@@ -1081,10 +1129,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
-  @tag :skip_server
+  @tag fixture: true, skip_server: true
   test "loading of umbrella app dependencies" do
     in_fixture(__DIR__, "umbrella", fn ->
       # We test this by opening the umbrella project twice.
@@ -1134,14 +1184,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end)
   end
 
+  @tag :fixture
   test "returns code lenses for runnable tests", %{server: server} do
     in_fixture(__DIR__, "test_code_lens", fn ->
       file_path = "test/fixture_test.exs"
       file_uri = SourceFile.path_to_uri(file_path)
       file_absolute_path = SourceFile.path_from_uri(file_uri)
       text = File.read!(file_path)
+      project_dir = SourceFile.path_from_uri(root_uri())
 
-      fake_initialize(server)
+      initialize(server)
 
       Server.receive_packet(
         server,
@@ -1163,7 +1215,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    "arguments" => [
                      %{
                        "filePath" => ^file_absolute_path,
-                       "testName" => "fixture test"
+                       "testName" => "fixture test",
+                       "projectDir" => ^project_dir
                      }
                    ],
                    "command" => "elixir.lens.test.run",
@@ -1179,7 +1232,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    "arguments" => [
                      %{
                        "filePath" => ^file_absolute_path,
-                       "module" => "Elixir.TestCodeLensTest"
+                       "module" => "Elixir.TestCodeLensTest",
+                       "projectDir" => ^project_dir
                      }
                    ],
                    "command" => "elixir.lens.test.run",
@@ -1191,9 +1245,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
+  @tag :fixture
   test "does not return code lenses for runnable tests when test lenses settings is not set", %{
     server: server
   } do

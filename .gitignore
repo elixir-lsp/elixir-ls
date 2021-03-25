@@ -26,4 +26,4 @@ erl_crash.dump
 /release
 
 # Also ignore temp files created during testing
-**/test/tmp
+.tmp

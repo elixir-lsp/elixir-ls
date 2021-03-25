@@ -246,6 +246,15 @@ if available, but that may not be what you want or need. Therefore, prior to exe
 
 Note: for windows the local setup script path is `%APPDATA%/elixir_ls/setup.bat` (which is often `C:\Users\<username>\AppData\Roaming\elixir_ls`)
 
+Note: It is important that the setup script not print any output. On linux this might be
+accomplished by adding `>/dev/null` and/or `2>/dev/null` at the end of any line that produces
+output, and for a windows batch script you will want `@echo off` at the top and `>nul` on every
+line.
+
+## Environment variables
+
+* `ELS_INSTALL_PREFIX`: The folder where the language server got installed to. If set eq. through a wrapper script, it makes maintaining multiple versions/instances on the same host much easier. If not set or empty, a heuristic will be used to discover the install location.
+
 ## Acknowledgements and related projects
 
 ElixirLS isn't the first frontend-independent server for Elixir language support. The original was [Alchemist Server](https://github.com/tonini/alchemist-server/), which powers the [Alchemist](https://github.com/tonini/alchemist.el) plugin for Emacs. Another project, [Elixir Sense](https://github.com/elixir-lsp/elixir_sense), builds upon Alchemist and powers the [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir) as well as another VS Code plugin, [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). ElixirLS uses Elixir Sense for several code insight features. Credit for those projects goes to their respective authors.

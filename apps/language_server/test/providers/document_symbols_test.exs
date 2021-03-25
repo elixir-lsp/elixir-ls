@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   alias ElixirLS.LanguageServer.Protocol
 
   test "returns hierarchical symbol information" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         @my_mod_var "module variable"
@@ -90,21 +90,21 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "defguard my_guard(a) when is_integer(a)",
-                    range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}},
+                    name: "defguard my_guard(a)",
+                    range: %{end: %{character: 17, line: 7}, start: %{character: 17, line: 7}},
                     selectionRange: %{
-                      end: %{character: 29, line: 7},
-                      start: %{character: 29, line: 7}
+                      end: %{character: 17, line: 7},
+                      start: %{character: 17, line: 7}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "defguardp my_private_guard(a) when is_integer(a)",
-                    range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}},
+                    name: "defguardp my_private_guard(a)",
+                    range: %{end: %{character: 18, line: 8}, start: %{character: 18, line: 8}},
                     selectionRange: %{
-                      end: %{character: 38, line: 8},
-                      start: %{character: 38, line: 8}
+                      end: %{character: 18, line: 8},
+                      start: %{character: 18, line: 8}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -120,11 +120,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "defguard my_guard when 1 == 1",
-                    range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}},
+                    name: "defguard my_guard",
+                    range: %{end: %{character: 17, line: 10}, start: %{character: 17, line: 10}},
                     selectionRange: %{
-                      end: %{character: 26, line: 10},
-                      start: %{character: 26, line: 10}
+                      end: %{character: 17, line: 10},
+                      start: %{character: 17, line: 10}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -140,11 +140,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "def my_fn_with_guard(arg) when is_integer(arg)",
-                    range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}},
+                    name: "def my_fn_with_guard(arg)",
+                    range: %{end: %{character: 12, line: 12}, start: %{character: 12, line: 12}},
                     selectionRange: %{
-                      end: %{character: 34, line: 12},
-                      start: %{character: 34, line: 12}
+                      end: %{character: 12, line: 12},
+                      start: %{character: 12, line: 12}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -167,7 +167,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "returns flat symbol information" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         @my_mod_var "module variable"
@@ -245,18 +245,18 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "defguard my_guard(a) when is_integer(a)",
+                name: "defguard my_guard(a)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 29, line: 7}, start: %{character: 29, line: 7}}
+                  range: %{end: %{character: 17, line: 7}, start: %{character: 17, line: 7}}
                 },
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "defguardp my_private_guard(a) when is_integer(a)",
+                name: "defguardp my_private_guard(a)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 38, line: 8}, start: %{character: 38, line: 8}}
+                  range: %{end: %{character: 18, line: 8}, start: %{character: 18, line: 8}}
                 },
                 containerName: "MyModule"
               },
@@ -269,10 +269,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "defguard my_guard when 1 == 1",
+                name: "defguard my_guard",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 26, line: 10}, start: %{character: 26, line: 10}}
+                  range: %{end: %{character: 17, line: 10}, start: %{character: 17, line: 10}}
                 },
                 containerName: "MyModule"
               },
@@ -285,10 +285,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "def my_fn_with_guard(arg) when is_integer(arg)",
+                name: "def my_fn_with_guard(arg)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 34, line: 12}, start: %{character: 34, line: 12}}
+                  range: %{end: %{character: 12, line: 12}, start: %{character: 12, line: 12}}
                 },
                 containerName: "MyModule"
               },
@@ -304,7 +304,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles nested module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         defmodule SubModule do
@@ -360,7 +360,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles nested module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         defmodule SubModule do
@@ -407,7 +407,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles multiple module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         def some_function(), do: :ok
@@ -477,7 +477,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles multiple module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         def some_function(), do: :ok
@@ -535,7 +535,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles elixir atom module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule :'Elixir.MyModule' do
         def my_fn(), do: :ok
@@ -566,7 +566,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles elixir atom module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule :'Elixir.MyModule' do
         def my_fn(), do: :ok
@@ -594,7 +594,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles unquoted module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule unquote(var) do
         def my_fn(), do: :ok
@@ -625,7 +625,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles unquoted module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule unquote(var) do
         def my_fn(), do: :ok
@@ -653,7 +653,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles erlang atom module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule :my_module do
         def my_fn(), do: :ok
@@ -684,7 +684,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles erlang atom module definitions" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule :my_module do
         def my_fn(), do: :ok
@@ -712,7 +712,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles nested module definitions with __MODULE__" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule __MODULE__ do
         defmodule __MODULE__.SubModule do
@@ -756,7 +756,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles nested module definitions with __MODULE__" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule __MODULE__ do
         defmodule __MODULE__.SubModule do
@@ -794,7 +794,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles protocols and implementations" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defprotocol MyProtocol do
@@ -871,7 +871,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles protocols and implementations" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defprotocol MyProtocol do
@@ -939,7 +939,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles module definitions with struct" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -992,7 +992,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles module definitions with struct" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1037,7 +1037,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles module definitions with exception" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyError do
@@ -1080,7 +1080,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles module definitions with exception" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyError do
@@ -1117,7 +1117,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles module definitions with typespecs" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1204,7 +1204,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles module definitions with typespecs" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1278,7 +1278,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles module definitions with callbacks" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1367,7 +1367,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles module definitions with callbacks" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1443,7 +1443,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles funs with specs" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         @spec my_fn(integer) :: atom
@@ -1485,7 +1485,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles funs with specs" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
     text = ~S[
       defmodule MyModule do
         @spec my_fn(integer) :: atom
@@ -1522,7 +1522,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] skips docs attributes" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1545,7 +1545,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] skips docs attributes" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1568,7 +1568,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles various builtin attributes" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1776,7 +1776,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles various builtin attributes" do
-    uri = "file://project/file.ex"
+    uri = "file:///project/file.ex"
 
     text = """
     defmodule MyModule do
@@ -1949,7 +1949,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles exunit tests" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
@@ -1990,7 +1990,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles exunit tests" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
@@ -2019,7 +2019,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles exunit descibe tests" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
@@ -2076,7 +2076,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles exunit descibe tests" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
@@ -2115,7 +2115,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles exunit callbacks" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     defmodule MyModuleTest do
@@ -2174,7 +2174,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles exunit callbacks" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     defmodule MyModuleTest do
@@ -2226,7 +2226,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles config" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     use Mix.Config
@@ -2276,7 +2276,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[flat] handles config" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     use Mix.Config
@@ -2326,7 +2326,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles a file with a top-level module without a name" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     defmodule do
@@ -2370,7 +2370,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "[nested] handles a file with a top-level protocol module without a name" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     defprotocol do
@@ -2397,7 +2397,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "handles a file with compilation errors by returning an empty list" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     defmodule A do
@@ -2412,7 +2412,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   end
 
   test "returns def and defp as a prefix" do
-    uri = "file://project/test.exs"
+    uri = "file:///project/test.exs"
 
     text = """
     defmodule A do

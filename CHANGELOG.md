@@ -1,9 +1,28 @@
 ### Unreleased
 
+### v0.6.5: 9 February 2021
+
+Bug Fixes:
+- Skip non file: URI scheme notifications (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#475](https://github.com/elixir-lsp/elixir-ls/pull/475)
+
+Housekeeping:
+- Fixes tests not compiling after first run (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#463](https://github.com/elixir-lsp/elixir-ls/pull/463)
+
+### v0.6.4: 2 February 2021
+
+Bug Fixes:
+- Revert "Make wrapper script more robust" (thanks [Jason Axelson](https://github.com/axelson)) [#471](https://github.com/elixir-lsp/elixir-ls/pull/471)
+
+### v0.6.3: 30 January 2021
+
 Improvements:
 - Add support for `textDocument/implementation` ("Go to Implmentations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
 - More specific `CompletionItemKind` for autocomplete (thanks [Jason Axelson](https://github.com/axelson)) [#419](https://github.com/elixir-lsp/elixir-ls/pull/419)
 - Support ASDF installed via homebrew on macOS (thanks [Fabian Stegemann](https://github.com/zetaron)) [#428](https://github.com/elixir-lsp/elixir-ls/pull/428)
+- Make launcher script more robust and support symlinks (thanks [Joshua Trees](https://github.com/jtrees)) [#445](https://github.com/elixir-lsp/elixir-ls/pull/445)
+- ElixirSense: Fix autocomplete for many_to_many associations (thanks [Damon Janis](https://github.com/damonvjanis)) [elixir_sense #120](https://github.com/elixir-lsp/elixir_sense/pull/120)
+- Experimental: Add code lens to run tests (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#389](https://github.com/elixir-lsp/elixir-ls/pull/389)
+  - Note: This is disabled by default for now
 
 Bug Fixes:
 - Fix multiple issues with text synchronization (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#411](https://github.com/elixir-lsp/elixir-ls/pull/411)
@@ -14,6 +33,11 @@ Bug Fixes:
 - Fix awaiting_contracts not getting responses (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#433](https://github.com/elixir-lsp/elixir-ls/pull/433)
 - Fix invalid value set in write_manifest_pid (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#430](https://github.com/elixir-lsp/elixir-ls/pull/430)
 - Give better warning for incomplete erlang install (thanks [Jason Axelson](https://github.com/axelson)) [#434](https://github.com/elixir-lsp/elixir-ls/pull/434)
+- Fix some test lenses bugs (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#443](https://github.com/elixir-lsp/elixir-ls/pull/443)
+- URI - file system path conversion fixes (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#447](https://github.com/elixir-lsp/elixir-ls/pull/447)
+- Significantly improve debugger stability (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#457](https://github.com/elixir-lsp/elixir-ls/pull/457)
+- Fix invalid snippet inserted when completing fun with record argument (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#458](https://github.com/elixir-lsp/elixir-ls/issues/458)
+- Return correct location for defs with when (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#464](https://github.com/elixir-lsp/elixir-ls/pull/464)
 
 Housekeeping:
 - Switch from Travis CI to GitHub actions (thanks [Jason Axelson](https://github.com/axelson)) [#420](https://github.com/elixir-lsp/elixir-ls/pull/420)
@@ -23,6 +47,7 @@ Housekeeping:
 VSCode:
 - Fix debugger not starting on windows (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#154](https://github.com/elixir-lsp/vscode-elixir-ls/pull/154)
 - Add fodling markers for @doc, @moduledoc, @typedoc, and #region (thanks [Michael Johnston](https://github.com/lastobelus)) [#157](https://github.com/elixir-lsp/vscode-elixir-ls/pull/157)
+- README update to reflect editor.acceptSuggestionOnEnter change (thanks [Maximilien Mellen](https://github.com/maxmellen)) [#159](https://github.com/elixir-lsp/vscode-elixir-ls/pull/159)
 
 ### v0.6.2: 15 November 2020
 
