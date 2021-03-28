@@ -4,6 +4,7 @@ Improvements:
 - Use fuzzy matching for function completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491/files)
   - For example: "valp" will match `validate_password` and "Enum.chub" will match `Enum.chunk_by/2`
   - Note: the plan is to extend this fuzzy matching to other types of completion in the future
+- Support auto-generating folding ranges (textDocument/foldingRange) (thanks [billylanchantin](https://github.com/billylanchantin)) [#492](https://github.com/elixir-lsp/elixir-ls/pull/492)
 - Snippet variants with n-1 placeholders to use after pipe (thanks [Leonardo Donelli](https://github.com/LeartS)) [#501](https://github.com/elixir-lsp/elixir-ls/pull/501)
 - Make launcher script more robust and support symlinks... more robustly (thanks [Joshua Trees](https://github.com/jtrees)) [#473](https://github.com/elixir-lsp/elixir-ls/pull/473)
 
