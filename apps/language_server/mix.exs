@@ -26,6 +26,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
 
   defp deps do
     [
+      {:envy, "~> 1.1.1"},
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
       {:forms, "~> 0.0.1"},

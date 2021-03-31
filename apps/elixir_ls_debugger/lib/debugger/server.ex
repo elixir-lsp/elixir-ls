@@ -704,6 +704,8 @@ defmodule ElixirLS.Debugger.Server do
       end
     end
 
+    if env_file = config["envFile"], do: set_env_vars_from_file(env_file)
+
     # Some tasks (such as Phoenix tests) expect apps to already be running before the test files are
     # required
     if config["startApps"] do
@@ -727,6 +729,24 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp set_env_vars(env) when is_nil(env), do: :ok
+
+  defp set_env_vars_from_file(env_file) when is_bitstring(env_file) do
+    cond do
+      File.exists?(env_file) == false ->
+        IO.warn("Did not find env_file #{env_file}.")
+
+      true ->
+        case Envy.load([env_file]) do
+          [nil] ->
+            IO.warn("Failed to load env_file #{env_file}.")
+
+          [:ok] ->
+            :ok
+        end
+    end
+  end
+
+  defp set_env_vars_from_file(_), do: :ok
 
   defp set_stack_trace_mode("all"), do: :int.stack_trace(:all)
   defp set_stack_trace_mode("no_tail"), do: :int.stack_trace(:no_tail)

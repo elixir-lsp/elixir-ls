@@ -979,6 +979,7 @@ defmodule ElixirLS.LanguageServer.Server do
     mix_env = Map.get(settings, "mixEnv", "test")
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
+    env_file = Map.get(settings, "envFile")
 
     state =
       state
@@ -986,6 +987,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> maybe_set_mix_target(mix_target)
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
+      |> set_env_vars_from_file(env_file)
 
     state = create_gitignore(state)
     trigger_build(%{state | settings: settings})
@@ -1074,6 +1076,34 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_project_dir(state, _) do
     state
   end
+
+  defp set_env_vars_from_file(state, env_file) when is_bitstring(env_file) do
+    cond do
+      File.exists?(env_file) == false ->
+        JsonRpc.log_message(
+          :warning,
+          "Did not find env_file #{env_file} "
+        )
+
+        state
+
+      true ->
+        case Envy.load([env_file]) do
+          [nil] ->
+            JsonRpc.log_message(
+              :warning,
+              "Failed to read env_file #{env_file} "
+            )
+
+            state
+
+          [:ok] ->
+            Map.put(state, :env_file, env_file)
+        end
+    end
+  end
+
+  defp set_env_vars_from_file(state, _), do: state
 
   defp create_gitignore(%{project_dir: project_dir} = state) when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
