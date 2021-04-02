@@ -799,7 +799,8 @@ defmodule ElixirLS.LanguageServer.Server do
       "executeCommandProvider" => %{
         "commands" => [
           "spec:#{server_instance_id}",
-          "expandMacro:#{server_instance_id}"
+          "expandMacro:#{server_instance_id}",
+          "manipulatePipes:#{server_instance_id}"
         ]
       },
       "workspace" => %{
