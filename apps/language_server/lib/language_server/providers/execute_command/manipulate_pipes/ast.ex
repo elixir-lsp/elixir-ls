@@ -66,6 +66,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   end
 
   defp fix_escape_chars(parsed, original) do
+    # This fix is needed because up until Elixir 1.11 Macro.to_string
+    # escapes all \ occurrences inside sigils (i.e. "~r/\\/" becomes "~r/\\\\/")
     original_count = original |> String.replace(~r/[^\\]/, "") |> String.length()
     parsed_count = parsed |> String.replace(~r/[^\\]/, "") |> String.length()
 
