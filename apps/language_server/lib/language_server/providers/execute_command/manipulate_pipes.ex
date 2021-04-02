@@ -16,28 +16,25 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   @newlines ["\r\n", "\n", "\r"]
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
-  def execute(
-        %{"uri" => uri, "cursor_line" => line, "cursor_column" => col, "operation" => operation},
-        state
-      )
+  def execute([operation, uri, line, col], state)
       when is_integer(line) and is_integer(col) and is_binary(uri) and
-             operation in ["to_pipe", "from_pipe"] do
+             operation in ["toPipe", "fromPipe"] do
     # line and col are assumed to be 0-indexed
     source_file = Server.get_source_file(state, uri)
 
     {:ok, %{edited_text: edited_text, edit_range: edit_range}} =
       case operation do
-        "to_pipe" ->
+        "toPipe" ->
           to_pipe_at_cursor(source_file.text, line, col)
 
-        "from_pipe" ->
+        "fromPipe" ->
           from_pipe_at_cursor(source_file.text, line, col)
       end
 
     label =
       case operation do
-        "to_pipe" -> "Convert function call to pipe operator"
-        "from_pipe" -> "Convert pipe operator to function call"
+        "toPipe" -> "Convert function call to pipe operator"
+        "fromPipe" -> "Convert pipe operator to function call"
       end
 
     edit_result =

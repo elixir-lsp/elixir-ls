@@ -11,6 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
       case command do
         "spec:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec
         "expandMacro:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro
+        "manipulatePipes:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes
         _ -> nil
       end
 
