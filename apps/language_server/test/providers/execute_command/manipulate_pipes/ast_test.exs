@@ -71,8 +71,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
 
   describe "from_pipe/1 single-line" do
     test "Show that Macro.to_string messes up escaped sigils" do
-      assert AST.from_pipe("text |> String.split(~r/\\a/, trim: true)") ==
-               "String.split(text, ~r/\\\\a/, trim: true)"
+      assert AST.from_pipe("text |> String.split(~r\"\\a\", trim: true)") ==
+               "String.split(text, ~r\"\\\\a\", trim: true)"
     end
 
     test "does not change code without pipes" do
