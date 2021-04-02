@@ -28,7 +28,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
   end
 
-  describe "execute/2 to_pipe" do
+  describe "execute/2 toPipe" do
     test "can pipe remote calls in single lines" do
       {:ok, _} =
         JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
@@ -49,12 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 2,
-                   "cursor_column" => 13,
-                   "operation" => "to_pipe"
-                 },
+                 ["toPipe", uri, 2, 13],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -129,12 +124,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 2,
-                   "cursor_column" => 12,
-                   "operation" => "to_pipe"
-                 },
+                 ["toPipe", uri, 2, 12],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -207,12 +197,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 2,
-                   "cursor_column" => 2,
-                   "operation" => "to_pipe"
-                 },
+                 ["toPipe", uri, 2, 2],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -288,12 +273,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
         assert {:ok, nil} =
                  ManipulatePipes.execute(
-                   %{
-                     "uri" => uri,
-                     "cursor_line" => 2,
-                     "cursor_column" => 12,
-                     "operation" => "to_pipe"
-                   },
+                   ["toPipe", uri, 2, 12],
                    %Server{
                      source_files: %{
                        uri => %SourceFile{
@@ -364,12 +344,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 2,
-                   "cursor_column" => 14,
-                   "operation" => "to_pipe"
-                 },
+                 ["toPipe", uri, 2, 14],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -420,7 +395,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
   end
 
-  describe "execute/2 from_pipe" do
+  describe "execute/2 fromPipe" do
     test "can unpipe remote calls in single lines" do
       {:ok, _} =
         JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
@@ -441,12 +416,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 2,
-                   "cursor_column" => 8,
-                   "operation" => "from_pipe"
-                 },
+                 ["fromPipe", uri, 2, 8],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -521,12 +491,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 3,
-                   "cursor_column" => 5,
-                   "operation" => "from_pipe"
-                 },
+                 ["fromPipe", uri, 3, 5],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -599,12 +564,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 2,
-                   "cursor_column" => 11,
-                   "operation" => "from_pipe"
-                 },
+                 ["fromPipe", uri, 2, 11],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -678,12 +638,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
         assert {:ok, nil} =
                  ManipulatePipes.execute(
-                   %{
-                     "uri" => uri,
-                     "cursor_line" => 3,
-                     "cursor_column" => 4,
-                     "operation" => "from_pipe"
-                   },
+                   ["fromPipe", uri, 3, 4],
                    %Server{
                      source_files: %{
                        uri => %SourceFile{
@@ -755,12 +710,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 %{
-                   "uri" => uri,
-                   "cursor_line" => 3,
-                   "cursor_column" => 5,
-                   "operation" => "from_pipe"
-                 },
+                 ["fromPipe", uri, 3, 5],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
