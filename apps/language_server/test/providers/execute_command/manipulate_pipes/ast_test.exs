@@ -4,6 +4,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST
 
   describe "to_pipe/1" do
+    test "treats macro.to_string escaping chars" do
+      assert AST.to_pipe("String.split(text, ~r\"\\a\", trim: true)") ==
+               "text |> String.split(~r\"\\a\", trim: true)"
+    end
+
     test "single-line selection with two args in named function" do
       assert AST.to_pipe("X.Y.Z.function_name(A.B.C.a(), b)") ==
                "A.B.C.a() |> X.Y.Z.function_name(b)"
@@ -70,9 +75,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
   end
 
   describe "from_pipe/1 single-line" do
-    test "Show that Macro.to_string messes up escaped sigils" do
+    test "treats macro.to_string escaping chars" do
       assert AST.from_pipe("text |> String.split(~r\"\\a\", trim: true)") ==
-               "String.split(text, ~r\"\\\\a\", trim: true)"
+               "String.split(text, ~r\"\\a\", trim: true)"
     end
 
     test "does not change code without pipes" do

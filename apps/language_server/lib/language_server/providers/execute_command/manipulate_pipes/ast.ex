@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
       |> Code.string_to_quoted!()
       |> Macro.prewalk(%{has_piped: false}, &do_to_pipe/2)
 
-    Macro.to_string(piped_ast)
+    piped_ast |> Macro.to_string() |> fix_escape_chars(code_string)
   end
 
   @doc "Parses a string and converts the first pipe call, post-order depth-first, into a function call."
@@ -31,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
           {node, acc}
       end)
 
-    Macro.to_string(unpiped_ast)
+    unpiped_ast |> Macro.to_string() |> fix_escape_chars(code_string)
   end
 
   defp do_to_pipe({:|>, line, [left, right]}, %{has_piped: false} = acc) do
@@ -63,5 +63,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
 
   defp do_to_pipe(node, acc) do
     {node, acc}
+  end
+
+  defp fix_escape_chars(parsed, original) do
+    original_count = original |> String.replace(~r/[^\\]/, "") |> String.length()
+    parsed_count = parsed |> String.replace(~r/[^\\]/, "") |> String.length()
+
+    if parsed_count != original_count do
+      String.replace(parsed, ~r/\\\\/, "\\")
+    else
+      parsed
+    end
   end
 end
