@@ -9,10 +9,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
   def execute(command, args, state) do
     handler =
       case command do
-        "spec:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec
-        "expandMacro:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro
-        "manipulatePipes:" <> _ -> ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes
-        _ -> nil
+        "spec:" <> _ ->
+          ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec
+
+        "expandMacro:" <> _ ->
+          ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro
+
+        "manipulatePipes:" <> _ ->
+          ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes
+
+        _ ->
+          nil
       end
 
     if handler do
