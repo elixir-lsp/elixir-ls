@@ -9,6 +9,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
                "text |> String.split(~r\"\\a\", trim: true)"
     end
 
+    test "treats macro.to_string escaping chars sigil" do
+      assert AST.to_pipe(~s[String.split(text, ~r{"\\a"}, trim: true)]) ==
+               ~s[text |> String.split(~r{"\\a"}, trim: true)]
+    end
+
     test "single-line selection with two args in named function" do
       assert AST.to_pipe("X.Y.Z.function_name(A.B.C.a(), b)") ==
                "A.B.C.a() |> X.Y.Z.function_name(b)"

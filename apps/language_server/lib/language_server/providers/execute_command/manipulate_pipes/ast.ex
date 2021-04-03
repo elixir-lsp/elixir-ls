@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
       |> Code.string_to_quoted!()
       |> Macro.prewalk(%{has_piped: false}, &do_to_pipe/2)
 
-    piped_ast |> Macro.to_string() |> fix_escape_chars(code_string)
+    ast_to_string(piped_ast)
   end
 
   @doc "Parses a string and converts the first pipe call, post-order depth-first, into a function call."
@@ -31,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
           {node, acc}
       end)
 
-    unpiped_ast |> Macro.to_string() |> fix_escape_chars(code_string)
+    ast_to_string(unpiped_ast)
   end
 
   defp do_to_pipe({:|>, line, [left, right]}, %{has_piped: false} = acc) do
@@ -65,16 +65,76 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
     {node, acc}
   end
 
-  defp fix_escape_chars(parsed, original) do
-    # This fix is needed because up until Elixir 1.11 Macro.to_string
-    # escapes all \ occurrences inside sigils (i.e. "~r/\\/" becomes "~r/\\\\/")
-    original_count = original |> String.replace(~r/[^\\]/, "") |> String.length()
-    parsed_count = parsed |> String.replace(~r/[^\\]/, "") |> String.length()
+  def ast_to_string(ast) do
+    Macro.to_string(ast, fn node, rendered ->
+      case sigil_call(node, fn _a, s -> s end) do
+        {:ok, parsed_sigil} -> parsed_sigil
+        _ -> rendered
+      end
+    end)
+  end
 
-    if parsed_count != original_count do
-      String.replace(parsed, ~r/\\\\/, "\\")
-    else
-      parsed
+  # The code below is copied from the Elixir source-code because a
+  # fix which was introduced in
+  # https://github.com/elixir-lang/elixir/commit/88d82f059756ed1eb56a562fae7092f77d941de8
+  # is needed for proper treatment of sigils in our use-case.
+  defp sigil_call({sigil, meta, [{:<<>>, _, _} = parts, args]} = ast, fun)
+       when is_atom(sigil) and is_list(args) do
+    delimiter = Keyword.get(meta, :delimiter, "\"")
+    {left, right} = delimiter_pair(delimiter)
+
+    case Atom.to_string(sigil) do
+      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
+        args = sigil_args(args, fun)
+        {:<<>>, _, [binary]} = parts
+        formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
+        {:ok, fun.(ast, formatted)}
+
+      <<"sigil_", name>> when name >= ?a and name <= ?z ->
+        args = sigil_args(args, fun)
+        formatted = "~" <> <<name>> <> interpolate(parts, left, right, fun) <> args
+        {:ok, fun.(ast, formatted)}
+
+      _ ->
+        :error
     end
   end
+
+  defp sigil_call(_other, _fun) do
+    :error
+  end
+
+  defp delimiter_pair("["), do: {"[", "]"}
+  defp delimiter_pair("{"), do: {"{", "}"}
+  defp delimiter_pair("("), do: {"(", ")"}
+  defp delimiter_pair("<"), do: {"<", ">"}
+  defp delimiter_pair("\"\"\""), do: {"\"\"\"\n", "\"\"\""}
+  defp delimiter_pair("'''"), do: {"'''\n", "'''"}
+  defp delimiter_pair(str), do: {str, str}
+
+  defp sigil_args([], _fun), do: ""
+  defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
+
+  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s["""\n], ~s['''\n]] do
+    <<left::binary, parts::binary, right::binary>>
+  end
+
+  defp interpolate({:<<>>, _, parts}, left, right, fun) do
+    parts =
+      Enum.map_join(parts, "", fn
+        {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
+          "\#{" <> Macro.to_string(arg, fun) <> "}"
+
+        binary when is_binary(binary) ->
+          escape_sigil(binary, left)
+      end)
+
+    <<left::binary, parts::binary, right::binary>>
+  end
+
+  defp escape_sigil(parts, "("), do: String.replace(parts, ")", ~S"\)")
+  defp escape_sigil(parts, "{"), do: String.replace(parts, "}", ~S"\}")
+  defp escape_sigil(parts, "["), do: String.replace(parts, "]", ~S"\]")
+  defp escape_sigil(parts, "<"), do: String.replace(parts, ">", ~S"\>")
+  defp escape_sigil(parts, delimiter), do: String.replace(parts, delimiter, "\\#{delimiter}")
 end
