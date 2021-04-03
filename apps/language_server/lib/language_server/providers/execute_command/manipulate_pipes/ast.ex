@@ -92,7 +92,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
 
       <<"sigil_", name>> when name >= ?a and name <= ?z ->
         args = sigil_args(args, fun)
-        formatted = "~" <> <<name>> <> interpolate(parts, left, right, fun) <> args
+        formatted = "~" <> <<name>> <> interpolate(parts, left, right) <> args
         {:ok, fun.(ast, formatted)}
 
       _ ->
@@ -115,15 +115,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   defp sigil_args([], _fun), do: ""
   defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
 
-  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s["""\n], ~s['''\n]] do
+  defp interpolate({:<<>>, _, [parts]}, left, right) when left in [~s["""\n], ~s['''\n]] do
     <<left::binary, parts::binary, right::binary>>
   end
 
-  defp interpolate({:<<>>, _, parts}, left, right, fun) do
+  defp interpolate({:<<>>, _, parts}, left, right) do
     parts =
       Enum.map_join(parts, "", fn
         {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
-          "\#{" <> Macro.to_string(arg, fun) <> "}"
+          "\#{" <> ast_to_string(arg) <> "}"
 
         binary when is_binary(binary) ->
           escape_sigil(binary, left)
