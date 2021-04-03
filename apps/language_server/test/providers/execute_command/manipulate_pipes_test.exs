@@ -393,6 +393,78 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                expected_substitution
              ) == edited_text
     end
+
+    test "can handle multiple calls" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule BasicEx do
+        def add(a) do
+          require Logger
+
+          Logger.info(to_string(add_num(a, 12)))
+        end
+
+        def add_num(a, num), do: a + num
+      end
+      """
+
+      assert {:ok, nil} =
+               ManipulatePipes.execute(
+                 ["toPipe", uri, 4, 17],
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      assert_receive {:request, "workspace/applyEdit", params}
+
+      expected_range = %{
+        "end" => %{"character" => 41, "line" => 4},
+        "start" => %{"character" => 16, "line" => 4}
+      }
+
+      expected_substitution = "to_string(a |> add_num(12))"
+
+      assert params == %{
+               "edit" => %{
+                 "changes" => %{
+                   uri => [
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
+                     }
+                   ]
+                 }
+               },
+               "label" => "Convert function call to pipe operator"
+             }
+
+      edited_text = """
+      defmodule BasicEx do
+        def add(a) do
+          require Logger
+
+          Logger.info(to_string(a |> add_num(12)))
+        end
+
+        def add_num(a, num), do: a + num
+      end
+      """
+
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
+    end
   end
 
   describe "execute/2 fromPipe" do
@@ -689,6 +761,39 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                    expected_substitution
                  )
       end
+    end
+
+    test "can handle multiple calls in no-op execution" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule BasicEx do
+        def add(a) do
+          require Logger
+
+          Logger.info(to_string(add_num(a, 12)))
+        end
+
+        def add_num(a, num), do: a + num
+      end
+      """
+
+      assert {:error, :pipe_not_found} =
+               ManipulatePipes.execute(
+                 ["fromPipe", uri, 4, 16],
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      refute_receive {:request, "workspace/applyEdit", _params}
     end
 
     test "can handle utf 16 characters" do

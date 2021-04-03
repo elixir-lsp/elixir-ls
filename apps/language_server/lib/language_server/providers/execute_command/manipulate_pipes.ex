@@ -22,7 +22,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     # line and col are assumed to be 0-indexed
     source_file = Server.get_source_file(state, uri)
 
-    {:ok, %{edited_text: edited_text, edit_range: edit_range}} =
+    label =
+      case operation do
+        "toPipe" -> "Convert function call to pipe operator"
+        "fromPipe" -> "Convert pipe operator to function call"
+      end
+
+    processing_result =
       case operation do
         "toPipe" ->
           to_pipe_at_cursor(source_file.text, line, col)
@@ -31,29 +37,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
           from_pipe_at_cursor(source_file.text, line, col)
       end
 
-    label =
-      case operation do
-        "toPipe" -> "Convert function call to pipe operator"
-        "fromPipe" -> "Convert pipe operator to function call"
-      end
+    with {:ok, %{edited_text: edited_text, edit_range: edit_range}} <- processing_result,
+         {:ok, %{"applied" => true}} <-
+           JsonRpc.send_request("workspace/applyEdit", %{
+             "label" => label,
+             "edit" => %{
+               "changes" => %{
+                 uri => [%{"range" => edit_range, "newText" => edited_text}]
+               }
+             }
+           }) do
+      {:ok, nil}
+    else
+      {:error, reason} ->
+        {:error, reason}
 
-    edit_result =
-      JsonRpc.send_request("workspace/applyEdit", %{
-        "label" => label,
-        "edit" => %{
-          "changes" => %{
-            uri => [%{"range" => edit_range, "newText" => edited_text}]
-          }
-        }
-      })
-
-    case edit_result do
-      {:ok, %{"applied" => true}} ->
-        {:ok, nil}
-
-      other ->
+      error ->
         {:error, :server_error,
-         "cannot insert spec, workspace/applyEdit returned #{inspect(other)}"}
+         "cannot execute pipe conversion, workspace/applyEdit returned #{inspect(error)}"}
     end
   end
 
@@ -98,16 +99,23 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         %{walked_text: "", pipe_call: nil, range: nil},
         fn current_char, remaining_text, current_line, current_col, acc ->
           if current_line - 1 == line and current_col - 1 == col do
-            {:ok, pipe_call, call_range} =
-              get_pipe_call(line, col, acc.walked_text, current_char, remaining_text)
+            case get_pipe_call(line, col, acc.walked_text, current_char, remaining_text) do
+              {:ok, pipe_call, call_range} ->
+                {remaining_text,
+                 %{
+                   acc
+                   | walked_text: acc.walked_text <> current_char,
+                     pipe_call: pipe_call,
+                     range: call_range
+                 }}
 
-            {remaining_text,
-             %{
-               acc
-               | walked_text: acc.walked_text <> current_char,
-                 pipe_call: pipe_call,
-                 range: call_range
-             }}
+              {:error, :no_pipe_at_selection} ->
+                {remaining_text,
+                 %{
+                   acc
+                   | walked_text: acc.walked_text <> current_char
+                 }}
+            end
           else
             {remaining_text, %{acc | walked_text: acc.walked_text <> current_char}}
           end
@@ -230,7 +238,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         col + tail_length
       end
 
-    {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
+    if String.contains?(pipe_call, "|>") do
+      {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
+    else
+      {:error, :no_pipe_at_selection}
+    end
   end
 
   # do_get_pipe_call(text :: utf16 binary, {utf16 binary, has_passed_through_whitespace, should_halt})
@@ -280,7 +292,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     |> String.reverse()
     |> String.graphemes()
     |> Enum.reduce_while([], fn c, acc ->
-      if String.match?(c, ~r/\s/) do
+      if String.match?(c, ~r/[\s\(\[\{]/) do
         {:halt, acc}
       else
         {:cont, [c | acc]}
