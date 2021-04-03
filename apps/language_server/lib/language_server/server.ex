@@ -835,12 +835,16 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_test_code_lenses(state, uri, source_file, true = _enabled, false = _umbrella) do
-    file_path = SourceFile.path_from_uri(uri)
+    try do
+      file_path = SourceFile.path_from_uri(uri)
 
-    if is_test_file?(file_path) do
-      CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
-    else
-      {:ok, []}
+      if is_test_file?(file_path) do
+        CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
+      else
+        {:ok, []}
+      end
+    rescue
+      _ in ArgumentError -> {:ok, []}
     end
   end
 
