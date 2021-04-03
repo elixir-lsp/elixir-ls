@@ -5,8 +5,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
 
   describe "to_pipe/1" do
     test "treats macro.to_string escaping chars" do
-      assert AST.to_pipe("String.split(text, ~r{\"\\a\"}, trim: true)") ==
-               "text |> String.split(~r{\"\\a\"}, trim: true)"
+      assert AST.to_pipe("String.split(text, ~r\"\\\"\\a\\\"\", trim: true)") ==
+               "text |> String.split(~r\"\\\"\\a\\\"\", trim: true)"
     end
 
     test "single-line selection with two args in named function" do
