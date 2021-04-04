@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
-  def execute("expandMacro", [uri, text, line], state)
+  def execute([uri, text, line], state)
       when is_binary(text) and is_integer(line) do
     source_file = Server.get_source_file(state, uri)
     cur_text = source_file.text

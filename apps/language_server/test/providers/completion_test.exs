@@ -940,4 +940,68 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       refute Enum.any?(items, fn i -> i["label"] == "make_ref/0" end)
     end
   end
+
+  describe "use the (arity - 1) version of snippets after pipe" do
+    test "case/2 snippet skips the condition argument" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          [1, 2]
+          |> Enum.random()
+          |> ca
+          #    ^
+        end
+      end
+      """
+
+      {line, char} = {4, 9}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+      assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "case"}, &1))
+      assert insert_text =~ "case do\n\t"
+    end
+
+    test "unless/2 snippet skips the condition argument" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          [1, 2]
+          |> Enum.random()
+          |> unl
+          #     ^
+        end
+      end
+      """
+
+      {line, char} = {4, 10}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert %{"insertText" => insert_text} =
+               Enum.find(items, &match?(%{"label" => "unless"}, &1))
+
+      assert insert_text =~ "unless do\n\t"
+    end
+
+    test "if/2 snippet skips the condition argument" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          [1, 2]
+          |> Enum.random()
+          |> if
+          #    ^
+        end
+      end
+      """
+
+      {line, char} = {4, 9}
+      TestUtils.assert_has_cursor_char(text, line, char)
+      assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "if"}, &1))
+
+      assert insert_text =~ "if do\n\t"
+    end
+  end
 end

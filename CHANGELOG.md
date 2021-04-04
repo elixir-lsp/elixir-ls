@@ -1,5 +1,33 @@
 ### Unreleased
 
+Improvements:
+- Use fuzzy matching for function completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491/files)
+  - For example: "valp" will match `validate_password` and "Enum.chub" will match `Enum.chunk_by/2`
+  - Note: the plan is to extend this fuzzy matching to other types of completion in the future
+- Support auto-generating folding ranges (textDocument/foldingRange) (thanks [billylanchantin](https://github.com/billylanchantin)) [#492](https://github.com/elixir-lsp/elixir-ls/pull/492)
+- Snippet variants with n-1 placeholders to use after pipe (thanks [Leonardo Donelli](https://github.com/LeartS)) [#501](https://github.com/elixir-lsp/elixir-ls/pull/501)
+- Make launcher script more robust and support symlinks... more robustly (thanks [Joshua Trees](https://github.com/jtrees)) [#473](https://github.com/elixir-lsp/elixir-ls/pull/473)
+
+Bug Fixes:
+- Make expandMacro a custom command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#498](https://github.com/elixir-lsp/elixir-ls/pull/498)
+  - Scope expandMacro command to ElixirLS server instance (thanks [Tom Crossland](https://github.com/tcrossland)) [#505](https://github.com/elixir-lsp/elixir-ls/pull/505)
+- Suppress setup script stdout output on windows(thanks [Po Chen](https://github.com/princemaple)) [#497](https://github.com/elixir-lsp/elixir-ls/pull/497)
+
+Housekeeping:
+- Improved support for OTP 24 (thanks [Tom Crossland](https://github.com/tcrossland)) [#504](https://github.com/elixir-lsp/elixir-ls/pull/504)
+  - Note that OTP 24 isn't officially supported since it is not yet released
+- Add meta-test to ensure that all commands include the server instance id (thanks [Jason Axelson](https://github.com/axelson)) [#507](https://github.com/elixir-lsp/elixir-ls/pull/507)
+- Fix test flakiness by ensuring build is complete (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#511](https://github.com/elixir-lsp/elixir-ls/pull/511)
+
+VSCode:
+- Fix test lens shell escaping on Windows (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#175](https://github.com/elixir-lsp/vscode-elixir-ls/pull/175)
+-  Add hrl to watched files (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#177](https://github.com/elixir-lsp/vscode-elixir-ls/pull/177)
+- Fix CI issues (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#178](https://github.com/elixir-lsp/vscode-elixir-ls/pull/178)
+- Add support for `expandMacro` command (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#176](https://github.com/elixir-lsp/vscode-elixir-ls/pull/176)
+
+**Deprecations**
+Deprecate non-standard `elixirDocument/macroExpansion` command. It is being replaced with the `expandMacro` custom command. See [#498](https://github.com/elixir-lsp/elixir-ls/pull/498) for details. It is planned to be fully removed in 0.8
+
 ### v0.6.5: 9 February 2021
 
 Bug Fixes:

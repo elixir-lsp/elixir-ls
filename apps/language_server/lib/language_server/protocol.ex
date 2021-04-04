@@ -190,6 +190,16 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro folding_range_req(id, uri) do
+    quote do
+      request(unquote(id), "textDocument/foldingRange", %{
+        "textDocument" => %{
+          "uri" => unquote(uri)
+        }
+      })
+    end
+  end
+
   # TODO remove in ElixirLS 0.8
   defmacro macro_expansion(id, whole_buffer, selected_macro, macro_line) do
     quote do

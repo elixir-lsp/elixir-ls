@@ -46,6 +46,24 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
     end
 
+    test "Execute commands should include the server instance id", %{server: server} do
+      # If a command does not include the server instance id then it will cause
+      # vscode-elixir-ls to fail to start up on multi-root workspaces.
+      # Example: https://github.com/elixir-lsp/elixir-ls/pull/505
+
+      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+      assert_receive(%{"id" => 1, "result" => result}, 1000)
+
+      commands = get_in(result, ["capabilities", "executeCommandProvider", "commands"])
+      server_instance_id = :sys.get_state(server).server_instance_id
+
+      Enum.each(commands, fn command ->
+        assert String.contains?(command, server_instance_id)
+      end)
+
+      refute Enum.empty?(commands)
+    end
+
     test "returns -32600 InvalidRequest when already initialized", %{server: server} do
       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
@@ -919,6 +937,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       # File is already formatted
       assert response(3, []) == resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -998,6 +1018,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      1000
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1019,6 +1041,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      2000
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1047,6 +1071,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert_receive notification("window/showMessage", %{
                        "message" => "No mixfile found in project." <> _
                      })
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1074,6 +1100,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1101,6 +1129,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1215,6 +1245,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 

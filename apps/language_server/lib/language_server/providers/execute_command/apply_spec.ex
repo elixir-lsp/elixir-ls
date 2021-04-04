@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
   @default_target_line_length 98
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
-  def execute("spec:" <> _, args, state) do
+  def execute(args, state) do
     [
       %{
         "uri" => uri,
