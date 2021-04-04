@@ -1,4 +1,4 @@
-defmodule TestCodeLensTest do
+defmodule UmbrellaTestCodeLensCustomPathAndPatternTest do
   use ExUnit.Case
 
   test "fixture test" do

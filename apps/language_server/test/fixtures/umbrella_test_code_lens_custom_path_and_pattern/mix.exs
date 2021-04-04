@@ -1,4 +1,4 @@
-defmodule Umbrella.Mixfile do
+defmodule UmbrellaTestCodeLensCustomPathAndPattern.Mixfile do
   use Mix.Project
 
   def project do

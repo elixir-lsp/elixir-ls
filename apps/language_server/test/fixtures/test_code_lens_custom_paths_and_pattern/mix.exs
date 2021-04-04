@@ -1,4 +1,4 @@
-defmodule TestCodeLens.MixProject do
+defmodule TestCodeLensCustomPathsAndPattern.MixProject do
   use Mix.Project
 
   def project do

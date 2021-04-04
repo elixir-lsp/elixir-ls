@@ -1324,7 +1324,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    "arguments" => [
                      %{
                        "filePath" => ^file_absolute_path,
-                       "module" => "Elixir.TestCodeLensTest",
+                       "module" => "Elixir.TestCodeLensCustomPathsAndPatternTest",
                        "projectDir" => ^project_dir
                      }
                    ],
@@ -1345,7 +1345,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
        %{
          server: server
        } do
-    in_fixture(__DIR__, "umbrella_code_lens_custom_path_and_pattern", fn ->
+    in_fixture(__DIR__, "umbrella_test_code_lens_custom_path_and_pattern", fn ->
       file_path = "apps/app1/custom_path/fixture_custom_test.exs"
       file_uri = SourceFile.path_to_uri(file_path)
       file_absolute_path = SourceFile.path_from_uri(file_uri)
@@ -1397,7 +1397,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    "arguments" => [
                      %{
                        "filePath" => ^file_absolute_path,
-                       "module" => "Elixir.TestCodeLensTest",
+                       "module" => "Elixir.UmbrellaTestCodeLensCustomPathAndPatternTest",
                        "projectDir" => ^project_dir
                      }
                    ],
