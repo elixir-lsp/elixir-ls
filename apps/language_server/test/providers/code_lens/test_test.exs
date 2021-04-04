@@ -70,19 +70,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
              ]
   end
 
-  test "does not return lenses for modules that don't import ExUnit.case" do
-    uri = "file:///project/file.ex"
-
-    text = """
-    defmodule MyModule do
-    end
-    """
-
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
-
-    assert lenses == []
-  end
-
   test "returns lenses for all describe blocks" do
     uri = "file:///project/file.ex"
 

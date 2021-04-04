@@ -809,7 +809,7 @@ defmodule ElixirLS.LanguageServer.Server do
       state,
       uri,
       source_file,
-      state.settings["enableTestLenses"],
+      state.settings["enableTestLenses"] || false,
       Mix.Project.umbrella?()
     )
   end
@@ -853,7 +853,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     test_paths =
       (get_in(state.settings, ["testPaths", app_name]) || ["test"])
-      |> Enum.map(fn path -> "#{app_path}/#{path}" end)
+      |> Enum.map(fn path -> Path.join([state.project_dir, app_path, path]) end)
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
@@ -862,8 +862,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp is_test_file?(file_path) do
-    test_paths = Mix.Project.config()[:testPath] || ["test"]
-    test_pattern = Mix.Project.config()[:testPattern] || "*_test.exs"
+    test_paths = Mix.Project.config()[:test_paths] || ["test"]
+    test_pattern = Mix.Project.config()[:test_pattern] || "*_test.exs"
 
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.map(&Path.absname/1)

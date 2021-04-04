@@ -1242,6 +1242,145 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end)
   end
 
+  @tag :fixture
+  test "returns code lenses for runnable tests with custom test paths and test pattern", %{
+    server: server
+  } do
+    in_fixture(__DIR__, "test_code_lens_custom_paths_and_pattern", fn ->
+      file_path = "custom_path/fixture_custom_test.exs"
+      file_uri = SourceFile.path_to_uri(file_path)
+      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      text = File.read!(file_path)
+      project_dir = SourceFile.path_from_uri(root_uri())
+
+      initialize(server)
+
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{"elixirLS" => %{"enableTestLenses" => true}})
+      )
+
+      Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+
+      Server.receive_packet(
+        server,
+        code_lens_req(4, file_uri)
+      )
+
+      resp = assert_receive(%{"id" => 4}, 5000)
+
+      assert response(4, [
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => ^file_absolute_path,
+                       "testName" => "fixture test",
+                       "projectDir" => ^project_dir
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run test"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 3},
+                   "start" => %{"character" => 0, "line" => 3}
+                 }
+               },
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => ^file_absolute_path,
+                       "module" => "Elixir.TestCodeLensTest",
+                       "projectDir" => ^project_dir
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run tests in module"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 0},
+                   "start" => %{"character" => 0, "line" => 0}
+                 }
+               }
+             ]) = resp
+    end)
+  end
+
+  @tag :fixture
+  test "returns code lenses for runnable tests with custom test paths and test pattern in umbrella apps",
+       %{
+         server: server
+       } do
+    in_fixture(__DIR__, "umbrella_code_lens_custom_path_and_pattern", fn ->
+      file_path = "apps/app1/custom_path/fixture_custom_test.exs"
+      file_uri = SourceFile.path_to_uri(file_path)
+      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      text = File.read!(file_path)
+      project_dir = SourceFile.path_from_uri("#{root_uri()}/apps/app1")
+
+      initialize(server)
+
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{
+          "elixirLS" => %{
+            "enableTestLenses" => true,
+            "testPaths" => %{"app1" => ["custom_path"]},
+            "testPattern" => %{"app1" => "*_custom_test.exs"}
+          }
+        })
+      )
+
+      Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+
+      Server.receive_packet(
+        server,
+        code_lens_req(4, file_uri)
+      )
+
+      resp = assert_receive(%{"id" => 4}, 5000)
+
+      assert response(4, [
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => ^file_absolute_path,
+                       "testName" => "fixture test",
+                       "projectDir" => ^project_dir
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run test"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 3},
+                   "start" => %{"character" => 0, "line" => 3}
+                 }
+               },
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => ^file_absolute_path,
+                       "module" => "Elixir.TestCodeLensTest",
+                       "projectDir" => ^project_dir
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run tests in module"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 0},
+                   "start" => %{"character" => 0, "line" => 0}
+                 }
+               }
+             ]) = resp
+    end)
+  end
+
   defp with_new_server(func) do
     server = start_supervised!({Server, nil})
     packet_capture = start_supervised!({PacketCapture, self()})
