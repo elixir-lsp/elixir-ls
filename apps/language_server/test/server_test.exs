@@ -1294,6 +1294,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
+      wait_until_compiled(server)
+
       Server.receive_packet(
         server,
         code_lens_req(4, file_uri)
@@ -1337,8 +1339,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
-
-      wait_until_compiled(server)
     end)
   end
 
@@ -1368,6 +1368,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       )
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+
+      wait_until_compiled(server)
 
       Server.receive_packet(
         server,
@@ -1412,8 +1414,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
-
-      wait_until_compiled(server)
     end)
   end
 
