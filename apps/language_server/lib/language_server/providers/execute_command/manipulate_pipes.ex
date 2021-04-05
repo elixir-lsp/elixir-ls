@@ -81,14 +81,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         end
       )
 
-    case result do
-      %{function_call: nil} ->
+    with {:result, %{function_call: function_call, range: range}}
+         when not is_nil(function_call) and not is_nil(range) <- {:result, result},
+         {:ok, piped_text} <- AST.to_pipe(function_call) do
+      {:ok, %{edited_text: piped_text, edit_range: range}}
+    else
+      {:result, %{function_call: nil}} ->
         {:error, :function_call_not_found}
 
-      %{function_call: function_call, range: range} ->
-        piped_text = AST.to_pipe(function_call)
-
-        {:ok, %{edited_text: piped_text, edit_range: range}}
+      {:error, :invalid_code} ->
+        {:error, :invalid_code}
     end
   end
 
@@ -122,14 +124,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         end
       )
 
-    case result do
-      %{pipe_call: nil} ->
+    with {:result, %{pipe_call: pipe_call, range: range}}
+         when not is_nil(pipe_call) and not is_nil(range) <- {:result, result},
+         {:ok, unpiped_text} <- AST.from_pipe(pipe_call) do
+      {:ok, %{edited_text: unpiped_text, edit_range: range}}
+    else
+      {:result, %{pipe_call: nil}} ->
         {:error, :pipe_not_found}
 
-      %{pipe_call: pipe_call, range: range} ->
-        unpiped_text = AST.from_pipe(pipe_call)
-
-        {:ok, %{edited_text: unpiped_text, edit_range: range}}
+      {:error, :invalid_code} ->
+        {:error, :invalid_code}
     end
   end
 
@@ -187,6 +191,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   defp do_get_function_call(<<c::binary-size(1), tail::bitstring>>, start_char, end_char, acc) do
     do_get_function_call(tail, start_char, end_char, %{acc | text: [acc.text | [c]]})
   end
+
+  defp do_get_function_call(_, _, _, acc), do: acc
 
   defp get_pipe_call(line, col, head, current, tail) do
     pipe_right = do_get_function_call(tail, "(", ")")

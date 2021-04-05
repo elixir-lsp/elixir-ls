@@ -47,6 +47,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
+      assert_never_raises(text, uri, "toPipe")
+
       assert {:ok, nil} =
                ManipulatePipes.execute(
                  ["toPipe", uri, 2, 13],
@@ -122,6 +124,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
+      assert_never_raises(text, uri, "toPipe")
+
       assert {:ok, nil} =
                ManipulatePipes.execute(
                  ["toPipe", uri, 2, 12],
@@ -194,6 +198,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         def h(a, b), do: a - b
       end
       """
+
+      assert_never_raises(text, uri, "toPipe")
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
@@ -271,6 +277,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
         text = Enum.join(base_code, unquote(line_sep))
 
+        assert_never_raises(text, uri, "toPipe")
+
         assert {:ok, nil} =
                  ManipulatePipes.execute(
                    ["toPipe", uri, 2, 12],
@@ -342,6 +350,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
+      assert_never_raises(text, uri, "toPipe")
+
       assert {:ok, nil} =
                ManipulatePipes.execute(
                  ["toPipe", uri, 2, 14],
@@ -411,6 +421,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         def add_num(a, num), do: a + num
       end
       """
+
+      assert_never_raises(text, uri, "toPipe")
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
@@ -485,6 +497,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         def g(y), do: y
       end
       """
+
+      assert_never_raises(text, uri, "fromPipe")
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
@@ -561,6 +575,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
+      assert_never_raises(text, uri, "fromPipe")
+
       assert {:ok, nil} =
                ManipulatePipes.execute(
                  ["fromPipe", uri, 3, 5],
@@ -633,6 +649,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         def h(a, b), do: a - b
       end
       """
+
+      assert_never_raises(text, uri, "fromPipe")
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
@@ -708,6 +726,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
         text = Enum.join(base_code, unquote(line_sep))
 
+        assert_never_raises(text, uri, "fromPipe")
+
         assert {:ok, nil} =
                  ManipulatePipes.execute(
                    ["fromPipe", uri, 3, 4],
@@ -781,6 +801,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
+      assert_never_raises(text, uri, "fromPipe")
+
       assert {:error, :pipe_not_found} =
                ManipulatePipes.execute(
                  ["fromPipe", uri, 4, 16],
@@ -812,6 +834,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         def g(a, b), do: a <> b
       end
       """
+
+      assert_never_raises(text, uri, "fromPipe")
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
@@ -863,6 +887,44 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                expected_range,
                expected_substitution
              ) == edited_text
+    end
+  end
+
+  defp assert_never_raises(text, uri, command) do
+    uri = Path.join(uri, "/assert_never_raises")
+
+    for c <- String.graphemes(text), reduce: {0, 0} do
+      {line, character} ->
+        try do
+          result =
+            ManipulatePipes.execute(
+              [command, uri, line, character],
+              %Server{
+                source_files: %{
+                  uri => %SourceFile{
+                    text: text
+                  }
+                }
+              }
+            )
+
+          case result do
+            {:ok, _} ->
+              assert_receive {:request, _, _}
+
+            _ ->
+              nil
+          end
+
+          if c in ["\r\n", "\r", "\n"] do
+            {line + 1, 0}
+          else
+            {line, character + 1}
+          end
+        rescue
+          exception ->
+            flunk("raised #{inspect(exception)}. line: #{line}, character: #{character}")
+        end
     end
   end
 end

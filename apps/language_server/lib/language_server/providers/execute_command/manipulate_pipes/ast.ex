@@ -11,7 +11,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
       |> Code.string_to_quoted!()
       |> Macro.prewalk(%{has_piped: false}, &do_to_pipe/2)
 
-    ast_to_string(piped_ast)
+    {:ok, ast_to_string(piped_ast)}
+  rescue
+    _ ->
+      {:error, :invalid_code}
   end
 
   @doc "Parses a string and converts the first pipe call, post-order depth-first, into a function call."
@@ -31,7 +34,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
           {node, acc}
       end)
 
-    ast_to_string(unpiped_ast)
+    {:ok, ast_to_string(unpiped_ast)}
+  rescue
+    _ ->
+      {:error, :invalid_code}
   end
 
   defp do_to_pipe({:|>, line, [left, right]}, %{has_piped: false} = acc) do
