@@ -1337,6 +1337,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1410,6 +1412,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
