@@ -3,7 +3,7 @@
 Improvements:
 - Add commands for piping and unpiping text (thanks [Paulo Valente](https://github.com/polvalente)) [#515](https://github.com/elixir-lsp/elixir-ls/pull/515)
 
-### v0.7.0: 29 March 2021
+### v0.7.0: 06 April 2021
 
 Improvements:
 - Use fuzzy matching for function completion (thanks [Po Chen](https://github.com/princemaple)) [#491](https://github.com/elixir-lsp/elixir-ls/pull/491/files)
