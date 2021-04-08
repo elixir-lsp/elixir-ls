@@ -443,7 +443,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         "start" => %{"character" => 16, "line" => 4}
       }
 
-      expected_substitution = "to_string(a |> add_num(12))"
+      expected_substitution = "add_num(a, 12) |> to_string()"
 
       assert params == %{
                "edit" => %{
@@ -464,7 +464,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         def add(a) do
           require Logger
 
-          Logger.info(to_string(a |> add_num(12)))
+          Logger.info(add_num(a, 12) |> to_string())
         end
 
         def add_num(a, num), do: a + num
