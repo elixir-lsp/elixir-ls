@@ -48,8 +48,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       if stacktrace != [] do
         stacktrace =
           stacktrace
-          |> Enum.map(&"  │ #{&1}")
-          |> Enum.join("\n")
+          |> Enum.map_join("\n", &"  │ #{&1}")
           |> String.trim_trailing()
 
         description <> "\n\n" <> "Stacktrace:\n" <> stacktrace
