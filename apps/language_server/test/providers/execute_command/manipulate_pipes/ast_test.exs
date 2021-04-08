@@ -62,7 +62,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.ASTTe
     test "already a piped call (idempotency check)" do
       assert AST.to_pipe("1 |> f(2)") == {:ok, "1 |> f(2)"}
       assert AST.to_pipe("1 |> MyModule.f(2)") == {:ok, "1 |> MyModule.f(2)"}
-      assert AST.to_pipe("g(1) |> MyModule.f(2)") == {:ok, "g(1) |> MyModule.f(2)"}
+      assert AST.to_pipe("1 |> g() |> MyModule.f(2)") == {:ok, "1 |> g() |> MyModule.f(2)"}
     end
 
     test "does not pipe operators" do
