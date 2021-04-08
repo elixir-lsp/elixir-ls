@@ -80,6 +80,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
     end)
   end
 
+  # TODO: remove this when only Elixir >= 1.13 is supported
   # The code below is copied from the Elixir source-code because a
   # fix which was introduced in
   # https://github.com/elixir-lang/elixir/commit/88d82f059756ed1eb56a562fae7092f77d941de8
