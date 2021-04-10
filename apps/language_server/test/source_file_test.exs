@@ -83,8 +83,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       |> elem(0)
       |> Enum.reverse()
       |> Enum.with_index()
-      |> Enum.map(fn {off, ind} -> {ind, off} end)
-      |> Enum.into(%{})
+      |> Map.new(fn {off, ind} -> {ind, off} end)
     end
 
     defp find_low_high(low, high, offset, line_offsets) when low < high do
