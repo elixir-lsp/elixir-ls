@@ -66,8 +66,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
         Code.format_string!("@spec #{spec}", line_length: target_line_length)
         |> IO.iodata_to_binary()
         |> SourceFile.lines()
-        |> Enum.map(&(indentation <> &1))
-        |> Enum.join("\n")
+        |> Enum.map_join("\n", &(indentation <> &1))
         |> Kernel.<>("\n")
       rescue
         _ ->
