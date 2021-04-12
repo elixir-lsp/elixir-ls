@@ -213,6 +213,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     if reason == :normal do
       WorkspaceSymbols.notify_build_complete()
+      Formatting.build_cache(state.project_dir)
     end
 
     state = if state.needs_build?, do: trigger_build(state), else: state
@@ -296,7 +297,9 @@ defmodule ElixirLS.LanguageServer.Server do
           prev_settings
       end
 
-    set_settings(state, new_settings)
+    state = set_settings(state, new_settings)
+    Formatting.build_cache(state.project_dir)
+    state
   end
 
   defp handle_notification(notification("exit"), state) do
@@ -438,6 +441,15 @@ defmodule ElixirLS.LanguageServer.Server do
     |> Enum.map(& &1["uri"])
     |> Enum.uniq()
     |> WorkspaceSymbols.notify_uris_modified()
+
+    formatter_changed? =
+      Enum.any?(changes, fn %{"uri" => uri} ->
+        Path.basename(uri) == ".formatter.exs"
+      end)
+
+    if formatter_changed? do
+      Formatting.build_cache(state.project_dir)
+    end
 
     if needs_build, do: trigger_build(state), else: state
   end
