@@ -11,7 +11,8 @@ on:
 jobs:
   mix_test:
     name: mix test (Elixir ${{matrix.elixir}} | Erlang/OTP ${{matrix.otp}})
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
