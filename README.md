@@ -28,20 +28,19 @@ Note: On first run Dialyzer will build a PLT cache which will take a considerabl
 
 ## IDE plugins
 
-| IDE          | Plugin                                                                        | Support                                        |
-| ------------ | ----------------------------------------------------------------------------- | ---------------------------------------------- |
-| VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                 |
-| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)             | Does not support debugger                      |
-| Vim          | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions |
-| Vim          | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                          | Does not support debugger                      |
-| Neovim       | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                          | Does not support debugger                      |
-| Neovim       | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger                      |
-| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                      |
-| Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode) |      Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
-| Emacs        | [eglot](https://github.com/joaotavora/eglot)                                  |                                                |
-| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger |
-| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                        | Does not support debugger                      |
-| Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)              |                                                |
+| IDE          | Plugin                                                                        | Support                                                               |
+| ------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Emacs        | [eglot](https://github.com/joaotavora/eglot)                                  |                                                                       |
+| Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode)                             | Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
+| Kakoune      | [kak-lsp](https://github.com/kak-lsp/kak-lsp)                                 | [Limitations](https://github.com/kak-lsp/kak-lsp/#limitations)        |
+| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger                        |
+| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                                             |
+| Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)              |                                                                       |
+| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                        | Does not support debugger                                             |
+| Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions                        |
+| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)             | Does not support debugger                                             |
+| Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                          | Does not support debugger                                             |
+| VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                                        |
 
 Feel free to create and publish your own client packages and add them to this list!
 
