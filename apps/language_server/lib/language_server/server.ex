@@ -75,7 +75,7 @@ defmodule ElixirLS.LanguageServer.Server do
   ## Client API
 
   def start_link(name \\ nil) do
-    GenServer.start_link(__MODULE__, :ok, name: name)
+    GenServer.start_link(__MODULE__, :ok, name: name || __MODULE__)
   end
 
   def receive_packet(server \\ __MODULE__, packet) do
