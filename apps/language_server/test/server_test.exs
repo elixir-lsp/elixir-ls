@@ -1189,13 +1189,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     in_fixture(__DIR__, "test_code_lens", fn ->
       file_path = "test/fixture_test.exs"
       file_uri = SourceFile.path_to_uri(file_path)
-      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      file_absolute_path = SourceFile.abs_path_from_uri(file_uri)
       text = File.read!(file_path)
 
       project_dir =
         root_uri()
-        |> SourceFile.path_from_uri()
-        |> Path.absname()
+        |> SourceFile.abs_path_from_uri()
 
       initialize(server)
 

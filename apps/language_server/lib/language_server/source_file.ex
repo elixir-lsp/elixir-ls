@@ -157,6 +157,10 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   defp downcase(char) when char >= ?A and char <= ?Z, do: char + 32
   defp downcase(char), do: char
 
+  def abs_path_from_uri(uri) do
+    uri |> path_from_uri |> Path.absname()
+  end
+
   def full_range(source_file) do
     lines = lines(source_file)
 
