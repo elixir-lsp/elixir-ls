@@ -75,7 +75,7 @@ defmodule ElixirLS.LanguageServer.Server do
   ## Client API
 
   def start_link(name \\ nil) do
-    GenServer.start_link(__MODULE__, :ok, name: name)
+    GenServer.start_link(__MODULE__, :ok, name: name || __MODULE__)
   end
 
   def receive_packet(server \\ __MODULE__, packet) do
@@ -122,7 +122,11 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
-        {:reply, Dialyzer.suggest_contracts([SourceFile.path_from_uri(uri)]), state}
+        abs_path =
+          uri
+          |> SourceFile.abs_path_from_uri()
+
+        {:reply, Dialyzer.suggest_contracts([abs_path]), state}
 
       _ ->
         awaiting_contracts = reject_awaiting_contracts(state.awaiting_contracts, uri)
@@ -504,7 +508,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case root_uri do
         "file://" <> _ ->
-          root_path = SourceFile.path_from_uri(root_uri)
+          root_path = SourceFile.abs_path_from_uri(root_uri)
           File.cd!(root_path)
           %{state | root_uri: root_uri}
 
@@ -1040,7 +1044,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_project_dir(%{project_dir: prev_project_dir, root_uri: root_uri} = state, project_dir)
        when is_binary(root_uri) do
-    root_dir = root_uri |> SourceFile.path_from_uri() |> Path.absname()
+    root_dir = root_uri |> SourceFile.abs_path_from_uri()
 
     project_dir =
       if is_binary(project_dir) do
