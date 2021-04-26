@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.DialyzerTest do
   # TODO: Test loading and saving manifest
 
-  alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile}
+  alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc}
   import ExUnit.CaptureLog
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
@@ -440,6 +440,148 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
       # we should not receive Protocol has already been consolidated warnings here
       refute_receive notification("textDocument/publishDiagnostics", _), 3000
+    end)
+  end
+
+  @tag slow: true, fixture: true
+  test "do not suggests contracts if not enabled", %{server: server} do
+    in_fixture(__DIR__, "dialyzer", fn ->
+      file_c = SourceFile.path_to_uri(Path.absname("lib/c.ex"))
+
+      capture_log(fn ->
+        root_uri = SourceFile.path_to_uri(File.cwd!())
+        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
+          })
+        )
+
+        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+
+        assert publish_diagnostics_notif(_, _) = message
+
+        Server.receive_packet(
+          server,
+          did_open(file_c, "elixir", 2, File.read!(Path.absname("lib/c.ex")))
+        )
+
+        Server.receive_packet(
+          server,
+          code_lens_req(3, file_c)
+        )
+
+        resp = assert_receive(%{"id" => 3}, 5000)
+
+        assert response(3, []) == resp
+      end)
+    end)
+  end
+
+  @tag slow: true, fixture: true
+  test "suggests contracts if enabled and applies suggestion", %{server: server} do
+    in_fixture(__DIR__, "dialyzer", fn ->
+      file_c = SourceFile.path_to_uri(Path.absname("lib/c.ex"))
+
+      capture_log(fn ->
+        root_uri = SourceFile.path_to_uri(File.cwd!())
+        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{
+            "elixirLS" => %{
+              "dialyzerEnabled" => true,
+              "dialyzerFormat" => "dialyxir_long",
+              "suggestSpecs" => true
+            }
+          })
+        )
+
+        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+
+        assert publish_diagnostics_notif(_, _) = message
+
+        Server.receive_packet(
+          server,
+          did_open(file_c, "elixir", 2, File.read!(Path.absname("lib/c.ex")))
+        )
+
+        Server.receive_packet(
+          server,
+          code_lens_req(3, file_c)
+        )
+
+        resp = assert_receive(%{"id" => 3}, 5000)
+
+        assert response(3, [
+                 %{
+                   "command" => %{
+                     "arguments" =>
+                       args = [
+                         %{
+                           "arity" => 0,
+                           "fun" => "myfun",
+                           "line" => 2,
+                           "mod" => "Elixir.C",
+                           "spec" => "myfun :: 1",
+                           "uri" => ^file_c
+                         }
+                       ],
+                     "command" => command = "spec:" <> _,
+                     "title" => "@spec myfun :: 1"
+                   },
+                   "range" => %{
+                     "end" => %{"character" => 0, "line" => 1},
+                     "start" => %{"character" => 0, "line" => 1}
+                   }
+                 }
+               ]) = resp
+
+        Server.receive_packet(
+          server,
+          execute_command_req(4, command, args)
+        )
+
+        assert_receive(%{
+          "id" => 1,
+          "method" => "workspace/applyEdit",
+          "params" => %{
+            "edit" => %{
+              "changes" => %{
+                ^file_c => [
+                  %{
+                    "newText" => "  @spec myfun :: 1\n",
+                    "range" => %{
+                      "end" => %{"character" => 0, "line" => 1},
+                      "start" => %{"character" => 0, "line" => 1}
+                    }
+                  }
+                ]
+              }
+            },
+            "label" => "Add @spec to Elixir.C.myfun/0"
+          }
+        })
+
+        # TODO something is broken in packet capture
+        # using JsonRpc.receive_packet causes the packet to be delivered to LanguageServer
+        # which crashes with no match error
+        # JsonRpc.receive_packet(
+        #   server,
+        #   response(1, %{"applied" => true})
+        # )
+        # instead we fake a callback in JsonRpc server that forwards the response as needed
+        JsonRpc.handle_call(
+          {:packet, response(1, %{"applied" => true})},
+          nil,
+          :sys.get_state(JsonRpc)
+        )
+
+        assert_receive(%{"id" => 4, "result" => nil}, 5000)
+      end)
     end)
   end
 end
