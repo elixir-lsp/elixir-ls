@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     {"Kernel", "defstruct"} => "defstruct $1: $2",
     {"ExUnit.Callbacks", "setup"} => "setup ${1:%{$2\\}} do\n\t$3\nend",
     {"ExUnit.Callbacks", "setup_all"} => "setup_all ${1:%{$2\\}} do\n\t$3\nend",
-    {"ExUnit.Case", "test"} => "test $1 do\n\t$0\nend",
+    {"ExUnit.Case", "test"} => "test \"$1\" do\n\t$0\nend",
     {"ExUnit.Case", "describe"} => "describe \"$1\" do\n\t$0\nend"
   }
 
