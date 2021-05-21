@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
   alias ElixirLS.LanguageServer.{Server, SourceFile}
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
 
   defmodule JsonRpcMock do
     use GenServer
@@ -178,6 +179,104 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                expected_range,
                expected_substitution
              ) == edited_text
+    end
+
+    test "to_pipe_at_cursor beginning of line" do
+      text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Ash.Changeset.for_create(Track, :create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      expected_text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Track |> Ash.Changeset.for_create(:create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 4)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
+    end
+
+    # Broken
+    test "to_pipe_at_cursor end of line" do
+      text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Ash.Changeset.for_create(Track, :create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      expected_text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Track |> Ash.Changeset.for_create(:create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 50)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
+    end
+
+    # Broken
+    test "to_pipe_at_cursor near end of line" do
+      text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Ash.Changeset.for_create(Track, :create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      expected_text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Track |> Ash.Changeset.for_create(:create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 49)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
+    end
+
+    # Broken
+    test "to_pipe_at_cursor at end of function (with another function after)" do
+      text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Ash.Changeset.for_create(Track, :create, data)
+          |> GenTracker.API.create()
+        end
+
+        def next_fun(), do: 42
+      end
+      """
+
+      expected_text = text
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 49)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
     end
 
     test "can pipe local calls in single line" do
@@ -677,9 +776,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
