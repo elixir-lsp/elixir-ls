@@ -8,6 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   import ElixirLS.LanguageServer.Protocol
 
   alias ElixirLS.LanguageServer.{JsonRpc, Server}
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
 
   alias __MODULE__.AST
 
@@ -37,13 +38,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
           from_pipe_at_cursor(source_file.text, line, col)
       end
 
-    with {:ok, %{edited_text: edited_text, edit_range: edit_range}} <- processing_result,
+    with {:ok, %TextEdit{} = text_edit} <- processing_result,
          {:ok, %{"applied" => true}} <-
            JsonRpc.send_request("workspace/applyEdit", %{
              "label" => label,
              "edit" => %{
                "changes" => %{
-                 uri => [%{"range" => edit_range, "newText" => edited_text}]
+                 uri => [text_edit]
                }
              }
            }) do
@@ -58,7 +59,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
-  defp to_pipe_at_cursor(text, line, col) do
+  @doc false
+  def to_pipe_at_cursor(text, line, col) do
     result =
       ElixirSense.Core.Source.walk_text(
         text,
@@ -84,7 +86,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     with {:result, %{function_call: function_call, range: range}}
          when not is_nil(function_call) and not is_nil(range) <- {:result, result},
          {:ok, piped_text} <- AST.to_pipe(function_call) do
-      {:ok, %{edited_text: piped_text, edit_range: range}}
+      text_edit = %TextEdit{newText: piped_text, range: range}
+      {:ok, text_edit}
     else
       {:result, %{function_call: nil}} ->
         {:error, :function_call_not_found}
@@ -127,7 +130,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     with {:result, %{pipe_call: pipe_call, range: range}}
          when not is_nil(pipe_call) and not is_nil(range) <- {:result, result},
          {:ok, unpiped_text} <- AST.from_pipe(pipe_call) do
-      {:ok, %{edited_text: unpiped_text, edit_range: range}}
+      text_edit = %TextEdit{newText: unpiped_text, range: range}
+      {:ok, text_edit}
     else
       {:result, %{pipe_call: nil}} ->
         {:error, :pipe_not_found}
