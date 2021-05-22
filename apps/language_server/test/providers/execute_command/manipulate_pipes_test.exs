@@ -232,7 +232,31 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       assert edited_text == expected_text
     end
 
-    # Broken
+    test "to_pipe_at_cursor end of line" do
+      text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Ash.Changeset.for_create(Track, :create, data)\s
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      expected_text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Track |> Ash.Changeset.for_create(:create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 50)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
+    end
+
     test "to_pipe_at_cursor near end of line" do
       text = """
       defmodule Demo do
