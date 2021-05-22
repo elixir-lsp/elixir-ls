@@ -75,9 +75,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
@@ -152,9 +152,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
@@ -325,9 +325,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
@@ -403,9 +403,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  "edit" => %{
                    "changes" => %{
                      uri => [
-                       %{
-                         "newText" => expected_substitution,
-                         "range" => expected_range
+                       %TextEdit{
+                         newText: expected_substitution,
+                         range: expected_range
                        }
                      ]
                    }
@@ -476,9 +476,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
@@ -548,9 +548,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
@@ -624,9 +624,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
@@ -701,9 +701,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
@@ -852,9 +852,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  "edit" => %{
                    "changes" => %{
                      uri => [
-                       %{
-                         "newText" => expected_substitution,
-                         "range" => expected_range
+                       %TextEdit{
+                         newText: expected_substitution,
+                         range: expected_range
                        }
                      ]
                    }
@@ -961,9 +961,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %{
-                       "newText" => expected_substitution,
-                       "range" => expected_range
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
                      }
                    ]
                  }
