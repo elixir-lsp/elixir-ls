@@ -141,6 +141,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
+  defp get_function_call(line, col, head, cur, original_tail) when cur in ["\n", "\r", "\r\n"] do
+    {head, new_cur} = String.split_at(head, -1)
+    get_function_call(line, col - 1, head, new_cur, cur <> original_tail)
+  end
+
+  defp get_function_call(line, col, head, ")", original_tail) do
+    {head, cur} = String.split_at(head, -1)
+    get_function_call(line, col - 1, head, cur, ")" <> original_tail)
+  end
+
   defp get_function_call(line, col, head, current, original_tail) do
     tail = do_get_function_call(original_tail, "(", ")")
 

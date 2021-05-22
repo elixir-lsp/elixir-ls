@@ -271,7 +271,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      expected_text = text
+      expected_text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Track |> Ash.Changeset.for_create(:create, data)
+          |> GenTracker.API.create()
+        end
+
+        def next_fun(), do: 42
+      end
+      """
 
       {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 49)
 
