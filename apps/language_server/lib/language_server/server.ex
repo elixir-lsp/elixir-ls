@@ -822,11 +822,69 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_test_code_lenses(state, uri, source_file) do
-    if state.settings["enableTestLenses"] == true do
-      CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
-    else
-      {:ok, []}
+    get_test_code_lenses(
+      state,
+      uri,
+      source_file,
+      state.settings["enableTestLenses"] || false,
+      Mix.Project.umbrella?()
+    )
+  end
+
+  defp get_test_code_lenses(_state, _uri, _source_file, false, _), do: {:ok, []}
+
+  defp get_test_code_lenses(state, uri, source_file, true = _enabled, true = _umbrella) do
+    file_path = SourceFile.path_from_uri(uri)
+
+    Mix.Project.apps_paths()
+    |> Enum.find(fn {_app, app_path} -> String.contains?(file_path, app_path) end)
+    |> case do
+      nil ->
+        {:ok, []}
+
+      {app, app_path} ->
+        if is_test_file?(file_path, state, app, app_path) do
+          CodeLens.test_code_lens(uri, source_file.text, "#{state.project_dir}/#{app_path}")
+        else
+          {:ok, []}
+        end
     end
+  end
+
+  defp get_test_code_lenses(state, uri, source_file, true = _enabled, false = _umbrella) do
+    try do
+      file_path = SourceFile.path_from_uri(uri)
+
+      if is_test_file?(file_path) do
+        CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
+      else
+        {:ok, []}
+      end
+    rescue
+      _ in ArgumentError -> {:ok, []}
+    end
+  end
+
+  defp is_test_file?(file_path, state, app, app_path) do
+    app_name = Atom.to_string(app)
+
+    test_paths =
+      (get_in(state.settings, ["testPaths", app_name]) || ["test"])
+      |> Enum.map(fn path -> Path.join([state.project_dir, app_path, path]) end)
+
+    test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
+
+    Mix.Utils.extract_files(test_paths, test_pattern)
+    |> Enum.any?(fn path -> String.ends_with?(file_path, path) end)
+  end
+
+  defp is_test_file?(file_path) do
+    test_paths = Mix.Project.config()[:test_paths] || ["test"]
+    test_pattern = Mix.Project.config()[:test_pattern] || "*_test.exs"
+
+    Mix.Utils.extract_files(test_paths, test_pattern)
+    |> Enum.map(&Path.absname/1)
+    |> Enum.any?(&(&1 == file_path))
   end
 
   # Build
