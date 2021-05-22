@@ -556,8 +556,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(implementation_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
+
     fun = fn ->
-      Implementation.implementation(uri, state.source_files[uri].text, line, character)
+      Implementation.implementation(uri, source_file.text, line, character)
     end
 
     {:async, fun, state}
