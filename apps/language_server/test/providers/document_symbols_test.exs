@@ -2018,7 +2018,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text, false)
   end
 
-  test "[nested] handles exunit descibe tests" do
+  test "[nested] handles exunit describe tests" do
     uri = "file:///project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
@@ -2075,7 +2075,64 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
 
-  test "[flat] handles exunit descibe tests" do
+  test "[nested] handles exunit describes and tests with unevaluated names" do
+    uri = "file:///project/test.exs"
+    text = ~S[
+      defmodule MyModuleTest do
+        use ExUnit.Case
+        describe ~S(some "descripton") do
+          test "does" <> "something", do: :ok
+        end
+      end
+    ]
+
+    assert {:ok,
+            [
+              %Protocol.DocumentSymbol{
+                children: [
+                  %Protocol.DocumentSymbol{
+                    children: [
+                      %Protocol.DocumentSymbol{
+                        children: [],
+                        kind: 12,
+                        name: "test \"does\" <> \"something\"",
+                        range: %{
+                          end: %{character: 10, line: 4},
+                          start: %{character: 10, line: 4}
+                        },
+                        selectionRange: %{
+                          end: %{character: 10, line: 4},
+                          start: %{character: 10, line: 4}
+                        }
+                      }
+                    ],
+                    kind: 12,
+                    name: "describe ~S(some \"descripton\")",
+                    range: %{
+                      end: %{character: 8, line: 3},
+                      start: %{character: 8, line: 3}
+                    },
+                    selectionRange: %{
+                      end: %{character: 8, line: 3},
+                      start: %{character: 8, line: 3}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModuleTest",
+                range: %{
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
+                },
+                selectionRange: %{
+                  end: %{character: 6, line: 1},
+                  start: %{character: 6, line: 1}
+                }
+              }
+            ]} = DocumentSymbols.symbols(uri, text, true)
+  end
+
+  test "[flat] handles exunit describe tests" do
     uri = "file:///project/test.exs"
     text = ~S[
       defmodule MyModuleTest do
@@ -2110,6 +2167,45 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   range: %{end: %{character: 10, line: 4}, start: %{character: 10, line: 4}}
                 },
                 containerName: "describe \"some descripton\""
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[flat] handles exunit describes and tests with unevaluated names" do
+    uri = "file:///project/test.exs"
+    text = ~S[
+      defmodule MyModuleTest do
+        use ExUnit.Case
+        describe ~S(some "descripton") do
+          test "does" <> "something", do: :ok
+        end
+      end
+    ]
+
+    assert {:ok,
+            [
+              %Protocol.SymbolInformation{
+                name: "MyModuleTest",
+                kind: 2,
+                location: %{
+                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                }
+              },
+              %Protocol.SymbolInformation{
+                name: "describe ~S(some \"descripton\")",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
+                },
+                containerName: "MyModuleTest"
+              },
+              %Protocol.SymbolInformation{
+                name: "test \"does\" <> \"something\"",
+                kind: 12,
+                location: %{
+                  range: %{end: %{character: 10, line: 4}, start: %{character: 10, line: 4}}
+                },
+                containerName: "describe ~S(some \"descripton\")"
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
   end
