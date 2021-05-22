@@ -219,7 +219,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_symbol(_current_module, {:test, location, [name | _]}) do
     %Info{
       type: :function,
-      name: ~s(test "#{name}"),
+      name: "test #{Macro.to_string(name)}",
       location: location,
       children: []
     }
@@ -251,7 +251,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     %Info{
       type: :function,
-      name: ~s(describe "#{name}"),
+      name: "describe #{Macro.to_string(name)}",
       location: location,
       children: module_symbols
     }
