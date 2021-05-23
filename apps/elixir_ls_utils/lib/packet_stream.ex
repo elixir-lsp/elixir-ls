@@ -19,7 +19,7 @@ defmodule ElixirLS.Utils.PacketStream do
             # jsonrpc 2.0 requires that server responds with
             # {"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": null}
             # when message fails to parse
-            # instead we halt on any error - it's not woth to handle faulty clients
+            # instead we halt on any error - it's not worth to handle faulty clients
             {:halt, {:error, reason}}
 
           {:ok, packet} ->
