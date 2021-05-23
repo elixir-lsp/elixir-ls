@@ -453,12 +453,12 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       defmodule MyModule do
         defstruct [some: nil, other: 1]
 
-        def dummy_function() do
-          #                    ^
+        def dummy_function() do123
+          #                       ^
       end
       """
 
-      {line, char} = {3, 25}
+      {line, char} = {3, 28}
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {:ok, result} = Completion.completion(text, line, char, @supports)
