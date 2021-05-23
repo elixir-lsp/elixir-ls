@@ -128,10 +128,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
         {:reply, Dialyzer.suggest_contracts([abs_path]), state}
 
-      _ ->
+      %{source_files: %{^uri => _}} ->
+        # file not saved or analysis not finished
         awaiting_contracts = reject_awaiting_contracts(state.awaiting_contracts, uri)
 
         {:noreply, %{state | awaiting_contracts: [{from, uri} | awaiting_contracts]}}
+
+      _ ->
+        # file not or no longer open
+        {:reply, [], state}
     end
   end
 
@@ -540,8 +545,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(implementation_req(_id, uri, line, character), state) do
+    source_file = get_source_file(state, uri)
+
     fun = fn ->
-      Implementation.implementation(uri, state.source_files[uri].text, line, character)
+      Implementation.implementation(uri, source_file.text, line, character)
     end
 
     {:async, fun, state}
@@ -953,7 +960,7 @@ defmodule ElixirLS.LanguageServer.Server do
       {dirty, not_dirty} =
         state.awaiting_contracts
         |> Enum.split_with(fn {_, uri} ->
-          state.source_files[uri].dirty?
+          Map.fetch!(state.source_files, uri).dirty?
         end)
 
       contracts_by_file =
