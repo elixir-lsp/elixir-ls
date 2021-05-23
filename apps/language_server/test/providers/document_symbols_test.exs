@@ -2107,7 +2107,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       }
                     ],
                     kind: 12,
-                    name: "describe ~S(some \"descripton\")",
+                    name: describe_sigil,
                     range: %{
                       end: %{character: 8, line: 3},
                       start: %{character: 8, line: 3}
@@ -2130,6 +2130,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
+
+    if System.version() |> Version.match?(">= 1.10.0") do
+      assert describe_sigil == "describe ~S(some \"descripton\")"
+    else
+      assert describe_sigil == "describe ~S'some \"descripton\"'"
+    end
   end
 
   test "[flat] handles exunit describe tests" do
@@ -2192,7 +2198,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "describe ~S(some \"descripton\")",
+                name: describe_sigil,
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
@@ -2205,9 +2211,15 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 location: %{
                   range: %{end: %{character: 10, line: 4}, start: %{character: 10, line: 4}}
                 },
-                containerName: "describe ~S(some \"descripton\")"
+                containerName: describe_sigil
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
+
+    if System.version() |> Version.match?(">= 1.10.0") do
+      assert describe_sigil == "describe ~S(some \"descripton\")"
+    else
+      assert describe_sigil == "describe ~S'some \"descripton\"'"
+    end
   end
 
   test "[nested] handles exunit callbacks" do
