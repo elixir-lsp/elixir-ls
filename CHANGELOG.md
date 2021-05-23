@@ -5,6 +5,8 @@ Improvements:
 - Make `test` snippet consistent by including quotes (thanks [Mitchell Hanberg](https://github.com/mhanberg)) [#542](https://github.com/elixir-lsp/elixir-ls/pull/542)
 - ElixirSense: Add more fuzzy matching (thanks [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)) [#131](https://github.com/elixir-lsp/elixir_sense/pull/131)
 - ElixirSense: Add inference when using dependency injection with module attributes ([Gustavo Aguiar](https://github.com/gugahoa)) [#133](https://github.com/elixir-lsp/elixir_sense/pull/133)
+- ElixirSense: Add support for EEP-48 (updated documentation storage format) (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#132](https://github.com/elixir-lsp/elixir_sense/pull/132)
+  - http://erlang.org/doc/apps/kernel/eep48_chapter.html
 
 Bug Fixes:
 - Fix suggest contracts windows regression (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#531](https://github.com/elixir-lsp/elixir-ls/pull/531)
