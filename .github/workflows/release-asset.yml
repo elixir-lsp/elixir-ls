@@ -44,8 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Elixir
-        uses: erlef/setup-elixir@v1
+      - name: Set up BEAM
+        uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{ matrix.elixir-version }}
           otp-version: ${{ matrix.otp-version }}
