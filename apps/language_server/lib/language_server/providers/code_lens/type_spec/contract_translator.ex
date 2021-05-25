@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
   alias Erl2ex.Convert.{Context, ErlForms}
   alias Erl2ex.Pipeline.{Parse, ModuleData, ExSpec}
 
-  def translate_contract(fun, contract, is_macro) do
+  def translate_contract(fun, contract, is_macro, mod) do
     # FIXME: Private module
     {[%ExSpec{specs: [spec]} | _], _} =
       "-spec foo#{contract}."
@@ -21,6 +21,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
     spec
     |> Macro.postwalk(&tweak_specs/1)
     |> drop_macro_env(is_macro)
+    |> improve_defprotocol_spec(mod, fun)
     |> Macro.to_string()
     |> String.replace("()", "")
     |> Code.format_string!(line_length: :infinity)
@@ -122,9 +123,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
   end
 
   defp translate_map(struct_type, fields) do
-    struct_type_spec_exists =
-      ElixirSense.Core.Normalized.Typespec.get_types(struct_type)
-      |> Enum.any?(&match?({kind, {:t, _, []}} when kind in [:type, :opaque], &1))
+    struct_type_spec_exists = struct_type_spec_exists?(struct_type)
 
     if struct_type_spec_exists do
       # struct_type.t/0 public/opaque type exists, assume it's a struct
@@ -134,6 +133,82 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
       fields = fields |> Enum.reject(&match?({:__struct__, _}, &1))
       map = {:%{}, [], fields}
       {:%, [], [struct_type, map]}
+    end
+  end
+
+  defp struct_type_spec_exists?(struct_type) do
+    ElixirSense.Core.Normalized.Typespec.get_types(struct_type)
+    |> Enum.any?(&match?({kind, {:t, _, []}} when kind in [:type, :opaque], &1))
+  end
+
+  defp improve_defprotocol_spec(ast, mod, fun) do
+    cond do
+      Code.ensure_loaded?(mod) and function_exported?(mod, :__protocol__, 1) ->
+        # defprotocol
+        # defs in defprotocol do not have when and have at least 1 arg
+        {:"::", [], [{:foo, [], [{:any, [], []} | rest]}, {:any, [], []}]} = ast
+        # first arg in defprotocol defs is always of type t
+        {:"::", [], [{:foo, [], [{:t, [], []} | rest]}, {:any, [], []}]}
+
+      Code.ensure_loaded?(mod) and function_exported?(mod, :__impl__, 1) ->
+        # defimpl
+        implementation_of = mod.__impl__(:protocol)
+
+        {:"::", [], [{:foo, [], args}, res]} = ast
+        arity = length(args)
+
+        if {fun, arity} in implementation_of.__protocol__(:functions) do
+          # protocol fun
+          implemented_for_type =
+            case mod.__impl__(:for) do
+              Any ->
+                {:any, [], []}
+
+              Atom ->
+                {:atom, [], []}
+
+              Integer ->
+                {:integer, [], []}
+
+              Float ->
+                {:float, [], []}
+
+              BitString ->
+                {:binary, [], []}
+
+              Map ->
+                {:map, [], []}
+
+              List ->
+                {:list, [], []}
+
+              Function ->
+                {:function, [], []}
+
+              Port ->
+                {:port, [], []}
+
+              PID ->
+                {:pid, [], []}
+
+              Tuple ->
+                {:tuple, [], []}
+
+              Reference ->
+                {:reference, [], []}
+
+              struct_type ->
+                translate_map(struct_type, [])
+            end
+
+          {:"::", [], [{:foo, [], [implemented_for_type | tl(args)]}, res]}
+        else
+          # non protocol fun/macro
+          ast
+        end
+
+      true ->
+        ast
     end
   end
 end
