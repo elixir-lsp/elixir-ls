@@ -35,18 +35,6 @@ jobs:
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.12.x
-            otp: 23.x
-            tests_may_fail: false
-            check_unused_deps: true
-          - elixir: 1.11.x
-            otp: 23.x
-            tests_may_fail: false
-            check_unused_deps: true
-          - elixir: 1.11.x
-            otp: 24.x
-            tests_may_fail: false
-            check_unused_deps: true
-          - elixir: 1.12.x
             otp: 24.0.x
             tests_may_fail: false
             warnings_as_errors: true
