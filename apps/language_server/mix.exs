@@ -28,11 +28,11 @@ defmodule ElixirLS.LanguageServer.Mixfile do
     [
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
-      {:forms, "~> 0.0.1"},
+      {:forms, "~> 0.0"},
       {:erl2ex, github: "dazuma/erl2ex"},
-      {:dialyxir, "~> 1.0.0", runtime: false},
+      {:dialyxir, "~> 1.0", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
-      {:stream_data, "~> 0.5.0", only: :test}
+      {:stream_data, "~> 0.5", only: :test}
     ]
   end
 
