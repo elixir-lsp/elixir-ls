@@ -8,6 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   import ElixirLS.LanguageServer.Protocol
 
   alias ElixirLS.LanguageServer.{JsonRpc, Server}
+  alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Protocol.TextEdit
 
   alias __MODULE__.AST
@@ -70,13 +71,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
             {:ok, function_call, call_range} =
               get_function_call(line, col, acc.walked_text, current_char, remaining_text)
 
-            {remaining_text,
-             %{
-               acc
-               | walked_text: acc.walked_text <> current_char,
-                 function_call: function_call,
-                 range: call_range
-             }}
+            if function_call_includes_cursor(call_range, line, col) do
+              {remaining_text,
+               %{
+                 acc
+                 | walked_text: acc.walked_text <> current_char,
+                   function_call: function_call,
+                   range: call_range
+               }}
+            else
+              # The cursor was not inside a function call so we cannot
+              # manipulate the pipes
+              {remaining_text,
+               %{
+                 acc
+                 | walked_text: acc.walked_text <> current_char,
+                   function_call: nil
+               }}
+            end
           else
             {remaining_text, %{acc | walked_text: acc.walked_text <> current_char}}
           end
@@ -167,10 +179,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     text = head <> current <> tail
 
     call = get_function_call_before(text)
+    orig_head = head
 
-    {head, _tail} = String.split_at(call, -String.length(tail))
+    {head, _new_tail} =
+      case String.length(tail) do
+        0 -> {call, ""}
+        length -> String.split_at(call, -length)
+      end
 
-    col = if head == "", do: col + 2, else: col - String.length(head) + 1
+    {line, col} = fix_start_of_range(orig_head, head, line, col)
 
     {:ok, call, range(line, col, end_line, end_col)}
   end
@@ -299,12 +316,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       |> do_get_function_call(")", "(")
       |> String.reverse()
 
-    function_name =
+    if call_without_function_name == "" do
       head
-      |> String.trim_trailing(call_without_function_name)
-      |> get_function_name_from_tail()
+    else
+      function_name =
+        head
+        |> String.trim_trailing(call_without_function_name)
+        |> get_function_name_from_tail()
 
-    function_name <> call_without_function_name
+      function_name <> call_without_function_name
+    end
   end
 
   defp get_function_name_from_tail(s) do
@@ -333,5 +354,53 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       {_, tail} ->
         count_newlines_and_get_tail(tail, {line_count, tail_length + 1})
     end
+  end
+
+  # Fixes the line and column returned, finding the correct position on previous lines
+  defp fix_start_of_range(orig_head, head, line, col)
+  defp fix_start_of_range(_, "", line, col), do: {line, col + 2}
+
+  defp fix_start_of_range(orig_head, head, line, col) do
+    new_col = col - String.length(head) + 1
+
+    if new_col < 0 do
+      lines =
+        SourceFile.lines(orig_head)
+        |> Enum.take(line)
+        |> Enum.reverse()
+
+      # Go back through previous lines to find the correctly adjusted line and
+      # column number for the start of head (where the function starts)
+      Enum.reduce_while(lines, {line, new_col}, fn
+        _line_text, {cur_line, cur_col} when cur_col >= 0 ->
+          {:halt, {cur_line, cur_col}}
+
+        line_text, {cur_line, cur_col} ->
+          # The +1 is for the line separator
+          {:cont, {cur_line - 1, cur_col + String.length(line_text) + 1}}
+      end)
+    else
+      {line, new_col}
+    end
+  end
+
+  defp function_call_includes_cursor(call_range, line, char) do
+    range(start_line, start_character, end_line, end_character) = call_range
+
+    starts_before =
+      cond do
+        start_line < line -> true
+        start_line == line && start_character <= char -> true
+        true -> false
+      end
+
+    ends_after =
+      cond do
+        end_line > line -> true
+        end_line == line && end_character >= char -> true
+        true -> false
+      end
+
+    starts_before && ends_after
   end
 end

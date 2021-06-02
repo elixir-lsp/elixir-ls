@@ -104,6 +104,83 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
              ) == edited_text
     end
 
+    test "can pipe remote calls with ulti-line args" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      defmodule A do
+        def f(fun_arg) do
+          Kernel.+(
+            fun_arg,
+            1
+          )
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert_never_raises(text, uri, "toPipe")
+
+      assert {:ok, nil} =
+               ManipulatePipes.execute(
+                 ["toPipe", uri, 3, 12],
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
+
+      assert_receive {:request, "workspace/applyEdit", params}
+
+      expected_range = %{
+        "end" => %{"character" => 5, "line" => 5},
+        "start" => %{"character" => 4, "line" => 2}
+      }
+
+      expected_substitution = "fun_arg |> Kernel.+(1)"
+
+      assert params == %{
+               "edit" => %{
+                 "changes" => %{
+                   uri => [
+                     %TextEdit{
+                       newText: expected_substitution,
+                       range: expected_range
+                     }
+                   ]
+                 }
+               },
+               "label" => "Convert function call to pipe operator"
+             }
+
+      edited_text = """
+      defmodule A do
+        def f(fun_arg) do
+          fun_arg |> Kernel.+(1)
+          |> Kernel.+(2)
+          |> g()
+        end
+
+        def g(y), do: y
+      end
+      """
+
+      assert ElixirLS.LanguageServer.SourceFile.apply_edit(
+               text,
+               expected_range,
+               expected_substitution
+             ) == edited_text
+    end
+
     test "can pipe remote calls when there are multi-line args" do
       {:ok, _} =
         JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
@@ -206,8 +283,88 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       assert edited_text == expected_text
     end
 
-    # Broken
-    test "to_pipe_at_cursor end of line" do
+    test "to_pipe_at_cursor in middle line" do
+      text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Ash.Changeset.for_create(Track, :create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      expected_text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Track |> Ash.Changeset.for_create(:create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 10)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
+    end
+
+    test "to_pipe_at_cursor for multi-line function call" do
+      text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Ash.Changeset.for_create(
+            Track,
+            :create,
+          data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      expected_text = """
+      defmodule Demo do
+        def my_fun(data) do
+          Track |> Ash.Changeset.for_create(:create, data)
+          |> GenTracker.API.create()
+        end
+      end
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 3, 7)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
+    end
+
+    test "to_pipe_at_cursor for multi-line function call with windows line endings" do
+      text = """
+      defmodule Demo do\r
+        def my_fun(data) do\r
+          Ash.Changeset.for_create(\r
+            Track,\r
+            :create,\r
+          data)\r
+          |> GenTracker.API.create()\r
+        end\r
+      end\r
+      """
+
+      expected_text = """
+      defmodule Demo do\r
+        def my_fun(data) do\r
+          Track |> Ash.Changeset.for_create(:create, data)\r
+          |> GenTracker.API.create()\r
+        end\r
+      end\r
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 3, 7)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
+    end
+
+    test "to_pipe_at_cursor end of line without whitespace" do
       text = """
       defmodule Demo do
         def my_fun(data) do
@@ -232,7 +389,22 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       assert edited_text == expected_text
     end
 
-    test "to_pipe_at_cursor end of line" do
+    test "to_pipe_at_cursor where there is nothing to pipe" do
+      text = """
+      defmodule Demo do
+        def my_fun(_data) do
+          # just some comments
+          # and more comments
+          # and more
+          42
+        end
+      end
+      """
+
+      assert ManipulatePipes.to_pipe_at_cursor(text, 2, 10) == {:error, :invalid_code}
+    end
+
+    test "to_pipe_at_cursor end of line with extra whitespace" do
       text = """
       defmodule Demo do
         def my_fun(data) do
@@ -242,19 +414,21 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       end
       """
 
-      expected_text = """
+      # The cursor is not within a function call
+      assert ManipulatePipes.to_pipe_at_cursor(text, 2, 50) == {:error, :function_call_not_found}
+    end
+
+    test "to_pipe_at_cursor end of line returns function_call_not_found" do
+      text = """
       defmodule Demo do
         def my_fun(data) do
-          Track |> Ash.Changeset.for_create(:create, data)
-          |> GenTracker.API.create()
+          Ash.Changeset.for_create(Track, :create, data)\s
+          GenTracker.API.create("abc")
         end
       end
       """
 
-      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 2, 50)
-
-      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
-      assert edited_text == expected_text
+      assert ManipulatePipes.to_pipe_at_cursor(text, 2, 50) == {:error, :function_call_not_found}
     end
 
     test "to_pipe_at_cursor near end of line" do
@@ -335,7 +509,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert {:ok, nil} =
                ManipulatePipes.execute(
-                 ["toPipe", uri, 2, 2],
+                 ["toPipe", uri, 2, 4],
                  %Server{
                    source_files: %{
                      uri => %SourceFile{
@@ -348,8 +522,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       assert_receive {:request, "workspace/applyEdit", params}
 
       expected_range = %{
-        "end" => %{"character" => 23, "line" => 2},
-        "start" => %{"character" => 4, "line" => 2}
+        "start" => %{"line" => 2, "character" => 4},
+        "end" => %{"line" => 2, "character" => 23}
       }
 
       expected_substitution = "h(x, 2) |> g(h(3, 4))"
@@ -534,6 +708,37 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                expected_range,
                expected_substitution
              ) == edited_text
+    end
+
+    test "can handle multiple calls simple" do
+      text = """
+      defmodule BasicEx do
+        def add(a) do
+          require Logger
+
+          Logger.info(to_string(add_num(a, 12)))
+        end
+
+        def add_num(a, num), do: a + num
+      end
+      """
+
+      expected_text = """
+      defmodule BasicEx do
+        def add(a) do
+          require Logger
+
+          Logger.info(add_num(a, 12) |> to_string())
+        end
+
+        def add_num(a, num), do: a + num
+      end
+      """
+
+      {:ok, text_edit} = ManipulatePipes.to_pipe_at_cursor(text, 4, 17)
+
+      edited_text = ElixirLS.LanguageServer.Test.TestUtils.apply_text_edit(text, text_edit)
+      assert edited_text == expected_text
     end
 
     test "can handle multiple calls" do
@@ -1058,5 +1263,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
             flunk("raised #{inspect(exception)}. line: #{line}, character: #{character}")
         end
     end
+  end
+
+  def line_char(text, line, char) do
+      String.split(text, "\n")
+      |> Enum.at(line)
+      |> IO.inspect(label: "line")
+      |> String.slice(char, 10)
+      |> IO.inspect(label: "rest of line")
   end
 end
