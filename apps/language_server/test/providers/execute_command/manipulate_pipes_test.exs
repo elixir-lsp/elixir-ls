@@ -1268,8 +1268,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
   def line_char(text, line, char) do
       String.split(text, "\n")
       |> Enum.at(line)
-      |> IO.inspect(label: "line")
-      |> String.slice(char, 10)
-      |> IO.inspect(label: "rest of line")
+      |> String.slice(char, ?\n)
   end
 end

@@ -85,8 +85,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
               {remaining_text,
                %{
                  acc
-                 | walked_text: acc.walked_text <> current_char,
-                   function_call: nil
+                 | walked_text: acc.walked_text <> current_char
                }}
             end
           else
@@ -390,17 +389,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     starts_before =
       cond do
         start_line < line -> true
-        start_line == line && start_character <= char -> true
+        start_line == line and start_character <= char -> true
         true -> false
       end
 
     ends_after =
       cond do
         end_line > line -> true
-        end_line == line && end_character >= char -> true
+        end_line == line and end_character >= char -> true
         true -> false
       end
 
-    starts_before && ends_after
+    starts_before and ends_after
   end
 end
