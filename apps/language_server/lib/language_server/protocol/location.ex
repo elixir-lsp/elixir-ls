@@ -17,11 +17,16 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
         _ -> SourceFile.path_to_uri(file)
       end
 
+    # LSP messages are 0 indexed whilst elixir/erlang is 1 indexed.
+    # Guard against malformed line or column values.
+    line = max(line - 1, 0)
+    column = max(column - 1, 0)
+
     %Protocol.Location{
       uri: uri,
       range: %{
-        "start" => %{"line" => line - 1, "character" => column - 1},
-        "end" => %{"line" => line - 1, "character" => column - 1}
+        "start" => %{"line" => line, "character" => column},
+        "end" => %{"line" => line, "character" => column}
       }
     }
   end
