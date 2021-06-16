@@ -218,6 +218,11 @@ and you installed Elixir and Erlang from the Erlang Solutions repository, you ma
 
 On fedora if you only install the elixir package you will not have a full erlang installation, this can be fixed by running `sudo dnf install erlang` (reported in [#231](https://github.com/elixir-lsp/elixir-ls/issues/231))
 
+If you are using Emacs with lsp-mode there's a possibility that you have set the
+wrong directory as the project root (especially if that directory does not have
+a `mix.exs` file). To fix that you should remove the project and re-initialize:
+https://github.com/elixir-lsp/elixir-ls/issues/364#issuecomment-829589139
+
 ## Known Issues/Limitations
 
 * `.exs` files don't return compilation errors
@@ -226,7 +231,6 @@ On fedora if you only install the elixir package you will not have a full erlang
 * "Go to definition" does not work within the `scope` of a Phoenix router
 * On-hover docs do not work with erlang modules or functions (better support of EEP-48 is needed)
 * On first launch dialyzer will cause high CPU usage for a considerable time
-  * Possible mitigation in [#96](https://github.com/elixir-lsp/elixir-ls/issues/96)
 * ElixirLS requires a workspace to be opened. Editing single-files is not supported [#307](https://github.com/elixir-lsp/elixir-ls/issues/307)
 
 ## Building and running
