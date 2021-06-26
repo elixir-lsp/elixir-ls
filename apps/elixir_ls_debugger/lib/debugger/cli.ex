@@ -14,32 +14,24 @@ defmodule ElixirLS.Debugger.CLI do
     WireProtocol.stream_packets(&Server.receive_packet/1)
   end
 
-  # Debugging does not work on Elixir 1.10.0-1.10.2:
-  # https://github.com/elixir-lsp/elixir-ls/issues/158
   defp warn_if_unsupported_version do
-    elixir_version = System.version()
-
-    unless Version.match?(elixir_version, ">= 1.8.0") do
-      message =
-        "WARNING: Elixir versions below 1.8 are not supported. (Currently v#{elixir_version})"
-
-      Output.print_err(message)
+    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_elixir_version() do
+      Output.print_err("WARNING: " <> message)
     end
+
+    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_otp_version() do
+      Output.print_err("WARNING: " <> message)
+    end
+
+    # Debugging does not work on Elixir 1.10.0-1.10.2:
+    # https://github.com/elixir-lsp/elixir-ls/issues/158
+    elixir_version = System.version()
 
     if Version.match?(elixir_version, ">= 1.10.0") && Version.match?(elixir_version, "< 1.10.3") do
       message =
         "WARNING: Debugging is not supported on Elixir #{elixir_version}. Please upgrade" <>
           " to at least 1.10.3\n" <>
           "more info: https://github.com/elixir-lsp/elixir-ls/issues/158"
-
-      Output.print_err(message)
-    end
-
-    otp_release = String.to_integer(System.otp_release())
-
-    if otp_release < 21 do
-      message =
-        "WARNING: Erlang OTP releases below 21 are not supported (Currently OTP #{otp_release})"
 
       Output.print_err(message)
     end

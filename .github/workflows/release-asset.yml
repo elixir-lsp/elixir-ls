@@ -32,16 +32,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - elixir-version: '1.12'
+          - elixir-version: '1.12.1'
             otp-version: '24.0'
           - elixir-version: '1.11.4'
             otp-version: '23.3'
           - elixir-version: '1.10.4'
-            otp-version: '23.3'
-          - elixir-version: '1.9.4'
             otp-version: '22.3'
-          - elixir-version: '1.8.2'
-            otp-version: '21.3'
             default: true
 
     steps:
