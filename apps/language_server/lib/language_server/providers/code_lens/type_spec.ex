@@ -18,7 +18,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec do
     resp =
       for {_, line, {mod, fun, arity}, contract, is_macro} <- Server.suggest_contracts(uri),
           SourceFile.function_def_on_line?(text, line, fun),
-          spec = ContractTranslator.translate_contract(fun, contract, is_macro) do
+          spec = ContractTranslator.translate_contract(fun, contract, is_macro, mod) do
         CodeLens.build_code_lens(
           line,
           "@spec #{spec}",
