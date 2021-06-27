@@ -1047,36 +1047,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   @tag :fixture
-  test "reports errors if no mixfile", %{server: server} do
-    in_fixture(__DIR__, "no_mixfile", fn ->
-      mixfile_uri = SourceFile.path_to_uri("mix.exs")
-
-      initialize(server)
-
-      assert_receive notification("textDocument/publishDiagnostics", %{
-                       "uri" => ^mixfile_uri,
-                       "diagnostics" => [
-                         %{
-                           "message" => "No mixfile found" <> _,
-                           "severity" => 1
-                         }
-                       ]
-                     }),
-                     5000
-
-      assert_receive notification("window/logMessage", %{
-                       "message" => "No mixfile found in project." <> _
-                     })
-
-      assert_receive notification("window/showMessage", %{
-                       "message" => "No mixfile found in project." <> _
-                     })
-
-      wait_until_compiled(server)
-    end)
-  end
-
-  @tag :fixture
   test "finds references in non-umbrella project", %{server: server} do
     in_fixture(__DIR__, "references", fn ->
       file_path = "lib/b.ex"
@@ -1420,6 +1390,56 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                }
              ]) = resp
     end)
+  end
+
+  describe "no mix project" do
+    @tag :fixture
+    test "dir with no mix.exs", %{server: server} do
+      in_fixture(__DIR__, "no_mixfile", fn ->
+        mixfile_uri = SourceFile.path_to_uri("mix.exs")
+
+        initialize(server)
+
+        assert_receive notification("window/logMessage", %{
+                        "message" => "No mixfile found in project." <> _
+                      }), 1000
+
+        assert_receive notification("window/showMessage", %{
+                        "message" => "No mixfile found in project." <> _
+                      })
+
+        assert_receive notification("window/logMessage", %{
+          "message" => "Compile took" <> _
+        })
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    @tag :fixture
+    test "single file", %{server: server} do
+      in_fixture(__DIR__, "no_mixfile", fn ->
+        mixfile_uri = SourceFile.path_to_uri("mix.exs")
+
+        IO.inspect root_uri()
+
+        initialize(server, root_uri() <> "/a.exs")
+
+        assert_receive notification("window/logMessage", %{
+                        "message" => "No mixfile found in project." <> _
+                      }), 1000
+
+        assert_receive notification("window/showMessage", %{
+                        "message" => "No mixfile found in project." <> _
+                      })
+
+        assert_receive notification("window/logMessage", %{
+          "message" => "Compile took" <> _
+        })
+
+        wait_until_compiled(server)
+      end)
+    end
   end
 
   defp with_new_server(func) do
