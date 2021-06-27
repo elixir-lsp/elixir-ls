@@ -16,22 +16,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.8.x
-            otp: 21.3.8.20
-            tests_may_fail: false
-          - elixir: 1.9.x
-            otp: 21.3.8.23
-            tests_may_fail: false
           - elixir: 1.10.x
-            otp: 21.3.8.23
+            otp: 22.3.4.20
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.11.x
-            otp: 21.3.8.20
+            otp: 23.3.4.4
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.12.x
-            otp: 22.3.4.19
+            otp: 23.3.4.4
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.12.x
