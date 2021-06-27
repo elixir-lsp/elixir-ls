@@ -8,6 +8,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   import ElixirLS.LanguageServer.Protocol
 
   alias ElixirLS.LanguageServer.{JsonRpc, Server}
+  alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
 
   alias __MODULE__.AST
 
@@ -22,7 +24,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     # line and col are assumed to be 0-indexed
     source_file = Server.get_source_file(state, uri)
 
-    {:ok, %{edited_text: edited_text, edit_range: edit_range}} =
+    label =
+      case operation do
+        "toPipe" -> "Convert function call to pipe operator"
+        "fromPipe" -> "Convert pipe operator to function call"
+      end
+
+    processing_result =
       case operation do
         "toPipe" ->
           to_pipe_at_cursor(source_file.text, line, col)
@@ -31,33 +39,29 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
           from_pipe_at_cursor(source_file.text, line, col)
       end
 
-    label =
-      case operation do
-        "toPipe" -> "Convert function call to pipe operator"
-        "fromPipe" -> "Convert pipe operator to function call"
-      end
+    with {:ok, %TextEdit{} = text_edit} <- processing_result,
+         {:ok, %{"applied" => true}} <-
+           JsonRpc.send_request("workspace/applyEdit", %{
+             "label" => label,
+             "edit" => %{
+               "changes" => %{
+                 uri => [text_edit]
+               }
+             }
+           }) do
+      {:ok, nil}
+    else
+      {:error, reason} ->
+        {:error, reason}
 
-    edit_result =
-      JsonRpc.send_request("workspace/applyEdit", %{
-        "label" => label,
-        "edit" => %{
-          "changes" => %{
-            uri => [%{"range" => edit_range, "newText" => edited_text}]
-          }
-        }
-      })
-
-    case edit_result do
-      {:ok, %{"applied" => true}} ->
-        {:ok, nil}
-
-      other ->
+      error ->
         {:error, :server_error,
-         "cannot insert spec, workspace/applyEdit returned #{inspect(other)}"}
+         "cannot execute pipe conversion, workspace/applyEdit returned #{inspect(error)}"}
     end
   end
 
-  defp to_pipe_at_cursor(text, line, col) do
+  @doc false
+  def to_pipe_at_cursor(text, line, col) do
     result =
       ElixirSense.Core.Source.walk_text(
         text,
@@ -67,27 +71,40 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
             {:ok, function_call, call_range} =
               get_function_call(line, col, acc.walked_text, current_char, remaining_text)
 
-            {remaining_text,
-             %{
-               acc
-               | walked_text: acc.walked_text <> current_char,
-                 function_call: function_call,
-                 range: call_range
-             }}
+            if function_call_includes_cursor(call_range, line, col) do
+              {remaining_text,
+               %{
+                 acc
+                 | walked_text: acc.walked_text <> current_char,
+                   function_call: function_call,
+                   range: call_range
+               }}
+            else
+              # The cursor was not inside a function call so we cannot
+              # manipulate the pipes
+              {remaining_text,
+               %{
+                 acc
+                 | walked_text: acc.walked_text <> current_char
+               }}
+            end
           else
             {remaining_text, %{acc | walked_text: acc.walked_text <> current_char}}
           end
         end
       )
 
-    case result do
-      %{function_call: nil} ->
+    with {:result, %{function_call: function_call, range: range}}
+         when not is_nil(function_call) and not is_nil(range) <- {:result, result},
+         {:ok, piped_text} <- AST.to_pipe(function_call) do
+      text_edit = %TextEdit{newText: piped_text, range: range}
+      {:ok, text_edit}
+    else
+      {:result, %{function_call: nil}} ->
         {:error, :function_call_not_found}
 
-      %{function_call: function_call, range: range} ->
-        piped_text = AST.to_pipe(function_call)
-
-        {:ok, %{edited_text: piped_text, edit_range: range}}
+      {:error, :invalid_code} ->
+        {:error, :invalid_code}
     end
   end
 
@@ -98,31 +115,51 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         %{walked_text: "", pipe_call: nil, range: nil},
         fn current_char, remaining_text, current_line, current_col, acc ->
           if current_line - 1 == line and current_col - 1 == col do
-            {:ok, pipe_call, call_range} =
-              get_pipe_call(line, col, acc.walked_text, current_char, remaining_text)
+            case get_pipe_call(line, col, acc.walked_text, current_char, remaining_text) do
+              {:ok, pipe_call, call_range} ->
+                {remaining_text,
+                 %{
+                   acc
+                   | walked_text: acc.walked_text <> current_char,
+                     pipe_call: pipe_call,
+                     range: call_range
+                 }}
 
-            {remaining_text,
-             %{
-               acc
-               | walked_text: acc.walked_text <> current_char,
-                 pipe_call: pipe_call,
-                 range: call_range
-             }}
+              {:error, :no_pipe_at_selection} ->
+                {remaining_text,
+                 %{
+                   acc
+                   | walked_text: acc.walked_text <> current_char
+                 }}
+            end
           else
             {remaining_text, %{acc | walked_text: acc.walked_text <> current_char}}
           end
         end
       )
 
-    case result do
-      %{pipe_call: nil} ->
+    with {:result, %{pipe_call: pipe_call, range: range}}
+         when not is_nil(pipe_call) and not is_nil(range) <- {:result, result},
+         {:ok, unpiped_text} <- AST.from_pipe(pipe_call) do
+      text_edit = %TextEdit{newText: unpiped_text, range: range}
+      {:ok, text_edit}
+    else
+      {:result, %{pipe_call: nil}} ->
         {:error, :pipe_not_found}
 
-      %{pipe_call: pipe_call, range: range} ->
-        unpiped_text = AST.from_pipe(pipe_call)
-
-        {:ok, %{edited_text: unpiped_text, edit_range: range}}
+      {:error, :invalid_code} ->
+        {:error, :invalid_code}
     end
+  end
+
+  defp get_function_call(line, col, head, cur, original_tail) when cur in ["\n", "\r", "\r\n"] do
+    {head, new_cur} = String.split_at(head, -1)
+    get_function_call(line, col - 1, head, new_cur, cur <> original_tail)
+  end
+
+  defp get_function_call(line, col, head, ")", original_tail) do
+    {head, cur} = String.split_at(head, -1)
+    get_function_call(line, col - 1, head, cur, ")" <> original_tail)
   end
 
   defp get_function_call(line, col, head, current, original_tail) do
@@ -141,10 +178,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     text = head <> current <> tail
 
     call = get_function_call_before(text)
+    orig_head = head
 
-    {head, _tail} = String.split_at(call, -String.length(tail))
+    {head, _new_tail} =
+      case String.length(tail) do
+        0 -> {call, ""}
+        length -> String.split_at(call, -length)
+      end
 
-    col = if head == "", do: col + 2, else: col - String.length(head) + 1
+    {line, col} = fix_start_of_range(orig_head, head, line, col)
 
     {:ok, call, range(line, col, end_line, end_col)}
   end
@@ -179,6 +221,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
   defp do_get_function_call(<<c::binary-size(1), tail::bitstring>>, start_char, end_char, acc) do
     do_get_function_call(tail, start_char, end_char, %{acc | text: [acc.text | [c]]})
   end
+
+  defp do_get_function_call(_, _, _, acc), do: acc
 
   defp get_pipe_call(line, col, head, current, tail) do
     pipe_right = do_get_function_call(tail, "(", ")")
@@ -230,7 +274,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
         col + tail_length
       end
 
-    {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
+    if String.contains?(pipe_call, "|>") do
+      {:ok, pipe_call, range(start_line, start_col, end_line, end_col)}
+    else
+      {:error, :no_pipe_at_selection}
+    end
   end
 
   # do_get_pipe_call(text :: utf16 binary, {utf16 binary, has_passed_through_whitespace, should_halt})
@@ -267,12 +315,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       |> do_get_function_call(")", "(")
       |> String.reverse()
 
-    function_name =
+    if call_without_function_name == "" do
       head
-      |> String.trim_trailing(call_without_function_name)
-      |> get_function_name_from_tail()
+    else
+      function_name =
+        head
+        |> String.trim_trailing(call_without_function_name)
+        |> get_function_name_from_tail()
 
-    function_name <> call_without_function_name
+      function_name <> call_without_function_name
+    end
   end
 
   defp get_function_name_from_tail(s) do
@@ -280,7 +332,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     |> String.reverse()
     |> String.graphemes()
     |> Enum.reduce_while([], fn c, acc ->
-      if String.match?(c, ~r/\s/) do
+      if String.match?(c, ~r/[\s\(\[\{]/) do
         {:halt, acc}
       else
         {:cont, [c | acc]}
@@ -301,5 +353,53 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       {_, tail} ->
         count_newlines_and_get_tail(tail, {line_count, tail_length + 1})
     end
+  end
+
+  # Fixes the line and column returned, finding the correct position on previous lines
+  defp fix_start_of_range(orig_head, head, line, col)
+  defp fix_start_of_range(_, "", line, col), do: {line, col + 2}
+
+  defp fix_start_of_range(orig_head, head, line, col) do
+    new_col = col - String.length(head) + 1
+
+    if new_col < 0 do
+      lines =
+        SourceFile.lines(orig_head)
+        |> Enum.take(line)
+        |> Enum.reverse()
+
+      # Go back through previous lines to find the correctly adjusted line and
+      # column number for the start of head (where the function starts)
+      Enum.reduce_while(lines, {line, new_col}, fn
+        _line_text, {cur_line, cur_col} when cur_col >= 0 ->
+          {:halt, {cur_line, cur_col}}
+
+        line_text, {cur_line, cur_col} ->
+          # The +1 is for the line separator
+          {:cont, {cur_line - 1, cur_col + String.length(line_text) + 1}}
+      end)
+    else
+      {line, new_col}
+    end
+  end
+
+  defp function_call_includes_cursor(call_range, line, char) do
+    range(start_line, start_character, end_line, end_character) = call_range
+
+    starts_before =
+      cond do
+        start_line < line -> true
+        start_line == line and start_character <= char -> true
+        true -> false
+      end
+
+    ends_after =
+      cond do
+        end_line > line -> true
+        end_line == line and end_character >= char -> true
+        true -> false
+      end
+
+    starts_before and ends_after
   end
 end
