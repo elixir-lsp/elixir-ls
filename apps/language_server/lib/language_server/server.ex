@@ -854,7 +854,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp get_test_code_lenses(state = %__MODULE__{project_dir: project_dir}, uri, source_file, true = _enabled, false = _umbrella) when is_binary(project_dir) do
+  defp get_test_code_lenses(%__MODULE__{project_dir: project_dir}, uri, source_file, true = _enabled, false = _umbrella) when is_binary(project_dir) do
     try do
       file_path = SourceFile.path_from_uri(uri)
 
