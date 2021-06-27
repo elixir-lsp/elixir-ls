@@ -1016,20 +1016,12 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp show_version_warnings do
-    unless Version.match?(System.version(), ">= 1.8.0") do
-      JsonRpc.show_message(
-        :warning,
-        "Elixir versions below 1.8 are not supported. (Currently v#{System.version()})"
-      )
+    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_elixir_version() do
+      JsonRpc.show_message(:warning, message)
     end
 
-    otp_release = String.to_integer(System.otp_release())
-
-    if otp_release < 21 do
-      JsonRpc.show_message(
-        :info,
-        "Erlang OTP releases below 21 are not supported (Currently OTP #{otp_release})"
-      )
+    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_otp_version() do
+      JsonRpc.show_message(:warning, message)
     end
 
     case Dialyzer.check_support() do
