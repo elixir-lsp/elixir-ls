@@ -212,7 +212,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_info({:DOWN, ref, _, _pid, reason}, %__MODULE__{build_ref: ref, build_running?: true} = state) do
+  def handle_info(
+        {:DOWN, ref, _, _pid, reason},
+        %__MODULE__{build_ref: ref, build_running?: true} = state
+      ) do
     state = %{state | build_running?: false}
 
     state =
@@ -460,7 +463,11 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_request_packet(id, packet, state = %__MODULE__{server_instance_id: server_instance_id})
+  defp handle_request_packet(
+         id,
+         packet,
+         state = %__MODULE__{server_instance_id: server_instance_id}
+       )
        when not is_initialized(server_instance_id) do
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
@@ -569,7 +576,10 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(references_req(_id, uri, line, character, include_declaration), state = %__MODULE__{}) do
+  defp handle_request(
+         references_req(_id, uri, line, character, include_declaration),
+         state = %__MODULE__{}
+       ) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -694,7 +704,10 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(on_type_formatting_req(_id, uri, line, character, ch, options), state = %__MODULE__{}) do
+  defp handle_request(
+         on_type_formatting_req(_id, uri, line, character, ch, options),
+         state = %__MODULE__{}
+       ) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -752,7 +765,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   # TODO remove in ElixirLS 0.8
-  defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state = %__MODULE__{}) do
+  defp handle_request(
+         macro_expansion(_id, whole_buffer, selected_macro, macro_line),
+         state = %__MODULE__{}
+       ) do
     IO.warn(
       "Custom `elixirDocument/macroExpansion` request is deprecated. Switch to command `executeMacro` via `workspace/executeCommand`"
     )
@@ -837,7 +853,14 @@ defmodule ElixirLS.LanguageServer.Server do
     )
   end
 
-  defp get_test_code_lenses(state = %__MODULE__{project_dir: project_dir}, uri, source_file, true = _enabled, true = _umbrella) when is_binary(project_dir) do
+  defp get_test_code_lenses(
+         state = %__MODULE__{project_dir: project_dir},
+         uri,
+         source_file,
+         true = _enabled,
+         true = _umbrella
+       )
+       when is_binary(project_dir) do
     file_path = SourceFile.path_from_uri(uri)
 
     Mix.Project.apps_paths()
@@ -855,7 +878,14 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp get_test_code_lenses(%__MODULE__{project_dir: project_dir}, uri, source_file, true = _enabled, false = _umbrella) when is_binary(project_dir) do
+  defp get_test_code_lenses(
+         %__MODULE__{project_dir: project_dir},
+         uri,
+         source_file,
+         true = _enabled,
+         false = _umbrella
+       )
+       when is_binary(project_dir) do
     try do
       file_path = SourceFile.path_from_uri(uri)
 
@@ -871,7 +901,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, _, _), do: {:ok, []}
 
-  defp is_test_file?(file_path, state = %__MODULE__{project_dir: project_dir}, app, app_path) when is_binary(project_dir) do
+  defp is_test_file?(file_path, state = %__MODULE__{project_dir: project_dir}, app, app_path)
+       when is_binary(project_dir) do
     app_name = Atom.to_string(app)
 
     test_paths =
@@ -899,7 +930,8 @@ defmodule ElixirLS.LanguageServer.Server do
     cond do
       not build_enabled?(state) ->
         state
-      not state.build_running? -> 
+
+      not state.build_running? ->
         fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
 
         {_pid, build_ref} =
@@ -916,6 +948,7 @@ defmodule ElixirLS.LanguageServer.Server do
             analysis_ready?: false,
             load_all_modules?: false
         }
+
       true ->
         %__MODULE__{state | needs_build?: true, analysis_ready?: false}
     end
@@ -940,8 +973,10 @@ defmodule ElixirLS.LanguageServer.Server do
       msg =
         "No mixfile found in project. " <>
           "To use a subdirectory, set `elixirLS.projectDir` in your settings"
+
       JsonRpc.show_message(:info, msg)
     end
+
     %__MODULE__{state | no_mixfile_warned?: true}
   end
 
@@ -1119,7 +1154,10 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp set_project_dir(%__MODULE__{project_dir: prev_project_dir, root_uri: root_uri} = state, project_dir)
+  defp set_project_dir(
+         %__MODULE__{project_dir: prev_project_dir, root_uri: root_uri} = state,
+         project_dir
+       )
        when is_binary(root_uri) do
     root_dir = root_uri |> SourceFile.abs_path_from_uri()
 
@@ -1156,7 +1194,8 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp create_gitignore(%__MODULE__{project_dir: project_dir} = state) when is_binary(project_dir) do
+  defp create_gitignore(%__MODULE__{project_dir: project_dir} = state)
+       when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
          false <- File.exists?(gitignore_path),
          :ok <- gitignore_path |> Path.dirname() |> File.mkdir_p(),

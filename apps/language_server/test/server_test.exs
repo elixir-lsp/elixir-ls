@@ -18,10 +18,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   defp fake_initialize(server) do
-    :sys.replace_state(server, fn state -> %{state |
-      server_instance_id: "123",
-      project_dir: "/fake_dir"
-    } end)
+    :sys.replace_state(server, fn state ->
+      %{state | server_instance_id: "123", project_dir: "/fake_dir"}
+    end)
   end
 
   defp root_uri do
@@ -1399,21 +1398,20 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     @tag :fixture
     test "dir with no mix.exs", %{server: server} do
       in_fixture(__DIR__, "no_mixfile", fn ->
-        mixfile_uri = SourceFile.path_to_uri("mix.exs")
-
         initialize(server)
 
         assert_receive notification("window/logMessage", %{
-                        "message" => "No mixfile found in project." <> _
-                      }), 1000
+                         "message" => "No mixfile found in project." <> _
+                       }),
+                       1000
 
         assert_receive notification("window/showMessage", %{
-                        "message" => "No mixfile found in project." <> _
-                      })
+                         "message" => "No mixfile found in project." <> _
+                       })
 
         assert_receive notification("window/logMessage", %{
-          "message" => "Compile took" <> _
-        })
+                         "message" => "Compile took" <> _
+                       })
 
         wait_until_compiled(server)
       end)
@@ -1422,8 +1420,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     @tag :fixture
     test "single file", %{server: server} do
       in_fixture(__DIR__, "no_mixfile", fn ->
-        mixfile_uri = SourceFile.path_to_uri("mix.exs")
-
         Server.receive_packet(server, initialize_req(1, nil, %{}))
         Server.receive_packet(server, notification("initialized"))
 
@@ -1433,8 +1429,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         refute_receive notification("window/logMessage", %{
-                        "message" => "No mixfile found in project." <> _
-                      }), 1000
+                         "message" => "No mixfile found in project." <> _
+                       }),
+                       1000
 
         wait_until_compiled(server)
       end)
