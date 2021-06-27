@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics}
 
-  def build(parent, root_path, opts) do
+  def build(parent, root_path, opts) when is_binary(root_path) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
       IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
