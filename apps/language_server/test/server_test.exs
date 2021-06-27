@@ -18,7 +18,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   defp fake_initialize(server) do
-    :sys.replace_state(server, fn state -> %{state | server_instance_id: "123"} end)
+    :sys.replace_state(server, fn state -> %{state |
+      server_instance_id: "123",
+      project_dir: "/fake_dir"
+    } end)
   end
 
   defp root_uri do
@@ -396,7 +399,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       state = :sys.get_state(server)
       assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "textDocument/didSave not open", %{server: server} do
@@ -441,7 +444,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched file updated outside", %{server: server} do
@@ -450,7 +453,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched file deleted outside", %{server: server} do
@@ -459,7 +462,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched open file created in editor", %{server: server} do
@@ -469,7 +472,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
       assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
     end
 
@@ -494,7 +497,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
       assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
     end
 
@@ -506,7 +509,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     @tag :fixture
@@ -539,7 +542,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
         state = :sys.get_state(server)
-        assert state.needs_build?
+        assert state.needs_build? || state.build_running?
         assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
       end)
     end
@@ -571,7 +574,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
         state = :sys.get_state(server)
-        assert state.needs_build?
+        assert state.needs_build? || state.build_running?
         assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
       end)
     end
@@ -601,7 +604,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
       assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
 
       assert_receive %{
@@ -637,7 +640,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       state = :sys.get_state(server)
       assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched open file deleted outside", %{server: server} do
@@ -647,7 +650,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "gracefully skip not supported URI scheme", %{server: server} do

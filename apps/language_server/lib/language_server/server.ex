@@ -894,26 +894,29 @@ defmodule ElixirLS.LanguageServer.Server do
 
   # Build
 
-  defp trigger_build(state = %__MODULE__{project_dir: project_dir}) when is_binary(project_dir) do
-    if build_enabled?(state) and not state.build_running? do
-      fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
-
-      {_pid, build_ref} =
-        Build.build(self(), project_dir,
-          fetch_deps?: fetch_deps?,
-          load_all_modules?: state.load_all_modules?
-        )
-
-      %__MODULE__{
+  defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
+    cond do
+      not build_enabled?(state) ->
         state
-        | build_ref: build_ref,
-          needs_build?: false,
-          build_running?: true,
-          analysis_ready?: false,
-          load_all_modules?: false
-      }
-    else
-      %__MODULE__{state | needs_build?: true, analysis_ready?: false}
+      not state.build_running? -> 
+        fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
+
+        {_pid, build_ref} =
+          Build.build(self(), project_dir,
+            fetch_deps?: fetch_deps?,
+            load_all_modules?: state.load_all_modules?
+          )
+
+        %__MODULE__{
+          state
+          | build_ref: build_ref,
+            needs_build?: false,
+            build_running?: true,
+            analysis_ready?: false,
+            load_all_modules?: false
+        }
+      true ->
+        %__MODULE__{state | needs_build?: true, analysis_ready?: false}
     end
   end
 
