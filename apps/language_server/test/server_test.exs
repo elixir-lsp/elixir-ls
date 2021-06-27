@@ -1424,21 +1424,17 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       in_fixture(__DIR__, "no_mixfile", fn ->
         mixfile_uri = SourceFile.path_to_uri("mix.exs")
 
-        IO.inspect root_uri()
+        Server.receive_packet(server, initialize_req(1, nil, %{}))
+        Server.receive_packet(server, notification("initialized"))
 
-        initialize(server, root_uri() <> "/a.exs")
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
+        )
 
-        assert_receive notification("window/logMessage", %{
+        refute_receive notification("window/logMessage", %{
                         "message" => "No mixfile found in project." <> _
                       }), 1000
-
-        assert_receive notification("window/showMessage", %{
-                        "message" => "No mixfile found in project." <> _
-                      })
-
-        assert_receive notification("window/logMessage", %{
-          "message" => "Compile took" <> _
-        })
 
         wait_until_compiled(server)
       end)

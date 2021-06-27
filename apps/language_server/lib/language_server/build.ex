@@ -39,7 +39,7 @@ defmodule ElixirLS.LanguageServer.Build do
                   Server.build_finished(parent, {:error, mixfile_diagnostics})
 
                 :no_mixfile ->
-                  Server.build_finished(parent, {:ok, []})
+                  Server.build_finished(parent, {:no_mixfile, []})
               end
             end)
 
@@ -169,7 +169,6 @@ defmodule ElixirLS.LanguageServer.Build do
           "To use a subdirectory, set `elixirLS.projectDir` in your settings"
 
       JsonRpc.log_message(:info, msg <> ". Looked for mixfile at #{inspect(mixfile)}")
-      JsonRpc.show_message(:info, msg)
 
       :no_mixfile
     end

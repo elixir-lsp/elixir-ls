@@ -57,7 +57,8 @@ defmodule ElixirLS.LanguageServer.Server do
     # Tracks source files that are currently open in the editor
     source_files: %{},
     awaiting_contracts: [],
-    supports_dynamic: false
+    supports_dynamic: false,
+    no_mixfile_warned?: false
   ]
 
   defmodule InvalidParamError do
@@ -146,7 +147,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   @impl GenServer
   def handle_cast({:build_finished, {status, diagnostics}}, state = %__MODULE__{})
-      when status in [:ok, :noop, :error] and is_list(diagnostics) do
+      when status in [:ok, :noop, :error, :no_mixfile] and is_list(diagnostics) do
     {:noreply, handle_build_result(status, diagnostics, state)}
   end
 
@@ -934,7 +935,15 @@ defmodule ElixirLS.LanguageServer.Server do
     state.settings["dialyzerFormat"] || "dialyxir_long"
   end
 
-  # TODO no mixfile
+  defp handle_build_result(:no_mixfile, _, state = %__MODULE__{}) do
+    unless state.no_mixfile_warned? do
+      msg =
+        "No mixfile found in project. " <>
+          "To use a subdirectory, set `elixirLS.projectDir` in your settings"
+      JsonRpc.show_message(:info, msg)
+    end
+    %__MODULE__{state | no_mixfile_warned?: true}
+  end
 
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
     old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
