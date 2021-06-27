@@ -1163,11 +1163,6 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp create_gitignore(state) do
-    JsonRpc.log_message(
-      :warning,
-      "Cannot create .elixir_ls/.gitignore, cause: project_dir not set"
-    )
-
     state
   end
 
