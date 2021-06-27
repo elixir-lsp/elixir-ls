@@ -849,7 +849,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {app, app_path} ->
         if is_test_file?(file_path, state, app, app_path) do
-          CodeLens.test_code_lens(uri, source_file.text, "#{state.project_dir}/#{app_path}")
+          CodeLens.test_code_lens(uri, source_file.text, Path.join(project_dir, app_path))
         else
           {:ok, []}
         end
