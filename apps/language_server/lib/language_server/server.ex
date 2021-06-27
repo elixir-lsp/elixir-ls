@@ -836,9 +836,7 @@ defmodule ElixirLS.LanguageServer.Server do
     )
   end
 
-  defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, false, _), do: {:ok, []}
-
-  defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file, true = _enabled, true = _umbrella) do
+  defp get_test_code_lenses(state = %__MODULE__{project_dir: project_dir}, uri, source_file, true = _enabled, true = _umbrella) when is_binary(project_dir) do
     file_path = SourceFile.path_from_uri(uri)
 
     Mix.Project.apps_paths()
@@ -856,12 +854,12 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file, true = _enabled, false = _umbrella) do
+  defp get_test_code_lenses(state = %__MODULE__{project_dir: project_dir}, uri, source_file, true = _enabled, false = _umbrella) when is_binary(project_dir) do
     try do
       file_path = SourceFile.path_from_uri(uri)
 
       if is_test_file?(file_path) do
-        CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
+        CodeLens.test_code_lens(uri, source_file.text, project_dir)
       else
         {:ok, []}
       end
@@ -870,12 +868,14 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp is_test_file?(file_path, state = %__MODULE__{}, app, app_path) do
+  defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, _, _), do: {:ok, []}
+
+  defp is_test_file?(file_path, state = %__MODULE__{project_dir: project_dir}, app, app_path) when is_binary(project_dir) do
     app_name = Atom.to_string(app)
 
     test_paths =
       (get_in(state.settings, ["testPaths", app_name]) || ["test"])
-      |> Enum.map(fn path -> Path.join([state.project_dir, app_path, path]) end)
+      |> Enum.map(fn path -> Path.join([project_dir, app_path, path]) end)
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
