@@ -896,7 +896,9 @@ defmodule ElixirLS.LanguageServer.Server do
   # Build
 
   defp trigger_build(state) do
-    if build_enabled?(state) and not state.build_running? do
+    build_automatically = Map.get(state.settings || %{}, "autoBuild", true)
+
+    if build_enabled?(state) and build_automatically and not state.build_running? do
       fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
 
       {_pid, build_ref} =
