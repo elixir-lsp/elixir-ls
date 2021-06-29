@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
   alias ElixirLS.LanguageServer.SourceFile
 
-  def trigger_characters(), do: ["("]
+  def trigger_characters(), do: ["(", ","]
 
   def signature(%SourceFile{} = source_file, line, character) do
     response =
