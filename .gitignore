@@ -27,3 +27,8 @@ erl_crash.dump
 
 # Also ignore temp files created during testing
 .tmp
+
+# A tool-versions file is used for the release at .release-tool-versions
+# But many contributors will use their own to specify their own minimum
+# supported version
+.tool-versions
