@@ -18,7 +18,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   defp fake_initialize(server) do
-    :sys.replace_state(server, fn state -> %{state | server_instance_id: "123"} end)
+    :sys.replace_state(server, fn state ->
+      %{state | server_instance_id: "123", project_dir: "/fake_dir"}
+    end)
   end
 
   defp root_uri do
@@ -396,7 +398,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       state = :sys.get_state(server)
       assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "textDocument/didSave not open", %{server: server} do
@@ -441,7 +443,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched file updated outside", %{server: server} do
@@ -450,7 +452,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched file deleted outside", %{server: server} do
@@ -459,7 +461,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched open file created in editor", %{server: server} do
@@ -469,7 +471,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
       assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
     end
 
@@ -494,7 +496,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
       assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
     end
 
@@ -506,7 +508,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     @tag :fixture
@@ -539,7 +541,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
         state = :sys.get_state(server)
-        assert state.needs_build?
+        assert state.needs_build? || state.build_running?
         assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
       end)
     end
@@ -571,7 +573,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
         state = :sys.get_state(server)
-        assert state.needs_build?
+        assert state.needs_build? || state.build_running?
         assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
       end)
     end
@@ -601,7 +603,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
       assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
 
       assert_receive %{
@@ -637,7 +639,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       state = :sys.get_state(server)
       assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "watched open file deleted outside", %{server: server} do
@@ -647,7 +649,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
       state = :sys.get_state(server)
-      assert state.needs_build?
+      assert state.needs_build? || state.build_running?
     end
 
     test "gracefully skip not supported URI scheme", %{server: server} do
@@ -1047,36 +1049,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   @tag :fixture
-  test "reports errors if no mixfile", %{server: server} do
-    in_fixture(__DIR__, "no_mixfile", fn ->
-      mixfile_uri = SourceFile.path_to_uri("mix.exs")
-
-      initialize(server)
-
-      assert_receive notification("textDocument/publishDiagnostics", %{
-                       "uri" => ^mixfile_uri,
-                       "diagnostics" => [
-                         %{
-                           "message" => "No mixfile found" <> _,
-                           "severity" => 1
-                         }
-                       ]
-                     }),
-                     5000
-
-      assert_receive notification("window/logMessage", %{
-                       "message" => "No mixfile found in project." <> _
-                     })
-
-      assert_receive notification("window/showMessage", %{
-                       "message" => "No mixfile found in project." <> _
-                     })
-
-      wait_until_compiled(server)
-    end)
-  end
-
-  @tag :fixture
   test "finds references in non-umbrella project", %{server: server} do
     in_fixture(__DIR__, "references", fn ->
       file_path = "lib/b.ex"
@@ -1420,6 +1392,50 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                }
              ]) = resp
     end)
+  end
+
+  describe "no mix project" do
+    @tag :fixture
+    test "dir with no mix.exs", %{server: server} do
+      in_fixture(__DIR__, "no_mixfile", fn ->
+        initialize(server)
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "No mixfile found in project." <> _
+                       }),
+                       1000
+
+        assert_receive notification("window/showMessage", %{
+                         "message" => "No mixfile found in project." <> _
+                       })
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "Compile took" <> _
+                       })
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    @tag :fixture
+    test "single file", %{server: server} do
+      in_fixture(__DIR__, "no_mixfile", fn ->
+        Server.receive_packet(server, initialize_req(1, nil, %{}))
+        Server.receive_packet(server, notification("initialized"))
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
+        )
+
+        refute_receive notification("window/logMessage", %{
+                         "message" => "No mixfile found in project." <> _
+                       }),
+                       1000
+
+        wait_until_compiled(server)
+      end)
+    end
   end
 
   defp with_new_server(func) do

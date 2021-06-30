@@ -2,19 +2,12 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.LanguageServer.SourceFile
 
-  def format(%SourceFile{} = source_file, uri, project_dir) do
+  def format(%SourceFile{} = source_file, uri, project_dir) when is_binary(project_dir) do
     if can_format?(uri, project_dir) do
       case SourceFile.formatter_opts(uri) do
         {:ok, opts} ->
           if should_format?(uri, project_dir, opts[:inputs]) do
-            formatted = IO.iodata_to_binary([Code.format_string!(source_file.text, opts), ?\n])
-
-            response =
-              source_file.text
-              |> String.myers_difference(formatted)
-              |> myers_diff_to_text_edits()
-
-            {:ok, response}
+            do_format(source_file, opts)
           else
             {:ok, []}
           end
@@ -29,6 +22,21 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
       {:error, :internal_error, msg}
     end
+  end
+
+  def format(%SourceFile{} = source_file, _uri, nil) do
+    do_format(source_file)
+  end
+
+  defp do_format(%SourceFile{text: text}, opts \\ []) do
+    formatted = IO.iodata_to_binary([Code.format_string!(text, opts), ?\n])
+
+    response =
+      text
+      |> String.myers_difference(formatted)
+      |> myers_diff_to_text_edits()
+
+    {:ok, response}
   rescue
     _e in [TokenMissingError, SyntaxError] ->
       {:error, :internal_error, "Unable to format due to syntax error"}
