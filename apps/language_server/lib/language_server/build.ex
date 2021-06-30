@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics}
 
-  def build(parent, root_path, opts) do
+  def build(parent, root_path, opts) when is_binary(root_path) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
       IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
@@ -37,6 +37,9 @@ defmodule ElixirLS.LanguageServer.Build do
 
                 {:error, mixfile_diagnostics} ->
                   Server.build_finished(parent, {:error, mixfile_diagnostics})
+
+                :no_mixfile ->
+                  Server.build_finished(parent, {:no_mixfile, []})
               end
             end)
 
@@ -165,10 +168,9 @@ defmodule ElixirLS.LanguageServer.Build do
         "No mixfile found in project. " <>
           "To use a subdirectory, set `elixirLS.projectDir` in your settings"
 
-      JsonRpc.log_message(:error, msg <> ". Looked for mixfile at #{inspect(mixfile)}")
-      JsonRpc.show_message(:error, msg)
+      JsonRpc.log_message(:info, msg <> ". Looked for mixfile at #{inspect(mixfile)}")
 
-      {:error, [mixfile_diagnostic({Path.absname(mixfile), nil, msg}, :error)]}
+      :no_mixfile
     end
   end
 

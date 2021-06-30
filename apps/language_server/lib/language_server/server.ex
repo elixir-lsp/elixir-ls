@@ -57,7 +57,8 @@ defmodule ElixirLS.LanguageServer.Server do
     # Tracks source files that are currently open in the editor
     source_files: %{},
     awaiting_contracts: [],
-    supports_dynamic: false
+    supports_dynamic: false,
+    no_mixfile_warned?: false
   ]
 
   defmodule InvalidParamError do
@@ -108,7 +109,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_call({:request_finished, id, result}, _from, state) do
+  def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
     case result do
       {:error, type, msg} -> JsonRpc.respond_with_error(id, type, msg)
       {:ok, result} -> JsonRpc.respond(id, result)
@@ -119,7 +120,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state) do
+  def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state = %__MODULE__{}) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
         abs_path =
@@ -140,42 +141,42 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  def handle_call({:suggest_contracts, _uri}, _from, state) do
+  def handle_call({:suggest_contracts, _uri}, _from, state = %__MODULE__{}) do
     {:reply, [], state}
   end
 
   @impl GenServer
-  def handle_cast({:build_finished, {status, diagnostics}}, state)
-      when status in [:ok, :noop, :error] and is_list(diagnostics) do
+  def handle_cast({:build_finished, {status, diagnostics}}, state = %__MODULE__{})
+      when status in [:ok, :noop, :error, :no_mixfile] and is_list(diagnostics) do
     {:noreply, handle_build_result(status, diagnostics, state)}
   end
 
   @impl GenServer
-  def handle_cast({:dialyzer_finished, diagnostics, build_ref}, state) do
+  def handle_cast({:dialyzer_finished, diagnostics, build_ref}, state = %__MODULE__{}) do
     {:noreply, handle_dialyzer_result(diagnostics, build_ref, state)}
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, request(id, _, _) = packet}, state) do
+  def handle_cast({:receive_packet, request(id, _, _) = packet}, state = %__MODULE__{}) do
     {:noreply, handle_request_packet(id, packet, state)}
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, request(id, method)}, state) do
+  def handle_cast({:receive_packet, request(id, method)}, state = %__MODULE__{}) do
     {:noreply, handle_request_packet(id, request(id, method, nil), state)}
   end
 
   @impl GenServer
   def handle_cast(
         {:receive_packet, notification(_) = packet},
-        state = %{received_shutdown?: false, server_instance_id: server_instance_id}
+        state = %__MODULE__{received_shutdown?: false, server_instance_id: server_instance_id}
       )
       when is_initialized(server_instance_id) do
     {:noreply, handle_notification(packet, state)}
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, notification(_) = packet}, state) do
+  def handle_cast({:receive_packet, notification(_) = packet}, state = %__MODULE__{}) do
     case packet do
       notification("exit") ->
         {:noreply, handle_notification(packet, state)}
@@ -186,12 +187,12 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_cast(:rebuild, state) do
+  def handle_cast(:rebuild, state = %__MODULE__{}) do
     {:noreply, trigger_build(state)}
   end
 
   @impl GenServer
-  def handle_info(:default_config, state) do
+  def handle_info(:default_config, state = %__MODULE__{}) do
     state =
       case state do
         %{settings: nil} ->
@@ -211,7 +212,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_info({:DOWN, ref, _, _pid, reason}, %{build_ref: ref, build_running?: true} = state) do
+  def handle_info(
+        {:DOWN, ref, _, _pid, reason},
+        %__MODULE__{build_ref: ref, build_running?: true} = state
+      ) do
     state = %{state | build_running?: false}
 
     state =
@@ -229,7 +233,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_info({:DOWN, _ref, :process, pid, reason}, %{requests: requests} = state) do
+  def handle_info({:DOWN, _ref, :process, pid, reason}, %__MODULE__{requests: requests} = state) do
     state =
       case Enum.find(requests, &match?({_, ^pid}, &1)) do
         {id, _} ->
@@ -246,7 +250,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   ## Helpers
 
-  defp handle_notification(notification("initialized"), state) do
+  defp handle_notification(notification("initialized"), state = %__MODULE__{}) do
     # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
     Process.send_after(self(), :default_config, 5000)
 
@@ -257,7 +261,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_notification(cancel_request(id), %{requests: requests} = state) do
+  defp handle_notification(cancel_request(id), %__MODULE__{requests: requests} = state) do
     case requests do
       %{^id => pid} ->
         Process.exit(pid, :cancelled)
@@ -277,7 +281,7 @@ defmodule ElixirLS.LanguageServer.Server do
   # We don't start performing builds until we receive settings from the client in case they've set
   # the `projectDir` or `mixEnv` settings. If the settings don't match the format expected, leave
   # settings unchanged or set default settings if this is the first request.
-  defp handle_notification(did_change_configuration(changed_settings), state) do
+  defp handle_notification(did_change_configuration(changed_settings), state = %__MODULE__{}) do
     prev_settings = state.settings || %{}
 
     new_settings =
@@ -292,7 +296,7 @@ defmodule ElixirLS.LanguageServer.Server do
     set_settings(state, new_settings)
   end
 
-  defp handle_notification(notification("exit"), state) do
+  defp handle_notification(notification("exit"), state = %__MODULE__{}) do
     code = if state.received_shutdown?, do: 0, else: 1
 
     unless Application.get_env(:language_server, :test_mode) do
@@ -304,7 +308,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_notification(did_open(uri, _language_id, version, text), state) do
+  defp handle_notification(did_open(uri, _language_id, version, text), state = %__MODULE__{}) do
     if Map.has_key?(state.source_files, uri) do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
@@ -327,7 +331,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_close(uri), state) do
+  defp handle_notification(did_close(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
       # A close notification requires a previous open notification to be sent
       JsonRpc.log_message(
@@ -347,7 +351,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change(uri, version, content_changes), state) do
+  defp handle_notification(did_change(uri, version, content_changes), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
       # The source file was not marked as open either due to a bug in the
       # client or a restart of the server. So just ignore the message and do
@@ -366,7 +370,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_save(uri), state) do
+  defp handle_notification(did_save(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
       JsonRpc.log_message(
         :warning,
@@ -381,7 +385,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_watched_files(changes), state) do
+  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{}) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
     additional_watched_extensions = Map.get(state.settings, "additionalWatchedExtensions", [])
@@ -435,17 +439,21 @@ defmodule ElixirLS.LanguageServer.Server do
     if needs_build, do: trigger_build(state), else: state
   end
 
-  defp handle_notification(%{"method" => "$/" <> _}, state) do
+  defp handle_notification(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # not supported "$/" notifications may be safely ignored
     state
   end
 
-  defp handle_notification(packet, state) do
+  defp handle_notification(packet, state = %__MODULE__{}) do
     JsonRpc.log_message(:warning, "Received unmatched notification: #{inspect(packet)}")
     state
   end
 
-  defp handle_request_packet(id, packet, state = %{server_instance_id: server_instance_id})
+  defp handle_request_packet(
+         id,
+         packet,
+         state = %__MODULE__{server_instance_id: server_instance_id}
+       )
        when not is_initialized(server_instance_id) do
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
@@ -459,7 +467,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_request_packet(id, packet, state = %{received_shutdown?: false}) do
+  defp handle_request_packet(id, packet, state = %__MODULE__{received_shutdown?: false}) do
     case handle_request(packet, state) do
       {:ok, result, state} ->
         JsonRpc.respond(id, result)
@@ -479,14 +487,14 @@ defmodule ElixirLS.LanguageServer.Server do
       state
   end
 
-  defp handle_request_packet(id, _packet, state) do
+  defp handle_request_packet(id, _packet, state = %__MODULE__{}) do
     JsonRpc.respond_with_error(id, :invalid_request)
     state
   end
 
   defp handle_request(
          initialize_req(_id, root_uri, client_capabilities),
-         state = %{server_instance_id: server_instance_id}
+         state = %__MODULE__{server_instance_id: server_instance_id}
        )
        when not is_initialized(server_instance_id) do
     show_version_warnings()
@@ -530,11 +538,11 @@ defmodule ElixirLS.LanguageServer.Server do
      }, state}
   end
 
-  defp handle_request(request(_id, "shutdown", _params), state) do
+  defp handle_request(request(_id, "shutdown", _params), state = %__MODULE__{}) do
     {:ok, nil, %{state | received_shutdown?: true}}
   end
 
-  defp handle_request(definition_req(_id, uri, line, character), state) do
+  defp handle_request(definition_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -544,7 +552,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(implementation_req(_id, uri, line, character), state) do
+  defp handle_request(implementation_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -554,7 +562,10 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(references_req(_id, uri, line, character, include_declaration), state) do
+  defp handle_request(
+         references_req(_id, uri, line, character, include_declaration),
+         state = %__MODULE__{}
+       ) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -571,7 +582,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(hover_req(_id, uri, line, character), state) do
+  defp handle_request(hover_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -581,7 +592,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(document_symbol_req(_id, uri), state) do
+  defp handle_request(document_symbol_req(_id, uri), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -602,7 +613,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(workspace_symbol_req(_id, query), state) do
+  defp handle_request(workspace_symbol_req(_id, query), state = %__MODULE__{}) do
     fun = fn ->
       WorkspaceSymbols.symbols(query)
     end
@@ -610,7 +621,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(completion_req(_id, uri, line, character), state) do
+  defp handle_request(completion_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
 
     snippets_supported =
@@ -667,19 +678,22 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(formatting_req(_id, uri, _options), state) do
+  defp handle_request(formatting_req(_id, uri, _options), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
     fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
     {:async, fun, state}
   end
 
-  defp handle_request(signature_help_req(_id, uri, line, character), state) do
+  defp handle_request(signature_help_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
     fun = fn -> SignatureHelp.signature(source_file, line, character) end
     {:async, fun, state}
   end
 
-  defp handle_request(on_type_formatting_req(_id, uri, line, character, ch, options), state) do
+  defp handle_request(
+         on_type_formatting_req(_id, uri, line, character, ch, options),
+         state = %__MODULE__{}
+       ) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -689,7 +703,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(code_lens_req(_id, uri), state) do
+  defp handle_request(code_lens_req(_id, uri), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -711,7 +725,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(execute_command_req(_id, command, args) = req, state) do
+  defp handle_request(execute_command_req(_id, command, args) = req, state = %__MODULE__{}) do
     {:async,
      fn ->
        case ExecuteCommand.execute(command, args, state) do
@@ -725,7 +739,7 @@ defmodule ElixirLS.LanguageServer.Server do
      end, state}
   end
 
-  defp handle_request(folding_range_req(_id, uri), state) do
+  defp handle_request(folding_range_req(_id, uri), state = %__MODULE__{}) do
     case get_source_file(state, uri) do
       nil ->
         {:error, :server_error, "Missing source file", state}
@@ -737,7 +751,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   # TODO remove in ElixirLS 0.8
-  defp handle_request(macro_expansion(_id, whole_buffer, selected_macro, macro_line), state) do
+  defp handle_request(
+         macro_expansion(_id, whole_buffer, selected_macro, macro_line),
+         state = %__MODULE__{}
+       ) do
     IO.warn(
       "Custom `elixirDocument/macroExpansion` request is deprecated. Switch to command `executeMacro` via `workspace/executeCommand`"
     )
@@ -746,12 +763,12 @@ defmodule ElixirLS.LanguageServer.Server do
     {:ok, x, state}
   end
 
-  defp handle_request(%{"method" => "$/" <> _}, state) do
+  defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
     {:error, :method_not_found, nil, state}
   end
 
-  defp handle_request(req, state) do
+  defp handle_request(req, state = %__MODULE__{}) do
     JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
     {:error, :invalid_request, nil, state}
   end
@@ -805,7 +822,7 @@ defmodule ElixirLS.LanguageServer.Server do
     }
   end
 
-  defp get_spec_code_lenses(state, uri, source_file) do
+  defp get_spec_code_lenses(state = %__MODULE__{}, uri, source_file) do
     if dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
       CodeLens.spec_code_lens(state.server_instance_id, uri, source_file.text)
     else
@@ -813,7 +830,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp get_test_code_lenses(state, uri, source_file) do
+  defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file) do
     get_test_code_lenses(
       state,
       uri,
@@ -823,9 +840,14 @@ defmodule ElixirLS.LanguageServer.Server do
     )
   end
 
-  defp get_test_code_lenses(_state, _uri, _source_file, false, _), do: {:ok, []}
-
-  defp get_test_code_lenses(state, uri, source_file, true = _enabled, true = _umbrella) do
+  defp get_test_code_lenses(
+         state = %__MODULE__{project_dir: project_dir},
+         uri,
+         source_file,
+         true = _enabled,
+         true = _umbrella
+       )
+       when is_binary(project_dir) do
     file_path = SourceFile.path_from_uri(uri)
 
     Mix.Project.apps_paths()
@@ -836,19 +858,26 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {app, app_path} ->
         if is_test_file?(file_path, state, app, app_path) do
-          CodeLens.test_code_lens(uri, source_file.text, "#{state.project_dir}/#{app_path}")
+          CodeLens.test_code_lens(uri, source_file.text, Path.join(project_dir, app_path))
         else
           {:ok, []}
         end
     end
   end
 
-  defp get_test_code_lenses(state, uri, source_file, true = _enabled, false = _umbrella) do
+  defp get_test_code_lenses(
+         %__MODULE__{project_dir: project_dir},
+         uri,
+         source_file,
+         true = _enabled,
+         false = _umbrella
+       )
+       when is_binary(project_dir) do
     try do
       file_path = SourceFile.path_from_uri(uri)
 
       if is_test_file?(file_path) do
-        CodeLens.test_code_lens(uri, source_file.text, state.project_dir)
+        CodeLens.test_code_lens(uri, source_file.text, project_dir)
       else
         {:ok, []}
       end
@@ -857,12 +886,15 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp is_test_file?(file_path, state, app, app_path) do
+  defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, _, _), do: {:ok, []}
+
+  defp is_test_file?(file_path, state = %__MODULE__{project_dir: project_dir}, app, app_path)
+       when is_binary(project_dir) do
     app_name = Atom.to_string(app)
 
     test_paths =
       (get_in(state.settings, ["testPaths", app_name]) || ["test"])
-      |> Enum.map(fn path -> Path.join([state.project_dir, app_path, path]) end)
+      |> Enum.map(fn path -> Path.join([project_dir, app_path, path]) end)
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
@@ -881,30 +913,35 @@ defmodule ElixirLS.LanguageServer.Server do
 
   # Build
 
-  defp trigger_build(state) do
-    if build_enabled?(state) and not state.build_running? do
-      fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
-
-      {_pid, build_ref} =
-        Build.build(self(), state.project_dir,
-          fetch_deps?: fetch_deps?,
-          load_all_modules?: state.load_all_modules?
-        )
-
-      %__MODULE__{
+  defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
+    cond do
+      not build_enabled?(state) ->
         state
-        | build_ref: build_ref,
-          needs_build?: false,
-          build_running?: true,
-          analysis_ready?: false,
-          load_all_modules?: false
-      }
-    else
-      %__MODULE__{state | needs_build?: true, analysis_ready?: false}
+
+      not state.build_running? ->
+        fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
+
+        {_pid, build_ref} =
+          Build.build(self(), project_dir,
+            fetch_deps?: fetch_deps?,
+            load_all_modules?: state.load_all_modules?
+          )
+
+        %__MODULE__{
+          state
+          | build_ref: build_ref,
+            needs_build?: false,
+            build_running?: true,
+            analysis_ready?: false,
+            load_all_modules?: false
+        }
+
+      true ->
+        %__MODULE__{state | needs_build?: true, analysis_ready?: false}
     end
   end
 
-  defp dialyze(state) do
+  defp dialyze(state = %__MODULE__{}) do
     warn_opts =
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
@@ -914,11 +951,23 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp dialyzer_default_format(state) do
+  defp dialyzer_default_format(state = %__MODULE__{}) do
     state.settings["dialyzerFormat"] || "dialyxir_long"
   end
 
-  defp handle_build_result(status, diagnostics, state) do
+  defp handle_build_result(:no_mixfile, _, state = %__MODULE__{}) do
+    unless state.no_mixfile_warned? do
+      msg =
+        "No mixfile found in project. " <>
+          "To use a subdirectory, set `elixirLS.projectDir` in your settings"
+
+      JsonRpc.show_message(:info, msg)
+    end
+
+    %__MODULE__{state | no_mixfile_warned?: true}
+  end
+
+  defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
     old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
     state = put_in(state.build_diagnostics, diagnostics)
 
@@ -943,7 +992,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_dialyzer_result(diagnostics, build_ref, state) do
+  defp handle_dialyzer_result(diagnostics, build_ref, state = %__MODULE__{}) do
     old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
     state = put_in(state.dialyzer_diagnostics, diagnostics)
 
@@ -984,11 +1033,11 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp build_enabled?(state) do
+  defp build_enabled?(state = %__MODULE__{}) do
     is_binary(state.project_dir)
   end
 
-  defp dialyzer_enabled?(state) do
+  defp dialyzer_enabled?(state = %__MODULE__{}) do
     Dialyzer.check_support() == :ok and build_enabled?(state) and state.dialyzer_sup != nil
   end
 
@@ -1018,7 +1067,7 @@ defmodule ElixirLS.LanguageServer.Server do
     :ok
   end
 
-  defp set_settings(state, settings) do
+  defp set_settings(state = %__MODULE__{}, settings) do
     enable_dialyzer =
       Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
 
@@ -1039,11 +1088,11 @@ defmodule ElixirLS.LanguageServer.Server do
     trigger_build(%{state | settings: settings})
   end
 
-  defp add_watched_extensions(state, []) do
+  defp add_watched_extensions(state = %__MODULE__{}, []) do
     state
   end
 
-  defp add_watched_extensions(state, exts) when is_list(exts) do
+  defp add_watched_extensions(state = %__MODULE__{}, exts) when is_list(exts) do
     case JsonRpc.register_capability_request(
            "workspace/didChangeWatchedFiles",
            %{
@@ -1063,7 +1112,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp set_dialyzer_enabled(state, enable_dialyzer) do
+  defp set_dialyzer_enabled(state = %__MODULE__{}, enable_dialyzer) do
     cond do
       enable_dialyzer and state.dialyzer_sup == nil and is_binary(state.project_dir) ->
         {:ok, pid} = Dialyzer.Supervisor.start_link(state.project_dir)
@@ -1078,7 +1127,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp set_mix_env(state, env) do
+  defp set_mix_env(state = %__MODULE__{}, env) do
     prev_env = state.settings["mixEnv"]
 
     if is_nil(prev_env) or env == prev_env do
@@ -1090,13 +1139,13 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp maybe_set_mix_target(state, nil), do: state
+  defp maybe_set_mix_target(state = %__MODULE__{}, nil), do: state
 
-  defp maybe_set_mix_target(state, target) do
+  defp maybe_set_mix_target(state = %__MODULE__{}, target) do
     set_mix_target(state, target)
   end
 
-  defp set_mix_target(state, target) do
+  defp set_mix_target(state = %__MODULE__{}, target) do
     target = target || "host"
 
     prev_target = state.settings["mixTarget"]
@@ -1110,7 +1159,10 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp set_project_dir(%{project_dir: prev_project_dir, root_uri: root_uri} = state, project_dir)
+  defp set_project_dir(
+         %__MODULE__{project_dir: prev_project_dir, root_uri: root_uri} = state,
+         project_dir
+       )
        when is_binary(root_uri) do
     root_dir = root_uri |> SourceFile.abs_path_from_uri()
 
@@ -1143,11 +1195,12 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp set_project_dir(state, _) do
+  defp set_project_dir(state = %__MODULE__{}, _) do
     state
   end
 
-  defp create_gitignore(%{project_dir: project_dir} = state) when is_binary(project_dir) do
+  defp create_gitignore(%__MODULE__{project_dir: project_dir} = state)
+       when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
          false <- File.exists?(gitignore_path),
          :ok <- gitignore_path |> Path.dirname() |> File.mkdir_p(),
@@ -1167,16 +1220,11 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp create_gitignore(state) do
-    JsonRpc.log_message(
-      :warning,
-      "Cannot create .elixir_ls/.gitignore, cause: project_dir not set"
-    )
-
+  defp create_gitignore(state = %__MODULE__{}) do
     state
   end
 
-  def get_source_file(state, uri) do
+  def get_source_file(state = %__MODULE__{}, uri) do
     case state.source_files[uri] do
       nil ->
         raise InvalidParamError, uri
