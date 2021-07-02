@@ -1156,7 +1156,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     project_dir =
       if is_binary(project_dir) do
-        Path.absname(Path.join(root_dir, project_dir))
+        Path.expand(Path.join(root_dir, project_dir))
       else
         root_dir
       end
