@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  @watched_extensions [".ex", ".exs", ".erl", ".hrl", ".yrl", ".xrl", ".eex", ".leex"]
+  @default_watched_extensions [".ex", ".exs", ".erl", ".hrl", ".yrl", ".xrl", ".eex", ".leex"]
 
   ## Client API
 
@@ -255,23 +255,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Process.send_after(self(), :default_config, 5000)
 
     if state.supports_dynamic do
-      watchers = for ext <- @watched_extensions, do: %{"globPattern" => "**/*." <> ext}
-
-      register_capability_result =
-        JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
-          "watchers" => watchers
-        })
-
-      case register_capability_result do
-        {:ok, nil} ->
-          :ok
-
-        other ->
-          JsonRpc.log_message(
-            :error,
-            "client/registerCapability returned: #{inspect(other)}"
-          )
-      end
+      add_watched_extensions(state, @default_watched_extensions)
     end
 
     state
@@ -302,8 +286,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
     new_settings =
       case changed_settings do
-        %{"elixirLS" => changed_settings} when is_map(changed_settings) ->
-          Map.merge(prev_settings, changed_settings)
+        %{"elixirLS" => settings} when is_map(settings) ->
+          Map.merge(prev_settings, settings)
 
         _ ->
           prev_settings
@@ -404,11 +388,13 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{}) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
+    additional_watched_extensions = Map.get(state.settings, "additionalWatchedExtensions", [])
+
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri = "file:" <> _, "type" => type} ->
         path = SourceFile.path_from_uri(uri)
 
-        Path.extname(path) in @watched_extensions and
+        Path.extname(path) in (additional_watched_extensions ++ @default_watched_extensions) and
           (type in [1, 3] or not Map.has_key?(state.source_files, uri) or
              state.source_files[uri].dirty?)
       end)
@@ -1088,6 +1074,7 @@ defmodule ElixirLS.LanguageServer.Server do
     mix_env = Map.get(settings, "mixEnv", "test")
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
+    additional_watched_extensions = Map.get(settings, "additionalWatchedExtensions", [])
 
     state =
       state
@@ -1095,9 +1082,34 @@ defmodule ElixirLS.LanguageServer.Server do
       |> maybe_set_mix_target(mix_target)
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
+      |> add_watched_extensions(additional_watched_extensions)
 
     state = create_gitignore(state)
     trigger_build(%{state | settings: settings})
+  end
+
+  defp add_watched_extensions(state = %__MODULE__{}, []) do
+    state
+  end
+
+  defp add_watched_extensions(state = %__MODULE__{}, exts) when is_list(exts) do
+    case JsonRpc.register_capability_request(
+           "workspace/didChangeWatchedFiles",
+           %{
+             "watchers" => Enum.map(exts, &%{"globPattern" => "**/*" <> &1})
+           }
+         ) do
+      {:ok, nil} ->
+        :ok
+
+      other ->
+        JsonRpc.log_message(
+          :error,
+          "client/registerCapability returned: #{inspect(other)}"
+        )
+    end
+
+    state
   end
 
   defp set_dialyzer_enabled(state = %__MODULE__{}, enable_dialyzer) do
