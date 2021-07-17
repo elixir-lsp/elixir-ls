@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
           line_text = Enum.at(SourceFile.lines(text), line)
           range = highlight_range(line_text, line, character, subject)
 
-          %{"contents" => contents(docs), "range" => range}
+          %{"contents" => contents(docs, subject), "range" => range}
       end
 
     {:ok, response}
@@ -44,14 +44,32 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end)
   end
 
-  defp contents(%{docs: "No documentation available\n"}) do
+  defp contents(%{docs: "No documentation available\n"}, _subject \\ "") do
     []
   end
 
-  defp contents(%{docs: markdown}) do
+  defp contents(%{docs: markdown}, subject) do
     %{
       kind: "markdown",
-      value: markdown
+      value: format_query(markdown, subject)
     }
+  end
+
+  defp title(s) do
+    s |> String.split("\n\n") |> hd()
+  end
+
+  defp format_query(markdown, subject) do
+    t = markdown |> title()
+
+    String.replace(
+      markdown,
+      t,
+      "[#{t}](https://hexdocs.pm/elixir/search.html?q=#{remove_special_symbol(subject)})"
+    )
+  end
+
+  defp remove_special_symbol(s) do
+    s |> String.replace("!", "") |> String.replace("?", "")
   end
 end
