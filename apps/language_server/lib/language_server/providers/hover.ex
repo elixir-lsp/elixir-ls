@@ -5,6 +5,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   Hover provider utilizing Elixir Sense
   """
 
+  @hex_base_url "https://hexdocs.pm"
+
   def hover(text, line, character) do
     response =
       case ElixirSense.docs(text, line + 1, character + 1) do
@@ -56,8 +58,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp add_hexdocs_link(markdown, subject) do
-    IO.inspect(subject)
-
     [hd | tail] = markdown |> String.split("\n\n")
 
     link = hexdocs_link(markdown, subject)
@@ -73,20 +73,19 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   defp hexdocs_link(markdown, subject) do
     t = markdown |> String.split("\n\n") |> hd() |> String.replace(">", "") |> String.trim()
+    dep = subject |> root_module_name() |> dep_name()
 
     cond do
       func?(t) ->
-        mod_name = module_name(t)
-
-        if elixir_module?(mod_name) do
-          "https://hexdocs.pm/elixir/#{module_name(subject)}.html##{func_name(subject)}/#{params_cnt(t)}"
+        if dep != "" do
+          "#{@hex_base_url}/#{dep}/#{module_name(subject)}.html##{func_name(subject)}/#{params_cnt(t)}"
         else
           ""
         end
 
       true ->
-        if elixir_module?(t) do
-          "https://hexdocs.pm/elixir/#{t}.html"
+        if dep != "" do
+          "#{@hex_base_url}/#{dep}/#{t}.html"
         else
           ""
         end
@@ -97,110 +96,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     s |> String.replace("!", "") |> String.replace("?", "")
   end
 
-  defp groups_for_modules do
-    [
-      Kernel: [Kernel, Kernel.SpecialForms],
-      "Basic Types": [
-        Atom,
-        Base,
-        Bitwise,
-        Date,
-        DateTime,
-        Exception,
-        Float,
-        Function,
-        Integer,
-        Module,
-        NaiveDateTime,
-        Record,
-        Regex,
-        String,
-        Time,
-        Tuple,
-        URI,
-        Version,
-        Version.Requirement
-      ],
-      "Collections & Enumerables": [
-        Access,
-        Date.Range,
-        Enum,
-        Keyword,
-        List,
-        Map,
-        MapSet,
-        Range,
-        Stream
-      ],
-      "IO & System": [
-        File,
-        File.Stat,
-        File.Stream,
-        IO,
-        IO.ANSI,
-        IO.Stream,
-        OptionParser,
-        Path,
-        Port,
-        StringIO,
-        System
-      ],
-      Calendar: [
-        Calendar,
-        Calendar.ISO,
-        Calendar.TimeZoneDatabase,
-        Calendar.UTCOnlyTimeZoneDatabase
-      ],
-      "Processes & Applications": [
-        Agent,
-        Application,
-        Config,
-        Config.Provider,
-        Config.Reader,
-        DynamicSupervisor,
-        GenServer,
-        Node,
-        Process,
-        Registry,
-        Supervisor,
-        Task,
-        Task.Supervisor
-      ],
-      Protocols: [
-        Collectable,
-        Enumerable,
-        Inspect,
-        Inspect.Algebra,
-        Inspect.Opts,
-        List.Chars,
-        Protocol,
-        String.Chars
-      ],
-      "Code & Macros": [
-        Code,
-        Kernel.ParallelCompiler,
-        Macro,
-        Macro.Env
-      ]
-    ]
-  end
-
   defp func?(s) do
     s =~ ~r/.*\..*\(.*\)/
   end
 
-  defp elixir_module?(s) do
-    groups_for_modules()
-    |> Enum.map(fn x -> elem(x, 1) end)
-    |> Enum.reduce(fn x, y -> x ++ y end)
-    |> Enum.any?(fn x ->
-      x == String.to_atom("Elixir." <> s)
-    end)
-  end
-
   defp module_name(s) do
     [_ | tail] = s |> String.split(".") |> Enum.reverse()
-    Enum.join(tail, ".")
+    tail |> Enum.reverse() |> Enum.join(".")
   end
 
   defp func_name(s) do
@@ -213,5 +115,52 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
       false == String.contains?(s, ",") -> 1
       true -> s |> String.split(",") |> length()
     end
+  end
+
+  defp dep_name(root_mod_name) do
+    s = root_mod_name |> source()
+
+    cond do
+      third_dep?(s) -> third_dep_name(s)
+      builtin?(s) -> builtin_dep_name(s)
+      true -> ""
+    end
+  end
+
+  defp root_module_name(subject) do
+    subject |> String.split(".") |> hd()
+  end
+
+  defp source(mod_name) do
+    dep = ("Elixir." <> mod_name) |> String.to_atom()
+    dep.__info__(:compile) |> Keyword.get(:source) |> List.to_string()
+  end
+
+  defp third_dep?(source) do
+    prefix = File.cwd!() <> "/deps"
+    String.starts_with?(source, prefix)
+  end
+
+  defp third_dep_name(source) do
+    prefix = File.cwd!() <> "/deps/"
+    String.replace(source, prefix, "") |> String.split("/") |> hd()
+  end
+
+  defp builtin?(source) do
+    [
+      "elixir",
+      "eex",
+      "ex_unit",
+      "iex",
+      "logger",
+      "mix"
+    ]
+    |> Enum.map(fn x -> "lib/#{x}/lib" end)
+    |> Enum.any?(fn y -> String.contains?(source, y) end)
+  end
+
+  def builtin_dep_name(source) do
+    [_, name | _] = String.split(source, "/lib/")
+    name
   end
 end
