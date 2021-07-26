@@ -388,7 +388,9 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{}) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
-    additional_watched_extensions = Map.get(state.settings, "additionalWatchedExtensions", [])
+    # `settings` may not always be available here, like during testing
+    additional_watched_extensions =
+      Map.get(state.settings || %{}, "additionalWatchedExtensions", [])
 
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri = "file:" <> _, "type" => type} ->
