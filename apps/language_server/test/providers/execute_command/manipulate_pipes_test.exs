@@ -104,7 +104,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
              ) == edited_text
     end
 
-    test "can pipe remote calls with ulti-line args" do
+    test "can pipe remote calls with multi-line args" do
       {:ok, _} =
         JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
 
@@ -456,7 +456,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
       assert edited_text == expected_text
     end
 
-    # Broken
     test "to_pipe_at_cursor at end of function (with another function after)" do
       text = """
       defmodule Demo do
@@ -560,6 +559,38 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                expected_range,
                expected_substitution
              ) == edited_text
+    end
+
+    test "converts function_call_not_found to 3-tuple" do
+      {:ok, _} =
+        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
+
+      uri = "file:/some_file.ex"
+
+      text = """
+      test = 1
+      %{
+        q:
+          if(is_nil(test),
+            do: max(test, is_nil(test)),
+            else: []
+          )
+      }
+      """
+
+      assert_never_raises(text, uri, "toPipe")
+
+      assert {:error, :parse_error, "Function call not found at cursor"} =
+               ManipulatePipes.execute(
+                 ["toPipe", uri, 4, 13],
+                 %Server{
+                   source_files: %{
+                     uri => %SourceFile{
+                       text: text
+                     }
+                   }
+                 }
+               )
     end
 
     for {line_sep, test_name_suffix} <- [{"\r\n", "\\r\\n"}, {"\n", "\\n"}] do
@@ -1140,7 +1171,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_never_raises(text, uri, "fromPipe")
 
-      assert {:error, :pipe_not_found} =
+      assert {:error, :parse_error, "Pipe operator not found at cursor"} =
                ManipulatePipes.execute(
                  ["fromPipe", uri, 4, 16],
                  %Server{
