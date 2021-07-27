@@ -51,12 +51,18 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
            }) do
       {:ok, nil}
     else
-      {:error, reason} ->
-        {:error, :parse_error, reason}
+      {:error, :pipe_not_found} ->
+        {:error, :parse_error, "Pipe operator not found at cursor"}
+
+      {:error, :function_call_not_found} ->
+        {:error, :parse_error, "Function call not found at cursor"}
+
+      {:error, :invalid_code} ->
+        {:error, :parse_error, "Malformed code"}
 
       error ->
         {:error, :server_error,
-         "cannot execute pipe conversion, workspace/applyEdit returned #{inspect(error)}"}
+         "Cannot execute pipe conversion, workspace/applyEdit returned #{inspect(error)}"}
     end
   end
 
