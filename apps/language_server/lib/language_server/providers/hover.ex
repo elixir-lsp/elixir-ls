@@ -6,6 +6,15 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   """
 
   @hex_base_url "https://hexdocs.pm"
+  @buildin_flag [
+                  "elixir",
+                  "eex",
+                  "ex_unit",
+                  "iex",
+                  "logger",
+                  "mix"
+                ]
+                |> Enum.map(fn x -> "lib/#{x}/lib" end)
 
   def hover(text, line, character) do
     response =
@@ -46,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end)
   end
 
-  defp contents(%{docs: "No documentation available\n"}, _subject \\ "") do
+  defp contents(%{docs: "No documentation available\n"}, subject) do
     []
   end
 
@@ -60,7 +69,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp add_hexdocs_link(markdown, subject) do
     [hd | tail] = markdown |> String.split("\n\n")
 
-    link = hexdocs_link(markdown, subject)
+    link = hexdocs_link(hd, subject)
 
     case link do
       "" ->
@@ -71,9 +80,9 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end
   end
 
-  defp hexdocs_link(markdown, subject) do
-    t = markdown |> String.split("\n\n") |> hd() |> String.replace(">", "") |> String.trim()
-    dep = subject |> root_module_name() |> dep_name()
+  defp hexdocs_link(hd, subject) do
+    t = hd |> String.replace(">", "") |> String.trim() |> URI.encode()
+    dep = subject |> root_module_name() |> dep_name() |> URI.encode()
 
     cond do
       func?(t) ->
@@ -102,17 +111,17 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   defp module_name(s) do
     [_ | tail] = s |> String.split(".") |> Enum.reverse()
-    tail |> Enum.reverse() |> Enum.join(".")
+    tail |> Enum.reverse() |> Enum.join(".") |> URI.encode()
   end
 
   defp func_name(s) do
-    s |> String.split(".") |> Enum.reverse() |> hd()
+    s |> String.split(".") |> Enum.at(-1) |> URI.encode()
   end
 
   defp params_cnt(s) do
     cond do
-      true == (s =~ ~r/\(\)/) -> 0
-      false == String.contains?(s, ",") -> 1
+      s =~ ~r/\(\)/ -> 0
+      not String.contains?(s, ",") -> 1
       true -> s |> String.split(",") |> length()
     end
   end
@@ -137,30 +146,26 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp third_dep?(source) do
-    prefix = File.cwd!() <> "/deps"
+    prefix = project_dir() <> "/deps"
     String.starts_with?(source, prefix)
   end
 
   defp third_dep_name(source) do
-    prefix = File.cwd!() <> "/deps/"
-    String.replace(source, prefix, "") |> String.split("/") |> hd()
+    prefix = project_dir() <> "/deps/"
+    String.replace_prefix(source, prefix, "") |> String.split("/") |> hd()
   end
 
   defp builtin?(source) do
-    [
-      "elixir",
-      "eex",
-      "ex_unit",
-      "iex",
-      "logger",
-      "mix"
-    ]
-    |> Enum.map(fn x -> "lib/#{x}/lib" end)
-    |> Enum.any?(fn y -> String.contains?(source, y) end)
+    @buildin_flag |> Enum.any?(fn y -> String.contains?(source, y) end)
   end
 
   def builtin_dep_name(source) do
     [_, name | _] = String.split(source, "/lib/")
     name
+  end
+
+  defp project_dir() do
+    state = :sys.get_state(ElixirLS.LanguageServer.Server)
+    state.project_dir
   end
 end
