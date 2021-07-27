@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end)
   end
 
-  defp contents(%{docs: "No documentation available\n"}, subject) do
+  defp contents(%{docs: "No documentation available\n"}, _subject) do
     []
   end
 
@@ -99,10 +99,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
           ""
         end
     end
-  end
-
-  defp remove_special_symbol(s) do
-    s |> String.replace("!", "") |> String.replace("?", "")
   end
 
   defp func?(s) do
