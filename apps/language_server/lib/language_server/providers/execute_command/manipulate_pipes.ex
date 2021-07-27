@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       {:ok, nil}
     else
       {:error, reason} ->
-        {:error, reason}
+        {:error, :parse_error, reason}
 
       error ->
         {:error, :server_error,
