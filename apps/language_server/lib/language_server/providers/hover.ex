@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
                 ]
                 |> Enum.map(fn x -> "lib/#{x}/lib" end)
 
-  def hover(text, line, character) do
+  def hover(text, line, character, project_dir) do
     response =
       case ElixirSense.docs(text, line + 1, character + 1) do
         %{subject: ""} ->
@@ -26,7 +26,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
           line_text = Enum.at(SourceFile.lines(text), line)
           range = highlight_range(line_text, line, character, subject)
 
-          %{"contents" => contents(docs, subject), "range" => range}
+          %{"contents" => contents(docs, subject, project_dir), "range" => range}
       end
 
     {:ok, response}
@@ -55,21 +55,21 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end)
   end
 
-  defp contents(%{docs: "No documentation available\n"}, _subject) do
+  defp contents(%{docs: "No documentation available\n"}, _subject, _project_dir) do
     []
   end
 
-  defp contents(%{docs: markdown}, subject) do
+  defp contents(%{docs: markdown}, subject, project_dir) do
     %{
       kind: "markdown",
-      value: add_hexdocs_link(markdown, subject)
+      value: add_hexdocs_link(markdown, subject, project_dir)
     }
   end
 
-  defp add_hexdocs_link(markdown, subject) do
+  defp add_hexdocs_link(markdown, subject, project_dir) do
     [hd | tail] = markdown |> String.split("\n\n")
 
-    link = hexdocs_link(hd, subject)
+    link = hexdocs_link(hd, subject, project_dir)
 
     case link do
       "" ->
@@ -80,9 +80,9 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end
   end
 
-  defp hexdocs_link(hd, subject) do
+  defp hexdocs_link(hd, subject, project_dir) do
     t = hd |> String.replace(">", "") |> String.trim() |> URI.encode()
-    dep = subject |> root_module_name() |> dep_name() |> URI.encode()
+    dep = subject |> root_module_name() |> dep_name(project_dir) |> URI.encode()
 
     cond do
       func?(t) ->
@@ -122,11 +122,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end
   end
 
-  defp dep_name(root_mod_name) do
+  defp dep_name(root_mod_name, project_dir) do
     s = root_mod_name |> source()
 
     cond do
-      third_dep?(s) -> third_dep_name(s)
+      third_dep?(s, project_dir) -> third_dep_name(s, project_dir)
       builtin?(s) -> builtin_dep_name(s)
       true -> ""
     end
@@ -141,13 +141,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     dep.__info__(:compile) |> Keyword.get(:source) |> List.to_string()
   end
 
-  defp third_dep?(source) do
-    prefix = project_dir() <> "/deps"
+  defp third_dep?(source, project_dir) do
+    prefix = project_dir <> "/deps"
     String.starts_with?(source, prefix)
   end
 
-  defp third_dep_name(source) do
-    prefix = project_dir() <> "/deps/"
+  defp third_dep_name(source, project_dir) do
+    prefix = project_dir <> "/deps/"
     String.replace_prefix(source, prefix, "") |> String.split("/") |> hd()
   end
 
@@ -158,10 +158,5 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   def builtin_dep_name(source) do
     [_, name | _] = String.split(source, "/lib/")
     name
-  end
-
-  defp project_dir() do
-    state = :sys.get_state(ElixirLS.LanguageServer.Server)
-    state.project_dir
   end
 end

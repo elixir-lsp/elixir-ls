@@ -600,7 +600,7 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Hover.hover(source_file.text, line, character)
+      Hover.hover(source_file.text, line, character, state.project_dir)
     end
 
     {:async, fun, state}
