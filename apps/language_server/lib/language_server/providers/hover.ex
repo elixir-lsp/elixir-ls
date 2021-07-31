@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   """
 
   @hex_base_url "https://hexdocs.pm"
-  @buildin_flag [
+  @builtin_flag [
                   "elixir",
                   "eex",
                   "ex_unit",
@@ -152,7 +152,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp builtin?(source) do
-    @buildin_flag |> Enum.any?(fn y -> String.contains?(source, y) end)
+    @builtin_flag |> Enum.any?(fn y -> String.contains?(source, y) end)
   end
 
   def builtin_dep_name(source) do
