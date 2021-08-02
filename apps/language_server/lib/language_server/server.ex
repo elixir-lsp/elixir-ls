@@ -521,7 +521,8 @@ defmodule ElixirLS.LanguageServer.Server do
         "file://" <> _ ->
           root_path = SourceFile.abs_path_from_uri(root_uri)
           File.cd!(root_path)
-          %{state | root_uri: root_uri}
+          cwd_uri = SourceFile.path_to_uri(File.cwd!())
+          %{state | root_uri: cwd_uri}
 
         nil ->
           state
