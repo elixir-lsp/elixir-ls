@@ -13,6 +13,7 @@ Bug Fixes:
 - Support exunit describe and test calls with unevaluated names (thanks [Jonathan Arnett](https://github.com/J3RN)) [#537](https://github.com/elixir-lsp/elixir-ls/pull/537)
 - Improve test runner to use exunit testPaths and testPattern (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#500](https://github.com/elixir-lsp/elixir-ls/pull/500)
 - Fix race-condition in suggest contracts (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#544](https://github.com/elixir-lsp/elixir-ls/pull/544)
+- Fix `@doc false` and `@moduledoc false` for folding ranges (thanks [Jason Axelson](https://github.com/axelson/)) [#580](https://github.com/elixir-lsp/elixir-ls/pull/580)
 
 Housekeeping:
 - Minor iteration/performance improvements (thanks [Andrew Summers](https://github.com/asummers)) [#527](https://github.com/elixir-lsp/elixir-ls/pull/527)
