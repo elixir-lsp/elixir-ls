@@ -19,6 +19,7 @@ Bug Fixes:
 - Fix `@doc false` and `@moduledoc false` for folding ranges (thanks [Jason Axelson](https://github.com/axelson/)) [#580](https://github.com/elixir-lsp/elixir-ls/pull/580)
 - Guard against sending -1 line or column locations in LSP messages (thanks [Oliver Marriott](https://github.com/rktjmp)) [#558](https://github.com/elixir-lsp/elixir-ls/pull/558)
 - Avoid crashing on manipulatePipes errors (thanks [Paulo Valente](https://github.com/polvalente)) [#576](https://github.com/elixir-lsp/elixir-ls/pull/576)
+- Handle Nova long form paths in rootURI (thanks [Raul Chedrese](https://github.com/raulchedrese)) [#579](https://github.com/elixir-lsp/elixir-ls/pull/579)
 
 Housekeeping:
 - Minor iteration/performance improvements (thanks [Andrew Summers](https://github.com/asummers)) [#527](https://github.com/elixir-lsp/elixir-ls/pull/527)
