@@ -479,6 +479,37 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
       assert compare_condensed_ranges(ranges, expected, text)
     end
 
+    @tag text: """
+         defmodule A do
+           @doc false
+           def init(_) do
+             IO.puts("Hello World!")
+             {:ok, []}
+           end
+         end
+         """
+    test "@doc false does not create a folding range", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 5, :region}, {2, 4, :region}]
+      assert compare_condensed_ranges(ranges, expected, text)
+    end
+
+    @tag text: """
+         defmodule A do
+           @moduledoc false
+
+           def init(_) do
+             IO.puts("Hello World!")
+             {:ok, []}
+           end
+         end
+         """
+    test "@moduledoc false does not create a folding range", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 6, :region}, {3, 5, :region}]
+      assert compare_condensed_ranges(ranges, expected, text)
+    end
+
     defp fold_text(%{text: _text} = context) do
       ranges_result = FoldingRange.provide(context)
       {:ok, Map.put(context, :ranges_result, ranges_result)}
@@ -537,12 +568,12 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
       end)
 
     result_condensed
-    |> Enum.map(fn {line_start, line_end, :any} ->
+    |> Enum.map(fn {line_start, line_end, descriptor} ->
       out =
         Enum.slice(lines, line_start, line_end - line_start + 2)
         |> Enum.join("\n")
 
-      IO.puts("Folding lines #{line_start}, #{line_end}:")
+      IO.puts("Folding lines #{line_start}, #{line_end} (#{descriptor}):")
       IO.puts(out)
       IO.puts("\n")
     end)
