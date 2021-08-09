@@ -504,7 +504,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
            end
          end
          """
-    test "@moduledoc false does not create a folding range", %{ranges_result: ranges_result, text: text} do
+    test "@moduledoc false does not create a folding range", %{
+      ranges_result: ranges_result,
+      text: text
+    } do
       assert {:ok, ranges} = ranges_result
       expected = [{0, 6, :region}, {3, 5, :region}]
       assert compare_condensed_ranges(ranges, expected, text)
