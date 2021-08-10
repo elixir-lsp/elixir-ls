@@ -496,6 +496,23 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
     @tag text: """
          defmodule A do
+           @typedoc false
+           @type t :: %{}
+
+           def init(_) do
+             IO.puts("Hello World!")
+             {:ok, []}
+           end
+         end
+         """
+    test "@typedoc example", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 7, :region}, {4, 6, :region}]
+      assert compare_condensed_ranges(ranges, expected, text)
+    end
+
+    @tag text: """
+         defmodule A do
            @moduledoc false
 
            def init(_) do

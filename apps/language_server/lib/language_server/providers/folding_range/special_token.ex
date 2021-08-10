@@ -18,6 +18,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
     :sigil
   ]
 
+  @docs [:moduledoc, :typedoc, :doc]
+
   @doc """
   Provides ranges based on "special" tokens
 
@@ -60,15 +62,15 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
 
   defp do_group_tokens([], acc), do: acc
 
-  # Don't create folding ranges from `@doc false` and `@moduledoc false`
+  # Don't create folding ranges for docs
   defp do_group_tokens([{:identifier, _, doc_identifier}, {false, _, _} | rest], acc)
-       when doc_identifier in [:doc, :moduledoc] do
+       when doc_identifier in @docs do
     do_group_tokens(rest, acc)
   end
 
   # Start a folding range for `@doc` and `@moduledoc`
   defp do_group_tokens([{:identifier, _, doc_identifier} = token | rest], acc)
-       when doc_identifier in [:doc, :moduledoc] do
+       when doc_identifier in @docs do
     acc = [[token] | acc]
     do_group_tokens(rest, acc)
   end
