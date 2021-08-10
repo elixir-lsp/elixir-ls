@@ -18,6 +18,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
     :sigil
   ]
 
+  @docs [:moduledoc, :typedoc, :doc]
+
   @doc """
   Provides ranges based on "special" tokens
 
@@ -55,23 +57,46 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
 
   @spec group_tokens([Token.t()]) :: [[Token.t()]]
   defp group_tokens(tokens) do
-    tokens
-    |> Enum.reduce([], fn
-      {:identifier, _, identifier} = token, acc when identifier in [:doc, :moduledoc] ->
-        [[token] | acc]
+    do_group_tokens(tokens, [])
+  end
 
-      {k, _, _} = token, [[{:identifier, _, _}] = head | tail] when k in @kinds ->
-        [[token | head] | tail]
+  defp do_group_tokens([], acc), do: acc
 
-      {k, _, _} = token, acc when k in @kinds ->
-        [[token] | acc]
+  # Don't create folding ranges for docs
+  defp do_group_tokens([{:identifier, _, doc_identifier}, {false, _, _} | rest], acc)
+       when doc_identifier in @docs do
+    do_group_tokens(rest, acc)
+  end
 
-      {:eol, _, _} = token, [[{k, _, _} | _] = head | tail] when k in @kinds ->
-        [[token | head] | tail]
+  # Start a folding range for `@doc` and `@moduledoc`
+  defp do_group_tokens([{:identifier, _, doc_identifier} = token | rest], acc)
+       when doc_identifier in @docs do
+    acc = [[token] | acc]
+    do_group_tokens(rest, acc)
+  end
 
-      _, acc ->
-        acc
-    end)
+  # Amend the folding range
+  defp do_group_tokens([{k, _, _} = token | rest], [[{:identifier, _, _}] = head | tail])
+       when k in @kinds do
+    acc = [[token | head] | tail]
+    do_group_tokens(rest, acc)
+  end
+
+  # Start a new folding range
+  defp do_group_tokens([{k, _, _} = token | rest], acc) when k in @kinds do
+    acc = [[token] | acc]
+    do_group_tokens(rest, acc)
+  end
+
+  # Finish the open folding range
+  defp do_group_tokens([{:eol, _, _} = token | rest], [[{k, _, _} | _] = head | tail])
+       when k in @kinds do
+    acc = [[token | head] | tail]
+    do_group_tokens(rest, acc)
+  end
+
+  defp do_group_tokens([_unmatched_token | rest], acc) do
+    do_group_tokens(rest, acc)
   end
 
   @spec convert_groups_to_ranges([[Token.t()]]) :: [FoldingRange.t()]
