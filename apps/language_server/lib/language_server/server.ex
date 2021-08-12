@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  @watched_extensions [".ex", ".exs", ".erl", ".hrl", ".yrl", ".xrl", ".eex", ".leex"]
+  @watched_extensions [".ex", ".exs", ".erl", ".hrl", ".yrl", ".xrl", ".eex", ".leex", ".heex", ".sface"]
 
   ## Client API
 
