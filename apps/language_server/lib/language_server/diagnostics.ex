@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       diagnostic
       |> update_message(type, description, stacktrace)
       |> maybe_update_file(file)
-      |> maybe_update_position(line, stacktrace)
+      |> maybe_update_position(type, line, stacktrace)
     end
   end
 
@@ -67,7 +67,21 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end
   end
 
-  defp maybe_update_position(diagnostic, line, stacktrace) do
+  defp maybe_update_position(diagnostic, "TokenMissingError", line, stacktrace) do
+    case extract_line_from_missing_hint(diagnostic.message) do
+      line when is_integer(line) ->
+        %{diagnostic | position: line}
+
+      _ ->
+        do_maybe_update_position(diagnostic, line, stacktrace)
+    end
+  end
+
+  defp maybe_update_position(diagnostic, _type, line, stacktrace) do
+    do_maybe_update_position(diagnostic, line, stacktrace)
+  end
+
+  defp do_maybe_update_position(diagnostic, line, stacktrace) do
     cond do
       line ->
         %{diagnostic | position: line}
@@ -140,6 +154,16 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   defp is_stack?(_) do
     false
+  end
+
+  defp extract_line_from_missing_hint(message) do
+    case Regex.run(
+           ~r/HINT: it looks like the .+ on line (\d+) does not have a matching /,
+           message
+         ) do
+      [_, line] -> String.to_integer(line)
+      _ -> nil
+    end
   end
 
   defp extract_line_from_stacktrace(file, stacktrace) do
