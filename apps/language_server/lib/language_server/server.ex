@@ -266,7 +266,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Process.send_after(self(), :default_config, 5000)
 
     if state.supports_dynamic do
-      watchers = for ext <- @watched_extensions, do: %{"globPattern" => "**/*." <> ext}
+      watchers = for ext <- @watched_extensions, do: %{"globPattern" => "**/*" <> ext}
 
       register_capability_result =
         JsonRpc.register_capability_request("workspace/didChangeWatchedFiles", %{
