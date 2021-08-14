@@ -10,6 +10,7 @@ Improvements:
 - ElixirSense: Add inference when using dependency injection with module attributes ([Gustavo Aguiar](https://github.com/gugahoa)) [#133](https://github.com/elixir-lsp/elixir_sense/pull/133)
 - ElixirSense: Add support for EEP-48 (updated documentation storage format) (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#132](https://github.com/elixir-lsp/elixir_sense/pull/132)
   - http://erlang.org/doc/apps/kernel/eep48_chapter.html
+- Watch `.heex` and `.sface` templates (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#583](https://github.com/elixir-lsp/elixir-ls/pull/583)
 
 Bug Fixes:
 - Fix suggest contracts windows regression (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#531](https://github.com/elixir-lsp/elixir-ls/pull/531)
@@ -20,6 +21,8 @@ Bug Fixes:
 - Guard against sending -1 line or column locations in LSP messages (thanks [Oliver Marriott](https://github.com/rktjmp)) [#558](https://github.com/elixir-lsp/elixir-ls/pull/558)
 - Avoid crashing on manipulatePipes errors (thanks [Paulo Valente](https://github.com/polvalente)) [#576](https://github.com/elixir-lsp/elixir-ls/pull/576)
 - Handle Nova long form paths in rootURI (thanks [Raul Chedrese](https://github.com/raulchedrese)) [#579](https://github.com/elixir-lsp/elixir-ls/pull/579)
+- Fix invalid glob pattern in watchers registration (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#586](https://github.com/elixir-lsp/elixir-ls/pull/586)
+- Handle `.` and symlinks as the project dir (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#587](https://github.com/elixir-lsp/elixir-ls/pull/587)
 
 Housekeeping:
 - Minor iteration/performance improvements (thanks [Andrew Summers](https://github.com/asummers)) [#527](https://github.com/elixir-lsp/elixir-ls/pull/527)
