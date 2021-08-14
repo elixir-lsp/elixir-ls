@@ -1180,7 +1180,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        Map.merge(state, %{project_dir: project_dir, load_all_modules?: true})
+        Map.merge(state, %{project_dir: File.cwd!(), load_all_modules?: true})
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
