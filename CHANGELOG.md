@@ -1,11 +1,14 @@
 ### Unreleased
 
+### v0.8.0: 14 August 2021
+
 Improvements:
 - Basic single-file (e.g. `.exs`) support (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#562](https://github.com/elixir-lsp/elixir-ls/pull/562) (and VSCode [#195](https://github.com/elixir-lsp/vscode-elixir-ls/pull/195))
 - Add commands for piping and unpiping text (thanks [Paulo Valente](https://github.com/polvalente)) [#515](https://github.com/elixir-lsp/elixir-ls/pull/515)
 - Make `test` snippet consistent by including quotes (thanks [Mitchell Hanberg](https://github.com/mhanberg)) [#542](https://github.com/elixir-lsp/elixir-ls/pull/542)
 - Smarter spec suggestions in protocols and implementations (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#549](https://github.com/elixir-lsp/elixir-ls/pull/549)
 - Trigger signature_help on comma (thanks [Jared Mackey](https://github.com/jared-mackey)) [#564](https://github.com/elixir-lsp/elixir-ls/pull/564)
+- Watch HEEx and  Surface files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#583](https://github.com/elixir-lsp/elixir-ls/pull/583)
 - ElixirSense: Add more fuzzy matching (thanks [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)) [#131](https://github.com/elixir-lsp/elixir_sense/pull/131)
 - ElixirSense: Add inference when using dependency injection with module attributes ([Gustavo Aguiar](https://github.com/gugahoa)) [#133](https://github.com/elixir-lsp/elixir_sense/pull/133)
 - ElixirSense: Add support for EEP-48 (updated documentation storage format) (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#132](https://github.com/elixir-lsp/elixir_sense/pull/132)
@@ -27,6 +30,7 @@ Housekeeping:
 VSCode:
 - Support optional `~S` sigil at start of doc folding region (thanks [thepeoplesbourgeois](https://github.com/thepeoplesbourgeois)) [#179](https://github.com/elixir-lsp/vscode-elixir-ls/pull/179)
 - Fix run test command to save document before running tests (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#165](https://github.com/elixir-lsp/vscode-elixir-ls/pull/165)
+- Support HEEx and Surface files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#204](https://github.com/elixir-lsp/vscode-elixir-ls/pull/204)
 
 **Deprecations**
 - Minimum version of Elixir is now 1.10
