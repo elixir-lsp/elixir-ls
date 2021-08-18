@@ -44,7 +44,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {3, 12}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => [first_item | _items]}} = Completion.completion(text, line, char, @supports)
+
+    {:ok, %{"items" => [first_item | _items]}} =
+      Completion.completion(text, line, char, @supports)
+
     assert first_item["label"] == "do"
   end
 

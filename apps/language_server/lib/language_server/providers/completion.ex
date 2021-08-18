@@ -159,6 +159,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         tags: [],
         priority: 0
       }
+
       [item | completion_items]
     else
       completion_items
