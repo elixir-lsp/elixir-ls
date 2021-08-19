@@ -2023,7 +2023,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
-        describe "some descripton" do
+        describe "some description" do
           test "does something", do: :ok
         end
       end
@@ -2050,7 +2050,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       }
                     ],
                     kind: 12,
-                    name: "describe \"some descripton\"",
+                    name: "describe \"some description\"",
                     range: %{
                       end: %{character: 8, line: 3},
                       start: %{character: 8, line: 3}
@@ -2080,7 +2080,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
-        describe ~S(some "descripton") do
+        describe ~S(some "description") do
           test "does" <> "something", do: :ok
         end
       end
@@ -2132,9 +2132,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text, true)
 
     if System.version() |> Version.match?(">= 1.10.0") do
-      assert describe_sigil == "describe ~S(some \"descripton\")"
+      assert describe_sigil == "describe ~S(some \"description\")"
     else
-      assert describe_sigil == "describe ~S'some \"descripton\"'"
+      assert describe_sigil == "describe ~S'some \"description\"'"
     end
   end
 
@@ -2143,7 +2143,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
-        describe "some descripton" do
+        describe "some description" do
           test "does something", do: :ok
         end
       end
@@ -2159,7 +2159,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "describe \"some descripton\"",
+                name: "describe \"some description\"",
                 kind: 12,
                 location: %{
                   range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
@@ -2172,7 +2172,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 location: %{
                   range: %{end: %{character: 10, line: 4}, start: %{character: 10, line: 4}}
                 },
-                containerName: "describe \"some descripton\""
+                containerName: "describe \"some description\""
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
   end
@@ -2182,7 +2182,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     text = ~S[
       defmodule MyModuleTest do
         use ExUnit.Case
-        describe ~S(some "descripton") do
+        describe ~S(some "description") do
           test "does" <> "something", do: :ok
         end
       end
@@ -2216,9 +2216,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             ]} = DocumentSymbols.symbols(uri, text, false)
 
     if System.version() |> Version.match?(">= 1.10.0") do
-      assert describe_sigil == "describe ~S(some \"descripton\")"
+      assert describe_sigil == "describe ~S(some \"description\")"
     else
-      assert describe_sigil == "describe ~S'some \"descripton\"'"
+      assert describe_sigil == "describe ~S'some \"description\"'"
     end
   end
 

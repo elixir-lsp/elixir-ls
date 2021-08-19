@@ -1,6 +1,6 @@
 # LSP Server initialization
 
-When launching the elixir_ls server using the scripts, the intialization steps are like:
+When launching the elixir_ls server using the scripts, the initialization steps are like:
 
 1. Replace default IO with Json RPC notifications
 2. Starts Mix
@@ -43,7 +43,7 @@ After this `GenServer` is started, the next in line is the `ElixirLS.LanguageSer
 
 ## Overrides default Mix.Shell
 
-Mix might have some "yes or no" questions that would not be possible to reply in the LSP paradigm. So, the server replaces the default `Mix.Shell` for providing the yes/no questions through LSP request/reponses. This way the client can show them to the user through its interface and pass back the response to the server.
+Mix might have some "yes or no" questions that would not be possible to reply in the LSP paradigm. So, the server replaces the default `Mix.Shell` for providing the yes/no questions through LSP request/responses. This way the client can show them to the user through its interface and pass back the response to the server.
 
 ## Ensure the Hex version is accepted
 

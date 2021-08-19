@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Server do
   This server tracks open files, attempts to rebuild the project when a file changes, and handles
   requests from the IDE (for things like autocompletion, hover, etc.)
 
-  Notifications from the IDE are handled synchronously, whereas requests can be handled sychronously
+  Notifications from the IDE are handled synchronously, whereas requests can be handled synchronously
   or asynchronously.
 
   When possible, handling the request asynchronously has several advantages. The asynchronous

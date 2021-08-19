@@ -569,7 +569,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert SourceFile.lines_with_endings("") == [{"", nil}]
     end
 
-    test "begining with endline" do
+    test "beginning with endline" do
       assert SourceFile.lines_with_endings("\n") == [{"", "\n"}, {"", nil}]
       assert SourceFile.lines_with_endings("\nbasic") == [{"", "\n"}, {"basic", nil}]
     end

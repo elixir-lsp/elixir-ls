@@ -14,7 +14,7 @@ defmodule ElixirLS.Test.TextLoc do
       if actual == unquote(expected) do
         assert actual == unquote(expected)
       else
-        IO.puts("Acutal is:")
+        IO.puts("Actual is:")
         IO.puts(["\"\"\"", "\n", actual, "\"\"\""])
         assert actual == unquote(expected)
       end
