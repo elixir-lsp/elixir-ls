@@ -31,6 +31,26 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     end
   end
 
+  test "do is returned" do
+    text = """
+    defmodule MyModule do
+      require Logger
+
+      def fun do
+        #       ^
+      end
+    end
+    """
+
+    {line, char} = {3, 12}
+    TestUtils.assert_has_cursor_char(text, line, char)
+
+    {:ok, %{"items" => [first_item | _items]}} =
+      Completion.completion(text, line, char, @supports)
+
+    assert first_item["label"] == "do"
+  end
+
   test "returns all Logger completions on normal require" do
     text = """
     defmodule MyModule do
