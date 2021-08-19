@@ -87,7 +87,7 @@ Bug Fixes:
 ### v0.6.3: 30 January 2021
 
 Improvements:
-- Add support for `textDocument/implementation` ("Go to Implmentations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
+- Add support for `textDocument/implementation` ("Go to Implementations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
 - More specific `CompletionItemKind` for autocomplete (thanks [Jason Axelson](https://github.com/axelson)) [#419](https://github.com/elixir-lsp/elixir-ls/pull/419)
 - Support ASDF installed via homebrew on macOS (thanks [Fabian Stegemann](https://github.com/zetaron)) [#428](https://github.com/elixir-lsp/elixir-ls/pull/428)
 - Make launcher script more robust and support symlinks (thanks [Joshua Trees](https://github.com/jtrees)) [#445](https://github.com/elixir-lsp/elixir-ls/pull/445)
@@ -213,7 +213,7 @@ Changes:
 Bug Fixes:
 - Formatting was returning invalid floating point number (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#250](https://github.com/elixir-lsp/elixir-ls/pull/250)
 - Fix detection of empty hover hints (thanks [Dmitry Gutov](https://github.com/dgutov)) [#279](https://github.com/elixir-lsp/elixir-ls/pull/279)
-- Debugger doesn't fail when modules cannot be interpretted (thanks [Łukasz Samson](https://github.com/lukaszsamson)) (such as nifs) [#283](https://github.com/elixir-lsp/elixir-ls/pull/283)
+- Debugger doesn't fail when modules cannot be interpreted (thanks [Łukasz Samson](https://github.com/lukaszsamson)) (such as nifs) [#283](https://github.com/elixir-lsp/elixir-ls/pull/283)
 - Do not advertise `workspaceFolders` support (thanks [Jason Axelson](https://github.com/axelson)) [#298](https://github.com/elixir-lsp/elixir-ls/pull/298)
 - Do not try to create gitignore when project dir not set (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#306](https://github.com/elixir-lsp/elixir-ls/pull/306)
 - Only call DocumentSymbols (outline pane) for .ex and .exs files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#262](https://github.com/elixir-lsp/elixir-ls/pull/262)
@@ -388,7 +388,7 @@ VSCode:
 
 - Fix compatibility with Elixir 1.9
 - Fix bug where Mix file is not reloaded on change if it had errors
-- Remove unneccessary empty parens from suggested specs
+- Remove unnecessary empty parens from suggested specs
 - Add 'dialyzerFormat' setting to select which warning formatter to use. Options are `"dialyzer"` (default), `"dialyxir_short"`, `"dialyxir_long"`
 - (VS Code) Support syntax highlighting in Phoenix LiveView (.leex) files, including ~L sigil (Thanks to @rrichardsonv)
 - (VS Code) Improved syntax highlighting and other automatic behavior (Thanks to @crbelaus)

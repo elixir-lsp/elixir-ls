@@ -117,7 +117,7 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
 }
 ```
 
-In order to debug a single test or a single test file it is currently necessary to modify `taskArgs` and make sure no other tests are requred in `requireFiles`.
+In order to debug a single test or a single test file it is currently necessary to modify `taskArgs` and make sure no other tests are required in `requireFiles`.
 
 ```
 {
@@ -186,7 +186,7 @@ The completions include:
 - modules
 - variables
 - struct fields (only if the struct type is explicitly stated or can be inferred from the variable binding)
-- atom map keys (if map keys can be infered from variable binding)
+- atom map keys (if map keys can be inferred from variable binding)
 - attributes
 - types (in typespecs)
 - behaviour callbacks (inside the body of implementing module)
