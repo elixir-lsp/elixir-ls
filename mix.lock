@@ -4,7 +4,6 @@
   "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "4a857f2c262b9f8ac2d72e31f4806cecc740192a", []},
   "erl2ex": {:git, "https://github.com/dazuma/erl2ex.git", "244c2d9ed5805ef4855a491d8616b8842fef7ca4", []},
   "erlex": {:hex, :erlex, "0.2.6", "c7987d15e899c7a2f34f5420d2a2ea0d659682c06ac607572df55a43753aa12e", [:mix], [], "hexpm", "2ed2e25711feb44d52b17d2780eabf998452f6efda104877a3881c2f8c0c0c75"},
-  "forms": {:hex, :forms, "0.0.1", "45f3b10b6f859f95f2c2c1a1de244d63855296d55ed8e93eb0dd116b3e86c4a6", [:rebar3], [], "hexpm", "530f63ed8ed5a171f744fc75bd69cb2e36496899d19dbef48101b4636b795868"},
   "getopt": {:hex, :getopt, "1.0.1", "c73a9fa687b217f2ff79f68a3b637711bb1936e712b521d8ce466b29cbf7808a", [:rebar3], [], "hexpm", "53e1ab83b9ceb65c9672d3e7a35b8092e9bdc9b3ee80721471a161c10c59959c"},
   "jason_vendored": {:git, "https://github.com/elixir-lsp/jason.git", "ee95ca80cd67b3a499a14f469536140935eb4483", [branch: "vendored"]},
   "mix_task_archive_deps": {:git, "https://github.com/JakeBecker/mix_task_archive_deps.git", "50301a4314e3cc1104f77a8208d5b66ee382970b", []},
