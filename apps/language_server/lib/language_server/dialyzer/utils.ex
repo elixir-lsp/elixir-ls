@@ -49,22 +49,29 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
 
   defp module_references(mod) do
     try do
-      forms = :forms.read(mod)
-
-      calls =
-        :forms.filter(
-          fn
-            {:call, _, {:remote, _, {:atom, _, _}, _}, _} -> true
-            _ -> false
-          end,
-          forms
-        )
-
-      for {:call, _, {:remote, _, {:atom, _, module}, _}, _} <- calls, uniq: true, do: module
+      for form <- read_forms(mod),
+          {:call, _, {:remote, _, {:atom, _, module}, _}, _} <- form,
+          uniq: true,
+          do: module
     rescue
       _ -> []
     catch
       _ -> []
+    end
+  end
+
+  # Read the Erlang abstract forms from the specified Module
+  # compiled using the -debug_info compile option
+  defp read_forms(module) do
+    case :beam_lib.chunks(:code.which(module), [:abstract_code]) do
+      {:ok, {^module, [{:abstract_code, {:raw_abstract_v1, forms}}]}} ->
+        forms
+
+      {:ok, {:no_debug_info, _}} ->
+        throw({:forms_not_found, module})
+
+      {:error, :beam_lib, {:file_error, _, :enoent}} ->
+        throw({:module_not_found, module})
     end
   end
 end

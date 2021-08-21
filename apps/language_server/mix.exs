@@ -28,7 +28,6 @@ defmodule ElixirLS.LanguageServer.Mixfile do
     [
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
-      {:forms, "~> 0.0"},
       {:erl2ex, github: "dazuma/erl2ex"},
       {:dialyxir, "~> 1.0", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
