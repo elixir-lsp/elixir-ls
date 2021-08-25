@@ -51,6 +51,35 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert first_item["label"] == "do"
   end
 
+  test "end is returned" do
+    text = """
+    defmodule MyModule do
+      require Logger
+
+      def engineering_department, do: :eng
+
+      def fun do
+        :ok
+      end
+    #    ^
+    end
+    """
+
+    {line, char} = {7, 5}
+    TestUtils.assert_has_cursor_char(text, line, char)
+
+    {:ok, %{"items" => [first_item | items]}} = Completion.completion(text, line, char, @supports)
+
+    assert first_item["label"] == "end"
+
+    completions =
+      items
+      |> Enum.filter(&(&1["detail"] =~ "engineering_department"))
+      |> Enum.map(& &1["insertText"])
+
+    assert completions == ["engineering_department()"]
+  end
+
   test "returns all Logger completions on normal require" do
     text = """
     defmodule MyModule do

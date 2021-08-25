@@ -138,6 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
+      |> maybe_add_end(context)
 
     items_json =
       items
@@ -156,6 +157,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         kind: :keyword,
         detail: "keyword",
         insert_text: "do\n$0\nend",
+        tags: [],
+        priority: 0
+      }
+
+      [item | completion_items]
+    else
+      completion_items
+    end
+  end
+
+  defp maybe_add_end(completion_items, context) do
+    if String.ends_with?(context.text_before_cursor, "end") && context.text_after_cursor == "" do
+      item = %__MODULE__{
+        label: "end",
+        kind: :keyword,
+        detail: "keyword",
+        insert_text: "end",
         tags: [],
         priority: 0
       }
