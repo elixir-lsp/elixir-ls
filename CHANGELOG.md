@@ -1,5 +1,15 @@
 ### Unreleased
 
+Improvements:
+- Add a "do" autocompletion (thanks [Jason Axelson](https://github.com/axelson/)) [#593](https://github.com/elixir-lsp/elixir-ls/pull/593)
+- Add an "end" autocompletion (thanks [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)) [#599](https://github.com/elixir-lsp/elixir-ls/pull/599)
+
+Housekeeping:
+- Remove dependency on forms (thanks [Awlexus](https://github.com/Awlexus)) [#596](https://github.com/elixir-lsp/elixir-ls/pull/596)
+- CI releases: utilize auto seleciton of latest patch version (thanks [Po Chen](https://github.com/princemaple)) [#591](https://github.com/elixir-lsp/elixir-ls/pull/591)
+- Change minimum OTP version to 22 in warning message (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#592](https://github.com/elixir-lsp/elixir-ls/pull/592)
+- Fix various typos (thanks [Kian Meng Ang](https://github.com/kianmeng)) [#594](https://github.com/elixir-lsp/elixir-ls/pull/594)
+
 ### v0.8.0: 14 August 2021
 
 Improvements:
