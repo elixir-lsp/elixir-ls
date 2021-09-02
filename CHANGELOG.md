@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.8.1: 1 September 2021
+
 Improvements:
 - Add a "do" autocompletion (thanks [Jason Axelson](https://github.com/axelson/)) [#593](https://github.com/elixir-lsp/elixir-ls/pull/593)
 - Add an "end" autocompletion (thanks [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)) [#599](https://github.com/elixir-lsp/elixir-ls/pull/599)
