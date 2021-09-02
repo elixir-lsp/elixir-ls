@@ -35,7 +35,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
   end
 
   test "empty query", %{server: server} do
-    assert {:ok, []} == WorkspaceSymbols.symbols("", server)
+    {status, all_symbols} = WorkspaceSymbols.symbols("", server)
+    assert :ok == status
+    assert 11 == length(all_symbols)
 
     assert_receive %{
       "method" => "window/logMessage",

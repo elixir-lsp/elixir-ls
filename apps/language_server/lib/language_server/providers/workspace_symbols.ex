@@ -348,13 +348,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   defp query(query, server) do
-    case String.trim(query) do
-      "" ->
-        []
-
-      trimmed ->
-        GenServer.call(server, {:query, trimmed})
-    end
+    trimmed =  String.trim(query)
+    GenServer.call(server, {:query, trimmed})
   end
 
   defp index(module_paths) do
@@ -435,6 +430,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       end)
 
     :ok
+  end
+
+  @spec get_results(state_t, String.t()) :: [symbol_information_t]
+  defp get_results(state, "") do
+    (state.modules ++ state.functions ++ state.types ++ state.callbacks)
   end
 
   @spec get_results(state_t, String.t()) :: [symbol_information_t]
