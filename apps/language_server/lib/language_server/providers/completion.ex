@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         label: "do",
         kind: :keyword,
         detail: "keyword",
-        insert_text: "do\n$0\nend",
+        insert_text: "do\n\t$0\nend",
         tags: [],
         priority: 0
       }
