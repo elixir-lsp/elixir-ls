@@ -61,7 +61,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
            )
   end
 
-  test "Third deps module hover" do
+  test "Umbrella projects: Third deps module hover" do
     text = """
     defmodule MyModule do
       def hello() do
@@ -81,7 +81,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
            )
   end
 
-  test "Third deps function hover" do
+  test "Umbrella projects: Third deps function hover" do
     text = """
     defmodule MyModule do
       def hello() do
@@ -98,6 +98,26 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     assert String.starts_with?(
              v,
              "> StreamData.integer()  [view on hexdocs](https://hexdocs.pm/stream_data/StreamData.html#integer/0)"
+           )
+  end
+
+  test "Erlang module hover is not support now" do
+    text = """
+    defmodule MyModule do
+      def hello() do
+        :timer.sleep(1000)
+      end
+    end
+    """
+
+    {line, char} = {2, 10}
+
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(text, line, char, fake_dir())
+
+    assert not String.contains?(
+             v,
+             "[view on hexdocs]"
            )
   end
 end

@@ -81,22 +81,30 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp hexdocs_link(hd, subject, project_dir) do
-    t = hd |> String.replace(">", "") |> String.trim() |> URI.encode()
-    dep = subject |> root_module_name() |> dep_name(project_dir) |> URI.encode()
+    title = hd |> String.replace(">", "") |> String.trim() |> URI.encode()
 
     cond do
-      func?(t) ->
-        if dep != "" do
-          "#{@hex_base_url}/#{dep}/#{module_name(subject)}.html##{func_name(subject)}/#{params_cnt(t)}"
-        else
-          ""
-        end
+      erlang_module?(subject) ->
+        # erlang moudle is not support now.
+        ""
 
       true ->
-        if dep != "" do
-          "#{@hex_base_url}/#{dep}/#{t}.html"
-        else
-          ""
+        dep = subject |> root_module_name() |> dep_name(project_dir) |> URI.encode()
+
+        cond do
+          func?(title) ->
+            if dep != "" do
+              "#{@hex_base_url}/#{dep}/#{module_name(subject)}.html##{func_name(subject)}/#{params_cnt(title)}"
+            else
+              ""
+            end
+
+          true ->
+            if dep != "" do
+              "#{@hex_base_url}/#{dep}/#{title}.html"
+            else
+              ""
+            end
         end
     end
   end
@@ -155,8 +163,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     @builtin_flag |> Enum.any?(fn y -> String.contains?(source, y) end)
   end
 
-  def builtin_dep_name(source) do
+  defp builtin_dep_name(source) do
     [_, name | _] = String.split(source, "/lib/")
     name
+  end
+
+  defp erlang_module?(subject) do
+    subject |> root_module_name() |> String.starts_with?(":")
   end
 end
