@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   def project do
     [
       app: :language_server,
-      version: "0.7.0",
+      version: "0.8.1",
       elixir: ">= 1.10.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -28,7 +28,6 @@ defmodule ElixirLS.LanguageServer.Mixfile do
     [
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
-      {:forms, "~> 0.0"},
       {:erl2ex, github: "dazuma/erl2ex"},
       {:dialyxir, "~> 1.0", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},

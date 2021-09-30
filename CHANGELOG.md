@@ -1,18 +1,43 @@
 ### Unreleased
 
+### v0.8.1: 1 September 2021
+
 Improvements:
+- Add a "do" autocompletion (thanks [Jason Axelson](https://github.com/axelson/)) [#593](https://github.com/elixir-lsp/elixir-ls/pull/593)
+- Add an "end" autocompletion (thanks [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)) [#599](https://github.com/elixir-lsp/elixir-ls/pull/599)
+
+Housekeeping:
+- Remove dependency on forms (thanks [Awlexus](https://github.com/Awlexus)) [#596](https://github.com/elixir-lsp/elixir-ls/pull/596)
+- CI releases: utilize auto seleciton of latest patch version (thanks [Po Chen](https://github.com/princemaple)) [#591](https://github.com/elixir-lsp/elixir-ls/pull/591)
+- Change minimum OTP version to 22 in warning message (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#592](https://github.com/elixir-lsp/elixir-ls/pull/592)
+- Fix various typos (thanks [Kian Meng Ang](https://github.com/kianmeng)) [#594](https://github.com/elixir-lsp/elixir-ls/pull/594)
+
+### v0.8.0: 14 August 2021
+
+Improvements:
+- Basic single-file (e.g. `.exs`) support (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#562](https://github.com/elixir-lsp/elixir-ls/pull/562) (and VSCode [#195](https://github.com/elixir-lsp/vscode-elixir-ls/pull/195))
 - Add commands for piping and unpiping text (thanks [Paulo Valente](https://github.com/polvalente)) [#515](https://github.com/elixir-lsp/elixir-ls/pull/515)
 - Make `test` snippet consistent by including quotes (thanks [Mitchell Hanberg](https://github.com/mhanberg)) [#542](https://github.com/elixir-lsp/elixir-ls/pull/542)
+- Smarter spec suggestions in protocols and implementations (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#549](https://github.com/elixir-lsp/elixir-ls/pull/549)
+- Trigger signature_help on comma (thanks [Jared Mackey](https://github.com/jared-mackey)) [#564](https://github.com/elixir-lsp/elixir-ls/pull/564)
+- Watch HEEx and  Surface files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#583](https://github.com/elixir-lsp/elixir-ls/pull/583)
 - ElixirSense: Add more fuzzy matching (thanks [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)) [#131](https://github.com/elixir-lsp/elixir_sense/pull/131)
 - ElixirSense: Add inference when using dependency injection with module attributes ([Gustavo Aguiar](https://github.com/gugahoa)) [#133](https://github.com/elixir-lsp/elixir_sense/pull/133)
 - ElixirSense: Add support for EEP-48 (updated documentation storage format) (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#132](https://github.com/elixir-lsp/elixir_sense/pull/132)
   - http://erlang.org/doc/apps/kernel/eep48_chapter.html
+- Watch `.heex` and `.sface` templates (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#583](https://github.com/elixir-lsp/elixir-ls/pull/583)
 
 Bug Fixes:
 - Fix suggest contracts windows regression (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#531](https://github.com/elixir-lsp/elixir-ls/pull/531)
 - Support exunit describe and test calls with unevaluated names (thanks [Jonathan Arnett](https://github.com/J3RN)) [#537](https://github.com/elixir-lsp/elixir-ls/pull/537)
 - Improve test runner to use exunit testPaths and testPattern (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#500](https://github.com/elixir-lsp/elixir-ls/pull/500)
 - Fix race-condition in suggest contracts (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#544](https://github.com/elixir-lsp/elixir-ls/pull/544)
+- Fix `@doc false` and `@moduledoc false` for folding ranges (thanks [Jason Axelson](https://github.com/axelson/)) [#580](https://github.com/elixir-lsp/elixir-ls/pull/580)
+- Guard against sending -1 line or column locations in LSP messages (thanks [Oliver Marriott](https://github.com/rktjmp)) [#558](https://github.com/elixir-lsp/elixir-ls/pull/558)
+- Avoid crashing on manipulatePipes errors (thanks [Paulo Valente](https://github.com/polvalente)) [#576](https://github.com/elixir-lsp/elixir-ls/pull/576)
+- Handle Nova long form paths in rootURI (thanks [Raul Chedrese](https://github.com/raulchedrese)) [#579](https://github.com/elixir-lsp/elixir-ls/pull/579)
+- Fix invalid glob pattern in watchers registration (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#586](https://github.com/elixir-lsp/elixir-ls/pull/586)
+- Handle `.` and symlinks as the project dir (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#587](https://github.com/elixir-lsp/elixir-ls/pull/587)
 
 Housekeeping:
 - Minor iteration/performance improvements (thanks [Andrew Summers](https://github.com/asummers)) [#527](https://github.com/elixir-lsp/elixir-ls/pull/527)
@@ -20,6 +45,12 @@ Housekeeping:
 VSCode:
 - Support optional `~S` sigil at start of doc folding region (thanks [thepeoplesbourgeois](https://github.com/thepeoplesbourgeois)) [#179](https://github.com/elixir-lsp/vscode-elixir-ls/pull/179)
 - Fix run test command to save document before running tests (thanks [Étienne Lévesque](https://github.com/Blond11516)) [#165](https://github.com/elixir-lsp/vscode-elixir-ls/pull/165)
+- Support HEEx and Surface files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#204](https://github.com/elixir-lsp/vscode-elixir-ls/pull/204)
+
+**Deprecations**
+- Minimum version of Elixir is now 1.10
+- Minimum version of Erlang/OTP is now 22
+These are keeping in line with our Version Support Guidelines: https://github.com/elixir-lsp/elixir-ls/blob/master/DEVELOPMENT.md#version-support-guidelines
 
 ### v0.7.0: 06 April 2021
 
@@ -68,7 +99,7 @@ Bug Fixes:
 ### v0.6.3: 30 January 2021
 
 Improvements:
-- Add support for `textDocument/implementation` ("Go to Implmentations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
+- Add support for `textDocument/implementation` ("Go to Implementations" and "Peek Implementations") (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#415](https://github.com/elixir-lsp/elixir-ls/pull/415)
 - More specific `CompletionItemKind` for autocomplete (thanks [Jason Axelson](https://github.com/axelson)) [#419](https://github.com/elixir-lsp/elixir-ls/pull/419)
 - Support ASDF installed via homebrew on macOS (thanks [Fabian Stegemann](https://github.com/zetaron)) [#428](https://github.com/elixir-lsp/elixir-ls/pull/428)
 - Make launcher script more robust and support symlinks (thanks [Joshua Trees](https://github.com/jtrees)) [#445](https://github.com/elixir-lsp/elixir-ls/pull/445)
@@ -194,7 +225,7 @@ Changes:
 Bug Fixes:
 - Formatting was returning invalid floating point number (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#250](https://github.com/elixir-lsp/elixir-ls/pull/250)
 - Fix detection of empty hover hints (thanks [Dmitry Gutov](https://github.com/dgutov)) [#279](https://github.com/elixir-lsp/elixir-ls/pull/279)
-- Debugger doesn't fail when modules cannot be interpretted (thanks [Łukasz Samson](https://github.com/lukaszsamson)) (such as nifs) [#283](https://github.com/elixir-lsp/elixir-ls/pull/283)
+- Debugger doesn't fail when modules cannot be interpreted (thanks [Łukasz Samson](https://github.com/lukaszsamson)) (such as nifs) [#283](https://github.com/elixir-lsp/elixir-ls/pull/283)
 - Do not advertise `workspaceFolders` support (thanks [Jason Axelson](https://github.com/axelson)) [#298](https://github.com/elixir-lsp/elixir-ls/pull/298)
 - Do not try to create gitignore when project dir not set (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#306](https://github.com/elixir-lsp/elixir-ls/pull/306)
 - Only call DocumentSymbols (outline pane) for .ex and .exs files (thanks [Marlus Saraiva](https://github.com/msaraiva)) [#262](https://github.com/elixir-lsp/elixir-ls/pull/262)
@@ -369,7 +400,7 @@ VSCode:
 
 - Fix compatibility with Elixir 1.9
 - Fix bug where Mix file is not reloaded on change if it had errors
-- Remove unneccessary empty parens from suggested specs
+- Remove unnecessary empty parens from suggested specs
 - Add 'dialyzerFormat' setting to select which warning formatter to use. Options are `"dialyzer"` (default), `"dialyxir_short"`, `"dialyxir_long"`
 - (VS Code) Support syntax highlighting in Phoenix LiveView (.leex) files, including ~L sigil (Thanks to @rrichardsonv)
 - (VS Code) Improved syntax highlighting and other automatic behavior (Thanks to @crbelaus)

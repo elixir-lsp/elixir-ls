@@ -137,6 +137,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       ElixirSense.suggestions(text, line + 1, character + 1)
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
+      |> maybe_add_do(context)
+      |> maybe_add_end(context)
 
     items_json =
       items
@@ -146,6 +148,40 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> items_to_json(options)
 
     {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
+  end
+
+  defp maybe_add_do(completion_items, context) do
+    if String.ends_with?(context.text_before_cursor, " do") && context.text_after_cursor == "" do
+      item = %__MODULE__{
+        label: "do",
+        kind: :keyword,
+        detail: "keyword",
+        insert_text: "do\n$0\nend",
+        tags: [],
+        priority: 0
+      }
+
+      [item | completion_items]
+    else
+      completion_items
+    end
+  end
+
+  defp maybe_add_end(completion_items, context) do
+    if String.ends_with?(context.text_before_cursor, "end") && context.text_after_cursor == "" do
+      item = %__MODULE__{
+        label: "end",
+        kind: :keyword,
+        detail: "keyword",
+        insert_text: "end",
+        tags: [],
+        priority: 0
+      }
+
+      [item | completion_items]
+    else
+      completion_items
+    end
   end
 
   ## Helpers

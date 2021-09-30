@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Server do
   This server tracks open files, attempts to rebuild the project when a file changes, and handles
   requests from the IDE (for things like autocompletion, hover, etc.)
 
-  Notifications from the IDE are handled synchronously, whereas requests can be handled sychronously
+  Notifications from the IDE are handled synchronously, whereas requests can be handled synchronously
   or asynchronously.
 
   When possible, handling the request asynchronously has several advantages. The asynchronous
@@ -71,7 +71,18 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  @default_watched_extensions [".ex", ".exs", ".erl", ".hrl", ".yrl", ".xrl", ".eex", ".leex"]
+  @watched_extensions [
+    ".ex",
+    ".exs",
+    ".erl",
+    ".hrl",
+    ".yrl",
+    ".xrl",
+    ".eex",
+    ".leex",
+    ".heex",
+    ".sface"
+  ]
 
   ## Client API
 
@@ -509,7 +520,8 @@ defmodule ElixirLS.LanguageServer.Server do
         "file://" <> _ ->
           root_path = SourceFile.abs_path_from_uri(root_uri)
           File.cd!(root_path)
-          %{state | root_uri: root_uri}
+          cwd_uri = SourceFile.path_to_uri(File.cwd!())
+          %{state | root_uri: cwd_uri}
 
         nil ->
           state
@@ -1182,7 +1194,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        Map.merge(state, %{project_dir: project_dir, load_all_modules?: true})
+        Map.merge(state, %{project_dir: File.cwd!(), load_all_modules?: true})
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(

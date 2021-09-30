@@ -27,7 +27,7 @@ defmodule ElixirLS.Debugger.ServerTest do
   end
 
   describe "initialize" do
-    test "succeedes", %{server: server} do
+    test "succeeds", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{"clientID" => "some_id"}))
       assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
       assert :sys.get_state(server).client_info == %{"clientID" => "some_id"}
@@ -70,7 +70,7 @@ defmodule ElixirLS.Debugger.ServerTest do
   end
 
   describe "disconnect" do
-    test "succeedes when not initialized", %{server: server} do
+    test "succeeds when not initialized", %{server: server} do
       Process.flag(:trap_exit, true)
       Server.receive_packet(server, request(1, "disconnect"))
       assert_receive(response(_, 1, "disconnect", %{}))
@@ -78,7 +78,7 @@ defmodule ElixirLS.Debugger.ServerTest do
       Process.flag(:trap_exit, false)
     end
 
-    test "succeedes when initialized", %{server: server} do
+    test "succeeds when initialized", %{server: server} do
       Process.flag(:trap_exit, true)
       Server.receive_packet(server, initialize_req(1, %{"clientID" => "some_id"}))
       assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))

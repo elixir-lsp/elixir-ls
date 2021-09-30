@@ -1026,6 +1026,29 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   @tag :fixture
+  test "reports token missing error diagnostics", %{server: server} do
+    in_fixture(__DIR__, "token_missing_error", fn ->
+      error_file = SourceFile.path_to_uri("lib/has_error.ex")
+
+      initialize(server)
+
+      assert_receive notification("textDocument/publishDiagnostics", %{
+                       "uri" => ^error_file,
+                       "diagnostics" => [
+                         %{
+                           "message" => "(TokenMissingError) missing terminator: end" <> _,
+                           "range" => %{"end" => %{"line" => 5}, "start" => %{"line" => 5}},
+                           "severity" => 1
+                         }
+                       ]
+                     }),
+                     1000
+
+      wait_until_compiled(server)
+    end)
+  end
+
+  @tag :fixture
   test "reports build diagnostics on external resources", %{server: server} do
     in_fixture(__DIR__, "build_errors_on_external_resource", fn ->
       error_file = SourceFile.path_to_uri("lib/template.eex")

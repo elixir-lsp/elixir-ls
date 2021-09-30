@@ -153,7 +153,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   def capture_log_and_io(device, fun) when is_function(fun, 0) do
-    # Logger gets stopped during some tests so restart it to be able to capture logs (and keept the
+    # Logger gets stopped during some tests so restart it to be able to capture logs (and kept the
     # test output clean)
     Application.ensure_started(:logger)
 
