@@ -53,7 +53,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   defp can_format?(_uri, _project_dir), do: false
 
-  def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
+  defp should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
     file_path = file_uri |> SourceFile.abs_path_from_uri()
 
     inputs
@@ -67,7 +67,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     |> Enum.any?(&(file_path == &1))
   end
 
-  def should_format?(_file_uri, _project_dir, _inputs), do: true
+  defp should_format?(_file_uri, _project_dir, _inputs), do: true
 
   defp myers_diff_to_text_edits(myers_diff) do
     myers_diff_to_text_edits(myers_diff, {0, 0}, [])
