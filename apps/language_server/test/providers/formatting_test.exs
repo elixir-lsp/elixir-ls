@@ -481,18 +481,29 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert_formatted("file.ex", project_dir)
 
-      # test/.formatter.exs has [inputs: ["**/*.exs"]]
+      # test/.formatter.exs has [inputs: ["*.exs"]]
       assert_formatted("test/file.exs", project_dir)
       refute_formatted("test/file.ex", project_dir)
+
+      assert_formatted("symlink/file.exs", project_dir)
+      refute_formatted("symlink/file.ex", project_dir)
+
+      File.mkdir!("#{project_dir}/test/foo")
+      refute_formatted("test/foo/file.ex", project_dir)
+
+      # apps/foo/bar/.formatter.exs has [inputs: ["foo.ex"]]
+      assert_formatted("apps/foo/foo.ex", project_dir)
+      refute_formatted("apps/foo/bar.ex", project_dir)
+      refute_formatted("apps/foo.ex", project_dir)
     end)
   end
 
   def assert_formatted(path, project_dir) do
-    assert {:ok, [%{}]} = format(path, project_dir)
+    assert match?({:ok, [%{}]}, format(path, project_dir)), "expected '#{path}' to be formatted"
   end
 
   def refute_formatted(path, project_dir) do
-    assert {:ok, []} = format(path, project_dir)
+    assert match?({:ok, []}, format(path, project_dir)), "expected '#{path}' not to be formatted"
   end
 
   defp format(path, project_dir) do

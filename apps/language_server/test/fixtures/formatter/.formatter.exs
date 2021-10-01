@@ -2,6 +2,9 @@
   line_length: 20,
   subdirectories: [
     "lib",
-    "test"
-  ]
+    "test",
+    "symlink",
+    "apps/*"
+  ],
+  inputs: ["*.ex"]
 ]

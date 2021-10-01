@@ -1,3 +1,3 @@
 [
-  inputs: ["**/*.exs"]
+  inputs: ["*.exs"]
 ]
