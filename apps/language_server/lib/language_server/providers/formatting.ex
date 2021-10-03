@@ -57,9 +57,10 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     file_path = file_uri |> SourceFile.abs_path_from_uri()
     formatter_dir = find_formatter_dir(project_dir, Path.dirname(file_path))
 
-    inputs
-    |> Stream.flat_map(&Path.wildcard(Path.join(formatter_dir, &1), match_dot: true))
-    |> Enum.any?(&(file_path == &1))
+    Enum.any?(inputs, fn input_glob ->
+      glob = Path.join(formatter_dir, input_glob)
+      PathGlob.match?(file_path, glob, match_dot: true)
+    end)
   end
 
   defp should_format?(_file_uri, _project_dir, _inputs), do: true
