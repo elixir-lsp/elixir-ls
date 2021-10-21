@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  @watched_extensions [
+  @default_watched_extensions [
     ".ex",
     ".exs",
     ".erl",
