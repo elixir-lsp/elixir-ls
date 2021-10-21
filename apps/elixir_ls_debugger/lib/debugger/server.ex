@@ -400,7 +400,7 @@ defmodule ElixirLS.Debugger.Server do
          request(_cmd, "evaluate", %{"expression" => expr} = _args),
          state = %__MODULE__{}
        ) do
-    timeout = 1_000
+    timeout = Map.get(state.config, "debugExpressionTimeoutMs", 10_000)
     bindings = all_variables(state.paused_processes)
 
     result = evaluate_code_expression(expr, bindings, timeout)
