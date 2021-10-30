@@ -673,6 +673,7 @@ defmodule ElixirLS.Debugger.Server do
     prev_env = Mix.env()
     task = config["task"]
     task_args = config["taskArgs"]
+    auto_interpret_files? = Map.get(config, "autoInterpretFiles", true)
 
     set_stack_trace_mode(config["stackTraceMode"])
     set_env_vars(config["env"])
@@ -714,7 +715,9 @@ defmodule ElixirLS.Debugger.Server do
       config
       |> Map.get("excludeModules", [])
 
-    interpret_modules_in(Mix.Project.build_path(), exclude_module_names)
+    if auto_interpret_files? do
+      interpret_modules_in(Mix.Project.build_path(), exclude_module_names)
+    end
 
     if required_files = config["requireFiles"], do: require_files(required_files)
 
