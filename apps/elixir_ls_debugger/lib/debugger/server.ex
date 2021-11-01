@@ -721,6 +721,9 @@ defmodule ElixirLS.Debugger.Server do
 
     if required_files = config["requireFiles"], do: require_files(required_files)
 
+    if interpret_modules_pattern = config["interpretModulesPatterns"],
+      do: interpret_modules_pattern(interpret_modules_pattern)
+
     ElixirLS.Debugger.Output.send_event("initialized", %{})
   end
 
@@ -866,6 +869,37 @@ defmodule ElixirLS.Debugger.Server do
         is_list(modules),
         {module, beam_bin} <- modules,
         do: save_and_reload(module, beam_bin)
+  end
+
+  defp interpret_modules_pattern(file_patterns) do
+    regexes =
+      Enum.flat_map(file_patterns, fn pattern ->
+        case Regex.compile(pattern) do
+          {:ok, regex} ->
+            [regex]
+
+          {:error, error} ->
+            IO.puts(
+              :standard_error,
+              "Unable to compile file pattern (#{inspect(pattern)}) into a regex. Received error: #{
+                inspect(error)
+              }"
+            )
+
+            []
+        end
+      end)
+
+    ElixirSense.all_modules()
+    |> Enum.filter(fn module_name ->
+      Enum.find(regexes, fn regex ->
+        Regex.match?(regex, module_name)
+      end)
+    end)
+    |> Enum.map(fn module_name -> Module.concat(Elixir, module_name) end)
+    |> Enum.each(fn module ->
+      :int.ni(module)
+    end)
   end
 
   defp save_and_reload(module, beam_bin) do
