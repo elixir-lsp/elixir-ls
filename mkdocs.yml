@@ -1,0 +1,30 @@
+site_name: ElixirLS
+site_url: https://elixir-ls.github.io
+repo_name: elixir-lsp/elixir-ls
+repo_url: https://github.com/elixir-lsp/elixir-ls
+edit_uri: ''
+theme:
+  name: 'material'
+  palette:
+    primary: 'deep purple'
+    accent: 'purple'
+plugins:
+  - search
+nav:
+  - Overview: index.md
+  - Features: features.md
+  - Install:
+    - Overview: getting-started/overview.md
+    - Emacs: getting-started/emacs.md
+    - Kakoune: getting-started/kakoune.md
+    - VSCode: getting-started/vscode.md
+    - Nova: getting-started/nova.md
+    - NeoVim : getting-started/neovim.md
+    - Kate: getting-started/kate.md
+    - Sublime: getting-started/sublime.md
+  - Troubleshooting: troubleshooting.md
+  - Known issues and limitations: known-issues-limitations.md
+markdown_extensions:
+  - admonition
+  - pymdownx.tabbed
+  - pymdownx.superfences
