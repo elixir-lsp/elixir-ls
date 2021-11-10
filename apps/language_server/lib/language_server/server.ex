@@ -1097,12 +1097,14 @@ defmodule ElixirLS.LanguageServer.Server do
     enable_dialyzer =
       Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
 
+    env_vars = Map.get(settings, "envVariables")
     mix_env = Map.get(settings, "mixEnv", "test")
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
 
     state =
       state
+      |> set_env_vars(env_vars)
       |> set_mix_env(mix_env)
       |> maybe_set_mix_target(mix_target)
       |> set_project_dir(project_dir)
@@ -1125,6 +1127,18 @@ defmodule ElixirLS.LanguageServer.Server do
       true ->
         state
     end
+  end
+
+  defp set_env_vars(state = %__MODULE__{}, env) do
+    prev_env = state.settings["envVariables"]
+
+    if is_nil(prev_env) or env == prev_env do
+      System.put_env(env)
+    else
+      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix env")
+    end
+
+    state
   end
 
   defp set_mix_env(state = %__MODULE__{}, env) do
