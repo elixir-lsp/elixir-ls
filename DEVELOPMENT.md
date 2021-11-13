@@ -26,3 +26,23 @@ Publish the draft release
 If you're debugging a running server than `IO.inspect` is a good approach, any messages you create with it will be sent to your LSP client as a log message
 
 To debug in tests you can use `IO.inspect(Process.whereis(:user), message, label: "message")` to send your output directly to the group leader of the test process.
+
+# Documentation website
+
+The documentation website is built using the [Mkdocs](https://www.mkdocs.org) static website generator. The content is written in Markdown format in the directory [docs](./docs) and is configured via the [mkdocs.yml](./mkdocs.yml) file.
+
+## Development
+
+Make sure you have a recent version of Python 3 and [Pip](https://pip.readthedocs.io/en/stable/installing/) installed.
+
+Install `mkdocs` and the `material` theme with Pip:
+
+```shell
+pip install mkdocs mkdocs-material
+```
+
+Once installed, simply run `mkdocs serve` from the project root. This will start a local web server with a file watcher.
+
+## Build
+
+To compile the website for deployment, run `mkdocs build` from the project root. The built static assets will be located in the `site` directory. These can then be served by any web hosting solution.
