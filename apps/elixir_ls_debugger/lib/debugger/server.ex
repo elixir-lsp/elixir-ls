@@ -673,7 +673,7 @@ defmodule ElixirLS.Debugger.Server do
     prev_env = Mix.env()
     task = config["task"]
     task_args = config["taskArgs"]
-    auto_interpret_files? = Map.get(config, "autoInterpretFiles", true)
+    auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
 
     set_stack_trace_mode(config["stackTraceMode"])
     set_env_vars(config["env"])
@@ -721,8 +721,8 @@ defmodule ElixirLS.Debugger.Server do
 
     if required_files = config["requireFiles"], do: require_files(required_files)
 
-    if interpret_modules_pattern = config["interpretModulesPatterns"],
-      do: interpret_modules_pattern(interpret_modules_pattern)
+    if interpret_modules_patterns = config["debugInterpretModulesPatterns"],
+      do: interpret_modules_patterns(interpret_modules_patterns)
 
     ElixirLS.Debugger.Output.send_event("initialized", %{})
   end
@@ -871,7 +871,7 @@ defmodule ElixirLS.Debugger.Server do
         do: save_and_reload(module, beam_bin)
   end
 
-  defp interpret_modules_pattern(file_patterns) do
+  defp interpret_modules_patterns(file_patterns) do
     regexes =
       Enum.flat_map(file_patterns, fn pattern ->
         case Regex.compile(pattern) do
