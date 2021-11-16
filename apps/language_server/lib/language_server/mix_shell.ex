@@ -38,7 +38,7 @@ defmodule ElixirLS.LanguageServer.MixShell do
   end
 
   @impl Mix.Shell
-  def yes?(message) do
+  def yes?(message, options \\ []) do
     if WireProtocol.io_intercepted?() do
       response =
         JsonRpc.show_message_request(:info, message, [
@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.MixShell do
           true
       end
     else
-      Mix.Shell.IO.yes?(message)
+      Mix.Shell.IO.yes?(message, options)
     end
   end
 end
