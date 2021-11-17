@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
   """
 
   alias ElixirSense.Core.Normalized.Tokenizer
+  require Logger
 
   @type t :: {atom(), {non_neg_integer(), non_neg_integer(), any()}, any()}
 
@@ -36,8 +37,12 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
           {:sigil, {b1, b2, b3}, _, _, _, delimiter} ->
             {:sigil, {b1 - 1, b2 - 1, b3}, delimiter}
 
+          {:bin_heredoc, {b1, b2, b3}, _, _} ->
+            {:bin_heredoc, {b1 - 1, b2 - 1, b3}, nil}
+
           # raise here?
-          _ ->
+          error ->
+            Logger.warn("Unmatched token: #{inspect(error)}")
             :error
         end
 
