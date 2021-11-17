@@ -55,7 +55,11 @@ defmodule ElixirLS.LanguageServer.MixShell do
           true
       end
     else
-      Mix.Shell.IO.yes?(message, options)
+      if Version.match?(System.version(), "< 1.13.0-rc.0") do
+        Mix.Shell.IO.yes?(message)
+      else
+        Mix.Shell.IO.yes?(message, options)
+      end
     end
   end
 end
