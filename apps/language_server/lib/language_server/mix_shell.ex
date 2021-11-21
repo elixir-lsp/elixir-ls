@@ -38,7 +38,7 @@ defmodule ElixirLS.LanguageServer.MixShell do
   end
 
   @impl Mix.Shell
-  def yes?(message) do
+  def yes?(message, options \\ []) do
     if WireProtocol.io_intercepted?() do
       response =
         JsonRpc.show_message_request(:info, message, [
@@ -55,7 +55,12 @@ defmodule ElixirLS.LanguageServer.MixShell do
           true
       end
     else
-      Mix.Shell.IO.yes?(message)
+      # TODO convert to to normal call when we require elixir 1.13
+      if Version.match?(System.version(), "< 1.13.0-rc.0") do
+        apply(Mix.Shell.IO, :yes?, [message])
+      else
+        apply(Mix.Shell.IO, :yes?, [message, options])
+      end
     end
   end
 end
