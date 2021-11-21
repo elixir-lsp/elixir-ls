@@ -974,10 +974,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    Inspects and writes the given `item` to the device.
 
                    ```
-                   @spec inspect(item, keyword) :: item
-                   when item: var
-                   ```
-                   """
+                   @spec inspect\
+                   """ <> _
                  },
                  "label" => "inspect(item, opts \\\\ [])",
                  "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
@@ -1003,7 +1001,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  ]
                }
              ]
-           }) == resp
+           }) = resp
   end
 
   @tag :fixture
