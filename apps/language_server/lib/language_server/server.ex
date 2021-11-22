@@ -1104,7 +1104,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     state =
       state
-      |> set_env_vars(env_vars)
+      |> maybe_set_env_vars(env_vars)
       |> set_mix_env(mix_env)
       |> maybe_set_mix_target(mix_target)
       |> set_project_dir(project_dir)
@@ -1129,7 +1129,9 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp set_env_vars(state = %__MODULE__{}, env) do
+  defp maybe_set_env_vars(state = %__MODULE__{}, nil), do: state
+
+  defp maybe_set_env_vars(state = %__MODULE__{}, env) do
     prev_env = state.settings["envVariables"]
 
     if is_nil(prev_env) or env == prev_env do
