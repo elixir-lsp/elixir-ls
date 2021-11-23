@@ -509,7 +509,7 @@ defmodule ElixirLS.Debugger.ServerTest do
   end
 
   describe "Watch section" do
-    defp gen_packet(expr) do
+    defp gen_watch_expression_packet(expr) do
       %{
         "arguments" => %{
           "context" => "watch",
@@ -527,7 +527,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(
         server,
-        gen_packet("1 + 2 + 3 + 4")
+        gen_watch_expression_packet("1 + 2 + 3 + 4")
       )
 
       assert_receive(%{"body" => %{"result" => "10"}}, 1000)
@@ -541,7 +541,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(
         server,
-        gen_packet("1 = 2")
+        gen_watch_expression_packet("1 = 2")
       )
 
       assert_receive(%{"body" => %{"result" => result}}, 1000)
@@ -556,7 +556,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(
         server,
-        gen_packet("Process.exit(self(), :normal)")
+        gen_watch_expression_packet("Process.exit(self(), :normal)")
       )
 
       assert_receive(%{"body" => %{"result" => result}}, 1000)
@@ -571,7 +571,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(
         server,
-        gen_packet("throw(:goodmorning_bug)")
+        gen_watch_expression_packet("throw(:goodmorning_bug)")
       )
 
       assert_receive(%{"body" => %{"result" => result}}, 1000)
@@ -583,10 +583,24 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression which has long execution", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
 
       Server.receive_packet(
         server,
-        gen_packet(":timer.sleep(10_000)")
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "test",
+          "projectDir" => File.cwd!(),
+          "debugExpressionTimeoutMs" => 500
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+
+      Server.receive_packet(
+        server,
+        gen_watch_expression_packet(":timer.sleep(10_000)")
       )
 
       assert_receive(%{"body" => %{"result" => result}}, 1100)

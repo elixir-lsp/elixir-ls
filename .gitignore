@@ -32,3 +32,6 @@ erl_crash.dump
 # But many contributors will use their own to specify their own minimum
 # supported version
 .tool-versions
+
+# Mkdocs static website build directory
+/site

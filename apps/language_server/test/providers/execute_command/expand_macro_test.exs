@@ -64,6 +64,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                }
              })
 
+    if Version.match?(System.version(), "< 1.13.0-rc.0") do
     assert res == %{
              "expand" => """
              require(ElixirLS.Test.MacroA)
@@ -96,5 +97,39 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
              )
              """
            }
+          else
+            assert res == %{
+              "expand" => """
+              require ElixirLS.Test.MacroA
+              ElixirLS.Test.MacroA.__using__([])
+              """,
+              "expandAll" => """
+              require ElixirLS.Test.MacroA
+ 
+              (
+                import ElixirLS.Test.MacroA
+ 
+                def macro_a_func do
+                  :ok
+                end
+              )
+              """,
+              "expandOnce" => """
+              require ElixirLS.Test.MacroA
+              ElixirLS.Test.MacroA.__using__([])
+              """,
+              "expandPartial" => """
+              require ElixirLS.Test.MacroA
+ 
+              (
+                import ElixirLS.Test.MacroA
+ 
+                def macro_a_func do
+                  :ok
+                end
+              )
+              """
+            }
+          end
   end
 end
