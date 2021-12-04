@@ -933,7 +933,7 @@ defmodule ElixirLS.LanguageServer.Server do
         state
 
       not state.build_running? ->
-        fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", true)
+        fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", false)
 
         {_pid, build_ref} =
           Build.build(self(), project_dir,
