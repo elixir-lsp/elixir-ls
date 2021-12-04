@@ -59,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
     Enum.any?(inputs, fn input_glob ->
       glob = Path.join(formatter_dir, input_glob)
-      PathGlob.match?(file_path, glob, match_dot: true)
+      PathGlobVendored.match?(file_path, glob, match_dot: true)
     end)
   end
 
