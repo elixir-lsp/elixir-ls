@@ -917,6 +917,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])
 
+      uri
+      |> SourceFile.abs_path_from_uri()
+      |> File.write!("")
+
       code = """
       defmodule MyModule do
         def my_fn do
