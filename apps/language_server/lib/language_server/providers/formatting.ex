@@ -53,21 +53,35 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   defp can_format?(_uri, _project_dir), do: false
 
-  def should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
+  defp should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
     file_path = file_uri |> SourceFile.abs_path_from_uri()
+    formatter_dir = find_formatter_dir(project_dir, Path.dirname(file_path))
 
-    inputs
-    |> Stream.flat_map(fn glob ->
-      [
-        Path.join([project_dir, glob]),
-        Path.join([project_dir, "apps", "*", glob])
-      ]
+    Enum.any?(inputs, fn input_glob ->
+      glob = Path.join(formatter_dir, input_glob)
+      PathGlobVendored.match?(file_path, glob, match_dot: true)
     end)
-    |> Stream.flat_map(&Path.wildcard(&1, match_dot: true))
-    |> Enum.any?(&(file_path == &1))
   end
 
-  def should_format?(_file_uri, _project_dir, _inputs), do: true
+  defp should_format?(_file_uri, _project_dir, _inputs), do: true
+
+  # Finds the deepest directory that contains file_path, that also contains a
+  # .formatter.exs. It's possible, though unlikely, that the .formatter.exs we
+  # find is not actually linked to the project_dir via the :subdirectories
+  # option in the top-level .formatter.exs. Currently, that edge case is
+  # glossed over.
+  defp find_formatter_dir(project_dir, dir) do
+    cond do
+      dir == project_dir ->
+        project_dir
+
+      Path.join(dir, ".formatter.exs") |> File.exists?() ->
+        dir
+
+      true ->
+        find_formatter_dir(project_dir, Path.dirname(dir))
+    end
+  end
 
   defp myers_diff_to_text_edits(myers_diff) do
     myers_diff_to_text_edits(myers_diff, {0, 0}, [])

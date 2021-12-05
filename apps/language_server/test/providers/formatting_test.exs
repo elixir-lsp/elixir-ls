@@ -474,18 +474,49 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     end)
   end
 
+  @tag :fixture
   test "honors :inputs when deciding to format" do
-    file = __ENV__.file
-    uri = SourceFile.path_to_uri(file)
-    project_dir = Path.dirname(file)
+    in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      project_dir = Path.expand(".")
 
-    opts = []
-    assert Formatting.should_format?(uri, project_dir, opts[:inputs])
+      assert_formatted("file.ex", project_dir)
 
-    opts = [inputs: ["*.exs"]]
-    assert Formatting.should_format?(uri, project_dir, opts[:inputs])
+      # test/.formatter.exs has [inputs: ["*.exs"]]
+      assert_formatted("test/file.exs", project_dir)
+      refute_formatted("test/file.ex", project_dir)
 
-    opts = [inputs: ["*.ex"]]
-    refute Formatting.should_format?(uri, project_dir, opts[:inputs])
+      assert_formatted("symlink/file.exs", project_dir)
+      refute_formatted("symlink/file.ex", project_dir)
+
+      File.mkdir!("#{project_dir}/test/foo")
+      refute_formatted("test/foo/file.ex", project_dir)
+
+      # apps/foo/bar/.formatter.exs has [inputs: ["foo.ex"]]
+      assert_formatted("apps/foo/foo.ex", project_dir)
+      refute_formatted("apps/foo/bar.ex", project_dir)
+      refute_formatted("apps/foo.ex", project_dir)
+    end)
+  end
+
+  def assert_formatted(path, project_dir) do
+    assert match?({:ok, [%{}]}, format(path, project_dir)), "expected '#{path}' to be formatted"
+  end
+
+  def refute_formatted(path, project_dir) do
+    assert match?({:ok, []}, format(path, project_dir)), "expected '#{path}' not to be formatted"
+  end
+
+  defp format(path, project_dir) do
+    project_dir = maybe_convert_path_separators(project_dir)
+    path = maybe_convert_path_separators("#{project_dir}/#{path}")
+
+    source_file = %SourceFile{
+      text: "",
+      version: 1,
+      dirty?: true
+    }
+
+    File.write!(path, "")
+    Formatting.format(source_file, SourceFile.path_to_uri(path), project_dir)
   end
 end

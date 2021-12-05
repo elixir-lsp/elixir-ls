@@ -158,8 +158,7 @@ defmodule ElixirLS.LanguageServer.Build do
         # The project may override our logger config, so we reset it after loading their config
         logger_config = Application.get_all_env(:logger)
         Mix.Task.run("loadconfig")
-        # NOTE: soft-deprecated in v1.10
-        Mix.Config.persist(logger: logger_config)
+        Application.put_all_env([logger: logger_config], persistent: true)
       end
 
       {status, diagnostics}

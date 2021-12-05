@@ -652,6 +652,24 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert state.needs_build? || state.build_running?
     end
 
+    # https://github.com/elixir-lsp/elixir-ls/pull/569
+    @tag :additional_extension
+    test "watched file updated outside, non-default extension", %{server: server} do
+      uri = "file:///file.veex"
+      fake_initialize(server)
+
+      # Simulate settings related to this test
+      :sys.replace_state(server, fn state ->
+        %{state | settings: %{"additionalWatchedExtensions" => [".veex"]}}
+      end)
+
+      # Check if *.veex file triggers build
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+
+      state = :sys.get_state(server)
+      assert state.needs_build? || state.build_running?
+    end
+
     test "gracefully skip not supported URI scheme", %{server: server} do
       uri = "git://github.com/user/repo.git"
       fake_initialize(server)
@@ -899,6 +917,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     in_fixture(__DIR__, "formatter", fn ->
       uri = Path.join([root_uri(), "file.ex"])
 
+      uri
+      |> SourceFile.abs_path_from_uri()
+      |> File.write!("")
+
       code = """
       defmodule MyModule do
         def my_fn do
@@ -970,10 +992,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    Inspects and writes the given `item` to the device.
 
                    ```
-                   @spec inspect(item, keyword) :: item
-                   when item: var
-                   ```
-                   """
+                   @spec inspect\
+                   """ <> _
                  },
                  "label" => "inspect(item, opts \\\\ [])",
                  "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
@@ -999,7 +1019,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  ]
                }
              ]
-           }) == resp
+           }) = resp
   end
 
   @tag :fixture
