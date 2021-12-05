@@ -1,5 +1,30 @@
 ### Unreleased
 
+### v0.9.0: 4 December 2021
+
+Improvements:
+- Elixir 1.13 support (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#620](https://github.com/elixir-lsp/elixir-ls/pull/620)
+- Fix formatting performance problems with .formatter.exs in subdirectories (thanks [Jon Leighton](https://github.com/jonleighton)) [#609](https://github.com/elixir-lsp/elixir-ls/pull/609)
+- Allow watching additional extensions via `additionalWatchedExtensions` (thanks [Vanja Bucic](https://github.com/vanjabucic)) [#569](https://github.com/elixir-lsp/elixir-ls/pull/569)
+- Support for setting additional environment variables (thanks [vacarsu](https://github.com/vacarsu)) [#622](https://github.com/elixir-lsp/elixir-ls/pull/622)
+- Allow configuring debugExpressionTimeoutMs (thanks [Jason Axelson](https://github.com/axelson)) [#613](https://github.com/elixir-lsp/elixir-ls/pull/613)
+
+Changes:
+- Default `fetchDeps` to false (thanks [Jason Axelson](https://github.com/axelson)) [#633](https://github.com/elixir-lsp/elixir-ls/pull/633)
+  - `fetchDeps` causes some bad race conditions, especially with Elixir 1.13
+
+Bug Fixes:
+- Add indentation following \"do\" completion (thanks [AJ Foster](https://github.com/aj-foster)) [#606](https://github.com/elixir-lsp/elixir-ls/pull/606)
+
+Housekeeping:
+- Add initial mkdocs documentation website (thanks [Daniils Petrovs](https://github.com/DaniruKun)) [#619](https://github.com/elixir-lsp/elixir-ls/pull/619)
+- Update to elixir-lsp fork of mix_task_archive_deps (thanks [Jason Axelson](https://github.com/axelson)) [#628](https://github.com/elixir-lsp/elixir-ls/pull/628)
+
+VSCode:
+- Change the default of `fetchDeps` to false (thanks [Jason Axelson](https://github.com/axelson)) [#189](https://github.com/elixir-lsp/vscode-elixir-ls/pull/189)
+- Allow configuring the debug expression timeout (thanks [Jason Axelson](https://github.com/axelson)) [#210](https://github.com/elixir-lsp/vscode-elixir-ls/pull/210)
+- Set which pairs of brackets should be colorized (thanks [S. Arjun](https://github.com/systemctl603)) [#207](https://github.com/elixir-lsp/vscode-elixir-ls/pull/207)
+
 ### v0.8.1: 1 September 2021
 
 Improvements:
