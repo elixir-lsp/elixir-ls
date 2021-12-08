@@ -31,6 +31,10 @@ jobs:
           - elixir: 1.12.x
             otp: 24.0.x
             tests_may_fail: false
+            check_unused_deps: true
+          - elixir: 1.13.x
+            otp: 24.0.x
+            tests_may_fail: false
             warnings_as_errors: true
             check_formatted: true
             check_unused_deps: true
