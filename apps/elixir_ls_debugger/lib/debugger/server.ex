@@ -872,9 +872,7 @@ defmodule ElixirLS.Debugger.Server do
           {:error, error} ->
             IO.puts(
               :standard_error,
-              "Unable to compile file pattern (#{inspect(pattern)}) into a regex. Received error: #{
-                inspect(error)
-              }"
+              "Unable to compile file pattern (#{inspect(pattern)}) into a regex. Received error: #{inspect(error)}"
             )
 
             []
