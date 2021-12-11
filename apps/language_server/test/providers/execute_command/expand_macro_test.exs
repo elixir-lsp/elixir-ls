@@ -64,7 +64,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                }
              })
 
-    if Version.match?(System.version(), "< 1.13.0-rc.0") do
+    if Version.match?(System.version(), "< 1.13.0") do
     assert res == %{
              "expand" => """
              require(ElixirLS.Test.MacroA)
