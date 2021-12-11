@@ -31,7 +31,13 @@ jobs:
           - elixir: 1.12.x
             otp: 24.0.x
             tests_may_fail: false
+            check_unused_deps: true
             warnings_as_errors: true
+          - elixir: 1.13.x
+            otp: 24.0.x
+            tests_may_fail: false
+            # Needs to be false until https://github.com/elixir-lsp/elixir-ls/issues/642 is fixed
+            warnings_as_errors: false
             check_formatted: true
             check_unused_deps: true
             run_dialyzer: true
