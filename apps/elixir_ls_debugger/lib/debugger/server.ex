@@ -943,7 +943,7 @@ defmodule ElixirLS.Debugger.Server do
     modules
     |> Enum.each(fn mod ->
       if should_interpret?(mod, exclude_module_pattern) do
-        interpret_module()
+        interpret_module(mod)
       end
     end)
   end
