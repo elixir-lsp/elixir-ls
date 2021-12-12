@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.Formatting do
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
 
   def format(%SourceFile{} = source_file, uri, project_dir) when is_binary(project_dir) do
@@ -97,17 +98,17 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
         myers_diff_to_text_edits(rest, advance_pos({line, col}, str), edits)
 
       {{:ins, str}, _} ->
-        edit = %{"range" => range(line, col, line, col), "newText" => str}
+        edit = %TextEdit{range: range(line, col, line, col), newText: str}
         myers_diff_to_text_edits(rest, {line, col}, [edit | edits])
 
       {{:del, del_str}, [{:ins, ins_str} | rest]} ->
         {end_line, end_col} = advance_pos({line, col}, del_str)
-        edit = %{"range" => range(line, col, end_line, end_col), "newText" => ins_str}
+        edit = %TextEdit{range: range(line, col, end_line, end_col), newText: ins_str}
         myers_diff_to_text_edits(rest, {end_line, end_col}, [edit | edits])
 
       {{:del, str}, _} ->
         {end_line, end_col} = advance_pos({line, col}, str)
-        edit = %{"range" => range(line, col, end_line, end_col), "newText" => ""}
+        edit = %TextEdit{range: range(line, col, end_line, end_col), newText: ""}
         myers_diff_to_text_edits(rest, {end_line, end_col}, [edit | edits])
     end
   end
