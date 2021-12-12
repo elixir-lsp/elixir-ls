@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Line do
   @type cell :: {non_neg_integer(), non_neg_integer() | nil}
   @type t :: {String.t(), cell(), String.t()}
 
-  @spec format_string(String.t()) :: [cell()]
+  @spec format_string(String.t()) :: [t()]
   def format_string(text) do
     text
     |> SourceFile.lines()
