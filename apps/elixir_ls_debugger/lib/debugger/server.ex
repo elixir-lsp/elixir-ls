@@ -673,6 +673,7 @@ defmodule ElixirLS.Debugger.Server do
     prev_env = Mix.env()
     task = config["task"]
     task_args = config["taskArgs"]
+    auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
 
     set_stack_trace_mode(config["stackTraceMode"])
     set_env_vars(config["env"])
@@ -714,9 +715,19 @@ defmodule ElixirLS.Debugger.Server do
       config
       |> Map.get("excludeModules", [])
 
-    interpret_modules_in(Mix.Project.build_path(), exclude_module_names)
+    exclude_module_pattern =
+      exclude_module_names
+      |> Enum.map(&wildcard_module_name_to_pattern/1)
+
+    if auto_interpret_files? do
+      auto_interpret_modules(Mix.Project.build_path(), exclude_module_pattern)
+    end
 
     if required_files = config["requireFiles"], do: require_files(required_files)
+
+    if interpret_modules_patterns = config["debugInterpretModulesPatterns"] do
+      interpret_specified_modules(interpret_modules_patterns, exclude_module_pattern)
+    end
 
     ElixirLS.Debugger.Output.send_event("initialized", %{})
   end
@@ -762,26 +773,12 @@ defmodule ElixirLS.Debugger.Server do
     }
   end
 
-  defp interpret_modules_in(path, exclude_module_names) do
-    exclude_module_pattern =
-      exclude_module_names
-      |> Enum.map(&wildcard_module_name_to_pattern/1)
-
+  defp auto_interpret_modules(path, exclude_module_pattern) do
     path
     |> Path.join("**/*.beam")
     |> Path.wildcard()
     |> Enum.map(&(Path.basename(&1, ".beam") |> String.to_atom()))
-    |> Enum.filter(&interpretable?(&1, exclude_module_pattern))
-    |> Enum.map(fn mod ->
-      try do
-        {:module, _} = :int.ni(mod)
-      catch
-        _, _ ->
-          IO.warn(
-            "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
-          )
-      end
-    end)
+    |> interpret_modules(exclude_module_pattern)
   end
 
   defp wildcard_module_name_to_pattern(module_name) do
@@ -792,7 +789,7 @@ defmodule ElixirLS.Debugger.Server do
     |> Regex.compile!()
   end
 
-  defp interpretable?(module, exclude_module_pattern) do
+  defp should_interpret?(module, exclude_module_pattern) do
     :int.interpretable(module) == true and !:code.is_sticky(module) and module != __MODULE__ and
       not excluded_module?(module, exclude_module_pattern)
   end
@@ -865,6 +862,33 @@ defmodule ElixirLS.Debugger.Server do
         do: save_and_reload(module, beam_bin)
   end
 
+  defp interpret_specified_modules(file_patterns, exclude_module_pattern) do
+    regexes =
+      Enum.flat_map(file_patterns, fn pattern ->
+        case Regex.compile(pattern) do
+          {:ok, regex} ->
+            [regex]
+
+          {:error, error} ->
+            IO.puts(
+              :standard_error,
+              "Unable to compile file pattern (#{inspect(pattern)}) into a regex. Received error: #{inspect(error)}"
+            )
+
+            []
+        end
+      end)
+
+    ElixirSense.all_modules()
+    |> Enum.filter(fn module_name ->
+      Enum.find(regexes, fn regex ->
+        Regex.match?(regex, module_name)
+      end)
+    end)
+    |> Enum.map(fn module_name -> Module.concat(Elixir, module_name) end)
+    |> interpret_modules(exclude_module_pattern)
+  end
+
   defp save_and_reload(module, beam_bin) do
     :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
     true = :code.delete(module)
@@ -910,6 +934,26 @@ defmodule ElixirLS.Debugger.Server do
 
       _ ->
         {:error, "Cannot interpret module #{inspect(module)}"}
+    end
+  end
+
+  defp interpret_modules(modules, exclude_module_pattern) do
+    modules
+    |> Enum.each(fn mod ->
+      if should_interpret?(mod, exclude_module_pattern) do
+        interpret_module(mod)
+      end
+    end)
+  end
+
+  defp interpret_module(mod) do
+    try do
+      {:module, _} = :int.ni(mod)
+    catch
+      _, _ ->
+        IO.warn(
+          "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
+        )
     end
   end
 end
