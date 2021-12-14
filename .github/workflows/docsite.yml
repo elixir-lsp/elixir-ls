@@ -1,12 +1,9 @@
 name: Build and Publish docsite
 
 on:
-  pull_request:
-    branches:
-      - master
   push:
-    branches:
-      - master
+    tags:
+      - 'v*'
 
 jobs:
   build:
