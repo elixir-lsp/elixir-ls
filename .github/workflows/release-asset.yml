@@ -88,21 +88,3 @@ jobs:
           asset_name: elixir-ls.zip
           asset_content_type: application/zip
 
-  build-docsite:
-    name: Build Mkdocs website
-    runs-on: ubuntu-latest
-    container:
-      image: squidfunk/mkdocs-material
-    steps:
-      - name: Build
-        run: mkdocs build -s
-
-  publish-docsite:
-    name: Publish Mkdocs website to GH Pages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish
-        uses: JamesIves/github-pages-deploy-action@4.1.6
-        with:
-          branch: mkdocs
-          folder: site
