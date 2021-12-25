@@ -26,7 +26,8 @@ defmodule ElixirLS.Debugger.Mixfile do
   defp deps do
     [
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
-      {:elixir_ls_utils, in_umbrella: true}
+      {:elixir_ls_utils, in_umbrella: true},
+      {:dialyxir, "~> 1.0", runtime: false}
     ]
   end
 end
