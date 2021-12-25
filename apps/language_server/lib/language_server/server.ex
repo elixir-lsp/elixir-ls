@@ -1138,7 +1138,10 @@ defmodule ElixirLS.LanguageServer.Server do
     if is_nil(prev_env) or env == prev_env do
       System.put_env(env)
     else
-      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing environment variables")
+      JsonRpc.show_message(
+        :warning,
+        "You must restart ElixirLS after changing environment variables"
+      )
     end
 
     state

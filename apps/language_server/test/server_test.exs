@@ -988,12 +988,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                %{
                  "documentation" => %{
                    "kind" => "markdown",
-                   "value" => """
-                   Inspects and writes the given `item` to the device.
+                   "value" =>
+                     """
+                     Inspects and writes the given `item` to the device.
 
-                   ```
-                   @spec inspect\
-                   """ <> _
+                     ```
+                     @spec inspect\
+                     """ <> _
                  },
                  "label" => "inspect(item, opts \\\\ [])",
                  "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]

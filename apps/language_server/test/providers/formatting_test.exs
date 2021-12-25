@@ -35,7 +35,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       assert changes == [
                %TextEdit{
                  newText: ")",
-                 range:  %{
+                 range: %{
                    "end" => %{"character" => 23, "line" => 4},
                    "start" => %{"character" => 23, "line" => 4}
                  }
