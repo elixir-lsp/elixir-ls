@@ -764,19 +764,6 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  # TODO remove in ElixirLS 0.8
-  defp handle_request(
-         macro_expansion(_id, whole_buffer, selected_macro, macro_line),
-         state = %__MODULE__{}
-       ) do
-    IO.warn(
-      "Custom `elixirDocument/macroExpansion` request is deprecated. Switch to command `executeMacro` via `workspace/executeCommand`"
-    )
-
-    x = ElixirSense.expand_full(whole_buffer, selected_macro, macro_line)
-    {:ok, x, state}
-  end
-
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
     {:error, :method_not_found, nil, state}
