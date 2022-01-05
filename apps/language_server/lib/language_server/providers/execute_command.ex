@@ -3,13 +3,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
   Adds a @spec annotation to the document when the user clicks on a code lens.
   """
 
-  alias ElixirLS.LanguageServer.Providers.ExecuteCommand, as: C
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand
 
   @handlers %{
-    "spec" => C.ApplySpec,
-    "expandMacro" => C.ExpandMacro,
-    "manipulatePipes" => C.ManipulatePipes,
-    "restart" => C.Restart
+    "spec" => ExecuteCommand.ApplySpec,
+    "expandMacro" => ExecuteCommand.ExpandMacro,
+    "manipulatePipes" => ExecuteCommand.ManipulatePipes,
+    "restart" => ExecuteCommand.Restart
   }
 
   @callback execute([any], %ElixirLS.LanguageServer.Server{}) ::
