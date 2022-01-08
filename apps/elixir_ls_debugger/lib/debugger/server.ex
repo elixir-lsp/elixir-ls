@@ -249,10 +249,6 @@ defmodule ElixirLS.Debugger.Server do
     {%{"breakpoints" => breakpoints_json}, state}
   end
 
-  defp handle_request(set_exception_breakpoints_req(_), state = %__MODULE__{}) do
-    {%{}, state}
-  end
-
   defp handle_request(configuration_done_req(_), state = %__MODULE__{}) do
     server = :erlang.process_info(self())[:registered_name] || self()
     :int.auto_attach([:break], {__MODULE__, :breakpoint_reached, [server]})

@@ -118,9 +118,6 @@ defmodule ElixirLS.Debugger.ServerTest do
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
 
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
-
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
 
@@ -221,9 +218,6 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive(
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
-
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
@@ -376,9 +370,6 @@ defmodule ElixirLS.Debugger.ServerTest do
         1000
       )
 
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
-
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
 
@@ -437,9 +428,6 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive(
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
-
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))

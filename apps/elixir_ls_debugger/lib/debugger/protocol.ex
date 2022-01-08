@@ -35,12 +35,6 @@ defmodule ElixirLS.Debugger.Protocol do
     end
   end
 
-  defmacro set_exception_breakpoints_req(seq) do
-    quote do
-      request(unquote(seq), "setExceptionBreakpoints")
-    end
-  end
-
   defmacro configuration_done_req(seq) do
     quote do
       request(unquote(seq), "configurationDone")
