@@ -29,7 +29,8 @@ defmodule ElixirLS.Debugger.Server do
             paused_processes: %{},
             next_id: 1,
             output: Output,
-            breakpoints: %{}
+            breakpoints: %{},
+            function_breakpoints: []
 
   defmodule PausedProcess do
     defstruct stack: nil,
@@ -112,6 +113,8 @@ defmodule ElixirLS.Debugger.Server do
         paused_process = %PausedProcess{stack: Stacktrace.get(pid), ref: ref}
         state = put_in(state.paused_processes[pid], paused_process)
 
+        # Debugger Adapter Protocol requires us to return 'function breakpoint' reason
+        # but we can't tell what kind of a breakpoint was hit
         body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
         Output.send_event("stopped", body)
         state
@@ -243,6 +246,53 @@ defmodule ElixirLS.Debugger.Server do
     breakpoints_json =
       Enum.map(result, fn
         {:ok, _, _} -> %{"verified" => true}
+        {:error, error} -> %{"verified" => false, "message" => error}
+      end)
+
+    {%{"breakpoints" => breakpoints_json}, state}
+  end
+
+  defp handle_request(
+         set_function_breakpoints_req(_, breakpoints),
+         state = %__MODULE__{}
+       ) do
+    # condition and hitCondition not supported
+    mfas = for %{"name" => name} <- breakpoints do
+      parse_mfa(name)
+    end
+
+    parsed_mfas = for {:ok, mfa} <- mfas, do: mfa
+
+    removed_breakpoints = state.function_breakpoints -- parsed_mfas
+    new_breakpoints = parsed_mfas -- state.function_breakpoints
+
+    for {m, f, a} <- removed_breakpoints do
+      case :int.del_break_in(m, f, a) do
+        :ok -> :ok
+        {:error, :function_not_found} ->
+          IO.warn("Unable to delete function breakpoint on #{inspect({m, f, a})}")
+      end
+    end
+
+    results = for {m, f, a} <- new_breakpoints, into: %{}, do: (
+      result = :int.break_in(m, f, a)
+      {{m, f, a}, result}
+    )
+
+    successful = for {mfa, :ok} <- results, do: mfa
+
+    state = %{state | function_breakpoints: (state.function_breakpoints -- removed_breakpoints) ++ successful}
+
+    breakpoints_json =
+      Enum.map(mfas, fn
+        {:ok, mfa} ->
+          if mfa in state.function_breakpoints do
+            %{"verified" => true}
+          else
+            {:error, error} = results[mfa]
+            %{"verified" => false, "message" => inspect(error)}
+          end
+          
         {:error, error} -> %{"verified" => false, "message" => error}
       end)
 
@@ -747,7 +797,7 @@ defmodule ElixirLS.Debugger.Server do
   defp capabilities do
     %{
       "supportsConfigurationDoneRequest" => true,
-      "supportsFunctionBreakpoints" => false,
+      "supportsFunctionBreakpoints" => true,
       "supportsConditionalBreakpoints" => false,
       "supportsHitConditionalBreakpoints" => false,
       "supportsEvaluateForHovers" => false,
@@ -950,6 +1000,19 @@ defmodule ElixirLS.Debugger.Server do
         IO.warn(
           "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
         )
+    end
+  end
+
+  defp parse_mfa(mfa_str) do
+    case Code.string_to_quoted(mfa_str) do
+      {:ok, {:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}} when is_atom(fun) and is_integer(arity) ->
+        case mod do
+          atom when is_atom(atom) -> {:ok, {atom, fun, arity}}
+          {:__aliases__, _, list} when is_list(list) ->
+            {:ok, {list |> Module.concat, fun, arity}}
+          _ -> {:error, "cannot parse MFA"}
+        end
+      _ -> {:error, "cannot parse MFA"}
     end
   end
 end
