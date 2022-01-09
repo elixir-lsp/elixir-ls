@@ -18,7 +18,7 @@ defmodule ElixirLS.Debugger.UtilsTest do
 
     test "erlang" do
       assert {:ok, {:some_module, :fun, 2}} == Utils.parse_mfa(":some_module.fun/2")
-      assert {:ok, {:'Some.Module', :fun, 2}} == Utils.parse_mfa(":'Some.Module'.fun/2")
+      assert {:ok, {:"Some.Module", :fun, 2}} == Utils.parse_mfa(":'Some.Module'.fun/2")
     end
 
     test "invalid" do

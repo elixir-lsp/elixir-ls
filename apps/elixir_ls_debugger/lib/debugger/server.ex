@@ -242,11 +242,12 @@ defmodule ElixirLS.Debugger.Server do
     result = set_breakpoints(path, new_lines)
     new_bps = for {:ok, module, line} <- result, do: {module, line}
 
-    state = if new_bps == [] do
-      %{state | breakpoints: state.breakpoints |> Map.delete(path)}
-    else
-      put_in(state.breakpoints[path], new_bps)
-    end
+    state =
+      if new_bps == [] do
+        %{state | breakpoints: state.breakpoints |> Map.delete(path)}
+      else
+        put_in(state.breakpoints[path], new_bps)
+      end
 
     breakpoints_json =
       Enum.map(result, fn
@@ -262,9 +263,10 @@ defmodule ElixirLS.Debugger.Server do
          state = %__MODULE__{}
        ) do
     # condition and hitCondition not supported
-    mfas = for %{"name" => name} <- breakpoints do
-      Utils.parse_mfa(name)
-    end
+    mfas =
+      for %{"name" => name} <- breakpoints do
+        Utils.parse_mfa(name)
+      end
 
     parsed_mfas = for {:ok, mfa} <- mfas, do: mfa
 
@@ -273,25 +275,37 @@ defmodule ElixirLS.Debugger.Server do
 
     for {m, f, a} <- removed_breakpoints do
       case :int.del_break_in(m, f, a) do
-        :ok -> :ok
+        :ok ->
+          :ok
+
         {:error, :function_not_found} ->
           IO.warn("Unable to delete function breakpoint on #{inspect({m, f, a})}")
       end
     end
 
-    results = for {m, f, a} <- new_breakpoints, into: %{}, do: (
-      result = case :int.ni(m) do
-        {:module, _} ->
-          :int.break_in(m, f, a)
-        _ ->
-          {:error, "Cannot interpret module #{inspect(m)}"}
-        end
-      {{m, f, a}, result}
-    )
+    results =
+      for {m, f, a} <- new_breakpoints,
+          into: %{},
+          do:
+            (
+              result =
+                case :int.ni(m) do
+                  {:module, _} ->
+                    :int.break_in(m, f, a)
+
+                  _ ->
+                    {:error, "Cannot interpret module #{inspect(m)}"}
+                end
+
+              {{m, f, a}, result}
+            )
 
     successful = for {mfa, :ok} <- results, do: mfa
 
-    state = %{state | function_breakpoints: (state.function_breakpoints -- removed_breakpoints) ++ successful}
+    state = %{
+      state
+      | function_breakpoints: (state.function_breakpoints -- removed_breakpoints) ++ successful
+    }
 
     breakpoints_json =
       Enum.map(mfas, fn
@@ -302,8 +316,9 @@ defmodule ElixirLS.Debugger.Server do
             {:error, error} = results[mfa]
             %{"verified" => false, "message" => inspect(error)}
           end
-          
-        {:error, error} -> %{"verified" => false, "message" => error}
+
+        {:error, error} ->
+          %{"verified" => false, "message" => error}
       end)
 
     {%{"breakpoints" => breakpoints_json}, state}
