@@ -280,7 +280,12 @@ defmodule ElixirLS.Debugger.Server do
     end
 
     results = for {m, f, a} <- new_breakpoints, into: %{}, do: (
-      result = :int.break_in(m, f, a)
+      result = case :int.ni(m) do
+        {:module, _} ->
+          :int.break_in(m, f, a)
+        _ ->
+          {:error, "Cannot interpret module #{inspect(m)}"}
+        end
       {{m, f, a}, result}
     )
 
