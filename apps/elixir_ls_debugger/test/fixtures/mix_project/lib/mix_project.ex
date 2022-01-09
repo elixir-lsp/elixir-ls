@@ -29,3 +29,13 @@ defmodule MixProject do
     Process.sleep(:infinity)
   end
 end
+
+defmodule MixProject.Some do
+  def double(y) do
+    2 * y
+  end
+
+  def quadruple(x) do
+    double(double(x))
+  end
+end
