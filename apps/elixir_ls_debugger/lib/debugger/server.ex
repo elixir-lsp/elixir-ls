@@ -14,7 +14,7 @@ defmodule ElixirLS.Debugger.Server do
     defexception [:message, :format, :variables]
   end
 
-  alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables}
+  alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables, Utils}
   alias ElixirLS.Debugger.Stacktrace.Frame
   use GenServer
   use Protocol
@@ -263,7 +263,7 @@ defmodule ElixirLS.Debugger.Server do
        ) do
     # condition and hitCondition not supported
     mfas = for %{"name" => name} <- breakpoints do
-      parse_mfa(name)
+      Utils.parse_mfa(name)
     end
 
     parsed_mfas = for {:ok, mfa} <- mfas, do: mfa
@@ -1010,19 +1010,6 @@ defmodule ElixirLS.Debugger.Server do
         IO.warn(
           "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
         )
-    end
-  end
-
-  defp parse_mfa(mfa_str) do
-    case Code.string_to_quoted(mfa_str) do
-      {:ok, {:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}} when is_atom(fun) and is_integer(arity) ->
-        case mod do
-          atom when is_atom(atom) -> {:ok, {atom, fun, arity}}
-          {:__aliases__, _, list} when is_list(list) ->
-            {:ok, {list |> Module.concat, fun, arity}}
-          _ -> {:error, "cannot parse MFA"}
-        end
-      _ -> {:error, "cannot parse MFA"}
     end
   end
 end
