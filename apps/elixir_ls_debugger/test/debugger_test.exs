@@ -714,6 +714,75 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
   end
 
+  describe "function breakpoints" do
+    test "sets and unsets function breakpoints", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute :hello in :int.interpreted()
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [%{"name" => ":hello.hello_world/0"}])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert :hello in :int.interpreted()
+        assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
+        assert [{:hello, :hello_world, 0}] = :sys.get_state(server).function_breakpoints
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [%{"name" => ":hello.hello_world/0"}, %{"name" => "MixProject.quadruple/1"}])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}, %{"verified" => true}]}),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+        assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
+        assert [{{MixProject, 3}, _}] = :int.all_breaks(MixProject)
+        assert [{:hello, :hello_world, 0}, {MixProject, :quadruple, 1}] = :sys.get_state(server).function_breakpoints
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [%{"name" => "MixProject.quadruple/1"}])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(:hello)
+        assert [{{MixProject, 3}, _}] = :int.all_breaks(MixProject)
+        assert [{MixProject, :quadruple, 1}] = :sys.get_state(server).function_breakpoints
+      end)
+    end
+  end
+
   describe "Watch section" do
     defp gen_watch_expression_packet(expr) do
       %{
