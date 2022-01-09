@@ -730,6 +730,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression with OK result", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -744,6 +745,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     @tag :capture_log
     test "Evaluate expression with ERROR result", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -759,6 +761,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression with attempt to exit debugger process", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -774,6 +777,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression with attempt to throw debugger process", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -789,7 +793,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression which has long execution", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
-      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
