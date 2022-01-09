@@ -467,33 +467,79 @@ defmodule ElixirLS.Debugger.ServerTest do
     end)
   end
 
-  @tag :fixture
-  test "sets breakpoints in erlang modules", %{server: server} do
-    in_fixture(__DIR__, "mix_project", fn ->
-      Server.receive_packet(server, initialize_req(1, %{}))
+  describe "breakpoints" do
+    @tag :fixture
+    test "sets and unsets breakpoints in erlang modules", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
 
-      Server.receive_packet(
-        server,
-        launch_req(2, %{
-          "request" => "launch",
-          "type" => "mix_task",
-          "task" => "test",
-          "projectDir" => File.cwd!()
-        })
-      )
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!()
+          })
+        )
 
-      Server.receive_packet(
-        server,
-        set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 5}])
-      )
+        refute :hello in :int.interpreted()
 
-      assert_receive(
-        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-        3000
-      )
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 5}])
+        )
 
-      assert(:hello in :int.interpreted())
-    end)
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert :hello in :int.interpreted()
+        assert [{{:hello, 5}, [:active, :enable, :null, :null]}] == :int.all_breaks(:hello)
+        assert %{"src/hello.erl" => [hello: 5]} = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 5}, %{"line" => 6}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}, %{"verified" => true}]}),
+          3000
+        )
+
+        assert [{{:hello, 5}, _}, {{:hello, 6}, _}] = :int.all_breaks(:hello)
+        assert %{"src/hello.erl" => [{:hello, 5}, {:hello, 6}]} = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 6}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [{{:hello, 6}, _}] = :int.all_breaks(:hello)
+        assert %{"src/hello.erl" => [{:hello, 6}]} = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(:hello)
+        assert %{} == :sys.get_state(server).breakpoints
+      end)
+    end
+
   end
 
   describe "Watch section" do
@@ -597,5 +643,6 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       assert Process.alive?(server)
     end
+
   end
 end
