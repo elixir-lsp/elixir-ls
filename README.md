@@ -97,7 +97,7 @@ Installing Elixir and Erlang from [ASDF](https://github.com/asdf-vm/asdf) is gen
 
 ## Debugger support
 
-ElixirLS includes debugger support adhering to the [VS Code debugger protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging) which is closely related to the Language Server Protocol. At the moment, only line breakpoints are supported.
+ElixirLS includes debugger support adhering to the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) which is closely related to the Language Server Protocol. At the moment, line breakpoints and function breakpoints are supported.
 
 When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and dependencies prior to launching the Mix task, so you can set breakpoints anywhere in your project or dependency modules.
 
@@ -155,6 +155,8 @@ Please note that due to `:int` limitation NIF modules cannot be interpreted and 
   ]
 }
 ```
+
+Function breakpoints will break on the first line of every clause of the specified function. The function needs to be specified as MFA (module, function, arity) in the standard elixir format, e.g. `:some_module.function/1` or `Some.Module.some_function/2`.
 
 ## Automatic builds and error reporting
 
