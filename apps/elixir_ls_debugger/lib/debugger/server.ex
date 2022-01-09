@@ -241,7 +241,12 @@ defmodule ElixirLS.Debugger.Server do
 
     result = set_breakpoints(path, new_lines)
     new_bps = for {:ok, module, line} <- result, do: {module, line}
-    state = put_in(state.breakpoints[path], new_bps)
+
+    state = if new_bps == [] do
+      %{state | breakpoints: state.breakpoints |> Map.delete(path)}
+    else
+      put_in(state.breakpoints[path], new_bps)
+    end
 
     breakpoints_json =
       Enum.map(result, fn
