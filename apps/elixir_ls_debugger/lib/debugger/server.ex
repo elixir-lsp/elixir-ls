@@ -650,20 +650,8 @@ defmodule ElixirLS.Debugger.Server do
     end)
     |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
     |> Enum.flat_map(fn %Frame{bindings: bindings} ->
-      bindings |> Enum.map(&rename_binding_to_classic_variable/1)
+      Binding.to_elixir_variable_names(bindings)
     end)
-  end
-
-  defp rename_binding_to_classic_variable({key, value}) do
-    # binding is present with prefix _ and postfix @
-    # for example _key@1 and _value@1 are representations of current function variables
-    new_key =
-      key
-      |> Atom.to_string()
-      |> String.replace(~r/_(.*)@\d/, "\\1")
-      |> String.to_atom()
-
-    {new_key, value}
   end
 
   defp find_var(paused_processes, var_id) do
