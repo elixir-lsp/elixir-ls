@@ -453,6 +453,26 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp from_completion_item(
+         %{type: :bitstring_option, name: name},
+         _context,
+         options
+       ) do
+        insert_text = case name do
+          name when name in ["size", "unit"] ->
+            function_snippet(name, ["integer"], 1, options |> Keyword.merge([with_parens?: true]))
+          other -> other
+        end
+        %__MODULE__{
+          label: name,
+          detail: "bitstring option",
+          insert_text: insert_text,
+          priority: 10,
+          kind: :type_parameter,
+          tags: []
+        }
+  end
+
+  defp from_completion_item(
          %{type: :type_spec, metadata: metadata} = suggestion,
          _context,
          _options
