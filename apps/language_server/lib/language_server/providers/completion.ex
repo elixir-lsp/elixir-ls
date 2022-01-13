@@ -79,9 +79,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   def trigger_characters do
     # VS Code's 24x7 autocompletion triggers automatically on alphanumeric characters. We add these
-    # for "SomeModule." calls, @module_attrs, function capture, variable pinning, erlang module calls
-    # and bitstring options
-    [".", "@", "&", "%", "^", ":", "!", "-"]
+    # for "SomeModule." calls, @module_attrs, function capture, variable pinning, erlang module calls,
+    # bitstring options and sigils
+    [".", "@", "&", "%", "^", ":", "!", "-", "~"]
   end
 
   def completion(text, line, character, options) do
@@ -458,19 +458,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          _context,
          options
        ) do
-        insert_text = case name do
-          name when name in ["size", "unit"] ->
-            function_snippet(name, ["integer"], 1, options |> Keyword.merge([with_parens?: true]))
-          other -> other
-        end
-        %__MODULE__{
-          label: name,
-          detail: "bitstring option",
-          insert_text: insert_text,
-          priority: 10,
-          kind: :type_parameter,
-          tags: []
-        }
+    insert_text =
+      case name do
+        name when name in ["size", "unit"] ->
+          function_snippet(name, ["integer"], 1, options |> Keyword.merge(with_parens?: true))
+
+        other ->
+          other
+      end
+
+    %__MODULE__{
+      label: name,
+      detail: "bitstring option",
+      insert_text: insert_text,
+      priority: 10,
+      kind: :type_parameter,
+      tags: []
+    }
   end
 
   defp from_completion_item(
@@ -792,10 +796,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     {label, insert_text} =
       cond do
-        match?("sigil_" <> _, name) ->
-          "sigil_" <> sigil_name = name
-          text = "~#{sigil_name}"
-          {text, text}
+        match?("~" <> _, name) ->
+          "~" <> sigil_name = name
+          {name, sigil_name}
 
         use_name_only?(origin, name) or String.starts_with?(text_after_cursor, "(") ->
           {name, name}

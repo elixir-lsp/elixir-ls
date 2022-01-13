@@ -437,12 +437,12 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
         def dummy_function(var = %MyModule{}) do
           %{var |
-          #      ^
+          #       ^
         end
       end
       """
 
-      {line, char} = {4, 11}
+      {line, char} = {4, 12}
       TestUtils.assert_has_cursor_char(text, line, char)
       {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
@@ -457,12 +457,12 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       defmodule MyModule do
         def dummy_function(var = %{some: nil, other: 1}) do
           %{var |
-          #      ^
+          #       ^
         end
       end
       """
 
-      {line, char} = {2, 11}
+      {line, char} = {2, 12}
       TestUtils.assert_has_cursor_char(text, line, char)
       {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
