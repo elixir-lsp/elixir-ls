@@ -12,16 +12,16 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
     )
   end
 
-  def register_condition(name \\ __MODULE__, module, line, condition) do
-    GenServer.call(name, {:register_condition, {module, line}, condition})
+  def register_condition(name \\ __MODULE__, module, lines, condition) do
+    GenServer.call(name, {:register_condition, {module, lines}, condition})
   end
 
-  def unregister_condition(name \\ __MODULE__, module, line) do
-    GenServer.cast(name, {:unregister_condition, {module, line}})
+  def unregister_condition(name \\ __MODULE__, module, lines) do
+    GenServer.cast(name, {:unregister_condition, {module, lines}})
   end
 
-  def has_condition?(name \\ __MODULE__, module, line) do
-    GenServer.call(name, {:has_condition?, {module, line}})
+  def has_condition?(name \\ __MODULE__, module, lines) do
+    GenServer.call(name, {:has_condition?, {module, lines}})
   end
 
   def get_condition(name \\ __MODULE__, number) do
