@@ -1,9 +1,4 @@
 defmodule ElixirLS.Debugger.UtilsTest do
-  # Awkwardly, testing that the debugger can debug ExUnit tests in the fixture project
-  # gives us no way to capture the output, since ExUnit doesn't really distinguish
-  # between the debugger's tests and the fixture project's tests. Expect to see output printed
-  # from both.
-
   use ElixirLS.Utils.MixTest.Case, async: true
   alias ElixirLS.Debugger.Utils
 
