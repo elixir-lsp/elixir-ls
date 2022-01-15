@@ -166,7 +166,7 @@ Function breakpoints will break on the first line of every clause of the specifi
 
 ### Conditional breakpoints
 
-Break conditions are supported and evaluate elixir expressions within the context set of breakpoints. There is currently a limit of 100 breakpoint conditions. Due to limitations in `:int` breakpoint conditions cannot be unset and are not supported on function breakpoints. See also limitations on Expression evaluator for further details.
+Break conditions are supported and evaluate elixir expressions within the context set of breakpoints. There is currently a limit of 100 breakpoint conditions. Due to limitations in `:int` breakpoint conditions cannot be unset. See also limitations on Expression evaluator for further details.
 
 ### Expression evaluator
 
