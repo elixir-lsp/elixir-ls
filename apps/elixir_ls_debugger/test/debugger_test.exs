@@ -740,6 +740,103 @@ defmodule ElixirLS.Debugger.ServerTest do
         assert %{} == :sys.get_state(server).breakpoints
       end)
     end
+
+    @tag :fixture
+    test "sets, modifies and unsets conditional breakpoints", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute MixProject in :int.interpreted()
+
+        # set
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "condition" => "a == b"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+
+        assert [
+                 {{MixProject, 3},
+                  [:active, :enable, :null, {ElixirLS.Debugger.BreakpointCondition, :check_0}]}
+               ] ==
+                 :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert ElixirLS.Debugger.BreakpointCondition.has_condition?(MixProject, 3)
+
+        assert ElixirLS.Debugger.BreakpointCondition.get_condition(0) == "a == b"
+
+        # modify
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "condition" => "x == y"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [
+                 {{MixProject, 3},
+                  [:active, :enable, :null, {ElixirLS.Debugger.BreakpointCondition, :check_0}]}
+               ] ==
+                 :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert ElixirLS.Debugger.BreakpointCondition.has_condition?(MixProject, 3)
+
+        assert ElixirLS.Debugger.BreakpointCondition.get_condition(0) == "x == y"
+
+        # unset
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] == :int.all_breaks(MixProject)
+
+        assert %{} == :sys.get_state(server).breakpoints
+
+        refute ElixirLS.Debugger.BreakpointCondition.has_condition?(MixProject, 3)
+      end)
+    end
   end
 
   describe "function breakpoints" do

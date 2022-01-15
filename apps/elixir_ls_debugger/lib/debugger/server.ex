@@ -14,7 +14,16 @@ defmodule ElixirLS.Debugger.Server do
     defexception [:message, :format, :variables]
   end
 
-  alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables, Utils}
+  alias ElixirLS.Debugger.{
+    Output,
+    Stacktrace,
+    Protocol,
+    Variables,
+    Utils,
+    BreakpointCondition,
+    Binding
+  }
+
   alias ElixirLS.Debugger.Stacktrace.Frame
   use GenServer
   use Protocol
@@ -61,6 +70,7 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def init(opts) do
+    BreakpointCondition.start_link([])
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
@@ -230,6 +240,7 @@ defmodule ElixirLS.Debugger.Server do
          state = %__MODULE__{}
        ) do
     new_lines = for %{"line" => line} <- breakpoints, do: line
+    new_conditions = for b <- breakpoints, do: b["condition"]
     existing_bps = state.breakpoints[path] || []
     existing_bp_lines = for {_module, line} <- existing_bps, do: line
     removed_lines = existing_bp_lines -- new_lines
@@ -237,9 +248,10 @@ defmodule ElixirLS.Debugger.Server do
 
     for {module, line} <- removed_bps do
       :int.delete_break(module, line)
+      BreakpointCondition.unregister_condition(module, line)
     end
 
-    result = set_breakpoints(path, new_lines)
+    result = set_breakpoints(path, new_lines |> Enum.zip(new_conditions))
     new_bps = for {:ok, module, line} <- result, do: {module, line}
 
     state =
@@ -262,9 +274,14 @@ defmodule ElixirLS.Debugger.Server do
          set_function_breakpoints_req(_, breakpoints),
          state = %__MODULE__{}
        ) do
-    # condition and hitCondition not supported
     mfas =
-      for %{"name" => name} <- breakpoints do
+      for %{"name" => name} = breakpoint <- breakpoints do
+        if breakpoint["condition"] do
+          # we could possibly implement this via call to `:int.all_breaks(module)` before and after
+          # setting the breakpoint and then call `test_at_break` on all that was added
+          IO.warn("Conditions on function breakpoints are not supported")
+        end
+
         Utils.parse_mfa(name)
       end
 
@@ -811,7 +828,7 @@ defmodule ElixirLS.Debugger.Server do
     %{
       "supportsConfigurationDoneRequest" => true,
       "supportsFunctionBreakpoints" => true,
-      "supportsConditionalBreakpoints" => false,
+      "supportsConditionalBreakpoints" => true,
       "supportsHitConditionalBreakpoints" => false,
       "supportsEvaluateForHovers" => false,
       "exceptionBreakpointFilters" => [],
@@ -963,7 +980,7 @@ defmodule ElixirLS.Debugger.Server do
         metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
         for line <- lines do
-          env = ElixirSense.Core.Metadata.get_env(metadata, line)
+          env = ElixirSense.Core.Metadata.get_env(metadata, line |> elem(0))
 
           if env.module == nil do
             {:error, "Could not determine module at line"}
@@ -978,15 +995,30 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp set_breakpoint(module, line) do
+  defp set_breakpoint(module, {line, condition}) do
     case :int.ni(module) do
       {:module, _} ->
-        case :int.break(module, line) do
-          :ok ->
-            :ok
+        :int.break(module, line)
 
-          {:error, :break_exists} ->
-            IO.warn("Breakpoint at line #{line} in #{module} is already set.")
+        if condition != nil and condition != "" do
+          case BreakpointCondition.register_condition(module, line, condition) do
+            {:ok, mf} ->
+              :int.test_at_break(module, line, mf)
+
+            {:error, reason} ->
+              IO.warn(
+                "Unable to set condition on a breakpoint #{module}:#{line}: #{inspect(reason)}"
+              )
+          end
+        else
+          if BreakpointCondition.has_condition?(module, line) do
+            # there is no public API in `:int` that reverts `test_at_break`. We could possibly implement this
+            # with a direct call to :dbg_iserver
+            # or with setting a dummy condition that always returns true
+            IO.warn(
+              "Unsetting a breakpoint condition is not supported. Remove the breakpoint and add it again or restart debugger."
+            )
+          end
         end
 
         {:ok, module, line}
