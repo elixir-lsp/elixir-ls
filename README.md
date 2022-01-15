@@ -101,6 +101,8 @@ ElixirLS includes debugger support adhering to the [Debug Adapter Protocol](http
 
 When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and dependencies prior to launching the Mix task, so you can set breakpoints anywhere in your project or dependency modules.
 
+### Debuging tests and `.exs` files
+
 In order to debug modules in `.exs` files (such as tests), they must be specified under `requireFiles` in your launch configuration so they can be loaded and interpreted prior to running the task. For example, the default launch configuration for "mix test" in the VS Code plugin looks like this:
 
 ```
@@ -155,6 +157,7 @@ Use the following launch config to debug phoenix apps
 
 Please make sure that `startApps` is not set to `true` as it prevents phoenix from starting correctly. On the other hand phoenix tests expects that the apps are already started so in that case set it to `true`.
 
+### NIF modules limitation
 
 Please note that due to `:int` limitation NIF modules cannot be interpreted and need to be excluded via `excludeModules` option. This option can be also used to disable interpreting for some modules when it is not desirable e.g. when performance is not satisfactory.
 
@@ -177,7 +180,27 @@ Please note that due to `:int` limitation NIF modules cannot be interpreted and 
 }
 ```
 
-Function breakpoints will break on the first line of every clause of the specified function. The function needs to be specified as MFA (module, function, arity) in the standard elixir format, e.g. `:some_module.function/1` or `Some.Module.some_function/2`.
+### Function breakpoints
+
+Function breakpoints will break on the first line of every clause of the specified function. The function needs to be specified as MFA (module, function, arity) in the standard elixir format, e.g. `:some_module.function/1` or `Some.Module.some_function/2`. Breaking on private functions is not supported via function breakpoints.
+
+### Conditional breakpoints
+
+Break conditions are supported and evaluate elixir expressions within the context set of breakpoints. There is currently a limit of 100 breakpoint conditions. Due to limitations in `:int` breakpoint conditions cannot be unset and are not supported on function breakpoints. See also limitations on Expression evaluator for further details.
+
+### Expression evaluator
+
+An expression evaluator is included in the debbuger. It evaluates elixir expressions in the context of a process stopped on a breakpoint. All bound variables are accessible (no support for attributes as those are compile time). Please note that there are limitations due to `:int` operating on beam instruction level. The binding returns multiple versions of variables in Static Singe Assignment with no indication which one is valid in the current elixir scope. A heuristic is used that selects the highest versions but it does not behave correctly in all cases, e.g. in
+
+```elixir
+a = 4
+if true do
+  a = 5
+end
+some
+```
+
+when a breakpoint is reached on line with `some`, the last bound value for `a` seen by expression breakpoint evaluator is 5 (should be 4).
 
 ## Automatic builds and error reporting
 
