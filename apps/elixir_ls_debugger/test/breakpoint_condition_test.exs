@@ -1,6 +1,7 @@
 defmodule ElixirLS.Debugger.BreakpointConditionTest do
   use ElixirLS.Utils.MixTest.Case, async: false
   alias ElixirLS.Debugger.BreakpointCondition
+  import ExUnit.CaptureIO
 
   @name BreakpointConditionTestServer
   setup do
@@ -130,6 +131,27 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
     test "evals to falsy" do
       binding = [{:_a@0, nil}]
       assert BreakpointCondition.eval_condition("a", binding) == false
+    end
+
+    @tag :capture_io
+    test "handles raise" do
+      capture_io(:standard_error, fn ->
+        assert BreakpointCondition.eval_condition("raise ArgumentError", []) == false
+      end)
+    end
+
+    @tag :capture_io
+    test "handles throw" do
+      capture_io(:standard_error, fn ->
+        assert BreakpointCondition.eval_condition("throw :asd", []) == false
+      end)
+    end
+
+    @tag :capture_io
+    test "handles exit" do
+      capture_io(:standard_error, fn ->
+        assert BreakpointCondition.eval_condition("exit(:normal)", []) == false
+      end)
     end
   end
 end
