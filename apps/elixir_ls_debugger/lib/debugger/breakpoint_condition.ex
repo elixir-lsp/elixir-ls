@@ -101,7 +101,14 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
 
   def eval_condition(condition, binding) do
     elixir_binding = binding |> ElixirLS.Debugger.Binding.to_elixir_variable_names()
-    {term, _bindings} = Code.eval_string(condition, elixir_binding)
-    if term, do: true, else: false
+
+    try do
+      {term, _bindings} = Code.eval_string(condition, elixir_binding)
+      if term, do: true, else: false
+    catch
+      kind, error ->
+        IO.warn("Error in conditional breakpoint: " <> Exception.format_banner(kind, error))
+        false
+    end
   end
 end
