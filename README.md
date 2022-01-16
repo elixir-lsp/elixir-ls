@@ -101,6 +101,8 @@ ElixirLS includes debugger support adhering to the [Debug Adapter Protocol](http
 
 When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and dependencies prior to launching the Mix task, so you can set breakpoints anywhere in your project or dependency modules.
 
+Currently there is a limit of 100 breakpoints.
+
 ### Debuging tests and `.exs` files
 
 In order to debug modules in `.exs` files (such as tests), they must be specified under `requireFiles` in your launch configuration so they can be loaded and interpreted prior to running the task. For example, the default launch configuration for "mix test" in the VS Code plugin looks like this:
@@ -166,7 +168,11 @@ Function breakpoints will break on the first line of every clause of the specifi
 
 ### Conditional breakpoints
 
-Break conditions are supported and evaluate elixir expressions within the context set of breakpoints. There is currently a limit of 100 breakpoint conditions. Due to limitations in `:int` breakpoint conditions cannot be unset. See also limitations on Expression evaluator for further details.
+Break conditions are supported and evaluate elixir expressions within the context set of breakpoints. See also limitations on Expression evaluator for further details.
+
+### Hit conditions
+
+An expression that evaluates to integer can be used to contro how many hits of a breakpoint are ignored before the process is stopped.
 
 ### Expression evaluator
 
