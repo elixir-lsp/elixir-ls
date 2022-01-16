@@ -194,6 +194,10 @@ Break conditions are supported and evaluate elixir expressions within the contex
 
 An expression that evaluates to integer can be used to contro how many hits of a breakpoint are ignored before the process is stopped.
 
+### Log points
+
+When log message is set on a breakpoint the debugger will not break but instead log a message to standard output (as required by Debug Adapter Protocol specification). The message may contain interpolated expressions in `{}`, e.g. `my_var is {inspect(my_var)}` and will be evaluated in the context of the process. Special characters `{` and `}` can be emited with escape sequence `\{` and `\}`. As of Debug Adapter Protocol specification version 1.51, log messages are not supported on function breakpoints.
+
 ### Expression evaluator
 
 An expression evaluator is included in the debbuger. It evaluates elixir expressions in the context of a process stopped on a breakpoint. All bound variables are accessible (no support for attributes as those are compile time). Please note that there are limitations due to `:int` operating on beam instruction level. The binding returns multiple versions of variables in Static Singe Assignment with no indication which one is valid in the current elixir scope. A heuristic is used that selects the highest versions but it does not behave correctly in all cases, e.g. in
