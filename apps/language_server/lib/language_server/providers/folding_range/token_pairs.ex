@@ -47,7 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
         %{startLine: 1, endLine: 2, kind?: :region}
       ]}
   """
-  @spec provide_ranges([FoldingRange.input()]) :: {:ok, [FoldingRange.t()]}
+  @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
   def provide_ranges(%{tokens: tokens}) do
     ranges =
       tokens

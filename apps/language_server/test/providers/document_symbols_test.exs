@@ -2337,7 +2337,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     uri = "file:///project/test.exs"
 
     text = """
-    use Mix.Config
+    import Config
     config :logger, :console,
        level: :info,
        format: "$date $time [$level] $metadata$message\n",
@@ -2387,7 +2387,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     uri = "file:///project/test.exs"
 
     text = """
-    use Mix.Config
+    import Config
     config :logger, :console,
        level: :info,
        format: "$date $time [$level] $metadata$message\n",

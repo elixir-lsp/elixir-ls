@@ -28,10 +28,16 @@ jobs:
             otp: 23.3.4.4
             tests_may_fail: false
             check_unused_deps: true
-          - elixir: 1.12.x
-            otp: 24.0.x
+          - elixir: 1.13.x
+            otp: 22.3.4.20
             tests_may_fail: false
-            warnings_as_errors: true
+            check_unused_deps: true
+            warnings_as_errors: false
+          - elixir: 1.13.x
+            otp: 24.1.x
+            tests_may_fail: false
+            # Needs to be false until https://github.com/elixir-lsp/elixir-ls/issues/642 is fixed
+            warnings_as_errors: false
             check_formatted: true
             check_unused_deps: true
             run_dialyzer: true
@@ -39,7 +45,7 @@ jobs:
       MIX_ENV: test
     steps:
       - uses: actions/checkout@v2
-      - uses: erlef/setup-elixir@v1
+      - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
@@ -60,8 +66,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - elixir: 1.12.x
-            otp: 24.0.x
+          - elixir: 1.13.x
+            otp: 24.1.x
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1

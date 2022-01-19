@@ -200,17 +200,6 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
-  # TODO remove in ElixirLS 0.8
-  defmacro macro_expansion(id, whole_buffer, selected_macro, macro_line) do
-    quote do
-      request(unquote(id), "elixirDocument/macroExpansion", %{
-        "context" => %{"selection" => unquote(selected_macro)},
-        "textDocument" => %{"text" => unquote(whole_buffer)},
-        "position" => %{"line" => unquote(macro_line)}
-      })
-    end
-  end
-
   # Other utilities
 
   defmacro range(start_line, start_character, end_line, end_character) do

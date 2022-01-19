@@ -145,12 +145,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
 
   test "map with fields" do
     contract = '(any()) -> \#{integer()=>any(), 1:=atom(), abc:=4}'
-    
-    expected = if Version.match?(System.version(), "< 1.13.0-rc.0") do
-      "foo(any) :: %{optional(integer) => any, 1 => atom, :abc => 4}"
-    else
-      "foo(any) :: %{optional(integer) => any, 1 => atom, abc: 4}"
-    end
+
+    expected =
+      if Version.match?(System.version(), "< 1.13.0") do
+        "foo(any) :: %{optional(integer) => any, 1 => atom, :abc => 4}"
+      else
+        "foo(any) :: %{optional(integer) => any, 1 => atom, abc: 4}"
+      end
 
     assert expected ==
              ContractTranslator.translate_contract(:foo, contract, false, Atom)

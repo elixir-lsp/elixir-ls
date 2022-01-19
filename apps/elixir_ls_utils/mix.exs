@@ -4,7 +4,7 @@ defmodule ElixirLS.Utils.Mixfile do
   def project do
     [
       app: :elixir_ls_utils,
-      version: "0.8.2",
+      version: "0.9.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -28,7 +28,8 @@ defmodule ElixirLS.Utils.Mixfile do
   defp deps do
     [
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
-      {:mix_task_archive_deps, github: "elixir-lsp/mix_task_archive_deps"}
+      {:mix_task_archive_deps, github: "elixir-lsp/mix_task_archive_deps"},
+      {:dialyxir, "~> 1.0", runtime: false}
     ]
   end
 

@@ -287,32 +287,31 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     end
   end
 
-  # do_get_pipe_call(text :: utf16 binary, {utf16 binary, has_passed_through_whitespace, should_halt})
-  defp do_get_pipe_call(text, acc \\ {"", false, false})
+  # do_get_pipe_call(text :: utf16 binary, {utf16 binary, has_passed_through_whitespace})
+  defp do_get_pipe_call(text, acc \\ {"", false})
 
-  defp do_get_pipe_call(_text, {acc, _, true}), do: acc
-  defp do_get_pipe_call("", {acc, _, _}), do: acc
+  defp do_get_pipe_call("", {acc, _}), do: acc
 
-  defp do_get_pipe_call(<<?\r::utf16, ?\n::utf16, _::bitstring>>, {acc, true, _}),
+  defp do_get_pipe_call(<<?\r::utf16, ?\n::utf16, _::bitstring>>, {acc, true}),
     do: <<?\r::utf16, ?\n::utf16, acc::bitstring>>
 
-  defp do_get_pipe_call(<<0, c::utf8, _::bitstring>>, {acc, true, _})
+  defp do_get_pipe_call(<<0, c::utf8, _::bitstring>>, {acc, true})
        when c in [?\t, ?\v, ?\r, ?\n, ?\s],
        do: <<c::utf16, acc::bitstring>>
 
-  defp do_get_pipe_call(<<0, ?\r, 0, ?\n, text::bitstring>>, {acc, false, _}),
-    do: do_get_pipe_call(text, {<<?\r::utf16, ?\n::utf16, acc::bitstring>>, false, false})
+  defp do_get_pipe_call(<<0, ?\r, 0, ?\n, text::bitstring>>, {acc, false}),
+    do: do_get_pipe_call(text, {<<?\r::utf16, ?\n::utf16, acc::bitstring>>, false})
 
-  defp do_get_pipe_call(<<0, c::utf8, text::bitstring>>, {acc, false, _})
+  defp do_get_pipe_call(<<0, c::utf8, text::bitstring>>, {acc, false})
        when c in [?\t, ?\v, ?\n, ?\s],
-       do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, false, false})
+       do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, false})
 
-  defp do_get_pipe_call(<<0, c::utf8, text::bitstring>>, {acc, _, _})
+  defp do_get_pipe_call(<<0, c::utf8, text::bitstring>>, {acc, _})
        when c in [?|, ?>],
-       do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, false, false})
+       do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, false})
 
-  defp do_get_pipe_call(<<c::utf16, text::bitstring>>, {acc, _, _}),
-    do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, true, false})
+  defp do_get_pipe_call(<<c::utf16, text::bitstring>>, {acc, _}),
+    do: do_get_pipe_call(text, {<<c::utf16, acc::bitstring>>, true})
 
   defp get_function_call_before(head) do
     call_without_function_name =

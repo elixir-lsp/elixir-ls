@@ -4,7 +4,7 @@ defmodule ElixirLS.Debugger.Mixfile do
   def project do
     [
       app: :elixir_ls_debugger,
-      version: "0.8.2",
+      version: "0.9.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -26,7 +26,8 @@ defmodule ElixirLS.Debugger.Mixfile do
   defp deps do
     [
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
-      {:elixir_ls_utils, in_umbrella: true}
+      {:elixir_ls_utils, in_umbrella: true},
+      {:dialyxir, "~> 1.0", runtime: false}
     ]
   end
 end
