@@ -2,12 +2,36 @@
 
 ## Setup
 
-Download the latest release:
-  `https://github.com/elixir-lsp/elixir-ls/releases/latest` and unzip it into a
-  directory (this is the directory referred to as the
-  `"path-to-elixir-ls/release"` below)
+### Homebrew
 
-If using `lsp-mode` add this configuration:
+If you use [Homebrew](https://brew.sh), you can install `elixir-ls` by running
+
+```bash
+brew update
+brew install elixir-ls
+```
+
+This also makes the server's init script available on `PATH`
+
+If you are using [lsp-mode](https://emacs-lsp.github.io/lsp-mode/), use a configuration similar to this:
+
+```elisp
+(use-package lsp-mode
+  :commands lsp
+  :ensure t
+  :diminish lsp-mode
+  :hook (elixir-mode . lsp)
+  :config
+  (setq lsp-elixir-server-command '("elixir-ls")
+		lsp-elixir-suggest-specs t))
+```
+
+### Manual
+
+Download the latest release:
+`https://github.com/elixir-lsp/elixir-ls/releases/latest` and unzip it into a directory (this is the directory referred to as the `"path-to-elixir-ls/release"` below)
+
+If using [lsp-mode](https://emacs-lsp.github.io/lsp-mode/) add this configuration:
 ```elisp
 (use-package lsp-mode
   :commands lsp
