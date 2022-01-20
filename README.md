@@ -1,5 +1,21 @@
 # Elixir Language Server (ElixirLS)
 
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
+
+- [Elixir Language Server (ElixirLS)](#elixir-language-server-elixirls)
+    - [This is now the main elixir-ls repo](#this-is-now-the-main-elixir-ls-repo)
+    - [Features](#features)
+    - [Installing](#installing)
+        - [Homebrew](#homebrew)
+        - [Manual](#manual)
+        - [Local setup](#local-setup)
+    - [Environment variables](#environment-variables)
+    - [Acknowledgements and related projects](#acknowledgements-and-related-projects)
+    - [License](#license)
+
+<!-- markdown-toc end -->
+
 The Elixir Language Server provides a server that runs in the background, providing IDEs, editors, and other tools with information about Elixir Mix projects. It adheres to the [Language Server Protocol](https://github.com/Microsoft/language-server-protocol), a standard for frontend-independent IDE support. Debugger integration is accomplished through the similar [VS Code Debug Protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging).
 
 Full feature overview, as well as detailed install instructions per editor are on the official docsite:
