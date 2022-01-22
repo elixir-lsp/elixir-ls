@@ -510,6 +510,105 @@ defmodule ElixirLS.Debugger.ServerTest do
     end)
   end
 
+  describe "pause" do
+    @tag :fixture
+    test "alive", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+
+        assert_receive(
+          response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true})
+        )
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "run",
+            "taskArgs" => ["-e", "MixProject.Some.sleep()"],
+            "projectDir" => File.cwd!()
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(event(_, "initialized", %{}))
+
+        Server.receive_packet(server, request(5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone", %{}))
+        Process.sleep(1000)
+        Server.receive_packet(server, request(6, "threads", %{}))
+        assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
+
+        assert [thread_id] =
+                 threads
+                 |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
+                 |> Enum.map(& &1["id"])
+
+        {_, stderr} = capture_log_and_io(:standard_error, fn ->
+          Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
+          assert_receive(response(_, 7, "pause", %{}), 500)
+
+          assert_receive event(_, "stopped", %{
+                           "allThreadsStopped" => false,
+                           "reason" => "pause",
+                           "threadId" => ^thread_id
+                         }),
+                         500
+        end)
+        assert stderr =~ "Failed to obtain meta for pid"
+      end)
+    end
+
+    @tag :fixture
+    test "dead", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+
+        assert_receive(
+          response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true})
+        )
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "run",
+            "taskArgs" => ["-e", "MixProject.Some.sleep()"],
+            "projectDir" => File.cwd!()
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(event(_, "initialized", %{}))
+
+        Server.receive_packet(server, request(5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone", %{}))
+        Process.sleep(1000)
+        Server.receive_packet(server, request(6, "threads", %{}))
+        assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
+
+        assert [thread_id] =
+                 threads
+                 |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
+                 |> Enum.map(& &1["id"])
+
+        Process.whereis(MixProject.Some) |> Process.exit(:kill)
+        Process.sleep(1000)
+
+        Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
+        assert_receive(response(_, 7, "pause", %{}), 500)
+
+        assert_receive event(_, "thread", %{
+                         "reason" => "exited",
+                         "threadId" => ^thread_id
+                       }),
+                       5000
+      end)
+    end
+  end
+
   describe "breakpoints" do
     @tag :fixture
     test "sets and unsets breakpoints in erlang modules", %{server: server} do

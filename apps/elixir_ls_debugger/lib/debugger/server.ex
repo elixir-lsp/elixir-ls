@@ -66,6 +66,10 @@ defmodule ElixirLS.Debugger.Server do
     GenServer.cast(server, {:breakpoint_reached, pid})
   end
 
+  def paused(pid, server) do
+    GenServer.cast(server, {:paused, pid})
+  end
+
   ## Server Callbacks
 
   @impl GenServer
@@ -111,7 +115,8 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
-  def handle_cast({:breakpoint_reached, pid}, state = %__MODULE__{}) do
+  def handle_cast({event, pid}, state = %__MODULE__{})
+      when event in [:breakpoint_reached, :paused] do
     # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
     # check if process is alive to not debug dead ones
     state =
@@ -123,12 +128,23 @@ defmodule ElixirLS.Debugger.Server do
         paused_process = %PausedProcess{stack: Stacktrace.get(pid), ref: ref}
         state = put_in(state.paused_processes[pid], paused_process)
 
-        # Debugger Adapter Protocol requires us to return 'function breakpoint' reason
-        # but we can't tell what kind of a breakpoint was hit
-        body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
+        reason =
+          case event do
+            :breakpoint_reached ->
+              # Debugger Adapter Protocol requires us to return 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto'
+              # | 'function breakpoint' | 'data breakpoint' | 'instruction breakpoint'
+              # but we can't tell what kind of a breakpoint was hit
+              "breakpoint"
+
+            :paused ->
+              "pause"
+          end
+
+        body = %{"reason" => reason, "threadId" => thread_id, "allThreadsStopped" => false}
         Output.send_event("stopped", body)
         state
       else
+        Process.monitor(pid)
         state
       end
 
@@ -164,7 +180,7 @@ defmodule ElixirLS.Debugger.Server do
       "debugged process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
     )
 
-    {thread_id, threads_inverse} = state.threads_inverse |> Map.pop!(pid)
+    {thread_id, threads_inverse} = state.threads_inverse |> Map.pop(pid)
     state = remove_paused_process(state, pid)
 
     state = %{
@@ -173,10 +189,12 @@ defmodule ElixirLS.Debugger.Server do
         threads_inverse: threads_inverse
     }
 
-    Output.send_event("thread", %{
-      "reason" => "exited",
-      "threadId" => thread_id
-    })
+    if thread_id do
+      Output.send_event("thread", %{
+        "reason" => "exited",
+        "threadId" => thread_id
+      })
+    end
 
     {:noreply, state}
   end
@@ -356,8 +374,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(configuration_done_req(_), state = %__MODULE__{}) do
-    server = :erlang.process_info(self())[:registered_name] || self()
-    :int.auto_attach([:break], {__MODULE__, :breakpoint_reached, [server]})
+    :int.auto_attach([:break], build_attach_mfa(:breakpoint_reached))
 
     task = state.config["task"] || Mix.Project.config()[:default_task]
     args = state.config["taskArgs"] || []
@@ -398,6 +415,16 @@ defmodule ElixirLS.Debugger.Server do
       # do not need to cleanup here, :DOWN message handler will do it
       Process.monitor(pid)
       Process.exit(pid, :kill)
+    end
+
+    {%{}, state}
+  end
+
+  defp handle_request(pause_req(_, thread_id), state = %__MODULE__{}) do
+    pid = state.threads[thread_id]
+
+    if pid do
+      :int.attach(pid, build_attach_mfa(:paused))
     end
 
     {%{}, state}
@@ -1116,5 +1143,10 @@ defmodule ElixirLS.Debugger.Server do
         IO.warn("Error while evaluating hit condition: " <> Exception.format_banner(kind, error))
         0
     end
+  end
+
+  defp build_attach_mfa(reason) do
+    server = Process.info(self())[:registered_name] || self()
+    {__MODULE__, reason, [server]}
   end
 end
