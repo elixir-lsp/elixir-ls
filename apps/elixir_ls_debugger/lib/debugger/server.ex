@@ -164,13 +164,13 @@ defmodule ElixirLS.Debugger.Server do
       "debugged process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
     )
 
-    thread_id = state.threads_inverse[pid]
+    {thread_id, threads_inverse} = state.threads_inverse |> Map.pop!(pid)
     state = remove_paused_process(state, pid)
 
     state = %{
       state
       | threads: state.threads |> Map.delete(thread_id),
-        threads_inverse: state.threads_inverse |> Map.delete(pid)
+        threads_inverse: threads_inverse
     }
 
     Output.send_event("thread", %{
@@ -391,6 +391,18 @@ defmodule ElixirLS.Debugger.Server do
     {%{"threads" => threads}, state}
   end
 
+  defp handle_request(terminate_threads_req(_, thread_ids), state = %__MODULE__{}) do
+    for {id, pid} <- state.threads,
+        id in thread_ids do
+      # :kill is untrappable
+      # do not need to cleanup here, :DOWN message handler will do it
+      Process.monitor(pid)
+      Process.exit(pid, :kill)
+    end
+
+    {%{}, state}
+  end
+
   defp handle_request(
          request(_, "stackTrace", %{"threadId" => thread_id} = args),
          state = %__MODULE__{}
@@ -607,8 +619,12 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp remove_paused_process(state = %__MODULE__{}, pid) do
-    {process = %PausedProcess{}, paused_processes} = Map.pop(state.paused_processes, pid)
-    true = Process.demonitor(process.ref, [:flush])
+    {process, paused_processes} = Map.pop(state.paused_processes, pid)
+
+    if process do
+      true = Process.demonitor(process.ref, [:flush])
+    end
+
     %__MODULE__{state | paused_processes: paused_processes}
   end
 
@@ -864,6 +880,7 @@ defmodule ElixirLS.Debugger.Server do
       "supportsExceptionOptions" => false,
       "supportsValueFormattingOptions" => false,
       "supportsExceptionInfoRequest" => false,
+      "supportsTerminateThreadsRequest" => true,
       "supportTerminateDebuggee" => false
     }
   end

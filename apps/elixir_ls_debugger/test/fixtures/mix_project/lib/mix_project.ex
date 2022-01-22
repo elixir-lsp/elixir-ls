@@ -38,4 +38,9 @@ defmodule MixProject.Some do
   def quadruple(x) do
     double(double(x))
   end
+
+  def sleep do
+    Supervisor.start_link([], strategy: :one_for_one, name: __MODULE__)
+    Process.sleep(:infinity)
+  end
 end

@@ -55,6 +55,12 @@ defmodule ElixirLS.Debugger.Protocol do
     end
   end
 
+  defmacro terminate_threads_req(seq, thread_ids) do
+    quote do
+      request(unquote(seq), "terminateThreads", %{"threadIds" => unquote(thread_ids)})
+    end
+  end
+
   defmacro stacktrace_req(seq, thread_id) do
     quote do
       request(unquote(seq), "stackTrace", %{"threadId" => unquote(thread_id)})
