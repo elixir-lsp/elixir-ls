@@ -193,7 +193,7 @@ You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` s
 
 To disable Dialyzer completely, set `elixirLS.dialyzerEnabled` to false.
 
-Check usage details in Dialyxir docs on [GitHub](https://github.com/jeremyjh/dialyxir#usage) and [hexdocs](https://hexdocs.pm/dialyxir/readme.html).
+Sometimes dialyzer can get stuck with incorrect/no longer applying warnings. It's best to restart the language server in that case.
 
 ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
 
@@ -253,9 +253,8 @@ https://github.com/elixir-lsp/elixir-ls/issues/364#issuecomment-829589139
 * "Fetching n dependencies" sometimes get stuck (remove the `.elixir_ls` directory to fix)
 * Debugger doesn't work in Elixir 1.10.0 - 1.10.2 (but it should work in 1.10.3 when [this fix](https://github.com/elixir-lang/elixir/pull/9864) is released)
 * "Go to definition" does not work within the `scope` of a Phoenix router
-* On-hover docs do not work with erlang modules or functions (better support of EEP-48 is needed)
 * On first launch dialyzer will cause high CPU usage for a considerable time
-* ElixirLS requires a workspace to be opened. Editing single-files is not supported [#307](https://github.com/elixir-lsp/elixir-ls/issues/307)
+* Dialyzer does not pick up changes involving remote types (https://github.com/elixir-lsp/elixir-ls/issues/502)
 
 ## Building and running
 
