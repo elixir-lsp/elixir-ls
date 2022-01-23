@@ -109,7 +109,10 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
   "name": "mix test",
   "request": "launch",
   "task": "test",
-  "taskArgs": ["--trace"],
+  "taskArgs": [
+    "--trace"
+  ],
+  "startApps": true,
   "projectDir": "${workspaceRoot}",
   "requireFiles": [
     "test/**/test_helper.exs",
@@ -127,6 +130,7 @@ In order to debug a single test or a single test file it is currently necessary 
   "request": "launch",
   "task": "test",
   "taskArgs": ["tests/some_test.exs:123"],
+  "startApps": true,
   "projectDir": "${workspaceRoot}",
   "requireFiles": [
     "test/**/test_helper.exs",
@@ -134,6 +138,23 @@ In order to debug a single test or a single test file it is currently necessary 
   ]
 }
 ```
+
+### Phoenix apps
+
+Use the following launch config to debug phoenix apps
+
+```
+{
+  "type": "mix_task",
+  "name": "phx.server",
+  "request": "launch",
+  "task": "phx.server",
+  "projectDir": "${workspaceRoot}"
+}
+```
+
+Please make sure that `startApps` is not set to `true` as it prevents phoenix from starting correctly. On the other hand phoenix tests expects that the apps are already started so in that case set it to `true`.
+
 
 Please note that due to `:int` limitation NIF modules cannot be interpreted and need to be excluded via `excludeModules` option. This option can be also used to disable interpreting for some modules when it is not desirable e.g. when performance is not satisfactory.
 
