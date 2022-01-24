@@ -67,7 +67,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp add_hexdocs_link(markdown, subject, project_dir) do
-    [hd | tail] = markdown |> String.split("\n\n")
+    [hd | tail] = markdown |> String.split("\n\n", parts: 2)
 
     link = hexdocs_link(hd, subject, project_dir)
 
@@ -76,7 +76,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         markdown
 
       _ ->
-        hd <> "  [view on hexdocs](#{link})\n\n" <> Enum.join(tail, "")
+        ["#{hd}  [view on hexdocs](#{link})" | tail] |> Enum.join("\n\n")
     end
   end
 
