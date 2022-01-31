@@ -1162,7 +1162,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp set_mix_target(state = %__MODULE__{}, target) do
-    target = target || "host"
+    target = valid_target(target)
 
     prev_target = state.settings["mixTarget"]
 
@@ -1173,6 +1173,18 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     state
+  end
+
+  defp valid_target(nil), do: valid_target("")
+
+  defp valid_target(target) when is_binary(target) do
+    target = String.trim(target)
+
+    if target == "" do
+      "host"
+    else
+      target
+    end
   end
 
   defp set_project_dir(
