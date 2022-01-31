@@ -3,12 +3,14 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   defstruct [:text, :version, dirty?: false]
 
+  @endings ["\r\n", "\r", "\n"]
+
   def lines(%__MODULE__{text: text}) do
     lines(text)
   end
 
   def lines(text) when is_binary(text) do
-    String.split(text, ["\r\n", "\r", "\n"])
+    String.split(text, @endings)
   end
 
   @doc """
@@ -20,17 +22,18 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     do_lines_with_endings(text, "")
   end
 
-  def do_lines_with_endings("", line) do
+  def do_lines_with_endings("", line) when is_binary(line) do
     [{line, nil}]
   end
 
-  for line_ending <- ["\r\n", "\r", "\n"] do
-    def do_lines_with_endings(<<unquote(line_ending), rest::binary>>, line) do
+  for line_ending <- @endings do
+    def do_lines_with_endings(<<unquote(line_ending), rest::binary>>, line)
+        when is_binary(line) do
       [{line, unquote(line_ending)} | do_lines_with_endings(rest, "")]
     end
   end
 
-  def do_lines_with_endings(<<char::utf8, rest::binary>>, line) do
+  def do_lines_with_endings(<<char::utf8, rest::binary>>, line) when is_binary(line) do
     do_lines_with_endings(rest, line <> <<char::utf8>>)
   end
 
@@ -177,13 +180,15 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def line_length_utf16(line) do
     line
-    |> :unicode.characters_to_binary(:utf8, :utf16)
+    |> characters_to_binary!(:utf8, :utf16)
     |> byte_size()
     |> div(2)
   end
 
-  defp prepend_line(line, nil, acc), do: [line | acc]
-  defp prepend_line(line, ending, acc), do: [[line, ending] | acc]
+  defp prepend_line(line, nil, acc) when is_binary(line), do: [line | acc]
+
+  defp prepend_line(line, ending, acc) when is_binary(line) and ending in @endings,
+    do: [[line, ending] | acc]
 
   def apply_edit(text, range(start_line, start_character, end_line, end_character), new_text) do
     lines_with_idx =
@@ -201,13 +206,13 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             # LSP contentChanges positions are based on UTF-16 string representation
             # https://microsoft.github.io/language-server-protocol/specification#textDocuments
             beginning_utf8 =
-              :unicode.characters_to_binary(line, :utf8, :utf16)
+              characters_to_binary!(line, :utf8, :utf16)
               |> (&binary_part(
                     &1,
                     0,
                     min(start_character * 2, byte_size(&1))
                   )).()
-              |> :unicode.characters_to_binary(:utf16, :utf8)
+              |> characters_to_binary!(:utf16, :utf8)
 
             [beginning_utf8 | acc]
 
@@ -228,13 +233,13 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             # LSP contentChanges positions are based on UTF-16 string representation
             # https://microsoft.github.io/language-server-protocol/specification#textDocuments
             ending_utf8 =
-              :unicode.characters_to_binary(line, :utf8, :utf16)
+              characters_to_binary!(line, :utf8, :utf16)
               |> (&binary_part(
                     &1,
                     min(end_character * 2, byte_size(&1)),
                     max(byte_size(&1) - end_character * 2, 0)
                   )).()
-              |> :unicode.characters_to_binary(:utf16, :utf8)
+              |> characters_to_binary!(:utf16, :utf8)
 
             prepend_line(ending_utf8, ending, acc)
 
@@ -244,6 +249,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       end)
 
     IO.iodata_to_binary(Enum.reverse(acc))
+  end
+
+  defp characters_to_binary!(binary, from, to) do
+    case :unicode.characters_to_binary(binary, from, to) do
+      result when is_binary(result) -> result
+    end
   end
 
   def module_line(module) do
