@@ -184,7 +184,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                            "variablesReference" => 0
                          }
                        ]
-                     })
+                     }),
+                     1000
 
       Server.receive_packet(server, continue_req(10, thread_id))
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
