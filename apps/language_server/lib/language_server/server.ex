@@ -1157,13 +1157,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp maybe_set_mix_target(state = %__MODULE__{}, nil), do: state
 
+  defp maybe_set_mix_target(state = %__MODULE__{}, ""), do: state
+
   defp maybe_set_mix_target(state = %__MODULE__{}, target) do
     set_mix_target(state, target)
   end
 
   defp set_mix_target(state = %__MODULE__{}, target) do
-    target = target || "host"
-
     prev_target = state.settings["mixTarget"]
 
     if is_nil(prev_target) or target == prev_target do
