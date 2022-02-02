@@ -608,17 +608,21 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
+    var_child_type = Variables.child_type(var)
+
     children =
-      if (filter == "named" and Variables.child_type(var) == :indexed) or
-           (filter == "indexed" and Variables.child_type(var) == :named) do
+      if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
         []
       else
         Variables.children(var, start, count)
       end
 
     Enum.reduce(children, {state, []}, fn {name, value}, {state = %__MODULE__{}, result} ->
+      num_children = Variables.num_children(value)
+      child_type = Variables.child_type(value)
+
       {state, var_id} =
-        if Variables.expandable?(value) do
+        if child_type do
           ensure_var_id(state, pid, value)
         else
           {state, 0}
@@ -632,9 +636,9 @@ defmodule ElixirLS.Debugger.Server do
       }
 
       json =
-        case Variables.child_type(value) do
-          :indexed -> Map.put(json, "indexedVariables", Variables.num_children(value))
-          :named -> Map.put(json, "namedVariables", Variables.num_children(value))
+        case child_type do
+          :indexed -> Map.put(json, "indexedVariables", num_children)
+          :named -> Map.put(json, "namedVariables", num_children)
           nil -> json
         end
 
