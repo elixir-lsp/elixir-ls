@@ -14,7 +14,16 @@ defmodule ElixirLS.Debugger.Server do
     defexception [:message, :format, :variables]
   end
 
-  alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables, Utils}
+  alias ElixirLS.Debugger.{
+    Output,
+    Stacktrace,
+    Protocol,
+    Variables,
+    Utils,
+    BreakpointCondition,
+    Binding
+  }
+
   alias ElixirLS.Debugger.Stacktrace.Frame
   use GenServer
   use Protocol
@@ -61,6 +70,7 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def init(opts) do
+    BreakpointCondition.start_link([])
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
@@ -230,6 +240,7 @@ defmodule ElixirLS.Debugger.Server do
          state = %__MODULE__{}
        ) do
     new_lines = for %{"line" => line} <- breakpoints, do: line
+    new_conditions = for b <- breakpoints, do: b["condition"]
     existing_bps = state.breakpoints[path] || []
     existing_bp_lines = for {_module, line} <- existing_bps, do: line
     removed_lines = existing_bp_lines -- new_lines
@@ -237,9 +248,10 @@ defmodule ElixirLS.Debugger.Server do
 
     for {module, line} <- removed_bps do
       :int.delete_break(module, line)
+      BreakpointCondition.unregister_condition(module, [line])
     end
 
-    result = set_breakpoints(path, new_lines)
+    result = set_breakpoints(path, new_lines |> Enum.zip(new_conditions))
     new_bps = for {:ok, module, line} <- result, do: {module, line}
 
     state =
@@ -262,18 +274,17 @@ defmodule ElixirLS.Debugger.Server do
          set_function_breakpoints_req(_, breakpoints),
          state = %__MODULE__{}
        ) do
-    # condition and hitCondition not supported
     mfas =
-      for %{"name" => name} <- breakpoints do
-        Utils.parse_mfa(name)
+      for %{"name" => name} = breakpoint <- breakpoints do
+        {Utils.parse_mfa(name), breakpoint["condition"]}
       end
 
-    parsed_mfas = for {:ok, mfa} <- mfas, do: mfa
+    parsed_mfas_conditions = for {{:ok, mfa}, condition} <- mfas, into: %{}, do: {mfa, condition}
 
-    removed_breakpoints = state.function_breakpoints -- parsed_mfas
-    new_breakpoints = parsed_mfas -- state.function_breakpoints
+    for {{m, f, a}, lines} <- state.function_breakpoints,
+        not Map.has_key?(parsed_mfas_conditions, {m, f, a}) do
+      BreakpointCondition.unregister_condition(m, lines)
 
-    for {m, f, a} <- removed_breakpoints do
       case :int.del_break_in(m, f, a) do
         :ok ->
           :ok
@@ -283,41 +294,56 @@ defmodule ElixirLS.Debugger.Server do
       end
     end
 
+    current = state.function_breakpoints |> Map.new()
+
     results =
-      for {m, f, a} <- new_breakpoints,
+      for {{m, f, a}, condition} <- parsed_mfas_conditions,
           into: %{},
           do:
             (
               result =
-                case :int.ni(m) do
-                  {:module, _} ->
-                    :int.break_in(m, f, a)
+                case current[{m, f, a}] do
+                  nil ->
+                    case :int.ni(m) do
+                      {:module, _} ->
+                        breaks_before = :int.all_breaks(m)
+                        :ok = :int.break_in(m, f, a)
+                        breaks_after = :int.all_breaks(m)
+                        lines = for {{^m, line}, _} <- breaks_after -- breaks_before, do: line
 
-                  _ ->
-                    {:error, "Cannot interpret module #{inspect(m)}"}
+                        update_break_condition(m, lines, condition)
+
+                        {:ok, lines}
+
+                      _ ->
+                        {:error, "Cannot interpret module #{inspect(m)}"}
+                    end
+
+                  lines ->
+                    update_break_condition(m, lines, condition)
+
+                    {:ok, lines}
                 end
 
               {{m, f, a}, result}
             )
 
-    successful = for {mfa, :ok} <- results, do: mfa
+    successful = for {mfa, {:ok, lines}} <- results, do: {mfa, lines}
 
     state = %{
       state
-      | function_breakpoints: (state.function_breakpoints -- removed_breakpoints) ++ successful
+      | function_breakpoints: successful
     }
 
     breakpoints_json =
       Enum.map(mfas, fn
-        {:ok, mfa} ->
-          if mfa in state.function_breakpoints do
-            %{"verified" => true}
-          else
-            {:error, error} = results[mfa]
-            %{"verified" => false, "message" => inspect(error)}
+        {{:ok, mfa}, _} ->
+          case results[mfa] do
+            {:ok, _} -> %{"verified" => true}
+            {:error, error} -> %{"verified" => false, "message" => inspect(error)}
           end
 
-        {:error, error} ->
+        {{:error, error}, _} ->
           %{"verified" => false, "message" => error}
       end)
 
@@ -650,20 +676,8 @@ defmodule ElixirLS.Debugger.Server do
     end)
     |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
     |> Enum.flat_map(fn %Frame{bindings: bindings} ->
-      bindings |> Enum.map(&rename_binding_to_classic_variable/1)
+      Binding.to_elixir_variable_names(bindings)
     end)
-  end
-
-  defp rename_binding_to_classic_variable({key, value}) do
-    # binding is present with prefix _ and postfix @
-    # for example _key@1 and _value@1 are representations of current function variables
-    new_key =
-      key
-      |> Atom.to_string()
-      |> String.replace(~r/_(.*)@\d/, "\\1")
-      |> String.to_atom()
-
-    {new_key, value}
   end
 
   defp find_var(paused_processes, var_id) do
@@ -823,7 +837,7 @@ defmodule ElixirLS.Debugger.Server do
     %{
       "supportsConfigurationDoneRequest" => true,
       "supportsFunctionBreakpoints" => true,
-      "supportsConditionalBreakpoints" => false,
+      "supportsConditionalBreakpoints" => true,
       "supportsHitConditionalBreakpoints" => false,
       "supportsEvaluateForHovers" => false,
       "exceptionBreakpointFilters" => [],
@@ -975,7 +989,7 @@ defmodule ElixirLS.Debugger.Server do
         metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
         for line <- lines do
-          env = ElixirSense.Core.Metadata.get_env(metadata, line)
+          env = ElixirSense.Core.Metadata.get_env(metadata, line |> elem(0))
 
           if env.module == nil do
             {:error, "Could not determine module at line"}
@@ -990,16 +1004,11 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp set_breakpoint(module, line) do
+  defp set_breakpoint(module, {line, condition}) do
     case :int.ni(module) do
       {:module, _} ->
-        case :int.break(module, line) do
-          :ok ->
-            :ok
-
-          {:error, :break_exists} ->
-            IO.warn("Breakpoint at line #{line} in #{module} is already set.")
-        end
+        :int.break(module, line)
+        update_break_condition(module, line, condition)
 
         {:ok, module, line}
 
@@ -1024,6 +1033,37 @@ defmodule ElixirLS.Debugger.Server do
       _, _ ->
         IO.warn(
           "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
+        )
+    end
+  end
+
+  def update_break_condition(module, lines, condition) do
+    lines = List.wrap(lines)
+
+    if condition != nil and condition != "" do
+      register_break_condition(module, lines, condition)
+    else
+      if BreakpointCondition.has_condition?(module, lines) do
+        # there is no public API in `:int` that reverts `test_at_break`. We could possibly implement this
+        # with a direct call to :dbg_iserver
+        # or with setting a dummy condition that always returns true
+        IO.warn(
+          "Unsetting a breakpoint condition is not supported. Remove the breakpoint and add it again or restart debugger."
+        )
+      end
+    end
+  end
+
+  defp register_break_condition(module, lines, condition) do
+    case BreakpointCondition.register_condition(module, lines, condition) do
+      {:ok, mf} ->
+        for line <- lines do
+          :int.test_at_break(module, line, mf)
+        end
+
+      {:error, reason} ->
+        IO.warn(
+          "Unable to set condition on a breakpoint in #{module}:#{inspect(lines)}: #{inspect(reason)}"
         )
     end
   end
