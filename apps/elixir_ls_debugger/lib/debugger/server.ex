@@ -484,7 +484,7 @@ defmodule ElixirLS.Debugger.Server do
     {state, vars_json} =
       case find_var(state.paused_processes, var_id) do
         {pid, var} ->
-          variables(state, pid, var, args["start"], args["count"], args["filter"])
+          variables(state, pid, var, args["start"], args["count"], args["filter"], args["format"])
 
         nil ->
           raise ServerError,
@@ -512,7 +512,7 @@ defmodule ElixirLS.Debugger.Server do
 
     json =
       %{
-        "result" => inspect(value),
+        "result" => format_variable(value, args["format"]),
         "variablesReference" => var_id
       }
       |> maybe_append_children_number(state.client_info, child_type, value)
@@ -623,7 +623,7 @@ defmodule ElixirLS.Debugger.Server do
     %__MODULE__{state | paused_processes: paused_processes}
   end
 
-  defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
+  defp variables(state = %__MODULE__{}, pid, var, start, count, filter, format) do
     var_child_type = Variables.child_type(var)
 
     children =
@@ -640,7 +640,7 @@ defmodule ElixirLS.Debugger.Server do
       json =
         %{
           "name" => to_string(name),
-          "value" => inspect(value),
+          "value" => format_variable(value, format),
           "variablesReference" => var_id
         }
         |> maybe_append_children_number(state.client_info, child_type, value)
@@ -666,6 +666,11 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp maybe_append_variable_type(map, _, _value), do: map
+
+  defp format_variable(value, %{"hex" => true}) when is_binary(value) do
+    Base.encode16(value)
+  end
+  defp format_variable(value, _), do: inspect(value)
 
   defp evaluate_code_expression(expr, bindings, timeout) do
     task =
@@ -896,7 +901,7 @@ defmodule ElixirLS.Debugger.Server do
       "supportedChecksumAlgorithms" => [],
       "supportsRestartRequest" => false,
       "supportsExceptionOptions" => false,
-      "supportsValueFormattingOptions" => false,
+      "supportsValueFormattingOptions" => true,
       "supportsExceptionInfoRequest" => false,
       "supportTerminateDebuggee" => false
     }
