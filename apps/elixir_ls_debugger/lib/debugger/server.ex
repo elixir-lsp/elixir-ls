@@ -181,11 +181,12 @@ defmodule ElixirLS.Debugger.Server do
     )
 
     {thread_id, threads_inverse} = state.threads_inverse |> Map.pop(pid)
-    state = remove_paused_process(state, pid)
+    paused_processes = remove_paused_process(state, pid)
 
     state = %{
       state
       | threads: state.threads |> Map.delete(thread_id),
+        paused_processes: paused_processes,
         threads_inverse: threads_inverse
     }
 
@@ -549,76 +550,51 @@ defmodule ElixirLS.Debugger.Server do
     {%{"result" => inspect(result), "variablesReference" => 0}, state}
   end
 
-  defp handle_request(continue_req(_, thread_id), state = %__MODULE__{}) do
+  defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    try do
-      :int.continue(pid)
-      state = remove_paused_process(state, pid)
-      {%{"allThreadsContinued" => false}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.continue failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
-          }
-    end
+    safe_int_action(pid, :continue)
+    # assume the process is no longer paused even if continue fails
+    paused_processes = remove_paused_process(state, pid)
+    paused_processes = maybe_continue_other_processes(args, paused_processes, pid)
+
+    processes_paused? = paused_processes |> Map.keys() |> Enum.any?(&is_pid/1)
+
+    {%{"allThreadsContinued" => not processes_paused?},
+     %{state | paused_processes: paused_processes}}
   end
 
-  defp handle_request(next_req(_, thread_id), state = %__MODULE__{}) do
+  defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    try do
-      :int.next(pid)
-      state = remove_paused_process(state, pid)
-      {%{}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.next failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
-          }
-    end
+    safe_int_action(pid, :next)
+    # TODO is it OK to assume the process is no longer paused if :int call failed?
+    paused_processes = remove_paused_process(state, pid)
+
+    {%{},
+     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
   end
 
-  defp handle_request(step_in_req(_, thread_id), state = %__MODULE__{}) do
+  defp handle_request(step_in_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    try do
-      :int.step(pid)
-      state = remove_paused_process(state, pid)
-      {%{}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.stop failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
-          }
-    end
+    safe_int_action(pid, :step)
+    # TODO is it OK to assume the process is no longer paused if :int call failed?
+    paused_processes = remove_paused_process(state, pid)
+
+    {%{},
+     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
   end
 
-  defp handle_request(step_out_req(_, thread_id), state = %__MODULE__{}) do
+  defp handle_request(step_out_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    try do
-      :int.finish(pid)
-      state = remove_paused_process(state, pid)
-      {%{}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.finish failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
-          }
-    end
+    safe_int_action(pid, :finish)
+    # TODO is it OK to assume the process is no longer paused if :int call failed?
+    paused_processes = remove_paused_process(state, pid)
+
+    {%{},
+     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
   end
 
   defp handle_request(request(_, command), _state = %__MODULE__{}) when is_binary(command) do
@@ -628,6 +604,30 @@ defmodule ElixirLS.Debugger.Server do
       variables: %{
         "command" => command
       }
+  end
+
+  defp maybe_continue_other_processes(%{"singleThread" => true}, paused_processes, requested_pid) do
+    resumed_pids =
+      for {paused_pid, %PausedProcess{ref: ref}} when paused_pid != requested_pid <- paused_processes do
+        safe_int_action(paused_pid, :continue)
+        # assume the process is no longer paused even if continue fails
+        true = Process.demonitor(ref, [:flush])
+        paused_pid
+      end
+
+    paused_processes |> Map.drop(resumed_pids)
+  end
+
+  defp maybe_continue_other_processes(_, paused_processes, _requested_pid), do: paused_processes
+
+  defp safe_int_action(pid, action) do
+    apply(:int, action, [pid])
+    :ok
+  rescue
+    e in MatchError ->
+      # when stepping out of interpreted code a MatchError is risen inside :int module
+      IO.warn(":int.#{action}(#{inspect(pid)}) failed: #{Exception.message(e)}")
+      :error
   end
 
   defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id) do
@@ -652,7 +652,7 @@ defmodule ElixirLS.Debugger.Server do
       true = Process.demonitor(process.ref, [:flush])
     end
 
-    %__MODULE__{state | paused_processes: paused_processes}
+    paused_processes
   end
 
   defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
@@ -904,6 +904,7 @@ defmodule ElixirLS.Debugger.Server do
       "supportsValueFormattingOptions" => false,
       "supportsExceptionInfoRequest" => false,
       "supportsTerminateThreadsRequest" => true,
+      "supportsSingleThreadExecutionRequests" => true,
       "supportTerminateDebuggee" => false
     }
   end
