@@ -134,6 +134,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     s = root_mod_name |> source()
 
     cond do
+      :error -> ""
       third_dep?(s, project_dir) -> third_dep_name(s, project_dir)
       builtin?(s) -> builtin_dep_name(s)
       true -> ""
@@ -145,8 +146,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp source(mod_name) do
-    dep = ("Elixir." <> mod_name) |> String.to_atom()
-    dep.__info__(:compile) |> Keyword.get(:source) |> List.to_string()
+    try do
+      dep = ("Elixir." <> mod_name) |> String.to_atom()
+      dep.__info__(:compile) |> Keyword.get(:source) |> List.to_string()
+    rescue
+      e in UndefinedFunctionError -> :error
+    end
   end
 
   defp third_dep?(source, project_dir) do
