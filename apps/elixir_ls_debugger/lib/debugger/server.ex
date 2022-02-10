@@ -240,7 +240,10 @@ defmodule ElixirLS.Debugger.Server do
          state = %__MODULE__{}
        ) do
     new_lines = for %{"line" => line} <- breakpoints, do: line
-    new_conditions = for b <- breakpoints, do: b["condition"]
+
+    new_conditions =
+      for b <- breakpoints, do: {b["condition"], b["logMessage"], b["hitCondition"]}
+
     existing_bps = state.breakpoints[path] || []
     existing_bp_lines = for {_module, line} <- existing_bps, do: line
     removed_lines = existing_bp_lines -- new_lines
@@ -276,7 +279,7 @@ defmodule ElixirLS.Debugger.Server do
        ) do
     mfas =
       for %{"name" => name} = breakpoint <- breakpoints do
-        {Utils.parse_mfa(name), breakpoint["condition"]}
+        {Utils.parse_mfa(name), {breakpoint["condition"], breakpoint["hitCondition"]}}
       end
 
     parsed_mfas_conditions = for {{:ok, mfa}, condition} <- mfas, into: %{}, do: {mfa, condition}
@@ -297,7 +300,7 @@ defmodule ElixirLS.Debugger.Server do
     current = state.function_breakpoints |> Map.new()
 
     results =
-      for {{m, f, a}, condition} <- parsed_mfas_conditions,
+      for {{m, f, a}, {condition, hit_count}} <- parsed_mfas_conditions,
           into: %{},
           do:
             (
@@ -311,7 +314,8 @@ defmodule ElixirLS.Debugger.Server do
                         breaks_after = :int.all_breaks(m)
                         lines = for {{^m, line}, _} <- breaks_after -- breaks_before, do: line
 
-                        update_break_condition(m, lines, condition)
+                        # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
+                        update_break_condition(m, lines, condition, nil, hit_count)
 
                         {:ok, lines}
 
@@ -320,7 +324,8 @@ defmodule ElixirLS.Debugger.Server do
                     end
 
                   lines ->
-                    update_break_condition(m, lines, condition)
+                    # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
+                    update_break_condition(m, lines, condition, nil, hit_count)
 
                     {:ok, lines}
                 end
@@ -842,7 +847,8 @@ defmodule ElixirLS.Debugger.Server do
       "supportsConfigurationDoneRequest" => true,
       "supportsFunctionBreakpoints" => true,
       "supportsConditionalBreakpoints" => true,
-      "supportsHitConditionalBreakpoints" => false,
+      "supportsHitConditionalBreakpoints" => true,
+      "supportsLogPoints" => true,
       "supportsEvaluateForHovers" => false,
       "exceptionBreakpointFilters" => [],
       "supportsStepBack" => false,
@@ -1008,11 +1014,11 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp set_breakpoint(module, {line, condition}) do
+  defp set_breakpoint(module, {line, {condition, log_message, hit_count}}) do
     case :int.ni(module) do
       {:module, _} ->
         :int.break(module, line)
-        update_break_condition(module, line, condition)
+        update_break_condition(module, line, condition, log_message, hit_count)
 
         {:ok, module, line}
 
@@ -1041,25 +1047,20 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  def update_break_condition(module, lines, condition) do
+  def update_break_condition(module, lines, condition, log_message, hit_count) do
     lines = List.wrap(lines)
 
-    if condition != nil and condition != "" do
-      register_break_condition(module, lines, condition)
-    else
-      if BreakpointCondition.has_condition?(module, lines) do
-        # there is no public API in `:int` that reverts `test_at_break`. We could possibly implement this
-        # with a direct call to :dbg_iserver
-        # or with setting a dummy condition that always returns true
-        IO.warn(
-          "Unsetting a breakpoint condition is not supported. Remove the breakpoint and add it again or restart debugger."
-        )
-      end
-    end
+    condition = parse_condition(condition)
+
+    hit_count = eval_hit_count(hit_count)
+
+    log_message = if log_message not in ["", nil], do: log_message
+
+    register_break_condition(module, lines, condition, log_message, hit_count)
   end
 
-  defp register_break_condition(module, lines, condition) do
-    case BreakpointCondition.register_condition(module, lines, condition) do
+  defp register_break_condition(module, lines, condition, log_message, hit_count) do
+    case BreakpointCondition.register_condition(module, lines, condition, log_message, hit_count) do
       {:ok, mf} ->
         for line <- lines do
           :int.test_at_break(module, line, mf)
@@ -1069,6 +1070,38 @@ defmodule ElixirLS.Debugger.Server do
         IO.warn(
           "Unable to set condition on a breakpoint in #{module}:#{inspect(lines)}: #{inspect(reason)}"
         )
+    end
+  end
+
+  defp parse_condition(condition) when condition in [nil, ""], do: "true"
+
+  defp parse_condition(condition) do
+    case Code.string_to_quoted(condition) do
+      {:ok, _} ->
+        condition
+
+      {:error, reason} ->
+        IO.warn("Cannot parse breakpoint condition: #{inspect(reason)}")
+        "true"
+    end
+  end
+
+  defp eval_hit_count(hit_count) when hit_count in [nil, ""], do: 0
+
+  defp eval_hit_count(hit_count) do
+    try do
+      {term, _bindings} = Code.eval_string(hit_count, [])
+
+      if is_integer(term) do
+        term
+      else
+        IO.warn("Hit condition must evaluate to integer")
+        0
+      end
+    catch
+      kind, error ->
+        IO.warn("Error while evaluating hit condition: " <> Exception.format_banner(kind, error))
+        0
     end
   end
 end
