@@ -546,17 +546,19 @@ defmodule ElixirLS.Debugger.ServerTest do
                  |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
                  |> Enum.map(& &1["id"])
 
-        {_, stderr} = capture_log_and_io(:standard_error, fn ->
-          Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
-          assert_receive(response(_, 7, "pause", %{}), 500)
+        {_, stderr} =
+          capture_log_and_io(:standard_error, fn ->
+            Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
+            assert_receive(response(_, 7, "pause", %{}), 500)
 
-          assert_receive event(_, "stopped", %{
-                           "allThreadsStopped" => false,
-                           "reason" => "pause",
-                           "threadId" => ^thread_id
-                         }),
-                         500
-        end)
+            assert_receive event(_, "stopped", %{
+                             "allThreadsStopped" => false,
+                             "reason" => "pause",
+                             "threadId" => ^thread_id
+                           }),
+                           500
+          end)
+
         assert stderr =~ "Failed to obtain meta for pid"
       end)
     end
