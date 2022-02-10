@@ -554,7 +554,7 @@ defmodule ElixirLS.Debugger.Server do
     pid = get_pid_by_thread_id!(state, thread_id)
 
     safe_int_action(pid, :continue)
-    # assume the process is no longer paused even if continue fails
+
     paused_processes = remove_paused_process(state, pid)
     paused_processes = maybe_continue_other_processes(args, paused_processes, pid)
 
@@ -568,7 +568,6 @@ defmodule ElixirLS.Debugger.Server do
     pid = get_pid_by_thread_id!(state, thread_id)
 
     safe_int_action(pid, :next)
-    # TODO is it OK to assume the process is no longer paused if :int call failed?
     paused_processes = remove_paused_process(state, pid)
 
     {%{},
@@ -579,7 +578,6 @@ defmodule ElixirLS.Debugger.Server do
     pid = get_pid_by_thread_id!(state, thread_id)
 
     safe_int_action(pid, :step)
-    # TODO is it OK to assume the process is no longer paused if :int call failed?
     paused_processes = remove_paused_process(state, pid)
 
     {%{},
@@ -590,7 +588,6 @@ defmodule ElixirLS.Debugger.Server do
     pid = get_pid_by_thread_id!(state, thread_id)
 
     safe_int_action(pid, :finish)
-    # TODO is it OK to assume the process is no longer paused if :int call failed?
     paused_processes = remove_paused_process(state, pid)
 
     {%{},
@@ -610,7 +607,6 @@ defmodule ElixirLS.Debugger.Server do
     resumed_pids =
       for {paused_pid, %PausedProcess{ref: ref}} when paused_pid != requested_pid <- paused_processes do
         safe_int_action(paused_pid, :continue)
-        # assume the process is no longer paused even if continue fails
         true = Process.demonitor(ref, [:flush])
         paused_pid
       end
@@ -620,14 +616,19 @@ defmodule ElixirLS.Debugger.Server do
 
   defp maybe_continue_other_processes(_, paused_processes, _requested_pid), do: paused_processes
 
+  # TODO consider removing this workaround as the problem seems to no longer affect OTP 24
   defp safe_int_action(pid, action) do
     apply(:int, action, [pid])
     :ok
-  rescue
-    e in MatchError ->
-      # when stepping out of interpreted code a MatchError is risen inside :int module
-      IO.warn(":int.#{action}(#{inspect(pid)}) failed: #{Exception.message(e)}")
-      :error
+  catch
+    kind, payload ->
+      # when stepping out of interpreted code a MatchError is risen inside :int module (at least in OTP 23)
+      IO.warn(":int.#{action}(#{inspect(pid)}) failed: #{Exception.format(kind, payload)}")
+
+      unless action == :continue do
+        safe_int_action(pid, :continue)
+      end
+      :ok
   end
 
   defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id) do
