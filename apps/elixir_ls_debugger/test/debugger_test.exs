@@ -188,6 +188,109 @@ defmodule ElixirLS.Debugger.ServerTest do
                      })
 
       Server.receive_packet(server, continue_req(10, thread_id))
+      assert_receive response(_, 10, "continue", %{"allThreadsContinued" => true})
+    end)
+  end
+
+  @tag :fixture
+  test "basic debugging single thread", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "test",
+          "taskArgs" => ["--only", "quadruple"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [%{"line" => 3}])
+      )
+
+      assert_receive(
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+      )
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+      # ensure thread ids are unique
+      thread_ids = Enum.map(threads, & &1["id"])
+      assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => thread_id
+                     }),
+                     5_000
+
+      Server.receive_packet(server, stacktrace_req(7, thread_id))
+
+      assert_receive response(_, 7, "stackTrace", %{
+                       "totalFrames" => 1,
+                       "stackFrames" => [
+                         %{
+                           "column" => 0,
+                           "id" => frame_id,
+                           "line" => 3,
+                           "name" => "MixProject.quadruple/1",
+                           "source" => %{"path" => path}
+                         }
+                       ]
+                     })
+                     when is_integer(frame_id)
+
+      assert String.ends_with?(path, "/lib/mix_project.ex")
+
+      Server.receive_packet(server, scopes_req(8, frame_id))
+
+      assert_receive response(_, 8, "scopes", %{
+                       "scopes" => [
+                         %{
+                           "expensive" => false,
+                           "indexedVariables" => 0,
+                           "name" => "variables",
+                           "namedVariables" => 1,
+                           "variablesReference" => vars_id
+                         },
+                         %{
+                           "expensive" => false,
+                           "indexedVariables" => 1,
+                           "name" => "arguments",
+                           "namedVariables" => 0,
+                           "variablesReference" => _
+                         }
+                       ]
+                     })
+
+      Server.receive_packet(server, vars_req(9, vars_id))
+
+      assert_receive response(_, 9, "variables", %{
+                       "variables" => [
+                         %{
+                           "name" => _,
+                           "type" => "integer",
+                           "value" => "2",
+                           "variablesReference" => 0
+                         }
+                       ]
+                     }),
+                     1000
+      #  TODO pause some other thread
+      Server.receive_packet(server, continue_req(10, thread_id) |> Map.put("singleThread", true))
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
     end)
   end
