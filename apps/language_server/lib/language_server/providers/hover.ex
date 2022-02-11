@@ -131,15 +131,15 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp dep_name(root_mod_name, project_dir) do
-    cond do
-      not elixir_mod_exported?(root_mod_name) -> ""
-      true ->
-        s = root_mod_name |> source()
-        cond do
-          third_dep?(s, project_dir) -> third_dep_name(s, project_dir)
-          builtin?(s) -> builtin_dep_name(s)
-          true -> ""
-        end
+    if not elixir_mod_exported?(root_mod_name) do
+      ""
+    else
+      s = root_mod_name |> source()
+      cond do
+        third_dep?(s, project_dir) -> third_dep_name(s, project_dir)
+        builtin?(s) -> builtin_dep_name(s)
+        true -> ""
+      end
     end
   end
 
@@ -148,12 +148,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp source(mod_name) do
-    try do
-      dep = ("Elixir." <> mod_name) |> String.to_atom()
-      dep.__info__(:compile) |> Keyword.get(:source) |> List.to_string()
-    rescue
-      e in UndefinedFunctionError -> :error
-    end
+    dep = ("Elixir." <> mod_name) |> String.to_atom()
+    dep.__info__(:compile) |> Keyword.get(:source) |> List.to_string()
   end
 
   defp elixir_mod_exported?(mod_name) do
