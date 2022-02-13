@@ -512,15 +512,18 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @spec build_range(nil | erl_location_t) :: range_t
   defp build_range(nil) do
+    # we don't care about utf16 positions here as we send 0
     %{
       start: %{line: 0, character: 0},
       end: %{line: 1, character: 0}
     }
   end
 
+  # it's not worth to present column info here
   defp build_range({line, _column}), do: build_range(line)
 
   defp build_range(line) do
+    # we don't care about utf16 positions here as we send 0
     %{
       start: %{line: max(line - 1, 0), character: 0},
       end: %{line: line, character: 0}

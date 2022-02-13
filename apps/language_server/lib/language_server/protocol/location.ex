@@ -8,26 +8,30 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
   defstruct [:uri, :range]
 
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirLS.LanguageServer.Protocol
+  require ElixirLS.LanguageServer.Protocol, as: Protocol
 
-  def new(%ElixirSense.Location{file: file, line: line, column: column}, uri) do
+  def new(
+        %ElixirSense.Location{file: file, line: line, column: column},
+        current_file_uri,
+        current_file_text
+      ) do
     uri =
       case file do
-        nil -> uri
+        nil -> current_file_uri
         _ -> SourceFile.path_to_uri(file)
       end
 
-    # LSP messages are 0 indexed whilst elixir/erlang is 1 indexed.
-    # Guard against malformed line or column values.
-    line = max(line - 1, 0)
-    column = max(column - 1, 0)
+    text =
+      case file do
+        nil -> current_file_text
+        file -> File.read!(file)
+      end
+
+    {line, column} = SourceFile.elixir_position_to_lsp(text, {line, column})
 
     %Protocol.Location{
       uri: uri,
-      range: %{
-        "start" => %{"line" => line, "character" => column},
-        "end" => %{"line" => line, "character" => column}
-      }
+      range: Protocol.range(line, column, line, column)
     }
   end
 end
