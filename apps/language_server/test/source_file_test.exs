@@ -822,4 +822,57 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       end
     end
   end
+
+  describe "positions" do
+    test "lsp_position_to_elixr empty" do
+      assert {1, 1} == SourceFile.lsp_position_to_elixr("", {0, 0})
+    end
+
+    test "lsp_position_to_elixr single first char" do
+      assert {1, 1} == SourceFile.lsp_position_to_elixr("abcde", {0, 0})
+    end
+
+    test "lsp_position_to_elixr single line" do
+      assert {1, 2} == SourceFile.lsp_position_to_elixr("abcde", {0, 1})
+    end
+
+    test "lsp_position_to_elixr single line utf8" do
+      assert {1, 2} == SourceFile.lsp_position_to_elixr("🏳️‍🌈abcde", {0, 6})
+    end
+
+    test "lsp_position_to_elixr multi line" do
+      assert {2, 2} == SourceFile.lsp_position_to_elixr("abcde\n1234", {1, 1})
+    end
+
+    test "elixir_position_to_lsp empty" do
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("", {1, 1})
+    end
+
+    test "elixir_position_to_lsp single line first char" do
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("abcde", {1, 1})
+    end
+
+    test "elixir_position_to_lsp single line" do
+      assert {0, 1} == SourceFile.elixir_position_to_lsp("abcde", {1, 2})
+    end
+
+    test "elixir_position_to_lsp single line utf8" do
+      assert {0, 6} == SourceFile.elixir_position_to_lsp("🏳️‍🌈abcde", {1, 2})
+    end
+
+    test "elixir_position_to_lsp multi line" do
+      assert {1, 1} == SourceFile.elixir_position_to_lsp("abcde\n1234", {2, 2})
+    end
+
+    test "sanity check" do
+      text = "aąłsd🏳️‍🌈abcde"
+
+      for i <- 0..String.length(text) do
+        elixir_pos = {1, i + 1}
+        lsp_pos = SourceFile.elixir_position_to_lsp(text, elixir_pos)
+
+        assert elixir_pos == SourceFile.lsp_position_to_elixr(text, lsp_pos)
+      end
+    end
+  end
 end

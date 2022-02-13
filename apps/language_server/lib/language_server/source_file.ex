@@ -172,10 +172,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       |> List.last()
       |> line_length_utf16()
 
-    %{
-      "start" => %{"line" => 0, "character" => 0},
-      "end" => %{"line" => Enum.count(lines) - 1, "character" => utf16_size}
-    }
+    range(0, 0, Enum.count(lines) - 1, utf16_size)
   end
 
   def line_length_utf16(line) do
@@ -373,4 +370,64 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   defp remove_indentation(lines, _), do: lines
+
+  def lsp_character_to_elixir(_utf8_line, lsp_character) when lsp_character <= 0, do: 1
+
+  def lsp_character_to_elixir(utf8_line, lsp_character) do
+    utf16_line =
+      utf8_line
+      |> characters_to_binary!(:utf8, :utf16)
+
+    byte_size = byte_size(utf16_line)
+
+    # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
+    diff = div(max(lsp_character * 2 - byte_size, 0), 2)
+
+    utf8_character =
+      utf16_line
+      |> (&binary_part(
+            &1,
+            0,
+            min(lsp_character * 2, byte_size)
+          )).()
+      |> characters_to_binary!(:utf16, :utf8)
+      |> String.length()
+
+    utf8_character + 1 + diff
+  end
+
+  def lsp_position_to_elixr(_urf8_text, {lsp_line, lsp_character}) when lsp_character <= 0,
+    do: {max(lsp_line + 1, 1), 1}
+
+  def lsp_position_to_elixr(urf8_text, {lsp_line, lsp_character}) do
+    utf8_character =
+      lines(urf8_text)
+      |> Enum.at(max(lsp_line, 0))
+      |> lsp_character_to_elixir(lsp_character)
+
+    {lsp_line + 1, utf8_character}
+  end
+
+  def elixir_character_to_lsp(_utf8_line, elixir_character) when elixir_character <= 1, do: 0
+
+  def elixir_character_to_lsp(utf8_line, elixir_character) do
+    utf8_line
+    |> String.slice(0..(elixir_character - 2))
+    |> characters_to_binary!(:utf8, :utf16)
+    |> byte_size()
+    |> div(2)
+  end
+
+  def elixir_position_to_lsp(_urf8_text, {elixir_line, elixir_character})
+      when elixir_character <= 1,
+      do: {max(elixir_line - 1, 0), 0}
+
+  def elixir_position_to_lsp(urf8_text, {elixir_line, elixir_character}) do
+    utf16_character =
+      lines(urf8_text)
+      |> Enum.at(max(elixir_line - 1, 0))
+      |> elixir_character_to_lsp(elixir_character)
+
+    {elixir_line - 1, utf16_character}
+  end
 end
