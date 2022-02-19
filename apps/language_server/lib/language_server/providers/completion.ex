@@ -79,8 +79,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   def trigger_characters do
     # VS Code's 24x7 autocompletion triggers automatically on alphanumeric characters. We add these
-    # for "SomeModule." calls, @module_attrs, function capture, variable pinning, erlang module calls
-    [".", "@", "&", "%", "^", ":", "!"]
+    # for "SomeModule." calls, @module_attrs, function capture, variable pinning, erlang module calls,
+    # bitstring options and sigils
+    [".", "@", "&", "%", "^", ":", "!", "-", "~"]
   end
 
   def completion(text, line, character, options) do
@@ -89,16 +90,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> SourceFile.lines()
       |> Enum.at(line)
 
-    text_before_cursor = String.slice(line_text, 0, character)
-    text_after_cursor = String.slice(line_text, character..-1)
+    # convert to 1 based utf8 position
+    line = line + 1
+    character = SourceFile.lsp_character_to_elixir(line_text, character)
+
+    text_before_cursor = String.slice(line_text, 0, character - 1)
+    text_after_cursor = String.slice(line_text, (character - 1)..-1)
 
     prefix = get_prefix(text_before_cursor)
 
     # TODO: Don't call into here directly
     # Can we use ElixirSense.Providers.Suggestion? ElixirSense.suggestions/3
     env =
-      ElixirSense.Core.Parser.parse_string(text, true, true, line + 1)
-      |> ElixirSense.Core.Metadata.get_env(line + 1)
+      ElixirSense.Core.Parser.parse_string(text, true, true, line)
+      |> ElixirSense.Core.Metadata.get_env(line)
 
     scope =
       case env.scope do
@@ -134,7 +139,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
 
     items =
-      ElixirSense.suggestions(text, line + 1, character + 1)
+      ElixirSense.suggestions(text, line, character)
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
@@ -448,6 +453,30 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       insert_text: "#{name}: ",
       priority: 10,
       kind: :field,
+      tags: []
+    }
+  end
+
+  defp from_completion_item(
+         %{type: :bitstring_option, name: name},
+         _context,
+         options
+       ) do
+    insert_text =
+      case name do
+        name when name in ["size", "unit"] ->
+          function_snippet(name, ["integer"], 1, options |> Keyword.merge(with_parens?: true))
+
+        other ->
+          other
+      end
+
+    %__MODULE__{
+      label: name,
+      detail: "bitstring option",
+      insert_text: insert_text,
+      priority: 10,
+      kind: :type_parameter,
       tags: []
     }
   end
@@ -771,10 +800,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     {label, insert_text} =
       cond do
-        match?("sigil_" <> _, name) ->
-          "sigil_" <> sigil_name = name
-          text = "~#{sigil_name}"
-          {text, text}
+        match?("~" <> _, name) ->
+          "~" <> sigil_name = name
+          {name, sigil_name}
 
         use_name_only?(origin, name) or String.starts_with?(text_after_cursor, "(") ->
           {name, name}

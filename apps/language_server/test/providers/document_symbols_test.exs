@@ -41,127 +41,169 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 14,
                     name: "@my_mod_var",
-                    range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 9, "line" => 2},
+                      "start" => %{"character" => 9, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 9, line: 2},
-                      start: %{character: 9, line: 2}
+                      "end" => %{"character" => 9, "line" => 2},
+                      "start" => %{"character" => 9, "line" => 2}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "def my_fn(arg)",
-                    range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 3},
+                      "start" => %{"character" => 12, "line" => 3}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 3},
-                      start: %{character: 12, line: 3}
+                      "end" => %{"character" => 12, "line" => 3},
+                      "start" => %{"character" => 12, "line" => 3}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "defp my_private_fn(arg)",
-                    range: %{end: %{character: 13, line: 4}, start: %{character: 13, line: 4}},
+                    range: %{
+                      "end" => %{"character" => 13, "line" => 4},
+                      "start" => %{"character" => 13, "line" => 4}
+                    },
                     selectionRange: %{
-                      end: %{character: 13, line: 4},
-                      start: %{character: 13, line: 4}
+                      "end" => %{"character" => 13, "line" => 4},
+                      "start" => %{"character" => 13, "line" => 4}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "defmacro my_macro()",
-                    range: %{end: %{character: 17, line: 5}, start: %{character: 17, line: 5}},
+                    range: %{
+                      "end" => %{"character" => 17, "line" => 5},
+                      "start" => %{"character" => 17, "line" => 5}
+                    },
                     selectionRange: %{
-                      end: %{character: 17, line: 5},
-                      start: %{character: 17, line: 5}
+                      "end" => %{"character" => 17, "line" => 5},
+                      "start" => %{"character" => 17, "line" => 5}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "defmacrop my_private_macro()",
-                    range: %{end: %{character: 18, line: 6}, start: %{character: 18, line: 6}},
+                    range: %{
+                      "end" => %{"character" => 18, "line" => 6},
+                      "start" => %{"character" => 18, "line" => 6}
+                    },
                     selectionRange: %{
-                      end: %{character: 18, line: 6},
-                      start: %{character: 18, line: 6}
+                      "end" => %{"character" => 18, "line" => 6},
+                      "start" => %{"character" => 18, "line" => 6}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "defguard my_guard(a)",
-                    range: %{end: %{character: 17, line: 7}, start: %{character: 17, line: 7}},
+                    range: %{
+                      "end" => %{"character" => 17, "line" => 7},
+                      "start" => %{"character" => 17, "line" => 7}
+                    },
                     selectionRange: %{
-                      end: %{character: 17, line: 7},
-                      start: %{character: 17, line: 7}
+                      "end" => %{"character" => 17, "line" => 7},
+                      "start" => %{"character" => 17, "line" => 7}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "defguardp my_private_guard(a)",
-                    range: %{end: %{character: 18, line: 8}, start: %{character: 18, line: 8}},
+                    range: %{
+                      "end" => %{"character" => 18, "line" => 8},
+                      "start" => %{"character" => 18, "line" => 8}
+                    },
                     selectionRange: %{
-                      end: %{character: 18, line: 8},
-                      start: %{character: 18, line: 8}
+                      "end" => %{"character" => 18, "line" => 8},
+                      "start" => %{"character" => 18, "line" => 8}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "defdelegate my_delegate(list)",
-                    range: %{end: %{character: 20, line: 9}, start: %{character: 20, line: 9}},
+                    range: %{
+                      "end" => %{"character" => 20, "line" => 9},
+                      "start" => %{"character" => 20, "line" => 9}
+                    },
                     selectionRange: %{
-                      end: %{character: 20, line: 9},
-                      start: %{character: 20, line: 9}
+                      "end" => %{"character" => 20, "line" => 9},
+                      "start" => %{"character" => 20, "line" => 9}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "defguard my_guard",
-                    range: %{end: %{character: 17, line: 10}, start: %{character: 17, line: 10}},
+                    range: %{
+                      "end" => %{"character" => 17, "line" => 10},
+                      "start" => %{"character" => 17, "line" => 10}
+                    },
                     selectionRange: %{
-                      end: %{character: 17, line: 10},
-                      start: %{character: 17, line: 10}
+                      "end" => %{"character" => 17, "line" => 10},
+                      "start" => %{"character" => 17, "line" => 10}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "def my_fn_no_arg",
-                    range: %{end: %{character: 12, line: 11}, start: %{character: 12, line: 11}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 11},
+                      "start" => %{"character" => 12, "line" => 11}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 11},
-                      start: %{character: 12, line: 11}
+                      "end" => %{"character" => 12, "line" => 11},
+                      "start" => %{"character" => 12, "line" => 11}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "def my_fn_with_guard(arg)",
-                    range: %{end: %{character: 12, line: 12}, start: %{character: 12, line: 12}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 12},
+                      "start" => %{"character" => 12, "line" => 12}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 12},
-                      start: %{character: 12, line: 12}
+                      "end" => %{"character" => 12, "line" => 12},
+                      "start" => %{"character" => 12, "line" => 12}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "def my_fn_with_more_blocks(arg)",
-                    range: %{end: %{character: 12, line: 13}, start: %{character: 12, line: 13}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 13},
+                      "start" => %{"character" => 12, "line" => 13}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 13},
-                      start: %{character: 12, line: 13}
+                      "end" => %{"character" => 12, "line" => 13},
+                      "start" => %{"character" => 12, "line" => 13}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
-                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                range: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -201,14 +243,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "@my_mod_var",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 9, "line" => 2},
+                    "start" => %{"character" => 9, "line" => 2}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -216,7 +264,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn(arg)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 3},
+                    "start" => %{"character" => 12, "line" => 3}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -224,7 +275,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "defp my_private_fn(arg)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 13, line: 4}, start: %{character: 13, line: 4}}
+                  range: %{
+                    "end" => %{"character" => 13, "line" => 4},
+                    "start" => %{"character" => 13, "line" => 4}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -232,7 +286,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "defmacro my_macro()",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 17, line: 5}, start: %{character: 17, line: 5}}
+                  range: %{
+                    "end" => %{"character" => 17, "line" => 5},
+                    "start" => %{"character" => 17, "line" => 5}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -240,7 +297,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "defmacrop my_private_macro()",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 18, line: 6}, start: %{character: 18, line: 6}}
+                  range: %{
+                    "end" => %{"character" => 18, "line" => 6},
+                    "start" => %{"character" => 18, "line" => 6}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -248,7 +308,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "defguard my_guard(a)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 17, line: 7}, start: %{character: 17, line: 7}}
+                  range: %{
+                    "end" => %{"character" => 17, "line" => 7},
+                    "start" => %{"character" => 17, "line" => 7}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -256,7 +319,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "defguardp my_private_guard(a)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 18, line: 8}, start: %{character: 18, line: 8}}
+                  range: %{
+                    "end" => %{"character" => 18, "line" => 8},
+                    "start" => %{"character" => 18, "line" => 8}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -264,7 +330,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "defdelegate my_delegate(list)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 20, line: 9}, start: %{character: 20, line: 9}}
+                  range: %{
+                    "end" => %{"character" => 20, "line" => 9},
+                    "start" => %{"character" => 20, "line" => 9}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -272,7 +341,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "defguard my_guard",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 17, line: 10}, start: %{character: 17, line: 10}}
+                  range: %{
+                    "end" => %{"character" => 17, "line" => 10},
+                    "start" => %{"character" => 17, "line" => 10}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -280,7 +352,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn_no_arg",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 12, line: 11}, start: %{character: 12, line: 11}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 11},
+                    "start" => %{"character" => 12, "line" => 11}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -288,7 +363,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn_with_guard(arg)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 12, line: 12}, start: %{character: 12, line: 12}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 12},
+                    "start" => %{"character" => 12, "line" => 12}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -296,7 +374,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn_with_more_blocks(arg)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 12, line: 13}, start: %{character: 12, line: 13}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 13},
+                    "start" => %{"character" => 12, "line" => 13}
+                  }
                 },
                 containerName: "MyModule"
               }
@@ -324,36 +405,36 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 12,
                         name: "def my_fn()",
                         range: %{
-                          end: %{character: 14, line: 3},
-                          start: %{character: 14, line: 3}
+                          "end" => %{"character" => 14, "line" => 3},
+                          "start" => %{"character" => 14, "line" => 3}
                         },
                         selectionRange: %{
-                          end: %{character: 14, line: 3},
-                          start: %{character: 14, line: 3}
+                          "end" => %{"character" => 14, "line" => 3},
+                          "start" => %{"character" => 14, "line" => 3}
                         }
                       }
                     ],
                     kind: 2,
                     name: "SubModule",
                     range: %{
-                      end: %{character: 8, line: 2},
-                      start: %{character: 8, line: 2}
+                      "end" => %{"character" => 8, "line" => 2},
+                      "start" => %{"character" => 8, "line" => 2}
                     },
                     selectionRange: %{
-                      end: %{character: 8, line: 2},
-                      start: %{character: 8, line: 2}
+                      "end" => %{"character" => 8, "line" => 2},
+                      "start" => %{"character" => 8, "line" => 2}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
                 range: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 },
                 selectionRange: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
@@ -376,8 +457,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 location: %{
                   range: %{
-                    end: %{character: 6, line: 1},
-                    start: %{character: 6, line: 1}
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
                   }
                 }
               },
@@ -386,8 +467,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 location: %{
                   range: %{
-                    end: %{character: 8, line: 2},
-                    start: %{character: 8, line: 2}
+                    "end" => %{"character" => 8, "line" => 2},
+                    "start" => %{"character" => 8, "line" => 2}
                   }
                 },
                 containerName: "MyModule"
@@ -397,8 +478,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn()",
                 location: %{
                   range: %{
-                    end: %{character: 14, line: 3},
-                    start: %{character: 14, line: 3}
+                    "end" => %{"character" => 14, "line" => 3},
+                    "start" => %{"character" => 14, "line" => 3}
                   }
                 },
                 containerName: "SubModule"
@@ -426,24 +507,24 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     kind: 12,
                     name: "def some_function()",
                     range: %{
-                      end: %{character: 12, line: 2},
-                      start: %{character: 12, line: 2}
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
                     },
                     selectionRange: %{
-                      end: %{character: 12, line: 2},
-                      start: %{character: 12, line: 2}
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
                 range: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 },
                 selectionRange: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 }
               },
               %Protocol.DocumentSymbol{
@@ -453,24 +534,24 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     kind: 12,
                     name: "def some_other_function()",
                     range: %{
-                      end: %{character: 12, line: 5},
-                      start: %{character: 12, line: 5}
+                      "end" => %{"character" => 12, "line" => 5},
+                      "start" => %{"character" => 12, "line" => 5}
                     },
                     selectionRange: %{
-                      end: %{character: 12, line: 5},
-                      start: %{character: 12, line: 5}
+                      "end" => %{"character" => 12, "line" => 5},
+                      "start" => %{"character" => 12, "line" => 5}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyOtherModule",
                 range: %{
-                  end: %{character: 6, line: 4},
-                  start: %{character: 6, line: 4}
+                  "end" => %{"character" => 6, "line" => 4},
+                  "start" => %{"character" => 6, "line" => 4}
                 },
                 selectionRange: %{
-                  end: %{character: 6, line: 4},
-                  start: %{character: 6, line: 4}
+                  "end" => %{"character" => 6, "line" => 4},
+                  "start" => %{"character" => 6, "line" => 4}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
@@ -494,8 +575,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 location: %{
                   range: %{
-                    end: %{character: 6, line: 1},
-                    start: %{character: 6, line: 1}
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
                   }
                 }
               },
@@ -504,8 +585,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 12,
                 location: %{
                   range: %{
-                    end: %{character: 12, line: 2},
-                    start: %{character: 12, line: 2}
+                    "end" => %{"character" => 12, "line" => 2},
+                    "start" => %{"character" => 12, "line" => 2}
                   }
                 },
                 containerName: "MyModule"
@@ -515,8 +596,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 location: %{
                   range: %{
-                    end: %{character: 6, line: 4},
-                    start: %{character: 6, line: 4}
+                    "end" => %{"character" => 6, "line" => 4},
+                    "start" => %{"character" => 6, "line" => 4}
                   }
                 }
               },
@@ -525,8 +606,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def some_other_function()",
                 location: %{
                   range: %{
-                    end: %{character: 12, line: 5},
-                    start: %{character: 12, line: 5}
+                    "end" => %{"character" => 12, "line" => 5},
+                    "start" => %{"character" => 12, "line" => 5}
                   }
                 },
                 containerName: "MyOtherModule"
@@ -550,17 +631,26 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "def my_fn()",
-                    range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 2},
-                      start: %{character: 12, line: 2}
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
-                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                range: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -579,14 +669,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "def my_fn()",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 2},
+                    "start" => %{"character" => 12, "line" => 2}
+                  }
                 },
                 containerName: "MyModule"
               }
@@ -609,17 +705,26 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "def my_fn()",
-                    range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 2},
-                      start: %{character: 12, line: 2}
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
                     }
                   }
                 ],
                 kind: 2,
                 name: "# unknown",
-                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
-                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                range: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -638,14 +743,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "# unknown",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 kind: 12,
                 name: "def my_fn()",
                 location: %{
-                  range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 2},
+                    "start" => %{"character" => 12, "line" => 2}
+                  }
                 },
                 containerName: "# unknown"
               }
@@ -668,17 +779,26 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "def my_fn()",
-                    range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 2},
-                      start: %{character: 12, line: 2}
+                      "end" => %{"character" => 12, "line" => 2},
+                      "start" => %{"character" => 12, "line" => 2}
                     }
                   }
                 ],
                 kind: 2,
                 name: "my_module",
-                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
-                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                range: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -697,14 +817,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "my_module",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "def my_fn()",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 12, line: 2}, start: %{character: 12, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 2},
+                    "start" => %{"character" => 12, "line" => 2}
+                  }
                 },
                 containerName: "my_module"
               }
@@ -731,26 +857,38 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 12,
                         name: "def my_fn()",
-                        range: %{end: %{character: 14, line: 3}, start: %{character: 14, line: 3}},
+                        range: %{
+                          "end" => %{"character" => 14, "line" => 3},
+                          "start" => %{"character" => 14, "line" => 3}
+                        },
                         selectionRange: %{
-                          end: %{character: 14, line: 3},
-                          start: %{character: 14, line: 3}
+                          "end" => %{"character" => 14, "line" => 3},
+                          "start" => %{"character" => 14, "line" => 3}
                         }
                       }
                     ],
                     kind: 2,
                     name: "__MODULE__.SubModule",
-                    range: %{end: %{character: 8, line: 2}, start: %{character: 8, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 8, "line" => 2},
+                      "start" => %{"character" => 8, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 8, line: 2},
-                      start: %{character: 8, line: 2}
+                      "end" => %{"character" => 8, "line" => 2},
+                      "start" => %{"character" => 8, "line" => 2}
                     }
                   }
                 ],
                 kind: 2,
                 name: "__MODULE__",
-                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
-                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                range: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -771,14 +909,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "__MODULE__",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "__MODULE__.SubModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 8, line: 2}, start: %{character: 8, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 8, "line" => 2},
+                    "start" => %{"character" => 8, "line" => 2}
+                  }
                 },
                 containerName: "__MODULE__"
               },
@@ -786,7 +930,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn()",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 14, line: 3}, start: %{character: 14, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 14, "line" => 3},
+                    "start" => %{"character" => 14, "line" => 3}
+                  }
                 },
                 containerName: "__MODULE__.SubModule"
               }
@@ -819,17 +966,26 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "def size(data)",
-                    range: %{end: %{character: 6, line: 2}, start: %{character: 6, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 6, "line" => 2},
+                      "start" => %{"character" => 6, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 6, line: 2},
-                      start: %{character: 6, line: 2}
+                      "end" => %{"character" => 6, "line" => 2},
+                      "start" => %{"character" => 6, "line" => 2}
                     }
                   }
                 ],
                 kind: 11,
                 name: "MyProtocol",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               },
               %Protocol.DocumentSymbol{
                 children: [
@@ -837,17 +993,26 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "def size(binary)",
-                    range: %{end: %{character: 6, line: 6}, start: %{character: 6, line: 6}},
+                    range: %{
+                      "end" => %{"character" => 6, "line" => 6},
+                      "start" => %{"character" => 6, "line" => 6}
+                    },
                     selectionRange: %{
-                      end: %{character: 6, line: 6},
-                      start: %{character: 6, line: 6}
+                      "end" => %{"character" => 6, "line" => 6},
+                      "start" => %{"character" => 6, "line" => 6}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyProtocol, for: BitString",
-                range: %{end: %{character: 0, line: 5}, start: %{character: 0, line: 5}},
-                selectionRange: %{end: %{character: 0, line: 5}, start: %{character: 0, line: 5}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 5},
+                  "start" => %{"character" => 0, "line" => 5}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 5},
+                  "start" => %{"character" => 0, "line" => 5}
+                }
               },
               %Protocol.DocumentSymbol{
                 children: [
@@ -855,17 +1020,26 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "def size(param)",
-                    range: %{end: %{character: 6, line: 10}, start: %{character: 6, line: 10}},
+                    range: %{
+                      "end" => %{"character" => 6, "line" => 10},
+                      "start" => %{"character" => 6, "line" => 10}
+                    },
                     selectionRange: %{
-                      end: %{character: 6, line: 10},
-                      start: %{character: 6, line: 10}
+                      "end" => %{"character" => 6, "line" => 10},
+                      "start" => %{"character" => 6, "line" => 10}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyProtocol, for: [List, MyList]",
-                range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}},
-                selectionRange: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 9},
+                  "start" => %{"character" => 0, "line" => 9}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 9},
+                  "start" => %{"character" => 0, "line" => 9}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -894,14 +1068,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyProtocol",
                 kind: 11,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 kind: 12,
                 name: "def size(data)",
                 location: %{
-                  range: %{end: %{character: 6, line: 2}, start: %{character: 6, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 2},
+                    "start" => %{"character" => 6, "line" => 2}
+                  }
                 },
                 containerName: "MyProtocol"
               },
@@ -909,14 +1089,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyProtocol, for: BitString",
                 location: %{
-                  range: %{end: %{character: 0, line: 5}, start: %{character: 0, line: 5}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 5},
+                    "start" => %{"character" => 0, "line" => 5}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 kind: 12,
                 name: "def size(binary)",
                 location: %{
-                  range: %{end: %{character: 6, line: 6}, start: %{character: 6, line: 6}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 6},
+                    "start" => %{"character" => 6, "line" => 6}
+                  }
                 },
                 containerName: "MyProtocol, for: BitString"
               },
@@ -924,14 +1110,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyProtocol, for: [List, MyList]",
                 location: %{
-                  range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 9},
+                    "start" => %{"character" => 0, "line" => 9}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 kind: 12,
                 name: "def size(param)",
                 location: %{
-                  range: %{end: %{character: 6, line: 10}, start: %{character: 6, line: 10}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 10},
+                    "start" => %{"character" => 6, "line" => 10}
+                  }
                 },
                 containerName: "MyProtocol, for: [List, MyList]"
               }
@@ -957,36 +1149,51 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 7,
                         name: "prop",
-                        range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                        range: %{
+                          "end" => %{"character" => 2, "line" => 1},
+                          "start" => %{"character" => 2, "line" => 1}
+                        },
                         selectionRange: %{
-                          end: %{character: 2, line: 1},
-                          start: %{character: 2, line: 1}
+                          "end" => %{"character" => 2, "line" => 1},
+                          "start" => %{"character" => 2, "line" => 1}
                         }
                       },
                       %Protocol.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "prop_with_def",
-                        range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                        range: %{
+                          "end" => %{"character" => 2, "line" => 1},
+                          "start" => %{"character" => 2, "line" => 1}
+                        },
                         selectionRange: %{
-                          end: %{character: 2, line: 1},
-                          start: %{character: 2, line: 1}
+                          "end" => %{"character" => 2, "line" => 1},
+                          "start" => %{"character" => 2, "line" => 1}
                         }
                       }
                     ],
                     kind: 23,
                     name: "struct",
-                    range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                    range: %{
+                      "end" => %{"character" => 2, "line" => 1},
+                      "start" => %{"character" => 2, "line" => 1}
+                    },
                     selectionRange: %{
-                      end: %{character: 2, line: 1},
-                      start: %{character: 2, line: 1}
+                      "end" => %{"character" => 2, "line" => 1},
+                      "start" => %{"character" => 2, "line" => 1}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -1006,14 +1213,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "struct",
                 kind: 23,
                 location: %{
-                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 1},
+                    "start" => %{"character" => 2, "line" => 1}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1021,7 +1234,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "prop",
                 kind: 7,
                 location: %{
-                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 1},
+                    "start" => %{"character" => 2, "line" => 1}
+                  }
                 },
                 containerName: "struct"
               },
@@ -1029,7 +1245,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 7,
                 name: "prop_with_def",
                 location: %{
-                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 1},
+                    "start" => %{"character" => 2, "line" => 1}
+                  }
                 },
                 containerName: "struct"
               }
@@ -1055,26 +1274,38 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 7,
                         name: "message",
-                        range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                        range: %{
+                          "end" => %{"character" => 2, "line" => 1},
+                          "start" => %{"character" => 2, "line" => 1}
+                        },
                         selectionRange: %{
-                          end: %{character: 2, line: 1},
-                          start: %{character: 2, line: 1}
+                          "end" => %{"character" => 2, "line" => 1},
+                          "start" => %{"character" => 2, "line" => 1}
                         }
                       }
                     ],
                     kind: 23,
                     name: "exception",
-                    range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}},
+                    range: %{
+                      "end" => %{"character" => 2, "line" => 1},
+                      "start" => %{"character" => 2, "line" => 1}
+                    },
                     selectionRange: %{
-                      end: %{character: 2, line: 1},
-                      start: %{character: 2, line: 1}
+                      "end" => %{"character" => 2, "line" => 1},
+                      "start" => %{"character" => 2, "line" => 1}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyError",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -1094,14 +1325,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyError",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 kind: 23,
                 name: "exception",
                 location: %{
-                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 1},
+                    "start" => %{"character" => 2, "line" => 1}
+                  }
                 },
                 containerName: "MyError"
               },
@@ -1109,7 +1346,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 7,
                 name: "message",
                 location: %{
-                  range: %{end: %{character: 2, line: 1}, start: %{character: 2, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 1},
+                    "start" => %{"character" => 2, "line" => 1}
+                  }
                 },
                 containerName: "exception"
               }
@@ -1138,67 +1378,91 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 5,
                     name: "my_simple",
-                    range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 1},
+                      "start" => %{"character" => 3, "line" => 1}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 1},
-                      start: %{character: 3, line: 1}
+                      "end" => %{"character" => 3, "line" => 1},
+                      "start" => %{"character" => 3, "line" => 1}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_union",
-                    range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 2},
+                      "start" => %{"character" => 3, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 2},
-                      start: %{character: 3, line: 2}
+                      "end" => %{"character" => 3, "line" => 2},
+                      "start" => %{"character" => 3, "line" => 2}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_simple_private",
-                    range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 3},
+                      "start" => %{"character" => 3, "line" => 3}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 3},
-                      start: %{character: 3, line: 3}
+                      "end" => %{"character" => 3, "line" => 3},
+                      "start" => %{"character" => 3, "line" => 3}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_simple_opaque",
-                    range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 4},
+                      "start" => %{"character" => 3, "line" => 4}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 4},
-                      start: %{character: 3, line: 4}
+                      "end" => %{"character" => 3, "line" => 4},
+                      "start" => %{"character" => 3, "line" => 4}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_with_args(key, value)",
-                    range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 5},
+                      "start" => %{"character" => 3, "line" => 5}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 5},
-                      start: %{character: 3, line: 5}
+                      "end" => %{"character" => 3, "line" => 5},
+                      "start" => %{"character" => 3, "line" => 5}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_with_args_when(key, value)",
-                    range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 6},
+                      "start" => %{"character" => 3, "line" => 6}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 6},
-                      start: %{character: 3, line: 6}
+                      "end" => %{"character" => 3, "line" => 6},
+                      "start" => %{"character" => 3, "line" => 6}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -1223,14 +1487,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 kind: 5,
                 name: "my_simple",
                 location: %{
-                  range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 1},
+                    "start" => %{"character" => 3, "line" => 1}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1238,7 +1508,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 5,
                 name: "my_union",
                 location: %{
-                  range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 2},
+                    "start" => %{"character" => 3, "line" => 2}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1246,7 +1519,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 5,
                 name: "my_simple_private",
                 location: %{
-                  range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 3},
+                    "start" => %{"character" => 3, "line" => 3}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1254,7 +1530,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 5,
                 name: "my_simple_opaque",
                 location: %{
-                  range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 4},
+                    "start" => %{"character" => 3, "line" => 4}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1262,7 +1541,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 5,
                 name: "my_with_args(key, value)",
                 location: %{
-                  range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 5},
+                    "start" => %{"character" => 3, "line" => 5}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1270,7 +1552,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 5,
                 name: "my_with_args_when(key, value)",
                 location: %{
-                  range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 6},
+                    "start" => %{"character" => 3, "line" => 6}
+                  }
                 },
                 containerName: "MyModule"
               }
@@ -1301,67 +1586,91 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 24,
                     name: "my_callback(type1, type2)",
-                    range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 1},
+                      "start" => %{"character" => 3, "line" => 1}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 1},
-                      start: %{character: 3, line: 1}
+                      "end" => %{"character" => 3, "line" => 1},
+                      "start" => %{"character" => 3, "line" => 1}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_macrocallback(type1, type2)",
-                    range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 2},
+                      "start" => %{"character" => 3, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 2},
-                      start: %{character: 3, line: 2}
+                      "end" => %{"character" => 3, "line" => 2},
+                      "start" => %{"character" => 3, "line" => 2}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_callback_when(type1, type2)",
-                    range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 4},
+                      "start" => %{"character" => 3, "line" => 4}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 4},
-                      start: %{character: 3, line: 4}
+                      "end" => %{"character" => 3, "line" => 4},
+                      "start" => %{"character" => 3, "line" => 4}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_macrocallback_when(type1, type2)",
-                    range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 5},
+                      "start" => %{"character" => 3, "line" => 5}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 5},
-                      start: %{character: 3, line: 5}
+                      "end" => %{"character" => 3, "line" => 5},
+                      "start" => %{"character" => 3, "line" => 5}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_callback_no_arg()",
-                    range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 7},
+                      "start" => %{"character" => 3, "line" => 7}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 7},
-                      start: %{character: 3, line: 7}
+                      "end" => %{"character" => 3, "line" => 7},
+                      "start" => %{"character" => 3, "line" => 7}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_macrocallback_no_arg()",
-                    range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 8},
+                      "start" => %{"character" => 3, "line" => 8}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 8},
-                      start: %{character: 3, line: 8}
+                      "end" => %{"character" => 3, "line" => 8},
+                      "start" => %{"character" => 3, "line" => 8}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -1388,14 +1697,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "my_callback(type1, type2)",
                 kind: 24,
                 location: %{
-                  range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 1},
+                    "start" => %{"character" => 3, "line" => 1}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1403,7 +1718,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "my_macrocallback(type1, type2)",
                 kind: 24,
                 location: %{
-                  range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 2},
+                    "start" => %{"character" => 3, "line" => 2}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1411,7 +1729,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "my_callback_when(type1, type2)",
                 kind: 24,
                 location: %{
-                  range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 4},
+                    "start" => %{"character" => 3, "line" => 4}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1419,7 +1740,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "my_macrocallback_when(type1, type2)",
                 kind: 24,
                 location: %{
-                  range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 5},
+                    "start" => %{"character" => 3, "line" => 5}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1427,7 +1751,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "my_callback_no_arg()",
                 kind: 24,
                 location: %{
-                  range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 7},
+                    "start" => %{"character" => 3, "line" => 7}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1435,7 +1762,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "my_macrocallback_no_arg()",
                 kind: 24,
                 location: %{
-                  range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 8},
+                    "start" => %{"character" => 3, "line" => 8}
+                  }
                 },
                 containerName: "MyModule"
               }
@@ -1459,27 +1789,39 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 24,
                     name: "my_fn(integer)",
-                    range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 9, "line" => 2},
+                      "start" => %{"character" => 9, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 9, line: 2},
-                      start: %{character: 9, line: 2}
+                      "end" => %{"character" => 9, "line" => 2},
+                      "start" => %{"character" => 9, "line" => 2}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "def my_fn(a)",
-                    range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}},
+                    range: %{
+                      "end" => %{"character" => 12, "line" => 3},
+                      "start" => %{"character" => 12, "line" => 3}
+                    },
                     selectionRange: %{
-                      end: %{character: 12, line: 3},
-                      start: %{character: 12, line: 3}
+                      "end" => %{"character" => 12, "line" => 3},
+                      "start" => %{"character" => 12, "line" => 3}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}},
-                selectionRange: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                range: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -1499,14 +1841,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "my_fn(integer)",
                 kind: 24,
                 location: %{
-                  range: %{end: %{character: 9, line: 2}, start: %{character: 9, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 9, "line" => 2},
+                    "start" => %{"character" => 9, "line" => 2}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1514,7 +1862,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn(a)",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 12, line: 3}, start: %{character: 12, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 12, "line" => 3},
+                    "start" => %{"character" => 12, "line" => 3}
+                  }
                 },
                 containerName: "MyModule"
               }
@@ -1538,8 +1889,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 children: [],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -1561,7 +1918,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
@@ -1600,177 +1960,234 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 14,
                     name: "@optional_callbacks",
-                    range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 1},
+                      "start" => %{"character" => 3, "line" => 1}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 1},
-                      start: %{character: 3, line: 1}
+                      "end" => %{"character" => 3, "line" => 1},
+                      "start" => %{"character" => 3, "line" => 1}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@behaviour MyBehaviour",
-                    range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 2},
+                      "start" => %{"character" => 3, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 2},
-                      start: %{character: 3, line: 2}
+                      "end" => %{"character" => 3, "line" => 2},
+                      "start" => %{"character" => 3, "line" => 2}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@impl true",
-                    range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 3},
+                      "start" => %{"character" => 3, "line" => 3}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 3},
-                      start: %{character: 3, line: 3}
+                      "end" => %{"character" => 3, "line" => 3},
+                      "start" => %{"character" => 3, "line" => 3}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@derive",
-                    range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 4},
+                      "start" => %{"character" => 3, "line" => 4}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 4},
-                      start: %{character: 3, line: 4}
+                      "end" => %{"character" => 3, "line" => 4},
+                      "start" => %{"character" => 3, "line" => 4}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@enforce_keys",
-                    range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 5},
+                      "start" => %{"character" => 3, "line" => 5}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 5},
-                      start: %{character: 3, line: 5}
+                      "end" => %{"character" => 3, "line" => 5},
+                      "start" => %{"character" => 3, "line" => 5}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@compile",
-                    range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 6},
+                      "start" => %{"character" => 3, "line" => 6}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 6},
-                      start: %{character: 3, line: 6}
+                      "end" => %{"character" => 3, "line" => 6},
+                      "start" => %{"character" => 3, "line" => 6}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@deprecated",
-                    range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 7},
+                      "start" => %{"character" => 3, "line" => 7}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 7},
-                      start: %{character: 3, line: 7}
+                      "end" => %{"character" => 3, "line" => 7},
+                      "start" => %{"character" => 3, "line" => 7}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@dialyzer",
-                    range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 8},
+                      "start" => %{"character" => 3, "line" => 8}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 8},
-                      start: %{character: 3, line: 8}
+                      "end" => %{"character" => 3, "line" => 8},
+                      "start" => %{"character" => 3, "line" => 8}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@file",
-                    range: %{end: %{character: 3, line: 9}, start: %{character: 3, line: 9}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 9},
+                      "start" => %{"character" => 3, "line" => 9}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 9},
-                      start: %{character: 3, line: 9}
+                      "end" => %{"character" => 3, "line" => 9},
+                      "start" => %{"character" => 3, "line" => 9}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@external_resource",
-                    range: %{end: %{character: 3, line: 10}, start: %{character: 3, line: 10}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 10},
+                      "start" => %{"character" => 3, "line" => 10}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 10},
-                      start: %{character: 3, line: 10}
+                      "end" => %{"character" => 3, "line" => 10},
+                      "start" => %{"character" => 3, "line" => 10}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@on_load",
-                    range: %{end: %{character: 3, line: 11}, start: %{character: 3, line: 11}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 11},
+                      "start" => %{"character" => 3, "line" => 11}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 11},
-                      start: %{character: 3, line: 11}
+                      "end" => %{"character" => 3, "line" => 11},
+                      "start" => %{"character" => 3, "line" => 11}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@on_definition",
-                    range: %{end: %{character: 3, line: 12}, start: %{character: 3, line: 12}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 12},
+                      "start" => %{"character" => 3, "line" => 12}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 12},
-                      start: %{character: 3, line: 12}
+                      "end" => %{"character" => 3, "line" => 12},
+                      "start" => %{"character" => 3, "line" => 12}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@vsn",
-                    range: %{end: %{character: 3, line: 13}, start: %{character: 3, line: 13}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 13},
+                      "start" => %{"character" => 3, "line" => 13}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 13},
-                      start: %{character: 3, line: 13}
+                      "end" => %{"character" => 3, "line" => 13},
+                      "start" => %{"character" => 3, "line" => 13}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@after_compile",
-                    range: %{end: %{character: 3, line: 14}, start: %{character: 3, line: 14}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 14},
+                      "start" => %{"character" => 3, "line" => 14}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 14},
-                      start: %{character: 3, line: 14}
+                      "end" => %{"character" => 3, "line" => 14},
+                      "start" => %{"character" => 3, "line" => 14}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@before_compile",
-                    range: %{end: %{character: 3, line: 15}, start: %{character: 3, line: 15}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 15},
+                      "start" => %{"character" => 3, "line" => 15}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 15},
-                      start: %{character: 3, line: 15}
+                      "end" => %{"character" => 3, "line" => 15},
+                      "start" => %{"character" => 3, "line" => 15}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@fallback_to_any",
-                    range: %{end: %{character: 3, line: 16}, start: %{character: 3, line: 16}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 16},
+                      "start" => %{"character" => 3, "line" => 16}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 16},
-                      start: %{character: 3, line: 16}
+                      "end" => %{"character" => 3, "line" => 16},
+                      "start" => %{"character" => 3, "line" => 16}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "@impl MyBehaviour",
-                    range: %{end: %{character: 3, line: 17}, start: %{character: 3, line: 17}},
+                    range: %{
+                      "end" => %{"character" => 3, "line" => 17},
+                      "start" => %{"character" => 3, "line" => 17}
+                    },
                     selectionRange: %{
-                      end: %{character: 3, line: 17},
-                      start: %{character: 3, line: 17}
+                      "end" => %{"character" => 3, "line" => 17},
+                      "start" => %{"character" => 3, "line" => 17}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -1806,14 +2223,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "@optional_callbacks",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 1}, start: %{character: 3, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 1},
+                    "start" => %{"character" => 3, "line" => 1}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1821,7 +2244,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@behaviour MyBehaviour",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 2}, start: %{character: 3, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 2},
+                    "start" => %{"character" => 3, "line" => 2}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1829,7 +2255,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@impl true",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 3}, start: %{character: 3, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 3},
+                    "start" => %{"character" => 3, "line" => 3}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1837,7 +2266,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@derive",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 4}, start: %{character: 3, line: 4}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 4},
+                    "start" => %{"character" => 3, "line" => 4}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1845,7 +2277,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@enforce_keys",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 5}, start: %{character: 3, line: 5}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 5},
+                    "start" => %{"character" => 3, "line" => 5}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1853,7 +2288,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@compile",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 6}, start: %{character: 3, line: 6}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 6},
+                    "start" => %{"character" => 3, "line" => 6}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1861,7 +2299,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@deprecated",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 7}, start: %{character: 3, line: 7}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 7},
+                    "start" => %{"character" => 3, "line" => 7}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1869,7 +2310,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@dialyzer",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 8}, start: %{character: 3, line: 8}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 8},
+                    "start" => %{"character" => 3, "line" => 8}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1877,7 +2321,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@file",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 9}, start: %{character: 3, line: 9}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 9},
+                    "start" => %{"character" => 3, "line" => 9}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1885,7 +2332,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@external_resource",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 10}, start: %{character: 3, line: 10}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 10},
+                    "start" => %{"character" => 3, "line" => 10}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1893,7 +2343,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@on_load",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 11}, start: %{character: 3, line: 11}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 11},
+                    "start" => %{"character" => 3, "line" => 11}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1901,7 +2354,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@on_definition",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 12}, start: %{character: 3, line: 12}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 12},
+                    "start" => %{"character" => 3, "line" => 12}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1909,7 +2365,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@vsn",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 13}, start: %{character: 3, line: 13}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 13},
+                    "start" => %{"character" => 3, "line" => 13}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1917,7 +2376,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@after_compile",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 14}, start: %{character: 3, line: 14}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 14},
+                    "start" => %{"character" => 3, "line" => 14}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1925,7 +2387,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@before_compile",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 15}, start: %{character: 3, line: 15}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 15},
+                    "start" => %{"character" => 3, "line" => 15}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1933,7 +2398,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@fallback_to_any",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 16}, start: %{character: 3, line: 16}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 16},
+                    "start" => %{"character" => 3, "line" => 16}
+                  }
                 },
                 containerName: "MyModule"
               },
@@ -1941,7 +2409,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@impl MyBehaviour",
                 kind: 14,
                 location: %{
-                  range: %{end: %{character: 3, line: 17}, start: %{character: 3, line: 17}}
+                  range: %{
+                    "end" => %{"character" => 3, "line" => 17},
+                    "start" => %{"character" => 3, "line" => 17}
+                  }
                 },
                 containerName: "MyModule"
               }
@@ -1966,24 +2437,24 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     kind: 12,
                     name: "test \"does something\"",
                     range: %{
-                      end: %{character: 8, line: 3},
-                      start: %{character: 8, line: 3}
+                      "end" => %{"character" => 8, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
                     },
                     selectionRange: %{
-                      end: %{character: 8, line: 3},
-                      start: %{character: 8, line: 3}
+                      "end" => %{"character" => 8, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModuleTest",
                 range: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 },
                 selectionRange: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
@@ -2004,14 +2475,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "test \"does something\"",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 8, "line" => 3},
+                    "start" => %{"character" => 8, "line" => 3}
+                  }
                 },
                 containerName: "MyModuleTest"
               }
@@ -2040,36 +2517,36 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 12,
                         name: "test \"does something\"",
                         range: %{
-                          end: %{character: 10, line: 4},
-                          start: %{character: 10, line: 4}
+                          "end" => %{"character" => 10, "line" => 4},
+                          "start" => %{"character" => 10, "line" => 4}
                         },
                         selectionRange: %{
-                          end: %{character: 10, line: 4},
-                          start: %{character: 10, line: 4}
+                          "end" => %{"character" => 10, "line" => 4},
+                          "start" => %{"character" => 10, "line" => 4}
                         }
                       }
                     ],
                     kind: 12,
                     name: "describe \"some description\"",
                     range: %{
-                      end: %{character: 8, line: 3},
-                      start: %{character: 8, line: 3}
+                      "end" => %{"character" => 8, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
                     },
                     selectionRange: %{
-                      end: %{character: 8, line: 3},
-                      start: %{character: 8, line: 3}
+                      "end" => %{"character" => 8, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModuleTest",
                 range: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 },
                 selectionRange: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
@@ -2097,36 +2574,36 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 12,
                         name: "test \"does\" <> \"something\"",
                         range: %{
-                          end: %{character: 10, line: 4},
-                          start: %{character: 10, line: 4}
+                          "end" => %{"character" => 10, "line" => 4},
+                          "start" => %{"character" => 10, "line" => 4}
                         },
                         selectionRange: %{
-                          end: %{character: 10, line: 4},
-                          start: %{character: 10, line: 4}
+                          "end" => %{"character" => 10, "line" => 4},
+                          "start" => %{"character" => 10, "line" => 4}
                         }
                       }
                     ],
                     kind: 12,
                     name: describe_sigil,
                     range: %{
-                      end: %{character: 8, line: 3},
-                      start: %{character: 8, line: 3}
+                      "end" => %{"character" => 8, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
                     },
                     selectionRange: %{
-                      end: %{character: 8, line: 3},
-                      start: %{character: 8, line: 3}
+                      "end" => %{"character" => 8, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModuleTest",
                 range: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 },
                 selectionRange: %{
-                  end: %{character: 6, line: 1},
-                  start: %{character: 6, line: 1}
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
@@ -2155,14 +2632,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "describe \"some description\"",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 8, "line" => 3},
+                    "start" => %{"character" => 8, "line" => 3}
+                  }
                 },
                 containerName: "MyModuleTest"
               },
@@ -2170,7 +2653,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "test \"does something\"",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 10, line: 4}, start: %{character: 10, line: 4}}
+                  range: %{
+                    "end" => %{"character" => 10, "line" => 4},
+                    "start" => %{"character" => 10, "line" => 4}
+                  }
                 },
                 containerName: "describe \"some description\""
               }
@@ -2194,14 +2680,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 6, line: 1}, start: %{character: 6, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: describe_sigil,
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 8, line: 3}, start: %{character: 8, line: 3}}
+                  range: %{
+                    "end" => %{"character" => 8, "line" => 3},
+                    "start" => %{"character" => 8, "line" => 3}
+                  }
                 },
                 containerName: "MyModuleTest"
               },
@@ -2209,7 +2701,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "test \"does\" <> \"something\"",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 10, line: 4}, start: %{character: 10, line: 4}}
+                  range: %{
+                    "end" => %{"character" => 10, "line" => 4},
+                    "start" => %{"character" => 10, "line" => 4}
+                  }
                 },
                 containerName: describe_sigil
               }
@@ -2246,37 +2741,52 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 12,
                     name: "setup",
-                    range: %{end: %{character: 2, line: 2}, start: %{character: 2, line: 2}},
+                    range: %{
+                      "end" => %{"character" => 2, "line" => 2},
+                      "start" => %{"character" => 2, "line" => 2}
+                    },
                     selectionRange: %{
-                      end: %{character: 2, line: 2},
-                      start: %{character: 2, line: 2}
+                      "end" => %{"character" => 2, "line" => 2},
+                      "start" => %{"character" => 2, "line" => 2}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "setup",
-                    range: %{end: %{character: 2, line: 5}, start: %{character: 2, line: 5}},
+                    range: %{
+                      "end" => %{"character" => 2, "line" => 5},
+                      "start" => %{"character" => 2, "line" => 5}
+                    },
                     selectionRange: %{
-                      end: %{character: 2, line: 5},
-                      start: %{character: 2, line: 5}
+                      "end" => %{"character" => 2, "line" => 5},
+                      "start" => %{"character" => 2, "line" => 5}
                     }
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "setup_all",
-                    range: %{end: %{character: 2, line: 6}, start: %{character: 2, line: 6}},
+                    range: %{
+                      "end" => %{"character" => 2, "line" => 6},
+                      "start" => %{"character" => 2, "line" => 6}
+                    },
                     selectionRange: %{
-                      end: %{character: 2, line: 6},
-                      start: %{character: 2, line: 6}
+                      "end" => %{"character" => 2, "line" => 6},
+                      "start" => %{"character" => 2, "line" => 6}
                     }
                   }
                 ],
                 kind: 2,
                 name: "MyModuleTest",
-                range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}},
-                selectionRange: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 0},
+                  "start" => %{"character" => 0, "line" => 0}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -2303,14 +2813,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{end: %{character: 0, line: 0}, start: %{character: 0, line: 0}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 0},
+                    "start" => %{"character" => 0, "line" => 0}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "setup",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 2, line: 2}, start: %{character: 2, line: 2}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 2},
+                    "start" => %{"character" => 2, "line" => 2}
+                  }
                 },
                 containerName: "MyModuleTest"
               },
@@ -2318,7 +2834,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "setup",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 2, line: 5}, start: %{character: 2, line: 5}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 5},
+                    "start" => %{"character" => 2, "line" => 5}
+                  }
                 },
                 containerName: "MyModuleTest"
               },
@@ -2326,7 +2845,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "setup_all",
                 kind: 12,
                 location: %{
-                  range: %{end: %{character: 2, line: 6}, start: %{character: 2, line: 6}}
+                  range: %{
+                    "end" => %{"character" => 2, "line" => 6},
+                    "start" => %{"character" => 2, "line" => 6}
+                  }
                 },
                 containerName: "MyModuleTest"
               }
@@ -2356,29 +2878,53 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 children: [],
                 kind: 20,
                 name: "config :logger :console",
-                range: %{end: %{character: 0, line: 1}, start: %{character: 0, line: 1}},
-                selectionRange: %{end: %{character: 0, line: 1}, start: %{character: 0, line: 1}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 1},
+                  "start" => %{"character" => 0, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 1},
+                  "start" => %{"character" => 0, "line" => 1}
+                }
               },
               %Protocol.DocumentSymbol{
                 children: [],
                 kind: 20,
                 name: "config :app :key",
-                range: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}},
-                selectionRange: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 6},
+                  "start" => %{"character" => 0, "line" => 6}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 6},
+                  "start" => %{"character" => 0, "line" => 6}
+                }
               },
               %Protocol.DocumentSymbol{
                 children: [],
                 kind: 20,
                 name: "config :my_app :ecto_repos",
-                range: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}},
-                selectionRange: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 7},
+                  "start" => %{"character" => 0, "line" => 7}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 7},
+                  "start" => %{"character" => 0, "line" => 7}
+                }
               },
               %Protocol.DocumentSymbol{
                 children: [],
                 kind: 20,
                 name: "config :my_app MyApp.Repo",
-                range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}},
-                selectionRange: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
+                range: %{
+                  "end" => %{"character" => 0, "line" => 9},
+                  "start" => %{"character" => 0, "line" => 9}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 0, "line" => 9},
+                  "start" => %{"character" => 0, "line" => 9}
+                }
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
@@ -2406,28 +2952,40 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "config :logger :console",
                 kind: 20,
                 location: %{
-                  range: %{end: %{character: 0, line: 1}, start: %{character: 0, line: 1}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 1},
+                    "start" => %{"character" => 0, "line" => 1}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "config :app :key",
                 kind: 20,
                 location: %{
-                  range: %{end: %{character: 0, line: 6}, start: %{character: 0, line: 6}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 6},
+                    "start" => %{"character" => 0, "line" => 6}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "config :my_app :ecto_repos",
                 kind: 20,
                 location: %{
-                  range: %{end: %{character: 0, line: 7}, start: %{character: 0, line: 7}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 7},
+                    "start" => %{"character" => 0, "line" => 7}
+                  }
                 }
               },
               %Protocol.SymbolInformation{
                 name: "config :my_app MyApp.Repo",
                 kind: 20,
                 location: %{
-                  range: %{end: %{character: 0, line: 9}, start: %{character: 0, line: 9}}
+                  range: %{
+                    "end" => %{"character" => 0, "line" => 9},
+                    "start" => %{"character" => 0, "line" => 9}
+                  }
                 }
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
@@ -2450,12 +3008,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                kind: 2,
                name: "MISSING_MODULE_NAME",
                range: %{
-                 start: %{line: 0, character: 0},
-                 end: %{line: 0, character: 0}
+                 "start" => %{"line" => 0, "character" => 0},
+                 "end" => %{"line" => 0, "character" => 0}
                },
                selectionRange: %{
-                 start: %{line: 0, character: 0},
-                 end: %{line: 0, character: 0}
+                 "start" => %{"line" => 0, "character" => 0},
+                 "end" => %{"line" => 0, "character" => 0}
                }
              }
            ] = document_symbols
@@ -2466,12 +3024,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                kind: 12,
                name: "def foo",
                range: %{
-                 start: %{character: 4, line: 1},
-                 end: %{character: 4, line: 1}
+                 "start" => %{"character" => 4, "line" => 1},
+                 "end" => %{"character" => 4, "line" => 1}
                },
                selectionRange: %{
-                 start: %{character: 4, line: 1},
-                 end: %{character: 4, line: 1}
+                 "start" => %{"character" => 4, "line" => 1},
+                 "end" => %{"character" => 4, "line" => 1}
                }
              }
            ]
@@ -2493,12 +3051,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                kind: 11,
                name: "MISSING_PROTOCOL_NAME",
                range: %{
-                 start: %{line: 0, character: 0},
-                 end: %{line: 0, character: 0}
+                 "start" => %{"line" => 0, "character" => 0},
+                 "end" => %{"line" => 0, "character" => 0}
                },
                selectionRange: %{
-                 start: %{line: 0, character: 0},
-                 end: %{line: 0, character: 0}
+                 "start" => %{"line" => 0, "character" => 0},
+                 "end" => %{"line" => 0, "character" => 0}
                }
              }
            ]

@@ -1,21 +1,41 @@
+### Precheck
+
+* Do a quick search and make sure the issue has not yet been reported
+* Do not use the issues tracker for guidance, questions or support (try Elixir Forum, Stack Overflow, Slack, etc. instead)
+* If using a client other than VS Code, please try VSCode's "ElixirLS: Elixir support and debugger" extension. Does it reproduce your failure?
+
 ### Environment
 
 * Elixir & Erlang versions (elixir --version): 
+* Elixir Language Server version: 
 * Operating system: 
 * Editor or IDE name (e.g. Emacs/VSCode): 
-* Editor Plugin/LSP Client name:
+* Editor Plugin/LSP Client name and version:
 
-### Troubleshooting
+### Current behavior
 
-- [ ] Restart your editor (which will restart ElixirLS) sometimes fixes issues
-- [ ] Stop your editor, remove the entire `.elixir_ls` directory, then restart your editor
-  * NOTE: This will cause you to have to re-run the dialyzer build for your project
+<!--
+A short description of the issue
+-->
 
-If you're experiencing high CPU usage, it is most likely Dialyzer building the PLTs; after it's done the CPU usage should go back to normal. You could also disable Dialyzer in the settings.
+<!--
+ElixirLS logs. If using Visual Studio Code, check the output log by opening `View > Output` and selecting "ElixirLS" in the dropdown. Please include any output that looks relevant. (If ElixirLS isn't in the dropdown, the server failed to launch.)
+-->
 
-### Logs
+<!--
+If relevant include VSCode extension logs. Check the developer console by opening `Help > Toggle Developer Tools`.
+-->
 
-1.  If using a client other than VS Code, please try VSCode's "ElixirLS: Elixir support and debugger" extension. Does it reproduce your failure?
-2.  Create a new Mix project with `mix new empty`, then open that project with VS Code and open an Elixir file. Is your issue reproducible on the empty project? If not, please publish a repo on Github that does reproduce it.
-3.  Check the output log by opening `View > Output` and selecting "ElixirLS" in the dropdown. Please include any output that looks relevant. (If ElixirLS isn't in the dropdown, the server failed to launch.)
-4.  Check the developer console by opening `Help > Toggle Developer Tools` and include any errors that look relevant.
+<!--
+If relevant include Language Server Protocol/Debug Adapter Protocol messages trace. In VSCode turn on tracing in Settings > Extensions > ElixirLS > Elixir LS › Trace: Server.
+-->
+
+<!--
+Reproduction steps. Describe how to reproduce the issue with an empty mix project or post a minimal repo with a project that reproduces the issue.
+-->
+
+### Expected behavior
+
+<!--
+A short description on how you expect the language server/debug adapter to behave.
+-->

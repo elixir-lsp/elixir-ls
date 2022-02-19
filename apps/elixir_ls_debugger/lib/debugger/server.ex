@@ -35,7 +35,12 @@ defmodule ElixirLS.Debugger.Server do
             task_ref: nil,
             threads: %{},
             threads_inverse: %{},
-            paused_processes: %{},
+            paused_processes: %{
+              evaluator: %{
+                vars: %{},
+                vars_inverse: %{}
+              }
+            },
             next_id: 1,
             output: Output,
             breakpoints: %{},
@@ -539,15 +544,26 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(
-         request(_cmd, "evaluate", %{"expression" => expr} = _args),
+         request(_cmd, "evaluate", %{"expression" => expr} = args),
          state = %__MODULE__{}
        ) do
     timeout = Map.get(state.config, "debugExpressionTimeoutMs", 10_000)
-    bindings = all_variables(state.paused_processes)
+    bindings = all_variables(state.paused_processes, args["frameId"])
 
-    result = evaluate_code_expression(expr, bindings, timeout)
+    value = evaluate_code_expression(expr, bindings, timeout)
 
-    {%{"result" => inspect(result), "variablesReference" => 0}, state}
+    child_type = Variables.child_type(value)
+    {state, var_id} = get_variable_reference(child_type, state, :evaluator, value)
+
+    json =
+      %{
+        "result" => inspect(value),
+        "variablesReference" => var_id
+      }
+      |> maybe_append_children_number(state.client_info, child_type, value)
+      |> maybe_append_variable_type(state.client_info, value)
+
+    {json, state}
   end
 
   defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
@@ -657,39 +673,48 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
+    var_child_type = Variables.child_type(var)
+
     children =
-      if (filter == "named" and Variables.child_type(var) == :indexed) or
-           (filter == "indexed" and Variables.child_type(var) == :named) do
+      if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
         []
       else
         Variables.children(var, start, count)
       end
 
     Enum.reduce(children, {state, []}, fn {name, value}, {state = %__MODULE__{}, result} ->
-      {state, var_id} =
-        if Variables.expandable?(value) do
-          ensure_var_id(state, pid, value)
-        else
-          {state, 0}
-        end
-
-      json = %{
-        "name" => to_string(name),
-        "value" => inspect(value),
-        "variablesReference" => var_id,
-        "type" => Variables.type(value)
-      }
+      child_type = Variables.child_type(value)
+      {state, var_id} = get_variable_reference(child_type, state, pid, value)
 
       json =
-        case Variables.child_type(value) do
-          :indexed -> Map.put(json, "indexedVariables", Variables.num_children(value))
-          :named -> Map.put(json, "namedVariables", Variables.num_children(value))
-          nil -> json
-        end
+        %{
+          "name" => to_string(name),
+          "value" => inspect(value),
+          "variablesReference" => var_id
+        }
+        |> maybe_append_children_number(state.client_info, child_type, value)
+        |> maybe_append_variable_type(state.client_info, value)
 
       {state, result ++ [json]}
     end)
   end
+
+  defp get_variable_reference(nil, state, _pid, _value), do: {state, 0}
+
+  defp get_variable_reference(_child_type, state, pid, value),
+    do: ensure_var_id(state, pid, value)
+
+  defp maybe_append_children_number(map, %{"supportsVariablePaging" => true}, atom, value)
+       when atom in [:indexed, :named],
+       do: Map.put(map, Atom.to_string(atom) <> "Variables", Variables.num_children(value))
+
+  defp maybe_append_children_number(map, _, _, _value), do: map
+
+  defp maybe_append_variable_type(map, %{"supportsVariableType" => true}, value) do
+    Map.put(map, "type", Variables.type(value))
+  end
+
+  defp maybe_append_variable_type(map, _, _value), do: map
 
   defp evaluate_code_expression(expr, bindings, timeout) do
     task =
@@ -718,10 +743,15 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp all_variables(paused_processes) do
+  defp all_variables(paused_processes, nil) do
     paused_processes
-    |> Enum.flat_map(fn {_pid, %PausedProcess{} = paused_process} ->
-      paused_process.frames |> Map.values()
+    |> Enum.flat_map(fn
+      {:evaluator, _} ->
+        # TODO setVariable?
+        []
+
+      {_pid, %PausedProcess{} = paused_process} ->
+        paused_process.frames |> Map.values()
     end)
     |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
     |> Enum.flat_map(fn %Frame{bindings: bindings} ->
@@ -729,23 +759,37 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
+  defp all_variables(paused_processes, frame_id) do
+    case find_frame(paused_processes, frame_id) do
+      {_pid, %Frame{bindings: bindings}} when is_map(bindings) ->
+        Binding.to_elixir_variable_names(bindings)
+
+      _ ->
+        []
+    end
+  end
+
   defp find_var(paused_processes, var_id) do
-    Enum.find_value(paused_processes, fn {pid, %PausedProcess{} = paused_process} ->
-      if Map.has_key?(paused_process.vars, var_id) do
-        {pid, paused_process.vars[var_id]}
+    Enum.find_value(paused_processes, fn {pid, %{vars: vars}} ->
+      if Map.has_key?(vars, var_id) do
+        {pid, vars[var_id]}
       end
     end)
   end
 
   defp find_frame(paused_processes, frame_id) do
-    Enum.find_value(paused_processes, fn {pid, %PausedProcess{} = paused_process} ->
-      if Map.has_key?(paused_process.frames, frame_id) do
-        {pid, paused_process.frames[frame_id]}
-      end
+    Enum.find_value(paused_processes, fn
+      {pid, %{frames: frames}} ->
+        if Map.has_key?(frames, frame_id) do
+          {pid, frames[frame_id]}
+        end
+
+      {:evaluator, _} ->
+        nil
     end)
   end
 
-  defp ensure_thread_id(state = %__MODULE__{}, pid) do
+  defp ensure_thread_id(state = %__MODULE__{}, pid) when is_pid(pid) do
     if Map.has_key?(state.threads_inverse, pid) do
       {state, state.threads_inverse[pid]}
     else
@@ -764,7 +808,7 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp ensure_var_id(state = %__MODULE__{}, pid, var) do
+  defp ensure_var_id(state = %__MODULE__{}, pid, var) when is_pid(pid) or pid == :evaluator do
     unless Map.has_key?(state.paused_processes, pid) do
       raise ArgumentError, message: "paused process #{inspect(pid)} not found"
     end
@@ -787,7 +831,7 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) do
+  defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) when is_pid(pid) do
     unless Map.has_key?(state.paused_processes, pid) do
       raise ArgumentError, message: "paused process #{inspect(pid)} not found"
     end

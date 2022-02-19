@@ -3,12 +3,14 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   defstruct [:text, :version, dirty?: false]
 
+  @endings ["\r\n", "\r", "\n"]
+
   def lines(%__MODULE__{text: text}) do
     lines(text)
   end
 
   def lines(text) when is_binary(text) do
-    String.split(text, ["\r\n", "\r", "\n"])
+    String.split(text, @endings)
   end
 
   @doc """
@@ -20,17 +22,18 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     do_lines_with_endings(text, "")
   end
 
-  def do_lines_with_endings("", line) do
+  def do_lines_with_endings("", line) when is_binary(line) do
     [{line, nil}]
   end
 
-  for line_ending <- ["\r\n", "\r", "\n"] do
-    def do_lines_with_endings(<<unquote(line_ending), rest::binary>>, line) do
+  for line_ending <- @endings do
+    def do_lines_with_endings(<<unquote(line_ending), rest::binary>>, line)
+        when is_binary(line) do
       [{line, unquote(line_ending)} | do_lines_with_endings(rest, "")]
     end
   end
 
-  def do_lines_with_endings(<<char::utf8, rest::binary>>, line) do
+  def do_lines_with_endings(<<char::utf8, rest::binary>>, line) when is_binary(line) do
     do_lines_with_endings(rest, line <> <<char::utf8>>)
   end
 
@@ -169,21 +172,20 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       |> List.last()
       |> line_length_utf16()
 
-    %{
-      "start" => %{"line" => 0, "character" => 0},
-      "end" => %{"line" => Enum.count(lines) - 1, "character" => utf16_size}
-    }
+    range(0, 0, Enum.count(lines) - 1, utf16_size)
   end
 
   def line_length_utf16(line) do
     line
-    |> :unicode.characters_to_binary(:utf8, :utf16)
+    |> characters_to_binary!(:utf8, :utf16)
     |> byte_size()
     |> div(2)
   end
 
-  defp prepend_line(line, nil, acc), do: [line | acc]
-  defp prepend_line(line, ending, acc), do: [[line, ending] | acc]
+  defp prepend_line(line, nil, acc) when is_binary(line), do: [line | acc]
+
+  defp prepend_line(line, ending, acc) when is_binary(line) and ending in @endings,
+    do: [[line, ending] | acc]
 
   def apply_edit(text, range(start_line, start_character, end_line, end_character), new_text) do
     lines_with_idx =
@@ -201,13 +203,13 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             # LSP contentChanges positions are based on UTF-16 string representation
             # https://microsoft.github.io/language-server-protocol/specification#textDocuments
             beginning_utf8 =
-              :unicode.characters_to_binary(line, :utf8, :utf16)
+              characters_to_binary!(line, :utf8, :utf16)
               |> (&binary_part(
                     &1,
                     0,
                     min(start_character * 2, byte_size(&1))
                   )).()
-              |> :unicode.characters_to_binary(:utf16, :utf8)
+              |> characters_to_binary!(:utf16, :utf8)
 
             [beginning_utf8 | acc]
 
@@ -228,13 +230,13 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             # LSP contentChanges positions are based on UTF-16 string representation
             # https://microsoft.github.io/language-server-protocol/specification#textDocuments
             ending_utf8 =
-              :unicode.characters_to_binary(line, :utf8, :utf16)
+              characters_to_binary!(line, :utf8, :utf16)
               |> (&binary_part(
                     &1,
                     min(end_character * 2, byte_size(&1)),
                     max(byte_size(&1) - end_character * 2, 0)
                   )).()
-              |> :unicode.characters_to_binary(:utf16, :utf8)
+              |> characters_to_binary!(:utf16, :utf8)
 
             prepend_line(ending_utf8, ending, acc)
 
@@ -244,6 +246,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       end)
 
     IO.iodata_to_binary(Enum.reverse(acc))
+  end
+
+  defp characters_to_binary!(binary, from, to) do
+    case :unicode.characters_to_binary(binary, from, to) do
+      result when is_binary(result) -> result
+    end
   end
 
   def module_line(module) do
@@ -362,4 +370,64 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   defp remove_indentation(lines, _), do: lines
+
+  def lsp_character_to_elixir(_utf8_line, lsp_character) when lsp_character <= 0, do: 1
+
+  def lsp_character_to_elixir(utf8_line, lsp_character) do
+    utf16_line =
+      utf8_line
+      |> characters_to_binary!(:utf8, :utf16)
+
+    byte_size = byte_size(utf16_line)
+
+    # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
+    diff = div(max(lsp_character * 2 - byte_size, 0), 2)
+
+    utf8_character =
+      utf16_line
+      |> (&binary_part(
+            &1,
+            0,
+            min(lsp_character * 2, byte_size)
+          )).()
+      |> characters_to_binary!(:utf16, :utf8)
+      |> String.length()
+
+    utf8_character + 1 + diff
+  end
+
+  def lsp_position_to_elixr(_urf8_text, {lsp_line, lsp_character}) when lsp_character <= 0,
+    do: {max(lsp_line + 1, 1), 1}
+
+  def lsp_position_to_elixr(urf8_text, {lsp_line, lsp_character}) do
+    utf8_character =
+      lines(urf8_text)
+      |> Enum.at(max(lsp_line, 0))
+      |> lsp_character_to_elixir(lsp_character)
+
+    {lsp_line + 1, utf8_character}
+  end
+
+  def elixir_character_to_lsp(_utf8_line, elixir_character) when elixir_character <= 1, do: 0
+
+  def elixir_character_to_lsp(utf8_line, elixir_character) do
+    utf8_line
+    |> String.slice(0..(elixir_character - 2))
+    |> characters_to_binary!(:utf8, :utf16)
+    |> byte_size()
+    |> div(2)
+  end
+
+  def elixir_position_to_lsp(_urf8_text, {elixir_line, elixir_character})
+      when elixir_character <= 1,
+      do: {max(elixir_line - 1, 0), 0}
+
+  def elixir_position_to_lsp(urf8_text, {elixir_line, elixir_character}) do
+    utf16_character =
+      lines(urf8_text)
+      |> Enum.at(max(elixir_line - 1, 0))
+      |> elixir_character_to_lsp(elixir_character)
+
+    {elixir_line - 1, utf16_character}
+  end
 end

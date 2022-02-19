@@ -10,7 +10,8 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   alias ElixirLS.LanguageServer.SourceFile
   import ElixirLS.LanguageServer.Protocol
 
-  def format(%SourceFile{} = source_file, line, character, "\n", _options) do
+  def format(%SourceFile{} = source_file, line, character, "\n", _options) when line >= 1 do
+    # we don't care about utf16 positions here as we only pass character back to client
     lines = SourceFile.lines(source_file)
     prev_line = Enum.at(lines, line - 1)
 
@@ -69,6 +70,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   # In VS Code, currently, the cursor jumps strangely if the current line is blank and we try to
   # insert a newline at the current position, so unfortunately, we have to check for that.
   defp insert_end_edit(indentation, line, character, insert_on_next_line?) do
+    # we don't care about utf16 positions here as we either use 0 or what the client sent
     if insert_on_next_line? do
       {range(line + 1, 0, line + 1, 0), "#{indentation}end\n"}
     else

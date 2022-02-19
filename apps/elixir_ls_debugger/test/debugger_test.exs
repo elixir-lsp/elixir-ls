@@ -93,7 +93,14 @@ defmodule ElixirLS.Debugger.ServerTest do
   @tag :fixture
   test "basic debugging", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
-      Server.receive_packet(server, initialize_req(1, %{}))
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
       assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
 
       Server.receive_packet(
@@ -185,7 +192,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                            "variablesReference" => 0
                          }
                        ]
-                     })
+                     }),
+                     1000
 
       Server.receive_packet(server, continue_req(10, thread_id))
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => true})
@@ -648,17 +656,19 @@ defmodule ElixirLS.Debugger.ServerTest do
                  |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
                  |> Enum.map(& &1["id"])
 
-        {_, stderr} = capture_log_and_io(:standard_error, fn ->
-          Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
-          assert_receive(response(_, 7, "pause", %{}), 500)
+        {_, stderr} =
+          capture_log_and_io(:standard_error, fn ->
+            Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
+            assert_receive(response(_, 7, "pause", %{}), 500)
 
-          assert_receive event(_, "stopped", %{
-                           "allThreadsStopped" => false,
-                           "reason" => "pause",
-                           "threadId" => ^thread_id
-                         }),
-                         500
-        end)
+            assert_receive event(_, "stopped", %{
+                             "allThreadsStopped" => false,
+                             "reason" => "pause",
+                             "threadId" => ^thread_id
+                           }),
+                           500
+          end)
+
         assert stderr =~ "Failed to obtain meta for pid"
       end)
     end
