@@ -228,6 +228,21 @@ defmodule ElixirLS.Debugger.Server do
   ## Helpers
 
   defp handle_request(initialize_req(_, client_info), %__MODULE__{client_info: nil} = state) do
+    # linesStartAt1 is true by default and we only support 1-based indexing
+    if client_info["linesStartAt1"] == false do
+      IO.warn("0-based lines are not supported")
+    end
+
+    # columnsStartAt1 is true by default and we only support 1-based indexing
+    if client_info["columnsStartAt1"] == false do
+      IO.warn("0-based columns are not supported")
+    end
+
+    # pathFormat is `path` by default and we do not support other, e.g. `uri`
+    if client_info["pathFormat"] not in [nil, "path"] do
+      IO.warn("pathFormat #{client_info["pathFormat"]} not supported")
+    end
+
     {capabilities(), %{state | client_info: client_info}}
   end
 
@@ -240,7 +255,11 @@ defmodule ElixirLS.Debugger.Server do
       }
   end
 
-  defp handle_request(launch_req(_, config), state = %__MODULE__{}) do
+  defp handle_request(launch_req(_, config) = args, state = %__MODULE__{}) do
+    if args["arguments"]["noDebug"] == true do
+      IO.warn("launch with no debug is not supported")
+    end
+
     {_, ref} = spawn_monitor(fn -> initialize(config) end)
 
     receive do
