@@ -78,6 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
         "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
         "edit" => %{
           "changes" => %{
+            # we don't care about utf16 positions here as we send 0
             uri => [%{"range" => range(line - 1, 0, line - 1, 0), "newText" => formatted}]
           }
         }

@@ -281,6 +281,7 @@ defmodule ElixirLS.LanguageServer.Build do
   defp range(position, nil) when is_integer(position) do
     line = position - 1
 
+    # we don't care about utf16 positions here as we send 0
     %{
       "start" => %{"line" => line, "character" => 0},
       "end" => %{"line" => line, "character" => 0}
@@ -290,23 +291,24 @@ defmodule ElixirLS.LanguageServer.Build do
   defp range(position, source_file) when is_integer(position) do
     line = position - 1
     text = Enum.at(SourceFile.lines(source_file), line) || ""
-    start_idx = String.length(text) - String.length(String.trim_leading(text))
-    length = Enum.max([String.length(String.trim(text)), 1])
+
+    start_idx = String.length(text) - String.length(String.trim_leading(text)) + 1
+    length = max(String.length(String.trim(text)), 1)
 
     %{
-      "start" => %{"line" => line, "character" => start_idx},
-      "end" => %{"line" => line, "character" => start_idx + length}
-    }
-  end
-
-  defp range({start_line, start_col, end_line, end_col}, _) do
-    %{
-      "start" => %{"line" => start_line - 1, "character" => start_col},
-      "end" => %{"line" => end_line - 1, "character" => end_col}
+      "start" => %{
+        "line" => line,
+        "character" => SourceFile.elixir_character_to_lsp(text, start_idx)
+      },
+      "end" => %{
+        "line" => line,
+        "character" => SourceFile.elixir_character_to_lsp(text, start_idx + length)
+      }
     }
   end
 
   defp range(_, nil) do
+    # we don't care about utf16 positions here as we send 0
     %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
   end
 

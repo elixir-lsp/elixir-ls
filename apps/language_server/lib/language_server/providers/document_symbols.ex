@@ -6,7 +6,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   """
 
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
-  alias ElixirLS.LanguageServer.Protocol
+  alias ElixirLS.LanguageServer.SourceFile
+  require ElixirLS.LanguageServer.Protocol, as: Protocol
 
   defmodule Info do
     defstruct [:type, :name, :location, :children]
@@ -25,22 +26,22 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   def symbols(uri, text, hierarchical) do
     case list_symbols(text) do
       {:ok, symbols} ->
-        {:ok, build_symbols(symbols, uri, hierarchical)}
+        {:ok, build_symbols(symbols, uri, text, hierarchical)}
 
       {:error, :compilation_error} ->
         {:error, :server_error, "[DocumentSymbols] Compilation error while parsing source file"}
     end
   end
 
-  defp build_symbols(symbols, uri, hierarchical)
+  defp build_symbols(symbols, uri, text, hierarchical)
 
-  defp build_symbols(symbols, uri, true) do
-    Enum.map(symbols, &build_symbol_information_hierarchical(uri, &1))
+  defp build_symbols(symbols, uri, text, true) do
+    Enum.map(symbols, &build_symbol_information_hierarchical(uri, text, &1))
   end
 
-  defp build_symbols(symbols, uri, false) do
+  defp build_symbols(symbols, uri, text, false) do
     symbols
-    |> Enum.map(&build_symbol_information_flat(uri, &1))
+    |> Enum.map(&build_symbol_information_flat(uri, text, &1))
     |> List.flatten()
   end
 
@@ -283,25 +284,27 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp extract_symbol(_, _), do: nil
 
-  defp build_symbol_information_hierarchical(uri, info) when is_list(info),
-    do: Enum.map(info, &build_symbol_information_hierarchical(uri, &1))
+  defp build_symbol_information_hierarchical(uri, text, info) when is_list(info),
+    do: Enum.map(info, &build_symbol_information_hierarchical(uri, text, &1))
 
-  defp build_symbol_information_hierarchical(uri, %Info{} = info) do
+  defp build_symbol_information_hierarchical(uri, text, %Info{} = info) do
+    range = location_to_range(info.location, text)
+
     %Protocol.DocumentSymbol{
       name: info.name,
       kind: SymbolUtils.symbol_kind_to_code(info.type),
-      range: location_to_range(info.location),
-      selectionRange: location_to_range(info.location),
-      children: build_symbol_information_hierarchical(uri, info.children)
+      range: range,
+      selectionRange: range,
+      children: build_symbol_information_hierarchical(uri, text, info.children)
     }
   end
 
-  defp build_symbol_information_flat(uri, info, parent_name \\ nil)
+  defp build_symbol_information_flat(uri, text, info, parent_name \\ nil)
 
-  defp build_symbol_information_flat(uri, info, parent_name) when is_list(info),
-    do: Enum.map(info, &build_symbol_information_flat(uri, &1, parent_name))
+  defp build_symbol_information_flat(uri, text, info, parent_name) when is_list(info),
+    do: Enum.map(info, &build_symbol_information_flat(uri, text, &1, parent_name))
 
-  defp build_symbol_information_flat(uri, %Info{} = info, parent_name) do
+  defp build_symbol_information_flat(uri, text, %Info{} = info, parent_name) do
     case info.children do
       [_ | _] ->
         [
@@ -310,11 +313,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
             kind: SymbolUtils.symbol_kind_to_code(info.type),
             location: %{
               uri: uri,
-              range: location_to_range(info.location)
+              range: location_to_range(info.location, text)
             },
             containerName: parent_name
           }
-          | Enum.map(info.children, &build_symbol_information_flat(uri, &1, info.name))
+          | Enum.map(info.children, &build_symbol_information_flat(uri, text, &1, info.name))
         ]
 
       _ ->
@@ -323,18 +326,18 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           kind: SymbolUtils.symbol_kind_to_code(info.type),
           location: %{
             uri: uri,
-            range: location_to_range(info.location)
+            range: location_to_range(info.location, text)
           },
           containerName: parent_name
         }
     end
   end
 
-  defp location_to_range(location) do
-    %{
-      start: %{line: location[:line] - 1, character: location[:column] - 1},
-      end: %{line: location[:line] - 1, character: location[:column] - 1}
-    }
+  defp location_to_range(location, text) do
+    {line, character} =
+      SourceFile.elixir_position_to_lsp(text, {location[:line], location[:column]})
+
+    Protocol.range(line, character, line, character)
   end
 
   defp extract_module_name(protocol: protocol, implementations: implementations) do

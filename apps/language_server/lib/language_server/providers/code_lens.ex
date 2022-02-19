@@ -17,6 +17,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
 
   def build_code_lens(line, title, command, argument) do
     %{
+      # we don't care about utf16 positions here as we send 0
       "range" => range(line - 1, 0, line - 1, 0),
       "command" => %{
         "title" => title,

@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.Hover do
   alias ElixirLS.LanguageServer.SourceFile
+  import ElixirLS.LanguageServer.Protocol
 
   @moduledoc """
   Hover provider utilizing Elixir Sense
@@ -17,14 +18,16 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
                 |> Enum.map(fn x -> "lib/#{x}/lib" end)
 
   def hover(text, line, character, project_dir) do
+    {line, character} = SourceFile.lsp_position_to_elixr(text, {line, character})
+
     response =
-      case ElixirSense.docs(text, line + 1, character + 1) do
+      case ElixirSense.docs(text, line, character) do
         %{subject: ""} ->
           nil
 
         %{subject: subject, docs: docs} ->
-          line_text = Enum.at(SourceFile.lines(text), line)
-          range = highlight_range(line_text, line, character, subject)
+          line_text = Enum.at(SourceFile.lines(text), line - 1)
+          range = highlight_range(line_text, line - 1, character - 1, subject)
 
           %{"contents" => contents(docs, subject, project_dir), "range" => range}
       end
@@ -45,10 +48,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     Enum.find_value(regex_ranges, fn
       [{start, length}] when start <= character and character <= start + length ->
-        %{
-          "start" => %{"line" => line, "character" => start},
-          "end" => %{"line" => line, "character" => start + length}
-        }
+        range(
+          line,
+          SourceFile.elixir_character_to_lsp(line_text, start + 1),
+          line,
+          SourceFile.elixir_character_to_lsp(line_text, start + 1 + length)
+        )
 
       _ ->
         nil
