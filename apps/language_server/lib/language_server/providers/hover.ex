@@ -18,7 +18,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
                 |> Enum.map(fn x -> "lib/#{x}/lib" end)
 
   def hover(text, line, character, project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixr(text, {line, character})
+    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
 
     response =
       case ElixirSense.docs(text, line, character) do

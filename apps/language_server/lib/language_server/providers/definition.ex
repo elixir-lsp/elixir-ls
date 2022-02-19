@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
   alias ElixirLS.LanguageServer.{Protocol, SourceFile}
 
   def definition(uri, text, line, character) do
-    {line, character} = SourceFile.lsp_position_to_elixr(text, {line, character})
+    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
 
     result =
       case ElixirSense.definition(text, line, character) do

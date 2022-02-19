@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   import ElixirLS.LanguageServer.Protocol
 
   def references(text, uri, line, character, _include_declaration) do
-    {line, character} = SourceFile.lsp_position_to_elixr(text, {line, character})
+    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
 
     Build.with_build_lock(fn ->
       ElixirSense.references(text, line, character)
