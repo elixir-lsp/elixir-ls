@@ -196,7 +196,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                      1000
 
       Server.receive_packet(server, continue_req(10, thread_id))
-      assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
+      assert_receive response(_, 10, "continue", %{"allThreadsContinued" => true})
     end)
   end
 
@@ -333,7 +333,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                      )
 
       Server.receive_packet(server, continue_req(15, thread_id))
-      assert_receive response(_, 15, "continue", %{"allThreadsContinued" => false})
+      assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
 
       Server.receive_packet(server, stacktrace_req(7, thread_id))
       thread_id_str = inspect(thread_id)
