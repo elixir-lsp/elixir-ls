@@ -621,7 +621,8 @@ defmodule ElixirLS.Debugger.Server do
 
   defp maybe_continue_other_processes(%{"singleThread" => true}, paused_processes, requested_pid) do
     resumed_pids =
-      for {paused_pid, %PausedProcess{ref: ref}} when paused_pid != requested_pid <- paused_processes do
+      for {paused_pid, %PausedProcess{ref: ref}} when paused_pid != requested_pid <-
+            paused_processes do
         safe_int_action(paused_pid, :continue)
         true = Process.demonitor(ref, [:flush])
         paused_pid
@@ -644,6 +645,7 @@ defmodule ElixirLS.Debugger.Server do
       unless action == :continue do
         safe_int_action(pid, :continue)
       end
+
       :ok
   end
 
