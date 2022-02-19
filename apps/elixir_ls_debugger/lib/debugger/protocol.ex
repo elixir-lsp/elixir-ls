@@ -85,6 +85,12 @@ defmodule ElixirLS.Debugger.Protocol do
     end
   end
 
+  defmacro completions_req(seq, text) do
+    quote do
+      request(unquote(seq), "completions", %{"text" => unquote(text)})
+    end
+  end
+
   defmacro continue_req(seq, thread_id) do
     quote do
       request(unquote(seq), "continue", %{"threadId" => unquote(thread_id)})

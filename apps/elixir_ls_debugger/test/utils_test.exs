@@ -33,4 +33,22 @@ defmodule ElixirLS.Debugger.UtilsTest do
       assert {:error, "cannot parse MFA"} == Utils.parse_mfa("")
     end
   end
+
+  describe "positions" do
+    test "dap_character_to_elixir empty" do
+      assert 0 == Utils.dap_character_to_elixir("", 0)
+    end
+
+    test "dap_character_to_elixir first char" do
+      assert 0 == Utils.dap_character_to_elixir("abcde", 0)
+    end
+
+    test "dap_character_to_elixir line" do
+      assert 1 == Utils.dap_character_to_elixir("abcde", 1)
+    end
+
+    test "dap_character_to_elixir utf8" do
+      assert 1 == Utils.dap_character_to_elixir("🏳️‍🌈abcde", 6)
+    end
+  end
 end

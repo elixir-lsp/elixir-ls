@@ -4,11 +4,12 @@ defmodule ElixirLS.Debugger.Completions do
   #   | 'value' | 'enum' | 'keyword' | 'snippet' | 'text' | 'color' | 'file'
   #   | 'reference' | 'customcolor';
   def map(%{
-    type: type,
-    name: name,
-    arity: arity,
-    snippet: snippet
-  }) when type in [:function, :macro] do
+        type: type,
+        name: name,
+        arity: arity,
+        snippet: snippet
+      })
+      when type in [:function, :macro] do
     %{
       type: "function",
       label: "#{name}/#{arity}",
@@ -17,13 +18,14 @@ defmodule ElixirLS.Debugger.Completions do
   end
 
   def map(%{
-    type: :module,
-    name: name
-  }) do
-    text = case name do
-      ":" <> rest -> rest
-      other -> other
-    end
+        type: :module,
+        name: name
+      }) do
+    text =
+      case name do
+        ":" <> rest -> rest
+        other -> other
+      end
 
     %{
       type: "module",
@@ -33,9 +35,9 @@ defmodule ElixirLS.Debugger.Completions do
   end
 
   def map(%{
-    type: :variable,
-    name: name
-  }) do
+        type: :variable,
+        name: name
+      }) do
     %{
       type: "variable",
       label: name
@@ -43,9 +45,9 @@ defmodule ElixirLS.Debugger.Completions do
   end
 
   def map(%{
-    type: :field,
-    name: name
-  }) do
+        type: :field,
+        name: name
+      }) do
     %{
       type: "field",
       label: name
