@@ -571,7 +571,7 @@ defmodule ElixirLS.Debugger.Server do
         result_string =
           if args["context"] == "hover" do
             # avoid displaying hover info when evaluation crashed
-            nil
+            ""
           else
             inspect(other)
           end
