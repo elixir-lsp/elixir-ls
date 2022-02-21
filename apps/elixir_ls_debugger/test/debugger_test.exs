@@ -1545,4 +1545,28 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert Process.alive?(server)
     end
   end
+
+  test "Completions", %{server: server} do
+    Server.receive_packet(server, initialize_req(1, %{}))
+    assert_receive(response(_, 1, "initialize", _))
+
+    Server.receive_packet(
+      server,
+      %{
+        "arguments" => %{
+          "text" => "DateTi",
+          "column" => 7
+        },
+        "command" => "completions",
+        "seq" => 1,
+        "type" => "request"
+      }
+    )
+
+    assert_receive(%{"body" => %{"targets" => _targets}}, 10000)
+
+    assert Process.alive?(server)
+
+    # assert [%{}]
+  end
 end

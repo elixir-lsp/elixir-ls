@@ -396,10 +396,10 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     utf8_character + 1 + diff
   end
 
-  def lsp_position_to_elixr(_urf8_text, {lsp_line, lsp_character}) when lsp_character <= 0,
+  def lsp_position_to_elixir(_urf8_text, {lsp_line, lsp_character}) when lsp_character <= 0,
     do: {max(lsp_line + 1, 1), 1}
 
-  def lsp_position_to_elixr(urf8_text, {lsp_line, lsp_character}) do
+  def lsp_position_to_elixir(urf8_text, {lsp_line, lsp_character}) do
     utf8_character =
       lines(urf8_text)
       |> Enum.at(max(lsp_line, 0))

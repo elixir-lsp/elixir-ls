@@ -228,6 +228,21 @@ defmodule ElixirLS.Debugger.Server do
   ## Helpers
 
   defp handle_request(initialize_req(_, client_info), %__MODULE__{client_info: nil} = state) do
+    # linesStartAt1 is true by default and we only support 1-based indexing
+    if client_info["linesStartAt1"] == false do
+      IO.warn("0-based lines are not supported")
+    end
+
+    # columnsStartAt1 is true by default and we only support 1-based indexing
+    if client_info["columnsStartAt1"] == false do
+      IO.warn("0-based columns are not supported")
+    end
+
+    # pathFormat is `path` by default and we do not support other, e.g. `uri`
+    if client_info["pathFormat"] not in [nil, "path"] do
+      IO.warn("pathFormat #{client_info["pathFormat"]} not supported")
+    end
+
     {capabilities(), %{state | client_info: client_info}}
   end
 
@@ -240,7 +255,11 @@ defmodule ElixirLS.Debugger.Server do
       }
   end
 
-  defp handle_request(launch_req(_, config), state = %__MODULE__{}) do
+  defp handle_request(launch_req(_, config) = args, state = %__MODULE__{}) do
+    if args["arguments"]["noDebug"] == true do
+      IO.warn("launch with no debug is not supported")
+    end
+
     {_, ref} = spawn_monitor(fn -> initialize(config) end)
 
     receive do
@@ -629,6 +648,39 @@ defmodule ElixirLS.Debugger.Server do
      %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
   end
 
+  defp handle_request(completions_req(_, text) = args, state = %__MODULE__{}) do
+    # assume that the position is 1-based
+    line = (args["arguments"]["line"] || 1) - 1
+    column = (args["arguments"]["column"] || 1) - 1
+
+    # for simplicity take only text from the given line up to column
+    line =
+      text
+      |> String.split(["\r\n", "\n", "\r"])
+      |> Enum.at(line)
+
+    # it's not documented but VSCode uses utf16 positions
+    column = Utils.dap_character_to_elixir(line, column)
+    prefix = String.slice(line, 0, column)
+
+    vars =
+      all_variables(state.paused_processes, args["arguments"]["frameId"])
+      |> Enum.map(fn {name, value} ->
+        %ElixirSense.Core.State.VarInfo{
+          name: name,
+          type: ElixirSense.Core.Binding.from_var(value)
+        }
+      end)
+
+    env = %ElixirSense.Providers.Suggestion.Complete.Env{vars: vars}
+
+    results =
+      ElixirSense.Providers.Suggestion.Complete.complete(prefix, env)
+      |> Enum.map(&ElixirLS.Debugger.Completions.map/1)
+
+    {%{"targets" => results}, state}
+  end
+
   defp handle_request(request(_, command), _state = %__MODULE__{}) when is_binary(command) do
     raise ServerError,
       message: "notSupported",
@@ -961,7 +1013,8 @@ defmodule ElixirLS.Debugger.Server do
       "supportsRestartFrame" => false,
       "supportsGotoTargetsRequest" => false,
       "supportsStepInTargetsRequest" => false,
-      "supportsCompletionsRequest" => false,
+      "supportsCompletionsRequest" => true,
+      "completionTriggerCharacters" => [".", "&", "%", "^", ":", "!", "-", "~"],
       "supportsModulesRequest" => false,
       "additionalModuleColumns" => [],
       "supportedChecksumAlgorithms" => [],

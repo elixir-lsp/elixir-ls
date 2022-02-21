@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
   def trigger_characters(), do: ["(", ","]
 
   def signature(%SourceFile{} = source_file, line, character) do
-    {line, character} = SourceFile.lsp_position_to_elixr(source_file.text, {line, character})
+    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
 
     response =
       case ElixirSense.signature(source_file.text, line, character) do

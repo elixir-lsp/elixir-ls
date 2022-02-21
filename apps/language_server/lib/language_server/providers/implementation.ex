@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation do
   alias ElixirLS.LanguageServer.{Protocol, SourceFile}
 
   def implementation(uri, text, line, character) do
-    {line, character} = SourceFile.lsp_position_to_elixr(text, {line, character})
+    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
     locations = ElixirSense.implementations(text, line, character)
     results = for location <- locations, do: Protocol.Location.new(location, uri, text)
 
