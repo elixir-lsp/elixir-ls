@@ -550,20 +550,39 @@ defmodule ElixirLS.Debugger.Server do
     timeout = Map.get(state.config, "debugExpressionTimeoutMs", 10_000)
     bindings = all_variables(state.paused_processes, args["frameId"])
 
-    value = evaluate_code_expression(expr, bindings, timeout)
+    result = evaluate_code_expression(expr, bindings, timeout)
 
-    child_type = Variables.child_type(value)
-    {state, var_id} = get_variable_reference(child_type, state, :evaluator, value)
+    case result do
+      {:ok, value} ->
+        child_type = Variables.child_type(value)
+        {state, var_id} = get_variable_reference(child_type, state, :evaluator, value)
 
-    json =
-      %{
-        "result" => inspect(value),
-        "variablesReference" => var_id
-      }
-      |> maybe_append_children_number(state.client_info, child_type, value)
-      |> maybe_append_variable_type(state.client_info, value)
+        json =
+          %{
+            "result" => inspect(value),
+            "variablesReference" => var_id
+          }
+          |> maybe_append_children_number(state.client_info, child_type, value)
+          |> maybe_append_variable_type(state.client_info, value)
 
-    {json, state}
+        {json, state}
+
+      other ->
+        result_string =
+          if args["context"] == "hover" do
+            # avoid displaying hover info when evaluation crashed
+            ""
+          else
+            inspect(other)
+          end
+
+        json = %{
+          "result" => result_string,
+          "variablesReference" => 0
+        }
+
+        {json, state}
+    end
   end
 
   defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
@@ -739,7 +758,7 @@ defmodule ElixirLS.Debugger.Server do
     result = Task.yield(task, timeout) || Task.shutdown(task)
 
     case result do
-      {:ok, data} -> data
+      {:ok, data} -> {:ok, data}
       nil -> :elixir_ls_expression_timeout
       _otherwise -> result
     end
@@ -952,6 +971,8 @@ defmodule ElixirLS.Debugger.Server do
       "supportsExceptionInfoRequest" => false,
       "supportsTerminateThreadsRequest" => true,
       "supportsSingleThreadExecutionRequests" => true,
+      "supportsEvaluateForHovers" => true,
+      "supportsClipboardContext" => true,
       "supportTerminateDebuggee" => false
     }
   end
