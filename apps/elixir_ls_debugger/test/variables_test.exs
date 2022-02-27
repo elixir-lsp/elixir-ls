@@ -39,6 +39,8 @@ defmodule ElixirLS.Debugger.VariablesTest do
     assert Variables.type([1]) == "list"
     assert Variables.type('asd') == "list"
 
+    assert Variables.type(abc: 123) == "keyword"
+
     assert Variables.type(%{}) == "map"
     assert Variables.type(%{asd: 123}) == "map"
     assert Variables.type(%{"asd" => 123}) == "map"
@@ -87,6 +89,8 @@ defmodule ElixirLS.Debugger.VariablesTest do
     assert Variables.num_children([1]) == 1
     assert Variables.num_children('asd') == 3
 
+    assert Variables.num_children(abc: 123) == 1
+
     assert Variables.num_children(%{}) == 0
     assert Variables.num_children(%{asd: 123}) == 1
     assert Variables.num_children(%{"asd" => 123}) == 1
@@ -102,6 +106,20 @@ defmodule ElixirLS.Debugger.VariablesTest do
       assert Variables.children([1, 2, 3, 4], 0, 2) == [{"0", 1}, {"1", 2}]
       assert Variables.children([1, 2, 3, 4], 1, 2) == [{"1", 2}, {"2", 3}]
       assert Variables.children('asd', 0, 10) == [{"0", 97}, {"1", 115}, {"2", 100}]
+    end
+
+    test "keyword" do
+      assert Variables.children([abc: 123], 0, 10) == [abc: 123]
+
+      assert Variables.children([abc1: 121, abc2: 122, abc3: 123, abc4: 124], 0, 2) == [
+               abc1: 121,
+               abc2: 122
+             ]
+
+      assert Variables.children([abc1: 121, abc2: 122, abc3: 123, abc4: 124], 1, 2) == [
+               abc2: 122,
+               abc3: 123
+             ]
     end
 
     test "tuple" do

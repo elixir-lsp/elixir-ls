@@ -7,16 +7,31 @@ defmodule ElixirLS.Debugger.Variables do
   def child_type(var) when is_map(var), do: :named
   def child_type(var) when is_bitstring(var), do: :indexed
   def child_type(var) when is_tuple(var), do: :indexed
-  def child_type(var) when is_list(var), do: :indexed
+
+  def child_type(var) when is_list(var) do
+    if Keyword.keyword?(var) do
+      :named
+    else
+      :indexed
+    end
+  end
+
   def child_type(_var), do: nil
 
   def children(var, start, count) when is_list(var) do
     start = start || 0
     count = count || Enum.count(var)
 
-    var
-    |> Enum.slice(start, count)
-    |> with_index_as_name(start)
+    sliced =
+      var
+      |> Enum.slice(start, count)
+
+    if Keyword.keyword?(var) do
+      sliced
+    else
+      sliced
+      |> with_index_as_name(start)
+    end
   end
 
   def children(var, start, count) when is_tuple(var) do
@@ -90,7 +105,14 @@ defmodule ElixirLS.Debugger.Variables do
   def type(var) when is_float(var), do: "float"
   def type(var) when is_function(var), do: "function"
   def type(var) when is_integer(var), do: "integer"
-  def type(var) when is_list(var), do: "list"
+
+  def type(var) when is_list(var) do
+    if Keyword.keyword?(var) and var != [] do
+      "keyword"
+    else
+      "list"
+    end
+  end
 
   def type(%name{}), do: "%#{inspect(name)}{}"
 
