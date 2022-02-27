@@ -510,6 +510,8 @@ defmodule ElixirLS.Debugger.Server do
           {state, args_id} = ensure_var_id(state, pid, frame.args)
           {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
           {state, messages_id} = ensure_var_id(state, pid, frame.messages)
+          process_info = Process.info(pid)
+          {state, process_info_id} = ensure_var_id(state, pid, process_info)
 
           vars_scope = %{
             "name" => "variables",
@@ -535,8 +537,16 @@ defmodule ElixirLS.Debugger.Server do
             "expensive" => false
           }
 
+          process_info_scope = %{
+            "name" => "process info",
+            "variablesReference" => process_info_id,
+            "namedVariables" => length(process_info),
+            "indexedVariables" => 0,
+            "expensive" => false
+          }
+
           scopes =
-            [vars_scope]
+            [vars_scope, process_info_scope]
             |> Kernel.++(if Enum.count(frame.args) > 0, do: [args_scope], else: [])
             |> Kernel.++(if Enum.count(frame.messages) > 0, do: [messages_scope], else: [])
 

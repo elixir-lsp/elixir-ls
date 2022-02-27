@@ -173,6 +173,13 @@ defmodule ElixirLS.Debugger.ServerTest do
                          },
                          %{
                            "expensive" => false,
+                           "indexedVariables" => 0,
+                           "name" => "process info",
+                           "namedVariables" => _,
+                           "variablesReference" => _
+                         },
+                         %{
+                           "expensive" => false,
                            "indexedVariables" => 1,
                            "name" => "arguments",
                            "namedVariables" => 0,
