@@ -1006,7 +1006,6 @@ defmodule ElixirLS.Debugger.Server do
       "supportsConditionalBreakpoints" => true,
       "supportsHitConditionalBreakpoints" => true,
       "supportsLogPoints" => true,
-      "supportsEvaluateForHovers" => false,
       "exceptionBreakpointFilters" => [],
       "supportsStepBack" => false,
       "supportsSetVariable" => false,
