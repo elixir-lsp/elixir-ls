@@ -110,6 +110,10 @@ defmodule ElixirLS.LanguageServer.Server do
     GenServer.call(server, {:suggest_contracts, uri}, :infinity)
   end
 
+  def paths(server \\ __MODULE__) do
+    GenServer.call(server, :paths)
+  end
+
   defguardp is_initialized(server_instance_id) when not is_nil(server_instance_id)
 
   ## Server Callbacks
@@ -120,6 +124,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
+
   def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
     case result do
       {:error, type, msg} -> JsonRpc.respond_with_error(id, type, msg)
@@ -235,10 +240,6 @@ defmodule ElixirLS.LanguageServer.Server do
         _ -> handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason)], state)
       end
 
-    if reason == :normal do
-      WorkspaceSymbols.notify_build_complete()
-    end
-
     state = if state.needs_build?, do: trigger_build(state), else: state
     {:noreply, state}
   end
@@ -325,7 +326,9 @@ defmodule ElixirLS.LanguageServer.Server do
       # close notification send before
       JsonRpc.log_message(
         :warning,
-        "Received textDocument/didOpen for file that is already open. Received uri: #{inspect(uri)}"
+        "Received textDocument/didOpen for file that is already open. Received uri: #{
+          inspect(uri)
+        }"
       )
 
       state
@@ -990,6 +993,23 @@ defmodule ElixirLS.LanguageServer.Server do
       old_diagnostics,
       state.source_files
     )
+    paths = 
+      if Mix.Project.umbrella?() do
+        Mix.Project.apps_paths()
+        |> Enum.flat_map(fn {p, path} ->
+          Mix.Project.in_project(p, path, fn _mod ->
+            elixirc_paths = Keyword.fetch!(Mix.Project.config(), :elixirc_paths)
+
+            Enum.map(elixirc_paths, fn elixirc_path ->
+              Path.join(path, elixirc_path)
+            end)
+          end)
+        end)
+      else
+        Keyword.fetch!(Mix.Project.config(), :elixirc_paths)
+      end
+
+    WorkspaceSymbols.set_paths(paths)
 
     state
   end

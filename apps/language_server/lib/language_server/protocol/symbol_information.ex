@@ -6,4 +6,11 @@ defmodule ElixirLS.LanguageServer.Protocol.SymbolInformation do
   """
   @derive JasonVendored.Encoder
   defstruct [:name, :kind, :location, :containerName]
+
+  @type t :: %__MODULE__{
+      name: String.t(),
+      kind: integer(),
+      location: map(),
+      containerName: any()
+    }
 end

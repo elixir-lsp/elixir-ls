@@ -6,41 +6,37 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
     alias ElixirLS.Utils.PacketCapture
     packet_capture = start_supervised!({PacketCapture, self()})
 
-    {:ok, pid} = WorkspaceSymbols.start_link(name: nil)
+    {:ok, pid} =
+      WorkspaceSymbols.start_link(
+        name: nil,
+        args: [paths: ["test/support/fixtures/workspace_symbols"]]
+      )
+
     Process.group_leader(pid, packet_capture)
-
-    state = :sys.get_state(pid)
-
-    fixture_uri =
-      ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.module_info(:compile)[:source]
-      |> List.to_string()
-      |> ElixirLS.LanguageServer.SourceFile.path_to_uri()
-
-    :sys.replace_state(pid, fn _ ->
-      %{
-        state
-        | modules_indexed: true,
-          functions_indexed: true,
-          types_indexed: true,
-          callbacks_indexed: true,
-          modified_uris: [fixture_uri]
-      }
-    end)
-
-    WorkspaceSymbols.notify_build_complete(pid, true)
 
     wait_until_indexed(pid)
 
     {:ok, server: pid}
   end
 
-  test "empty query", %{server: server} do
-    assert {:ok, []} == WorkspaceSymbols.symbols("", server)
+  test "empty query returns all symbols", %{server: server} do
+    expected_symbols = [
+      "def some_function(a)",
+      "defmacro some_macro(a)",
+      "some_callback(integer)",
+      "some_macrocallback(integer)",
+      "some_type",
+      "some_opaque_type",
+      "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
+    ]
 
-    assert_receive %{
-      "method" => "window/logMessage",
-      "params" => %{"message" => "[ElixirLS WorkspaceSymbols] Updating index..."}
-    }
+    assert {:ok, list} = WorkspaceSymbols.symbols("", server)
+
+    assert length(list) == 7
+
+    for symbol <- list do
+      assert symbol.name in expected_symbols
+    end
   end
 
   test "returns modules", %{server: server} do
@@ -50,11 +46,12 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
              Enum.find(list, &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"))
 
     assert module.kind == 2
-    assert module.location.uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
+
+    assert String.ends_with?(module.location.uri, "test/support/fixtures/workspace_symbols/workspace_symbols.ex")
 
     assert module.location.range == %{
-             end: %{character: 0, line: 1},
-             start: %{character: 0, line: 0}
+             "end" => %{"character" => 0, "line" => 0},
+             "start" => %{"character" => 0, "line" => 0}
            }
 
     assert WorkspaceSymbols.symbols("work", server)
@@ -65,95 +62,73 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
   test "returns functions", %{server: server} do
     assert {:ok, list} = WorkspaceSymbols.symbols("ElixirLS.LanguageServer.Fixtures.", server)
 
-    assert some_function =
-             Enum.find(
-               list,
-               &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_function/1")
-             )
+    assert some_function = Enum.find(list, &(&1.name == "def some_function(a)"))
 
     assert some_function.kind == 12
 
-    assert some_function.location.uri
-           |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
+    assert String.ends_with?(
+             some_function.location.uri,
+             "test/support/fixtures/workspace_symbols/workspace_symbols.ex"
+           )
 
     assert some_function.location.range == %{
-             end: %{character: 0, line: 2},
-             start: %{character: 0, line: 1}
+             "end" => %{"character" => 6, "line" => 1},
+             "start" => %{"character" => 6, "line" => 1}
            }
 
     assert WorkspaceSymbols.symbols("fun", server)
            |> elem(1)
-           |> Enum.any?(
-             &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_function/1")
-           )
+           |> Enum.any?(&(&1.name == "def some_function(a)"))
   end
 
   test "returns types", %{server: server} do
     assert {:ok, list} = WorkspaceSymbols.symbols("ElixirLS.LanguageServer.Fixtures.", server)
-
-    assert some_type =
-             Enum.find(
-               list,
-               &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_type/0")
-             )
-
+    assert some_type = Enum.find(list, &(&1.name == "some_type"))
     assert some_type.kind == 5
 
-    assert some_type.location.uri
-           |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
+    assert String.ends_with?(
+             some_type.location.uri,
+             "test/support/fixtures/workspace_symbols/workspace_symbols.ex"
+           )
 
     assert some_type.location.range == %{
-             end: %{character: 0, line: 8},
-             start: %{character: 0, line: 7}
+             "end" => %{"character" => 3, "line" => 7},
+             "start" => %{"character" => 3, "line" => 7}
            }
 
-    assert Enum.any?(
-             list,
-             &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_opaque_type/0")
-           )
+    assert Enum.any?(list, &(&1.name == "some_opaque_type"))
 
     assert WorkspaceSymbols.symbols("opa", server)
            |> elem(1)
-           |> Enum.any?(
-             &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_opaque_type/0")
-           )
+           |> Enum.any?(&(&1.name == "some_opaque_type"))
   end
 
   test "returns callbacks", %{server: server} do
     assert {:ok, list} = WorkspaceSymbols.symbols("ElixirLS.LanguageServer.Fixtures.", server)
-
-    assert some_callback =
-             Enum.find(
-               list,
-               &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_callback/1")
-             )
-
+    assert some_callback = Enum.find(list, &(&1.name == "some_callback(integer)"))
     assert some_callback.kind == 24
 
-    assert some_callback.location.uri
-           |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
+    assert String.ends_with?(
+             some_callback.location.uri,
+             "test/support/fixtures/workspace_symbols/workspace_symbols.ex"
+           )
 
     assert some_callback.location.range == %{
-             end: %{character: 0, line: 5},
-             start: %{character: 0, line: 4}
+             "end" => %{"character" => 3, "line" => 4},
+             "start" => %{"character" => 3, "line" => 4}
            }
 
-    assert Enum.any?(
-             list,
-             &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_macrocallback/1")
-           )
+    assert Enum.any?(list, &(&1.name == "some_macrocallback(integer)"))
 
     assert WorkspaceSymbols.symbols("macr", server)
            |> elem(1)
-           |> Enum.any?(
-             &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.some_macrocallback/1")
-           )
+           |> Enum.any?(&(&1.name == "some_macrocallback(integer)"))
   end
 
   defp wait_until_indexed(pid) do
     state = :sys.get_state(pid)
 
-    if state.modules == [] or state.functions == [] or state.types == [] or state.callbacks == [] do
+    if Enum.empty?(state.symbols) do
       Process.sleep(500)
       wait_until_indexed(pid)
     end
