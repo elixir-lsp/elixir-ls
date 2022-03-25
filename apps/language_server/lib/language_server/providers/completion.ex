@@ -565,7 +565,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         completion
       end
 
-    if snippet = snippet_for({origin, name}, context) do
+    uri = Keyword.get(options, :uri)
+
+    if snippet = snippet_for({origin, name}, Map.put(context, :uri, uri)) do
       %{completion | insert_text: snippet, kind: :snippet, label: name}
     else
       completion
@@ -574,6 +576,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(_suggestion, _context, _options) do
     nil
+  end
+
+  defp snippet_for({"Kernel", "defmodule"}, %{uri: uri}) when is_binary(uri) do
+    # In a mix project the uri can be something like "/some/code/path/project/lib/project/sub_path/myfile.ex"
+    # so we'll try to guess the appropriate module name from the path
+    "defmodule #{suggest_module_name(uri)}$1 do\n\t$0\nend"
   end
 
   defp snippet_for(key, %{pipe_before?: true}) do
@@ -591,6 +599,51 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     else
       "#{def_str}#{name}"
     end
+  end
+
+  def suggest_module_name(file_path) when is_binary(file_path) do
+    file_path
+    |> Path.split()
+    |> Enum.reverse()
+    |> do_suggest_module_name()
+  end
+
+  defp do_suggest_module_name([]), do: nil
+
+  defp do_suggest_module_name([filename | reversed_path]) do
+    filename
+    |> String.split(".")
+    |> case do
+      [file, "ex"] ->
+        do_suggest_module_name(reversed_path, [file], topmost_parent: "lib")
+
+      [file, "exs"] ->
+        if String.ends_with?(file, "_test") do
+          do_suggest_module_name(reversed_path, [file], topmost_parent: "test")
+        else
+          nil
+        end
+
+      _otherwise ->
+        nil
+    end
+  end
+
+  defp do_suggest_module_name([dir | _rest], module_name_acc, topmost_parent: topmost)
+       when dir == topmost do
+    module_name_acc
+    |> Enum.map(&Macro.camelize/1)
+    |> Enum.join(".")
+  end
+
+  defp do_suggest_module_name([dir_name | rest], module_name_acc, opts) do
+    do_suggest_module_name(rest, [dir_name | module_name_acc], opts)
+  end
+
+  defp do_suggest_module_name([], _module_name_acc, _opts) do
+    # we went all the way up without ever encountering a 'lib' or a 'test' folder
+    # so we ignore the accumulated module name because it's probably wrong/useless
+    nil
   end
 
   def function_snippet(name, args, arity, opts) do
