@@ -55,19 +55,19 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   @impl GenServer
   def init(args) do
     if Keyword.has_key?(args, :paths) do
-    {:ok,
-     %{
-       symbols: Map.new(),
-       paths: Keyword.get(args, :paths),
-       log?: Keyword.get(args, :log?, false)
-     }, {:continue, :index}}
+      {:ok,
+       %{
+         symbols: Map.new(),
+         paths: Keyword.get(args, :paths),
+         log?: Keyword.get(args, :log?, false)
+       }, {:continue, :index}}
     else
-    {:ok,
-     %{
-       symbols: Map.new(),
-       paths: Keyword.get(args, :paths),
-       log?: Keyword.get(args, :log?, false)
-     }}
+      {:ok,
+       %{
+         symbols: Map.new(),
+         paths: Keyword.get(args, :paths),
+         log?: Keyword.get(args, :log?, false)
+       }}
     end
   end
 
@@ -75,7 +75,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   def handle_continue(:index, state) do
     symbols = index(state.paths, state)
 
-    {:noreply,%{state | symbols: symbols}}
+    {:noreply, %{state | symbols: symbols}}
   end
 
   defp index(paths, state) do
@@ -90,11 +90,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         file = Path.absname(file)
         uri = "file://#{file}"
 
-        case File.read(file) do
-          {:ok, source_file_text} ->
-            {:ok, symbols} = DocumentSymbols.symbols(uri, source_file_text, false)
-            {uri, symbols}
-
+        with {:ok, source_file_text} <- File.read(file),
+             {:ok, symbols} = DocumentSymbols.symbols(uri, source_file_text, false) do
+          {uri, symbols}
+        else
           _ ->
             {uri, []}
         end
@@ -166,11 +165,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       for uri <- uris, into: state.symbols do
         file = URI.parse(uri).path
 
-        case File.read(file) do
-          {:ok, source_file_text} ->
-            {:ok, symbols} = DocumentSymbols.symbols(uri, source_file_text, false)
-            {uri, symbols}
-
+        with {:ok, source_file_text} <- File.read(file),
+             {:ok, symbols} = DocumentSymbols.symbols(uri, source_file_text, false) do
+          {uri, symbols}
+        else
           _ ->
             {uri, []}
         end
