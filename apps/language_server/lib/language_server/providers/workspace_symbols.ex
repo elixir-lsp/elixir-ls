@@ -91,7 +91,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         uri = "file://#{file}"
 
         with {:ok, source_file_text} <- File.read(file),
-             {:ok, symbols} = DocumentSymbols.symbols(uri, source_file_text, false) do
+             {:ok, symbols} <- DocumentSymbols.symbols(uri, source_file_text, false) do
           {uri, symbols}
         else
           _ ->
@@ -166,7 +166,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         file = URI.parse(uri).path
 
         with {:ok, source_file_text} <- File.read(file),
-             {:ok, symbols} = DocumentSymbols.symbols(uri, source_file_text, false) do
+             {:ok, symbols} <- DocumentSymbols.symbols(uri, source_file_text, false) do
           {uri, symbols}
         else
           _ ->
