@@ -636,6 +636,30 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     |> Enum.join(".")
   end
 
+  defp do_suggest_module_name(
+         [probable_phoenix_dir | [project_web_dir | _] = rest],
+         module_name_acc,
+         opts
+       )
+       when probable_phoenix_dir in [
+              "controllers",
+              "views",
+              "channels",
+              "plugs",
+              "endpoints",
+              "sockets"
+            ] do
+    if String.ends_with?(project_web_dir, "_web") do
+      # by convention Phoenix doesn't use these folders as part of the module names
+      # for modules located inside them, so we'll try to do the same
+      do_suggest_module_name(rest, module_name_acc, opts)
+    else
+      # when not directly under the *_web folder however then we should make the folder
+      # part of the module's name
+      do_suggest_module_name(rest, [probable_phoenix_dir | module_name_acc], opts)
+    end
+  end
+
   defp do_suggest_module_name([dir_name | rest], module_name_acc, opts) do
     do_suggest_module_name(rest, [dir_name | module_name_acc], opts)
   end

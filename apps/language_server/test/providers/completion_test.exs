@@ -1158,5 +1158,32 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  "some/path/my_umbrella_project/apps/my_sub_app/lib/my_sub_app/foo/bar/baz.ex"
                )
     end
+
+    test "returns appropriate suggestions for modules nested under known phoenix dirs" do
+      [
+        {"MyProjectWeb.MyController", "controllers/my_controller.ex"},
+        {"MyProjectWeb.MyPlug", "plugs/my_plug.ex"},
+        {"MyProjectWeb.MyView", "views/my_view.ex"},
+        {"MyProjectWeb.MyChannel", "channels/my_channel.ex"},
+        {"MyProjectWeb.MyEndpoint", "endpoints/my_endpoint.ex"},
+        {"MyProjectWeb.MySocket", "sockets/my_socket.ex"}
+      ]
+      |> Enum.each(fn {expected_module_name, partial_path} ->
+        path = "some/path/my_project/lib/my_project_web/#{partial_path}"
+        assert expected_module_name == suggest_module_name(path)
+      end)
+    end
+
+    test "uses known Phoenix dirs as part of a module's name if these are not located directly beneath the *_web folder" do
+      assert "MyProject.Controllers.MyController" ==
+               suggest_module_name(
+                 "some/path/my_project/lib/my_project/controllers/my_controller.ex"
+               )
+
+      assert "MyProjectWeb.SomeNestedDir.Controllers.MyController" ==
+               suggest_module_name(
+                 "some/path/my_project/lib/my_project_web/some_nested_dir/controllers/my_controller.ex"
+               )
+    end
   end
 end
