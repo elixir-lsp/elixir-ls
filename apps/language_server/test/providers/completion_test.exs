@@ -1151,5 +1151,12 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  "some/path/my_project/test/my_project/foo/bar/baz/my_file_test.exs"
                )
     end
+
+    test "returns an appropriate suggestion if file is part of an umbrella project" do
+      assert "MySubApp.Foo.Bar.Baz" ==
+               suggest_module_name(
+                 "some/path/my_umbrella_project/apps/my_sub_app/lib/my_sub_app/foo/bar/baz.ex"
+               )
+    end
   end
 end
