@@ -565,9 +565,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         completion
       end
 
-    uri = Keyword.get(options, :uri)
+    file_path = Keyword.get(options, :file_path)
 
-    if snippet = snippet_for({origin, name}, Map.put(context, :uri, uri)) do
+    if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
       %{completion | insert_text: snippet, kind: :snippet, label: name}
     else
       completion
@@ -578,10 +578,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     nil
   end
 
-  defp snippet_for({"Kernel", "defmodule"}, %{uri: uri}) when is_binary(uri) do
-    # In a mix project the uri can be something like "/some/code/path/project/lib/project/sub_path/myfile.ex"
+  defp snippet_for({"Kernel", "defmodule"}, %{file_path: file_path}) when is_binary(file_path) do
+    # In a mix project the file_path can be something like "/some/code/path/project/lib/project/sub_path/my_file.ex"
     # so we'll try to guess the appropriate module name from the path
-    "defmodule #{suggest_module_name(uri)}$1 do\n\t$0\nend"
+    "defmodule #{suggest_module_name(file_path)}$1 do\n\t$0\nend"
   end
 
   defp snippet_for(key, %{pipe_before?: true}) do

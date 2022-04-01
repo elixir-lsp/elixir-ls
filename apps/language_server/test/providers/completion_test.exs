@@ -926,8 +926,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  char,
                  @supports
                  |> Keyword.put(
-                   :uri,
-                   "file://some/path/my_project/lib/my_project/sub_folder/my_file.ex"
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.ex"
                  )
                )
 
@@ -954,8 +954,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  char,
                  @supports
                  |> Keyword.put(
-                   :uri,
-                   "file://some/path/my_project/lib/my_project/sub_folder/my_file.heex"
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.heex"
                  )
                )
 
@@ -1030,7 +1030,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       text = """
       defmodule MyModule do
         def hello do
-          Date.today() |> 
+          Date.today() |>
           #               ^
         end
       end
@@ -1041,6 +1041,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      IO.inspect(Enum.filter(items, fn i -> i["label"] == "make_ref/0" end))
 
       refute Enum.any?(items, fn i -> i["label"] == "make_ref/0" end)
     end
@@ -1113,7 +1115,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   describe "suggest_module_name/1" do
     import Completion, only: [suggest_module_name: 1]
 
-    test "returns nil if current file uri is empty" do
+    test "returns nil if current file_path is empty" do
       assert nil == suggest_module_name("")
     end
 
@@ -1125,7 +1127,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert nil == suggest_module_name("some/path/not_lib/dir/file.ex")
     end
 
-    test "returns nil if current file is an *_test.exs file but not test folder exists in path" do
+    test "returns nil if current file is an *_test.exs file but no test folder exists in path" do
       assert nil == suggest_module_name("some/path/not_test/dir/file_test.exs")
     end
 
