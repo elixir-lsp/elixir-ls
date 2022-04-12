@@ -9,6 +9,7 @@ defmodule ElixirLS.LanguageServer do
     children = [
       {ElixirLS.LanguageServer.Server, ElixirLS.LanguageServer.Server},
       {ElixirLS.LanguageServer.JsonRpc, name: ElixirLS.LanguageServer.JsonRpc},
+      {ElixirLS.LanguageServer.Project, ElixirLS.LanguageServer.Project},
       {ElixirLS.LanguageServer.Providers.WorkspaceSymbols, []}
     ]
 

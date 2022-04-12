@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics, Project}
 
   def build(parent, root_path, opts) when is_binary(root_path) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Build do
               IO.puts("MIX_ENV: #{Mix.env()}")
               IO.puts("MIX_TARGET: #{Mix.target()}")
 
-              case reload_project() do
+              case Project.reload() do
                 {:ok, mixfile_diagnostics} ->
                   # FIXME: Private API
                   if Keyword.get(opts, :fetch_deps?) and
@@ -119,60 +119,6 @@ defmodule ElixirLS.LanguageServer.Build do
     :global.trans({__MODULE__, self()}, func)
   end
 
-  defp reload_project do
-    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
-
-    if File.exists?(mixfile) do
-      # FIXME: Private API
-      case Mix.ProjectStack.peek() do
-        %{file: ^mixfile, name: module} ->
-          # FIXME: Private API
-          Mix.Project.pop()
-          purge_module(module)
-
-        _ ->
-          :ok
-      end
-
-      Mix.Task.clear()
-
-      # Override build directory to avoid interfering with other dev tools
-      # FIXME: Private API
-      Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
-
-      # We can get diagnostics if Mixfile fails to load
-      {status, diagnostics} =
-        case Kernel.ParallelCompiler.compile([mixfile]) do
-          {:ok, _, warnings} ->
-            {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
-
-          {:error, errors, warnings} ->
-            {
-              :error,
-              Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
-                Enum.map(errors, &mixfile_diagnostic(&1, :error))
-            }
-        end
-
-      if status == :ok do
-        # The project may override our logger config, so we reset it after loading their config
-        logger_config = Application.get_all_env(:logger)
-        Mix.Task.run("loadconfig")
-        Application.put_all_env([logger: logger_config], persistent: true)
-      end
-
-      {status, diagnostics}
-    else
-      msg =
-        "No mixfile found in project. " <>
-          "To use a subdirectory, set `elixirLS.projectDir` in your settings"
-
-      JsonRpc.log_message(:info, msg <> ". Looked for mixfile at #{inspect(mixfile)}")
-
-      :no_mixfile
-    end
-  end
-
   def load_all_modules do
     apps =
       cond do
@@ -232,7 +178,7 @@ defmodule ElixirLS.LanguageServer.Build do
     Code.delete_path(path)
   end
 
-  defp purge_module(module) do
+  def purge_module(module) do
     :code.purge(module)
     :code.delete(module)
   end

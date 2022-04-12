@@ -1,6 +1,8 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
   import ElixirLS.LanguageServer.Protocol
 
+  alias ElixirLS.LanguageServer.Project
+
   defstruct [:text, :version, dirty?: false]
 
   @endings ["\r\n", "\r", "\n"]
@@ -336,22 +338,8 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   @spec formatter_opts(String.t()) :: {:ok, keyword()} | :error
   def formatter_opts(uri = "file:" <> _) do
-    path = path_from_uri(uri)
-
-    try do
-      opts =
-        path
-        |> Mix.Tasks.Format.formatter_opts_for_file()
-
-      {:ok, opts}
-    rescue
-      e ->
-        IO.warn(
-          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{e.message}"
-        )
-
-        :error
-    end
+    path_from_uri(uri)
+    |> Project.formatter_opts_for_file()
   end
 
   def formatter_opts(_), do: :error
