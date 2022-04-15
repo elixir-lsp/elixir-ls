@@ -1030,7 +1030,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       text = """
       defmodule MyModule do
         def hello do
-          Date.today() |>
+          Date.today() |> 
           #               ^
         end
       end
@@ -1041,8 +1041,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       assert {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
-
-      IO.inspect(Enum.filter(items, fn i -> i["label"] == "make_ref/0" end))
 
       refute Enum.any?(items, fn i -> i["label"] == "make_ref/0" end)
     end
