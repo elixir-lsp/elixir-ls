@@ -565,7 +565,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         completion
       end
 
-    if snippet = snippet_for({origin, name}, context) do
+    file_path = Keyword.get(options, :file_path)
+
+    if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
       %{completion | insert_text: snippet, kind: :snippet, label: name}
     else
       completion
@@ -574,6 +576,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp from_completion_item(_suggestion, _context, _options) do
     nil
+  end
+
+  defp snippet_for({"Kernel", "defmodule"}, %{file_path: file_path}) when is_binary(file_path) do
+    # In a mix project the file_path can be something like "/some/code/path/project/lib/project/sub_path/my_file.ex"
+    # so we'll try to guess the appropriate module name from the path
+    "defmodule #{suggest_module_name(file_path)}$1 do\n\t$0\nend"
   end
 
   defp snippet_for(key, %{pipe_before?: true}) do
@@ -591,6 +599,75 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     else
       "#{def_str}#{name}"
     end
+  end
+
+  def suggest_module_name(file_path) when is_binary(file_path) do
+    file_path
+    |> Path.split()
+    |> Enum.reverse()
+    |> do_suggest_module_name()
+  end
+
+  defp do_suggest_module_name([]), do: nil
+
+  defp do_suggest_module_name([filename | reversed_path]) do
+    filename
+    |> String.split(".")
+    |> case do
+      [file, "ex"] ->
+        do_suggest_module_name(reversed_path, [file], topmost_parent: "lib")
+
+      [file, "exs"] ->
+        if String.ends_with?(file, "_test") do
+          do_suggest_module_name(reversed_path, [file], topmost_parent: "test")
+        else
+          nil
+        end
+
+      _otherwise ->
+        nil
+    end
+  end
+
+  defp do_suggest_module_name([dir | _rest], module_name_acc, topmost_parent: topmost)
+       when dir == topmost do
+    module_name_acc
+    |> Enum.map(&Macro.camelize/1)
+    |> Enum.join(".")
+  end
+
+  defp do_suggest_module_name(
+         [probable_phoenix_dir | [project_web_dir | _] = rest],
+         module_name_acc,
+         opts
+       )
+       when probable_phoenix_dir in [
+              "controllers",
+              "views",
+              "channels",
+              "plugs",
+              "endpoints",
+              "sockets"
+            ] do
+    if String.ends_with?(project_web_dir, "_web") do
+      # by convention Phoenix doesn't use these folders as part of the module names
+      # for modules located inside them, so we'll try to do the same
+      do_suggest_module_name(rest, module_name_acc, opts)
+    else
+      # when not directly under the *_web folder however then we should make the folder
+      # part of the module's name
+      do_suggest_module_name(rest, [probable_phoenix_dir | module_name_acc], opts)
+    end
+  end
+
+  defp do_suggest_module_name([dir_name | rest], module_name_acc, opts) do
+    do_suggest_module_name(rest, [dir_name | module_name_acc], opts)
+  end
+
+  defp do_suggest_module_name([], _module_name_acc, _opts) do
+    # we went all the way up without ever encountering a 'lib' or a 'test' folder
+    # so we ignore the accumulated module name because it's probably wrong/useless
+    nil
   end
 
   def function_snippet(name, args, arity, opts) do

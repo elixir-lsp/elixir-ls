@@ -685,7 +685,8 @@ defmodule ElixirLS.LanguageServer.Server do
         tags_supported: tags_supported,
         signature_help_supported: signature_help_supported,
         locals_without_parens: locals_without_parens,
-        signature_after_complete: signature_after_complete
+        signature_after_complete: signature_after_complete,
+        file_path: SourceFile.path_from_uri(uri)
       )
     end
 
