@@ -5,7 +5,14 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   def format(%SourceFile{} = source_file, uri, project_dir) when is_binary(project_dir) do
     if can_format?(uri, project_dir) do
-      case SourceFile.formatter_opts(uri) do
+      case SourceFile.formatter_for(uri) do
+        {:ok, {formatter, opts}} ->
+          if should_format?(uri, project_dir, opts[:inputs]) do
+            do_format(source_file, formatter, opts)
+          else
+            {:ok, []}
+          end
+
         {:ok, opts} ->
           if should_format?(uri, project_dir, opts[:inputs]) do
             do_format(source_file, opts)
@@ -29,8 +36,11 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     do_format(source_file)
   end
 
-  defp do_format(%SourceFile{text: text}, opts \\ []) do
-    formatted = IO.iodata_to_binary([Code.format_string!(text, opts), ?\n])
+
+  defp do_format(%SourceFile{} = source_file, opts \\ []), do: do_format(source_file, nil, opts)
+
+  defp do_format(%SourceFile{text: text}, formatter, opts) do
+    formatted = get_formatted(text, formatter, opts)
 
     response =
       text
@@ -41,6 +51,14 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   rescue
     _e in [TokenMissingError, SyntaxError] ->
       {:error, :internal_error, "Unable to format due to syntax error"}
+  end
+
+  defp get_formatted(text, formatter, _) when is_function(formatter) do
+    formatter.(text)
+  end
+
+  defp get_formatted(text, _, opts) do
+    IO.iodata_to_binary([Code.format_string!(text, opts), ?\n])
   end
 
   # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
