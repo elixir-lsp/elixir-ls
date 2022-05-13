@@ -17,7 +17,8 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
 
     Build.with_build_lock(fn ->
-      ElixirSense.references(text, line, character)
+      trace = ElixirLS.LanguageServer.Tracer.get_trace()
+      ElixirSense.references(text, line, character, trace)
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
         |> build_reference(uri, text)

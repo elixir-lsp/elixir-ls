@@ -35,6 +35,7 @@ defmodule ElixirLS.LanguageServer.Server do
   }
 
   alias ElixirLS.Utils.Launch
+  alias ElixirLS.LanguageServer.Tracer
 
   use Protocol
 
@@ -58,6 +59,7 @@ defmodule ElixirLS.LanguageServer.Server do
     source_files: %{},
     awaiting_contracts: [],
     supports_dynamic: false,
+    mix_project?: false,
     no_mixfile_warned?: false
   ]
 
@@ -416,6 +418,12 @@ defmodule ElixirLS.LanguageServer.Server do
              state.source_files[uri].dirty?)
       end)
 
+    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
+    for change <- changes, change["type"] == 3, uniq: true do
+      path = SourceFile.path_from_uri(change["uri"])
+      ElixirLS.LanguageServer.Tracer.notify_file_deleted(path)
+    end
+
     source_files =
       changes
       |> Enum.reduce(state.source_files, fn
@@ -448,6 +456,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     state = %{state | source_files: source_files}
 
+    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
     changes
     |> Enum.map(& &1["uri"])
     |> Enum.uniq()
@@ -1105,6 +1114,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> add_watched_extensions(additional_watched_extensions)
 
     state = create_gitignore(state)
+    Tracer.set_project_dir(state.project_dir)
     trigger_build(%{state | settings: settings})
   end
 
@@ -1217,7 +1227,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        Map.merge(state, %{project_dir: File.cwd!(), load_all_mix_applications?: true})
+        %{state |
+          project_dir: File.cwd!(),
+          load_all_mix_applications?: true,
+          mix_project?: File.exists?("mix.exs")
+        }
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
