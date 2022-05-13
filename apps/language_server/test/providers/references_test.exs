@@ -4,9 +4,17 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   alias ElixirLS.LanguageServer.Providers.References
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+  alias ElixirLS.LanguageServer.Tracer
   require ElixirLS.Test.TextLoc
 
-  test "finds references to a function" do
+  setup context do
+    {:ok, _pid} = Tracer.start_link([])
+    Tracer.set_project_dir(FixtureHelpers.get_path(""))
+    Code.compile_file(FixtureHelpers.get_path("references_b.ex"))
+    {:ok, context}
+  end
+
+  test "finds references to a variable" do
     file_path = FixtureHelpers.get_path("references_b.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)

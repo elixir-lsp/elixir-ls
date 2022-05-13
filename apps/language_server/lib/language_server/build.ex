@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, Tracer}
   alias ElixirLS.Utils.MixfileHelpers
 
   def build(parent, root_path, opts) when is_binary(root_path) do
@@ -40,6 +40,7 @@ defmodule ElixirLS.LanguageServer.Build do
               end
             end)
 
+          Tracer.save()
           JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
         end)
       end)
