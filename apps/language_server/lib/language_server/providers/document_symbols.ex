@@ -15,10 +15,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
 
-  @docs [
+  @supplementing_attributes [
     :doc,
     :moduledoc,
-    :typedoc
+    :typedoc,
+    :spec,
+    :impl,
+    :deprecated
   ]
 
   @max_parser_errors 6
@@ -118,14 +121,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Struct and exception
-  defp extract_symbol(_module_name, {defname, location, [properties | _]})
+  defp extract_symbol(module_name, {defname, location, [properties | _]})
        when defname in [:defstruct, :defexception] do
-    name =
-      case defname do
-        :defstruct -> "struct"
-        :defexception -> "exception"
-      end
-
     children =
       if is_list(properties) do
         properties
@@ -135,15 +132,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         []
       end
 
-    %Info{type: :struct, name: name, location: location, children: children}
+    %Info{
+      type: :struct,
+      name: "#{defname} #{module_name}",
+      location: location,
+      children: children
+    }
   end
 
-  # Docs
-  defp extract_symbol(_, {:@, _, [{kind, _, _}]}) when kind in @docs, do: nil
+  # We skip attributes only supplementoing the symbol
+  defp extract_symbol(_, {:@, _, [{kind, _, _}]}) when kind in @supplementing_attributes, do: nil
 
   # Types
   defp extract_symbol(_current_module, {:@, _, [{type_kind, location, type_expression}]})
-       when type_kind in [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
+       when type_kind in [:type, :typep, :opaque, :callback, :macrocallback] do
     type_name =
       case type_expression do
         [{:"::", _, [{_, _, _} = type_head | _]}] ->
@@ -158,7 +160,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     %Info{
       type: type,
-      name: type_name,
+      name: "@#{type_kind} #{type_name}",
       location: location,
       children: []
     }
@@ -168,19 +170,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_symbol(_current_module, {:@, _, [{:behaviour, location, [behaviour_expression]}]}) do
     module_name = extract_module_name(behaviour_expression)
 
-    %Info{type: :constant, name: "@behaviour #{module_name}", location: location, children: []}
-  end
-
-  # @impl true
-  defp extract_symbol(_current_module, {:@, _, [{:impl, location, [true]}]}) do
-    %Info{type: :constant, name: "@impl true", location: location, children: []}
-  end
-
-  # @impl BehaviourModule
-  defp extract_symbol(_current_module, {:@, _, [{:impl, location, [impl_expression]}]}) do
-    module_name = extract_module_name(impl_expression)
-
-    %Info{type: :constant, name: "@impl #{module_name}", location: location, children: []}
+    %Info{type: :interface, name: "@behaviour #{module_name}", location: location, children: []}
   end
 
   # Other attributes
@@ -212,6 +202,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: :function,
       name: "#{defname} #{name}",
+      location: location,
+      children: []
+    }
+  end
+
+  defp extract_symbol(
+         _current_module,
+         {{:., location, [{:__aliases__, _, [:Record]}, :defrecord]}, _, [record_name, _]}
+       ) do
+    name = Macro.to_string(record_name) |> String.replace("\n", "")
+
+    %Info{
+      type: :class,
+      name: "defrecord #{name}",
       location: location,
       children: []
     }

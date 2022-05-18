@@ -1173,7 +1173,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       }
                     ],
                     kind: 23,
-                    name: "struct",
+                    name: "defstruct MyModule",
                     range: %{
                       "end" => %{"character" => 2, "line" => 1},
                       "start" => %{"character" => 2, "line" => 1}
@@ -1220,7 +1220,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "struct",
+                name: "defstruct MyModule",
                 kind: 23,
                 location: %{
                   range: %{
@@ -1239,7 +1239,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     "start" => %{"character" => 2, "line" => 1}
                   }
                 },
-                containerName: "struct"
+                containerName: "defstruct MyModule"
               },
               %Protocol.SymbolInformation{
                 kind: 7,
@@ -1250,7 +1250,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     "start" => %{"character" => 2, "line" => 1}
                   }
                 },
-                containerName: "struct"
+                containerName: "defstruct MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
   end
@@ -1285,7 +1285,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       }
                     ],
                     kind: 23,
-                    name: "exception",
+                    name: "defexception MyError",
                     range: %{
                       "end" => %{"character" => 2, "line" => 1},
                       "start" => %{"character" => 2, "line" => 1}
@@ -1333,7 +1333,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 23,
-                name: "exception",
+                name: "defexception MyError",
                 location: %{
                   range: %{
                     "end" => %{"character" => 2, "line" => 1},
@@ -1351,7 +1351,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     "start" => %{"character" => 2, "line" => 1}
                   }
                 },
-                containerName: "exception"
+                containerName: "defexception MyError"
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
   end
@@ -1377,7 +1377,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %{
                     children: [],
                     kind: 5,
-                    name: "my_simple",
+                    name: "@type my_simple",
                     range: %{
                       "end" => %{"character" => 3, "line" => 1},
                       "start" => %{"character" => 3, "line" => 1}
@@ -1390,7 +1390,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
-                    name: "my_union",
+                    name: "@type my_union",
                     range: %{
                       "end" => %{"character" => 3, "line" => 2},
                       "start" => %{"character" => 3, "line" => 2}
@@ -1403,7 +1403,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
-                    name: "my_simple_private",
+                    name: "@typep my_simple_private",
                     range: %{
                       "end" => %{"character" => 3, "line" => 3},
                       "start" => %{"character" => 3, "line" => 3}
@@ -1416,7 +1416,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
-                    name: "my_simple_opaque",
+                    name: "@opaque my_simple_opaque",
                     range: %{
                       "end" => %{"character" => 3, "line" => 4},
                       "start" => %{"character" => 3, "line" => 4}
@@ -1429,7 +1429,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
-                    name: "my_with_args(key, value)",
+                    name: "@type my_with_args(key, value)",
                     range: %{
                       "end" => %{"character" => 3, "line" => 5},
                       "start" => %{"character" => 3, "line" => 5}
@@ -1442,7 +1442,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 5,
-                    name: "my_with_args_when(key, value)",
+                    name: "@type my_with_args_when(key, value)",
                     range: %{
                       "end" => %{"character" => 3, "line" => 6},
                       "start" => %{"character" => 3, "line" => 6}
@@ -1495,7 +1495,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 5,
-                name: "my_simple",
+                name: "@type my_simple",
                 location: %{
                   range: %{
                     "end" => %{"character" => 3, "line" => 1},
@@ -1506,7 +1506,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 5,
-                name: "my_union",
+                name: "@type my_union",
                 location: %{
                   range: %{
                     "end" => %{"character" => 3, "line" => 2},
@@ -1517,7 +1517,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 5,
-                name: "my_simple_private",
+                name: "@typep my_simple_private",
                 location: %{
                   range: %{
                     "end" => %{"character" => 3, "line" => 3},
@@ -1528,7 +1528,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 5,
-                name: "my_simple_opaque",
+                name: "@opaque my_simple_opaque",
                 location: %{
                   range: %{
                     "end" => %{"character" => 3, "line" => 4},
@@ -1539,7 +1539,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 5,
-                name: "my_with_args(key, value)",
+                name: "@type my_with_args(key, value)",
                 location: %{
                   range: %{
                     "end" => %{"character" => 3, "line" => 5},
@@ -1550,7 +1550,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 kind: 5,
-                name: "my_with_args_when(key, value)",
+                name: "@type my_with_args_when(key, value)",
                 location: %{
                   range: %{
                     "end" => %{"character" => 3, "line" => 6},
@@ -1585,7 +1585,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
-                    name: "my_callback(type1, type2)",
+                    name: "@callback my_callback(type1, type2)",
                     range: %{
                       "end" => %{"character" => 3, "line" => 1},
                       "start" => %{"character" => 3, "line" => 1}
@@ -1598,7 +1598,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
-                    name: "my_macrocallback(type1, type2)",
+                    name: "@macrocallback my_macrocallback(type1, type2)",
                     range: %{
                       "end" => %{"character" => 3, "line" => 2},
                       "start" => %{"character" => 3, "line" => 2}
@@ -1611,7 +1611,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
-                    name: "my_callback_when(type1, type2)",
+                    name: "@callback my_callback_when(type1, type2)",
                     range: %{
                       "end" => %{"character" => 3, "line" => 4},
                       "start" => %{"character" => 3, "line" => 4}
@@ -1624,7 +1624,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
-                    name: "my_macrocallback_when(type1, type2)",
+                    name: "@macrocallback my_macrocallback_when(type1, type2)",
                     range: %{
                       "end" => %{"character" => 3, "line" => 5},
                       "start" => %{"character" => 3, "line" => 5}
@@ -1637,7 +1637,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
-                    name: "my_callback_no_arg()",
+                    name: "@callback my_callback_no_arg()",
                     range: %{
                       "end" => %{"character" => 3, "line" => 7},
                       "start" => %{"character" => 3, "line" => 7}
@@ -1650,7 +1650,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 24,
-                    name: "my_macrocallback_no_arg()",
+                    name: "@macrocallback my_macrocallback_no_arg()",
                     range: %{
                       "end" => %{"character" => 3, "line" => 8},
                       "start" => %{"character" => 3, "line" => 8}
@@ -1704,7 +1704,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "my_callback(type1, type2)",
+                name: "@callback my_callback(type1, type2)",
                 kind: 24,
                 location: %{
                   range: %{
@@ -1715,7 +1715,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_macrocallback(type1, type2)",
+                name: "@macrocallback my_macrocallback(type1, type2)",
                 kind: 24,
                 location: %{
                   range: %{
@@ -1726,7 +1726,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_callback_when(type1, type2)",
+                name: "@callback my_callback_when(type1, type2)",
                 kind: 24,
                 location: %{
                   range: %{
@@ -1737,7 +1737,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_macrocallback_when(type1, type2)",
+                name: "@macrocallback my_macrocallback_when(type1, type2)",
                 kind: 24,
                 location: %{
                   range: %{
@@ -1748,7 +1748,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_callback_no_arg()",
+                name: "@callback my_callback_no_arg()",
                 kind: 24,
                 location: %{
                   range: %{
@@ -1759,7 +1759,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                name: "my_macrocallback_no_arg()",
+                name: "@macrocallback my_macrocallback_no_arg()",
                 kind: 24,
                 location: %{
                   range: %{
@@ -1785,19 +1785,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
             [
               %Protocol.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
-                    children: [],
-                    kind: 24,
-                    name: "my_fn(integer)",
-                    range: %{
-                      "end" => %{"character" => 9, "line" => 2},
-                      "start" => %{"character" => 9, "line" => 2}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 9, "line" => 2},
-                      "start" => %{"character" => 9, "line" => 2}
-                    }
-                  },
                   %Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
@@ -1848,23 +1835,88 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 }
               },
               %Protocol.SymbolInformation{
-                name: "my_fn(integer)",
-                kind: 24,
-                location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 2},
-                    "start" => %{"character" => 9, "line" => 2}
-                  }
-                },
-                containerName: "MyModule"
-              },
-              %Protocol.SymbolInformation{
                 name: "def my_fn(a)",
                 kind: 12,
                 location: %{
                   range: %{
                     "end" => %{"character" => 12, "line" => 3},
                     "start" => %{"character" => 12, "line" => 3}
+                  }
+                },
+                containerName: "MyModule"
+              }
+            ]} = DocumentSymbols.symbols(uri, text, false)
+  end
+
+  test "[nested] handles records" do
+    uri = "file:///project/file.ex"
+    text = ~S[
+      defmodule MyModule do
+        require Record
+        Record.defrecord(:user, name: "meg", age: "25")
+      end
+    ]
+
+    assert {:ok,
+            [
+              %Protocol.DocumentSymbol{
+                children: [
+                  %Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 5,
+                    name: "defrecord :user",
+                    range: %{
+                      "end" => %{"character" => 14, "line" => 3},
+                      "start" => %{"character" => 14, "line" => 3}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 14, "line" => 3},
+                      "start" => %{"character" => 14, "line" => 3}
+                    }
+                  }
+                ],
+                kind: 2,
+                name: "MyModule",
+                range: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                },
+                selectionRange: %{
+                  "end" => %{"character" => 6, "line" => 1},
+                  "start" => %{"character" => 6, "line" => 1}
+                }
+              }
+            ]} = DocumentSymbols.symbols(uri, text, true)
+  end
+
+  test "[flat] handles records" do
+    uri = "file:///project/file.ex"
+    text = ~S[
+      defmodule MyModule do
+        require Record
+        Record.defrecord(:user, name: "meg", age: "25")
+      end
+    ]
+
+    assert {:ok,
+            [
+              %Protocol.SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{
+                    "end" => %{"character" => 6, "line" => 1},
+                    "start" => %{"character" => 6, "line" => 1}
+                  }
+                }
+              },
+              %Protocol.SymbolInformation{
+                name: "defrecord :user",
+                kind: 5,
+                location: %{
+                  range: %{
+                    "end" => %{"character" => 14, "line" => 3},
+                    "start" => %{"character" => 14, "line" => 3}
                   }
                 },
                 containerName: "MyModule"
@@ -1971,7 +2023,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 11,
                     name: "@behaviour MyBehaviour",
                     range: %{
                       "end" => %{"character" => 3, "line" => 2},
@@ -1980,19 +2032,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     selectionRange: %{
                       "end" => %{"character" => 3, "line" => 2},
                       "start" => %{"character" => 3, "line" => 2}
-                    }
-                  },
-                  %Protocol.DocumentSymbol{
-                    children: [],
-                    kind: 14,
-                    name: "@impl true",
-                    range: %{
-                      "end" => %{"character" => 3, "line" => 3},
-                      "start" => %{"character" => 3, "line" => 3}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 3, "line" => 3},
-                      "start" => %{"character" => 3, "line" => 3}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -2032,19 +2071,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     selectionRange: %{
                       "end" => %{"character" => 3, "line" => 6},
                       "start" => %{"character" => 3, "line" => 6}
-                    }
-                  },
-                  %Protocol.DocumentSymbol{
-                    children: [],
-                    kind: 14,
-                    name: "@deprecated",
-                    range: %{
-                      "end" => %{"character" => 3, "line" => 7},
-                      "start" => %{"character" => 3, "line" => 7}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 3, "line" => 7},
-                      "start" => %{"character" => 3, "line" => 7}
                     }
                   },
                   %Protocol.DocumentSymbol{
@@ -2163,19 +2189,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       "end" => %{"character" => 3, "line" => 16},
                       "start" => %{"character" => 3, "line" => 16}
                     }
-                  },
-                  %Protocol.DocumentSymbol{
-                    children: [],
-                    kind: 14,
-                    name: "@impl MyBehaviour",
-                    range: %{
-                      "end" => %{"character" => 3, "line" => 17},
-                      "start" => %{"character" => 3, "line" => 17}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 3, "line" => 17},
-                      "start" => %{"character" => 3, "line" => 17}
-                    }
                   }
                 ],
                 kind: 2,
@@ -2242,22 +2255,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 name: "@behaviour MyBehaviour",
-                kind: 14,
+                kind: 11,
                 location: %{
                   range: %{
                     "end" => %{"character" => 3, "line" => 2},
                     "start" => %{"character" => 3, "line" => 2}
-                  }
-                },
-                containerName: "MyModule"
-              },
-              %Protocol.SymbolInformation{
-                name: "@impl true",
-                kind: 14,
-                location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 3},
-                    "start" => %{"character" => 3, "line" => 3}
                   }
                 },
                 containerName: "MyModule"
@@ -2291,17 +2293,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   range: %{
                     "end" => %{"character" => 3, "line" => 6},
                     "start" => %{"character" => 3, "line" => 6}
-                  }
-                },
-                containerName: "MyModule"
-              },
-              %Protocol.SymbolInformation{
-                name: "@deprecated",
-                kind: 14,
-                location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 7},
-                    "start" => %{"character" => 3, "line" => 7}
                   }
                 },
                 containerName: "MyModule"
@@ -2401,17 +2392,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   range: %{
                     "end" => %{"character" => 3, "line" => 16},
                     "start" => %{"character" => 3, "line" => 16}
-                  }
-                },
-                containerName: "MyModule"
-              },
-              %Protocol.SymbolInformation{
-                name: "@impl MyBehaviour",
-                kind: 14,
-                location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 17},
-                    "start" => %{"character" => 3, "line" => 17}
                   }
                 },
                 containerName: "MyModule"
