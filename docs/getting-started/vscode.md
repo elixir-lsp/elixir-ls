@@ -1,4 +1,4 @@
-# Emacs
+# VSCode
 
 ## Setup
 

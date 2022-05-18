@@ -4,10 +4,10 @@ When launching the elixir_ls server using the scripts, the initialization steps 
 
 1. Replace default IO with Json RPC notifications
 2. Starts Mix
-3. Starts the :language_server application 
+3. Starts the :language_server application
 4. Overrides default Mix.Shell
 5. Ensure the Hex version is accepted
-6. Start receiving requet/responses
+6. Start receiving requests/responses
 7. Gets the "initialize" request
 8. Starts building/analyzing the project
 
@@ -23,9 +23,9 @@ The servers delegate the callbacks to the module `ElixirLS.LanguageServer.JsonRp
 
 ElixirLS uses standard Mix tooling. It will need this to retrieve project configuration, dependencies and so on. It heavily uses private Mix APIs here to start and retrieve paths for dependencies, archives and so on.
 
-## Starts the :language_server application 
+## Starts the :language_server application
 
-The main entry point for the language server is its application module `ElixirLS.LanguageServer`. It starts a supervisor with a few children. 
+The main entry point for the language server is its application module `ElixirLS.LanguageServer`. It starts a supervisor with a few children.
 
 The first one is the server itself `ElixirLS.LanguageServer.Server`. This is a named `GenServer` that holds the state for the project. That state has things like:
 
@@ -47,7 +47,7 @@ Mix might have some "yes or no" questions that would not be possible to reply in
 
 ## Ensure the Hex version is accepted
 
-Before building the project and start answering requests from the client, it must ensure that the Hex version is correct. If it is not, it might have trouble building things. 
+Before building the project and start answering requests from the client, it must ensure that the Hex version is correct. If it is not, it might have trouble building things.
 
 This is also a private Mix API.
 
@@ -112,11 +112,11 @@ When the language server needs to "reload" the project it must first:
 - compile only the project's `mix.exs` file. This is to ensure it is properly sourced and that it can use it for reading project metadata;
 - ensure that it does not override the server logger config;
 
-This process is handled on the private function `reload_project/0`. One interesting trick it uses is that it sets a different build path using `Mix.ProjectStack.post_config/1` (which is a private API). This is the point where it will create a `.elixir_ls` directory on your project. 
+This process is handled on the private function `reload_project/0`. One interesting trick it uses is that it sets a different build path using `Mix.ProjectStack.post_config/1` (which is a private API). This is the point where it will create a `.elixir_ls` directory on your project.
 
 After reloading, the BEAM instance is free of old code and is ready to fetch/compile/analyze the project.
 
-### Analyzing the project 
+### Analyzing the project
 
 Even after build is finished, things are not yet done. Both ElixirLS and ElixirSense need dialyzer information for some introspection. So, after build is done it sends a message that is handled at `ElixirLS.LanguageServer.Server.handle_build_result/3`.
 
@@ -126,6 +126,6 @@ Here is the point in time where it will build the [PLT (a Persistent Lookup Tabl
 
 There are many things done in this module. It tries to be smart about analyzing only the modules that have changed. It does that by first checking the integrity of the PLT and then loading all modules from the PLT using `:dialyzer_plt.all_modules/1`.
 
-If it finds that there is a difference, than it calculates this difference (using `MapSet`) to separate stale modules from non-stale. Then it delegates do the `ElixirLS.LanguageServer.Dialyzer.Analyzer` module for the proper analysis run. 
+If it finds that there is a difference, than it calculates this difference (using `MapSet`) to separate stale modules from non-stale. Then it delegates do the `ElixirLS.LanguageServer.Dialyzer.Analyzer` module for the proper analysis run.
 
 In the end it will publish a message that the analysis has finished, which will be delegated all the way back to the server module. There it handles the results accordingly and finally it will be ready to introspect code.
