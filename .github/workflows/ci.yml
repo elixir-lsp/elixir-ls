@@ -17,19 +17,19 @@ jobs:
       matrix:
         include:
           - elixir: 1.10.x
-            otp: 22.3.4.20
+            otp: 22.3.4.x
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.11.x
-            otp: 23.3.4.4
+            otp: 23.3.4.x
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.12.x
-            otp: 23.3.4.4
+            otp: 23.3.4.x
             tests_may_fail: false
             check_unused_deps: true
           - elixir: 1.13.x
-            otp: 22.3.4.20
+            otp: 22.3.4.x
             tests_may_fail: false
             check_unused_deps: true
             warnings_as_errors: false
