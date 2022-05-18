@@ -34,7 +34,7 @@ jobs:
             check_unused_deps: true
             warnings_as_errors: false
           - elixir: 1.13.x
-            otp: 24.1.x
+            otp: 24.3.x
             tests_may_fail: false
             # Needs to be false until https://github.com/elixir-lsp/elixir-ls/issues/642 is fixed
             warnings_as_errors: false
@@ -67,7 +67,7 @@ jobs:
       matrix:
         include:
           - elixir: 1.13.x
-            otp: 24.1.x
+            otp: 24.3.x
     steps:
       - uses: actions/checkout@v2
       - uses: erlef/setup-beam@v1
