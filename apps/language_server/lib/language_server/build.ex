@@ -279,7 +279,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp range(position, nil) when is_integer(position) do
-    line = position - 1
+    line = if position - 1 < 0, do: 0, else: position - 1
 
     # we don't care about utf16 positions here as we send 0
     %{
@@ -289,7 +289,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp range(position, source_file) when is_integer(position) do
-    line = position - 1
+    line = if position - 1 < 0, do: 0, else: position - 1
     text = Enum.at(SourceFile.lines(source_file), line) || ""
 
     start_idx = String.length(text) - String.length(String.trim_leading(text)) + 1
