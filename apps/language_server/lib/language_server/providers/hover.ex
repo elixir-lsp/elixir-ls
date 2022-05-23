@@ -22,14 +22,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     response =
       case ElixirSense.docs(text, line, character) do
-        %{subject: ""} ->
+        nil ->
           nil
 
-        %{subject: subject, docs: docs, actual_subject: actual_subject} ->
-          line_text = Enum.at(SourceFile.lines(text), line - 1)
-          range = highlight_range(line_text, line - 1, character - 1, subject)
+        %{actual_subject: subject, docs: docs, range: es_range} ->
+          lines = SourceFile.lines(text)
 
-          %{"contents" => contents(docs, actual_subject, project_dir), "range" => range}
+          %{"contents" => contents(docs, subject, project_dir), "range" => build_range(lines, es_range)}
       end
 
     {:ok, response}
@@ -37,27 +36,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   ## Helpers
 
-  defp highlight_range(line_text, line, character, substr) do
-    regex_ranges =
-      Regex.scan(
-        Regex.recompile!(~r/\b#{Regex.escape(substr)}\b/),
-        line_text,
-        capture: :first,
-        return: :index
-      )
-
-    Enum.find_value(regex_ranges, fn
-      [{start, length}] when start <= character and character <= start + length ->
-        range(
-          line,
-          SourceFile.elixir_character_to_lsp(line_text, start + 1),
-          line,
-          SourceFile.elixir_character_to_lsp(line_text, start + 1 + length)
+  def build_range(lines, %{begin: {begin_line, begin_char}, end: {end_line, end_char}}) do
+    range(
+          begin_line - 1,
+          SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1), begin_char),
+          end_line - 1,
+          SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1), end_char)
         )
-
-      _ ->
-        nil
-    end)
   end
 
   defp contents(%{docs: "No documentation available\n"}, _subject, _project_dir) do
