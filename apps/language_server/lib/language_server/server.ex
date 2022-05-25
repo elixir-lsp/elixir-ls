@@ -1043,13 +1043,29 @@ defmodule ElixirLS.LanguageServer.Server do
     Dialyzer.check_support() == :ok and build_enabled?(state) and state.dialyzer_sup != nil
   end
 
+  defp safely_read_file(file) do
+    case File.read(file) do
+      {:ok, text} ->
+        text
+
+      {:error, reason} ->
+        IO.warn("Couldn't read file #{file}: #{inspect(reason)}")
+        nil
+    end
+  end
+
   defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
     files =
       Enum.uniq(Enum.map(new_diagnostics, & &1.file) ++ Enum.map(old_diagnostics, & &1.file))
 
     for file <- files,
         uri = SourceFile.path_to_uri(file),
-        do: Build.publish_file_diagnostics(uri, new_diagnostics, Map.get(source_files, uri))
+        do:
+          Build.publish_file_diagnostics(
+            uri,
+            new_diagnostics,
+            Map.get_lazy(source_files, uri, fn -> safely_read_file(file) end)
+          )
   end
 
   defp show_version_warnings do

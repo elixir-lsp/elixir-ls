@@ -108,7 +108,8 @@ defmodule ElixirLS.LanguageServer.Build do
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
       file: Path.absname(System.get_env("MIX_EXS") || "mix.exs"),
-      position: nil,
+      # 0 means unknown
+      position: 0,
       message: msg,
       severity: :error,
       details: error
@@ -278,17 +279,15 @@ defmodule ElixirLS.LanguageServer.Build do
     :ok
   end
 
-  defp range(position, nil) when is_integer(position) do
-    line = position - 1
+  # for details see
+  # https://hexdocs.pm/mix/1.13.4/Mix.Task.Compiler.Diagnostic.html#t:position/0
+  # https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#diagnostic
 
-    # we don't care about utf16 positions here as we send 0
-    %{
-      "start" => %{"line" => line, "character" => 0},
-      "end" => %{"line" => line, "character" => 0}
-    }
-  end
-
-  defp range(position, source_file) when is_integer(position) do
+  # position is a 1 based line number
+  # we return a range of trimmed text in that line
+  defp range(position, source_file)
+       when is_integer(position) and position >= 1 and is_binary(source_file) do
+    # line is 1 based
     line = position - 1
     text = Enum.at(SourceFile.lines(source_file), line) || ""
 
@@ -307,12 +306,64 @@ defmodule ElixirLS.LanguageServer.Build do
     }
   end
 
+  # position is a 1 based line number and 0 based character cursor (UTF8)
+  # we return a 0 length range exactly at that location
+  defp range({line_start, char_start}, source_file)
+       when line_start >= 1 and is_binary(source_file) do
+    lines = SourceFile.lines(source_file)
+    # line is 1 based
+    start_line = Enum.at(lines, line_start - 1)
+    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based bere
+    character = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
+
+    %{
+      "start" => %{
+        "line" => line_start - 1,
+        "character" => character
+      },
+      "end" => %{
+        "line" => line_start - 1,
+        "character" => character
+      }
+    }
+  end
+
+  # position is a range defined by 1 based line numbers and 0 based character cursors (UTF8)
+  # we return exactly that range
+  defp range({line_start, char_start, line_end, char_end}, source_file)
+       when line_start >= 1 and line_end >= 1 and is_binary(source_file) do
+    lines = SourceFile.lines(source_file)
+    # line is 1 based
+    start_line = Enum.at(lines, line_start - 1)
+    end_line = Enum.at(lines, line_end - 1)
+
+    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based bere
+    start_char = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
+    end_char = SourceFile.elixir_character_to_lsp(end_line, char_end + 1)
+
+    %{
+      "start" => %{
+        "line" => line_start - 1,
+        "character" => start_char
+      },
+      "end" => %{
+        "line" => line_end - 1,
+        "character" => end_char
+      }
+    }
+  end
+
+  # position is 0 which means unknown
+  # we return the full file range
+  defp range(0, source_file) when is_binary(source_file) do
+    SourceFile.full_range(source_file)
+  end
+
+  # source file is unknown
+  # we discard any position information as it is meaningless
+  # unfortunately LSP does not allow `null` range so we need to return something
   defp range(_, nil) do
     # we don't care about utf16 positions here as we send 0
     %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
-  end
-
-  defp range(_, source_file) do
-    SourceFile.full_range(source_file)
   end
 end
