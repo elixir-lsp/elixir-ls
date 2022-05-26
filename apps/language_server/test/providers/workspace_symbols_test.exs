@@ -23,10 +23,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
     expected_symbols = [
       "def some_function(a)",
       "defmacro some_macro(a)",
-      "some_callback(integer)",
-      "some_macrocallback(integer)",
-      "some_type",
-      "some_opaque_type",
+      "@callback some_callback(integer)",
+      "@callback some_macrocallback(integer)",
+      "@type some_type",
+      "@type some_opaque_type",
       "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
     ]
 
@@ -83,7 +83,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
 
   test "returns types", %{server: server} do
     assert {:ok, list} = WorkspaceSymbols.symbols("ElixirLS.LanguageServer.Fixtures.", server)
-    assert some_type = Enum.find(list, &(&1.name == "some_type"))
+    assert some_type = Enum.find(list, &(&1.name == "@type some_type"))
     assert some_type.kind == 5
 
     assert String.ends_with?(
@@ -96,16 +96,16 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
              "start" => %{"character" => 3, "line" => 7}
            }
 
-    assert Enum.any?(list, &(&1.name == "some_opaque_type"))
+    assert Enum.any?(list, &(&1.name == "@type some_opaque_type"))
 
     assert WorkspaceSymbols.symbols("opa", server)
            |> elem(1)
-           |> Enum.any?(&(&1.name == "some_opaque_type"))
+           |> Enum.any?(&(&1.name == "@type some_opaque_type"))
   end
 
   test "returns callbacks", %{server: server} do
     assert {:ok, list} = WorkspaceSymbols.symbols("ElixirLS.LanguageServer.Fixtures.", server)
-    assert some_callback = Enum.find(list, &(&1.name == "some_callback(integer)"))
+    assert some_callback = Enum.find(list, &(&1.name == "@callback some_callback(integer)"))
     assert some_callback.kind == 24
 
     assert String.ends_with?(
@@ -118,11 +118,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
              "start" => %{"character" => 3, "line" => 4}
            }
 
-    assert Enum.any?(list, &(&1.name == "some_macrocallback(integer)"))
+    assert Enum.any?(list, &(&1.name == "@callback some_macrocallback(integer)"))
 
     assert WorkspaceSymbols.symbols("macr", server)
            |> elem(1)
-           |> Enum.any?(&(&1.name == "some_macrocallback(integer)"))
+           |> Enum.any?(&(&1.name == "@callback some_macrocallback(integer)"))
   end
 
   defp wait_until_indexed(pid) do
