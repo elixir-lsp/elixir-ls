@@ -286,7 +286,7 @@ defmodule ElixirLS.LanguageServer.Build do
   # position is a 1 based line number
   # we return a range of trimmed text in that line
   defp range(position, source_file)
-       when is_integer(position) and position >= 1 and is_binary(source_file) do
+       when is_integer(position) and position >= 1 and not is_nil(source_file) do
     # line is 1 based
     line = position - 1
     text = Enum.at(SourceFile.lines(source_file), line) || ""
@@ -309,7 +309,7 @@ defmodule ElixirLS.LanguageServer.Build do
   # position is a 1 based line number and 0 based character cursor (UTF8)
   # we return a 0 length range exactly at that location
   defp range({line_start, char_start}, source_file)
-       when line_start >= 1 and is_binary(source_file) do
+       when line_start >= 1 and not is_nil(source_file) do
     lines = SourceFile.lines(source_file)
     # line is 1 based
     start_line = Enum.at(lines, line_start - 1)
@@ -331,7 +331,7 @@ defmodule ElixirLS.LanguageServer.Build do
   # position is a range defined by 1 based line numbers and 0 based character cursors (UTF8)
   # we return exactly that range
   defp range({line_start, char_start, line_end, char_end}, source_file)
-       when line_start >= 1 and line_end >= 1 and is_binary(source_file) do
+       when line_start >= 1 and line_end >= 1 and not is_nil(source_file) do
     lines = SourceFile.lines(source_file)
     # line is 1 based
     start_line = Enum.at(lines, line_start - 1)
@@ -355,7 +355,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
   # position is 0 which means unknown
   # we return the full file range
-  defp range(0, source_file) when is_binary(source_file) do
+  defp range(0, source_file) when not is_nil(source_file) do
     SourceFile.full_range(source_file)
   end
 
