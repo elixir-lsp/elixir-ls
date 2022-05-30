@@ -1,7 +1,15 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   require Record
 
-  # :warn_race_condition is unsupported because it greatly increases analysis time
+  # warn_race_condition is unsupported because it greatly increases analysis time
+  # OTP 25 dropped support for warn_race_condition
+  # see https://github.com/erlang/otp/commit/74c65fbb588b98ee24df9f7302a43552178dfac2
+  # TODO remove this comment when OTP >= 25 is required
+
+  # default warns taken from
+  # https://github.com/erlang/otp/blob/4ed7957623e5ccbd420a09a506bd6bc9930fe93c/lib/dialyzer/src/dialyzer_options.erl#L34
+  # macros defined in https://github.com/erlang/otp/blob/4ed7957623e5ccbd420a09a506bd6bc9930fe93c/lib/dialyzer/src/dialyzer.hrl#L36
+  # as of OTP 25
   @default_warns [
     :warn_behaviour,
     :warn_bin_construction,
@@ -26,7 +34,17 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     :warn_return_only_exit,
     :warn_umatched_return,
     :warn_unknown
-  ]
+  ] ++ (
+    if String.to_integer(System.otp_release()) >= 25 do
+      [
+        # OTP >= 25 options
+        :warn_contract_missing_return,
+        :warn_contract_extra_return
+      ]
+    else
+      []
+    end
+  )
   @log_cache_length 10
 
   defstruct [
