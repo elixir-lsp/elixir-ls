@@ -43,7 +43,7 @@ jobs:
             default: true
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up BEAM
         uses: erlef/setup-beam@v1
         with:
@@ -51,7 +51,7 @@ jobs:
           otp-version: ${{ matrix.otp-version }}
 
       - name: Restore dependencies cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
