@@ -1,5 +1,53 @@
 ### Unreleased
 
+### v0.10.0: X June 2022
+
+Improvements to debugger addapter:
+
+- A lot of new features around breakpoints: function breakpoints, conditional breakpoints, hit count and log points [#656](https://github.com/elixir-lsp/elixir-ls/pull/656), [#661](https://github.com/elixir-lsp/elixir-ls/pull/661), [#671](https://github.com/elixir-lsp/elixir-ls/pull/671) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Completions in debugger eval console [#679](https://github.com/elixir-lsp/elixir-ls/pull/679) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Debugger evaluate results can now be expanded [#672](https://github.com/elixir-lsp/elixir-ls/pull/672) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Messages in the queue of debugged process can now be examined [#681](https://github.com/elixir-lsp/elixir-ls/pull/681) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Debugger can now handle pause and terminateThread requests [#675](https://github.com/elixir-lsp/elixir-ls/pull/675) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Clipboard and hover eval is now supported in debugger [#680](https://github.com/elixir-lsp/elixir-ls/pull/680) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Auto interpretting can now be disabled [#616](https://github.com/elixir-lsp/elixir-ls/pull/616) (thanks [Jason Axelson](https://github.com/axelson))
+- Debugger conforms better to DAP 1.51 specification [#678](https://github.com/elixir-lsp/elixir-ls/pull/678) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+
+Improvements to language server:
+
+- Language server can now be restarted via custom command (e.g. from VSCode) [#653](https://github.com/elixir-lsp/elixir-ls/pull/653) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Hover provider adds links to hexdocs.pm [#574](https://github.com/elixir-lsp/elixir-ls/pull/574) (thanks [Fenix](https://github.com/zhenfeng-zhu))
+- Numerous cases of invalid UTF8-UTF16 position conversions fixed [#677](https://github.com/elixir-lsp/elixir-ls/pull/677) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Improved markdown wrapping [#663](https://github.com/elixir-lsp/elixir-ls/pull/663) (thanks [我没有抓狂](https://github.com/BlindingDark))
+- Improved MIX_TARGET environment variable handling [#670](https://github.com/elixir-lsp/elixir-ls/pull/670) (thanks [Masatoshi Nishiguchi](https://github.com/mnishiguchi))
+- defmodule snippet now suggests a module name [#684](https://github.com/elixir-lsp/elixir-ls/pull/684) (thanks [Manos Emmanouilidis](https://github.com/bottlenecked))
+- Constant recompilation on Nerves projects fixed [#686](https://github.com/elixir-lsp/elixir-ls/issues/686) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Invalid negative positions in diagnostics are no longer emitted [#695](https://github.com/elixir-lsp/elixir-ls/pull/695) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Improvements to document symbols provider (https://github.com/elixir-lsp/elixir-ls/commit/1e38db4c9dd9277dfffd9563286f652e3d617a5f) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Added support for OTP 25 new dialyzer options (https://github.com/elixir-lsp/elixir-ls/commit/0da7623f644f79559699e9f002820ad9219d108d) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Improvements to complete (operator, sigil, bitstring) [#150](https://github.com/elixir-lsp/elixir_sense/pull/150), (https://github.com/elixir-lsp/elixir_sense/commit/33df514a1254455f54cb069999454c7e8586eb2d) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Improved alias resolution (https://github.com/elixir-lsp/elixir_sense/issues/151) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Fixed crash on OTP 24.2 (https://github.com/elixir-lsp/elixir_sense/commit/72f3d4ffee3c11c289d47d14a6c5f6e1a4afacb4) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Better function detection when hovering inside string interpolation [#152](https://github.com/elixir-lsp/elixir_sense/pull/152) (thanks [Milo Lee](https://github.com/oo6))
+- Support for external plugins to elixir_sense [#141](https://github.com/elixir-lsp/elixir_sense/pull/141) (thanks [Zach Daniel](https://github.com/zachdaniel))
+
+VSCode:
+
+- To Pipe and From Pipe code transformation command [#182](https://github.com/elixir-lsp/vscode-elixir-ls/pull/182) (thanks [Paulo Valente](https://github.com/polvalente))
+- Restart language server command added [#218](https://github.com/elixir-lsp/vscode-elixir-ls/pull/218) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- New settings related to auto interpreting in debugger (https://github.com/elixir-lsp/vscode-elixir-ls/commit/4294f9f0da6819e519aa4278f5f2d553ff054dac) (thanks [Jason Axelson](https://github.com/axelson))
+- New OTP 25 dialyzer settings (https://github.com/elixir-lsp/vscode-elixir-ls/commit/50a8a53fa79c14d2ea4031f872ec3d7cd32155f5) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+- Compile time environment variables can now be set in extension config [#213](https://github.com/elixir-lsp/vscode-elixir-ls/pull/213) (thanks [vacarsu](https://github.com/vacarsu))
+- Additional watched extensions can now be set in extension config [#197](https://github.com/elixir-lsp/vscode-elixir-ls/pull/197) (thanks [Vanja Bucic](https://github.com/vanjabucic))
+- Improved unquite_slicing highlighting [#221](https://github.com/elixir-lsp/vscode-elixir-ls/pull/221) (thanks [Milo Lee](https://github.com/oo6))
+- Improved string interpolation highlighting [#229](https://github.com/elixir-lsp/vscode-elixir-ls/pull/229) (thanks [Milo Lee](https://github.com/oo6))
+- Improved regex with < highlighting [#226](https://github.com/elixir-lsp/vscode-elixir-ls/pull/226) (thanks [Tiago Moraes](https://github.com/tiagoefmoraes))
+- Extension updated to use LSP v3.16 [#227](https://github.com/elixir-lsp/vscode-elixir-ls/pull/227) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
+
+Houskeeping:
+
+thanks [Łukasz Samson](https://github.com/lukaszsamson), [Thanabodee Charoenpiriyakij](https://github.com/wingyplus), [Daniils Petrovs](https://github.com/DaniruKun), [Jason Axelson](https://github.com/axelson)
+
 ### v0.9.0: 4 December 2021
 
 Improvements:
