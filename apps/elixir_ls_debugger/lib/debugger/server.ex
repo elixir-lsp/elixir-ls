@@ -25,6 +25,7 @@ defmodule ElixirLS.Debugger.Server do
   }
 
   alias ElixirLS.Debugger.Stacktrace.Frame
+  alias ElixirLS.Utils.MixfileHelpers
   use GenServer
   use Protocol
 
@@ -955,11 +956,11 @@ defmodule ElixirLS.Debugger.Server do
     File.cd!(project_dir)
 
     # Mixfile may already be loaded depending on cwd when launching debugger task
-    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
+    mixfile = Path.absname(MixfileHelpers.mix_exs())
 
     # FIXME: Private API
     unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
-      Code.compile_file(System.get_env("MIX_EXS") || "mix.exs")
+      Code.compile_file(MixfileHelpers.mix_exs())
     end
 
     task = task || Mix.Project.config()[:default_task]

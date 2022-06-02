@@ -103,7 +103,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     clear_mix_cache()
 
     # Attempt to purge mixfiles for dependencies to avoid module redefinition warnings
-    mix_exs = System.get_env("MIX_EXS") || "mix.exs"
+    mix_exs = MixfileHelpers.mix_exs()
 
     for {mod, :in_memory} <- :code.all_loaded(),
         source = mod.module_info[:compile][:source],

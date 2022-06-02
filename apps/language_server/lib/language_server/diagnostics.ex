@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Diagnostics do
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
+  alias ElixirLS.Utils.MixfileHelpers
 
   def normalize(diagnostics, root_path) do
     for diagnostic <- diagnostics do
@@ -215,6 +216,16 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     })
   end
 
+  def mixfile_diagnostic({file, line, message}, severity) do
+    %Mix.Task.Compiler.Diagnostic{
+      compiler_name: "ElixirLS",
+      file: file,
+      position: line,
+      message: message,
+      severity: severity
+    }
+  end
+
   def exception_to_diagnostic(error) do
     msg =
       case error do
@@ -227,7 +238,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
-      file: Path.absname(System.get_env("MIX_EXS") || "mix.exs"),
+      file: Path.absname(MixfileHelpers.mix_exs),
       # 0 means unknown
       position: 0,
       message: msg,

@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, MixfileHelpers}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics}
+  alias ElixirLS.Utils.MixfileHelpers
 
   def build(parent, root_path, opts) when is_binary(root_path) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
@@ -54,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project do
-    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
+    mixfile = Path.absname(MixfileHelpers.mix_exs)
 
     if File.exists?(mixfile) do
       # FIXME: Private API
@@ -78,13 +79,13 @@ defmodule ElixirLS.LanguageServer.Build do
       {status, diagnostics} =
         case Kernel.ParallelCompiler.compile([mixfile]) do
           {:ok, _, warnings} ->
-            {:ok, Enum.map(warnings, &MixfileHelpers.mixfile_diagnostic(&1, :warning))}
+            {:ok, Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning))}
 
           {:error, errors, warnings} ->
             {
               :error,
-              Enum.map(warnings, &MixfileHelpers.mixfile_diagnostic(&1, :warning)) ++
-                Enum.map(errors, &MixfileHelpers.mixfile_diagnostic(&1, :error))
+              Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning)) ++
+                Enum.map(errors, &Diagnostics.mixfile_diagnostic(&1, :error))
             }
         end
 
