@@ -28,8 +28,8 @@ defmodule ElixirLS.LanguageServer.Build do
                   purge_consolidated_protocols()
                   {status, diagnostics} = compile()
 
-                  if status in [:ok, :noop] and Keyword.get(opts, :load_all_modules?) do
-                    load_all_modules()
+                  if status in [:ok, :noop] and Keyword.get(opts, :load_all_mix_applications?) do
+                    load_all_mix_applications()
                   end
 
                   diagnostics = Diagnostics.normalize(diagnostics, root_path)
@@ -174,7 +174,11 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
-  def load_all_modules do
+  # TODO It looks like that function is no longer needed on elixir >= 1.11
+  # it was added in https://github.com/elixir-lsp/elixir-ls/pull/227
+  # removing it doesn't break tests and I'm not able to reproduce
+  # https://github.com/elixir-lsp/elixir-ls/issues/209 on recent elixir (1.13)
+  def load_all_mix_applications do
     apps =
       cond do
         Mix.Project.umbrella?() ->

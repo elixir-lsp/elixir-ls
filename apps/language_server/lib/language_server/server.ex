@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Server do
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
-    load_all_modules?: false,
+    load_all_mix_applications?: false,
     build_running?: false,
     analysis_ready?: false,
     received_shutdown?: false,
@@ -926,7 +926,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {_pid, build_ref} =
           Build.build(self(), project_dir,
             fetch_deps?: fetch_deps?,
-            load_all_modules?: state.load_all_modules?
+            load_all_mix_applications?: state.load_all_mix_applications?
           )
 
         %__MODULE__{
@@ -935,7 +935,7 @@ defmodule ElixirLS.LanguageServer.Server do
             needs_build?: false,
             build_running?: true,
             analysis_ready?: false,
-            load_all_modules?: false
+            load_all_mix_applications?: false
         }
 
       true ->
@@ -1217,7 +1217,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        Map.merge(state, %{project_dir: File.cwd!(), load_all_modules?: true})
+        Map.merge(state, %{project_dir: File.cwd!(), load_all_mix_applications?: true})
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
