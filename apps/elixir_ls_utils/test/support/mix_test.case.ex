@@ -1,6 +1,7 @@
 defmodule ElixirLS.Utils.MixTest.Case do
   # This module is based heavily on MixTest.Case in Elixir's tests
   use ExUnit.CaseTemplate
+  alias ElixirLS.Utils.MixfileHelpers
 
   using do
     quote do
