@@ -187,14 +187,20 @@ defmodule ElixirLS.LanguageServer.Build do
           []
       end
 
-    Enum.each(apps, fn app ->
-      true = Code.prepend_path(Path.join(Mix.Project.build_path(), "lib/#{app}/ebin"))
+    # Enum.each(apps, fn app ->
+    #   IO.inspect(Process.whereis(:user), app, label: "loading")
+    #   mods_before = :code.all_loaded()
+    #   IO.inspect(Process.whereis(:user), App2.Foo in Keyword.keys(mods_before), label: "Foo loaded", limit: :infinity)
+    #   IO.inspect(Process.whereis(:user), Date in Keyword.keys(mods_before), label: "Date loaded", limit: :infinity)
+    #   true = Code.prepend_path(Path.join(Mix.Project.build_path(), "lib/#{app}/ebin"))
 
-      case Application.load(app) do
-        :ok -> :ok
-        {:error, {:already_loaded, _}} -> :ok
-      end
-    end)
+    #   case Application.load(app) do
+    #     :ok -> :ok
+    #     {:error, {:already_loaded, _}} -> :ok
+    #   end
+    #   mods_after = :code.all_loaded()
+    #   IO.inspect(Process.whereis(:user), App2.Foo in Keyword.keys(mods_after), label: "Foo loaded")
+    # end)
   end
 
   defp compile do
