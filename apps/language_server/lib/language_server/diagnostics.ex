@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Diagnostics do
-  alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
+  alias ElixirLS.Utils.MixfileHelpers
 
   def normalize(diagnostics, root_path) do
     for diagnostic <- diagnostics do
@@ -177,5 +178,160 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           nil
       end
     end)
+  end
+
+  def publish_file_diagnostics(uri, all_diagnostics, source_file) do
+    diagnostics =
+      all_diagnostics
+      |> Enum.filter(&(SourceFile.path_to_uri(&1.file) == uri))
+      |> Enum.sort_by(fn %{position: position} -> position end)
+
+    diagnostics_json =
+      for diagnostic <- diagnostics do
+        severity =
+          case diagnostic.severity do
+            :error -> 1
+            :warning -> 2
+            :information -> 3
+            :hint -> 4
+          end
+
+        message =
+          case diagnostic.message do
+            m when is_binary(m) -> m
+            m when is_list(m) -> m |> Enum.join("\n")
+          end
+
+        %{
+          "message" => message,
+          "severity" => severity,
+          "range" => range(diagnostic.position, source_file),
+          "source" => diagnostic.compiler_name
+        }
+      end
+
+    JsonRpc.notify("textDocument/publishDiagnostics", %{
+      "uri" => uri,
+      "diagnostics" => diagnostics_json
+    })
+  end
+
+  def mixfile_diagnostic({file, line, message}, severity) do
+    %Mix.Task.Compiler.Diagnostic{
+      compiler_name: "ElixirLS",
+      file: file,
+      position: line,
+      message: message,
+      severity: severity
+    }
+  end
+
+  def exception_to_diagnostic(error) do
+    msg =
+      case error do
+        {:shutdown, 1} ->
+          "Build failed for unknown reason. See output log."
+
+        _ ->
+          Exception.format_exit(error)
+      end
+
+    %Mix.Task.Compiler.Diagnostic{
+      compiler_name: "ElixirLS",
+      file: Path.absname(MixfileHelpers.mix_exs),
+      # 0 means unknown
+      position: 0,
+      message: msg,
+      severity: :error,
+      details: error
+    }
+  end
+
+  # for details see
+  # https://hexdocs.pm/mix/1.13.4/Mix.Task.Compiler.Diagnostic.html#t:position/0
+  # https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#diagnostic
+
+  # position is a 1 based line number
+  # we return a range of trimmed text in that line
+  defp range(position, source_file)
+       when is_integer(position) and position >= 1 and not is_nil(source_file) do
+    # line is 1 based
+    line = position - 1
+    text = Enum.at(SourceFile.lines(source_file), line) || ""
+
+    start_idx = String.length(text) - String.length(String.trim_leading(text)) + 1
+    length = max(String.length(String.trim(text)), 1)
+
+    %{
+      "start" => %{
+        "line" => line,
+        "character" => SourceFile.elixir_character_to_lsp(text, start_idx)
+      },
+      "end" => %{
+        "line" => line,
+        "character" => SourceFile.elixir_character_to_lsp(text, start_idx + length)
+      }
+    }
+  end
+
+  # position is a 1 based line number and 0 based character cursor (UTF8)
+  # we return a 0 length range exactly at that location
+  defp range({line_start, char_start}, source_file)
+       when line_start >= 1 and not is_nil(source_file) do
+    lines = SourceFile.lines(source_file)
+    # line is 1 based
+    start_line = Enum.at(lines, line_start - 1)
+    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based bere
+    character = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
+
+    %{
+      "start" => %{
+        "line" => line_start - 1,
+        "character" => character
+      },
+      "end" => %{
+        "line" => line_start - 1,
+        "character" => character
+      }
+    }
+  end
+
+  # position is a range defined by 1 based line numbers and 0 based character cursors (UTF8)
+  # we return exactly that range
+  defp range({line_start, char_start, line_end, char_end}, source_file)
+       when line_start >= 1 and line_end >= 1 and not is_nil(source_file) do
+    lines = SourceFile.lines(source_file)
+    # line is 1 based
+    start_line = Enum.at(lines, line_start - 1)
+    end_line = Enum.at(lines, line_end - 1)
+
+    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based bere
+    start_char = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
+    end_char = SourceFile.elixir_character_to_lsp(end_line, char_end + 1)
+
+    %{
+      "start" => %{
+        "line" => line_start - 1,
+        "character" => start_char
+      },
+      "end" => %{
+        "line" => line_end - 1,
+        "character" => end_char
+      }
+    }
+  end
+
+  # position is 0 which means unknown
+  # we return the full file range
+  defp range(0, source_file) when not is_nil(source_file) do
+    SourceFile.full_range(source_file)
+  end
+
+  # source file is unknown
+  # we discard any position information as it is meaningless
+  # unfortunately LSP does not allow `null` range so we need to return something
+  defp range(_, nil) do
+    # we don't care about utf16 positions here as we send 0
+    %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
   end
 end

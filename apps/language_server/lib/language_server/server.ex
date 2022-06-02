@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Server do
   """
 
   use GenServer
-  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer}
+  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics}
 
   alias ElixirLS.LanguageServer.Providers.{
     Completion,
@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Server do
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
-    load_all_modules?: false,
+    load_all_mix_applications?: false,
     build_running?: false,
     analysis_ready?: false,
     received_shutdown?: false,
@@ -232,7 +232,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case reason do
         :normal -> state
-        _ -> handle_build_result(:error, [Build.exception_to_diagnostic(reason)], state)
+        _ -> handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason)], state)
       end
 
     if reason == :normal do
@@ -332,7 +332,7 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       source_file = %SourceFile{text: text, version: version}
 
-      Build.publish_file_diagnostics(
+      Diagnostics.publish_file_diagnostics(
         uri,
         state.build_diagnostics ++ state.dialyzer_diagnostics,
         source_file
@@ -926,7 +926,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {_pid, build_ref} =
           Build.build(self(), project_dir,
             fetch_deps?: fetch_deps?,
-            load_all_modules?: state.load_all_modules?
+            load_all_mix_applications?: state.load_all_mix_applications?
           )
 
         %__MODULE__{
@@ -935,7 +935,7 @@ defmodule ElixirLS.LanguageServer.Server do
             needs_build?: false,
             build_running?: true,
             analysis_ready?: false,
-            load_all_modules?: false
+            load_all_mix_applications?: false
         }
 
       true ->
@@ -1061,7 +1061,7 @@ defmodule ElixirLS.LanguageServer.Server do
     for file <- files,
         uri = SourceFile.path_to_uri(file),
         do:
-          Build.publish_file_diagnostics(
+          Diagnostics.publish_file_diagnostics(
             uri,
             new_diagnostics,
             Map.get_lazy(source_files, uri, fn -> safely_read_file(file) end)
@@ -1217,7 +1217,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        Map.merge(state, %{project_dir: File.cwd!(), load_all_modules?: true})
+        Map.merge(state, %{project_dir: File.cwd!(), load_all_mix_applications?: true})
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
