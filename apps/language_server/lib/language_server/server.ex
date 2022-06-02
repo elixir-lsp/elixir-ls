@@ -42,7 +42,8 @@ defmodule ElixirLS.LanguageServer.Server do
     OnTypeFormatting,
     CodeLens,
     ExecuteCommand,
-    FoldingRange
+    FoldingRange,
+    SelectionRanges
   }
 
   alias ElixirLS.Utils.Launch
@@ -939,6 +940,7 @@ defmodule ElixirLS.LanguageServer.Server do
        )
        when not is_initialized(server_instance_id) do
     show_version_warnings()
+    IO.inspect(client_capabilities)
 
     server_instance_id =
       :crypto.strong_rand_bytes(32) |> Base.url_encode64() |> binary_part(0, 32)
@@ -1217,6 +1219,22 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(selection_range_req(_id, uri, positions), state = %__MODULE__{}) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        ranges = SelectionRanges.selection_ranges(source_file.text, positions)
+        {:ok, ranges}
+      else
+        # TODO no support for eex
+        {:ok, []}
+      end
+    end
+
+    {:async, fun, state}
+  end
+
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
     {:error, :method_not_found, nil, false, state}
@@ -1265,6 +1283,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
+      "selectionRangeProvider" => true,
       "executeCommandProvider" => %{
         "commands" => ExecuteCommand.get_commands(server_instance_id)
       },

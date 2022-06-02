@@ -56,27 +56,34 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
   end
 
   @spec group_tokens([Token.t()]) :: [[Token.t()]]
-  defp group_tokens(tokens) do
+  def group_tokens(tokens) do
     do_group_tokens(tokens, [])
   end
 
   defp do_group_tokens([], acc), do: acc
 
-  # Don't create folding ranges for docs
-  defp do_group_tokens([{:identifier, _, doc_identifier}, {false, _, _} | rest], acc)
+  # Don't create folding ranges for @doc false
+  # TODO why?
+  defp do_group_tokens(
+         [{:at_op, _, _}, {:identifier, _, doc_identifier}, {false, _, _} | rest] = tokens,
+         acc
+       )
        when doc_identifier in @docs do
     do_group_tokens(rest, acc)
   end
 
   # Start a folding range for `@doc` and `@moduledoc`
-  defp do_group_tokens([{:identifier, _, doc_identifier} = token | rest], acc)
+  defp do_group_tokens(
+         [{:at_op, _, _} = at_op, {:identifier, _, doc_identifier} = token | rest] = tokens,
+         acc
+       )
        when doc_identifier in @docs do
-    acc = [[token] | acc]
+    acc = [[token, at_op] | acc]
     do_group_tokens(rest, acc)
   end
 
   # Amend the folding range
-  defp do_group_tokens([{k, _, _} = token | rest], [[{:identifier, _, _}] = head | tail])
+  defp do_group_tokens([{k, _, _} = token | rest], [[{:identifier, _, _} | _] = head | tail])
        when k in @kinds do
     acc = [[token | head] | tail]
     do_group_tokens(rest, acc)
@@ -118,7 +125,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
   end
 
   defp classify_group({kind, {start_line, _, _}, _}, {_, {end_line, _, _}, _}) do
-    kind = if kind == :identifier, do: :comment, else: :region
+    kind = if kind == :at_op, do: :comment, else: :region
     {start_line, end_line, kind}
   end
 end

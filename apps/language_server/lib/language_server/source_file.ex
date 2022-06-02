@@ -39,6 +39,30 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     do_lines_with_endings(rest, line <> <<char::utf8>>)
   end
 
+  def text_before(text, position_line, position_character) do
+    text
+    |> lines
+    |> Enum.with_index()
+    |> Enum.reduce_while([], fn
+      {line, count}, acc when count < position_line ->
+        {:cont, [line, ?\n | acc]}
+
+      {line, count}, acc when count == position_line ->
+        slice =
+          characters_to_binary!(line, :utf8, :utf16)
+          |> (&binary_part(
+                &1,
+                0,
+                min(position_character * 2, byte_size(&1))
+              )).()
+          |> characters_to_binary!(:utf16, :utf8)
+
+        {:halt, [slice, ?\n | acc]}
+    end)
+    |> Enum.reverse()
+    |> IO.iodata_to_binary()
+  end
+
   def apply_content_changes(%__MODULE__{} = source_file, []) do
     source_file
   end

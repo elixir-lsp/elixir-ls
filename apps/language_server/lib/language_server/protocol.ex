@@ -181,6 +181,15 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro selection_range_req(id, uri, positions) do
+    quote do
+      request(unquote(id), "textDocument/selectionRange", %{
+        "textDocument" => %{"uri" => unquote(uri)},
+        "positions" => unquote(positions)
+      })
+    end
+  end
+
   defmacro execute_command_req(id, command, arguments) do
     quote do
       request(unquote(id), "workspace/executeCommand", %{
