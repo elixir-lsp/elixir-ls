@@ -1,6 +1,6 @@
 ### Unreleased
 
-### v0.10.0: X June 2022
+### v0.10.0: 10 June 2022
 
 Improvements to debugger addapter:
 
