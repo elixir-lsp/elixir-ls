@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project do
-    mixfile = Path.absname(MixfileHelpers.mix_exs)
+    mixfile = Path.absname(MixfileHelpers.mix_exs())
 
     if File.exists?(mixfile) do
       # FIXME: Private API

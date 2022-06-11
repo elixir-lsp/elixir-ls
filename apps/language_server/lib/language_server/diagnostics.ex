@@ -238,7 +238,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
-      file: Path.absname(MixfileHelpers.mix_exs),
+      file: Path.absname(MixfileHelpers.mix_exs()),
       # 0 means unknown
       position: 0,
       message: msg,
