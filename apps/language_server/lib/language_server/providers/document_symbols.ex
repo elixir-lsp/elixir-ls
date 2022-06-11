@@ -85,10 +85,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           end
 
         [module_expression, [do: module_body]] ->
-          module_name_location = case module_expression do
-            {_, location, _} -> location
-            _ -> nil
-          end
+          module_name_location =
+            case module_expression do
+              {_, location, _} -> location
+              _ -> nil
+            end
+
+          # TODO extract module name location from Code.Fragment.surround_context?
           {extract_module_name(module_expression), module_name_location, module_body}
       end
 
@@ -156,20 +159,23 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_symbol(_, {:@, _, [{kind, _, _}]}) when kind in @supplementing_attributes, do: nil
 
   # Types
-  defp extract_symbol(_current_module, {:@, location, [{type_kind, type_head_location, type_expression}]})
+  defp extract_symbol(_current_module, {:@, location, [{type_kind, _, type_expression}]})
        when type_kind in [:type, :typep, :opaque, :callback, :macrocallback] do
-    type_name =
+    {type_name, type_head_location} =
       case type_expression do
-        [{:"::", _, [{_, _, _} = type_head | _]}] ->
-          Macro.to_string(type_head)
+        [{:"::", _, [{_, type_head_location, _} = type_head | _]}] ->
+          {Macro.to_string(type_head), type_head_location}
 
-        [{:when, _, [{:"::", _, [{_, _, _} = type_head, _]}, _]}] ->
-          Macro.to_string(type_head)
+        [{:when, _, [{:"::", _, [{_, type_head_location, _} = type_head, _]}, _]}] ->
+          {Macro.to_string(type_head), type_head_location}
       end
+
+    type_name =
+      type_name
       |> String.replace("\n", "")
 
     type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
-
+    # TODO no closing metdata in type expressions
     %Info{
       type: type,
       name: "@#{type_kind} #{type_name}",
@@ -224,7 +230,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp extract_symbol(
          _current_module,
-         {{:., _, [{:__aliases__, alias_location, [:Record]}, :defrecord]}, location, [record_name, properties]}
+         {{:., _, [{:__aliases__, alias_location, [:Record]}, :defrecord]}, location,
+          [record_name, properties]}
        ) do
     name = Macro.to_string(record_name) |> String.replace("\n", "")
 
@@ -293,8 +300,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     keys =
       case config_entry do
         list when is_list(list) ->
-          string_list = list
-          |> Enum.map_join(", ", fn {key, _} -> Macro.to_string(key) end)
+          string_list =
+            list
+            |> Enum.map_join(", ", fn {key, _} -> Macro.to_string(key) end)
+
           "[#{string_list}]"
 
         key ->
@@ -362,17 +371,27 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     {start_line, start_character} =
       SourceFile.elixir_position_to_lsp(text, {location[:line], location[:column]})
 
-    {end_line, end_character} = cond do
-      end_location = location[:end_of_expression] ->
-        SourceFile.elixir_position_to_lsp(text, {end_location[:line], end_location[:column]})
-      end_location = location[:end] ->
-        SourceFile.elixir_position_to_lsp(text, {end_location[:line], end_location[:column] + 3})
-      end_location = location[:closing] ->
-        # all closing tags we expect hera are 1 char width
-        SourceFile.elixir_position_to_lsp(text, {end_location[:line], end_location[:column] + 1})
-      true ->
-        {start_line, start_character}
-    end
+    {end_line, end_character} =
+      cond do
+        end_location = location[:end_of_expression] ->
+          SourceFile.elixir_position_to_lsp(text, {end_location[:line], end_location[:column]})
+
+        end_location = location[:end] ->
+          SourceFile.elixir_position_to_lsp(
+            text,
+            {end_location[:line], end_location[:column] + 3}
+          )
+
+        end_location = location[:closing] ->
+          # all closing tags we expect hera are 1 char width
+          SourceFile.elixir_position_to_lsp(
+            text,
+            {end_location[:line], end_location[:column] + 1}
+          )
+
+        true ->
+          {start_line, start_character}
+      end
 
     Protocol.range(start_line, start_character, end_line, end_character)
   end
