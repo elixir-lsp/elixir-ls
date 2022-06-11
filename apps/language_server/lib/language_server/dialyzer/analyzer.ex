@@ -28,23 +28,22 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     :warn_undefined_callbacks
   ]
   @non_default_warns [
-    :warn_contract_not_equal,
-    :warn_contract_subtype,
-    :warn_contract_supertype,
-    :warn_return_only_exit,
-    :warn_umatched_return,
-    :warn_unknown
-  ] ++ (
-    if String.to_integer(System.otp_release()) >= 25 do
-      [
-        # OTP >= 25 options
-        :warn_contract_missing_return,
-        :warn_contract_extra_return
-      ]
-    else
-      []
-    end
-  )
+                       :warn_contract_not_equal,
+                       :warn_contract_subtype,
+                       :warn_contract_supertype,
+                       :warn_return_only_exit,
+                       :warn_umatched_return,
+                       :warn_unknown
+                     ] ++
+                       (if String.to_integer(System.otp_release()) >= 25 do
+                          [
+                            # OTP >= 25 options
+                            :warn_contract_missing_return,
+                            :warn_contract_extra_return
+                          ]
+                        else
+                          []
+                        end)
   @log_cache_length 10
 
   defstruct [

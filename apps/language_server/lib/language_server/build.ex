@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project do
-    mixfile = Path.absname(MixfileHelpers.mix_exs)
+    mixfile = Path.absname(MixfileHelpers.mix_exs())
 
     if File.exists?(mixfile) do
       # FIXME: Private API
@@ -112,7 +112,7 @@ defmodule ElixirLS.LanguageServer.Build do
   # it was added in https://github.com/elixir-lsp/elixir-ls/pull/227
   # removing it doesn't break tests and I'm not able to reproduce
   # https://github.com/elixir-lsp/elixir-ls/issues/209 on recent elixir (1.13)
-  def load_all_mix_applications do
+  defp load_all_mix_applications do
     apps =
       cond do
         Mix.Project.umbrella?() ->
