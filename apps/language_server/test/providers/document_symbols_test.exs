@@ -1466,6 +1466,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       end
     ]
 
+    result =  = DocumentSymbols.symbols(uri, text, true)
+
+    # earlier elixir versions return different ranges
+    if Version.match?(System.version(), ">= 1.13.0") do
     assert {:ok,
             [
               %Protocol.DocumentSymbol{
@@ -1514,7 +1518,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = result
+            end
   end
 
   test "[flat] handles records" do
@@ -1526,6 +1531,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       end
     ]
 
+    result = DocumentSymbols.symbols(uri, text, false)
+
+    # earlier elixir versions return different ranges
+    if Version.match?(System.version(), ">= 1.13.0") do
     assert {:ok,
             [
               %Protocol.SymbolInformation{
@@ -1567,7 +1576,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 name: "age"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = result
+            end
   end
 
   test "[nested] skips docs attributes" do
