@@ -56,7 +56,44 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     log_cache: []
   ]
 
-  Record.defrecordp(:analysis, Record.extract(:analysis, from_lib: "dialyzer/src/dialyzer.hrl"))
+  Record.defrecordp(
+    :analysis_24,
+    :analysis,
+    analysis_pid: :undefined,
+    type: :succ_typings,
+    defines: [],
+    doc_plt: :undefined,
+    files: [],
+    include_dirs: [],
+    start_from: :byte_code,
+    plt: :undefined,
+    use_contracts: true,
+    race_detection: false,
+    behaviours_chk: false,
+    timing: false,
+    timing_server: :none,
+    callgraph_file: [],
+    solvers: :undefined
+  )
+
+  Record.defrecordp(
+    :analysis_25,
+    :analysis,
+    analysis_pid: :undefined,
+    type: :succ_typings,
+    defines: [],
+    doc_plt: :undefined,
+    files: [],
+    include_dirs: [],
+    start_from: :byte_code,
+    plt: :undefined,
+    use_contracts: true,
+    behaviours_chk: false,
+    timing: false,
+    timing_server: :none,
+    callgraph_file: [],
+    solvers: :undefined
+  )
 
   def analyze(active_plt, []) do
     {active_plt, %{}, []}
@@ -64,13 +101,21 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
 
   def analyze(active_plt, files) do
     analysis_config =
-      analysis(
-        plt: active_plt,
-        files: files,
-        type: :succ_typings,
-        start_from: :byte_code,
-        solvers: []
-      )
+      case System.otp_release() |> String.to_integer() do
+        ver when ver < 25 ->
+          analysis_24(
+            plt: active_plt,
+            files: files,
+            solvers: []
+          )
+
+        _ ->
+          analysis_25(
+            plt: active_plt,
+            files: files,
+            solvers: []
+          )
+      end
 
     parent = self()
 
