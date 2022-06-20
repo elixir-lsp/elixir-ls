@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   require ElixirLS.LanguageServer.Protocol, as: Protocol
 
   defmodule Info do
-    defstruct [:type, :name, :location, :children, :selection_location]
+    defstruct [:type, :name, :location, :children, :selection_location, :symbol]
   end
 
   @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
@@ -92,6 +92,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
             end
 
           # TODO extract module name location from Code.Fragment.surround_context?
+          # TODO better selection ranges for defimpl?
           {extract_module_name(module_expression), module_name_location, module_body}
       end
 
@@ -117,7 +118,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       name: module_name,
       location: location,
       selection_location: module_name_location,
-      children: module_symbols
+      children: module_symbols,
+      symbol: module_name
     }
   end
 
@@ -175,12 +177,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       |> String.replace("\n", "")
 
     type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
-    # TODO no closing metdata in type expressions
+
     %Info{
       type: type,
       name: "@#{type_kind} #{type_name}",
       location: location,
       selection_location: type_head_location,
+      symbol: "#{type_name}",
       children: []
     }
   end
@@ -207,6 +210,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     %Info{
       type: :function,
+      symbol: "#{name}",
       name: "#{defname} #{name}",
       location: location,
       selection_location: head_location,
@@ -221,6 +225,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     %Info{
       type: :function,
+      symbol: "#{name}",
       name: "#{defname} #{name}",
       location: location,
       selection_location: head_location,
@@ -324,13 +329,62 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     do: Enum.map(info, &build_symbol_information_hierarchical(uri, text, &1))
 
   defp build_symbol_information_hierarchical(uri, text, %Info{} = info) do
+    selection_range =
+      location_to_range(info.selection_location || info.location, text, info.symbol)
+
+    # range must contain selection range
+    range =
+      location_to_range(info.location, text, nil)
+      |> maybe_extend_range(selection_range)
+
     %Protocol.DocumentSymbol{
       name: info.name,
       kind: SymbolUtils.symbol_kind_to_code(info.type),
-      range: location_to_range(info.location, text),
-      selectionRange: location_to_range(info.selection_location || info.location, text),
+      range: range,
+      selectionRange: selection_range,
       children: build_symbol_information_hierarchical(uri, text, info.children)
     }
+  end
+
+  defp maybe_extend_range(
+         Protocol.range(start_line, start_character, end_line, end_character),
+         Protocol.range(
+           selection_start_line,
+           selection_start_character,
+           selection_end_line,
+           selection_end_character
+         )
+       ) do
+    {extended_start_line, extended_start_character} =
+      cond do
+        selection_start_line < start_line ->
+          {selection_start_line, selection_start_character}
+
+        selection_start_line == start_line ->
+          {selection_start_line, min(selection_start_character, start_character)}
+
+        true ->
+          {start_line, start_character}
+      end
+
+    {extended_end_line, extended_end_character} =
+      cond do
+        selection_end_line > end_line ->
+          {selection_end_line, selection_end_character}
+
+        selection_end_line == end_line ->
+          {selection_end_line, max(selection_end_character, end_character)}
+
+        true ->
+          {end_line, end_character}
+      end
+
+    Protocol.range(
+      extended_start_line,
+      extended_start_character,
+      extended_end_line,
+      extended_end_character
+    )
   end
 
   defp build_symbol_information_flat(uri, text, info, parent_name \\ nil)
@@ -347,7 +401,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
             kind: SymbolUtils.symbol_kind_to_code(info.type),
             location: %{
               uri: uri,
-              range: location_to_range(info.location, text)
+              range: location_to_range(info.location, text, nil)
             },
             containerName: parent_name
           }
@@ -360,14 +414,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           kind: SymbolUtils.symbol_kind_to_code(info.type),
           location: %{
             uri: uri,
-            range: location_to_range(info.location, text)
+            range: location_to_range(info.location, text, nil)
           },
           containerName: parent_name
         }
     end
   end
 
-  defp location_to_range(location, text) do
+  defp location_to_range(location, text, symbol) do
     {start_line, start_character} =
       SourceFile.elixir_position_to_lsp(text, {location[:line], location[:column]})
 
@@ -388,6 +442,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
             text,
             {end_location[:line], end_location[:column] + 1}
           )
+
+        symbol != nil ->
+          end_char = SourceFile.elixir_character_to_lsp(symbol, String.length(symbol))
+          {start_line, start_character + end_char + 1}
 
         true ->
           {start_line, start_character}
