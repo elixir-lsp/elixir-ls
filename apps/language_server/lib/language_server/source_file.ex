@@ -334,16 +334,16 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
-  @spec formatter_opts(String.t()) :: {:ok, keyword()} | :error
-  def formatter_opts(uri = "file:" <> _) do
+  @spec formatter_for(String.t()) :: {:ok, keyword()} | :error
+  def formatter_for(uri = "file:" <> _) do
     path = path_from_uri(uri)
 
     try do
-      opts =
-        path
-        |> Mix.Tasks.Format.formatter_opts_for_file()
-
-      {:ok, opts}
+      if function_exported?(Mix.Tasks.Format, :formatter_for_file, 1) do
+        {:ok, Mix.Tasks.Format.formatter_for_file(path)}
+      else
+        {:ok, {nil, Mix.Tasks.Format.formatter_opts_for_file(path)}}
+      end
     rescue
       e ->
         IO.warn(
@@ -354,7 +354,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     end
   end
 
-  def formatter_opts(_), do: :error
+  def formatter_for(_), do: :error
 
   defp format_code(code, opts) do
     try do
@@ -431,3 +431,4 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     {elixir_line - 1, utf16_character}
   end
 end
+
