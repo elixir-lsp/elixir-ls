@@ -101,7 +101,8 @@ defmodule ElixirLS.Utils.MixTest.Case do
   defp clear_project_stack! do
     stack = clear_project_stack!([])
 
-    clear_mix_cache()
+    # FIXME: Private API
+    Mix.State.clear_cache()
 
     # Attempt to purge mixfiles for dependencies to avoid module redefinition warnings
     mix_exs = MixfileHelpers.mix_exs()
