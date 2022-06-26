@@ -16,6 +16,22 @@ defmodule ElixirLS.Debugger.Variables do
     end
   end
 
+  def child_type(var) when is_function(var), do: :named
+
+  def child_type(var) when is_pid(var) do
+    case :erlang.process_info(var) do
+      :undefined -> :indexed
+      results -> :named
+    end
+  end
+
+  def child_type(var) when is_port(var) do
+    case :erlang.port_info(var) do
+      :undefined -> :indexed
+      results -> :named
+    end
+  end
+
   def child_type(_var), do: nil
 
   def children(var, start, count) when is_list(var) do
@@ -64,6 +80,27 @@ defmodule ElixirLS.Debugger.Variables do
     end
   end
 
+  def children(var, start, count) when is_function(var) do
+    :erlang.fun_info(var)
+    |> children(start, count)
+  end
+
+  def children(var, start, count) when is_pid(var) do
+    case :erlang.process_info(var) do
+      :undefined -> ["process is not alive"]
+      results -> results
+    end
+    |> children(start, count)
+  end
+
+  def children(var, start, count) when is_port(var) do
+    case :erlang.port_info(var) do
+      :undefined -> ["port is not open"]
+      results -> results
+    end
+    |> children(start, count)
+  end
+
   def children(_var, _start, _count) do
     []
   end
@@ -82,6 +119,25 @@ defmodule ElixirLS.Debugger.Variables do
 
   def num_children(var) when is_map(var) do
     map_size(var)
+  end
+
+  def num_children(var) when is_function(var) do
+    :erlang.fun_info(var)
+    |> Enum.count()
+  end
+
+  def num_children(var) when is_pid(var) do
+    case :erlang.process_info(var) do
+      :undefined -> 1
+      results -> results |> Enum.count()
+    end
+  end
+
+  def num_children(var) when is_port(var) do
+    case :erlang.port_info(var) do
+      :undefined -> 1
+      results -> results |> Enum.count()
+    end
   end
 
   def num_children(_var) do
