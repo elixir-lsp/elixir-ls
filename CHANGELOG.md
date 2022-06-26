@@ -1,5 +1,8 @@
 ### Unreleased
 
+**Deprecations**
+- Minimum version of Elixir is now 1.11
+
 ### v0.10.0: 10 June 2022
 
 Improvements to debugger addapter:

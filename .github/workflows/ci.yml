@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.10.x
+          - elixir: 1.11.x
             otp: 22.3.4.x
             tests_may_fail: false
             check_unused_deps: true

@@ -38,7 +38,7 @@ jobs:
             otp-version: '24.1'
           - elixir-version: '1.11'
             otp-version: '23.3'
-          - elixir-version: '1.10'
+          - elixir-version: '1.11'
             otp-version: '22.3'
             default: true
 

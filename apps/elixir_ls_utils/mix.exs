@@ -4,13 +4,13 @@ defmodule ElixirLS.Utils.Mixfile do
   def project do
     [
       app: :elixir_ls_utils,
-      version: "0.10.0",
+      version: "0.11.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       elixirc_paths: elixirc_paths(Mix.env()),
       lockfile: "../../mix.lock",
-      elixir: ">= 1.10.0",
+      elixir: ">= 1.11.0",
       build_embedded: false,
       start_permanent: false,
       build_per_environment: false,

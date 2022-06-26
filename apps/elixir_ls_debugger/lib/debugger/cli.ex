@@ -22,18 +22,5 @@ defmodule ElixirLS.Debugger.CLI do
     with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_otp_version() do
       Output.print_err("WARNING: " <> message)
     end
-
-    # Debugging does not work on Elixir 1.10.0-1.10.2:
-    # https://github.com/elixir-lsp/elixir-ls/issues/158
-    elixir_version = System.version()
-
-    if Version.match?(elixir_version, ">= 1.10.0") && Version.match?(elixir_version, "< 1.10.3") do
-      message =
-        "WARNING: Debugging is not supported on Elixir #{elixir_version}. Please upgrade" <>
-          " to at least 1.10.3\n" <>
-          "more info: https://github.com/elixir-lsp/elixir-ls/issues/158"
-
-      Output.print_err(message)
-    end
   end
 end

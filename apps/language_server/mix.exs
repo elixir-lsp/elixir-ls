@@ -4,8 +4,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   def project do
     [
       app: :language_server,
-      version: "0.10.0",
-      elixir: ">= 1.10.0",
+      version: "0.11.0",
+      elixir: ">= 1.11.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",

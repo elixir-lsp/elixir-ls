@@ -129,7 +129,8 @@ defmodule ElixirLS.Utils.MixTest.Case do
   defp restore_project_stack!(stack) do
     # FIXME: Private API
     Mix.ProjectStack.clear_stack()
-    clear_mix_cache()
+    # FIXME: Private API
+    Mix.State.clear_cache()
 
     for %{name: module, file: file} <- stack do
       :code.purge(module)
@@ -139,18 +140,6 @@ defmodule ElixirLS.Utils.MixTest.Case do
       # the project stack.
       Code.compile_file(file)
     end
-  end
-
-  # FIXME: Private API
-  defp clear_mix_cache do
-    module =
-      if Version.match?(System.version(), ">= 1.10.0") do
-        Mix.State
-      else
-        Mix.ProjectStack
-      end
-
-    module.clear_cache()
   end
 
   def capture_log_and_io(device, fun) when is_function(fun, 0) do

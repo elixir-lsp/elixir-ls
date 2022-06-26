@@ -117,9 +117,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp get_message_parts(message) do
-    # since elixir 1.11 eex compiler returns line and column on error
     case Regex.run(~r/^(.*?):(\d+)(:(\d+))?: (.*)/s, message) do
-      [_, file, line, description] -> {file, line, 0, description}
       [_, file, line, _, column, description] -> {file, line, column, description}
       _ -> nil
     end
