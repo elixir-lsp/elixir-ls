@@ -36,6 +36,7 @@ Note: On first run Dialyzer will build a PLT cache which will take a considerabl
 | Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger                        |
 | Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                                             |
 | Neovim       | [nvim-dap](https://github.com/mfussenegger/nvim-dap)                          | Supports debugger only                                                |
+| Neovim       | [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)                    | Does not support debugger                                             |
 | Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)              |                                                                       |
 | Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                        | Does not support debugger                                             |
 | Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions                        |
