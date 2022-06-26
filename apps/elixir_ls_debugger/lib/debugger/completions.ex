@@ -12,6 +12,7 @@ defmodule ElixirLS.Debugger.Completions do
       when type in [:function, :macro] do
     %{
       type: "function",
+      detail: Atom.to_string(type),
       label: "#{name}/#{arity}",
       text: snippet || name
     }
@@ -19,6 +20,7 @@ defmodule ElixirLS.Debugger.Completions do
 
   def map(%{
         type: :module,
+        subtype: subtype,
         name: name
       }) do
     text =
@@ -29,6 +31,7 @@ defmodule ElixirLS.Debugger.Completions do
 
     %{
       type: "module",
+      detail: if(subtype != nil, do: Atom.to_string(subtype)),
       label: name,
       text: text
     }
@@ -46,10 +49,18 @@ defmodule ElixirLS.Debugger.Completions do
 
   def map(%{
         type: :field,
+        subtype: subtype,
         name: name
       }) do
+    detail =
+      case subtype do
+        :struct_field -> "struct field"
+        :map_key -> "map key"
+      end
+
     %{
       type: "field",
+      detail: detail,
       label: name
     }
   end
