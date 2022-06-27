@@ -75,7 +75,11 @@ defmodule ElixirLS.Utils.MixTest.Case do
     previous = :code.all_loaded()
     project_stack = clear_project_stack!()
 
-    ExUnit.CaptureLog.capture_log(fn -> Application.stop(:mix) end)
+    ExUnit.CaptureLog.capture_log(fn ->
+      Application.stop(:mix)
+      Application.stop(:hex)
+    end)
+
     Application.start(:mix)
 
     try do
