@@ -475,23 +475,40 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp to_diagnostics(warnings_map, warn_opts, warning_format) do
     tags_enabled = Analyzer.matching_tags(warn_opts)
+    deps_path = Mix.Project.deps_path()
 
     for {_beam_file, warnings} <- warnings_map,
-        {source_file, line, data} <- warnings,
+        {source_file, position, data} <- warnings,
         {tag, _, _} = data,
         tag in tags_enabled,
         source_file = Path.absname(to_string(source_file)),
         in_project?(source_file),
-        not String.starts_with?(source_file, Mix.Project.deps_path()) do
+        not String.starts_with?(source_file, deps_path) do
       %Mix.Task.Compiler.Diagnostic{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
-        position: line,
+        position: normalize_postion(position),
         message: warning_message(data, warning_format),
         severity: :warning,
         details: data
       }
     end
+  end
+
+  # up until OTP 23 position was line :: non_negative_integer
+  # starting from OTP 24 it is erl_anno:location() :: line | {line, column}
+  defp normalize_postion({line, column}) when line > 0 do
+    {line, column}
+  end
+
+  # 0 means unknown line
+  defp normalize_postion(line) when line >= 0 do
+    line
+  end
+
+  defp normalize_postion(position) do
+    IO.warn("dialyzer returned warning with invalid position #{inspect(position)}")
+    0
   end
 
   defp warning_message({_, _, {warning_name, args}} = raw_warning, warning_format)

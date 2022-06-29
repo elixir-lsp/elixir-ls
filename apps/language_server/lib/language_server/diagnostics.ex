@@ -4,13 +4,13 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   def normalize(diagnostics, root_path) do
     for diagnostic <- diagnostics do
-      {type, file, line, description, stacktrace} =
+      {type, file, position, description, stacktrace} =
         extract_message_info(diagnostic.message, root_path)
 
       diagnostic
       |> update_message(type, description, stacktrace)
       |> maybe_update_file(file)
-      |> maybe_update_position(type, line, stacktrace)
+      |> maybe_update_position(type, position, stacktrace)
     end
   end
 
@@ -32,9 +32,9 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     stacktrace = reversed_stacktrace |> Enum.map(&String.trim/1) |> Enum.reverse()
 
     {type, message_without_type} = split_type_and_message(message)
-    {file, line, description} = split_file_and_description(message_without_type, root_path)
+    {file, position, description} = split_file_and_description(message_without_type, root_path)
 
-    {type, file, line, description, stacktrace}
+    {type, file, position, description, stacktrace}
   end
 
   defp update_message(diagnostic, type, description, stacktrace) do
@@ -68,31 +68,31 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end
   end
 
-  defp maybe_update_position(diagnostic, "TokenMissingError", line, stacktrace) do
+  defp maybe_update_position(diagnostic, "TokenMissingError", position, stacktrace) do
     case extract_line_from_missing_hint(diagnostic.message) do
-      line when is_integer(line) ->
+      line when is_integer(line) and line > 0 ->
         %{diagnostic | position: line}
 
       _ ->
-        do_maybe_update_position(diagnostic, line, stacktrace)
+        do_maybe_update_position(diagnostic, position, stacktrace)
     end
   end
 
-  defp maybe_update_position(diagnostic, _type, line, stacktrace) do
-    do_maybe_update_position(diagnostic, line, stacktrace)
+  defp maybe_update_position(diagnostic, _type, position, stacktrace) do
+    do_maybe_update_position(diagnostic, position, stacktrace)
   end
 
-  defp do_maybe_update_position(diagnostic, line, stacktrace) do
+  defp do_maybe_update_position(diagnostic, position, stacktrace) do
     cond do
-      line ->
-        %{diagnostic | position: line}
+      position != nil ->
+        %{diagnostic | position: position}
 
       diagnostic.position ->
         diagnostic
 
       true ->
         line = extract_line_from_stacktrace(diagnostic.file, stacktrace)
-        %{diagnostic | position: line}
+        %{diagnostic | position: max(line, 0)}
     end
   end
 
@@ -107,9 +107,18 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp split_file_and_description(message, root_path) do
-    with {file, line, _column, description} <- get_message_parts(message),
+    with {file, line, column, description} <- get_message_parts(message),
          {:ok, path} <- file_path(file, root_path) do
-      {path, String.to_integer(line), description}
+      line = String.to_integer(line)
+
+      position =
+        cond do
+          line == 0 -> 0
+          column == "" -> line
+          true -> {line, String.to_integer(column)}
+        end
+
+      {path, position, description}
     else
       _ ->
         {nil, nil, message}
@@ -279,7 +288,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     lines = SourceFile.lines(source_file)
     # line is 1 based
     start_line = Enum.at(lines, line_start - 1)
-    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based bere
+    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based here
     character = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
 
     %{
@@ -303,7 +312,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     start_line = Enum.at(lines, line_start - 1)
     end_line = Enum.at(lines, line_end - 1)
 
-    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based bere
+    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based here
     start_char = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
     end_char = SourceFile.elixir_character_to_lsp(end_line, char_end + 1)
 
@@ -319,16 +328,10 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  # position is 0 which means unknown
-  # we return the full file range
-  defp range(0, source_file) when not is_nil(source_file) do
-    SourceFile.full_range(source_file)
-  end
-
-  # source file is unknown
+  # source file is unknown, position is 0 or invalid
   # we discard any position information as it is meaningless
   # unfortunately LSP does not allow `null` range so we need to return something
-  defp range(_, nil) do
+  defp range(_, _) do
     # we don't care about utf16 positions here as we send 0
     %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
   end

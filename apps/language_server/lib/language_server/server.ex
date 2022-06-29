@@ -1278,4 +1278,3 @@ defmodule ElixirLS.LanguageServer.Server do
     end)
   end
 end
-

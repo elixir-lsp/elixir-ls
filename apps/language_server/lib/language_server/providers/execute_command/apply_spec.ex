@@ -94,4 +94,3 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
     end
   end
 end
-

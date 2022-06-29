@@ -431,4 +431,3 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     {elixir_line - 1, utf16_character}
   end
 end
-

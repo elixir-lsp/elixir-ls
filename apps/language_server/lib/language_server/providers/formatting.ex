@@ -36,7 +36,6 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     do_format(source_file)
   end
 
-
   defp do_format(%SourceFile{} = source_file, opts \\ []), do: do_format(source_file, nil, opts)
 
   defp do_format(%SourceFile{text: text}, formatter, opts) do
