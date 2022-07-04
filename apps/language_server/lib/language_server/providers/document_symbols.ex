@@ -21,6 +21,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     def as_flat_info_list(%Symbols{symbols: []}), do: []
     def as_flat_info_list(%Info{} = info), do: [info]
+
     def as_flat_info_list(%Symbols{symbols: symbols}) do
       symbols
       |> List.flatten()
@@ -108,10 +109,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         stmt -> [stmt]
       end
 
-    module_symbols =
+    %{custom_defs: custom_defs} =
+      symbols =
       mod_defns
       |> Enum.reduce(acc, &extract_symbol/2)
-      |> Symbols.as_flat_info_list()
+
+    module_symbols = Symbols.as_flat_info_list(symbols)
 
     type =
       case defname do
@@ -119,18 +122,27 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         :defprotocol -> :interface
       end
 
-    %{acc | symbols: [acc, %Info{type: type, name: module_name, location: location, children: module_symbols}]}
+    %{
+      acc
+      | custom_defs: custom_defs,
+        symbols: [
+          acc,
+          %Info{type: type, name: module_name, location: location, children: module_symbols}
+        ]
+    }
   end
 
   # Protocol implementations
   defp extract_symbol(
-    {:defimpl, location, [protocol_expression, [for: for_expression], [do: module_body]]},
-    %Symbols{module_name: module_name} = acc
+         {:defimpl, location, [protocol_expression, [for: for_expression], [do: module_body]]},
+         %Symbols{module_name: module_name} = acc
        ) do
-        result = extract_symbol(
-      {:defmodule, location,
-       [[protocol: protocol_expression, implementations: for_expression], [do: module_body]]}, acc
-    )
+    result =
+      extract_symbol(
+        {:defmodule, location,
+         [[protocol: protocol_expression, implementations: for_expression], [do: module_body]]},
+        acc
+      )
 
     %{acc | symbols: [acc.symbols, result.symbols]}
   end
@@ -153,7 +165,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         []
       end
 
-    %{acc | symbols: [acc.symbols, %Info{type: :struct, name: name, location: location, children: children} ]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{type: :struct, name: name, location: location, children: children}
+        ]
+    }
   end
 
   # Docs
@@ -174,36 +192,71 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
     type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
 
-    %{acc | symbols: [acc.symbols, %Info{
-      type: type,
-      name: type_name,
-      location: location,
-      children: []
-  }]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{
+            type: type,
+            name: type_name,
+            location: location,
+            children: []
+          }
+        ]
+    }
   end
 
   # @behaviour BehaviourModule
   defp extract_symbol({:@, _, [{:behaviour, location, [behaviour_expression]}]}, %Symbols{} = acc) do
     module_name = extract_module_name(behaviour_expression)
 
-    %{acc | symbols: [acc.symbols, %Info{type: :constant, name: "@behaviour #{module_name}", location: location, children: []}]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{
+            type: :constant,
+            name: "@behaviour #{module_name}",
+            location: location,
+            children: []
+          }
+        ]
+    }
   end
 
   # @impl true
   defp extract_symbol({:@, _, [{:impl, location, [true]}]}, %Symbols{} = acc) do
-    %{acc | symbols: [acc.symbols, %Info{type: :constant, name: "@impl true", location: location, children: []}]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{type: :constant, name: "@impl true", location: location, children: []}
+        ]
+    }
   end
 
   # @impl BehaviourModule
   defp extract_symbol({:@, _, [{:impl, location, [impl_expression]}]}, %Symbols{} = acc) do
     module_name = extract_module_name(impl_expression)
 
-    %{acc | symbols: [acc.symbols, %Info{type: :constant, name: "@impl #{module_name}", location: location, children: []}]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{type: :constant, name: "@impl #{module_name}", location: location, children: []}
+        ]
+    }
   end
 
   # Other attributes
   defp extract_symbol({:@, _, [{name, location, _}]}, %Symbols{} = acc) do
-    %{acc | symbols: [acc.symbols, %Info{type: :constant, name: "@#{name}", location: location, children: []}]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{type: :constant, name: "@#{name}", location: location, children: []}
+        ]
+    }
   end
 
   # Config entry
@@ -219,28 +272,28 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           [Macro.to_string(key)]
       end
 
-    symbols = for key <- keys do
-      %Info{
-        type: :key,
-        name: "config :#{app} #{key}",
-        location: location,
-        children: []
-      }
-    end
+    symbols =
+      for key <- keys do
+        %Info{
+          type: :key,
+          name: "config :#{app} #{key}",
+          location: location,
+          children: []
+        }
+      end
 
     %{acc | symbols: [acc.symbols, symbols]}
   end
 
   # Functions and macros
-  defp extract_symbol({defname, _location, _args} = node, %Symbols{} = acc) when is_atom(defname) do
+  defp extract_symbol({defname, _location, _args} = node, %Symbols{} = acc)
+       when is_atom(defname) do
     # The compiler will only let one use a macro if it was defined previously,
     # so it should already be in the symbols list
 
     symbols = Symbols.as_flat_info_list(acc)
 
-    require IEx; IEx.pry()
-
-    if defname in @defs or Enum.any?(symbols, & &1.type == :function and String.contains?(&1.name, Atom.to_string(defname))) do
+    if defname in (@defs ++ acc.custom_defs) do
       do_extract_symbol(node, %{acc | symbols: symbols})
     else
       # If the potential symbol is not currently present in the symbol list,
@@ -254,25 +307,37 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     end
   end
 
-   # ExUnit test
+  # ExUnit test
   defp do_extract_symbol({:test, location, [name | _]}, acc) do
-    %{acc | symbols: [acc.symbols, %Info{
-      type: :function,
-      name: "test #{Macro.to_string(name)}",
-      location: location,
-      children: []
-    }]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{
+            type: :function,
+            name: "test #{Macro.to_string(name)}",
+            location: location,
+            children: []
+          }
+        ]
+    }
   end
 
   # ExUnit setup and setup_all callbacks
   defp do_extract_symbol({name, location, [_name | _]}, acc)
        when name in [:setup, :setup_all] do
-    %{acc | symbols: [acc.symbols, %Info{
-      type: :function,
-      name: "#{name}",
-      location: location,
-      children: []
-    }]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{
+            type: :function,
+            name: "#{name}",
+            location: location,
+            children: []
+          }
+        ]
+    }
   end
 
   # ExUnit describe
@@ -283,48 +348,103 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         stmt -> [stmt]
       end
 
-    module_symbols =
+    %{custom_defs: custom_defs} =
+      symbols =
       mod_defns
       |> Enum.reduce(acc, &extract_symbol/2)
-      |> Symbols.as_flat_info_list()
 
+    module_symbols = Symbols.as_flat_info_list(symbols)
 
-    %{acc | symbols: [acc.symbols, %Info{
-      type: :function,
-      name: "describe #{Macro.to_string(name)}",
-      location: location,
-      children: module_symbols
-    }]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{
+            type: :function,
+            name: "describe #{Macro.to_string(name)}",
+            location: location,
+            children: module_symbols
+          }
+        ],
+        custom_defs: custom_defs
+    }
   end
 
   # Function, macro, guard with when
   defp do_extract_symbol(
-         {defname, _, [{:when, _, [{_, location, _} = fn_head, _]} | _]}, %Symbols{} = acc
+         {defname, _, [{:when, _, [{_, location, _} = fn_head, _]} | _]} = node,
+         %Symbols{} = acc
        )
        when is_atom(defname) do
     name = Macro.to_string(fn_head) |> String.replace("\n", "")
 
-    %{acc | symbols: [acc.symbols, %Info{
-      type: :function,
-      name: "#{defname} #{name}",
-      location: location,
-      children: []
-    }]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{
+            type: :function,
+            name: "#{defname} #{name}",
+            location: location,
+            children: []
+          }
+        ],
+        custom_defs: extract_customdef(node, acc.custom_defs)
+    }
   end
 
   # Function, macro, delegate
-  defp do_extract_symbol({defname, _, [{_, location, _} = fn_head | _]}, acc) when is_atom(defname) do
+  defp do_extract_symbol({defname, _, [{_, location, _} = fn_head | _]} = node, acc)
+       when is_atom(defname) do
     name = Macro.to_string(fn_head) |> String.replace("\n", "")
 
-    %{acc | symbols: [acc.symbols, %Info{
-      type: :function,
-      name: "#{defname} #{name}",
-      location: location,
-      children: []
-    }]}
+    %{
+      acc
+      | symbols: [
+          acc.symbols,
+          %Info{
+            type: :function,
+            name: "#{defname} #{name}",
+            location: location,
+            children: []
+          }
+        ],
+        custom_defs: extract_customdef(node, acc.custom_defs)
+    }
   end
 
   defp extract_symbol(_, acc), do: acc
+
+  defp extract_customdef({defname, _, [{name, _, _} | _]} = base_node, custom_defs)
+       when defname in [:defmacro, :defmacrop] do
+    defs = @defs ++ custom_defs
+
+    {_ast, is_definer_macro} =
+      Macro.prewalk(base_node, false, fn
+        node, true ->
+          {node, true}
+
+        ^base_node, acc ->
+          {base_node, acc}
+
+        {:., _, [_alias, function]} = node, acc ->
+          {node, acc or function in defs}
+
+        {function, _, _} = node, acc when is_atom(function) ->
+          {node, acc or function in defs}
+
+        node, acc ->
+          {node, acc}
+      end)
+
+    if is_definer_macro do
+      [name | custom_defs]
+    else
+      custom_defs
+    end
+  end
+
+  defp extract_customdef(_, custom_defs), do: custom_defs
 
   defp build_symbol_information_hierarchical(uri, text, info) when is_list(info),
     do: Enum.map(info, &build_symbol_information_hierarchical(uri, text, &1))

@@ -30,13 +30,27 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         after
           :ok
         end
-        defmacro customdef(call, do: block) do
+        defmacro customdef_remote(call, do: block) do
           quote do
             Kernel.def(unquote(call), do: unquote(block))
           end
         end
-
-        customdef name(arg1, arg2), do: :ok
+        defmacro customdef_local(call, do: block) do
+          quote do
+            customdef_remote(unquote(call), do: unquote(block))
+          end
+        end
+        defmacro customdef_kernel(call, do: block) do
+          quote do
+            def(unquote(call), do: unquote(block))
+          end
+        end
+        customdef_remote remote_name(arg1, arg2), do: :ok
+        customdef_local local_name(arg1, arg2) when arg1 == arg2, do: :ok
+        customdef_kernel kernel_name(arg1, arg2)
+        case :customdef do
+          value when :customdef -> :ok
+        end
       end
     ]
 
@@ -203,18 +217,81 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
                     children: [],
                     kind: 12,
-                    name: "defmacro customdef(call) do  blockend",
-                    range: %{"end" => %{"character" => 17, "line" => 24},
-                    "start" => %{"character" => 17, "line" => 24}},
-                    selectionRange: %{"end" => %{"character" => 17, "line" => 24}, "start" => %{"character" => 17, "line" => 24}}
-                  },
-                    %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
-                      children: [],
-                      kind: 12,
-                      name: "customdef name(arg1, arg2)",
-                      range: %{"end" => %{"character" => 18, "line" => 30}, "start" => %{"character" => 18, "line" => 30}},
-                      selectionRange: %{"end" => %{"character" => 18, "line" => 30}, "start" => %{"character" => 18, "line" => 30}}
+                    name: "defmacro customdef_remote(call) do  blockend",
+                    range: %{
+                      "end" => %{"character" => 17, "line" => 24},
+                      "start" => %{"character" => 17, "line" => 24}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 17, "line" => 24},
+                      "start" => %{"character" => 17, "line" => 24}
                     }
+                  },
+                  %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "defmacro customdef_local(call) do  blockend",
+                    range: %{
+                      "end" => %{"character" => 17, "line" => 29},
+                      "start" => %{"character" => 17, "line" => 29}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 17, "line" => 29},
+                      "start" => %{"character" => 17, "line" => 29}
+                    }
+                  },
+                  %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "defmacro customdef_kernel(call) do  blockend",
+                    range: %{
+                      "end" => %{"character" => 17, "line" => 34},
+                      "start" => %{"character" => 17, "line" => 34}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 17, "line" => 34},
+                      "start" => %{"character" => 17, "line" => 34}
+                    }
+                  },
+                  %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "customdef_remote remote_name(arg1, arg2)",
+                    range: %{
+                      "end" => %{"character" => 25, "line" => 39},
+                      "start" => %{"character" => 25, "line" => 39}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 25, "line" => 39},
+                      "start" => %{"character" => 25, "line" => 39}
+                    }
+                  },
+                  %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "customdef_local local_name(arg1, arg2)",
+                    range: %{
+                      "end" => %{"character" => 24, "line" => 40},
+                      "start" => %{"character" => 24, "line" => 40}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 24, "line" => 40},
+                      "start" => %{"character" => 24, "line" => 40}
+                    }
+                  },
+                  %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "customdef_kernel kernel_name(arg1, arg2)",
+                    range: %{
+                      "end" => %{"character" => 25, "line" => 41},
+                      "start" => %{"character" => 25, "line" => 41}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 25, "line" => 41},
+                      "start" => %{"character" => 25, "line" => 41}
+                    }
+                  }
                 ],
                 kind: 2,
                 name: "MyModule",

@@ -140,6 +140,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
       ""
     else
       s = root_mod_name |> source()
+
       cond do
         third_dep?(s, project_dir) -> third_dep_name(s, project_dir)
         builtin?(s) -> builtin_dep_name(s)
