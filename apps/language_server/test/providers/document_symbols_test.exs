@@ -30,6 +30,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         after
           :ok
         end
+        defmacro customdef(call, do: block) do
+          quote do
+            Kernel.def(unquote(call), do: unquote(block))
+          end
+        end
+
+        customdef name(arg1, arg2), do: :ok
       end
     ]
 
@@ -192,7 +199,22 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       "end" => %{"character" => 12, "line" => 13},
                       "start" => %{"character" => 12, "line" => 13}
                     }
-                  }
+                  },
+                  %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "defmacro customdef(call) do  blockend",
+                    range: %{"end" => %{"character" => 17, "line" => 24},
+                    "start" => %{"character" => 17, "line" => 24}},
+                    selectionRange: %{"end" => %{"character" => 17, "line" => 24}, "start" => %{"character" => 17, "line" => 24}}
+                  },
+                    %ElixirLS.LanguageServer.Protocol.DocumentSymbol{
+                      children: [],
+                      kind: 12,
+                      name: "customdef name(arg1, arg2)",
+                      range: %{"end" => %{"character" => 18, "line" => 30}, "start" => %{"character" => 18, "line" => 30}},
+                      selectionRange: %{"end" => %{"character" => 18, "line" => 30}, "start" => %{"character" => 18, "line" => 30}}
+                    }
                 ],
                 kind: 2,
                 name: "MyModule",
