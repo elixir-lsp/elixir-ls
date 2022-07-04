@@ -48,8 +48,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         customdef_remote remote_name(arg1, arg2), do: :ok
         customdef_local local_name(arg1, arg2) when arg1 == arg2, do: :ok
         customdef_kernel kernel_name(arg1, arg2)
-        case :customdef do
-          value when :customdef -> :ok
+        case :customdef_remote do
+          value when :customdef_remote -> :ok
+        end
+        case :customdef_local do
+          value when :customdef_local -> :ok
+        end
+        case :customdef_kernel do
+          value when :customdef_kernel -> :ok
         end
       end
     ]
