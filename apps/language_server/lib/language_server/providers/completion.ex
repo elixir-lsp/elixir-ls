@@ -20,7 +20,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     # Lower priority is shown higher in the result list
     :priority,
     :tags,
-    :command
+    :command,
+    {:preselect, false}
   ]
 
   @func_snippets %{
@@ -163,7 +164,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "keyword",
         insert_text: "do\n  $0\nend",
         tags: [],
-        priority: 0
+        priority: 0,
+        # force selection over other longer not exact completions
+        preselect: true
       }
 
       [item | completion_items]
@@ -978,8 +981,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           insert_text_format(:snippet)
         else
           insert_text_format(:plain_text)
-        end
+        end,
     }
+
+    json = if item.preselect do
+      Map.put(json, "preselect", true)
+    else
+      json
+    end
 
     # deprecated as of Language Server Protocol Specification - 3.15
     json =
