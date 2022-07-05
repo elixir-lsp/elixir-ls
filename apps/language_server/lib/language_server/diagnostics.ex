@@ -14,15 +14,10 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end
   end
 
-  defp extract_message_info(list, root_path) when is_list(list) do
-    list
-    |> Enum.join()
-    |> extract_message_info(root_path)
-  end
-
   defp extract_message_info(diagnostic_message, root_path) do
     {reversed_stacktrace, reversed_description} =
       diagnostic_message
+      |> IO.chardata_to_string()
       |> String.trim_trailing()
       |> SourceFile.lines()
       |> Enum.reverse()
