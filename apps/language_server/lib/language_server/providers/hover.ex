@@ -25,11 +25,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         %{subject: ""} ->
           nil
 
-        %{subject: subject, docs: docs} ->
+        %{subject: subject, docs: docs, actual_subject: actual_subject} ->
           line_text = Enum.at(SourceFile.lines(text), line - 1)
           range = highlight_range(line_text, line - 1, character - 1, subject)
 
-          %{"contents" => contents(docs, subject, project_dir), "range" => range}
+          %{"contents" => contents(docs, actual_subject, project_dir), "range" => range}
       end
 
     {:ok, response}
