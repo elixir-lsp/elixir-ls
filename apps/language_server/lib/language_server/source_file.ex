@@ -248,6 +248,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     IO.iodata_to_binary(Enum.reverse(acc))
   end
 
+  defp characters_to_binary!(nil, _from, _to), do: ""
   defp characters_to_binary!(binary, from, to) do
     case :unicode.characters_to_binary(binary, from, to) do
       result when is_binary(result) -> result
