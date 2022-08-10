@@ -500,7 +500,11 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   end
 
   def assert_formatted(path, project_dir) do
-    assert match?({:ok, [%ElixirLS.LanguageServer.Protocol.TextEdit{} | _]}, format(path, project_dir)), "expected '#{path}' to be formatted"
+    assert match?(
+             {:ok, [%ElixirLS.LanguageServer.Protocol.TextEdit{} | _]},
+             format(path, project_dir)
+           ),
+           "expected '#{path}' to be formatted"
   end
 
   def refute_formatted(path, project_dir) do
