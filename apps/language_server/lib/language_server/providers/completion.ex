@@ -981,14 +981,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           insert_text_format(:snippet)
         else
           insert_text_format(:plain_text)
-        end,
+        end
     }
 
-    json = if item.preselect do
-      Map.put(json, "preselect", true)
-    else
-      json
-    end
+    json =
+      if item.preselect do
+        Map.put(json, "preselect", true)
+      else
+        json
+      end
 
     # deprecated as of Language Server Protocol Specification - 3.15
     json =

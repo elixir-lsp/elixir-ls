@@ -21,14 +21,14 @@ defmodule ElixirLS.Debugger.Variables do
   def child_type(var) when is_pid(var) do
     case :erlang.process_info(var) do
       :undefined -> :indexed
-      results -> :named
+      _results -> :named
     end
   end
 
   def child_type(var) when is_port(var) do
     case :erlang.port_info(var) do
       :undefined -> :indexed
-      results -> :named
+      _results -> :named
     end
   end
 

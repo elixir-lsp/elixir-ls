@@ -339,6 +339,8 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     path = path_from_uri(uri)
 
     try do
+      true = Code.ensure_loaded?(Mix.Tasks.Format)
+
       if function_exported?(Mix.Tasks.Format, :formatter_for_file, 1) do
         {:ok, Mix.Tasks.Format.formatter_for_file(path)}
       else

@@ -500,7 +500,11 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   end
 
   def assert_formatted(path, project_dir) do
-    assert match?({:ok, [%{}]}, format(path, project_dir)), "expected '#{path}' to be formatted"
+    assert match?(
+             {:ok, [%ElixirLS.LanguageServer.Protocol.TextEdit{} | _]},
+             format(path, project_dir)
+           ),
+           "expected '#{path}' to be formatted"
   end
 
   def refute_formatted(path, project_dir) do
@@ -512,12 +516,12 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     path = maybe_convert_path_separators("#{project_dir}/#{path}")
 
     source_file = %SourceFile{
-      text: "",
+      text: " asd  = 1",
       version: 1,
       dirty?: true
     }
 
-    File.write!(path, "")
+    File.write!(path, " asd  = 1")
     Formatting.format(source_file, SourceFile.path_to_uri(path), project_dir)
   end
 end
