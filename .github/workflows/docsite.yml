@@ -19,7 +19,7 @@ jobs:
       - name: Build
         run: mkdocs build -s
       - name: Upload artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: site
           path: site
