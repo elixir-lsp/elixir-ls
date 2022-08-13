@@ -1164,7 +1164,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
         {"MyProjectWeb.MyView", "views/my_view.ex"},
         {"MyProjectWeb.MyChannel", "channels/my_channel.ex"},
         {"MyProjectWeb.MyEndpoint", "endpoints/my_endpoint.ex"},
-        {"MyProjectWeb.MySocket", "sockets/my_socket.ex"}
+        {"MyProjectWeb.MySocket", "sockets/my_socket.ex"},
+        {"MyProjectWeb.MyviewLive.MyComponent", "live/myview_live/my_component.ex"}
       ]
       |> Enum.each(fn {expected_module_name, partial_path} ->
         path = "some/path/my_project/lib/my_project_web/#{partial_path}"
