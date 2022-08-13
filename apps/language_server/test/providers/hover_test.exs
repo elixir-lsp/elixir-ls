@@ -101,6 +101,50 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
            )
   end
 
+  test "Import function hover" do
+    text = """
+    defmodule MyModule do
+      import Task.Supervisor
+
+      def hello() do
+        start_link()
+      end
+    end
+    """
+
+    {line, char} = {4, 5}
+
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(text, line, char, fake_dir())
+
+    assert String.starts_with?(
+             v,
+             "> Task.Supervisor.start_link(options \\\\\\\\ [])  [view on hexdocs](https://hexdocs.pm/elixir/Task.Supervisor.html#start_link/1)"
+           )
+  end
+
+  test "Alias module function hover" do
+    text = """
+    defmodule MyModule do
+      alias Task.Supervisor
+
+      def hello() do
+        Supervisor.start_link()
+      end
+    end
+    """
+
+    {line, char} = {4, 15}
+
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(text, line, char, fake_dir())
+
+    assert String.starts_with?(
+             v,
+             "> Task.Supervisor.start_link(options \\\\\\\\ [])  [view on hexdocs](https://hexdocs.pm/elixir/Task.Supervisor.html#start_link/1)"
+           )
+  end
+
   test "Erlang module hover is not support now" do
     text = """
     defmodule MyModule do
