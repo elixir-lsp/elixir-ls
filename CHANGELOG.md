@@ -1,5 +1,21 @@
 ### Unreleased
 
+### v0.11.0: 14 August 2022
+
+Improvements:
+
+- Elixir 1.14 support
+- Document symbols now return non empty selection ranges. This fixes breadcrumbs behavior in vscode
+- Fixed dialyzer crash on OTP 25
+- Added support for mix formatter plugins ([Dalibor Horinek](https://github.com/DaliborHorinek))
+- Debugger now returns detailed info about ports, pids and function variables
+- Debugger completions now return detal field
+- Diagnostic positions now return column position returned by compiler (elixir 1.14+)
+- Diagnostic position fixed to never return invalid negative values
+- An exat `do` keyword completion is now preselected and more preferred over `defoverridable`
+- Fixed hexdoc links in hover for aliased modules and imported functions ([Milo Lee](https://github.com/oo6))
+- Better module name suggestions in Phoenix `live` directory ([Manos Emmanouilidis](https://github.com/bottlenecked))
+
 **Deprecations**
 - Minimum version of Elixir is now 1.11
 
