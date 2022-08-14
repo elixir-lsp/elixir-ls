@@ -33,9 +33,21 @@ jobs:
       matrix:
         include:
           - elixir-version: '1.13'
-            otp-version: '24.1'
+            otp-version: '25.0'
+          - elixir-version: '1.13'
+            otp-version: '24.3'
+          - elixir-version: '1.13'
+            otp-version: '23.3'
+          - elixir-version: '1.13'
+            otp-version: '22.3'
           - elixir-version: '1.12'
-            otp-version: '24.1'
+            otp-version: '24.3'
+          - elixir-version: '1.12'
+            otp-version: '23.3'
+          - elixir-version: '1.12'
+            otp-version: '22.3'
+          - elixir-version: '1.11'
+            otp-version: '24.3'
           - elixir-version: '1.11'
             otp-version: '23.3'
           - elixir-version: '1.11'
@@ -74,7 +86,7 @@ jobs:
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: ./elixir-ls.zip
-          asset_name: elixir-ls-${{ matrix.elixir-version }}.zip
+          asset_name: elixir-ls-${{ matrix.elixir-version }}-${{ matrix.otp-version }}.zip
           asset_content_type: application/zip
 
       - name: Upload Default Release Asset
