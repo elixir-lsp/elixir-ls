@@ -31,7 +31,8 @@ defmodule ElixirLS.LanguageServer.Server do
     OnTypeFormatting,
     CodeLens,
     ExecuteCommand,
-    FoldingRange
+    FoldingRange,
+    CodeAction
   }
 
   alias ElixirLS.Utils.Launch
@@ -325,7 +326,9 @@ defmodule ElixirLS.LanguageServer.Server do
       # close notification send before
       JsonRpc.log_message(
         :warning,
-        "Received textDocument/didOpen for file that is already open. Received uri: #{inspect(uri)}"
+        "Received textDocument/didOpen for file that is already open. Received uri: #{
+          inspect(uri)
+        }"
       )
 
       state
@@ -769,6 +772,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
+  defp handle_request(code_action_req(id, uri, diagnostics) = req, state = %__MODULE__{}) do
+    {:async, fn -> CodeAction.code_actions(uri, diagnostics) end, state}
+  end
+
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
     {:error, :method_not_found, nil, state}
@@ -820,7 +827,8 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       },
-      "foldingRangeProvider" => true
+      "foldingRangeProvider" => true,
+      "codeActionProvider" => true
     }
   end
 
