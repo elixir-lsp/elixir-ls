@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile}
+  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer, Build}
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
@@ -231,8 +231,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   setup context do
     unless context[:skip_server] do
       server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+      {:ok, tracer} = Tracer.start_link([])
 
-      {:ok, %{server: server}}
+      {:ok, %{server: server, tracer: tracer}}
     else
       :ok
     end
@@ -1100,7 +1101,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       reference_uri = SourceFile.path_to_uri("lib/a.ex")
 
+      Build.set_compiler_options()
+
       initialize(server)
+      wait_until_compiled(server)
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
       Server.receive_packet(
@@ -1129,7 +1133,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       reference_uri = SourceFile.path_to_uri("apps/app1/lib/app1.ex")
 
+      Build.set_compiler_options()
+
+      for change <- text, uniq: true, do: :ok
+
       initialize(server)
+      wait_until_compiled(server)
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
       Server.receive_packet(
@@ -1157,6 +1166,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       # First to compile the applications and build the cache.
       # Second time to see if loads modules
       with_new_server(fn server ->
+        Tracer.start_link([])
         initialize(server)
         wait_until_compiled(server)
       end)

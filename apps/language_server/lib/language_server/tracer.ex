@@ -47,6 +47,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
   @impl true
   def handle_call({:set_project_dir, project_dir}, _from, state) do
     maybe_close_tables(state)
+    for table <- @tables do
+      table_name = table_name(table)
+      :ets.delete_all_objects(table_name)
+    end
 
     if project_dir != nil do
       {us, _} = :timer.tc(fn ->  
@@ -98,12 +102,12 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def close_table(table, project_dir) do
     path = dets_path(project_dir, table)
     # TODO sync ets
-    case :dets.close(table) do
+    case :dets.close(table_name(table)) do
       :ok -> :ok
       {:error, reason} ->
         Logger.error("Unable to close DETS #{path}, #{inspect(reason)}")
     end
-    :ets.delete(table)
+    
   end
 
   defp modules_by_file_matchspec(file, return) do
@@ -243,12 +247,16 @@ defmodule ElixirLS.LanguageServer.Tracer do
   defp in_project_sources?(path) do
     project_dir = get_project_dir()
 
-    topmost_path_segment = path
-    |> Path.relative_to(project_dir)
-    |> Path.split
-    |> hd
+    if project_dir != nil do
+      topmost_path_segment = path
+      |> Path.relative_to(project_dir)
+      |> Path.split
+      |> hd
 
-    topmost_path_segment != "deps"
+      topmost_path_segment != "deps"
+    else
+      false
+    end
   end
 
   defp calls_by_file_matchspec(file, return) do

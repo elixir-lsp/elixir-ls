@@ -1,15 +1,13 @@
 defmodule ElixirLS.LanguageServer.CLI do
   alias ElixirLS.Utils.{WireProtocol, Launch}
   alias ElixirLS.LanguageServer.JsonRpc
+  alias ElixirLS.LanguageServer.Build
 
   def main do
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
     Launch.start_mix()
 
-    Code.put_compiler_option(:tracers, [
-      ElixirLS.LanguageServer.Tracer
-    ])
-    Code.put_compiler_option(:parser_options, [columns: true, token_metadata: true])
+    Build.set_compiler_options()
 
     start_language_server()
 
