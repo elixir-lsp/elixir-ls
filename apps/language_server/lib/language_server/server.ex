@@ -418,9 +418,10 @@ defmodule ElixirLS.LanguageServer.Server do
       end)
 
     # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
-    for change <- changes, change["type"] == 3, uniq: true do
-      path = SourceFile.path_from_uri(change["uri"])
-      ElixirLS.LanguageServer.Tracer.notify_file_deleted(path)
+    deleted_paths = for change <- changes, change["type"] == 3, uniq: true, do:
+      SourceFile.path_from_uri(change["uri"])
+    for path <- deleted_paths do
+      Tracer.notify_file_deleted(path)
     end
 
     source_files =

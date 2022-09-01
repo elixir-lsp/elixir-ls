@@ -214,4 +214,11 @@ defmodule ElixirLS.LanguageServer.Build do
 
     :ok
   end
+
+  def set_compiler_options() do
+    Code.put_compiler_option(:tracers, [
+      Tracer
+    ])
+    Code.put_compiler_option(:parser_options, [columns: true, token_metadata: true])
+  end
 end
