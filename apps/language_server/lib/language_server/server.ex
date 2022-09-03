@@ -419,8 +419,12 @@ defmodule ElixirLS.LanguageServer.Server do
       end)
 
     # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
-    deleted_paths = for change <- changes, change["type"] == 3, uniq: true, do:
-      SourceFile.path_from_uri(change["uri"])
+    deleted_paths =
+      for change <- changes,
+          change["type"] == 3,
+          uniq: true,
+          do: SourceFile.path_from_uri(change["uri"])
+
     for path <- deleted_paths do
       Tracer.notify_file_deleted(path)
     end
@@ -1062,6 +1066,7 @@ defmodule ElixirLS.LanguageServer.Server do
         if reason != :enoent do
           IO.warn("Couldn't read file #{file}: #{inspect(reason)}")
         end
+
         nil
     end
   end
@@ -1230,10 +1235,12 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        %{state |
-          project_dir: File.cwd!(),
-          load_all_mix_applications?: true,
-          mix_project?: File.exists?("mix.exs")
+
+        %{
+          state
+          | project_dir: File.cwd!(),
+            load_all_mix_applications?: true,
+            mix_project?: File.exists?("mix.exs")
         }
 
       prev_project_dir != project_dir ->

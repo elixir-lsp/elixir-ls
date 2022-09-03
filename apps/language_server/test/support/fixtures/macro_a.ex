@@ -6,7 +6,6 @@ defmodule ElixirLS.Test.MacroA do
       def macro_a_func do
         :ok
       end
-      
     end
   end
 

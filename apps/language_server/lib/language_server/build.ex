@@ -219,14 +219,19 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   def set_compiler_options(options \\ [], parser_options \\ []) do
-    parser_options = parser_options |> Keyword.merge([
-      columns: true,
-      token_metadata: true
-    ])
-    options = options |> Keyword.merge([
-      tracers: [Tracer],
-      parser_options: parser_options
-    ])
+    parser_options =
+      parser_options
+      |> Keyword.merge(
+        columns: true,
+        token_metadata: true
+      )
+
+    options =
+      options
+      |> Keyword.merge(
+        tracers: [Tracer],
+        parser_options: parser_options
+      )
 
     Code.compiler_options(options)
   end

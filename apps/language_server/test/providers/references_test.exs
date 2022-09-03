@@ -29,16 +29,16 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} = {1, 8}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
-      def b_fun do
+      def referenced_fun do
             ^
     """)
 
     list = References.references(text, uri, line, char, true)
 
     assert length(list) == 3
-    assert Enum.any?(list, & &1["uri"] |> String.ends_with?("references_remote.ex"))
-    assert Enum.any?(list, & &1["uri"] |> String.ends_with?("references_imported.ex"))
-    assert Enum.any?(list, & &1["uri"] |> String.ends_with?("references_referenced.ex"))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_imported.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
   end
 
   test "finds local, remote and imported references to a macro" do
@@ -49,16 +49,16 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} = {8, 12}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
-      defmacro macro_unless(clause, do: expression) do
+      defmacro referenced_macro(clause, do: expression) do
                 ^
     """)
 
     list = References.references(text, uri, line, char, true)
 
     assert length(list) == 3
-    assert Enum.any?(list, & &1["uri"] |> String.ends_with?("references_remote.ex"))
-    assert Enum.any?(list, & &1["uri"] |> String.ends_with?("references_imported.ex"))
-    assert Enum.any?(list, & &1["uri"] |> String.ends_with?("references_referenced.ex"))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_imported.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
   end
 
   test "find a references to a macro generated function call" do
@@ -73,8 +73,14 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     """)
 
     assert References.references(text, uri, line, char, true) == [
-      %{"range" => %{"end" => %{"character" => 16, "line" => 6}, "start" => %{"character" => 4, "line" => 6}}, "uri" => uri}
-    ]
+             %{
+               "range" => %{
+                 "end" => %{"character" => 16, "line" => 6},
+                 "start" => %{"character" => 4, "line" => 6}
+               },
+               "uri" => uri
+             }
+           ]
   end
 
   test "finds a references to a macro imported function call" do
@@ -106,21 +112,21 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} = {4, 14}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
-        IO.puts(some_var + 1)
+        IO.puts(referenced_variable + 1)
                   ^
     """)
 
     assert References.references(text, uri, line, char, true) == [
              %{
                "range" => %{
-                 "end" => %{"character" => 12, "line" => 2},
+                 "end" => %{"character" => 23, "line" => 2},
                  "start" => %{"character" => 4, "line" => 2}
                },
                "uri" => uri
              },
              %{
                "range" => %{
-                 "end" => %{"character" => 20, "line" => 4},
+                 "end" => %{"character" => 31, "line" => 4},
                  "start" => %{"character" => 12, "line" => 4}
                },
                "uri" => uri
@@ -132,25 +138,25 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)
-    {line, char} = {20, 5}
+    {line, char} = {24, 5}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
-      @some \"123\"
+      @referenced_attribute \"123\"
          ^
     """)
 
     assert References.references(text, uri, line, char, true) == [
              %{
                "range" => %{
-                 "end" => %{"character" => 7, "line" => 20},
-                 "start" => %{"character" => 2, "line" => 20}
+                 "end" => %{"character" => 23, "line" => 24},
+                 "start" => %{"character" => 2, "line" => 24}
                },
                "uri" => uri
              },
              %{
                "range" => %{
-                 "end" => %{"character" => 9, "line" => 23},
-                 "start" => %{"character" => 4, "line" => 23}
+                 "end" => %{"character" => 25, "line" => 27},
+                 "start" => %{"character" => 4, "line" => 27}
                },
                "uri" => uri
              }

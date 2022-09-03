@@ -1,12 +1,12 @@
 defmodule ElixirLS.Test.ReferencesRemote do
   require ElixirLS.Test.ReferencesReferenced, as: ReferencesReferenced
 
-  def a_fun do
-    ReferencesReferenced.b_fun()
+  def uses_fun do
+    ReferencesReferenced.referenced_fun()
   end
 
-  def b_fun(a) do
-    ReferencesReferenced.macro_unless a do
+  def uses_macro(a) do
+    ReferencesReferenced.referenced_macro a do
       :ok
     end
   end

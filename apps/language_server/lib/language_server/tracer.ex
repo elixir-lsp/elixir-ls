@@ -26,7 +26,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
         project_dir = GenServer.call(__MODULE__, :get_project_dir)
         Process.put(:elixir_ls_project_dir, project_dir)
         project_dir
-      project_dir -> project_dir
+
+      project_dir ->
+        project_dir
     end
   end
 
@@ -39,26 +41,36 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def init(_args) do
     for table <- @tables do
       table_name = table_name(table)
-      :ets.new(table_name, [:named_table, :public, read_concurrency: true, write_concurrency: true])
+
+      :ets.new(table_name, [
+        :named_table,
+        :public,
+        read_concurrency: true,
+        write_concurrency: true
+      ])
     end
+
     {:ok, %{project_dir: nil}}
   end
 
   @impl true
   def handle_call({:set_project_dir, project_dir}, _from, state) do
     maybe_close_tables(state)
+
     for table <- @tables do
       table_name = table_name(table)
       :ets.delete_all_objects(table_name)
     end
 
     if project_dir != nil do
-      {us, _} = :timer.tc(fn ->  
-        for table <- @tables do
-          init_table(table, project_dir)
-        end
-      end)
-      Logger.info "Loaded DETS databases in #{div(us, 1000)}ms"
+      {us, _} =
+        :timer.tc(fn ->
+          for table <- @tables do
+            init_table(table, project_dir)
+          end
+        end)
+
+      Logger.info("Loaded DETS databases in #{div(us, 1000)}ms")
     end
 
     {:reply, :ok, %{state | project_dir: project_dir}}
@@ -74,10 +86,12 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   defp maybe_close_tables(%{project_dir: nil}), do: :ok
+
   defp maybe_close_tables(%{project_dir: project_dir}) do
     for table <- @tables do
       close_table(table, project_dir)
     end
+
     :ok
   end
 
@@ -88,12 +102,17 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def init_table(table, project_dir) do
     table_name = table_name(table)
     path = dets_path(project_dir, table)
-    {:ok, _} = :dets.open_file(table_name, [
-      file: path |> String.to_charlist,
-      auto_save: 60_000
-    ])
+
+    {:ok, _} =
+      :dets.open_file(table_name,
+        file: path |> String.to_charlist(),
+        auto_save: 60_000
+      )
+
     case :dets.to_ets(table_name, table_name) do
-      ^table_name -> :ok
+      ^table_name ->
+        :ok
+
       {:error, reason} ->
         Logger.error("Unable to load DETS #{path}, #{inspect(reason)}")
     end
@@ -103,11 +122,12 @@ defmodule ElixirLS.LanguageServer.Tracer do
     path = dets_path(project_dir, table)
     # TODO sync ets
     case :dets.close(table_name(table)) do
-      :ok -> :ok
+      :ok ->
+        :ok
+
       {:error, reason} ->
         Logger.error("Unable to close DETS #{path}, #{inspect(reason)}")
     end
-    
   end
 
   defp modules_by_file_matchspec(file, return) do
@@ -153,11 +173,13 @@ defmodule ElixirLS.LanguageServer.Tracer do
     :ok
   end
 
-  def trace({kind, meta, module, name, arity}, %Macro.Env{} = env) when kind in [:imported_function, :imported_macro, :remote_function, :remote_macro] do
+  def trace({kind, meta, module, name, arity}, %Macro.Env{} = env)
+      when kind in [:imported_function, :imported_macro, :remote_function, :remote_macro] do
     register_call(meta, module, name, arity, env)
   end
 
-  def trace({kind, meta, name, arity}, %Macro.Env{} = env) when kind in [:local_function, :local_macro] do
+  def trace({kind, meta, name, arity}, %Macro.Env{} = env)
+      when kind in [:local_function, :local_macro] do
     register_call(meta, env.module, name, arity, env)
   end
 
@@ -167,14 +189,16 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   defp build_module_info(module, file, line) do
-    defs = for {name, arity} <- Module.definitions_in(module) do
-      def_info = Module.get_definition(module, {name, arity})
-      {{name, arity}, build_def_info(def_info)}
-    end
+    defs =
+      for {name, arity} <- Module.definitions_in(module) do
+        def_info = Module.get_definition(module, {name, arity})
+        {{name, arity}, build_def_info(def_info)}
+      end
 
-    attributes = for name <- Module.attributes_in(module) do
-      {name, Module.get_attribute(module, name)}
-    end
+    attributes =
+      for name <- Module.attributes_in(module) do
+        {name, Module.get_attribute(module, name)}
+      end
 
     %{
       defs: defs,
@@ -185,13 +209,15 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   defp build_def_info({:v1, def_kind, meta_1, clauses}) do
-    clauses = for {meta_2, arguments, guards, _body} <- clauses do
-      %{
-        arguments: arguments,
-        guards: guards,
-        meta: meta_2
-      }
-    end
+    clauses =
+      for {meta_2, arguments, guards, _body} <- clauses do
+        %{
+          arguments: arguments,
+          guards: guards,
+          meta: meta_2
+        }
+      end
+
     %{
       kind: def_kind,
       clauses: clauses,
@@ -203,26 +229,34 @@ defmodule ElixirLS.LanguageServer.Tracer do
     if in_project_sources?(env.file) do
       do_register_call(meta, module, name, arity, env)
     end
+
     :ok
   end
 
   defp do_register_call(meta, module, name, arity, env) do
     callee = {module, name, arity}
+
     call = %{
       callee: callee,
       file: env.file,
       line: meta[:line],
       column: meta[:column]
     }
-    updated_calls = case :ets.lookup(table_name(:calls), callee) do
-      [{_callee, callee_calls}] when is_map(callee_calls) ->
-        file_calle_calls = case callee_calls[env.file] do
-          nil -> [call]
-          file_calle_calls -> [call | file_calle_calls]
-        end
-        Map.put(callee_calls, env.file, file_calle_calls)
-      [] -> %{env.file => [call]}
-    end
+
+    updated_calls =
+      case :ets.lookup(table_name(:calls), callee) do
+        [{_callee, callee_calls}] when is_map(callee_calls) ->
+          file_calle_calls =
+            case callee_calls[env.file] do
+              nil -> [call]
+              file_calle_calls -> [call | file_calle_calls]
+            end
+
+          Map.put(callee_calls, env.file, file_calle_calls)
+
+        [] ->
+          %{env.file => [call]}
+      end
 
     :ets.insert(table_name(:calls), {callee, updated_calls})
   end
@@ -230,7 +264,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def get_trace do
     :ets.tab2list(table_name(:calls))
     |> Map.new(fn {callee, calls_by_file} ->
-      calls = calls_by_file |> Map.values |> List.flatten
+      calls = calls_by_file |> Map.values() |> List.flatten()
       {callee, calls}
     end)
   end
@@ -238,8 +272,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def save do
     for table <- @tables do
       table_name = table_name(table)
+
       with :ok <- :dets.from_ets(table_name, table_name),
-      :ok <- :dets.sync(table_name) do
+           :ok <- :dets.sync(table_name) do
         :ok
       else
         {:error, reason} ->
@@ -252,10 +287,11 @@ defmodule ElixirLS.LanguageServer.Tracer do
     project_dir = get_project_dir()
 
     if project_dir != nil do
-      topmost_path_segment = path
-      |> Path.relative_to(project_dir)
-      |> Path.split
-      |> hd
+      topmost_path_segment =
+        path
+        |> Path.relative_to(project_dir)
+        |> Path.split()
+        |> hd
 
       topmost_path_segment != "deps"
     else
@@ -287,6 +323,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     for {callee, calls_by_file} <- :ets.select(table_name(:calls), ms) do
       calls_by_file = calls_by_file |> Map.delete(file)
+
       if calls_by_file == %{} do
         :ets.delete(table_name, callee)
       else
