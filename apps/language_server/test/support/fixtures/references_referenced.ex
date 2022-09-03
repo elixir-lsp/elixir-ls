@@ -1,26 +1,30 @@
 defmodule ElixirLS.Test.ReferencesReferenced do
-  def b_fun do
-    some_var = 42
+  def referenced_fun do
+    referenced_variable = 42
 
-    IO.puts(some_var + 1)
+    IO.puts(referenced_variable + 1)
     :ok
   end
 
-  defmacro macro_unless(clause, do: expression) do
+  defmacro referenced_macro(clause, do: expression) do
     quote do
       if(!unquote(clause), do: unquote(expression))
     end
   end
 
-  def local(a) do
-    macro_unless a do
-      b_fun
+  def uses_fun(a) do
+    referenced_fun
+  end
+
+  def uses_macro(a) do
+    referenced_macro a do
+      :ok
     end
   end
 
-  @some "123"
+  @referenced_attribute "123"
 
-  def use_attribute do
-    @some
+  def uses_attribute do
+    @referenced_attribute
   end
 end
