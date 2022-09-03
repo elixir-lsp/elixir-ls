@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ElixirLS.LanguageServer.Providers.References
   alias ElixirLS.LanguageServer.SourceFile
