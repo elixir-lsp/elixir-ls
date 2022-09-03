@@ -142,6 +142,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
     :ok
   end
 
+  # TODO sync on stop?
   # def trace(:stop, %Macro.Env{} = env) do
   #   :ok
   # end
@@ -152,11 +153,13 @@ defmodule ElixirLS.LanguageServer.Tracer do
     :ok
   end
 
-  def trace({kind, meta, module, name, arity}, env) when kind in [:imported_function, :imported_macro, :remote_function, :remote_macro] do
+  def trace({kind, meta, module, name, arity}, %Macro.Env{} = env) when kind in [:imported_function, :imported_macro, :remote_function, :remote_macro] do
     register_call(meta, module, name, arity, env)
   end
 
-  # TODO def trace({kind, meta, name, arity}, env) when kind in [:local_function, :local_macro]
+  def trace({kind, meta, name, arity}, %Macro.Env{} = env) when kind in [:local_function, :local_macro] do
+    register_call(meta, env.module, name, arity, env)
+  end
 
   def trace(trace, _env) do
     IO.inspect(trace, label: "skipped")
