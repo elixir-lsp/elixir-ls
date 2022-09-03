@@ -158,7 +158,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   # TODO def trace({kind, meta, name, arity}, env) when kind in [:local_function, :local_macro]
 
-  def trace(_trace, _env) do
+  def trace(trace, _env) do
+    IO.inspect(trace, label: "skipped")
     :ok
   end
 

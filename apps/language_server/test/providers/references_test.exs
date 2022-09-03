@@ -5,24 +5,29 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   alias ElixirLS.LanguageServer.Tracer
+  alias ElixirLS.LanguageServer.Build
   require ElixirLS.Test.TextLoc
 
-  setup context do
-    {:ok, _pid} = Tracer.start_link([])
+  setup_all context do
+    Tracer.start_link([])
     Tracer.set_project_dir(FixtureHelpers.get_path(""))
+    Build.set_compiler_options(ignore_module_conflict: true)
     Code.compile_file(FixtureHelpers.get_path("references_b.ex"))
+    Code.compile_file(FixtureHelpers.get_path("uses_macro_a.ex"))
+    Code.compile_file(FixtureHelpers.get_path("macro_a.ex"))
+    Code.compile_file(FixtureHelpers.get_path("references_a.ex"))
     {:ok, context}
   end
 
-  test "finds references to a variable" do
+  test "finds references to a function" do
     file_path = FixtureHelpers.get_path("references_b.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)
 
-    {line, char} = {2, 8}
+    {line, char} = {1, 8}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
-        some_var = 42
+      def b_fun do
             ^
     """)
 
