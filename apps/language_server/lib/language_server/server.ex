@@ -1059,7 +1059,9 @@ defmodule ElixirLS.LanguageServer.Server do
         text
 
       {:error, reason} ->
-        IO.warn("Couldn't read file #{file}: #{inspect(reason)}")
+        if reason != :enoent do
+          IO.warn("Couldn't read file #{file}: #{inspect(reason)}")
+        end
         nil
     end
   end

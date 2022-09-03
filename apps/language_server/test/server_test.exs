@@ -1135,8 +1135,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       Build.set_compiler_options()
 
-      for change <- text, uniq: true, do: :ok
-
       initialize(server)
       wait_until_compiled(server)
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
