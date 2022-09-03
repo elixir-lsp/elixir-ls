@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.DialyzerTest do
   # TODO: Test loading and saving manifest
 
-  alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc}
+  alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc, Tracer, Build}
   import ExUnit.CaptureLog
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
@@ -10,10 +10,12 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     # This will generate a large PLT file and will take a long time, so we need to make sure that
     # Mix.Utils.home() is in the saved build artifacts for any automated testing
     Dialyzer.Manifest.load_elixir_plt()
+    Build.set_compiler_options()
     {:ok, %{}}
   end
 
   setup do
+    Tracer.start_link([])
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}
