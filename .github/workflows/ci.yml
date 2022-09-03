@@ -17,31 +17,50 @@ jobs:
       matrix:
         include:
           - elixir: 1.11.x
-            otp: 22.3.4.x
+            otp: 22.3.x
             tests_may_fail: false
-            check_unused_deps: true
+            check_unused_deps: false
           - elixir: 1.11.x
-            otp: 23.3.4.x
+            otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: true
+            check_unused_deps: false
           - elixir: 1.12.x
-            otp: 23.3.4.x
+            otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: true
+            check_unused_deps: false
           - elixir: 1.13.x
-            otp: 22.3.4.x
+            otp: 22.3.x
             tests_may_fail: false
             check_unused_deps: true
             warnings_as_errors: false
           - elixir: 1.13.x
-            otp: 25.x
+            otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: true
+            check_unused_deps: false
             warnings_as_errors: false
           - elixir: 1.13.x
             otp: 24.3.x
             tests_may_fail: false
-            # Needs to be false until https://github.com/elixir-lsp/elixir-ls/issues/642 is fixed
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.13.x
+            otp: 25.x
+            tests_may_fail: false
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.14.x
+            otp: 23.3.x
+            tests_may_fail: false
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.14.x
+            otp: 24.3.x
+            tests_may_fail: false
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.14.x
+            otp: 25.x
+            tests_may_fail: false
             warnings_as_errors: false
             check_formatted: true
             check_unused_deps: true
