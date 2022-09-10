@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
                   # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
                   purge_consolidated_protocols()
-                  {status, diagnostics} = compile()
+                  {status, diagnostics} = run_mix_compile()
 
                   diagnostics = Diagnostics.normalize(diagnostics, root_path)
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
@@ -103,8 +103,8 @@ defmodule ElixirLS.LanguageServer.Build do
       :no_mixfile
     end
   end
-
-  defp compile do
+  defp run_mix_compile do
+    # TODO consider adding --no-compile
     case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
