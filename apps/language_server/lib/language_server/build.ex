@@ -117,6 +117,16 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
+  defp run_mix_clean(clean_deps?) do
+    opts = []
+    opts = if clean_deps? do
+      opts ++ ["--deps"]
+    else
+      opts
+    end
+    Mix.Task.run("clean", opts) |> IO.inspect
+  end
+
   defp purge_consolidated_protocols do
     config = Mix.Project.config()
     path = Mix.Project.consolidation_path(config)
