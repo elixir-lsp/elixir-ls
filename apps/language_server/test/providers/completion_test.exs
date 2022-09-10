@@ -20,8 +20,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   }
 
   setup context do
-    ElixirLS.LanguageServer.Build.load_all_mix_applications()
-
     unless context[:skip_server] do
       server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
