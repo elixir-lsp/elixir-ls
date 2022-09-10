@@ -29,10 +29,6 @@ defmodule ElixirLS.LanguageServer.Build do
                   purge_consolidated_protocols()
                   {status, diagnostics} = compile()
 
-                  if status in [:ok, :noop] and Keyword.get(opts, :load_all_mix_applications?) do
-                    load_all_mix_applications()
-                  end
-
                   diagnostics = Diagnostics.normalize(diagnostics, root_path)
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
@@ -106,33 +102,6 @@ defmodule ElixirLS.LanguageServer.Build do
 
       :no_mixfile
     end
-  end
-
-  # TODO It looks like that function is no longer needed on elixir >= 1.11
-  # it was added in https://github.com/elixir-lsp/elixir-ls/pull/227
-  # removing it doesn't break tests and I'm not able to reproduce
-  # https://github.com/elixir-lsp/elixir-ls/issues/209 on recent elixir (1.13)
-  def load_all_mix_applications do
-    apps =
-      cond do
-        Mix.Project.umbrella?() ->
-          Mix.Project.apps_paths() |> Map.keys()
-
-        app = Keyword.get(Mix.Project.config(), :app) ->
-          [app]
-
-        true ->
-          []
-      end
-
-    Enum.each(apps, fn app ->
-      true = Code.prepend_path(Path.join(Mix.Project.build_path(), "lib/#{app}/ebin"))
-
-      case Application.load(app) do
-        :ok -> :ok
-        {:error, {:already_loaded, _}} -> :ok
-      end
-    end)
   end
 
   defp compile do
