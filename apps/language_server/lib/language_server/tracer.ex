@@ -120,8 +120,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def close_table(table, project_dir) do
     path = dets_path(project_dir, table)
-    # TODO sync ets
-    case :dets.close(table_name(table)) do
+    table_name = table_name(table)
+    sync(table_name)
+
+    case :dets.close(table_name) do
       :ok ->
         :ok
 
@@ -161,11 +163,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
     delete_calls_by_file(env.file)
     :ok
   end
-
-  # TODO sync on stop?
-  # def trace(:stop, %Macro.Env{} = env) do
-  #   :ok
-  # end
 
   def trace({:on_module, _, _}, %Macro.Env{} = env) do
     info = build_module_info(env.module, env.file, env.line)
@@ -273,13 +270,17 @@ defmodule ElixirLS.LanguageServer.Tracer do
     for table <- @tables do
       table_name = table_name(table)
 
-      with :ok <- :dets.from_ets(table_name, table_name),
-           :ok <- :dets.sync(table_name) do
-        :ok
-      else
-        {:error, reason} ->
-          Logger.error("Unable to sync DETS #{table_name}, #{inspect(reason)}")
-      end
+      sync(table_name)
+    end
+  end
+
+  defp sync(table_name) do
+    with :ok <- :dets.from_ets(table_name, table_name),
+         :ok <- :dets.sync(table_name) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.error("Unable to sync DETS #{table_name}, #{inspect(reason)}")
     end
   end
 
