@@ -46,6 +46,13 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
+  def clean(clean_deps? \\ false) do
+    with_build_lock(fn ->
+      Mix.Task.clear()
+      run_mix_clean(clean_deps?)
+    end)
+  end
+
   def with_build_lock(func) do
     :global.trans({__MODULE__, self()}, func)
   end
@@ -124,7 +131,13 @@ defmodule ElixirLS.LanguageServer.Build do
     else
       opts
     end
-    Mix.Task.run("clean", opts) |> IO.inspect
+    results = Mix.Task.run("clean", opts) |> List.wrap
+    if Enum.all?(results, & match?(:ok, &1)) do
+      :ok
+    else
+      JsonRpc.log_message(:error, "mix clean returned #{inspect(results)}")
+      {:error, :clean_failed}
+    end
   end
 
   defp purge_consolidated_protocols do
