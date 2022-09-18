@@ -18,11 +18,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
       Server.receive_packet(
         server,
         did_change_configuration(%{
-          "elixirLS" => %{}
+          "elixirLS" => %{"dialyzerEnabled" => false}
         })
       )
 
-      assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      assert_receive %{
+                       "method" => "window/logMessage",
+                       "params" => %{"message" => "Compile took" <> _}
+                     },
+                     20000
+
       path = ".elixir_ls/build/test/lib/els_clean_test/ebin/Elixir.A.beam"
       assert File.exists?(path)
 
