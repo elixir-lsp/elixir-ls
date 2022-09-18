@@ -110,6 +110,7 @@ defmodule ElixirLS.LanguageServer.Build do
       :no_mixfile
     end
   end
+
   defp run_mix_compile do
     # TODO consider adding --no-compile
     case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
@@ -126,13 +127,17 @@ defmodule ElixirLS.LanguageServer.Build do
 
   defp run_mix_clean(clean_deps?) do
     opts = []
-    opts = if clean_deps? do
-      opts ++ ["--deps"]
-    else
-      opts
-    end
-    results = Mix.Task.run("clean", opts) |> List.wrap
-    if Enum.all?(results, & match?(:ok, &1)) do
+
+    opts =
+      if clean_deps? do
+        opts ++ ["--deps"]
+      else
+        opts
+      end
+
+    results = Mix.Task.run("clean", opts) |> List.wrap()
+
+    if Enum.all?(results, &match?(:ok, &1)) do
       :ok
     else
       JsonRpc.log_message(:error, "mix clean returned #{inspect(results)}")
