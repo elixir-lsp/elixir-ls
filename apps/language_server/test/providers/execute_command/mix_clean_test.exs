@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
 
   @tag fixture: true
   test "mix clean", %{server: server} do
-    in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
+    in_fixture(Path.join(__DIR__, "../.."), "clean", fn ->
       root_uri = SourceFile.path_to_uri(File.cwd!())
       Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
@@ -23,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
       )
 
       assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
-      path = ".elixir_ls/build/test/lib/els_dialyzer_test/ebin/Elixir.A.beam"
+      path = ".elixir_ls/build/test/lib/els_clean_test/ebin/Elixir.A.beam"
       assert File.exists?(path)
 
       server_instance_id = :sys.get_state(server).server_instance_id
