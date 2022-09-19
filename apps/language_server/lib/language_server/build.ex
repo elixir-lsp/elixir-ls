@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
                   # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
                   purge_consolidated_protocols()
-                  {status, diagnostics} = compile()
+                  {status, diagnostics} = run_mix_compile()
 
                   diagnostics = Diagnostics.normalize(diagnostics, root_path)
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
@@ -44,6 +44,13 @@ defmodule ElixirLS.LanguageServer.Build do
         end)
       end)
     end
+  end
+
+  def clean(clean_deps? \\ false) do
+    with_build_lock(fn ->
+      Mix.Task.clear()
+      run_mix_clean(clean_deps?)
+    end)
   end
 
   def with_build_lock(func) do
@@ -104,7 +111,8 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
-  defp compile do
+  defp run_mix_compile do
+    # TODO consider adding --no-compile
     case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
@@ -114,6 +122,26 @@ defmodule ElixirLS.LanguageServer.Build do
 
       _ ->
         {:ok, []}
+    end
+  end
+
+  defp run_mix_clean(clean_deps?) do
+    opts = []
+
+    opts =
+      if clean_deps? do
+        opts ++ ["--deps"]
+      else
+        opts
+      end
+
+    results = Mix.Task.run("clean", opts) |> List.wrap()
+
+    if Enum.all?(results, &match?(:ok, &1)) do
+      :ok
+    else
+      JsonRpc.log_message(:error, "mix clean returned #{inspect(results)}")
+      {:error, :clean_failed}
     end
   end
 
