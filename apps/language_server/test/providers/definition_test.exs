@@ -114,7 +114,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} = {15, 5}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
-        referenced_fun
+        referenced_fun()
          ^
     """)
 
