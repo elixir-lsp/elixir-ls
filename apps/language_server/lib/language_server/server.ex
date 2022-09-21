@@ -1229,10 +1229,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        %{state |
-          project_dir: File.cwd!(),
-          mix_project?: File.exists?("mix.exs")
-        }
+        %{state | project_dir: File.cwd!(), mix_project?: File.exists?("mix.exs")}
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(

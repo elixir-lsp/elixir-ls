@@ -10,9 +10,23 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   setup_all context do
     File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
-    Tracer.start_link([])
+    {:ok, pid} = Tracer.start_link([])
     Tracer.set_project_dir(FixtureHelpers.get_path(""))
+
+    compiler_options = Code.compiler_options()
     Build.set_compiler_options(ignore_module_conflict: true)
+
+    on_exit(fn ->
+      Code.compiler_options(compiler_options)
+      Process.monitor(pid)
+      Process.unlink(pid)
+      GenServer.stop(pid)
+
+      receive do
+        {:DOWN, _, _, _, _} -> :ok
+      end
+    end)
+
     Code.compile_file(FixtureHelpers.get_path("references_referenced.ex"))
     Code.compile_file(FixtureHelpers.get_path("references_imported.ex"))
     Code.compile_file(FixtureHelpers.get_path("references_remote.ex"))

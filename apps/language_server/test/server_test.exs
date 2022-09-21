@@ -1123,6 +1123,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       wait_until_compiled(server)
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   @tag :fixture
@@ -1155,6 +1157,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       wait_until_compiled(server)
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   @tag fixture: true, skip_server: true
@@ -1164,7 +1168,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       # First to compile the applications and build the cache.
       # Second time to see if loads modules
       with_new_server(fn server ->
-        Tracer.start_link([])
+        {:ok, _pid} = Tracer.start_link([])
         initialize(server)
         wait_until_compiled(server)
       end)

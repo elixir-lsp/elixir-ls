@@ -10,12 +10,18 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     # This will generate a large PLT file and will take a long time, so we need to make sure that
     # Mix.Utils.home() is in the saved build artifacts for any automated testing
     Dialyzer.Manifest.load_elixir_plt()
+    compiler_options = Code.compiler_options()
     Build.set_compiler_options()
+
+    on_exit(fn ->
+      Code.compiler_options(compiler_options)
+    end)
+
     {:ok, %{}}
   end
 
   setup do
-    Tracer.start_link([])
+    {:ok, _} = Tracer.start_link([])
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}
