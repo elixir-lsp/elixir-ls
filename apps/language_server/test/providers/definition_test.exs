@@ -7,19 +7,19 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   require ElixirLS.Test.TextLoc
 
-  test "find definition" do
-    file_path = FixtureHelpers.get_path("references_a.ex")
+  test "find definition remote function call" do
+    file_path = FixtureHelpers.get_path("references_remote.ex")
     text = File.read!(file_path)
     uri = SourceFile.path_to_uri(file_path)
 
-    b_file_path = FixtureHelpers.get_path("references_b.ex")
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
     b_uri = SourceFile.path_to_uri(b_file_path)
 
-    {line, char} = {2, 30}
+    {line, char} = {4, 28}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
-        ElixirLS.Test.ReferencesB.b_fun()
-                                  ^
+        ReferencesReferenced.referenced_fun()
+                                ^
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
@@ -28,6 +28,174 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     assert range == %{
              "start" => %{"line" => 1, "character" => 6},
              "end" => %{"line" => 1, "character" => 6}
+           }
+  end
+
+  test "find definition remote macro call" do
+    file_path = FixtureHelpers.get_path("references_remote.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.path_to_uri(file_path)
+
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
+    b_uri = SourceFile.path_to_uri(b_file_path)
+
+    {line, char} = {8, 28}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        ReferencesReferenced.referenced_macro a do
+                                ^
+    """)
+
+    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+             Definition.definition(uri, text, line, char)
+
+    assert range == %{
+             "start" => %{"line" => 8, "character" => 11},
+             "end" => %{"line" => 8, "character" => 11}
+           }
+  end
+
+  test "find definition imported function call" do
+    file_path = FixtureHelpers.get_path("references_imported.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.path_to_uri(file_path)
+
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
+    b_uri = SourceFile.path_to_uri(b_file_path)
+
+    {line, char} = {4, 5}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        referenced_fun()
+         ^
+    """)
+
+    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+             Definition.definition(uri, text, line, char)
+
+    assert range == %{
+             "start" => %{"line" => 1, "character" => 6},
+             "end" => %{"line" => 1, "character" => 6}
+           }
+  end
+
+  test "find definition imported macro call" do
+    file_path = FixtureHelpers.get_path("references_imported.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.path_to_uri(file_path)
+
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
+    b_uri = SourceFile.path_to_uri(b_file_path)
+
+    {line, char} = {8, 5}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        referenced_macro a do
+         ^
+    """)
+
+    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+             Definition.definition(uri, text, line, char)
+
+    assert range == %{
+             "start" => %{"line" => 8, "character" => 11},
+             "end" => %{"line" => 8, "character" => 11}
+           }
+  end
+
+  test "find definition local function call" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.path_to_uri(file_path)
+
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
+    b_uri = SourceFile.path_to_uri(b_file_path)
+
+    {line, char} = {15, 5}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        referenced_fun()
+         ^
+    """)
+
+    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+             Definition.definition(uri, text, line, char)
+
+    assert range == %{
+             "start" => %{"line" => 1, "character" => 6},
+             "end" => %{"line" => 1, "character" => 6}
+           }
+  end
+
+  test "find definition local macro call" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.path_to_uri(file_path)
+
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
+    b_uri = SourceFile.path_to_uri(b_file_path)
+
+    {line, char} = {19, 5}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        referenced_macro a do
+         ^
+    """)
+
+    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+             Definition.definition(uri, text, line, char)
+
+    assert range == %{
+             "start" => %{"line" => 8, "character" => 11},
+             "end" => %{"line" => 8, "character" => 11}
+           }
+  end
+
+  test "find definition variable" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.path_to_uri(file_path)
+
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
+    b_uri = SourceFile.path_to_uri(b_file_path)
+
+    {line, char} = {4, 13}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        IO.puts(referenced_variable + 1)
+                 ^
+    """)
+
+    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+             Definition.definition(uri, text, line, char)
+
+    assert range == %{
+             "start" => %{"line" => 2, "character" => 4},
+             "end" => %{"line" => 2, "character" => 4}
+           }
+  end
+
+  test "find definition attribute" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.path_to_uri(file_path)
+
+    b_file_path = FixtureHelpers.get_path("references_referenced.ex")
+    b_uri = SourceFile.path_to_uri(b_file_path)
+
+    {line, char} = {27, 5}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        @referenced_attribute
+         ^
+    """)
+
+    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+             Definition.definition(uri, text, line, char)
+
+    assert range == %{
+             "start" => %{"line" => 24, "character" => 2},
+             "end" => %{"line" => 24, "character" => 2}
            }
   end
 end

@@ -1,9 +1,10 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile}
+  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer}
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
   setup do
+    {:ok, _} = Tracer.start_link([])
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}
