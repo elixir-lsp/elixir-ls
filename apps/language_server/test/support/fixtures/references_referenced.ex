@@ -12,8 +12,8 @@ defmodule ElixirLS.Test.ReferencesReferenced do
     end
   end
 
-  def uses_fun(a) do
-    referenced_fun
+  def uses_fun(_a) do
+    referenced_fun()
   end
 
   def uses_macro(a) do

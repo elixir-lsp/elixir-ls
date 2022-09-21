@@ -180,8 +180,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
     register_call(meta, env.module, name, arity, env)
   end
 
-  def trace(trace, _env) do
-    IO.inspect(trace, label: "skipped")
+  def trace(_trace, _env) do
+    # IO.inspect(trace, label: "skipped")
     :ok
   end
 
