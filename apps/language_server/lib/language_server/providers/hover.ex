@@ -90,7 +90,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     cond do
       erlang_module?(subject) ->
-        # erlang moudle is not support now.
+        # TODO erlang module is currently not supported
         ""
 
       true ->
@@ -161,6 +161,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp elixir_mod_exported?(mod_name) do
     ("Elixir." <> mod_name) |> String.to_atom() |> function_exported?(:__info__, 1)
   end
+
+  defp third_dep?(source, nil), do: false
 
   defp third_dep?(source, project_dir) do
     prefix = project_dir <> "/deps"
