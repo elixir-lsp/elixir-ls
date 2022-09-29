@@ -3,7 +3,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
 
-  def format(%SourceFile{} = source_file, uri, project_dir) when is_binary(project_dir) do
+  def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir)
+      when is_binary(project_dir) do
     if can_format?(uri, project_dir) do
       case SourceFile.formatter_for(uri) do
         {:ok, {formatter, opts}} ->
@@ -32,7 +33,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     end
   end
 
-  def format(%SourceFile{} = source_file, _uri, nil) do
+  # if project_dir is not set or schema is not file: we format with default options
+  def format(%SourceFile{} = source_file, _uri, _project_dir) do
     do_format(source_file)
   end
 
