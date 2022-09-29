@@ -962,6 +962,34 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                "insertText" => "defmodule $1 do\n\t$0\nend"
              } = first
     end
+
+    test "will suggest defmodule without module_name snippet when file path is nil" do
+      text = """
+      defmod
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   nil
+                 )
+               )
+
+      assert %{
+               "label" => "defmodule",
+               "insertText" => "defmodule $1 do\n\t$0\nend"
+             } = first
+    end
   end
 
   describe "generic suggestions" do

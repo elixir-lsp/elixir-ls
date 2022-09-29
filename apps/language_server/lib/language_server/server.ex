@@ -695,6 +695,12 @@ defmodule ElixirLS.LanguageServer.Server do
 
     signature_after_complete = Map.get(state.settings || %{}, "signatureAfterComplete", true)
 
+    path =
+      case uri do
+        "file:" <> _ -> SourceFile.path_from_uri(uri)
+        _ -> nil
+      end
+
     fun = fn ->
       Completion.completion(source_file.text, line, character,
         snippets_supported: snippets_supported,
@@ -703,7 +709,7 @@ defmodule ElixirLS.LanguageServer.Server do
         signature_help_supported: signature_help_supported,
         locals_without_parens: locals_without_parens,
         signature_after_complete: signature_after_complete,
-        file_path: SourceFile.path_from_uri(uri)
+        file_path: path
       )
     end
 
