@@ -1183,4 +1183,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                )
     end
   end
+
+  describe "error handling" do
+    test "it should handle out of bounds line numbers" do
+      assert {:ok, _} = Completion.completion("", 3, 8, [])
+    end
+  end
 end

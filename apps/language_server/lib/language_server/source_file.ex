@@ -248,7 +248,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     IO.iodata_to_binary(Enum.reverse(acc))
   end
 
-  defp characters_to_binary!(binary, from, to) do
+  defp characters_to_binary!(nil, _from, _to) do
+    ""
+  end
+
+  defp characters_to_binary!(binary, from, to) when is_binary(binary) do
     case :unicode.characters_to_binary(binary, from, to) do
       result when is_binary(result) -> result
     end
@@ -348,8 +352,15 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       end
     rescue
       e ->
+        message =
+          case e do
+            %{message: message} -> message
+            %{description: description} -> description
+            _ -> ""
+          end
+
         IO.warn(
-          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{e.message}"
+          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message}"
         )
 
         :error

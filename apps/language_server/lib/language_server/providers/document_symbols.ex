@@ -94,6 +94,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           # TODO extract module name location from Code.Fragment.surround_context?
           # TODO better selection ranges for defimpl?
           {extract_module_name(module_expression), module_name_location, module_body}
+
+        _ ->
+          case defname do
+            :defmodule -> {"MISSING_MODULE_NAME", nil, do: nil}
+            :defprotocol -> {"MISSING_PROTOCOL_NAME", nil, do: nil}
+          end
       end
 
     mod_defns =

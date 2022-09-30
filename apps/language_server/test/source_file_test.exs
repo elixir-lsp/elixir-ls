@@ -1,6 +1,10 @@
 defmodule ElixirLS.LanguageServer.SourceFileTest do
   use ExUnit.Case, async: true
+
   use ExUnitProperties
+  use Patch
+
+  import ExUnit.CaptureIO
   import ElixirLS.LanguageServer.Test.PlatformTestHelpers
 
   alias ElixirLS.LanguageServer.SourceFile
@@ -873,6 +877,46 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
         assert elixir_pos == SourceFile.lsp_position_to_elixir(text, lsp_pos)
       end
+    end
+  end
+
+  describe "lsp_character_to_elixir" do
+    test "it should handle a nil line" do
+      assert 0 = SourceFile.line_length_utf16(nil)
+    end
+  end
+
+  describe "formatter_for" do
+    setup [:temporary_elixir_file]
+
+    def temporary_elixir_file(_) do
+      unique_number = System.unique_integer([:positive, :monotonic])
+      path = Path.join([System.tmp_dir!(), "formatted_#{unique_number}.ex"])
+      File.touch!(path)
+      uri = %URI{path: path, scheme: "file://"}
+
+      on_exit(fn ->
+        File.rm(path)
+      end)
+
+      {:ok, file_path: path, file_uri: URI.to_string(uri)}
+    end
+
+    def as_contents(contents, %{file_path: file_path}) do
+      File.write!(file_path, contents)
+    end
+
+    test "it should not crash on syntax errors", ctx do
+      as_contents("", ctx)
+
+      patch(Mix.Tasks.Format, :formatter_for_file, fn _ -> raise %SyntaxError{} end)
+
+      assert {:error, message} =
+               with_io(:stderr, fn ->
+                 SourceFile.formatter_for(ctx.file_uri)
+               end)
+
+      assert String.contains?(message, "Unable to get formatter options for")
     end
   end
 end

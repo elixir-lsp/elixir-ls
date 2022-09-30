@@ -89,7 +89,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     line_text =
       text
       |> SourceFile.lines()
-      |> Enum.at(line)
+      |> Enum.at(line, "")
 
     # convert to 1 based utf8 position
     line = line + 1
