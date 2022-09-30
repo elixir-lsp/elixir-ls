@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   defp root_uri do
-    SourceFile.path_to_uri(File.cwd!())
+    SourceFile.Path.to_uri(File.cwd!())
   end
 
   describe "initialize" do
@@ -532,7 +532,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       )
 
       in_fixture(__DIR__, "references", fn ->
-        uri = SourceFile.path_to_uri("lib/a.ex")
+        uri = SourceFile.Path.to_uri("lib/a.ex")
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_change(uri, 1, content_changes))
@@ -567,7 +567,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       )
 
       in_fixture(__DIR__, "references", fn ->
-        uri = SourceFile.path_to_uri("lib/a.ex")
+        uri = SourceFile.Path.to_uri("lib/a.ex")
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_change(uri, 1, content_changes))
@@ -751,7 +751,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       uri =
         ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
         |> to_string
-        |> SourceFile.path_to_uri()
+        |> SourceFile.Path.to_uri()
 
       assert_receive(
         response(1, %{
@@ -784,7 +784,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     test "implementations found", %{server: server} do
       file_path = FixtureHelpers.get_path("example_behaviour.ex")
       text = File.read!(file_path)
-      uri = SourceFile.path_to_uri(file_path)
+      uri = SourceFile.Path.to_uri(file_path)
       fake_initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, text))
 
@@ -919,7 +919,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       uri = Path.join([root_uri(), "file.ex"])
 
       uri
-      |> SourceFile.abs_path_from_uri()
+      |> SourceFile.Path.absolute_from_uri()
       |> File.write!("")
 
       code = """
@@ -1027,7 +1027,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag :fixture
   test "reports build diagnostics", %{server: server} do
     in_fixture(__DIR__, "build_errors", fn ->
-      error_file = SourceFile.path_to_uri("lib/has_error.ex")
+      error_file = SourceFile.Path.to_uri("lib/has_error.ex")
 
       initialize(server)
 
@@ -1050,7 +1050,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag :fixture
   test "reports token missing error diagnostics", %{server: server} do
     in_fixture(__DIR__, "token_missing_error", fn ->
-      error_file = SourceFile.path_to_uri("lib/has_error.ex")
+      error_file = SourceFile.Path.to_uri("lib/has_error.ex")
 
       initialize(server)
 
@@ -1073,7 +1073,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag :fixture
   test "reports build diagnostics on external resources", %{server: server} do
     in_fixture(__DIR__, "build_errors_on_external_resource", fn ->
-      error_file = SourceFile.path_to_uri("lib/template.eex")
+      error_file = SourceFile.Path.to_uri("lib/template.eex")
 
       initialize(server)
 
@@ -1097,9 +1097,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "finds references in non-umbrella project", %{server: server} do
     in_fixture(__DIR__, "references", fn ->
       file_path = "lib/b.ex"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       text = File.read!(file_path)
-      reference_uri = SourceFile.path_to_uri("lib/a.ex")
+      reference_uri = SourceFile.Path.to_uri("lib/a.ex")
 
       Build.set_compiler_options()
 
@@ -1131,9 +1131,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "finds references in umbrella project", %{server: server} do
     in_fixture(__DIR__, "umbrella", fn ->
       file_path = "apps/app2/lib/app2.ex"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       text = File.read!(file_path)
-      reference_uri = SourceFile.path_to_uri("apps/app1/lib/app1.ex")
+      reference_uri = SourceFile.Path.to_uri("apps/app1/lib/app1.ex")
 
       Build.set_compiler_options()
 
@@ -1182,7 +1182,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         wait_until_compiled(server)
 
         file_path = "apps/app1/lib/bar.ex"
-        uri = SourceFile.path_to_uri(file_path)
+        uri = SourceFile.Path.to_uri(file_path)
 
         code = """
         defmodule Bar do
@@ -1216,15 +1216,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "returns code lenses for runnable tests", %{server: server} do
     in_fixture(__DIR__, "test_code_lens", fn ->
       file_path = "test/fixture_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       # this is not an abs path as returned by Path.absname
       # on Windows it's c:\asdf instead of c:/asdf
-      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
 
-      project_dir =
-        root_uri()
-        |> SourceFile.abs_path_from_uri()
+      project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
       initialize(server)
 
@@ -1289,7 +1287,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   } do
     in_fixture(__DIR__, "test_code_lens", fn ->
       file_path = "test/fixture_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       text = File.read!(file_path)
 
       fake_initialize(server)
@@ -1313,10 +1311,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   } do
     in_fixture(__DIR__, "test_code_lens_custom_paths_and_pattern", fn ->
       file_path = "custom_path/fixture_custom_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
-      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      file_uri = SourceFile.Path.to_uri(file_path)
+      file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
-      project_dir = SourceFile.path_from_uri(root_uri())
+      project_dir = SourceFile.Path.from_uri(root_uri())
 
       initialize(server)
 
@@ -1382,10 +1380,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
        } do
     in_fixture(__DIR__, "umbrella_test_code_lens_custom_path_and_pattern", fn ->
       file_path = "apps/app1/custom_path/fixture_custom_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
-      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      file_uri = SourceFile.Path.to_uri(file_path)
+      file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
-      project_dir = SourceFile.path_from_uri("#{root_uri()}/apps/app1")
+      project_dir = SourceFile.Path.from_uri("#{root_uri()}/apps/app1")
 
       initialize(server)
 

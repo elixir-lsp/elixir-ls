@@ -38,7 +38,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   test "finds local, remote and imported references to a function" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {1, 8}
 
@@ -58,7 +58,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   test "finds local, remote and imported references to a macro" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {8, 12}
 
@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   test "find a references to a macro generated function call" do
     file_path = FixtureHelpers.get_path("uses_macro_a.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {6, 13}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
@@ -100,7 +100,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   test "finds a references to a macro imported function call" do
     file_path = FixtureHelpers.get_path("uses_macro_a.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {10, 4}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
@@ -122,7 +122,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   test "finds references to a variable" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {4, 14}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
@@ -151,7 +151,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   test "finds references to an attribute" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {24, 5}
 
     ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """

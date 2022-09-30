@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "no mixfile" do
     in_fixture(Path.join(__DIR__, ".."), "no_mixfile", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       defmodule MyModule do
@@ -60,7 +60,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "no project dir" do
     in_fixture(Path.join(__DIR__, ".."), "no_mixfile", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       defmodule MyModule do
@@ -110,7 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "Formats a file with LF line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       defmodule MyModule do
@@ -160,7 +160,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "Formats a file with CRLF line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       defmodule MyModule do
@@ -247,7 +247,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "elixir formatter does not support CR line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       defmodule MyModule do
@@ -278,7 +278,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "formatting preserves line indings inside a string" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       defmodule MyModule do
@@ -333,7 +333,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "returns an error when formatting a file with a syntax error" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       defmodule MyModule do
@@ -362,7 +362,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "Proper utf-16 format: emoji 😀" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       IO.puts "😀"
@@ -401,7 +401,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "Proper utf-16 format: emoji 🏳️‍🌈" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       IO.puts "🏳️‍🌈"
@@ -440,7 +440,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   test "Proper utf-16 format: zalgo" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
       path = "lib/file.ex"
-      uri = SourceFile.path_to_uri(path)
+      uri = SourceFile.Path.to_uri(path)
 
       text = """
       IO.puts "ẕ̸͇̞̲͇͕̹̙̄͆̇͂̏̊͒̒̈́́̕͘͠͝à̵̢̛̟̞͚̟͖̻̹̮̘͚̻͍̇͂̂̅́̎̉͗́́̃̒l̴̻̳͉̖̗͖̰̠̗̃̈́̓̓̍̅͝͝͝g̷̢͚̠̜̿̊́̋͗̔ȍ̶̹̙̅̽̌̒͌͋̓̈́͑̏͑͊͛͘ ̸̨͙̦̫̪͓̠̺̫̖͙̫̏͂̒̽́̿̂̊́͂͋͜͠͝͝ṭ̴̜͎̮͉̙͍͔̜̾͋͒̓̏̉̄͘͠͝ͅę̷̡̭̹̰̺̩̠͓͌̃̕͜͝ͅͅx̵̧͍̦͈͍̝͖͙̘͎̥͕̾̾̍̀̿̔̄̑̈͝t̸̛͇̀̕"
@@ -522,6 +522,6 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
     }
 
     File.write!(path, " asd  = 1")
-    Formatting.format(source_file, SourceFile.path_to_uri(path), project_dir)
+    Formatting.format(source_file, SourceFile.Path.to_uri(path), project_dir)
   end
 end

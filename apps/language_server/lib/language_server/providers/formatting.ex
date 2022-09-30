@@ -65,7 +65,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
   # fine if the file we're trying to format is in that app. Otherwise, we return an error.
   defp can_format?(file_uri = "file:" <> _, project_dir) do
-    file_path = file_uri |> SourceFile.abs_path_from_uri()
+    file_path = SourceFile.Path.absolute_from_uri(file_uri)
 
     String.starts_with?(file_path, Path.absname(project_dir)) or
       String.starts_with?(file_path, File.cwd!())
@@ -74,7 +74,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   defp can_format?(_uri, _project_dir), do: false
 
   defp should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
-    file_path = file_uri |> SourceFile.abs_path_from_uri()
+    file_path = SourceFile.Path.absolute_from_uri(file_uri)
     formatter_dir = find_formatter_dir(project_dir, Path.dirname(file_path))
 
     Enum.any?(inputs, fn input_glob ->

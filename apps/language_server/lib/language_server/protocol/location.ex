@@ -18,7 +18,7 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
     uri =
       case file do
         nil -> current_file_uri
-        _ -> SourceFile.path_to_uri(file)
+        _ -> SourceFile.Path.to_uri(file)
       end
 
     text =

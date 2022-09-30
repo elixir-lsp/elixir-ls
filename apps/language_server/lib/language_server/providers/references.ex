@@ -51,7 +51,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
       nil -> current_file_uri
       # ElixirSense returns a plain path (e.g. "/home/bob/my_app/lib/a.ex") as
       # the "uri" so we convert it to an actual uri
-      path when is_binary(path) -> SourceFile.path_to_uri(path)
+      path when is_binary(path) -> SourceFile.Path.to_uri(path)
     end
   end
 

@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> process_chunked(fn chunk ->
         for {module, beam_file} <- chunk,
             path = find_module_path(module, beam_file),
-            SourceFile.path_to_uri(path) in modified_uris,
+            SourceFile.Path.to_uri(path) in modified_uris,
             do: {module, path}
       end)
 
@@ -487,7 +487,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       kind: @symbol_codes |> Map.fetch!(key),
       name: symbol_name(key, symbol),
       location: %{
-        uri: SourceFile.path_to_uri(path),
+        uri: SourceFile.Path.to_uri(path),
         range: build_range(location)
       }
     }

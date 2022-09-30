@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
 
     file_path = FixtureHelpers.get_path("example_behaviour.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {0, 43}
 

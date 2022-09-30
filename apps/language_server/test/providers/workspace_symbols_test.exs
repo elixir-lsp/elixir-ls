@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
     fixture_uri =
       ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols.module_info(:compile)[:source]
       |> List.to_string()
-      |> ElixirLS.LanguageServer.SourceFile.path_to_uri()
+      |> ElixirLS.LanguageServer.SourceFile.Path.to_uri()
 
     :sys.replace_state(pid, fn _ ->
       %{

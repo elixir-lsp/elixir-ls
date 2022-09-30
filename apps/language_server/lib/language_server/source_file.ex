@@ -62,108 +62,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     apply_content_changes(source_file, rest)
   end
 
-  @doc """
-  Returns path from URI in a way that handles windows file:///c%3A/... URLs correctly
-  """
-  def path_from_uri(%URI{scheme: "file", path: path, authority: authority}) do
-    uri_path =
-      cond do
-        path == nil ->
-          # treat no path as root path
-          "/"
-
-        authority not in ["", nil] and path not in ["", nil] ->
-          # UNC path
-          "//#{URI.decode(authority)}#{URI.decode(path)}"
-
-        true ->
-          decoded_path = URI.decode(path)
-
-          if match?({:win32, _}, :os.type()) and
-               String.match?(decoded_path, ~r/^\/[a-zA-Z]:/) do
-            # Windows drive letter path
-            # drop leading `/` and downcase drive letter
-            <<_, letter, path_rest::binary>> = decoded_path
-            <<downcase(letter), path_rest::binary>>
-          else
-            decoded_path
-          end
-      end
-
-    case :os.type() do
-      {:win32, _} ->
-        # convert path separators from URI to Windows
-        String.replace(uri_path, ~r/\//, "\\")
-
-      _ ->
-        uri_path
-    end
-  end
-
-  def path_from_uri(%URI{scheme: scheme}) do
-    raise ArgumentError, message: "unexpected URI scheme #{inspect(scheme)}"
-  end
-
-  def path_from_uri(uri) do
-    uri |> URI.parse() |> path_from_uri
-  end
-
-  def path_to_uri(path) do
-    path = Path.expand(path)
-
-    path =
-      case :os.type() do
-        {:win32, _} ->
-          # convert path separators from Windows to URI
-          String.replace(path, ~r/\\/, "/")
-
-        _ ->
-          path
-      end
-
-    {authority, path} =
-      case path do
-        "//" <> rest ->
-          # UNC path - extract authority
-          case String.split(rest, "/", parts: 2) do
-            [_] ->
-              # no path part, use root path
-              {rest, "/"}
-
-            [a, ""] ->
-              # empty path part, use root path
-              {a, "/"}
-
-            [a, p] ->
-              {a, "/" <> p}
-          end
-
-        "/" <> _rest ->
-          {"", path}
-
-        other ->
-          # treat as relative to root path
-          {"", "/" <> other}
-      end
-
-    %URI{
-      scheme: "file",
-      authority: authority |> URI.encode(),
-      # file system paths allow reserved URI characters that need to be escaped
-      # the exact rules are complicated but for simplicity we escape all reserved except `/`
-      # that's what https://github.com/microsoft/vscode-uri does
-      path: path |> URI.encode(&(&1 == ?/ or URI.char_unreserved?(&1)))
-    }
-    |> URI.to_string()
-  end
-
-  defp downcase(char) when char >= ?A and char <= ?Z, do: char + 32
-  defp downcase(char), do: char
-
-  def abs_path_from_uri(uri) do
-    uri |> path_from_uri |> Path.absname()
-  end
-
   def full_range(source_file) do
     lines = lines(source_file)
 
@@ -336,7 +234,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   @spec formatter_for(String.t()) :: {:ok, keyword()} | :error
   def formatter_for(uri = "file:" <> _) do
-    path = path_from_uri(uri)
+    path = __MODULE__.Path.from_uri(uri)
 
     try do
       true = Code.ensure_loaded?(Mix.Tasks.Format)
