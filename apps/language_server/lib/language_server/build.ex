@@ -79,6 +79,11 @@ defmodule ElixirLS.LanguageServer.Build do
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
+      # we need to reset compiler options
+      # project may leave tracers after previous compilation and we don't woant them interfeering
+      # see https://github.com/elixir-lsp/elixir-ls/issues/717
+      set_compiler_options()
+
       # We can get diagnostics if Mixfile fails to load
       {status, diagnostics} =
         case Kernel.ParallelCompiler.compile([mixfile]) do
