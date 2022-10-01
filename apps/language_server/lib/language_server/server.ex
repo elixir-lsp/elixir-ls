@@ -863,7 +863,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(
          state = %__MODULE__{project_dir: project_dir},
-         uri,
+         "file:" <> _ = uri,
          source_file,
          true = _enabled,
          true = _umbrella
@@ -888,7 +888,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(
          %__MODULE__{project_dir: project_dir},
-         uri,
+         "file:" <> _ = uri,
          source_file,
          true = _enabled,
          false = _umbrella
