@@ -10,7 +10,13 @@ defmodule ElixirLS.LanguageServer.CLI do
     # :logger application is already started
     # replace console logger with LSP
     Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
-    Application.put_env(:logger, Logger.Backends.JsonRpc, [level: :debug, format: "$message", metadata: []])
+
+    Application.put_env(:logger, Logger.Backends.JsonRpc,
+      level: :debug,
+      format: "$message",
+      metadata: []
+    )
+
     {:ok, _} = Logger.add_backend(Logger.Backends.JsonRpc)
     :ok = Logger.remove_backend(:console, flush: true)
 
