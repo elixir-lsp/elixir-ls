@@ -1,4 +1,4 @@
-defmodule Logger.Backends.Console do
+defmodule Logger.Backends.JsonRpc do
   @moduledoc ~S"""
   A logger backend that logs messages by printing them to the console.
 
