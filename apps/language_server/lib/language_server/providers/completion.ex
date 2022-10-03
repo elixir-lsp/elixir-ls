@@ -587,6 +587,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     "defmodule #{suggest_module_name(file_path)}$1 do\n\t$0\nend"
   end
 
+  defp snippet_for({"Kernel", "defprotocol"}, %{file_path: file_path})
+       when is_binary(file_path) do
+    "defprotocol #{suggest_module_name(file_path)}$1 do\n\t$0\nend"
+  end
+
   defp snippet_for(key, %{pipe_before?: true}) do
     # Get pipe-friendly version of snippet if available, otherwise fallback to standard
     Map.get(@pipe_func_snippets, key) || Map.get(@func_snippets, key)

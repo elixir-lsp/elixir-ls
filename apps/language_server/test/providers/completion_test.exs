@@ -990,6 +990,62 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                "insertText" => "defmodule $1 do\n\t$0\nend"
              } = first
     end
+
+    test "will suggest defprotocol with protocol_name snippet when file path matches **/lib/**/*.ex" do
+      text = """
+      defpro
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.ex"
+                 )
+               )
+
+      assert %{
+               "label" => "defprotocol",
+               "insertText" => "defprotocol MyProject.SubFolder.MyFile$1 do\n\t$0\nend"
+             } = first
+    end
+
+    test "will suggest defprotocol without protocol_name snippet when file path does not match expected patterns" do
+      text = """
+      defpro
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.heex"
+                 )
+               )
+
+      assert %{
+               "label" => "defprotocol",
+               "insertText" => "defprotocol $1 do\n\t$0\nend"
+             } = first
+    end
   end
 
   describe "generic suggestions" do
