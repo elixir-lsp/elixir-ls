@@ -26,14 +26,7 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     start_language_server()
 
-    Logger.debug("Started ElixirLS v#{Launch.language_server_version()}")
     Logger.info("Started ElixirLS v#{Launch.language_server_version()}")
-    Logger.notice("Started ElixirLS v#{Launch.language_server_version()}")
-    Logger.warn("Started ElixirLS v#{Launch.language_server_version()}")
-    Logger.error("Started ElixirLS v#{Launch.language_server_version()}")
-    Logger.critical("Started ElixirLS v#{Launch.language_server_version()}")
-    Logger.alert("Started ElixirLS v#{Launch.language_server_version()}")
-    Logger.emergency("Started ElixirLS v#{Launch.language_server_version()}")
 
     Launch.print_versions()
     Launch.limit_num_schedulers()
