@@ -20,8 +20,6 @@ defmodule Logger.Backends.JsonRpc do
       Setting `:metadata` to `:all` prints all metadata. See
       the "Metadata" section for more information.
 
-    * `:colors` - a keyword list of coloring options.
-
     * `:device` - the device to log error messages to. Defaults to
       `:user` but can be changed to something else such as `:standard_error`.
 
@@ -30,28 +28,12 @@ defmodule Logger.Backends.JsonRpc do
       Once the buffer is full, the backend will block until
       a confirmation is received.
 
-  The supported keys in the `:colors` keyword list are:
-
-    * `:enabled` - boolean value that allows for switching the
-      coloring on and off. Defaults to: `IO.ANSI.enabled?/0`
-
-    * `:debug` - color for debug messages. Defaults to: `:cyan`
-
-    * `:info` - color for info and notice messages. Defaults to: `:normal`
-
-    * `:warning` - color for warning messages. Defaults to: `:yellow`
-
-    * `:error` - color for error and higher messages. Defaults to: `:red`
-
-  See the `IO.ANSI` module for a list of colors and attributes.
-
   """
 
   @behaviour :gen_event
 
   defstruct buffer: [],
             buffer_size: 0,
-            colors: nil,
             device: nil,
             format: nil,
             level: nil,
@@ -153,7 +135,6 @@ defmodule Logger.Backends.JsonRpc do
     level = Keyword.get(config, :level)
     device = Keyword.get(config, :device, :user)
     format = Logger.Formatter.compile(Keyword.get(config, :format))
-    colors = configure_colors(config)
     metadata = Keyword.get(config, :metadata, []) |> configure_metadata()
     max_buffer = Keyword.get(config, :max_buffer, 32)
 
@@ -162,7 +143,6 @@ defmodule Logger.Backends.JsonRpc do
       | format: format,
         metadata: metadata,
         level: level,
-        colors: colors,
         device: device,
         max_buffer: max_buffer
     }
@@ -173,35 +153,8 @@ defmodule Logger.Backends.JsonRpc do
 
   defp configure_merge(env, options) do
     Keyword.merge(env, options, fn
-      :colors, v1, v2 -> Keyword.merge(v1, v2)
       _, _v1, v2 -> v2
     end)
-  end
-
-  defp configure_colors(config) do
-    colors = Keyword.get(config, :colors, [])
-
-    warning =
-      Keyword.get_lazy(colors, :warning, fn ->
-        # TODO: Deprecate :warn option on Elixir v1.19
-        if warn = Keyword.get(colors, :warn) do
-          warn
-        else
-          :yellow
-        end
-      end)
-
-    %{
-      emergency: Keyword.get(colors, :error, :red),
-      alert: Keyword.get(colors, :error, :red),
-      critical: Keyword.get(colors, :error, :red),
-      error: Keyword.get(colors, :error, :red),
-      warning: warning,
-      notice: Keyword.get(colors, :info, :normal),
-      info: Keyword.get(colors, :info, :normal),
-      debug: Keyword.get(colors, :debug, :cyan),
-      enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
-    }
   end
 
   defp log_event(level, msg, ts, md, %{device: device} = state) do
@@ -248,11 +201,10 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   defp format_event(level, msg, ts, md, state) do
-    %{format: format, metadata: keys, colors: colors} = state
+    %{format: format, metadata: keys} = state
 
     format
     |> Logger.Formatter.format(level, msg, ts, take_metadata(md, keys))
-    |> color_event(level, colors, md)
   end
 
   defp take_metadata(metadata, :all) do
@@ -266,13 +218,6 @@ defmodule Logger.Backends.JsonRpc do
         :error -> acc
       end
     end)
-  end
-
-  defp color_event(data, _level, %{enabled: false}, _md), do: data
-
-  defp color_event(data, level, %{enabled: true} = colors, md) do
-    color = md[:ansi_color] || Map.fetch!(colors, level)
-    [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
   end
 
   defp log_buffer(%{buffer_size: 0, buffer: []} = state), do: state
