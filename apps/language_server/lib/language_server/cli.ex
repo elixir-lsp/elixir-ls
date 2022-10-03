@@ -2,16 +2,33 @@ defmodule ElixirLS.LanguageServer.CLI do
   alias ElixirLS.Utils.{WireProtocol, Launch}
   alias ElixirLS.LanguageServer.JsonRpc
   alias ElixirLS.LanguageServer.Build
+  require Logger
 
   def main do
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
+
+    # :logger application is already started
+    # replace console logger with LSP
+    Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
+    Application.put_env(:logger, Logger.Backends.JsonRpc, [level: :debug, format: "$message", metadata: []])
+    {:ok, _} = Logger.add_backend(Logger.Backends.JsonRpc)
+    :ok = Logger.remove_backend(:console, flush: true)
+
     Launch.start_mix()
 
     Build.set_compiler_options()
 
     start_language_server()
 
-    IO.puts("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.debug("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.info("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.notice("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.warn("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.error("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.critical("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.alert("Started ElixirLS v#{Launch.language_server_version()}")
+    Logger.emergency("Started ElixirLS v#{Launch.language_server_version()}")
+
     Launch.print_versions()
     Launch.limit_num_schedulers()
 

@@ -1,6 +1,6 @@
 defmodule Logger.Backends.JsonRpc do
   @moduledoc ~S"""
-  A logger backend that logs messages by sending them via ‘window/logMessage’.
+  A logger backend that logs messages by sending them via LSP ‘window/logMessage’.
 
   ## Options
 
@@ -9,7 +9,7 @@ defmodule Logger.Backends.JsonRpc do
       `:level` configuration for the `:logger` application first.
 
     * `:format` - the format message used to print logs.
-      Defaults to: `"\n$time $metadata[$level] $message\n"`.
+      Defaults to: `"$message"`.
       It may also be a `{module, function}` tuple that is invoked
       with the log level, the message, the current timestamp and
       the metadata and must return `t:IO.chardata/0`. See
@@ -26,18 +26,17 @@ defmodule Logger.Backends.JsonRpc do
 
   defstruct format: nil,
             level: nil,
-            metadata: nil,
-            output: nil
+            metadata: nil
 
   @impl true
-  def init(:json_rpc) do
-    config = Application.get_env(:logger, :json_rpc)
+  def init(__MODULE__) do
+    config = Application.get_env(:logger, __MODULE__)
 
     {:ok, init(config, %__MODULE__{})}
   end
 
   def init({__MODULE__, opts}) when is_list(opts) do
-    config = configure_merge(Application.get_env(:logger, :json_rpc), opts)
+    config = configure_merge(Application.get_env(:logger, __MODULE__), opts)
     {:ok, init(config, %__MODULE__{})}
   end
 
@@ -93,8 +92,8 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   defp configure(options, state) do
-    config = configure_merge(Application.get_env(:logger, :json_rpc), options)
-    Application.put_env(:logger, :json_rpc, config)
+    config = configure_merge(Application.get_env(:logger, __MODULE__), options)
+    Application.put_env(:logger, __MODULE__, config)
     init(config, state)
   end
 
@@ -121,9 +120,20 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   defp log_event(level, msg, ts, md, state) do
-    output = format_event(level, msg, ts, md, state)
-    %{state | output: output}
+    output = format_event(level, msg, ts, md, state) |> IO.chardata_to_string()
+    ElixirLS.LanguageServer.JsonRpc.log_message(elixir_log_level_to_lsp(level), output)
+    state
   end
+
+  defp elixir_log_level_to_lsp(:debug), do: :log
+  defp elixir_log_level_to_lsp(:info), do: :info
+  defp elixir_log_level_to_lsp(:notice), do: :info
+  defp elixir_log_level_to_lsp(:warning), do: :warning
+  defp elixir_log_level_to_lsp(:warn), do: :warning
+  defp elixir_log_level_to_lsp(:error), do: :error
+  defp elixir_log_level_to_lsp(:critical), do: :error
+  defp elixir_log_level_to_lsp(:alert), do: :error
+  defp elixir_log_level_to_lsp(:emergency), do: :error
 
   defp format_event(level, msg, ts, md, state) do
     %{format: format, metadata: keys} = state
