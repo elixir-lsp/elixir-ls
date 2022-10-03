@@ -23,21 +23,13 @@ defmodule Logger.Backends.JsonRpc do
     * `:device` - the device to log error messages to. Defaults to
       `:user` but can be changed to something else such as `:standard_error`.
 
-    * `:max_buffer` - maximum events to buffer while waiting
-      for a confirmation from the IO device (default: 32).
-      Once the buffer is full, the backend will block until
-      a confirmation is received.
-
   """
 
   @behaviour :gen_event
 
-  defstruct buffer: [],
-            buffer_size: 0,
-            device: nil,
+  defstruct device: nil,
             format: nil,
             level: nil,
-            max_buffer: nil,
             metadata: nil,
             output: nil,
             ref: nil
@@ -66,7 +58,7 @@ defmodule Logger.Backends.JsonRpc do
 
   @impl true
   def handle_event({level, _gl, {Logger, msg, ts, md}}, state) do
-    %{level: log_level, ref: ref, buffer_size: buffer_size, max_buffer: max_buffer} = state
+    %{level: log_level, ref: ref} = state
 
     {:erl_level, level} = List.keyfind(md, :erl_level, 0, {:erl_level, level})
 
@@ -76,13 +68,6 @@ defmodule Logger.Backends.JsonRpc do
 
       is_nil(ref) ->
         {:ok, log_event(level, msg, ts, md, state)}
-
-      buffer_size < max_buffer ->
-        {:ok, buffer_event(level, msg, ts, md, state)}
-
-      buffer_size === max_buffer ->
-        state = buffer_event(level, msg, ts, md, state)
-        {:ok, await_io(state)}
     end
   end
 
@@ -136,15 +121,13 @@ defmodule Logger.Backends.JsonRpc do
     device = Keyword.get(config, :device, :user)
     format = Logger.Formatter.compile(Keyword.get(config, :format))
     metadata = Keyword.get(config, :metadata, []) |> configure_metadata()
-    max_buffer = Keyword.get(config, :max_buffer, 32)
 
     %{
       state
       | format: format,
         metadata: metadata,
         level: level,
-        device: device,
-        max_buffer: max_buffer
+        device: device
     }
   end
 
@@ -160,12 +143,6 @@ defmodule Logger.Backends.JsonRpc do
   defp log_event(level, msg, ts, md, %{device: device} = state) do
     output = format_event(level, msg, ts, md, state)
     %{state | ref: async_io(device, output), output: output}
-  end
-
-  defp buffer_event(level, msg, ts, md, state) do
-    %{buffer: buffer, buffer_size: buffer_size} = state
-    buffer = [buffer | format_event(level, msg, ts, md, state)]
-    %{state | buffer: buffer, buffer_size: buffer_size + 1}
   end
 
   defp async_io(name, output) when is_atom(name) do
@@ -218,34 +195,6 @@ defmodule Logger.Backends.JsonRpc do
         :error -> acc
       end
     end)
-  end
-
-  defp log_buffer(%{buffer_size: 0, buffer: []} = state), do: state
-
-  defp log_buffer(state) do
-    %{device: device, buffer: buffer} = state
-    %{state | ref: async_io(device, buffer), buffer: [], buffer_size: 0, output: buffer}
-  end
-
-  defp handle_io_reply(:ok, %{ref: ref} = state) do
-    Process.demonitor(ref, [:flush])
-    log_buffer(%{state | ref: nil, output: nil})
-  end
-
-  defp handle_io_reply({:error, {:put_chars, :unicode, _} = error}, state) do
-    retry_log(error, state)
-  end
-
-  defp handle_io_reply({:error, :put_chars}, %{output: output} = state) do
-    retry_log({:put_chars, :unicode, output}, state)
-  end
-
-  defp handle_io_reply({:error, {:no_translation, _encoding_from, _encoding_to} = error}, state) do
-    retry_log(error, state)
-  end
-
-  defp handle_io_reply({:error, error}, _) do
-    raise "failure while logging json_rpc messages: " <> inspect(error)
   end
 
   defp retry_log(error, %{device: device, ref: ref, output: dirty} = state) do
