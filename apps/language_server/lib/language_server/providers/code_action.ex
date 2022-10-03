@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction do
     {:ok, actions}
   end
 
-  defp actions(uri, %{"message" => message, "range" => range} = diagnostic) do
+  defp actions(uri, %{"message" => message} = diagnostic) do
     [
       {~r/variable "(.*)" is unused/, &prefix_with_underscore/2},
       {~r/variable "(.*)" is unused/, &remove_variable/2}
@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction do
     |> Enum.map(fn {_r, fun} -> fun.(uri, diagnostic) end)
   end
 
-  defp prefix_with_underscore(uri, %{"message" => message, "range" => range} = diagnostic) do
+  defp prefix_with_underscore(uri, %{"range" => range}) do
     %{
       "title" => "Add '_' to unused variable",
       "kind" => "quickfix",
@@ -42,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction do
     }
   end
 
-  defp remove_variable(uri, %{"range" => range} = diagnostic) do
+  defp remove_variable(uri, %{"range" => range}) do
     %{
       "title" => "Remove unused variable",
       "kind" => "quickfix",
