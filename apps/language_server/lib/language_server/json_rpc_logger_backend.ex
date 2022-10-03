@@ -1,6 +1,6 @@
 defmodule Logger.Backends.JsonRpc do
   @moduledoc ~S"""
-  A logger backend that logs messages by printing them to the console.
+  A logger backend that logs messages by sending them via ‘window/logMessage’.
 
   ## Options
 
@@ -45,13 +45,6 @@ defmodule Logger.Backends.JsonRpc do
 
   See the `IO.ANSI` module for a list of colors and attributes.
 
-  Here is an example of how to configure the `:console` backend in a
-  `config/config.exs` file:
-
-      config :logger, :console,
-        format: "\n$time $metadata[$level] $message\n",
-        metadata: [:user_id]
-
   """
 
   @behaviour :gen_event
@@ -68,8 +61,8 @@ defmodule Logger.Backends.JsonRpc do
             ref: nil
 
   @impl true
-  def init(:console) do
-    config = Application.get_env(:logger, :console)
+  def init(:json_rpc) do
+    config = Application.get_env(:logger, :json_rpc)
     device = Keyword.get(config, :device, :user)
 
     if Process.whereis(device) do
@@ -80,7 +73,7 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   def init({__MODULE__, opts}) when is_list(opts) do
-    config = configure_merge(Application.get_env(:logger, :console), opts)
+    config = configure_merge(Application.get_env(:logger, :json_rpc), opts)
     {:ok, init(config, %__MODULE__{})}
   end
 
@@ -151,8 +144,8 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   defp configure(options, state) do
-    config = configure_merge(Application.get_env(:logger, :console), options)
-    Application.put_env(:logger, :console, config)
+    config = configure_merge(Application.get_env(:logger, :json_rpc), options)
+    Application.put_env(:logger, :json_rpc, config)
     init(config, state)
   end
 
@@ -307,7 +300,7 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   defp handle_io_reply({:error, error}, _) do
-    raise "failure while logging console messages: " <> inspect(error)
+    raise "failure while logging json_rpc messages: " <> inspect(error)
   end
 
   defp retry_log(error, %{device: device, ref: ref, output: dirty} = state) do
@@ -326,7 +319,7 @@ defmodule Logger.Backends.JsonRpc do
 
       _ ->
         # A well behaved IO device should not error on good data
-        raise "failure while logging consoles messages: " <> inspect(error)
+        raise "failure while logging json_rpc messages: " <> inspect(error)
     end
   end
 
