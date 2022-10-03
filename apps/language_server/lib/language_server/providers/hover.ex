@@ -162,7 +162,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     ("Elixir." <> mod_name) |> String.to_atom() |> function_exported?(:__info__, 1)
   end
 
-  defp third_dep?(source, nil), do: false
+  defp third_dep?(_source, nil), do: false
 
   defp third_dep?(source, project_dir) do
     prefix = project_dir <> "/deps"
