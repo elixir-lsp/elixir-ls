@@ -47,25 +47,39 @@ defmodule ElixirLS.LanguageServer.CLI do
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
   end
 
-  defp start_language_server do
+  defp incomplete_installation_message(hash \\ "") do
     guide =
       "https://github.com/elixir-lsp/elixir-ls/blob/master/guides/incomplete-installation.md"
 
+    "Unable to start ElixirLS due to an incomplete erlang installation. " <>
+      "See #{guide}#{hash} for guidance."
+  end
+
+  defp start_language_server do
     case Application.ensure_all_started(:language_server, :temporary) do
       {:ok, _} ->
         :ok
 
       {:error, {:edoc, {'no such file or directory', 'edoc.app'}}} ->
-        raise "Unable to start ElixirLS due to an incomplete erlang installation. " <>
-                "See #{guide}#edoc-missing for guidance."
+        message = incomplete_installation_message("#edoc-missing")
+
+        JsonRpc.show_message(:error, message)
+        Process.sleep(5000)
+        raise message
 
       {:error, {:dialyzer, {'no such file or directory', 'dialyzer.app'}}} ->
-        raise "Unable to start ElixirLS due to an incomplete erlang installation. " <>
-                "See #{guide}#dialyzer-missing for guidance."
+        message = incomplete_installation_message("#dialyzer-missing")
+
+        JsonRpc.show_message(:error, message)
+        Process.sleep(5000)
+        raise message
 
       {:error, _} ->
-        raise "Unable to start ElixirLS due to an incomplete erlang installation. " <>
-                "See #{guide} for guidance."
+        message = incomplete_installation_message()
+
+        JsonRpc.show_message(:error, message)
+        Process.sleep(5000)
+        raise message
     end
   end
 end
