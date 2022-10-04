@@ -12,7 +12,7 @@ Improvements:
 - Debugger completions now return detal field
 - Diagnostic positions now return column position returned by compiler (elixir 1.14+)
 - Diagnostic position fixed to never return invalid negative values
-- An exat `do` keyword completion is now preselected and more preferred over `defoverridable`
+- An exact `do` keyword completion is now preselected and more preferred over `defoverridable`
 - Fixed hexdoc links in hover for aliased modules and imported functions ([Milo Lee](https://github.com/oo6))
 - Better module name suggestions in Phoenix `live` directory ([Manos Emmanouilidis](https://github.com/bottlenecked))
 
@@ -29,7 +29,7 @@ Improvements to debugger addapter:
 - Messages in the queue of debugged process can now be examined [#681](https://github.com/elixir-lsp/elixir-ls/pull/681) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 - Debugger can now handle pause and terminateThread requests [#675](https://github.com/elixir-lsp/elixir-ls/pull/675) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 - Clipboard and hover eval is now supported in debugger [#680](https://github.com/elixir-lsp/elixir-ls/pull/680) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
-- Auto interpretting can now be disabled [#616](https://github.com/elixir-lsp/elixir-ls/pull/616) (thanks [Jason Axelson](https://github.com/axelson))
+- Auto interpreting can now be disabled [#616](https://github.com/elixir-lsp/elixir-ls/pull/616) (thanks [Jason Axelson](https://github.com/axelson))
 - Debugger conforms better to DAP 1.51 specification [#678](https://github.com/elixir-lsp/elixir-ls/pull/678) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 
 Improvements to language server:
@@ -63,7 +63,7 @@ VSCode:
 - Improved regex with < highlighting [#226](https://github.com/elixir-lsp/vscode-elixir-ls/pull/226) (thanks [Tiago Moraes](https://github.com/tiagoefmoraes))
 - Extension updated to use LSP v3.16 [#227](https://github.com/elixir-lsp/vscode-elixir-ls/pull/227) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 
-Houskeeping:
+Housekeeping:
 
 thanks [Łukasz Samson](https://github.com/lukaszsamson), [Thanabodee Charoenpiriyakij](https://github.com/wingyplus), [Daniils Petrovs](https://github.com/DaniruKun), [Jason Axelson](https://github.com/axelson)
 

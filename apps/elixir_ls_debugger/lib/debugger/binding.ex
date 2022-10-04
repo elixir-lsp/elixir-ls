@@ -8,7 +8,7 @@ defmodule ElixirLS.Debugger.Binding do
     end)
     |> Enum.map(fn {classic_key, list} ->
       # assume binding with highest number is the current one
-      # this may not be allways true, e.g. in
+      # this may not be always true, e.g. in
       # a = 5
       # if true do
       #   a = 4

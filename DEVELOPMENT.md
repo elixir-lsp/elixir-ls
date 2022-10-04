@@ -12,7 +12,7 @@ ElixirLS generally aims to support the last 3 versions of Elixir and the last 3 
 
 ## Packaging
 
-Follow those instuctions when publishing a new release.
+Follow those instructions when publishing a new release.
 
 1. Bump the changelog
 2. Bump the version numbers in `apps/elixir_ls_debugger/mix.exs`, `apps/elixir_ls_utils/mix.exs`, and `apps/language_server/mix.exs`
