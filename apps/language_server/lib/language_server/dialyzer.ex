@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, Utils, SuccessTypings}
   import Utils
   use GenServer
+  require Logger
 
   defstruct [
     :parent,
@@ -147,7 +148,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     state =
       ElixirLS.LanguageServer.Build.with_build_lock(fn ->
         if Mix.Project.get() do
-          JsonRpc.log_message(:info, "[ElixirLS Dialyzer] Checking for stale beam files")
+          Logger.info("[ElixirLS Dialyzer] Checking for stale beam files")
           new_timestamp = adjusted_timestamp()
 
           {removed_files, file_changes} =
@@ -261,8 +262,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {changed, changed_contents}
       end)
 
-    JsonRpc.log_message(
-      :info,
+    Logger.info(
       "[ElixirLS Dialyzer] Found #{length(changed)} changed files in #{div(us, 1000)} milliseconds"
     )
 
@@ -338,7 +338,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               :ok
 
             {:error, reason} ->
-              IO.warn("Unable to remove temporary file #{path}: #{inspect(reason)}")
+              Logger.warn("Unable to remove temporary file #{path}: #{inspect(reason)}")
           end
         end
 
@@ -375,8 +375,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         warnings = Map.drop(warnings, modules_to_analyze)
 
         # Analyze!
-        JsonRpc.log_message(
-          :info,
+        Logger.info(
           "[ElixirLS Dialyzer] Analyzing #{Enum.count(modules_to_analyze)} modules: " <>
             "#{inspect(modules_to_analyze)}"
         )
@@ -396,10 +395,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {active_plt, mod_deps, md5, warnings}
       end)
 
-    JsonRpc.log_message(
-      :info,
-      "[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds"
-    )
+    Logger.info("[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds")
 
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
   end
@@ -507,7 +503,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp normalize_postion(position) do
-    IO.warn("dialyzer returned warning with invalid position #{inspect(position)}")
+    Logger.warn("dialyzer returned warning with invalid position #{inspect(position)}")
     0
   end
 
@@ -534,8 +530,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp warning_message(raw_warning, warning_format) do
-    JsonRpc.log_message(
-      :info,
+    Logger.info(
       "[ElixirLS Dialyzer] Unrecognized dialyzerFormat setting: #{inspect(warning_format)}" <>
         ", falling back to \"dialyzer\""
     )

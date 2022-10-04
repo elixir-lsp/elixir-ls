@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   require Record
+  require Logger
 
   # warn_race_condition is unsupported because it greatly increases analysis time
   # OTP 25 dropped support for warn_race_condition
@@ -178,7 +179,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   end
 
   defp print_failure(reason, log_cache) do
-    IO.puts("Analysis failed: " <> Exception.format_exit(reason))
-    for msg <- log_cache, do: IO.puts(msg)
+    message =
+      "Analysis failed: " <> Exception.format_exit(reason) <> "\n" <> Enum.join(log_cache, "\n")
+
+    Logger.error(message)
   end
 end

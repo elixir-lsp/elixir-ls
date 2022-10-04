@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
   import ElixirLS.LanguageServer.Protocol
+  require Logger
 
   defstruct [:text, :version, dirty?: false]
 
@@ -248,7 +249,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       e ->
         message = Exception.message(e)
 
-        IO.warn(
+        Logger.warn(
           "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message}"
         )
 

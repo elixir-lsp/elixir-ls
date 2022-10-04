@@ -1,18 +1,18 @@
 defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, Tracer}
   alias ElixirLS.Utils.MixfileHelpers
+  require Logger
 
   def build(parent, root_path, opts) when is_binary(root_path) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
-      IO.puts("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
+      Logger.info("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
       {nil, nil}
     else
       spawn_monitor(fn ->
         with_build_lock(fn ->
           {us, _} =
             :timer.tc(fn ->
-              IO.puts("MIX_ENV: #{Mix.env()}")
-              IO.puts("MIX_TARGET: #{Mix.target()}")
+              Logger.info("Starting build with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}")
 
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
@@ -41,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Build do
             end)
 
           Tracer.save()
-          JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
+          Logger.info("Compile took #{div(us, 1000)} milliseconds")
         end)
       end)
     end
@@ -114,7 +114,7 @@ defmodule ElixirLS.LanguageServer.Build do
         "No mixfile found in project. " <>
           "To use a subdirectory, set `elixirLS.projectDir` in your settings"
 
-      JsonRpc.log_message(:info, msg <> ". Looked for mixfile at #{inspect(mixfile)}")
+      Logger.warn(msg <> ". Looked for mixfile at #{inspect(mixfile)}")
 
       :no_mixfile
     end
@@ -149,7 +149,7 @@ defmodule ElixirLS.LanguageServer.Build do
     if Enum.all?(results, &match?(:ok, &1)) do
       :ok
     else
-      JsonRpc.log_message(:error, "mix clean returned #{inspect(results)}")
+      Logger.error("mix clean returned #{inspect(results)}")
       {:error, :clean_failed}
     end
   end
@@ -166,10 +166,7 @@ defmodule ElixirLS.LanguageServer.Build do
         :ok
 
       {:error, reason} ->
-        JsonRpc.log_message(
-          :warning,
-          "Unable to purge consolidated protocols from #{path}: #{inspect(reason)}"
-        )
+        Logger.warn("Unable to purge consolidated protocols from #{path}: #{inspect(reason)}")
     end
 
     # NOTE this implementation is based on https://github.com/phoenixframework/phoenix/commit/b5580e9
