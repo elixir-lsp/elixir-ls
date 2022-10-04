@@ -28,7 +28,16 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     Logger.info("Started ElixirLS v#{Launch.language_server_version()}")
 
-    Launch.print_versions()
+    versions = Launch.get_versions()
+
+    Logger.info(
+      "ElixirLS built with elixir #{versions.compile_elixir_version} on OTP #{versions.compile_otp_version}"
+    )
+
+    Logger.info(
+      "Running on elixir #{versions.current_elixir_version} on OTP #{versions.current_otp_version}"
+    )
+
     Launch.limit_num_schedulers()
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
