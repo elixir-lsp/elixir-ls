@@ -7,8 +7,17 @@ defmodule ElixirLS.Debugger.CLI do
     Launch.start_mix()
     {:ok, _} = Application.ensure_all_started(:elixir_ls_debugger, :permanent)
 
-    IO.puts("Started ElixirLS debugger v#{Launch.debugger_version()}")
-    Launch.print_versions()
+    IO.puts("Started ElixirLS Debugger v#{Launch.debugger_version()}")
+    versions = Launch.get_versions()
+
+    IO.puts(
+      "ElixirLS Debugger built with elixir #{versions.compile_elixir_version} on OTP #{versions.compile_otp_version}"
+    )
+
+    IO.puts(
+      "Running on elixir #{versions.current_elixir_version} on OTP #{versions.current_otp_version}"
+    )
+
     Launch.limit_num_schedulers()
     warn_if_unsupported_version()
     WireProtocol.stream_packets(&Server.receive_packet/1)
