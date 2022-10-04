@@ -1094,7 +1094,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     case Dialyzer.check_support() do
       :ok -> :ok
-      {:error, msg} -> JsonRpc.show_message(:info, msg)
+      {:error, msg} -> JsonRpc.show_message(:warning, msg)
     end
 
     :ok
