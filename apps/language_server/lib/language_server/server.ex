@@ -1170,8 +1170,11 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       JsonRpc.show_message(
         :warning,
-        "You must restart ElixirLS after changing environment variables"
+        "Environment variables have changed. ElixirLS needs to restart"
       )
+
+      Process.sleep(5000)
+      System.halt(1)
     end
 
     state
@@ -1183,7 +1186,10 @@ defmodule ElixirLS.LanguageServer.Server do
     if is_nil(prev_env) or env == prev_env do
       Mix.env(String.to_atom(env))
     else
-      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix env")
+      JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
+
+      Process.sleep(5000)
+      System.halt(1)
     end
 
     state
@@ -1203,7 +1209,10 @@ defmodule ElixirLS.LanguageServer.Server do
     if is_nil(prev_target) or target == prev_target do
       Mix.target(String.to_atom(target))
     else
-      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix target")
+      JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
+
+      Process.sleep(5000)
+      System.halt(1)
     end
 
     state
@@ -1235,10 +1244,11 @@ defmodule ElixirLS.LanguageServer.Server do
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
           :warning,
-          "You must restart ElixirLS after changing the project directory"
+          "Project directory change detected. ElixirLS will restart"
         )
 
-        state
+        Process.sleep(5000)
+        System.halt(1)
 
       true ->
         state
