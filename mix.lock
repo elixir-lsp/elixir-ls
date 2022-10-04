@@ -8,6 +8,7 @@
   "jason_vendored": {:git, "https://github.com/elixir-lsp/jason.git", "ee95ca80cd67b3a499a14f469536140935eb4483", [branch: "vendored"]},
   "mix_task_archive_deps": {:git, "https://github.com/elixir-lsp/mix_task_archive_deps.git", "30fa76221def649286835685fec5d151be83c354", []},
   "nimble_parsec": {:hex, :nimble_parsec, "1.1.0", "3a6fca1550363552e54c216debb6a9e95bd8d32348938e13de5eda962c0d7f89", [:mix], [], "hexpm", "08eb32d66b706e913ff748f11694b17981c0b04a33ef470e33e11b3d3ac8f54b"},
+  "patch": {:hex, :patch, "0.12.0", "2da8967d382bade20344a3e89d618bfba563b12d4ac93955468e830777f816b0", [:mix], [], "hexpm", "ffd0e9a7f2ad5054f37af84067ee88b1ad337308a1cb227e181e3967127b0235"},
   "path_glob_vendored": {:git, "https://github.com/elixir-lsp/path_glob.git", "965350dc41def7be4a70a23904195c733a2ecc84", [branch: "vendored"]},
   "providers": {:hex, :providers, "1.8.1", "70b4197869514344a8a60e2b2a4ef41ca03def43cfb1712ecf076a0f3c62f083", [:rebar3], [{:getopt, "1.0.1", [hex: :getopt, repo: "hexpm", optional: false]}], "hexpm", "e45745ade9c476a9a469ea0840e418ab19360dc44f01a233304e118a44486ba0"},
   "stream_data": {:hex, :stream_data, "0.5.0", "b27641e58941685c75b353577dc602c9d2c12292dd84babf506c2033cd97893e", [:mix], [], "hexpm", "012bd2eec069ada4db3411f9115ccafa38540a3c78c4c0349f151fc761b9e271"},
