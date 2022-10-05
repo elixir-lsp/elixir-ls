@@ -7,7 +7,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   with the Language Server Protocol. We also attempt to determine the context based on the line
   text before the cursor so we can filter out suggestions that are not relevant.
   """
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
+  import ElixirLS.LanguageServer.Protocol, only: [range: 4]
 
   @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
   defstruct [
@@ -21,7 +23,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     :priority,
     :tags,
     :command,
-    {:preselect, false}
+    {:preselect, false},
+    :additional_text_edit
   ]
 
   @func_snippets %{
@@ -102,8 +105,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     # TODO: Don't call into here directly
     # Can we use ElixirSense.Providers.Suggestion? ElixirSense.suggestions/3
+    metadata = ElixirSense.Core.Parser.parse_string(text, true, true, line)
+
     env =
-      ElixirSense.Core.Parser.parse_string(text, true, true, line)
+      metadata
       |> ElixirSense.Core.Metadata.get_env(line)
 
     scope =
@@ -139,8 +144,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       module: env.module
     }
 
+    position_to_insert_alias =
+      ElixirSense.Core.Metadata.get_position_to_insert_alias(metadata, line) || {line, 0}
+
+    context =
+      Map.put(
+        context,
+        :position_to_insert_alias,
+        SourceFile.elixir_position_to_lsp(text, position_to_insert_alias)
+      )
+
     items =
-      ElixirSense.suggestions(text, line, character)
+      ElixirSense.suggestions(text, line, character, required_alias: true)
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
@@ -283,6 +298,44 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       priority: 15,
       tags: []
     }
+  end
+
+  defp from_completion_item(
+         %{
+           type: :module,
+           name: name,
+           summary: summary,
+           subtype: subtype,
+           metadata: metadata,
+           required_alias: required_alias
+         },
+         %{
+           def_before: nil,
+           position_to_insert_alias: {line_to_insert_alias, column_to_insert_alias}
+         },
+         options
+       ) do
+    completion_without_additional_text_edit =
+      from_completion_item(
+        %{type: :module, name: name, summary: summary, subtype: subtype, metadata: metadata},
+        %{def_before: nil},
+        options
+      )
+
+    alias_value =
+      Atom.to_string(required_alias)
+      |> String.replace_prefix("Elixir.", "")
+
+    indentation = 1..column_to_insert_alias//1 |> Enum.map(fn _ -> " " end) |> Enum.join()
+    alias_edit = indentation <> "alias " <> alias_value <> "\n"
+
+    struct(completion_without_additional_text_edit,
+      additional_text_edit: %TextEdit{
+        range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
+        newText: alias_edit
+      },
+      documentation: alias_value <> "\n" <> summary
+    )
   end
 
   defp from_completion_item(
@@ -989,6 +1042,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       "filterText" => item.filter_text,
       "sortText" => String.pad_leading(to_string(idx), 8, "0"),
       "insertText" => item.insert_text,
+      "additionalTextEdits" =>
+        if item.additional_text_edit do
+          [item.additional_text_edit]
+        else
+          nil
+        end,
       "command" => item.command,
       "insertTextFormat" =>
         if Keyword.get(options, :snippets_supported, false) do
