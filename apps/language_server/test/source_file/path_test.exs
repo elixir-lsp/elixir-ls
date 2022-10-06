@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.PathTest do
   use Patch
 
   import ElixirLS.LanguageServer.SourceFile.Path
+  import ElixirLS.LanguageServer.Test.PlatformTestHelpers
 
   defp patch_os(os_type, fun) do
     test = self()
