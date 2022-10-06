@@ -32,7 +32,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:dialyxir, "~> 1.0", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
       {:stream_data, "~> 0.5", only: :test},
-      {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"}
+      {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},
+      {:patch, "~> 0.12.0", only: :test}
     ]
   end
 
