@@ -63,20 +63,11 @@ defimpl Enumerable, for: ElixirLS.LanguageServer.SourceFile.Document do
     {:ok, Document.size(document), fn start, len -> do_slice(document, start, len) end}
   end
 
+  defp do_slice(%Document{} = document, start, 1) do
+    [:array.get(start, document.lines)]
+  end
+
   defp do_slice(%Document{} = document, start, length) do
     Enum.map(start..(start + length - 1), &:array.get(&1, document.lines))
   end
 end
-
-# defimpl String.Chars, for: ElixirLS.LanguageServer.SourceFile.Document do
-#   alias ElixirLS.LanguageServer.SourceFile.Document
-#   import ElixirLS.LanguageServer.SourceFile.Line
-
-#   def to_string(%Document{} = d) do
-#     d
-#     |> Enum.reduce([], fn line(text: text, ending: ending), acc ->
-#       [text, ending, acc]
-#     end)
-#     |> IO.inspect()
-#   end
-# end
