@@ -954,7 +954,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp sort_items(items) do
-    Enum.sort_by(items, fn %__MODULE__{priority: priority, label: label} ->
+    Enum.sort_by(items, fn %__MODULE__{priority: priority, label: label} = item ->
+      # deprioretize deprecated
+      priority =
+        if item.tags |> Enum.any?(&(&1 == :deprecated)) do
+          priority + 30
+        else
+          priority
+        end
+
       {priority, label =~ Regex.recompile!(~r/^[^a-zA-Z0-9]/), label}
     end)
   end

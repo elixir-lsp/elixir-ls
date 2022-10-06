@@ -327,9 +327,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # close notification send before
       JsonRpc.log_message(
         :warning,
-        "Received textDocument/didOpen for file that is already open. Received uri: #{
-          inspect(uri)
-        }"
+        "Received textDocument/didOpen for file that is already open. Received uri: #{inspect(uri)}"
       )
 
       state
