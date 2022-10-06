@@ -67,7 +67,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.Experimental do
     end
   end
 
-  def text(%__MODULE__{} = source) do
+  def to_string(%__MODULE__{} = source) do
     source
     |> to_iodata()
     |> IO.iodata_to_binary()
