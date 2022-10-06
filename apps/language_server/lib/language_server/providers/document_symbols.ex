@@ -60,6 +60,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     ast |> Enum.map(&extract_modules(&1)) |> List.flatten()
   end
 
+  # handle a bare defimpl, defprotocol or defmodule
+  defp extract_modules({defname, _, nil} = ast)
+       when defname in [:defmodule, :defprotocol, :defimpl] do
+    []
+  end
+
   defp extract_modules({defname, _, _child_ast} = ast)
        when defname in [:defmodule, :defprotocol, :defimpl] do
     [extract_symbol("", ast)]
@@ -72,6 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_modules(_ast), do: []
 
   # Modules, protocols
+
   defp extract_symbol(_module_name, {defname, location, arguments})
        when defname in [:defmodule, :defprotocol] do
     {module_name, module_name_location, module_body} =

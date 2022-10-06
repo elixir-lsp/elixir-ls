@@ -2474,4 +2474,24 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               }
             ]} = DocumentSymbols.symbols(uri, text, true)
   end
+
+  describe "invalid documents" do
+    test "handles a module being defined" do
+      uri = "file:///project.test.ex"
+      text = "defmodule "
+      assert {:ok, []} = DocumentSymbols.symbols(uri, text, true)
+    end
+
+    test "handles a protocol being defined" do
+      uri = "file:///project.test.ex"
+      text = "defprotocol "
+      assert {:ok, []} = DocumentSymbols.symbols(uri, text, true)
+    end
+
+    test "handles a protocol being impolemented" do
+      uri = "file:///project.test.ex"
+      text = "defimpl "
+      assert {:ok, []} = DocumentSymbols.symbols(uri, text, true)
+    end
+  end
 end
