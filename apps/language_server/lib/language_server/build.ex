@@ -62,27 +62,30 @@ defmodule ElixirLS.LanguageServer.Build do
     mixfile = Path.absname(MixfileHelpers.mix_exs())
 
     if File.exists?(mixfile) do
-      # FIXME: Private API
-      case Mix.ProjectStack.peek() do
-        %{file: ^mixfile, name: module} ->
-          # FIXME: Private API
-          Mix.Project.pop()
-          purge_module(module)
-
-        _ ->
-          :ok
+      if module = Mix.Project.get() do
+        # FIXME: Private API
+        Mix.Project.pop()
+        purge_module(module)
       end
 
-      Mix.Task.clear()
-
-      # Override build directory to avoid interfering with other dev tools
+      # We need to clear persistent cache, otherwise `deps.loadpaths` task fails with
+      # (Mix.Error) Can't continue due to errors on dependencies
+      # see https://github.com/elixir-lsp/elixir-ls/issues/120
+      # originally reported in https://github.com/JakeBecker/elixir-ls/issues/71
+      # Note that `Mix.State.clear_cache()` is not enough (at least on elixir 1.14)
       # FIXME: Private API
-      Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
+      Mix.Dep.clear_cached()
+
+      Mix.Task.clear()
 
       # we need to reset compiler options
       # project may leave tracers after previous compilation and we don't woant them interfeering
       # see https://github.com/elixir-lsp/elixir-ls/issues/717
       set_compiler_options()
+
+      # Override build directory to avoid interfering with other dev tools
+      # FIXME: Private API
+      Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
       # We can get diagnostics if Mixfile fails to load
       {status, diagnostics} =
