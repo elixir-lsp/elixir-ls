@@ -1,12 +1,14 @@
-defmodule ElixirLS.LanguageServer.SourceFile.ExperimentalTest do
+defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
   use ExUnit.Case, async: true
 
   use ExUnitProperties
   use Patch
 
   import ExUnit.CaptureIO
+  alias ElixirLS.LanguageServer.Experimental
   alias ElixirLS.LanguageServer.SourceFile
-  import ElixirLS.LanguageServer.SourceFile.Experimental
+
+  import ElixirLS.LanguageServer.Experimental.SourceFile, except: [to_string: 1]
 
   test "format_spec/2 with nil" do
     assert SourceFile.format_spec(nil, []) == ""
@@ -39,6 +41,10 @@ defmodule ElixirLS.LanguageServer.SourceFile.ExperimentalTest do
            ) :: String.t()
            ```
            """
+  end
+
+  def text(%Experimental.SourceFile{} = source) do
+    Experimental.SourceFile.to_string(source)
   end
 
   def new(text) do
@@ -720,12 +726,6 @@ defmodule ElixirLS.LanguageServer.SourceFile.ExperimentalTest do
 
         assert elixir_pos == SourceFile.lsp_position_to_elixir(text, lsp_pos)
       end
-    end
-  end
-
-  describe "lsp_character_to_elixir" do
-    test "it should handle a nil line" do
-      assert 0 = SourceFile.line_length_utf16(nil)
     end
   end
 

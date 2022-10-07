@@ -1,6 +1,6 @@
-defmodule ElixirLS.LanguageServer.SourceFile.LineParserTest do
-  alias ElixirLS.LanguageServer.SourceFile.LineParser
-  import ElixirLS.LanguageServer.SourceFile.Line
+defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParserTest do
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.LineParser
+  import ElixirLS.LanguageServer.Experimental.SourceFile.Line
   use ExUnit.Case
   use ExUnitProperties
 

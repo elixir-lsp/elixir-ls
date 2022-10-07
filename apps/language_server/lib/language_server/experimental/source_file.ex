@@ -1,10 +1,8 @@
-defmodule ElixirLS.LanguageServer.SourceFile.Experimental do
+defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirLS.LanguageServer.SourceFile.Document
-
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
-
-  import ElixirLS.LanguageServer.SourceFile.Line
+  import ElixirLS.LanguageServer.Experimental.SourceFile.Line
 
   defstruct [:uri, :path, :version, dirty?: false, document: nil]
 

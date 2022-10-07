@@ -1,5 +1,5 @@
-defmodule ElixirLS.LanguageServer.SourceFile.LineParser do
-  import ElixirLS.LanguageServer.SourceFile.Line
+defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
+  import ElixirLS.LanguageServer.Experimental.SourceFile.Line
 
   @endings ["\r\n", "\n", "\r"]
 

@@ -1,6 +1,6 @@
-defmodule ElixirLS.LanguageServer.SourceFile.Document do
-  alias ElixirLS.LanguageServer.SourceFile.LineParser
-  alias ElixirLS.LanguageServer.SourceFile.Line
+defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Document do
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.LineParser
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Line
 
   import Line
   defstruct lines: nil, starting_index: 1
@@ -42,8 +42,8 @@ defmodule ElixirLS.LanguageServer.SourceFile.Document do
   end
 end
 
-defimpl Enumerable, for: ElixirLS.LanguageServer.SourceFile.Document do
-  alias ElixirLS.LanguageServer.SourceFile.Document
+defimpl Enumerable, for: ElixirLS.LanguageServer.Experimental.SourceFile.Document do
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
 
   def count(%Document{} = document) do
     {:ok, Document.size(document)}

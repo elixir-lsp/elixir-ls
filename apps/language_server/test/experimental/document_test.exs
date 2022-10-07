@@ -1,6 +1,7 @@
-defmodule ElixirLS.LanguageServer.SourceFile.DocumentTest do
-  alias ElixirLS.LanguageServer.SourceFile.Document
-  alias ElixirLS.LanguageServer.SourceFile.Line
+defmodule ElixirLS.LanguageServer.Experimental.SourceFile.DocumentTest do
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Line
+
   use ExUnit.Case, async: true
   use ExUnitProperties
 
