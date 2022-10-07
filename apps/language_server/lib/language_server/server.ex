@@ -136,10 +136,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state = %__MODULE__{}) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
-        abs_path =
-          uri
-          |> SourceFile.abs_path_from_uri()
-
+        abs_path = SourceFile.Path.absolute_from_uri(uri)
         {:reply, Dialyzer.suggest_contracts([abs_path]), state}
 
       %{source_files: %{^uri => _}} ->
@@ -407,7 +404,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri = "file:" <> _, "type" => type} ->
-        path = SourceFile.path_from_uri(uri)
+        path = SourceFile.Path.from_uri(uri)
 
         relative_path = Path.relative_to(path, state.project_dir)
         first_path_segment = relative_path |> Path.split() |> hd
@@ -423,7 +420,7 @@ defmodule ElixirLS.LanguageServer.Server do
       for change <- changes,
           change["type"] == 3,
           uniq: true,
-          do: SourceFile.path_from_uri(change["uri"])
+          do: SourceFile.Path.from_uri(change["uri"])
 
     for path <- deleted_paths do
       Tracer.notify_file_deleted(path)
@@ -440,7 +437,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # file created/updated - set dirty flag to false if file contents are equal
           case acc[uri] do
             %SourceFile{text: source_file_text, dirty?: true} = source_file ->
-              case File.read(SourceFile.path_from_uri(uri)) do
+              case File.read(SourceFile.Path.from_uri(uri)) do
                 {:ok, ^source_file_text} ->
                   Map.put(acc, uri, %SourceFile{source_file | dirty?: false})
 
@@ -536,9 +533,9 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case root_uri do
         "file://" <> _ ->
-          root_path = SourceFile.abs_path_from_uri(root_uri)
+          root_path = SourceFile.Path.absolute_from_uri(root_uri)
           File.cd!(root_path)
-          cwd_uri = SourceFile.path_to_uri(File.cwd!())
+          cwd_uri = SourceFile.Path.to_uri(File.cwd!())
           %{state | root_uri: cwd_uri}
 
         nil ->
@@ -698,7 +695,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     path =
       case uri do
-        "file:" <> _ -> SourceFile.path_from_uri(uri)
+        "file:" <> _ -> SourceFile.Path.from_uri(uri)
         _ -> nil
       end
 
@@ -875,7 +872,7 @@ defmodule ElixirLS.LanguageServer.Server do
          true = _umbrella
        )
        when is_binary(project_dir) do
-    file_path = SourceFile.path_from_uri(uri)
+    file_path = SourceFile.Path.from_uri(uri)
 
     Mix.Project.apps_paths()
     |> Enum.find(fn {_app, app_path} -> String.contains?(file_path, app_path) end)
@@ -901,7 +898,7 @@ defmodule ElixirLS.LanguageServer.Server do
        )
        when is_binary(project_dir) do
     try do
-      file_path = SourceFile.path_from_uri(uri)
+      file_path = SourceFile.Path.from_uri(uri)
 
       if is_test_file?(file_path) do
         CodeLens.test_code_lens(uri, source_file.text, project_dir)
@@ -1038,14 +1035,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
       contracts_by_file =
         not_dirty
-        |> Enum.map(fn {_from, uri} -> SourceFile.path_from_uri(uri) end)
+        |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
         |> Dialyzer.suggest_contracts()
         |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
       for {from, uri} <- not_dirty do
         contracts =
           contracts_by_file
-          |> Map.get(SourceFile.path_from_uri(uri), [])
+          |> Map.get(SourceFile.Path.from_uri(uri), [])
 
         GenServer.reply(from, contracts)
       end
@@ -1083,7 +1080,7 @@ defmodule ElixirLS.LanguageServer.Server do
       Enum.uniq(Enum.map(new_diagnostics, & &1.file) ++ Enum.map(old_diagnostics, & &1.file))
 
     for file <- files,
-        uri = SourceFile.path_to_uri(file),
+        uri = SourceFile.Path.to_uri(file),
         do:
           Diagnostics.publish_file_diagnostics(
             uri,
@@ -1226,7 +1223,7 @@ defmodule ElixirLS.LanguageServer.Server do
          project_dir
        )
        when is_binary(root_uri) do
-    root_dir = root_uri |> SourceFile.abs_path_from_uri()
+    root_dir = SourceFile.Path.absolute_from_uri(root_uri)
 
     project_dir =
       if is_binary(project_dir) do

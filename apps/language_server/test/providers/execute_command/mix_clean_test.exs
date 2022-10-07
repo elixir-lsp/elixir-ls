@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
   @tag fixture: true
   test "mix clean", %{server: server} do
     in_fixture(Path.join(__DIR__, "../.."), "clean", fn ->
-      root_uri = SourceFile.path_to_uri(File.cwd!())
+      root_uri = SourceFile.Path.to_uri(File.cwd!())
       Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
       Server.receive_packet(

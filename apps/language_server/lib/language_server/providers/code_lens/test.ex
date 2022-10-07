@@ -20,7 +20,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     with {:ok, buffer_file_metadata} <- parse_source(text) do
       source_lines = SourceFile.lines(text)
 
-      file_path = SourceFile.path_from_uri(uri)
+      file_path = SourceFile.Path.from_uri(uri)
 
       calls_list =
         buffer_file_metadata.calls

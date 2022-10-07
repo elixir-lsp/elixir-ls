@@ -10,10 +10,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition remote function call" do
     file_path = FixtureHelpers.get_path("references_remote.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {4, 28}
 
@@ -34,10 +34,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition remote macro call" do
     file_path = FixtureHelpers.get_path("references_remote.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {8, 28}
 
@@ -58,10 +58,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition imported function call" do
     file_path = FixtureHelpers.get_path("references_imported.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {4, 5}
 
@@ -82,10 +82,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition imported macro call" do
     file_path = FixtureHelpers.get_path("references_imported.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {8, 5}
 
@@ -106,10 +106,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition local function call" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {15, 5}
 
@@ -130,10 +130,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition local macro call" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {19, 5}
 
@@ -154,10 +154,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition variable" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {4, 13}
 
@@ -178,10 +178,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   test "find definition attribute" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     text = File.read!(file_path)
-    uri = SourceFile.path_to_uri(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
-    b_uri = SourceFile.path_to_uri(b_file_path)
+    b_uri = SourceFile.Path.to_uri(b_file_path)
 
     {line, char} = {27, 5}
 
