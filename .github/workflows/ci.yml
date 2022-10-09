@@ -16,27 +16,51 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.10.x
-            otp: 22.3.4.20
-            tests_may_fail: false
-            check_unused_deps: true
           - elixir: 1.11.x
-            otp: 23.3.4.4
+            otp: 22.3.x
             tests_may_fail: false
-            check_unused_deps: true
+            check_unused_deps: false
+          - elixir: 1.11.x
+            otp: 23.3.x
+            tests_may_fail: false
+            check_unused_deps: false
           - elixir: 1.12.x
-            otp: 23.3.4.4
+            otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: true
+            check_unused_deps: false
           - elixir: 1.13.x
-            otp: 22.3.4.20
+            otp: 22.3.x
             tests_may_fail: false
             check_unused_deps: true
             warnings_as_errors: false
           - elixir: 1.13.x
-            otp: 24.1.x
+            otp: 23.3.x
             tests_may_fail: false
-            # Needs to be false until https://github.com/elixir-lsp/elixir-ls/issues/642 is fixed
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.13.x
+            otp: 24.3.x
+            tests_may_fail: false
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.13.x
+            otp: 25.x
+            tests_may_fail: false
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.14.x
+            otp: 23.3.x
+            tests_may_fail: false
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.14.x
+            otp: 24.3.x
+            tests_may_fail: false
+            check_unused_deps: false
+            warnings_as_errors: false
+          - elixir: 1.14.x
+            otp: 25.x
+            tests_may_fail: false
             warnings_as_errors: false
             check_formatted: true
             check_unused_deps: true
@@ -44,7 +68,7 @@ jobs:
     env:
       MIX_ENV: test
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
@@ -67,15 +91,15 @@ jobs:
       matrix:
         include:
           - elixir: 1.13.x
-            otp: 24.1.x
+            otp: 24.3.x
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - name: Cache build artifacts
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.hex

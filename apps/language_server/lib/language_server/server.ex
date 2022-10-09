@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Server do
   """
 
   use GenServer
-  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer}
+  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics}
 
   alias ElixirLS.LanguageServer.Providers.{
     Completion,
@@ -31,10 +31,12 @@ defmodule ElixirLS.LanguageServer.Server do
     OnTypeFormatting,
     CodeLens,
     ExecuteCommand,
-    FoldingRange
+    FoldingRange,
+    CodeAction
   }
 
   alias ElixirLS.Utils.Launch
+  alias ElixirLS.LanguageServer.Tracer
 
   use Protocol
 
@@ -49,7 +51,6 @@ defmodule ElixirLS.LanguageServer.Server do
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
-    load_all_modules?: false,
     build_running?: false,
     analysis_ready?: false,
     received_shutdown?: false,
@@ -58,6 +59,7 @@ defmodule ElixirLS.LanguageServer.Server do
     source_files: %{},
     awaiting_contracts: [],
     supports_dynamic: false,
+    mix_project?: false,
     no_mixfile_warned?: false
   ]
 
@@ -134,10 +136,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state = %__MODULE__{}) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
-        abs_path =
-          uri
-          |> SourceFile.abs_path_from_uri()
-
+        abs_path = SourceFile.Path.absolute_from_uri(uri)
         {:reply, Dialyzer.suggest_contracts([abs_path]), state}
 
       %{source_files: %{^uri => _}} ->
@@ -232,7 +231,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case reason do
         :normal -> state
-        _ -> handle_build_result(:error, [Build.exception_to_diagnostic(reason)], state)
+        _ -> handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason)], state)
       end
 
     if reason == :normal do
@@ -332,7 +331,7 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       source_file = %SourceFile{text: text, version: version}
 
-      Build.publish_file_diagnostics(
+      Diagnostics.publish_file_diagnostics(
         uri,
         state.build_diagnostics ++ state.dialyzer_diagnostics,
         source_file
@@ -405,12 +404,27 @@ defmodule ElixirLS.LanguageServer.Server do
 
     needs_build =
       Enum.any?(changes, fn %{"uri" => uri = "file:" <> _, "type" => type} ->
-        path = SourceFile.path_from_uri(uri)
+        path = SourceFile.Path.from_uri(uri)
 
-        Path.extname(path) in (additional_watched_extensions ++ @default_watched_extensions) and
+        relative_path = Path.relative_to(path, state.project_dir)
+        first_path_segment = relative_path |> Path.split() |> hd
+
+        first_path_segment not in [".elixir_ls", "_build"] and
+          Path.extname(path) in (additional_watched_extensions ++ @default_watched_extensions) and
           (type in [1, 3] or not Map.has_key?(state.source_files, uri) or
              state.source_files[uri].dirty?)
       end)
+
+    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
+    deleted_paths =
+      for change <- changes,
+          change["type"] == 3,
+          uniq: true,
+          do: SourceFile.Path.from_uri(change["uri"])
+
+    for path <- deleted_paths do
+      Tracer.notify_file_deleted(path)
+    end
 
     source_files =
       changes
@@ -423,7 +437,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # file created/updated - set dirty flag to false if file contents are equal
           case acc[uri] do
             %SourceFile{text: source_file_text, dirty?: true} = source_file ->
-              case File.read(SourceFile.path_from_uri(uri)) do
+              case File.read(SourceFile.Path.from_uri(uri)) do
                 {:ok, ^source_file_text} ->
                   Map.put(acc, uri, %SourceFile{source_file | dirty?: false})
 
@@ -444,6 +458,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     state = %{state | source_files: source_files}
 
+    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
     changes
     |> Enum.map(& &1["uri"])
     |> Enum.uniq()
@@ -518,9 +533,9 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case root_uri do
         "file://" <> _ ->
-          root_path = SourceFile.abs_path_from_uri(root_uri)
+          root_path = SourceFile.Path.absolute_from_uri(root_uri)
           File.cd!(root_path)
-          cwd_uri = SourceFile.path_to_uri(File.cwd!())
+          cwd_uri = SourceFile.Path.to_uri(File.cwd!())
           %{state | root_uri: cwd_uri}
 
         nil ->
@@ -600,7 +615,7 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Hover.hover(source_file.text, line, character)
+      Hover.hover(source_file.text, line, character, state.project_dir)
     end
 
     {:async, fun, state}
@@ -670,13 +685,19 @@ defmodule ElixirLS.LanguageServer.Server do
       !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
 
     locals_without_parens =
-      case SourceFile.formatter_opts(uri) do
-        {:ok, opts} -> Keyword.get(opts, :locals_without_parens, [])
+      case SourceFile.formatter_for(uri) do
+        {:ok, {_, opts}} -> Keyword.get(opts, :locals_without_parens, [])
         :error -> []
       end
       |> MapSet.new()
 
     signature_after_complete = Map.get(state.settings || %{}, "signatureAfterComplete", true)
+
+    path =
+      case uri do
+        "file:" <> _ -> SourceFile.Path.from_uri(uri)
+        _ -> nil
+      end
 
     fun = fn ->
       Completion.completion(source_file.text, line, character,
@@ -685,7 +706,8 @@ defmodule ElixirLS.LanguageServer.Server do
         tags_supported: tags_supported,
         signature_help_supported: signature_help_supported,
         locals_without_parens: locals_without_parens,
-        signature_after_complete: signature_after_complete
+        signature_after_complete: signature_after_complete,
+        file_path: path
       )
     end
 
@@ -764,6 +786,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
+  defp handle_request(code_action_req(_id, uri, diagnostics), state = %__MODULE__{}) do
+    {:async, fn -> CodeAction.code_actions(uri, diagnostics) end, state}
+  end
+
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
     {:error, :method_not_found, nil, state}
@@ -815,7 +841,8 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       },
-      "foldingRangeProvider" => true
+      "foldingRangeProvider" => true,
+      "codeActionProvider" => true
     }
   end
 
@@ -839,13 +866,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(
          state = %__MODULE__{project_dir: project_dir},
-         uri,
+         "file:" <> _ = uri,
          source_file,
          true = _enabled,
          true = _umbrella
        )
        when is_binary(project_dir) do
-    file_path = SourceFile.path_from_uri(uri)
+    file_path = SourceFile.Path.from_uri(uri)
 
     Mix.Project.apps_paths()
     |> Enum.find(fn {_app, app_path} -> String.contains?(file_path, app_path) end)
@@ -864,14 +891,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(
          %__MODULE__{project_dir: project_dir},
-         uri,
+         "file:" <> _ = uri,
          source_file,
          true = _enabled,
          false = _umbrella
        )
        when is_binary(project_dir) do
     try do
-      file_path = SourceFile.path_from_uri(uri)
+      file_path = SourceFile.Path.from_uri(uri)
 
       if is_test_file?(file_path) do
         CodeLens.test_code_lens(uri, source_file.text, project_dir)
@@ -911,26 +938,22 @@ defmodule ElixirLS.LanguageServer.Server do
   # Build
 
   defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
+    build_automatically = Map.get(state.settings || %{}, "autoBuild", true)
     cond do
       not build_enabled?(state) ->
         state
 
-      not state.build_running? ->
+      not state.build_running? and build_automatically ->
         fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", false)
 
-        {_pid, build_ref} =
-          Build.build(self(), project_dir,
-            fetch_deps?: fetch_deps?,
-            load_all_modules?: state.load_all_modules?
-          )
+        {_pid, build_ref} = Build.build(self(), project_dir, fetch_deps?: fetch_deps?)
 
         %__MODULE__{
           state
           | build_ref: build_ref,
             needs_build?: false,
             build_running?: true,
-            analysis_ready?: false,
-            load_all_modules?: false
+            analysis_ready?: false
         }
 
       true ->
@@ -1012,14 +1035,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
       contracts_by_file =
         not_dirty
-        |> Enum.map(fn {_from, uri} -> SourceFile.path_from_uri(uri) end)
+        |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
         |> Dialyzer.suggest_contracts()
         |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
       for {from, uri} <- not_dirty do
         contracts =
           contracts_by_file
-          |> Map.get(SourceFile.path_from_uri(uri), [])
+          |> Map.get(SourceFile.Path.from_uri(uri), [])
 
         GenServer.reply(from, contracts)
       end
@@ -1038,13 +1061,32 @@ defmodule ElixirLS.LanguageServer.Server do
     Dialyzer.check_support() == :ok and build_enabled?(state) and state.dialyzer_sup != nil
   end
 
+  defp safely_read_file(file) do
+    case File.read(file) do
+      {:ok, text} ->
+        text
+
+      {:error, reason} ->
+        if reason != :enoent do
+          IO.warn("Couldn't read file #{file}: #{inspect(reason)}")
+        end
+
+        nil
+    end
+  end
+
   defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
     files =
       Enum.uniq(Enum.map(new_diagnostics, & &1.file) ++ Enum.map(old_diagnostics, & &1.file))
 
     for file <- files,
-        uri = SourceFile.path_to_uri(file),
-        do: Build.publish_file_diagnostics(uri, new_diagnostics, Map.get(source_files, uri))
+        uri = SourceFile.Path.to_uri(file),
+        do:
+          Diagnostics.publish_file_diagnostics(
+            uri,
+            new_diagnostics,
+            Map.get_lazy(source_files, uri, fn -> safely_read_file(file) end)
+          )
   end
 
   defp show_version_warnings do
@@ -1084,6 +1126,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> add_watched_extensions(additional_watched_extensions)
 
     state = create_gitignore(state)
+    Tracer.set_project_dir(state.project_dir)
     trigger_build(%{state | settings: settings})
   end
 
@@ -1157,13 +1200,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp maybe_set_mix_target(state = %__MODULE__{}, nil), do: state
 
+  defp maybe_set_mix_target(state = %__MODULE__{}, ""), do: state
+
   defp maybe_set_mix_target(state = %__MODULE__{}, target) do
     set_mix_target(state, target)
   end
 
   defp set_mix_target(state = %__MODULE__{}, target) do
-    target = target || "host"
-
     prev_target = state.settings["mixTarget"]
 
     if is_nil(prev_target) or target == prev_target do
@@ -1180,7 +1223,7 @@ defmodule ElixirLS.LanguageServer.Server do
          project_dir
        )
        when is_binary(root_uri) do
-    root_dir = root_uri |> SourceFile.abs_path_from_uri()
+    root_dir = SourceFile.Path.absolute_from_uri(root_uri)
 
     project_dir =
       if is_binary(project_dir) do
@@ -1196,7 +1239,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        Map.merge(state, %{project_dir: File.cwd!(), load_all_modules?: true})
+        %{state | project_dir: File.cwd!(), mix_project?: File.exists?("mix.exs")}
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(

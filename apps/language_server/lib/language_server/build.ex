@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, SourceFile, Diagnostics}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, Tracer}
+  alias ElixirLS.Utils.MixfileHelpers
 
   def build(parent, root_path, opts) when is_binary(root_path) do
     if Path.absname(File.cwd!()) != Path.absname(root_path) do
@@ -26,11 +27,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
                   # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
                   purge_consolidated_protocols()
-                  {status, diagnostics} = compile()
-
-                  if status in [:ok, :noop] and Keyword.get(opts, :load_all_modules?) do
-                    load_all_modules()
-                  end
+                  {status, diagnostics} = run_mix_compile()
 
                   diagnostics = Diagnostics.normalize(diagnostics, root_path)
                   Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
@@ -43,76 +40,18 @@ defmodule ElixirLS.LanguageServer.Build do
               end
             end)
 
+          Tracer.save()
           JsonRpc.log_message(:info, "Compile took #{div(us, 1000)} milliseconds")
         end)
       end)
     end
   end
 
-  def publish_file_diagnostics(uri, all_diagnostics, source_file) do
-    diagnostics =
-      all_diagnostics
-      |> Enum.filter(&(SourceFile.path_to_uri(&1.file) == uri))
-      |> Enum.sort_by(fn %{position: position} -> position end)
-
-    diagnostics_json =
-      for diagnostic <- diagnostics do
-        severity =
-          case diagnostic.severity do
-            :error -> 1
-            :warning -> 2
-            :information -> 3
-            :hint -> 4
-          end
-
-        message =
-          case diagnostic.message do
-            m when is_binary(m) -> m
-            m when is_list(m) -> m |> Enum.join("\n")
-          end
-
-        %{
-          "message" => message,
-          "severity" => severity,
-          "range" => range(diagnostic.position, source_file),
-          "source" => diagnostic.compiler_name
-        }
-      end
-
-    JsonRpc.notify("textDocument/publishDiagnostics", %{
-      "uri" => uri,
-      "diagnostics" => diagnostics_json
-    })
-  end
-
-  def mixfile_diagnostic({file, line, message}, severity) do
-    %Mix.Task.Compiler.Diagnostic{
-      compiler_name: "ElixirLS",
-      file: file,
-      position: line,
-      message: message,
-      severity: severity
-    }
-  end
-
-  def exception_to_diagnostic(error) do
-    msg =
-      case error do
-        {:shutdown, 1} ->
-          "Build failed for unknown reason. See output log."
-
-        _ ->
-          Exception.format_exit(error)
-      end
-
-    %Mix.Task.Compiler.Diagnostic{
-      compiler_name: "ElixirLS",
-      file: Path.absname(System.get_env("MIX_EXS") || "mix.exs"),
-      position: nil,
-      message: msg,
-      severity: :error,
-      details: error
-    }
+  def clean(clean_deps? \\ false) do
+    with_build_lock(fn ->
+      Mix.Task.clear()
+      run_mix_clean(clean_deps?)
+    end)
   end
 
   def with_build_lock(func) do
@@ -120,21 +59,29 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project do
-    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
+    mixfile = Path.absname(MixfileHelpers.mix_exs())
 
     if File.exists?(mixfile) do
-      # FIXME: Private API
-      case Mix.ProjectStack.peek() do
-        %{file: ^mixfile, name: module} ->
-          # FIXME: Private API
-          Mix.Project.pop()
-          purge_module(module)
-
-        _ ->
-          :ok
+      if module = Mix.Project.get() do
+        # FIXME: Private API
+        Mix.Project.pop()
+        purge_module(module)
       end
 
+      # We need to clear persistent cache, otherwise `deps.loadpaths` task fails with
+      # (Mix.Error) Can't continue due to errors on dependencies
+      # see https://github.com/elixir-lsp/elixir-ls/issues/120
+      # originally reported in https://github.com/JakeBecker/elixir-ls/issues/71
+      # Note that `Mix.State.clear_cache()` is not enough (at least on elixir 1.14)
+      # FIXME: Private API
+      Mix.Dep.clear_cached()
+
       Mix.Task.clear()
+
+      # we need to reset compiler options
+      # project may leave tracers after previous compilation and we don't woant them interfeering
+      # see https://github.com/elixir-lsp/elixir-ls/issues/717
+      set_compiler_options()
 
       # Override build directory to avoid interfering with other dev tools
       # FIXME: Private API
@@ -144,13 +91,13 @@ defmodule ElixirLS.LanguageServer.Build do
       {status, diagnostics} =
         case Kernel.ParallelCompiler.compile([mixfile]) do
           {:ok, _, warnings} ->
-            {:ok, Enum.map(warnings, &mixfile_diagnostic(&1, :warning))}
+            {:ok, Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning))}
 
           {:error, errors, warnings} ->
             {
               :error,
-              Enum.map(warnings, &mixfile_diagnostic(&1, :warning)) ++
-                Enum.map(errors, &mixfile_diagnostic(&1, :error))
+              Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning)) ++
+                Enum.map(errors, &Diagnostics.mixfile_diagnostic(&1, :error))
             }
         end
 
@@ -173,30 +120,8 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
-  def load_all_modules do
-    apps =
-      cond do
-        Mix.Project.umbrella?() ->
-          Mix.Project.apps_paths() |> Map.keys()
-
-        app = Keyword.get(Mix.Project.config(), :app) ->
-          [app]
-
-        true ->
-          []
-      end
-
-    Enum.each(apps, fn app ->
-      true = Code.prepend_path(Path.join(Mix.Project.build_path(), "lib/#{app}/ebin"))
-
-      case Application.load(app) do
-        :ok -> :ok
-        {:error, {:already_loaded, _}} -> :ok
-      end
-    end)
-  end
-
-  defp compile do
+  defp run_mix_compile do
+    # TODO consider adding --no-compile
     case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
@@ -206,6 +131,26 @@ defmodule ElixirLS.LanguageServer.Build do
 
       _ ->
         {:ok, []}
+    end
+  end
+
+  defp run_mix_clean(clean_deps?) do
+    opts = []
+
+    opts =
+      if clean_deps? do
+        opts ++ ["--deps"]
+      else
+        opts
+      end
+
+    results = Mix.Task.run("clean", opts) |> List.wrap()
+
+    if Enum.all?(results, &match?(:ok, &1)) do
+      :ok
+    else
+      JsonRpc.log_message(:error, "mix clean returned #{inspect(results)}")
+      {:error, :clean_failed}
     end
   end
 
@@ -278,39 +223,21 @@ defmodule ElixirLS.LanguageServer.Build do
     :ok
   end
 
-  defp range(position, nil) when is_integer(position) do
-    line = position - 1
+  def set_compiler_options(options \\ [], parser_options \\ []) do
+    parser_options =
+      parser_options
+      |> Keyword.merge(
+        columns: true,
+        token_metadata: true
+      )
 
-    %{
-      "start" => %{"line" => line, "character" => 0},
-      "end" => %{"line" => line, "character" => 0}
-    }
-  end
+    options =
+      options
+      |> Keyword.merge(
+        tracers: [Tracer],
+        parser_options: parser_options
+      )
 
-  defp range(position, source_file) when is_integer(position) do
-    line = position - 1
-    text = Enum.at(SourceFile.lines(source_file), line) || ""
-    start_idx = String.length(text) - String.length(String.trim_leading(text))
-    length = Enum.max([String.length(String.trim(text)), 1])
-
-    %{
-      "start" => %{"line" => line, "character" => start_idx},
-      "end" => %{"line" => line, "character" => start_idx + length}
-    }
-  end
-
-  defp range({start_line, start_col, end_line, end_col}, _) do
-    %{
-      "start" => %{"line" => start_line - 1, "character" => start_col},
-      "end" => %{"line" => end_line - 1, "character" => end_col}
-    }
-  end
-
-  defp range(_, nil) do
-    %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
-  end
-
-  defp range(_, source_file) do
-    SourceFile.full_range(source_file)
+    Code.compiler_options(options)
   end
 end

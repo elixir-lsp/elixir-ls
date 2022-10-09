@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> process_chunked(fn chunk ->
         for {module, beam_file} <- chunk,
             path = find_module_path(module, beam_file),
-            SourceFile.path_to_uri(path) in modified_uris,
+            SourceFile.Path.to_uri(path) in modified_uris,
             do: {module, path}
       end)
 
@@ -487,7 +487,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       kind: @symbol_codes |> Map.fetch!(key),
       name: symbol_name(key, symbol),
       location: %{
-        uri: SourceFile.path_to_uri(path),
+        uri: SourceFile.Path.to_uri(path),
         range: build_range(location)
       }
     }
@@ -512,15 +512,18 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @spec build_range(nil | erl_location_t) :: range_t
   defp build_range(nil) do
+    # we don't care about utf16 positions here as we send 0
     %{
       start: %{line: 0, character: 0},
       end: %{line: 1, character: 0}
     }
   end
 
+  # it's not worth to present column info here
   defp build_range({line, _column}), do: build_range(line)
 
   defp build_range(line) do
+    # we don't care about utf16 positions here as we send 0
     %{
       start: %{line: max(line - 1, 0), character: 0},
       end: %{line: line, character: 0}

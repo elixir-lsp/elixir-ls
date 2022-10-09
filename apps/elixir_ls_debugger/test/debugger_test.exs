@@ -4,7 +4,7 @@ defmodule ElixirLS.Debugger.ServerTest do
   # between the debugger's tests and the fixture project's tests. Expect to see output printed
   # from both.
 
-  alias ElixirLS.Debugger.{Server, Protocol}
+  alias ElixirLS.Debugger.{Server, Protocol, BreakpointCondition}
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -21,6 +21,7 @@ defmodule ElixirLS.Debugger.ServerTest do
       :int.auto_attach(false)
       :int.no_break()
       :int.clear()
+      BreakpointCondition.clear()
     end)
 
     {:ok, %{server: server}}
@@ -92,7 +93,14 @@ defmodule ElixirLS.Debugger.ServerTest do
   @tag :fixture
   test "basic debugging", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
-      Server.receive_packet(server, initialize_req(1, %{}))
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
       assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
 
       Server.receive_packet(
@@ -117,9 +125,6 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive(
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
-
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
@@ -168,6 +173,13 @@ defmodule ElixirLS.Debugger.ServerTest do
                          },
                          %{
                            "expensive" => false,
+                           "indexedVariables" => 0,
+                           "name" => "process info",
+                           "namedVariables" => _,
+                           "variablesReference" => _
+                         },
+                         %{
+                           "expensive" => false,
                            "indexedVariables" => 1,
                            "name" => "arguments",
                            "namedVariables" => 0,
@@ -187,10 +199,11 @@ defmodule ElixirLS.Debugger.ServerTest do
                            "variablesReference" => 0
                          }
                        ]
-                     })
+                     }),
+                     1000
 
       Server.receive_packet(server, continue_req(10, thread_id))
-      assert_receive response(_, 10, "continue", %{"allThreadsContinued" => false})
+      assert_receive response(_, 10, "continue", %{"allThreadsContinued" => true})
     end)
   end
 
@@ -221,9 +234,6 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive(
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
-
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
@@ -330,7 +340,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                      )
 
       Server.receive_packet(server, continue_req(15, thread_id))
-      assert_receive response(_, 15, "continue", %{"allThreadsContinued" => false})
+      assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
 
       Server.receive_packet(server, stacktrace_req(7, thread_id))
       thread_id_str = inspect(thread_id)
@@ -375,9 +385,6 @@ defmodule ElixirLS.Debugger.ServerTest do
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
         1000
       )
-
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
@@ -438,9 +445,6 @@ defmodule ElixirLS.Debugger.ServerTest do
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
 
-      Server.receive_packet(server, request(4, "setExceptionBreakpoints", %{"filters" => []}))
-      assert_receive(response(_, 4, "setExceptionBreakpoints", %{}))
-
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
 
@@ -480,32 +484,966 @@ defmodule ElixirLS.Debugger.ServerTest do
   end
 
   @tag :fixture
-  test "sets breakpoints in erlang modules", %{server: server} do
+  test "terminate threads", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
 
       Server.receive_packet(
         server,
         launch_req(2, %{
           "request" => "launch",
           "type" => "mix_task",
-          "task" => "test",
+          "task" => "run",
+          "taskArgs" => ["-e", "MixProject.Some.sleep()"],
           "projectDir" => File.cwd!()
         })
       )
 
-      Server.receive_packet(
-        server,
-        set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 5}])
-      )
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
 
-      assert_receive(
-        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-        3000
-      )
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+      Process.sleep(1000)
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
 
-      assert(:hello in :int.interpreted())
+      assert [thread_id] =
+               threads
+               |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
+               |> Enum.map(& &1["id"])
+
+      Server.receive_packet(server, request(7, "terminateThreads", %{"threadIds" => [thread_id]}))
+      assert_receive(response(_, 7, "terminateThreads", %{}), 500)
+
+      assert_receive event(_, "thread", %{
+                       "reason" => "exited",
+                       "threadId" => ^thread_id
+                     }),
+                     5000
     end)
+  end
+
+  describe "pause" do
+    @tag :fixture
+    test "alive", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+
+        assert_receive(
+          response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true})
+        )
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "run",
+            "taskArgs" => ["-e", "MixProject.Some.sleep()"],
+            "projectDir" => File.cwd!()
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(event(_, "initialized", %{}))
+
+        Server.receive_packet(server, request(5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone", %{}))
+        Process.sleep(1000)
+        Server.receive_packet(server, request(6, "threads", %{}))
+        assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
+
+        assert [thread_id] =
+                 threads
+                 |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
+                 |> Enum.map(& &1["id"])
+
+        {_, stderr} =
+          capture_log_and_io(:standard_error, fn ->
+            Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
+            assert_receive(response(_, 7, "pause", %{}), 500)
+
+            assert_receive event(_, "stopped", %{
+                             "allThreadsStopped" => false,
+                             "reason" => "pause",
+                             "threadId" => ^thread_id
+                           }),
+                           500
+          end)
+
+        assert stderr =~ "Failed to obtain meta for pid"
+      end)
+    end
+
+    @tag :fixture
+    test "dead", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+
+        assert_receive(
+          response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true})
+        )
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "run",
+            "taskArgs" => ["-e", "MixProject.Some.sleep()"],
+            "projectDir" => File.cwd!()
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(event(_, "initialized", %{}))
+
+        Server.receive_packet(server, request(5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone", %{}))
+        Process.sleep(1000)
+        Server.receive_packet(server, request(6, "threads", %{}))
+        assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
+
+        assert [thread_id] =
+                 threads
+                 |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
+                 |> Enum.map(& &1["id"])
+
+        Process.whereis(MixProject.Some) |> Process.exit(:kill)
+        Process.sleep(1000)
+
+        Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
+        assert_receive(response(_, 7, "pause", %{}), 500)
+
+        assert_receive event(_, "thread", %{
+                         "reason" => "exited",
+                         "threadId" => ^thread_id
+                       }),
+                       5000
+      end)
+    end
+  end
+
+  describe "breakpoints" do
+    @tag :fixture
+    test "sets and unsets breakpoints in erlang modules", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute :hello in :int.interpreted()
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 5}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert :hello in :int.interpreted()
+        assert [{{:hello, 5}, [:active, :enable, :null, _]}] = :int.all_breaks(:hello)
+        assert %{"src/hello.erl" => [hello: 5]} = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 5}, %{"line" => 6}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{
+            "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
+          }),
+          3000
+        )
+
+        assert [{{:hello, 5}, _}, {{:hello, 6}, _}] = :int.all_breaks(:hello)
+
+        assert %{"src/hello.erl" => [{:hello, 5}, {:hello, 6}]} =
+                 :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 6}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [{{:hello, 6}, _}] = :int.all_breaks(:hello)
+        assert %{"src/hello.erl" => [{:hello, 6}]} = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(:hello)
+        assert %{} == :sys.get_state(server).breakpoints
+      end)
+    end
+
+    @tag :fixture
+    test "sets and unsets breakpoints in elixir modules", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute MixProject in :int.interpreted()
+        refute MixProject.Some in :int.interpreted()
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [%{"line" => 3}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+        refute MixProject.Some in :int.interpreted()
+
+        assert [{{MixProject, 3}, [:active, :enable, :null, _]}] = :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3},
+            %{"line" => 7},
+            %{"line" => 35}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{
+            "breakpoints" => [%{"verified" => true}, %{"verified" => true}, %{"verified" => true}]
+          }),
+          3000
+        )
+
+        assert MixProject.Some in :int.interpreted()
+        assert [{{MixProject, 3}, _}, {{MixProject, 7}, _}] = :int.all_breaks(MixProject)
+        assert [{{MixProject.Some, 35}, _}] = :int.all_breaks(MixProject.Some)
+
+        assert %{
+                 "lib/mix_project.ex" => [{MixProject, 3}, {MixProject, 7}, {MixProject.Some, 35}]
+               } = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 35},
+            %{"line" => 39}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{
+            "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
+          }),
+          3000
+        )
+
+        assert [] = :int.all_breaks(MixProject)
+
+        assert [{{MixProject.Some, 35}, _}, {{MixProject.Some, 39}, _}] =
+                 :int.all_breaks(MixProject.Some)
+
+        assert %{"lib/mix_project.ex" => [{MixProject.Some, 35}, {MixProject.Some, 39}]} =
+                 :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(MixProject.Some)
+        assert %{} == :sys.get_state(server).breakpoints
+      end)
+    end
+
+    @tag :fixture
+    test "sets and unsets breakpoints in different files", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute MixProject in :int.interpreted()
+        refute :hello in :int.interpreted()
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [%{"line" => 3}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+        refute :hello in :int.interpreted()
+
+        assert [
+                 {{MixProject, 3}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] ==
+                 :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [%{"line" => 5}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert :hello in :int.interpreted()
+        assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}], "src/hello.erl" => [hello: 5]} ==
+                 :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(MixProject)
+        assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
+        assert %{"src/hello.erl" => [hello: 5]} == :sys.get_state(server).breakpoints
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "src/hello.erl"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(:hello)
+        assert %{} == :sys.get_state(server).breakpoints
+      end)
+    end
+
+    @tag :fixture
+    test "sets, modifies and unsets conditional breakpoints", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute MixProject in :int.interpreted()
+
+        # set
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "condition" => "a == b"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+
+        assert [
+                 {{MixProject, 3}, [:active, :enable, :null, _]}
+               ] = :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert BreakpointCondition.has_condition?(MixProject, [3])
+
+        assert BreakpointCondition.get_condition(0) == {"a == b", nil, 0, 0}
+
+        # modify
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "condition" => "x == y"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [
+                 {{MixProject, 3}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] ==
+                 :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert BreakpointCondition.has_condition?(MixProject, [3])
+
+        assert BreakpointCondition.get_condition(0) == {"x == y", nil, 0, 0}
+
+        # unset
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] == :int.all_breaks(MixProject)
+
+        assert %{} == :sys.get_state(server).breakpoints
+
+        refute BreakpointCondition.has_condition?(MixProject, [3])
+      end)
+    end
+
+    @tag :fixture
+    test "sets, modifies and unsets hit conditions", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute MixProject in :int.interpreted()
+
+        # set
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "hitCondition" => "25"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+
+        assert [
+                 {{MixProject, 3}, [:active, :enable, :null, _]}
+               ] = :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert BreakpointCondition.has_condition?(MixProject, [3])
+
+        assert BreakpointCondition.get_condition(0) == {"true", nil, 25, 0}
+
+        # modify
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "hitCondition" => "55"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [
+                 {{MixProject, 3}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] ==
+                 :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert BreakpointCondition.has_condition?(MixProject, [3])
+
+        assert BreakpointCondition.get_condition(0) == {"true", nil, 55, 0}
+
+        # unset
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] == :int.all_breaks(MixProject)
+
+        assert %{} == :sys.get_state(server).breakpoints
+
+        refute BreakpointCondition.has_condition?(MixProject, [3])
+      end)
+    end
+
+    @tag :fixture
+    test "sets, modifies and unsets log message", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute MixProject in :int.interpreted()
+
+        # set
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "logMessage" => "breakpoint hit"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+
+        assert [
+                 {{MixProject, 3}, [:active, :enable, :null, _]}
+               ] = :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert BreakpointCondition.has_condition?(MixProject, [3])
+
+        assert BreakpointCondition.get_condition(0) == {"true", "breakpoint hit", 0, 0}
+
+        # modify
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [
+            %{"line" => 3, "logMessage" => "abc"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [
+                 {{MixProject, 3}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] ==
+                 :int.all_breaks(MixProject)
+
+        assert %{"lib/mix_project.ex" => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+
+        assert BreakpointCondition.has_condition?(MixProject, [3])
+
+        assert BreakpointCondition.get_condition(0) == {"true", "abc", 0, 0}
+
+        # unset
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => "lib/mix_project.ex"}, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] == :int.all_breaks(MixProject)
+
+        assert %{} == :sys.get_state(server).breakpoints
+
+        refute BreakpointCondition.has_condition?(MixProject, [3])
+      end)
+    end
+  end
+
+  describe "function breakpoints" do
+    test "sets and unsets function breakpoints", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute :hello in :int.interpreted()
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [%{"name" => ":hello.hello_world/0"}])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert :hello in :int.interpreted()
+        assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
+        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [
+            %{"name" => ":hello.hello_world/0"},
+            %{"name" => "MixProject.quadruple/1"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{
+            "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
+          }),
+          3000
+        )
+
+        assert MixProject in :int.interpreted()
+        assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
+        assert [{{MixProject, 3}, _}] = :int.all_breaks(MixProject)
+
+        assert [{{MixProject, :quadruple, 1}, [3]}, {{:hello, :hello_world, 0}, [5]}] =
+                 :sys.get_state(server).function_breakpoints
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [%{"name" => "MixProject.quadruple/1"}])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(:hello)
+        assert [{{MixProject, 3}, _}] = :int.all_breaks(MixProject)
+        assert [{{MixProject, :quadruple, 1}, [3]}] = :sys.get_state(server).function_breakpoints
+      end)
+    end
+
+    test "sets, modifies and unsets conditional function breakpoints", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute :hello in :int.interpreted()
+
+        # set
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [
+            %{"name" => ":hello.hello_world/0", "condition" => "a == b"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert :hello in :int.interpreted()
+
+        assert [
+                 {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] = :int.all_breaks(:hello)
+
+        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+
+        assert BreakpointCondition.has_condition?(:hello, [5])
+
+        assert BreakpointCondition.get_condition(0) == {"a == b", nil, 0, 0}
+
+        # update
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [
+            %{"name" => ":hello.hello_world/0", "condition" => "x == y"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{
+            "breakpoints" => [%{"verified" => true}]
+          }),
+          3000
+        )
+
+        assert [
+                 {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] = :int.all_breaks(:hello)
+
+        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+
+        assert BreakpointCondition.has_condition?(:hello, [5])
+
+        assert BreakpointCondition.get_condition(0) == {"x == y", nil, 0, 0}
+
+        # unset
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(:hello)
+        assert [] = :sys.get_state(server).function_breakpoints
+
+        refute BreakpointCondition.has_condition?(:hello, [5])
+      end)
+    end
+
+    test "sets, modifies and unsets hit condition on function breakpoints", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute :hello in :int.interpreted()
+
+        # set
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [
+            %{"name" => ":hello.hello_world/0", "hitCondition" => "25"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          3000
+        )
+
+        assert :hello in :int.interpreted()
+
+        assert [
+                 {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] = :int.all_breaks(:hello)
+
+        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+
+        assert BreakpointCondition.has_condition?(:hello, [5])
+
+        assert BreakpointCondition.get_condition(0) == {"true", nil, 25, 0}
+
+        # update
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [
+            %{"name" => ":hello.hello_world/0", "hitCondition" => "55"}
+          ])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{
+            "breakpoints" => [%{"verified" => true}]
+          }),
+          3000
+        )
+
+        assert [
+                 {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+               ] = :int.all_breaks(:hello)
+
+        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+
+        assert BreakpointCondition.has_condition?(:hello, [5])
+
+        assert BreakpointCondition.get_condition(0) == {"true", nil, 55, 0}
+
+        # unset
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => []}),
+          3000
+        )
+
+        assert [] = :int.all_breaks(:hello)
+        assert [] = :sys.get_state(server).function_breakpoints
+
+        refute BreakpointCondition.has_condition?(:hello, [5])
+      end)
+    end
   end
 
   describe "Watch section" do
@@ -524,6 +1462,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression with OK result", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -538,6 +1477,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     @tag :capture_log
     test "Evaluate expression with ERROR result", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -553,6 +1493,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression with attempt to exit debugger process", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -568,6 +1509,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression with attempt to throw debugger process", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -583,7 +1525,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "Evaluate expression which has long execution", %{server: server} do
       Server.receive_packet(server, initialize_req(1, %{}))
-      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+      assert_receive(response(_, 1, "initialize", _))
 
       Server.receive_packet(
         server,
@@ -609,5 +1551,29 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       assert Process.alive?(server)
     end
+  end
+
+  test "Completions", %{server: server} do
+    Server.receive_packet(server, initialize_req(1, %{}))
+    assert_receive(response(_, 1, "initialize", _))
+
+    Server.receive_packet(
+      server,
+      %{
+        "arguments" => %{
+          "text" => "DateTi",
+          "column" => 7
+        },
+        "command" => "completions",
+        "seq" => 1,
+        "type" => "request"
+      }
+    )
+
+    assert_receive(%{"body" => %{"targets" => _targets}}, 10000)
+
+    assert Process.alive?(server)
+
+    # assert [%{}]
   end
 end

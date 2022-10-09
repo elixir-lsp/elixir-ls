@@ -14,8 +14,18 @@ defmodule ElixirLS.Debugger.Server do
     defexception [:message, :format, :variables]
   end
 
-  alias ElixirLS.Debugger.{Output, Stacktrace, Protocol, Variables}
+  alias ElixirLS.Debugger.{
+    Output,
+    Stacktrace,
+    Protocol,
+    Variables,
+    Utils,
+    BreakpointCondition,
+    Binding
+  }
+
   alias ElixirLS.Debugger.Stacktrace.Frame
+  alias ElixirLS.Utils.MixfileHelpers
   use GenServer
   use Protocol
 
@@ -26,10 +36,16 @@ defmodule ElixirLS.Debugger.Server do
             task_ref: nil,
             threads: %{},
             threads_inverse: %{},
-            paused_processes: %{},
+            paused_processes: %{
+              evaluator: %{
+                vars: %{},
+                vars_inverse: %{}
+              }
+            },
             next_id: 1,
             output: Output,
-            breakpoints: %{}
+            breakpoints: %{},
+            function_breakpoints: []
 
   defmodule PausedProcess do
     defstruct stack: nil,
@@ -56,10 +72,15 @@ defmodule ElixirLS.Debugger.Server do
     GenServer.cast(server, {:breakpoint_reached, pid})
   end
 
+  def paused(pid, server) do
+    GenServer.cast(server, {:paused, pid})
+  end
+
   ## Server Callbacks
 
   @impl GenServer
   def init(opts) do
+    BreakpointCondition.start_link([])
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
@@ -100,7 +121,8 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
-  def handle_cast({:breakpoint_reached, pid}, state = %__MODULE__{}) do
+  def handle_cast({event, pid}, state = %__MODULE__{})
+      when event in [:breakpoint_reached, :paused] do
     # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
     # check if process is alive to not debug dead ones
     state =
@@ -112,10 +134,23 @@ defmodule ElixirLS.Debugger.Server do
         paused_process = %PausedProcess{stack: Stacktrace.get(pid), ref: ref}
         state = put_in(state.paused_processes[pid], paused_process)
 
-        body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
+        reason =
+          case event do
+            :breakpoint_reached ->
+              # Debugger Adapter Protocol requires us to return 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto'
+              # | 'function breakpoint' | 'data breakpoint' | 'instruction breakpoint'
+              # but we can't tell what kind of a breakpoint was hit
+              "breakpoint"
+
+            :paused ->
+              "pause"
+          end
+
+        body = %{"reason" => reason, "threadId" => thread_id, "allThreadsStopped" => false}
         Output.send_event("stopped", body)
         state
       else
+        Process.monitor(pid)
         state
       end
 
@@ -151,19 +186,22 @@ defmodule ElixirLS.Debugger.Server do
       "debugged process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
     )
 
-    thread_id = state.threads_inverse[pid]
-    state = remove_paused_process(state, pid)
+    {thread_id, threads_inverse} = state.threads_inverse |> Map.pop(pid)
+    paused_processes = remove_paused_process(state, pid)
 
     state = %{
       state
       | threads: state.threads |> Map.delete(thread_id),
-        threads_inverse: state.threads_inverse |> Map.delete(pid)
+        paused_processes: paused_processes,
+        threads_inverse: threads_inverse
     }
 
-    Output.send_event("thread", %{
-      "reason" => "exited",
-      "threadId" => thread_id
-    })
+    if thread_id do
+      Output.send_event("thread", %{
+        "reason" => "exited",
+        "threadId" => thread_id
+      })
+    end
 
     {:noreply, state}
   end
@@ -191,6 +229,21 @@ defmodule ElixirLS.Debugger.Server do
   ## Helpers
 
   defp handle_request(initialize_req(_, client_info), %__MODULE__{client_info: nil} = state) do
+    # linesStartAt1 is true by default and we only support 1-based indexing
+    if client_info["linesStartAt1"] == false do
+      IO.warn("0-based lines are not supported")
+    end
+
+    # columnsStartAt1 is true by default and we only support 1-based indexing
+    if client_info["columnsStartAt1"] == false do
+      IO.warn("0-based columns are not supported")
+    end
+
+    # pathFormat is `path` by default and we do not support other, e.g. `uri`
+    if client_info["pathFormat"] not in [nil, "path"] do
+      IO.warn("pathFormat #{client_info["pathFormat"]} not supported")
+    end
+
     {capabilities(), %{state | client_info: client_info}}
   end
 
@@ -203,7 +256,11 @@ defmodule ElixirLS.Debugger.Server do
       }
   end
 
-  defp handle_request(launch_req(_, config), state = %__MODULE__{}) do
+  defp handle_request(launch_req(_, config) = args, state = %__MODULE__{}) do
+    if args["arguments"]["noDebug"] == true do
+      IO.warn("launch with no debug is not supported")
+    end
+
     {_, ref} = spawn_monitor(fn -> initialize(config) end)
 
     receive do
@@ -227,6 +284,10 @@ defmodule ElixirLS.Debugger.Server do
          state = %__MODULE__{}
        ) do
     new_lines = for %{"line" => line} <- breakpoints, do: line
+
+    new_conditions =
+      for b <- breakpoints, do: {b["condition"], b["logMessage"], b["hitCondition"]}
+
     existing_bps = state.breakpoints[path] || []
     existing_bp_lines = for {_module, line} <- existing_bps, do: line
     removed_lines = existing_bp_lines -- new_lines
@@ -234,11 +295,18 @@ defmodule ElixirLS.Debugger.Server do
 
     for {module, line} <- removed_bps do
       :int.delete_break(module, line)
+      BreakpointCondition.unregister_condition(module, [line])
     end
 
-    result = set_breakpoints(path, new_lines)
+    result = set_breakpoints(path, new_lines |> Enum.zip(new_conditions))
     new_bps = for {:ok, module, line} <- result, do: {module, line}
-    state = put_in(state.breakpoints[path], new_bps)
+
+    state =
+      if new_bps == [] do
+        %{state | breakpoints: state.breakpoints |> Map.delete(path)}
+      else
+        put_in(state.breakpoints[path], new_bps)
+      end
 
     breakpoints_json =
       Enum.map(result, fn
@@ -249,13 +317,90 @@ defmodule ElixirLS.Debugger.Server do
     {%{"breakpoints" => breakpoints_json}, state}
   end
 
-  defp handle_request(set_exception_breakpoints_req(_), state = %__MODULE__{}) do
-    {%{}, state}
+  defp handle_request(
+         set_function_breakpoints_req(_, breakpoints),
+         state = %__MODULE__{}
+       ) do
+    mfas =
+      for %{"name" => name} = breakpoint <- breakpoints do
+        {Utils.parse_mfa(name), {breakpoint["condition"], breakpoint["hitCondition"]}}
+      end
+
+    parsed_mfas_conditions = for {{:ok, mfa}, condition} <- mfas, into: %{}, do: {mfa, condition}
+
+    for {{m, f, a}, lines} <- state.function_breakpoints,
+        not Map.has_key?(parsed_mfas_conditions, {m, f, a}) do
+      BreakpointCondition.unregister_condition(m, lines)
+
+      case :int.del_break_in(m, f, a) do
+        :ok ->
+          :ok
+
+        {:error, :function_not_found} ->
+          IO.warn("Unable to delete function breakpoint on #{inspect({m, f, a})}")
+      end
+    end
+
+    current = state.function_breakpoints |> Map.new()
+
+    results =
+      for {{m, f, a}, {condition, hit_count}} <- parsed_mfas_conditions,
+          into: %{},
+          do:
+            (
+              result =
+                case current[{m, f, a}] do
+                  nil ->
+                    case :int.ni(m) do
+                      {:module, _} ->
+                        breaks_before = :int.all_breaks(m)
+                        :ok = :int.break_in(m, f, a)
+                        breaks_after = :int.all_breaks(m)
+                        lines = for {{^m, line}, _} <- breaks_after -- breaks_before, do: line
+
+                        # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
+                        update_break_condition(m, lines, condition, nil, hit_count)
+
+                        {:ok, lines}
+
+                      _ ->
+                        {:error, "Cannot interpret module #{inspect(m)}"}
+                    end
+
+                  lines ->
+                    # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
+                    update_break_condition(m, lines, condition, nil, hit_count)
+
+                    {:ok, lines}
+                end
+
+              {{m, f, a}, result}
+            )
+
+    successful = for {mfa, {:ok, lines}} <- results, do: {mfa, lines}
+
+    state = %{
+      state
+      | function_breakpoints: successful
+    }
+
+    breakpoints_json =
+      Enum.map(mfas, fn
+        {{:ok, mfa}, _} ->
+          case results[mfa] do
+            {:ok, _} -> %{"verified" => true}
+            {:error, error} -> %{"verified" => false, "message" => inspect(error)}
+          end
+
+        {{:error, error}, _} ->
+          %{"verified" => false, "message" => error}
+      end)
+
+    {%{"breakpoints" => breakpoints_json}, state}
   end
 
   defp handle_request(configuration_done_req(_), state = %__MODULE__{}) do
-    server = :erlang.process_info(self())[:registered_name] || self()
-    :int.auto_attach([:break], {__MODULE__, :breakpoint_reached, [server]})
+    :int.auto_attach([:break], build_attach_mfa(:breakpoint_reached))
 
     task = state.config["task"] || Mix.Project.config()[:default_task]
     args = state.config["taskArgs"] || []
@@ -287,6 +432,28 @@ defmodule ElixirLS.Debugger.Server do
 
     threads = Enum.sort_by(threads, fn %{"name" => name} -> name end)
     {%{"threads" => threads}, state}
+  end
+
+  defp handle_request(terminate_threads_req(_, thread_ids), state = %__MODULE__{}) do
+    for {id, pid} <- state.threads,
+        id in thread_ids do
+      # :kill is untrappable
+      # do not need to cleanup here, :DOWN message handler will do it
+      Process.monitor(pid)
+      Process.exit(pid, :kill)
+    end
+
+    {%{}, state}
+  end
+
+  defp handle_request(pause_req(_, thread_id), state = %__MODULE__{}) do
+    pid = state.threads[thread_id]
+
+    if pid do
+      :int.attach(pid, build_attach_mfa(:paused))
+    end
+
+    {%{}, state}
   end
 
   defp handle_request(
@@ -343,6 +510,9 @@ defmodule ElixirLS.Debugger.Server do
         {pid, %Frame{} = frame} ->
           {state, args_id} = ensure_var_id(state, pid, frame.args)
           {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
+          {state, messages_id} = ensure_var_id(state, pid, frame.messages)
+          process_info = Process.info(pid)
+          {state, process_info_id} = ensure_var_id(state, pid, process_info)
 
           vars_scope = %{
             "name" => "variables",
@@ -360,7 +530,27 @@ defmodule ElixirLS.Debugger.Server do
             "expensive" => false
           }
 
-          scopes = if Enum.count(frame.args) > 0, do: [vars_scope, args_scope], else: [vars_scope]
+          messages_scope = %{
+            "name" => "messages",
+            "variablesReference" => messages_id,
+            "namedVariables" => 0,
+            "indexedVariables" => Enum.count(frame.messages),
+            "expensive" => false
+          }
+
+          process_info_scope = %{
+            "name" => "process info",
+            "variablesReference" => process_info_id,
+            "namedVariables" => length(process_info),
+            "indexedVariables" => 0,
+            "expensive" => false
+          }
+
+          scopes =
+            [vars_scope, process_info_scope]
+            |> Kernel.++(if Enum.count(frame.args) > 0, do: [args_scope], else: [])
+            |> Kernel.++(if Enum.count(frame.messages) > 0, do: [messages_scope], else: [])
+
           {state, scopes}
 
         nil ->
@@ -397,87 +587,122 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(
-         request(_cmd, "evaluate", %{"expression" => expr} = _args),
+         request(_cmd, "evaluate", %{"expression" => expr} = args),
          state = %__MODULE__{}
        ) do
     timeout = Map.get(state.config, "debugExpressionTimeoutMs", 10_000)
-    bindings = all_variables(state.paused_processes)
+    bindings = all_variables(state.paused_processes, args["frameId"])
 
     result = evaluate_code_expression(expr, bindings, timeout)
 
-    {%{"result" => inspect(result), "variablesReference" => 0}, state}
-  end
+    case result do
+      {:ok, value} ->
+        child_type = Variables.child_type(value)
+        {state, var_id} = get_variable_reference(child_type, state, :evaluator, value)
 
-  defp handle_request(continue_req(_, thread_id), state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id)
-
-    try do
-      :int.continue(pid)
-      state = remove_paused_process(state, pid)
-      {%{"allThreadsContinued" => false}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.continue failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
+        json =
+          %{
+            "result" => inspect(value),
+            "variablesReference" => var_id
           }
+          |> maybe_append_children_number(state.client_info, child_type, value)
+          |> maybe_append_variable_type(state.client_info, value)
+
+        {json, state}
+
+      other ->
+        result_string =
+          if args["context"] == "hover" do
+            # avoid displaying hover info when evaluation crashed
+            ""
+          else
+            inspect(other)
+          end
+
+        json = %{
+          "result" => result_string,
+          "variablesReference" => 0
+        }
+
+        {json, state}
     end
   end
 
-  defp handle_request(next_req(_, thread_id), state = %__MODULE__{}) do
+  defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    try do
-      :int.next(pid)
-      state = remove_paused_process(state, pid)
-      {%{}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.next failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
-          }
-    end
+    safe_int_action(pid, :continue)
+
+    paused_processes = remove_paused_process(state, pid)
+    paused_processes = maybe_continue_other_processes(args, paused_processes, pid)
+
+    processes_paused? = paused_processes |> Map.keys() |> Enum.any?(&is_pid/1)
+
+    {%{"allThreadsContinued" => not processes_paused?},
+     %{state | paused_processes: paused_processes}}
   end
 
-  defp handle_request(step_in_req(_, thread_id), state = %__MODULE__{}) do
+  defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    try do
-      :int.step(pid)
-      state = remove_paused_process(state, pid)
-      {%{}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.stop failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
-          }
-    end
+    safe_int_action(pid, :next)
+    paused_processes = remove_paused_process(state, pid)
+
+    {%{},
+     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
   end
 
-  defp handle_request(step_out_req(_, thread_id), state = %__MODULE__{}) do
+  defp handle_request(step_in_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    try do
-      :int.finish(pid)
-      state = remove_paused_process(state, pid)
-      {%{}, state}
-    rescue
-      e in MatchError ->
-        raise ServerError,
-          message: "serverError",
-          format: ":int.finish failed: {message}",
-          variables: %{
-            "message" => inspect(Exception.message(e))
-          }
-    end
+    safe_int_action(pid, :step)
+    paused_processes = remove_paused_process(state, pid)
+
+    {%{},
+     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
+  end
+
+  defp handle_request(step_out_req(_, thread_id) = args, state = %__MODULE__{}) do
+    pid = get_pid_by_thread_id!(state, thread_id)
+
+    safe_int_action(pid, :finish)
+    paused_processes = remove_paused_process(state, pid)
+
+    {%{},
+     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
+  end
+
+  defp handle_request(completions_req(_, text) = args, state = %__MODULE__{}) do
+    # assume that the position is 1-based
+    line = (args["arguments"]["line"] || 1) - 1
+    column = (args["arguments"]["column"] || 1) - 1
+
+    # for simplicity take only text from the given line up to column
+    line =
+      text
+      |> String.split(["\r\n", "\n", "\r"])
+      |> Enum.at(line)
+
+    # it's not documented but VSCode uses utf16 positions
+    column = Utils.dap_character_to_elixir(line, column)
+    prefix = String.slice(line, 0, column)
+
+    vars =
+      all_variables(state.paused_processes, args["arguments"]["frameId"])
+      |> Enum.map(fn {name, value} ->
+        %ElixirSense.Core.State.VarInfo{
+          name: name,
+          type: ElixirSense.Core.Binding.from_var(value)
+        }
+      end)
+
+    env = %ElixirSense.Providers.Suggestion.Complete.Env{vars: vars}
+
+    results =
+      ElixirSense.Providers.Suggestion.Complete.complete(prefix, env)
+      |> Enum.map(&ElixirLS.Debugger.Completions.map/1)
+
+    {%{"targets" => results}, state}
   end
 
   defp handle_request(request(_, command), _state = %__MODULE__{}) when is_binary(command) do
@@ -487,6 +712,36 @@ defmodule ElixirLS.Debugger.Server do
       variables: %{
         "command" => command
       }
+  end
+
+  defp maybe_continue_other_processes(%{"singleThread" => true}, paused_processes, requested_pid) do
+    resumed_pids =
+      for {paused_pid, %PausedProcess{ref: ref}} when paused_pid != requested_pid <-
+            paused_processes do
+        safe_int_action(paused_pid, :continue)
+        true = Process.demonitor(ref, [:flush])
+        paused_pid
+      end
+
+    paused_processes |> Map.drop(resumed_pids)
+  end
+
+  defp maybe_continue_other_processes(_, paused_processes, _requested_pid), do: paused_processes
+
+  # TODO consider removing this workaround as the problem seems to no longer affect OTP 24
+  defp safe_int_action(pid, action) do
+    apply(:int, action, [pid])
+    :ok
+  catch
+    kind, payload ->
+      # when stepping out of interpreted code a MatchError is risen inside :int module (at least in OTP 23)
+      IO.warn(":int.#{action}(#{inspect(pid)}) failed: #{Exception.format(kind, payload)}")
+
+      unless action == :continue do
+        safe_int_action(pid, :continue)
+      end
+
+      :ok
   end
 
   defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id) do
@@ -505,45 +760,58 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp remove_paused_process(state = %__MODULE__{}, pid) do
-    {process = %PausedProcess{}, paused_processes} = Map.pop(state.paused_processes, pid)
-    true = Process.demonitor(process.ref, [:flush])
-    %__MODULE__{state | paused_processes: paused_processes}
+    {process, paused_processes} = Map.pop(state.paused_processes, pid)
+
+    if process do
+      true = Process.demonitor(process.ref, [:flush])
+    end
+
+    paused_processes
   end
 
   defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
+    var_child_type = Variables.child_type(var)
+
     children =
-      if (filter == "named" and Variables.child_type(var) == :indexed) or
-           (filter == "indexed" and Variables.child_type(var) == :named) do
+      if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
         []
       else
         Variables.children(var, start, count)
       end
 
     Enum.reduce(children, {state, []}, fn {name, value}, {state = %__MODULE__{}, result} ->
-      {state, var_id} =
-        if Variables.expandable?(value) do
-          ensure_var_id(state, pid, value)
-        else
-          {state, 0}
-        end
-
-      json = %{
-        "name" => to_string(name),
-        "value" => inspect(value),
-        "variablesReference" => var_id,
-        "type" => Variables.type(value)
-      }
+      child_type = Variables.child_type(value)
+      {state, var_id} = get_variable_reference(child_type, state, pid, value)
 
       json =
-        case Variables.child_type(value) do
-          :indexed -> Map.put(json, "indexedVariables", Variables.num_children(value))
-          :named -> Map.put(json, "namedVariables", Variables.num_children(value))
-          nil -> json
-        end
+        %{
+          "name" => to_string(name),
+          "value" => inspect(value),
+          "variablesReference" => var_id
+        }
+        |> maybe_append_children_number(state.client_info, child_type, value)
+        |> maybe_append_variable_type(state.client_info, value)
 
       {state, result ++ [json]}
     end)
   end
+
+  defp get_variable_reference(nil, state, _pid, _value), do: {state, 0}
+
+  defp get_variable_reference(_child_type, state, pid, value),
+    do: ensure_var_id(state, pid, value)
+
+  defp maybe_append_children_number(map, %{"supportsVariablePaging" => true}, atom, value)
+       when atom in [:indexed, :named],
+       do: Map.put(map, Atom.to_string(atom) <> "Variables", Variables.num_children(value))
+
+  defp maybe_append_children_number(map, _, _, _value), do: map
+
+  defp maybe_append_variable_type(map, %{"supportsVariableType" => true}, value) do
+    Map.put(map, "type", Variables.type(value))
+  end
+
+  defp maybe_append_variable_type(map, _, _value), do: map
 
   defp evaluate_code_expression(expr, bindings, timeout) do
     task =
@@ -566,52 +834,59 @@ defmodule ElixirLS.Debugger.Server do
     result = Task.yield(task, timeout) || Task.shutdown(task)
 
     case result do
-      {:ok, data} -> data
+      {:ok, data} -> {:ok, data}
       nil -> :elixir_ls_expression_timeout
       _otherwise -> result
     end
   end
 
-  defp all_variables(paused_processes) do
+  defp all_variables(paused_processes, nil) do
     paused_processes
-    |> Enum.flat_map(fn {_pid, %PausedProcess{} = paused_process} ->
-      paused_process.frames |> Map.values()
+    |> Enum.flat_map(fn
+      {:evaluator, _} ->
+        # TODO setVariable?
+        []
+
+      {_pid, %PausedProcess{} = paused_process} ->
+        paused_process.frames |> Map.values()
     end)
     |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
     |> Enum.flat_map(fn %Frame{bindings: bindings} ->
-      bindings |> Enum.map(&rename_binding_to_classic_variable/1)
+      Binding.to_elixir_variable_names(bindings)
     end)
   end
 
-  defp rename_binding_to_classic_variable({key, value}) do
-    # binding is present with prefix _ and postfix @
-    # for example _key@1 and _value@1 are representations of current function variables
-    new_key =
-      key
-      |> Atom.to_string()
-      |> String.replace(~r/_(.*)@\d/, "\\1")
-      |> String.to_atom()
+  defp all_variables(paused_processes, frame_id) do
+    case find_frame(paused_processes, frame_id) do
+      {_pid, %Frame{bindings: bindings}} when is_map(bindings) ->
+        Binding.to_elixir_variable_names(bindings)
 
-    {new_key, value}
+      _ ->
+        []
+    end
   end
 
   defp find_var(paused_processes, var_id) do
-    Enum.find_value(paused_processes, fn {pid, %PausedProcess{} = paused_process} ->
-      if Map.has_key?(paused_process.vars, var_id) do
-        {pid, paused_process.vars[var_id]}
+    Enum.find_value(paused_processes, fn {pid, %{vars: vars}} ->
+      if Map.has_key?(vars, var_id) do
+        {pid, vars[var_id]}
       end
     end)
   end
 
   defp find_frame(paused_processes, frame_id) do
-    Enum.find_value(paused_processes, fn {pid, %PausedProcess{} = paused_process} ->
-      if Map.has_key?(paused_process.frames, frame_id) do
-        {pid, paused_process.frames[frame_id]}
-      end
+    Enum.find_value(paused_processes, fn
+      {pid, %{frames: frames}} ->
+        if Map.has_key?(frames, frame_id) do
+          {pid, frames[frame_id]}
+        end
+
+      {:evaluator, _} ->
+        nil
     end)
   end
 
-  defp ensure_thread_id(state = %__MODULE__{}, pid) do
+  defp ensure_thread_id(state = %__MODULE__{}, pid) when is_pid(pid) do
     if Map.has_key?(state.threads_inverse, pid) do
       {state, state.threads_inverse[pid]}
     else
@@ -630,7 +905,7 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp ensure_var_id(state = %__MODULE__{}, pid, var) do
+  defp ensure_var_id(state = %__MODULE__{}, pid, var) when is_pid(pid) or pid == :evaluator do
     unless Map.has_key?(state.paused_processes, pid) do
       raise ArgumentError, message: "paused process #{inspect(pid)} not found"
     end
@@ -653,7 +928,7 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) do
+  defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) when is_pid(pid) do
     unless Map.has_key?(state.paused_processes, pid) do
       raise ArgumentError, message: "paused process #{inspect(pid)} not found"
     end
@@ -681,11 +956,11 @@ defmodule ElixirLS.Debugger.Server do
     File.cd!(project_dir)
 
     # Mixfile may already be loaded depending on cwd when launching debugger task
-    mixfile = Path.absname(System.get_env("MIX_EXS") || "mix.exs")
+    mixfile = Path.absname(MixfileHelpers.mix_exs())
 
     # FIXME: Private API
     unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
-      Code.compile_file(System.get_env("MIX_EXS") || "mix.exs")
+      Code.compile_file(MixfileHelpers.mix_exs())
     end
 
     task = task || Mix.Project.config()[:default_task]
@@ -751,17 +1026,18 @@ defmodule ElixirLS.Debugger.Server do
   defp capabilities do
     %{
       "supportsConfigurationDoneRequest" => true,
-      "supportsFunctionBreakpoints" => false,
-      "supportsConditionalBreakpoints" => false,
-      "supportsHitConditionalBreakpoints" => false,
-      "supportsEvaluateForHovers" => false,
+      "supportsFunctionBreakpoints" => true,
+      "supportsConditionalBreakpoints" => true,
+      "supportsHitConditionalBreakpoints" => true,
+      "supportsLogPoints" => true,
       "exceptionBreakpointFilters" => [],
       "supportsStepBack" => false,
       "supportsSetVariable" => false,
       "supportsRestartFrame" => false,
       "supportsGotoTargetsRequest" => false,
       "supportsStepInTargetsRequest" => false,
-      "supportsCompletionsRequest" => false,
+      "supportsCompletionsRequest" => true,
+      "completionTriggerCharacters" => [".", "&", "%", "^", ":", "!", "-", "~"],
       "supportsModulesRequest" => false,
       "additionalModuleColumns" => [],
       "supportedChecksumAlgorithms" => [],
@@ -769,6 +1045,10 @@ defmodule ElixirLS.Debugger.Server do
       "supportsExceptionOptions" => false,
       "supportsValueFormattingOptions" => false,
       "supportsExceptionInfoRequest" => false,
+      "supportsTerminateThreadsRequest" => true,
+      "supportsSingleThreadExecutionRequests" => true,
+      "supportsEvaluateForHovers" => true,
+      "supportsClipboardContext" => true,
       "supportTerminateDebuggee" => false
     }
   end
@@ -904,7 +1184,7 @@ defmodule ElixirLS.Debugger.Server do
         metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
         for line <- lines do
-          env = ElixirSense.Core.Metadata.get_env(metadata, line)
+          env = ElixirSense.Core.Metadata.get_env(metadata, line |> elem(0))
 
           if env.module == nil do
             {:error, "Could not determine module at line"}
@@ -919,16 +1199,11 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp set_breakpoint(module, line) do
+  defp set_breakpoint(module, {line, {condition, log_message, hit_count}}) do
     case :int.ni(module) do
       {:module, _} ->
-        case :int.break(module, line) do
-          :ok ->
-            :ok
-
-          {:error, :break_exists} ->
-            IO.warn("Breakpoint at line #{line} in #{module} is already set.")
-        end
+        :int.break(module, line)
+        update_break_condition(module, line, condition, log_message, hit_count)
 
         {:ok, module, line}
 
@@ -955,5 +1230,68 @@ defmodule ElixirLS.Debugger.Server do
           "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
         )
     end
+  end
+
+  def update_break_condition(module, lines, condition, log_message, hit_count) do
+    lines = List.wrap(lines)
+
+    condition = parse_condition(condition)
+
+    hit_count = eval_hit_count(hit_count)
+
+    log_message = if log_message not in ["", nil], do: log_message
+
+    register_break_condition(module, lines, condition, log_message, hit_count)
+  end
+
+  defp register_break_condition(module, lines, condition, log_message, hit_count) do
+    case BreakpointCondition.register_condition(module, lines, condition, log_message, hit_count) do
+      {:ok, mf} ->
+        for line <- lines do
+          :int.test_at_break(module, line, mf)
+        end
+
+      {:error, reason} ->
+        IO.warn(
+          "Unable to set condition on a breakpoint in #{module}:#{inspect(lines)}: #{inspect(reason)}"
+        )
+    end
+  end
+
+  defp parse_condition(condition) when condition in [nil, ""], do: "true"
+
+  defp parse_condition(condition) do
+    case Code.string_to_quoted(condition) do
+      {:ok, _} ->
+        condition
+
+      {:error, reason} ->
+        IO.warn("Cannot parse breakpoint condition: #{inspect(reason)}")
+        "true"
+    end
+  end
+
+  defp eval_hit_count(hit_count) when hit_count in [nil, ""], do: 0
+
+  defp eval_hit_count(hit_count) do
+    try do
+      {term, _bindings} = Code.eval_string(hit_count, [])
+
+      if is_integer(term) do
+        term
+      else
+        IO.warn("Hit condition must evaluate to integer")
+        0
+      end
+    catch
+      kind, error ->
+        IO.warn("Error while evaluating hit condition: " <> Exception.format_banner(kind, error))
+        0
+    end
+  end
+
+  defp build_attach_mfa(reason) do
+    server = Process.info(self())[:registered_name] || self()
+    {__MODULE__, reason, [server]}
   end
 end

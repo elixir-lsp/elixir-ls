@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.DialyzerTest do
   # TODO: Test loading and saving manifest
 
-  alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc}
+  alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc, Tracer, Build}
   import ExUnit.CaptureLog
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
@@ -10,10 +10,18 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     # This will generate a large PLT file and will take a long time, so we need to make sure that
     # Mix.Utils.home() is in the saved build artifacts for any automated testing
     Dialyzer.Manifest.load_elixir_plt()
+    compiler_options = Code.compiler_options()
+    Build.set_compiler_options()
+
+    on_exit(fn ->
+      Code.compiler_options(compiler_options)
+    end)
+
     {:ok, %{}}
   end
 
   setup do
+    {:ok, _} = Tracer.start_link([])
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}
@@ -22,10 +30,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "reports diagnostics then clears them once problems are fixed", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+      file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -41,8 +49,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message1,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 12, "line" => 1},
+                     "start" => %{"character" => 2, "line" => 1}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -50,8 +58,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message2,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 17, "line" => 2},
+                     "start" => %{"character" => 4, "line" => 2}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -72,7 +80,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         end
         """
 
-        b_uri = SourceFile.path_to_uri("lib/b.ex")
+        b_uri = SourceFile.Path.to_uri("lib/b.ex")
         Server.receive_packet(server, did_open(b_uri, "elixir", 1, b_text))
         Process.sleep(1500)
         File.write!("lib/b.ex", b_text)
@@ -95,10 +103,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "only analyzes the changed files", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_c = SourceFile.path_to_uri(Path.absname("lib/c.ex"))
+      file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -115,7 +123,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         end
         """
 
-        c_uri = SourceFile.path_to_uri("lib/c.ex")
+        c_uri = SourceFile.Path.to_uri("lib/c.ex")
 
         assert_receive notification("window/logMessage", %{
                          "message" => "[ElixirLS Dialyzer] Found " <> _
@@ -156,10 +164,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "reports dialyxir_long formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+      file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -175,8 +183,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message1,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 12, "line" => 1},
+                     "start" => %{"character" => 2, "line" => 1}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -184,8 +192,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message2,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 17, "line" => 2},
+                     "start" => %{"character" => 4, "line" => 2}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -210,10 +218,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "reports dialyxir_short formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+      file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -229,8 +237,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message1,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 12, "line" => 1},
+                     "start" => %{"character" => 2, "line" => 1}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -238,8 +246,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message2,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 17, "line" => 2},
+                     "start" => %{"character" => 4, "line" => 2}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -255,10 +263,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "reports dialyzer_formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+      file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -274,8 +282,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message1,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 12, "line" => 1},
+                     "start" => %{"character" => 2, "line" => 1}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -283,8 +291,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => _error_message2,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 17, "line" => 2},
+                     "start" => %{"character" => 4, "line" => 2}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -301,10 +309,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "reports dialyxir_short error in umbrella", %{server: server} do
     in_fixture(__DIR__, "umbrella_dialyzer", fn ->
-      file_a = SourceFile.path_to_uri(Path.absname("apps/app1/lib/app1.ex"))
+      file_a = SourceFile.Path.to_uri(Path.absname("apps/app1/lib/app1.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -320,8 +328,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message1,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 22, "line" => 1},
+                     "start" => %{"character" => 2, "line" => 1}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -329,8 +337,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                  %{
                    "message" => error_message2,
                    "range" => %{
-                     "end" => %{"character" => 0, "line" => _},
-                     "start" => %{"character" => 0, "line" => _}
+                     "end" => %{"character" => 22, "line" => 2},
+                     "start" => %{"character" => 4, "line" => 2}
                    },
                    "severity" => 2,
                    "source" => "ElixirLS Dialyzer"
@@ -345,10 +353,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
   test "clears diagnostics when source files are deleted", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_a = SourceFile.path_to_uri(Path.absname("lib/a.ex"))
+      file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -372,8 +380,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "protocol rebuild does not trigger consolidation warnings", %{server: server} do
     in_fixture(__DIR__, "protocols", fn ->
-      root_uri = SourceFile.path_to_uri(File.cwd!())
-      uri = SourceFile.path_to_uri(Path.absname("lib/implementations.ex"))
+      root_uri = SourceFile.Path.to_uri(File.cwd!())
+      uri = SourceFile.Path.to_uri(Path.absname("lib/implementations.ex"))
 
       Server.receive_packet(server, initialize_req(1, root_uri, %{}))
       Server.receive_packet(server, notification("initialized"))
@@ -446,10 +454,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "do not suggests contracts if not enabled", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_c = SourceFile.path_to_uri(Path.absname("lib/c.ex"))
+      file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(
@@ -483,10 +491,10 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "suggests contracts if enabled and applies suggestion", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_c = SourceFile.path_to_uri(Path.absname("lib/c.ex"))
+      file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.path_to_uri(File.cwd!())
+        root_uri = SourceFile.Path.to_uri(File.cwd!())
         Server.receive_packet(server, initialize_req(1, root_uri, %{}))
 
         Server.receive_packet(

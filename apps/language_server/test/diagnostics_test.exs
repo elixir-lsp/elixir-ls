@@ -61,6 +61,30 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
       assert diagnostic.position == 3
     end
 
+    test "update file and position with column if file is present in the message" do
+      root_path = Path.join(__DIR__, "fixtures/build_errors")
+      file = Path.join(root_path, "lib/has_error.ex")
+      position = 2
+
+      message = """
+      ** (CompileError) lib/has_error.ex:3:5: some message
+          lib/my_app/my_module.ex:10: MyApp.MyModule.render/1
+      """
+
+      [diagnostic | _] =
+        [build_diagnostic(message, file, position)]
+        |> Diagnostics.normalize(root_path)
+
+      assert diagnostic.message == """
+             (CompileError) some message
+
+             Stacktrace:
+               │ lib/my_app/my_module.ex:10: MyApp.MyModule.render/1\
+             """
+
+      assert diagnostic.position == {3, 5}
+    end
+
     test "update file and position if file is present in the message (umbrella)" do
       root_path = Path.join(__DIR__, "fixtures/umbrella")
       file = Path.join(root_path, "lib/file_to_be_replaced.ex")

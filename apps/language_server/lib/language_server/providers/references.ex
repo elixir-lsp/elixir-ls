@@ -11,26 +11,36 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   """
 
   alias ElixirLS.LanguageServer.{SourceFile, Build}
+  import ElixirLS.LanguageServer.Protocol
 
   def references(text, uri, line, character, _include_declaration) do
+    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
+
     Build.with_build_lock(fn ->
-      ElixirSense.references(text, line + 1, character + 1)
+      trace = ElixirLS.LanguageServer.Tracer.get_trace()
+
+      ElixirSense.references(text, line, character, trace)
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
-        |> build_reference(uri)
-        |> build_loc()
+        |> build_reference(uri, text)
       end)
-      |> Enum.filter(&has_uri?/1)
     end)
   end
 
-  defp build_reference(ref, current_file_uri) do
+  defp build_reference(ref, current_file_uri, current_file_text) do
+    text = get_text(ref, current_file_text)
+
+    {start_line, start_column} =
+      SourceFile.elixir_position_to_lsp(text, {ref.range.start.line, ref.range.start.column})
+
+    {end_line, end_column} =
+      SourceFile.elixir_position_to_lsp(text, {ref.range.end.line, ref.range.end.column})
+
+    range = range(start_line, start_column, end_line, end_column)
+
     %{
-      range: %{
-        start: %{line: ref.range.start.line, column: ref.range.start.column},
-        end: %{line: ref.range.end.line, column: ref.range.end.column}
-      },
-      uri: build_uri(ref, current_file_uri)
+      "range" => range,
+      "uri" => build_uri(ref, current_file_uri)
     }
   end
 
@@ -41,26 +51,14 @@ defmodule ElixirLS.LanguageServer.Providers.References do
       nil -> current_file_uri
       # ElixirSense returns a plain path (e.g. "/home/bob/my_app/lib/a.ex") as
       # the "uri" so we convert it to an actual uri
-      path when is_binary(path) -> SourceFile.path_to_uri(path)
-      _ -> nil
+      path when is_binary(path) -> SourceFile.Path.to_uri(path)
     end
   end
 
-  defp has_uri?(reference), do: !is_nil(reference["uri"])
-
-  defp build_loc(reference) do
-    # Adjust for ElixirSense 1-based indexing
-    line_start = reference.range.start.line - 1
-    line_end = reference.range.end.line - 1
-    column_start = reference.range.start.column - 1
-    column_end = reference.range.end.column - 1
-
-    %{
-      "uri" => reference.uri,
-      "range" => %{
-        "start" => %{"line" => line_start, "character" => column_start},
-        "end" => %{"line" => line_end, "character" => column_end}
-      }
-    }
+  def get_text(elixir_sense_ref, current_file_text) do
+    case elixir_sense_ref.uri do
+      nil -> current_file_text
+      path when is_binary(path) -> File.read!(path)
+    end
   end
 end

@@ -1,4 +1,6 @@
-# Version Support Guidelines
+# Development
+
+## Version Support Guidelines
 
 Elixir itself supports 5 versions with security updates:
 https://hexdocs.pm/elixir/compatibility-and-deprecations.html#content
@@ -8,30 +10,32 @@ http://erlang.2086793.n4.nabble.com/OTP-Versions-and-Maint-Branches-td4722416.ht
 
 ElixirLS generally aims to support the last 3 versions of Elixir and the last 3 versions of OTP. However this is not a hard and fast rule and may change in the future.
 
-# Packaging
+## Packaging
 
-Bump the changelog
-Bump the version numbers in `apps/elixir_ls_debugger/mix.exs`, `apps/elixir_ls_utils/mix.exs`, and `apps/language_server/mix.exs`
-Make PR
-Merge PR
-Pull down the latest master
-Make the tag from the new master
-Push the tag (`git push upstream --tags`)
-Wait for github actions to push up a draft release https://github.com/elixir-lsp/elixir-ls/releases
-Edit the draft release with a link to the changelog
-Publish the draft release
+Follow those instructions when publishing a new release.
 
-# Debugging
+1. Bump the changelog
+2. Bump the version numbers in `apps/elixir_ls_debugger/mix.exs`, `apps/elixir_ls_utils/mix.exs`, and `apps/language_server/mix.exs`
+3. Make PR
+4. Merge PR
+5. Pull down the latest master
+6. Make the tag from the new master
+7. Push the tag (`git push upstream --tags`)
+8. Wait for github actions to push up a draft release https://github.com/elixir-lsp/elixir-ls/releases
+9. Edit the draft release with a link to the changelog
+10. Publish the draft release
+
+## Debugging
 
 If you're debugging a running server than `IO.inspect` is a good approach, any messages you create with it will be sent to your LSP client as a log message
 
 To debug in tests you can use `IO.inspect(Process.whereis(:user), message, label: "message")` to send your output directly to the group leader of the test process.
 
-# Documentation website
+## Documentation website
 
 The documentation website is built using the [Mkdocs](https://www.mkdocs.org) static website generator. The content is written in Markdown format in the directory [docs](./docs) and is configured via the [mkdocs.yml](./mkdocs.yml) file.
 
-## Development
+### Development
 
 Make sure you have a recent version of Python 3 and [Pip](https://pip.readthedocs.io/en/stable/installing/) installed.
 
@@ -43,6 +47,6 @@ pip install mkdocs mkdocs-material
 
 Once installed, simply run `mkdocs serve` from the project root. This will start a local web server with a file watcher.
 
-## Build
+### Build
 
 To compile the website for deployment, run `mkdocs build` from the project root. The built static assets will be located in the `site` directory. These can then be served by any web hosting solution.

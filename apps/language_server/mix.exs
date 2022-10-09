@@ -4,8 +4,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   def project do
     [
       app: :language_server,
-      version: "0.9.0",
-      elixir: ">= 1.10.0",
+      version: "0.11.0",
+      elixir: ">= 1.11.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
@@ -32,7 +32,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:dialyxir, "~> 1.0", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
       {:stream_data, "~> 0.5", only: :test},
-      {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"}
+      {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},
+      {:patch, "~> 0.12.0", only: :test}
     ]
   end
 

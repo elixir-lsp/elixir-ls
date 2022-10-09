@@ -643,182 +643,55 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     end
   end
 
-  # tests basing on cases from https://github.com/microsoft/vscode-uri/blob/master/src/test/uri.test.ts
-  describe "path_from_uri" do
-    test "unix" do
-      path = SourceFile.path_from_uri("file:///some/path")
-
-      if is_windows() do
-        assert path == "\\some\\path"
-      else
-        assert path == "/some/path"
-      end
-
-      path = SourceFile.path_from_uri("file:///some/path/")
-
-      if is_windows() do
-        assert path == "\\some\\path\\"
-      else
-        assert path == "/some/path/"
-      end
-
-      path = SourceFile.path_from_uri("file:///nodes%2B%23.ex")
-
-      if is_windows() do
-        assert path == "\\nodes+#.ex"
-      else
-        assert path == "/nodes+#.ex"
-      end
+  describe "positions" do
+    test "lsp_position_to_elixir empty" do
+      assert {1, 1} == SourceFile.lsp_position_to_elixir("", {0, 0})
     end
 
-    test "UNC" do
-      path = SourceFile.path_from_uri("file://shares/files/c%23/p.cs")
-
-      if is_windows() do
-        assert path == "\\\\shares\\files\\c#\\p.cs"
-      else
-        assert path == "//shares/files/c#/p.cs"
-      end
-
-      path = SourceFile.path_from_uri("file://monacotools1/certificates/SSL/")
-
-      if is_windows() do
-        assert path == "\\\\monacotools1\\certificates\\SSL\\"
-      else
-        assert path == "//monacotools1/certificates/SSL/"
-      end
-
-      path = SourceFile.path_from_uri("file://monacotools1/")
-
-      if is_windows() do
-        assert path == "\\\\monacotools1\\"
-      else
-        assert path == "//monacotools1/"
-      end
+    test "lsp_position_to_elixir single first char" do
+      assert {1, 1} == SourceFile.lsp_position_to_elixir("abcde", {0, 0})
     end
 
-    test "no `path` in URI" do
-      path = SourceFile.path_from_uri("file://%2Fhome%2Fticino%2Fdesktop%2Fcpluscplus%2Ftest.cpp")
-
-      if is_windows() do
-        assert path == "\\"
-      else
-        assert path == "/"
-      end
+    test "lsp_position_to_elixir single line" do
+      assert {1, 2} == SourceFile.lsp_position_to_elixir("abcde", {0, 1})
     end
 
-    test "windows drive letter" do
-      path = SourceFile.path_from_uri("file:///c:/test/me")
-
-      if is_windows() do
-        assert path == "c:\\test\\me"
-      else
-        assert path == "/c:/test/me"
-      end
-
-      path = SourceFile.path_from_uri("file:///c%3A/test/me")
-
-      if is_windows() do
-        assert path == "c:\\test\\me"
-      else
-        assert path == "/c:/test/me"
-      end
-
-      path = SourceFile.path_from_uri("file:///C:/test/me/")
-
-      if is_windows() do
-        assert path == "c:\\test\\me\\"
-      else
-        assert path == "/C:/test/me/"
-      end
-
-      path = SourceFile.path_from_uri("file:///_:/path")
-
-      if is_windows() do
-        assert path == "\\_:\\path"
-      else
-        assert path == "/_:/path"
-      end
-
-      path =
-        SourceFile.path_from_uri(
-          "file:///c:/Source/Z%C3%BCrich%20or%20Zurich%20(%CB%88zj%CA%8A%C9%99r%C9%AAk,/Code/resources/app/plugins"
-        )
-
-      if is_windows() do
-        assert path == "c:\\Source\\Zürich or Zurich (ˈzjʊərɪk,\\Code\\resources\\app\\plugins"
-      else
-        assert path == "/c:/Source/Zürich or Zurich (ˈzjʊərɪk,/Code/resources/app/plugins"
-      end
+    test "lsp_position_to_elixir single line utf8" do
+      assert {1, 2} == SourceFile.lsp_position_to_elixir("🏳️‍🌈abcde", {0, 6})
     end
 
-    test "wrong schema" do
-      assert_raise ArgumentError, fn ->
-        SourceFile.path_from_uri("untitled:Untitled-1")
-      end
-
-      assert_raise ArgumentError, fn ->
-        SourceFile.path_from_uri("unsaved://343C3EE7-D575-486D-9D33-93AFFAF773BD")
-      end
-    end
-  end
-
-  # tests basing on cases from https://github.com/microsoft/vscode-uri/blob/master/src/test/uri.test.ts
-  describe "path_to_uri" do
-    test "unix path" do
-      unless is_windows() do
-        assert "file:///nodes%2B%23.ex" == SourceFile.path_to_uri("/nodes+#.ex")
-        assert "file:///coding/c%23/project1" == SourceFile.path_to_uri("/coding/c#/project1")
-
-        assert "file:///Users/jrieken/Code/_samples/18500/M%C3%B6del%20%2B%20Other%20Th%C3%AEng%C3%9F/model.js" ==
-                 SourceFile.path_to_uri(
-                   "/Users/jrieken/Code/_samples/18500/Mödel + Other Thîngß/model.js"
-                 )
-
-        assert "file:///foo/%25A0.txt" == SourceFile.path_to_uri("/foo/%A0.txt")
-        assert "file:///foo/%252e.txt" == SourceFile.path_to_uri("/foo/%2e.txt")
-      end
+    test "lsp_position_to_elixir multi line" do
+      assert {2, 2} == SourceFile.lsp_position_to_elixir("abcde\n1234", {1, 1})
     end
 
-    test "windows path" do
-      if is_windows() do
-        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:/win/path")
-        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("C:/win/path")
-        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:/win/path/")
-        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("/c:/win/path")
-
-        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win\\path")
-        assert "file:///c%3A/win/path" == SourceFile.path_to_uri("c:\\win/path")
-
-        assert "file:///c%3A/test%20with%20%25/path" ==
-                 SourceFile.path_to_uri("c:\\test with %\\path")
-
-        assert "file:///c%3A/test%20with%20%2525/c%23code" ==
-                 SourceFile.path_to_uri("c:\\test with %25\\c#code")
-      end
+    test "elixir_position_to_lsp empty" do
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("", {1, 1})
     end
 
-    test "relative path" do
-      cwd = File.cwd!()
-
-      uri = SourceFile.path_to_uri("a.file")
-
-      assert SourceFile.path_from_uri(uri) ==
-               maybe_convert_path_separators(Path.join(cwd, "a.file"))
-
-      uri = SourceFile.path_to_uri("./foo/bar")
-
-      assert SourceFile.path_from_uri(uri) ==
-               maybe_convert_path_separators(Path.join(cwd, "foo/bar"))
+    test "elixir_position_to_lsp single line first char" do
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("abcde", {1, 1})
     end
 
-    test "UNC path" do
-      if is_windows() do
-        assert "file://sh%C3%A4res/path/c%23/plugin.json" ==
-                 SourceFile.path_to_uri("\\\\shäres\\path\\c#\\plugin.json")
+    test "elixir_position_to_lsp single line" do
+      assert {0, 1} == SourceFile.elixir_position_to_lsp("abcde", {1, 2})
+    end
 
-        assert "file://localhost/c%24/GitDevelopment/express" ==
-                 SourceFile.path_to_uri("\\\\localhost\\c$\\GitDevelopment\\express")
+    test "elixir_position_to_lsp single line utf8" do
+      assert {0, 6} == SourceFile.elixir_position_to_lsp("🏳️‍🌈abcde", {1, 2})
+    end
+
+    test "elixir_position_to_lsp multi line" do
+      assert {1, 1} == SourceFile.elixir_position_to_lsp("abcde\n1234", {2, 2})
+    end
+
+    test "sanity check" do
+      text = "aąłsd🏳️‍🌈abcde"
+
+      for i <- 0..String.length(text) do
+        elixir_pos = {1, i + 1}
+        lsp_pos = SourceFile.elixir_position_to_lsp(text, elixir_pos)
+
+        assert elixir_pos == SourceFile.lsp_position_to_elixir(text, lsp_pos)
       end
     end
   end

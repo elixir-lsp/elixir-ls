@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile}
+  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer, Build}
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   defp root_uri do
-    SourceFile.path_to_uri(File.cwd!())
+    SourceFile.Path.to_uri(File.cwd!())
   end
 
   describe "initialize" do
@@ -231,8 +231,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   setup context do
     unless context[:skip_server] do
       server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+      {:ok, tracer} = Tracer.start_link([])
 
-      {:ok, %{server: server}}
+      {:ok, %{server: server, tracer: tracer}}
     else
       :ok
     end
@@ -531,7 +532,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       )
 
       in_fixture(__DIR__, "references", fn ->
-        uri = SourceFile.path_to_uri("lib/a.ex")
+        uri = SourceFile.Path.to_uri("lib/a.ex")
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_change(uri, 1, content_changes))
@@ -566,7 +567,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       )
 
       in_fixture(__DIR__, "references", fn ->
-        uri = SourceFile.path_to_uri("lib/a.ex")
+        uri = SourceFile.Path.to_uri("lib/a.ex")
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_change(uri, 1, content_changes))
@@ -750,7 +751,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       uri =
         ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
         |> to_string
-        |> SourceFile.path_to_uri()
+        |> SourceFile.Path.to_uri()
 
       assert_receive(
         response(1, %{
@@ -783,7 +784,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     test "implementations found", %{server: server} do
       file_path = FixtureHelpers.get_path("example_behaviour.ex")
       text = File.read!(file_path)
-      uri = SourceFile.path_to_uri(file_path)
+      uri = SourceFile.Path.to_uri(file_path)
       fake_initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, text))
 
@@ -918,7 +919,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       uri = Path.join([root_uri(), "file.ex"])
 
       uri
-      |> SourceFile.abs_path_from_uri()
+      |> SourceFile.Path.absolute_from_uri()
       |> File.write!("")
 
       code = """
@@ -1026,7 +1027,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag :fixture
   test "reports build diagnostics", %{server: server} do
     in_fixture(__DIR__, "build_errors", fn ->
-      error_file = SourceFile.path_to_uri("lib/has_error.ex")
+      error_file = SourceFile.Path.to_uri("lib/has_error.ex")
 
       initialize(server)
 
@@ -1049,7 +1050,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag :fixture
   test "reports token missing error diagnostics", %{server: server} do
     in_fixture(__DIR__, "token_missing_error", fn ->
-      error_file = SourceFile.path_to_uri("lib/has_error.ex")
+      error_file = SourceFile.Path.to_uri("lib/has_error.ex")
 
       initialize(server)
 
@@ -1072,7 +1073,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag :fixture
   test "reports build diagnostics on external resources", %{server: server} do
     in_fixture(__DIR__, "build_errors_on_external_resource", fn ->
-      error_file = SourceFile.path_to_uri("lib/template.eex")
+      error_file = SourceFile.Path.to_uri("lib/template.eex")
 
       initialize(server)
 
@@ -1096,11 +1097,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "finds references in non-umbrella project", %{server: server} do
     in_fixture(__DIR__, "references", fn ->
       file_path = "lib/b.ex"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       text = File.read!(file_path)
-      reference_uri = SourceFile.path_to_uri("lib/a.ex")
+      reference_uri = SourceFile.Path.to_uri("lib/a.ex")
+
+      Build.set_compiler_options()
 
       initialize(server)
+      wait_until_compiled(server)
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
       Server.receive_packet(
@@ -1119,17 +1123,22 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       wait_until_compiled(server)
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   @tag :fixture
   test "finds references in umbrella project", %{server: server} do
     in_fixture(__DIR__, "umbrella", fn ->
       file_path = "apps/app2/lib/app2.ex"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       text = File.read!(file_path)
-      reference_uri = SourceFile.path_to_uri("apps/app1/lib/app1.ex")
+      reference_uri = SourceFile.Path.to_uri("apps/app1/lib/app1.ex")
+
+      Build.set_compiler_options()
 
       initialize(server)
+      wait_until_compiled(server)
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
       Server.receive_packet(
@@ -1148,6 +1157,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       wait_until_compiled(server)
     end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   @tag fixture: true, skip_server: true
@@ -1157,6 +1168,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       # First to compile the applications and build the cache.
       # Second time to see if loads modules
       with_new_server(fn server ->
+        {:ok, _pid} = Tracer.start_link([])
         initialize(server)
         wait_until_compiled(server)
       end)
@@ -1170,7 +1182,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         wait_until_compiled(server)
 
         file_path = "apps/app1/lib/bar.ex"
-        uri = SourceFile.path_to_uri(file_path)
+        uri = SourceFile.Path.to_uri(file_path)
 
         code = """
         defmodule Bar do
@@ -1204,15 +1216,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "returns code lenses for runnable tests", %{server: server} do
     in_fixture(__DIR__, "test_code_lens", fn ->
       file_path = "test/fixture_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       # this is not an abs path as returned by Path.absname
       # on Windows it's c:\asdf instead of c:/asdf
-      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
 
-      project_dir =
-        root_uri()
-        |> SourceFile.abs_path_from_uri()
+      project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
       initialize(server)
 
@@ -1277,7 +1287,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   } do
     in_fixture(__DIR__, "test_code_lens", fn ->
       file_path = "test/fixture_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
+      file_uri = SourceFile.Path.to_uri(file_path)
       text = File.read!(file_path)
 
       fake_initialize(server)
@@ -1301,10 +1311,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   } do
     in_fixture(__DIR__, "test_code_lens_custom_paths_and_pattern", fn ->
       file_path = "custom_path/fixture_custom_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
-      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      file_uri = SourceFile.Path.to_uri(file_path)
+      file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
-      project_dir = SourceFile.path_from_uri(root_uri())
+      project_dir = SourceFile.Path.from_uri(root_uri())
 
       initialize(server)
 
@@ -1370,10 +1380,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
        } do
     in_fixture(__DIR__, "umbrella_test_code_lens_custom_path_and_pattern", fn ->
       file_path = "apps/app1/custom_path/fixture_custom_test.exs"
-      file_uri = SourceFile.path_to_uri(file_path)
-      file_absolute_path = SourceFile.path_from_uri(file_uri)
+      file_uri = SourceFile.Path.to_uri(file_path)
+      file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
-      project_dir = SourceFile.path_from_uri("#{root_uri()}/apps/app1")
+      project_dir = SourceFile.Path.from_uri("#{root_uri()}/apps/app1")
 
       initialize(server)
 
@@ -1479,6 +1489,70 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         wait_until_compiled(server)
       end)
+    end
+  end
+
+  describe "textDocument/codeAction" do
+    test "return code actions on unused variables", %{server: server} do
+      uri = "file:///file.ex"
+      fake_initialize(server)
+
+      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+
+      Server.receive_packet(
+        server,
+        code_action_req(1, uri, [
+          %{
+            "message" =>
+              "variable \"foo\" is unused (if the variable is not meant to be used, prefix it with an underscore)",
+            "range" => %{
+              "end" => %{"character" => 13, "line" => 19},
+              "start" => %{"character" => 4, "line" => 19}
+            },
+            "severity" => 1,
+            "source" => "Elixir"
+          }
+        ])
+      )
+
+      resp = assert_receive(%{"id" => 1}, 5000)
+
+      assert response(1, [
+               %{
+                 "edit" => %{
+                   "changes" => %{
+                     "file:///file.ex" => [
+                       %{
+                         "newText" => "_",
+                         "range" => %{
+                           "end" => %{"character" => 4, "line" => 19},
+                           "start" => %{"character" => 4, "line" => 19}
+                         }
+                       }
+                     ]
+                   }
+                 },
+                 "kind" => "quickfix",
+                 "title" => "Add '_' to unused variable"
+               },
+               %{
+                 "edit" => %{
+                   "changes" => %{
+                     "file:///file.ex" => [
+                       %{
+                         "newText" => "",
+                         "range" => %{
+                           "end" => %{"character" => 13, "line" => 19},
+                           "start" => %{"character" => 4, "line" => 19}
+                         }
+                       }
+                     ]
+                   }
+                 },
+                 "kind" => "quickfix",
+                 "title" => "Remove unused variable"
+               }
+             ]) == resp
     end
   end
 

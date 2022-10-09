@@ -4,12 +4,12 @@ defmodule ElixirLS.Debugger.Mixfile do
   def project do
     [
       app: :elixir_ls_debugger,
-      version: "0.9.0",
+      version: "0.11.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: ">= 1.10.0",
+      elixir: ">= 1.11.0",
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,

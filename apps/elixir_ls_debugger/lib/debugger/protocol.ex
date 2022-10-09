@@ -35,9 +35,11 @@ defmodule ElixirLS.Debugger.Protocol do
     end
   end
 
-  defmacro set_exception_breakpoints_req(seq) do
+  defmacro set_function_breakpoints_req(seq, breakpoints) do
     quote do
-      request(unquote(seq), "setExceptionBreakpoints")
+      request(unquote(seq), "setFunctionBreakpoints", %{
+        "breakpoints" => unquote(breakpoints)
+      })
     end
   end
 
@@ -50,6 +52,18 @@ defmodule ElixirLS.Debugger.Protocol do
   defmacro threads_req(seq) do
     quote do
       request(unquote(seq), "threads")
+    end
+  end
+
+  defmacro terminate_threads_req(seq, thread_ids) do
+    quote do
+      request(unquote(seq), "terminateThreads", %{"threadIds" => unquote(thread_ids)})
+    end
+  end
+
+  defmacro pause_req(seq, thread_id) do
+    quote do
+      request(unquote(seq), "pause", %{"threadId" => unquote(thread_id)})
     end
   end
 
@@ -68,6 +82,12 @@ defmodule ElixirLS.Debugger.Protocol do
   defmacro vars_req(seq, var_id) do
     quote do
       request(unquote(seq), "variables", %{"variablesReference" => unquote(var_id)})
+    end
+  end
+
+  defmacro completions_req(seq, text) do
+    quote do
+      request(unquote(seq), "completions", %{"text" => unquote(text)})
     end
   end
 

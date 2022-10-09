@@ -3,9 +3,17 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
 
-  def format(%SourceFile{} = source_file, uri, project_dir) when is_binary(project_dir) do
+  def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir)
+      when is_binary(project_dir) do
     if can_format?(uri, project_dir) do
-      case SourceFile.formatter_opts(uri) do
+      case SourceFile.formatter_for(uri) do
+        {:ok, {formatter, opts}} ->
+          if should_format?(uri, project_dir, opts[:inputs]) do
+            do_format(source_file, formatter, opts)
+          else
+            {:ok, []}
+          end
+
         {:ok, opts} ->
           if should_format?(uri, project_dir, opts[:inputs]) do
             do_format(source_file, opts)
@@ -25,12 +33,15 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     end
   end
 
-  def format(%SourceFile{} = source_file, _uri, nil) do
+  # if project_dir is not set or schema is not file: we format with default options
+  def format(%SourceFile{} = source_file, _uri, _project_dir) do
     do_format(source_file)
   end
 
-  defp do_format(%SourceFile{text: text}, opts \\ []) do
-    formatted = IO.iodata_to_binary([Code.format_string!(text, opts), ?\n])
+  defp do_format(%SourceFile{} = source_file, opts \\ []), do: do_format(source_file, nil, opts)
+
+  defp do_format(%SourceFile{text: text}, formatter, opts) do
+    formatted = get_formatted(text, formatter, opts)
 
     response =
       text
@@ -43,10 +54,18 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       {:error, :internal_error, "Unable to format due to syntax error"}
   end
 
+  defp get_formatted(text, formatter, _) when is_function(formatter) do
+    formatter.(text)
+  end
+
+  defp get_formatted(text, _, opts) do
+    IO.iodata_to_binary([Code.format_string!(text, opts), ?\n])
+  end
+
   # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
   # fine if the file we're trying to format is in that app. Otherwise, we return an error.
   defp can_format?(file_uri = "file:" <> _, project_dir) do
-    file_path = file_uri |> SourceFile.abs_path_from_uri()
+    file_path = SourceFile.Path.absolute_from_uri(file_uri)
 
     String.starts_with?(file_path, Path.absname(project_dir)) or
       String.starts_with?(file_path, File.cwd!())
@@ -55,7 +74,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   defp can_format?(_uri, _project_dir), do: false
 
   defp should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
-    file_path = file_uri |> SourceFile.abs_path_from_uri()
+    file_path = SourceFile.Path.absolute_from_uri(file_uri)
     formatter_dir = find_formatter_dir(project_dir, Path.dirname(file_path))
 
     Enum.any?(inputs, fn input_glob ->

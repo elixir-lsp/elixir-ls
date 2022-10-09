@@ -56,8 +56,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
     formatted =
       try do
         target_line_length =
-          case SourceFile.formatter_opts(uri) do
-            {:ok, opts} -> Keyword.get(opts, :line_length, @default_target_line_length)
+          case SourceFile.formatter_for(uri) do
+            {:ok, {_, opts}} -> Keyword.get(opts, :line_length, @default_target_line_length)
             :error -> @default_target_line_length
           end
 
@@ -78,6 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
         "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
         "edit" => %{
           "changes" => %{
+            # we don't care about utf16 positions here as we send 0
             uri => [%{"range" => range(line - 1, 0, line - 1, 0), "newText" => formatted}]
           }
         }

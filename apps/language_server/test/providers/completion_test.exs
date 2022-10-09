@@ -20,8 +20,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   }
 
   setup context do
-    ElixirLS.LanguageServer.Build.load_all_modules()
-
     unless context[:skip_server] do
       server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
@@ -908,6 +906,146 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                """
              }
     end
+
+    test "will suggest defmodule with module_name snippet when file path matches **/lib/**/*.ex" do
+      text = """
+      defmod
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.ex"
+                 )
+               )
+
+      assert %{
+               "label" => "defmodule",
+               "insertText" => "defmodule MyProject.SubFolder.MyFile$1 do\n\t$0\nend"
+             } = first
+    end
+
+    test "will suggest defmodule without module_name snippet when file path does not match expected patterns" do
+      text = """
+      defmod
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.heex"
+                 )
+               )
+
+      assert %{
+               "label" => "defmodule",
+               "insertText" => "defmodule $1 do\n\t$0\nend"
+             } = first
+    end
+
+    test "will suggest defmodule without module_name snippet when file path is nil" do
+      text = """
+      defmod
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   nil
+                 )
+               )
+
+      assert %{
+               "label" => "defmodule",
+               "insertText" => "defmodule $1 do\n\t$0\nend"
+             } = first
+    end
+
+    test "will suggest defprotocol with protocol_name snippet when file path matches **/lib/**/*.ex" do
+      text = """
+      defpro
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.ex"
+                 )
+               )
+
+      assert %{
+               "label" => "defprotocol",
+               "insertText" => "defprotocol MyProject.SubFolder.MyFile$1 do\n\t$0\nend"
+             } = first
+    end
+
+    test "will suggest defprotocol without protocol_name snippet when file path does not match expected patterns" do
+      text = """
+      defpro
+      #     ^
+      """
+
+      {line, char} = {0, 6}
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      assert {:ok, %{"items" => [first | _] = _items}} =
+               Completion.completion(
+                 text,
+                 line,
+                 char,
+                 @supports
+                 |> Keyword.put(
+                   :file_path,
+                   "/some/path/my_project/lib/my_project/sub_folder/my_file.heex"
+                 )
+               )
+
+      assert %{
+               "label" => "defprotocol",
+               "insertText" => "defprotocol $1 do\n\t$0\nend"
+             } = first
+    end
   end
 
   describe "generic suggestions" do
@@ -1051,6 +1189,82 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "if"}, &1))
 
       assert insert_text =~ "if do\n\t"
+    end
+  end
+
+  describe "suggest_module_name/1" do
+    import Completion, only: [suggest_module_name: 1]
+
+    test "returns nil if current file_path is empty" do
+      assert nil == suggest_module_name("")
+    end
+
+    test "returns nil if current file is not an .ex file" do
+      assert nil == suggest_module_name("some/path/lib/dir/file.heex")
+    end
+
+    test "returns nil if current file is an .ex file but no lib folder exists in path" do
+      assert nil == suggest_module_name("some/path/not_lib/dir/file.ex")
+    end
+
+    test "returns nil if current file is an *_test.exs file but no test folder exists in path" do
+      assert nil == suggest_module_name("some/path/not_test/dir/file_test.exs")
+    end
+
+    test "returns an appropriate suggestion if file directly under lib" do
+      assert "MyProject" == suggest_module_name("some/path/my_project/lib/my_project.ex")
+    end
+
+    test "returns an appropriate suggestion if file arbitrarily nested under lib/" do
+      assert "MyProject.Foo.Bar.Baz.MyFile" =
+               suggest_module_name("some/path/my_project/lib/my_project/foo/bar/baz/my_file.ex")
+    end
+
+    test "returns an appropriate suggestion if file directly under test/" do
+      assert "MyProjectTest" ==
+               suggest_module_name("some/path/my_project/test/my_project_test.exs")
+    end
+
+    test "returns an appropriate suggestion if file arbitrarily nested under test" do
+      assert "MyProject.Foo.Bar.Baz.MyFileTest" ==
+               suggest_module_name(
+                 "some/path/my_project/test/my_project/foo/bar/baz/my_file_test.exs"
+               )
+    end
+
+    test "returns an appropriate suggestion if file is part of an umbrella project" do
+      assert "MySubApp.Foo.Bar.Baz" ==
+               suggest_module_name(
+                 "some/path/my_umbrella_project/apps/my_sub_app/lib/my_sub_app/foo/bar/baz.ex"
+               )
+    end
+
+    test "returns appropriate suggestions for modules nested under known phoenix dirs" do
+      [
+        {"MyProjectWeb.MyController", "controllers/my_controller.ex"},
+        {"MyProjectWeb.MyPlug", "plugs/my_plug.ex"},
+        {"MyProjectWeb.MyView", "views/my_view.ex"},
+        {"MyProjectWeb.MyChannel", "channels/my_channel.ex"},
+        {"MyProjectWeb.MyEndpoint", "endpoints/my_endpoint.ex"},
+        {"MyProjectWeb.MySocket", "sockets/my_socket.ex"},
+        {"MyProjectWeb.MyviewLive.MyComponent", "live/myview_live/my_component.ex"}
+      ]
+      |> Enum.each(fn {expected_module_name, partial_path} ->
+        path = "some/path/my_project/lib/my_project_web/#{partial_path}"
+        assert expected_module_name == suggest_module_name(path)
+      end)
+    end
+
+    test "uses known Phoenix dirs as part of a module's name if these are not located directly beneath the *_web folder" do
+      assert "MyProject.Controllers.MyController" ==
+               suggest_module_name(
+                 "some/path/my_project/lib/my_project/controllers/my_controller.ex"
+               )
+
+      assert "MyProjectWeb.SomeNestedDir.Controllers.MyController" ==
+               suggest_module_name(
+                 "some/path/my_project/lib/my_project_web/some_nested_dir/controllers/my_controller.ex"
+               )
     end
   end
 end

@@ -2,24 +2,52 @@ defmodule ElixirLS.Debugger.Variables do
   @moduledoc """
   Helper functions for working with variables for paused processes
   """
+  alias ElixirSense.Core.Introspection
 
   def child_type(var) when is_map(var), do: :named
   def child_type(var) when is_bitstring(var), do: :indexed
   def child_type(var) when is_tuple(var), do: :indexed
-  def child_type(var) when is_list(var), do: :indexed
-  def child_type(_var), do: nil
 
-  def expandable?(var) do
-    num_children(var) > 0
+  def child_type(var) when is_list(var) do
+    if Keyword.keyword?(var) do
+      :named
+    else
+      :indexed
+    end
   end
+
+  def child_type(var) when is_function(var), do: :named
+
+  def child_type(var) when is_pid(var) do
+    case :erlang.process_info(var) do
+      :undefined -> :indexed
+      _results -> :named
+    end
+  end
+
+  def child_type(var) when is_port(var) do
+    case :erlang.port_info(var) do
+      :undefined -> :indexed
+      _results -> :named
+    end
+  end
+
+  def child_type(_var), do: nil
 
   def children(var, start, count) when is_list(var) do
     start = start || 0
     count = count || Enum.count(var)
 
-    var
-    |> Enum.slice(start, count)
-    |> with_index_as_name(start)
+    sliced =
+      var
+      |> Enum.slice(start, count)
+
+    if Keyword.keyword?(var) do
+      sliced
+    else
+      sliced
+      |> with_index_as_name(start)
+    end
   end
 
   def children(var, start, count) when is_tuple(var) do
@@ -42,7 +70,7 @@ defmodule ElixirLS.Debugger.Variables do
 
     for {key, value} <- children do
       name =
-        if is_atom(key) and not String.starts_with?(to_string(key), "Elixir.") do
+        if is_atom(key) and not Introspection.elixir_module?(key) do
           to_string(key)
         else
           inspect(key)
@@ -50,6 +78,27 @@ defmodule ElixirLS.Debugger.Variables do
 
       {name, value}
     end
+  end
+
+  def children(var, start, count) when is_function(var) do
+    :erlang.fun_info(var)
+    |> children(start, count)
+  end
+
+  def children(var, start, count) when is_pid(var) do
+    case :erlang.process_info(var) do
+      :undefined -> ["process is not alive"]
+      results -> results
+    end
+    |> children(start, count)
+  end
+
+  def children(var, start, count) when is_port(var) do
+    case :erlang.port_info(var) do
+      :undefined -> ["port is not open"]
+      results -> results
+    end
+    |> children(start, count)
   end
 
   def children(_var, _start, _count) do
@@ -60,12 +109,8 @@ defmodule ElixirLS.Debugger.Variables do
     Enum.count(var)
   end
 
-  def num_children(var) when is_binary(var) do
-    byte_size(var)
-  end
-
   def num_children(var) when is_bitstring(var) do
-    if byte_size(var) > 1, do: byte_size(var), else: 0
+    byte_size(var)
   end
 
   def num_children(var) when is_tuple(var) do
@@ -76,20 +121,59 @@ defmodule ElixirLS.Debugger.Variables do
     map_size(var)
   end
 
+  def num_children(var) when is_function(var) do
+    :erlang.fun_info(var)
+    |> Enum.count()
+  end
+
+  def num_children(var) when is_pid(var) do
+    case :erlang.process_info(var) do
+      :undefined -> 1
+      results -> results |> Enum.count()
+    end
+  end
+
+  def num_children(var) when is_port(var) do
+    case :erlang.port_info(var) do
+      :undefined -> 1
+      results -> results |> Enum.count()
+    end
+  end
+
   def num_children(_var) do
     0
   end
 
-  def type(var) when is_atom(var), do: "atom"
+  def type(var) when is_boolean(var), do: "boolean"
+  def type(var) when is_nil(var), do: "nil"
+
+  def type(var) when is_atom(var) do
+    if Introspection.elixir_module?(var) do
+      "module"
+    else
+      "atom"
+    end
+  end
+
   def type(var) when is_binary(var), do: "binary"
   def type(var) when is_bitstring(var), do: "bitstring"
-  def type(var) when is_boolean(var), do: "boolean"
+
   def type(var) when is_float(var), do: "float"
   def type(var) when is_function(var), do: "function"
   def type(var) when is_integer(var), do: "integer"
-  def type(var) when is_list(var), do: "list"
+
+  def type(var) when is_list(var) do
+    if Keyword.keyword?(var) and var != [] do
+      "keyword"
+    else
+      "list"
+    end
+  end
+
+  def type(%name{}), do: "%#{inspect(name)}{}"
+
   def type(var) when is_map(var), do: "map"
-  def type(var) when is_nil(var), do: "nil"
+
   def type(var) when is_number(var), do: "number"
   def type(var) when is_pid(var), do: "pid"
   def type(var) when is_port(var), do: "port"

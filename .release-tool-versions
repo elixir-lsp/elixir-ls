@@ -3,5 +3,5 @@
 #
 # The versions selected here are the versions that are used to build a binary
 # release for distribution
-elixir 1.10.4-otp-22
+elixir 1.11.4-otp-22
 erlang 22.3.4.20

@@ -1,4 +1,6 @@
-# Setup
+# NeoVim
+
+## Setup
 
 There are several plugins available for NeoVim:
 
