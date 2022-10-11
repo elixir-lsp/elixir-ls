@@ -7,6 +7,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   doctest(Server)
 
+  setup_all do
+    on_exit(fn ->
+      Code.put_compiler_option(:tracers, [])
+    end)
+  end
+
   defp initialize(server) do
     Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
     Server.receive_packet(server, notification("initialized"))
