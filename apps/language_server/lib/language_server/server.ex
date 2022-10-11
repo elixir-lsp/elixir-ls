@@ -939,6 +939,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
     build_automatically = Map.get(state.settings || %{}, "autoBuild", true)
+
     cond do
       not build_enabled?(state) ->
         state
