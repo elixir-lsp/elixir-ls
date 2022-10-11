@@ -61,7 +61,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # handle a bare defimpl, defprotocol or defmodule
-  defp extract_modules({defname, _, nil} = ast)
+  defp extract_modules({defname, _, nil})
        when defname in [:defmodule, :defprotocol, :defimpl] do
     []
   end

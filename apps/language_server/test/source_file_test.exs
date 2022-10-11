@@ -1,7 +1,6 @@
 defmodule ElixirLS.LanguageServer.SourceFileTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
-  import ElixirLS.LanguageServer.Test.PlatformTestHelpers
 
   alias ElixirLS.LanguageServer.SourceFile
 
