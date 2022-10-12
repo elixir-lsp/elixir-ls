@@ -45,6 +45,11 @@ defmodule Logger.Backends.JsonRpc do
     {:ok, :ok, configure(options, state)}
   end
 
+  def handle_call({:set_group_leader, pid}, state) do
+    Process.group_leader(self(), pid)
+    {:ok, :ok, state}
+  end
+
   @impl true
   def handle_event({level, _gl, {Logger, msg, ts, md}}, state) do
     %{level: log_level} = state
