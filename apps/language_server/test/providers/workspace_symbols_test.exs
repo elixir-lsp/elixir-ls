@@ -36,11 +36,6 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
 
   test "empty query", %{server: server} do
     assert {:ok, []} == WorkspaceSymbols.symbols("", server)
-
-    assert_receive %{
-      "method" => "window/logMessage",
-      "params" => %{"message" => "[ElixirLS WorkspaceSymbols] Updating index..."}
-    }
   end
 
   test "returns modules", %{server: server} do

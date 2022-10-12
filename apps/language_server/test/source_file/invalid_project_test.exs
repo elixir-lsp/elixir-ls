@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
 
   use Patch
   alias ElixirLS.LanguageServer.SourceFile
-  import ExUnit.CaptureIO
+  import ExUnit.CaptureLog
 
   describe "formatter_for " do
     test "should handle syntax errors" do
@@ -12,7 +12,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
       end)
 
       output =
-        capture_io(:stderr, fn ->
+        capture_log(fn ->
           assert :error = SourceFile.formatter_for("file:///root.ex")
         end)
 
@@ -25,7 +25,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
       end)
 
       output =
-        capture_io(:stderr, fn ->
+        capture_log(fn ->
           assert :error = SourceFile.formatter_for("file:///root.ex")
         end)
 
