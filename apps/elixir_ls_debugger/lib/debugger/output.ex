@@ -29,11 +29,19 @@ defmodule ElixirLS.Debugger.Output do
     GenServer.call(server, {:send_event, event, body})
   end
 
-  def print(server \\ __MODULE__, str) when is_binary(str) do
+  def debugger_console(server \\ __MODULE__, str) when is_binary(str) do
+    send_event(server, "output", %{"category" => "console", "output" => str})
+  end
+
+  def debugger_important(server \\ __MODULE__, str) when is_binary(str) do
+    send_event(server, "output", %{"category" => "important", "output" => str})
+  end
+
+  def debuggee_out(server \\ __MODULE__, str) when is_binary(str) do
     send_event(server, "output", %{"category" => "stdout", "output" => str})
   end
 
-  def print_err(server \\ __MODULE__, str) when is_binary(str) do
+  def debuggee_err(server \\ __MODULE__, str) when is_binary(str) do
     send_event(server, "output", %{"category" => "stderr", "output" => str})
   end
 

@@ -2,6 +2,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
   @moduledoc """
   Retrieves the stack trace for a process that's paused at a breakpoint
   """
+  alias ElixirLS.Debugger.Output
 
   defmodule Frame do
     defstruct [:level, :file, :module, :function, :args, :line, :bindings, :messages]
@@ -56,7 +57,10 @@ defmodule ElixirLS.Debugger.Stacktrace do
         [first_frame | other_frames]
 
       error ->
-        IO.warn("Failed to obtain meta for pid #{inspect(pid)}: #{inspect(error)}")
+        Output.debugger_important(
+          "Failed to obtain meta for pid #{inspect(pid)}: #{inspect(error)}"
+        )
+
         []
     end
   end

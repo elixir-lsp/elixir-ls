@@ -2,7 +2,6 @@ defmodule ElixirLS.Utils.PacketStreamTest do
   use ExUnit.Case, async: true
 
   alias ElixirLS.Utils.PacketStream
-  import ExUnit.CaptureIO
 
   describe "content-type" do
     test "default mime" do
@@ -123,11 +122,14 @@ defmodule ElixirLS.Utils.PacketStreamTest do
       {:ok, pid} =
         File.open("test/fixtures/protocol_messages/invalid_content_length", [:read, :binary])
 
-      assert capture_io(:stderr, fn ->
-               assert [] =
-                        PacketStream.stream(pid)
-                        |> Enum.to_list()
-             end) =~ "Unable to read from device: :truncated"
+      error =
+        assert_raise RuntimeError, fn ->
+          assert [] =
+                   PacketStream.stream(pid)
+                   |> Enum.to_list()
+        end
+
+      assert error.message =~ "Unable to read from device: :truncated"
 
       File.close(pid)
     end
@@ -136,11 +138,14 @@ defmodule ElixirLS.Utils.PacketStreamTest do
       {:ok, pid} =
         File.open("test/fixtures/protocol_messages/invalid_content_type", [:read, :binary])
 
-      assert capture_io(:stderr, fn ->
-               assert [] =
-                        PacketStream.stream(pid)
-                        |> Enum.to_list()
-             end) =~ "Unable to read from device: :not_supported_content_type"
+      error =
+        assert_raise RuntimeError, fn ->
+          assert [] =
+                   PacketStream.stream(pid)
+                   |> Enum.to_list()
+        end
+
+      assert error.message =~ "Unable to read from device: :not_supported_content_type"
 
       File.close(pid)
     end
@@ -149,11 +154,14 @@ defmodule ElixirLS.Utils.PacketStreamTest do
       for i <- 0..6 do
         {:ok, pid} = File.open("test/fixtures/protocol_messages/no_body_#{i}", [:read, :binary])
 
-        capture_io(:stderr, fn ->
+        try do
           assert [] =
                    PacketStream.stream(pid)
                    |> Enum.to_list()
-        end)
+        rescue
+          RuntimeError ->
+            :ok
+        end
 
         File.close(pid)
       end
@@ -162,11 +170,14 @@ defmodule ElixirLS.Utils.PacketStreamTest do
     test "invalid JSON" do
       {:ok, pid} = File.open("test/fixtures/protocol_messages/invalid_json", [:read, :binary])
 
-      assert capture_io(:stderr, fn ->
-               assert [] =
-                        PacketStream.stream(pid)
-                        |> Enum.to_list()
-             end) =~ "Unable to read from device: %JasonVendored.DecodeError"
+      error =
+        assert_raise RuntimeError, fn ->
+          assert [] =
+                   PacketStream.stream(pid)
+                   |> Enum.to_list()
+        end
+
+      assert error.message =~ "Unable to read from device: %JasonVendored.DecodeError"
 
       File.close(pid)
     end
@@ -175,12 +186,15 @@ defmodule ElixirLS.Utils.PacketStreamTest do
       {:ok, pid} =
         File.open("test/fixtures/protocol_messages/invalid_after_valid", [:read, :binary])
 
-      assert capture_io(:stderr, fn ->
-               # note that we halt the stream and discard any further valid messages
-               assert [%{"some" => "value"}] =
-                        PacketStream.stream(pid)
-                        |> Enum.to_list()
-             end) =~ "Unable to read from device: %JasonVendored.DecodeError"
+      error =
+        assert_raise RuntimeError, fn ->
+          # note that we halt the stream and discard any further valid messages
+          assert [%{"some" => "value"}] =
+                   PacketStream.stream(pid)
+                   |> Enum.to_list()
+        end
+
+      assert error.message =~ "Unable to read from device: %JasonVendored.DecodeError"
 
       File.close(pid)
     end

@@ -166,8 +166,7 @@ defmodule ElixirLS.Debugger.Server do
           0
 
         _ ->
-          IO.puts(
-            :standard_error,
+          Output.debugger_important(
             "(Debugger) Task failed because " <> Exception.format_exit(reason)
           )
 
@@ -181,8 +180,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   def handle_info({:DOWN, _ref, :process, pid, reason}, state = %__MODULE__{}) do
-    IO.puts(
-      :standard_error,
+    Output.debugger_important(
       "debugged process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
     )
 
@@ -222,7 +220,7 @@ defmodule ElixirLS.Debugger.Server do
   @impl GenServer
   def terminate(reason, _state = %__MODULE__{}) do
     if reason != :normal do
-      IO.puts(:standard_error, "(Debugger) Terminating because #{Exception.format_exit(reason)}")
+      Output.debugger_important("(Debugger) Terminating because #{Exception.format_exit(reason)}")
     end
   end
 
@@ -231,17 +229,17 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(initialize_req(_, client_info), %__MODULE__{client_info: nil} = state) do
     # linesStartAt1 is true by default and we only support 1-based indexing
     if client_info["linesStartAt1"] == false do
-      IO.warn("0-based lines are not supported")
+      Output.debugger_important("0-based lines are not supported")
     end
 
     # columnsStartAt1 is true by default and we only support 1-based indexing
     if client_info["columnsStartAt1"] == false do
-      IO.warn("0-based columns are not supported")
+      Output.debugger_important("0-based columns are not supported")
     end
 
     # pathFormat is `path` by default and we do not support other, e.g. `uri`
     if client_info["pathFormat"] not in [nil, "path"] do
-      IO.warn("pathFormat #{client_info["pathFormat"]} not supported")
+      Output.debugger_important("pathFormat #{client_info["pathFormat"]} not supported")
     end
 
     {capabilities(), %{state | client_info: client_info}}
@@ -258,7 +256,7 @@ defmodule ElixirLS.Debugger.Server do
 
   defp handle_request(launch_req(_, config) = args, state = %__MODULE__{}) do
     if args["arguments"]["noDebug"] == true do
-      IO.warn("launch with no debug is not supported")
+      Output.debugger_important("launch with no debug is not supported")
     end
 
     {_, ref} = spawn_monitor(fn -> initialize(config) end)
@@ -266,8 +264,7 @@ defmodule ElixirLS.Debugger.Server do
     receive do
       {:DOWN, ^ref, :process, _pid, reason} ->
         if reason != :normal do
-          IO.puts(
-            :standard_error,
+          Output.debugger_important(
             "(Debugger) Initialization failed because " <> Exception.format_exit(reason)
           )
 
@@ -337,7 +334,9 @@ defmodule ElixirLS.Debugger.Server do
           :ok
 
         {:error, :function_not_found} ->
-          IO.warn("Unable to delete function breakpoint on #{inspect({m, f, a})}")
+          Output.debugger_important(
+            "Unable to delete function breakpoint on #{inspect({m, f, a})}"
+          )
       end
     end
 
@@ -735,7 +734,9 @@ defmodule ElixirLS.Debugger.Server do
   catch
     kind, payload ->
       # when stepping out of interpreted code a MatchError is risen inside :int module (at least in OTP 23)
-      IO.warn(":int.#{action}(#{inspect(pid)}) failed: #{Exception.format(kind, payload)}")
+      Output.debugger_important(
+        ":int.#{action}(#{inspect(pid)}) failed: #{Exception.format(kind, payload)}"
+      )
 
       unless action == :continue do
         safe_int_action(pid, :continue)
@@ -972,7 +973,7 @@ defmodule ElixirLS.Debugger.Server do
     unless is_list(task_args) and "--no-compile" in task_args do
       case Mix.Task.run("compile", ["--ignore-module-conflict"]) do
         {:error, _} ->
-          IO.puts(:standard_error, "Aborting debugger due to compile errors")
+          Output.debugger_important("Aborting debugger due to compile errors")
           :init.stop(1)
 
         _ ->
@@ -1020,7 +1021,7 @@ defmodule ElixirLS.Debugger.Server do
   defp set_stack_trace_mode(nil), do: nil
 
   defp set_stack_trace_mode(_) do
-    IO.warn(~S(stackTraceMode must be "all", "no_tail", or "false"))
+    Output.debugger_important(~S(stackTraceMode must be "all", "no_tail", or "false"))
   end
 
   defp capabilities do
@@ -1150,8 +1151,7 @@ defmodule ElixirLS.Debugger.Server do
             [regex]
 
           {:error, error} ->
-            IO.puts(
-              :standard_error,
+            Output.debugger_important(
               "Unable to compile file pattern (#{inspect(pattern)}) into a regex. Received error: #{inspect(error)}"
             )
 
@@ -1226,7 +1226,7 @@ defmodule ElixirLS.Debugger.Server do
       {:module, _} = :int.ni(mod)
     catch
       _, _ ->
-        IO.warn(
+        Output.debugger_important(
           "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
         )
     end
@@ -1252,7 +1252,7 @@ defmodule ElixirLS.Debugger.Server do
         end
 
       {:error, reason} ->
-        IO.warn(
+        Output.debugger_important(
           "Unable to set condition on a breakpoint in #{module}:#{inspect(lines)}: #{inspect(reason)}"
         )
     end
@@ -1266,7 +1266,7 @@ defmodule ElixirLS.Debugger.Server do
         condition
 
       {:error, reason} ->
-        IO.warn("Cannot parse breakpoint condition: #{inspect(reason)}")
+        Output.debugger_important("Cannot parse breakpoint condition: #{inspect(reason)}")
         "true"
     end
   end
@@ -1280,12 +1280,15 @@ defmodule ElixirLS.Debugger.Server do
       if is_integer(term) do
         term
       else
-        IO.warn("Hit condition must evaluate to integer")
+        Output.debugger_important("Hit condition must evaluate to integer")
         0
       end
     catch
       kind, error ->
-        IO.warn("Error while evaluating hit condition: " <> Exception.format_banner(kind, error))
+        Output.debugger_important(
+          "Error while evaluating hit condition: " <> Exception.format_banner(kind, error)
+        )
+
         0
     end
   end

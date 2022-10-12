@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   alias ElixirLS.LanguageServer.ErlangSourceFile
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
-  alias ElixirLS.LanguageServer.JsonRpc
+  require Logger
 
   @arity_suffix_regex ~r/\/\d+$/
 
@@ -122,7 +122,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           callbacks_indexed: false
         }
       ) do
-    JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Indexing...")
+    Logger.info("[ElixirLS WorkspaceSymbols] Indexing...")
 
     module_paths =
       :code.all_loaded()
@@ -133,7 +133,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
             do: {module, path}
       end)
 
-    JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Module discovery complete")
+    Logger.info("[ElixirLS WorkspaceSymbols] Module discovery complete")
 
     index(module_paths)
 
@@ -149,7 +149,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           modified_uris: modified_uris = [_ | _]
         } = state
       ) do
-    JsonRpc.log_message(:info, "[ElixirLS WorkspaceSymbols] Updating index...")
+    Logger.info("[ElixirLS WorkspaceSymbols] Updating index...")
 
     module_paths =
       :code.all_loaded()
@@ -160,10 +160,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
             do: {module, path}
       end)
 
-    JsonRpc.log_message(
-      :info,
-      "[ElixirLS WorkspaceSymbols] #{length(module_paths)} modules need reindexing"
-    )
+    Logger.info("[ElixirLS WorkspaceSymbols] #{length(module_paths)} modules need reindexing")
 
     index(module_paths)
 
@@ -428,10 +425,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
         send(self, {:indexing_complete, key, results})
 
-        JsonRpc.log_message(
-          :info,
-          "[ElixirLS WorkspaceSymbols] #{length(results)} #{key} added to index"
-        )
+        Logger.info("[ElixirLS WorkspaceSymbols] #{length(results)} #{key} added to index")
       end)
 
     :ok

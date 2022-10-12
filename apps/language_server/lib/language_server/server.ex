@@ -16,6 +16,7 @@ defmodule ElixirLS.LanguageServer.Server do
   """
 
   use GenServer
+  require Logger
   alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics}
 
   alias ElixirLS.LanguageServer.Providers.{
@@ -206,8 +207,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case state do
         %{settings: nil} ->
-          JsonRpc.show_message(
-            :info,
+          Logger.warn(
             "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
               "Using default settings."
           )
@@ -279,10 +279,7 @@ defmodule ElixirLS.LanguageServer.Server do
         %{state | requests: Map.delete(requests, id)}
 
       _ ->
-        JsonRpc.log_message(
-          :warning,
-          "Received $/cancelRequest for unknown request id: #{inspect(id)}"
-        )
+        Logger.warn("Received $/cancelRequest for unknown request id: #{inspect(id)}")
 
         state
     end
@@ -322,8 +319,7 @@ defmodule ElixirLS.LanguageServer.Server do
     if Map.has_key?(state.source_files, uri) do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
-      JsonRpc.log_message(
-        :warning,
+      Logger.warn(
         "Received textDocument/didOpen for file that is already open. Received uri: #{inspect(uri)}"
       )
 
@@ -344,8 +340,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(did_close(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
       # A close notification requires a previous open notification to be sent
-      JsonRpc.log_message(
-        :warning,
+      Logger.warn(
         "Received textDocument/didClose for file that is not open. Received uri: #{inspect(uri)}"
       )
 
@@ -366,8 +361,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # The source file was not marked as open either due to a bug in the
       # client or a restart of the server. So just ignore the message and do
       # not update the state
-      JsonRpc.log_message(
-        :warning,
+      Logger.warn(
         "Received textDocument/didChange for file that is not open. Received uri: #{inspect(uri)}"
       )
 
@@ -382,8 +376,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(did_save(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
-      JsonRpc.log_message(
-        :warning,
+      Logger.warn(
         "Received textDocument/didSave for file that is not open. Received uri: #{inspect(uri)}"
       )
 
@@ -445,7 +438,7 @@ defmodule ElixirLS.LanguageServer.Server do
                   acc
 
                 {:error, reason} ->
-                  JsonRpc.log_message(:warning, "Unable to read #{uri}: #{inspect(reason)}")
+                  Logger.warn("Unable to read #{uri}: #{inspect(reason)}")
                   # keep dirty if read fails
                   acc
               end
@@ -473,7 +466,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(packet, state = %__MODULE__{}) do
-    JsonRpc.log_message(:warning, "Received unmatched notification: #{inspect(packet)}")
+    Logger.warn("Received unmatched notification: #{inspect(packet)}")
     state
   end
 
@@ -766,7 +759,7 @@ defmodule ElixirLS.LanguageServer.Server do
      fn ->
        case ExecuteCommand.execute(command, args, state) do
          {:error, :invalid_request, _msg} = res ->
-           JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
+           Logger.warn("Unmatched request: #{inspect(req)}")
            res
 
          other ->
@@ -796,7 +789,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(req, state = %__MODULE__{}) do
-    JsonRpc.log_message(:warning, "Unmatched request: #{inspect(req)}")
+    Logger.warn("Unmatched request: #{inspect(req)}")
     {:error, :invalid_request, nil, state}
   end
 
@@ -1026,7 +1019,7 @@ defmodule ElixirLS.LanguageServer.Server do
     # If these results were triggered by the most recent build and files are not dirty, then we know
     # we're up to date and can release spec suggestions to the code lens provider
     if build_ref == state.build_ref do
-      JsonRpc.log_message(:info, "Dialyzer analysis is up to date")
+      Logger.info("Dialyzer analysis is up to date")
 
       {dirty, not_dirty} =
         state.awaiting_contracts
@@ -1069,7 +1062,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {:error, reason} ->
         if reason != :enoent do
-          IO.warn("Couldn't read file #{file}: #{inspect(reason)}")
+          Logger.warn("Couldn't read file #{file}: #{inspect(reason)}")
         end
 
         nil
@@ -1101,7 +1094,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     case Dialyzer.check_support() do
       :ok -> :ok
-      {:error, msg} -> JsonRpc.show_message(:info, msg)
+      {:error, msg} -> JsonRpc.show_message(:warning, msg)
     end
 
     :ok
@@ -1146,10 +1139,7 @@ defmodule ElixirLS.LanguageServer.Server do
         :ok
 
       other ->
-        JsonRpc.log_message(
-          :error,
-          "client/registerCapability returned: #{inspect(other)}"
-        )
+        Logger.error("client/registerCapability returned: #{inspect(other)}")
     end
 
     state
@@ -1180,8 +1170,11 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       JsonRpc.show_message(
         :warning,
-        "You must restart ElixirLS after changing environment variables"
+        "Environment variables have changed. ElixirLS needs to restart"
       )
+
+      Process.sleep(5000)
+      System.halt(1)
     end
 
     state
@@ -1193,7 +1186,10 @@ defmodule ElixirLS.LanguageServer.Server do
     if is_nil(prev_env) or env == prev_env do
       Mix.env(String.to_atom(env))
     else
-      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix env")
+      JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
+
+      Process.sleep(5000)
+      System.halt(1)
     end
 
     state
@@ -1213,7 +1209,10 @@ defmodule ElixirLS.LanguageServer.Server do
     if is_nil(prev_target) or target == prev_target do
       Mix.target(String.to_atom(target))
     else
-      JsonRpc.show_message(:warning, "You must restart ElixirLS after changing Mix target")
+      JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
+
+      Process.sleep(5000)
+      System.halt(1)
     end
 
     state
@@ -1245,10 +1244,11 @@ defmodule ElixirLS.LanguageServer.Server do
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
           :warning,
-          "You must restart ElixirLS after changing the project directory"
+          "Project directory change detected. ElixirLS will restart"
         )
 
-        state
+        Process.sleep(5000)
+        System.halt(1)
 
       true ->
         state
@@ -1271,10 +1271,7 @@ defmodule ElixirLS.LanguageServer.Server do
         state
 
       {:error, err} ->
-        JsonRpc.log_message(
-          :warning,
-          "Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}"
-        )
+        Logger.warning("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
 
         state
     end

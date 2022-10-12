@@ -4,12 +4,13 @@ defmodule ElixirLS.Debugger do
   """
 
   use Application
+  alias ElixirLS.Debugger.Output
 
   @impl Application
   def start(_type, _args) do
     # We don't start this as a worker because if the debugger crashes, we want
     # this process to remain alive to print errors
-    {:ok, _pid} = ElixirLS.Debugger.Output.start(ElixirLS.Debugger.Output)
+    {:ok, _pid} = Output.start(Output)
 
     children = [
       {ElixirLS.Debugger.Server, name: ElixirLS.Debugger.Server}
@@ -22,7 +23,7 @@ defmodule ElixirLS.Debugger do
   @impl Application
   def stop(_state) do
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
-      IO.puts(:standard_error, "ElixirLS debugger has crashed")
+      Output.debugger_important("ElixirLS debugger has crashed")
 
       :init.stop(1)
     end

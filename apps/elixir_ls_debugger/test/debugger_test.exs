@@ -402,7 +402,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                      }),
                      500
 
-      {log, stderr} =
+      {log, _stderr} =
         capture_log_and_io(:standard_error, fn ->
           assert_receive event(_, "thread", %{
                            "reason" => "exited",
@@ -412,7 +412,6 @@ defmodule ElixirLS.Debugger.ServerTest do
         end)
 
       assert log =~ "Fixture MixProject expected error"
-      assert stderr =~ "Fixture MixProject expected error"
     end)
   end
 
@@ -461,7 +460,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                      }),
                      5000
 
-      {log, io} =
+      {log, _io} =
         capture_log_and_io(:stderr, fn ->
           assert_receive event(_, "thread", %{
                            "reason" => "exited",
@@ -471,7 +470,6 @@ defmodule ElixirLS.Debugger.ServerTest do
         end)
 
       assert log =~ "Fixture MixProject raise for exit_self/0"
-      assert io =~ "Fixture MixProject raise for exit_self/0"
 
       assert_receive event(_, "exited", %{
                        "exitCode" => 1
@@ -560,20 +558,20 @@ defmodule ElixirLS.Debugger.ServerTest do
                  |> Enum.filter(&(&1["name"] |> String.starts_with?("MixProject.Some")))
                  |> Enum.map(& &1["id"])
 
-        {_, stderr} =
-          capture_log_and_io(:standard_error, fn ->
-            Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
-            assert_receive(response(_, 7, "pause", %{}), 500)
+        Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
+        assert_receive(response(_, 7, "pause", %{}), 500)
 
-            assert_receive event(_, "stopped", %{
-                             "allThreadsStopped" => false,
-                             "reason" => "pause",
-                             "threadId" => ^thread_id
-                           }),
-                           500
-          end)
+        assert_receive event(_, "stopped", %{
+                         "allThreadsStopped" => false,
+                         "reason" => "pause",
+                         "threadId" => ^thread_id
+                       }),
+                       500
 
-        assert stderr =~ "Failed to obtain meta for pid"
+        assert_receive event(_, "output", %{
+                         "category" => "important",
+                         "output" => "Failed to obtain meta for pid" <> _
+                       })
       end)
     end
 

@@ -31,7 +31,7 @@ defmodule ElixirLS.Utils.PacketStream do
           :ok
 
         {:error, reason} ->
-          IO.warn("Unable to read from device: #{inspect(reason)}")
+          raise "Unable to read from device: #{inspect(reason)}"
       end
     )
   end

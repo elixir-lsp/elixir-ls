@@ -13,14 +13,13 @@ defmodule ElixirLS.Utils.Launch do
     :ok
   end
 
-  def print_versions do
-    IO.inspect(System.build_info()[:build], label: "Elixir version")
-    IO.inspect(System.otp_release(), label: "Erlang version")
-
-    IO.puts(
-      "ElixirLS compiled with Elixir #{@compiled_elixir_version}" <>
-        " and erlang #{@compiled_otp_version}"
-    )
+  def get_versions do
+    %{
+      current_elixir_version: inspect(System.build_info()[:build]),
+      current_otp_version: inspect(System.otp_release()),
+      compile_elixir_version: inspect(@compiled_elixir_version),
+      compile_otp_version: inspect(@compiled_otp_version)
+    }
   end
 
   def language_server_version do
