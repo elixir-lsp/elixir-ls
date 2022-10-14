@@ -22,6 +22,7 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     Launch.start_mix()
 
+    Application.put_env(:elixir_sense, :logging_enabled, Mix.env() != :prod)
     Build.set_compiler_options()
 
     start_language_server()
