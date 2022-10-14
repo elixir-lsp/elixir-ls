@@ -95,6 +95,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
     :ok
   end
 
+  def has_databases?(project_dir) do
+    File.exists?(dets_path(project_dir, hd(@tables)))
+  end
+
   defp dets_path(project_dir, table) do
     Path.join([project_dir, ".elixir_ls", "#{table}.dets"])
   end

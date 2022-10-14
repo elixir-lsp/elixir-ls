@@ -1120,6 +1120,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> set_dialyzer_enabled(enable_dialyzer)
       |> add_watched_extensions(additional_watched_extensions)
 
+    maybe_rebuild(state)
     state = create_gitignore(state)
     Tracer.set_project_dir(state.project_dir)
     trigger_build(%{state | settings: settings})
@@ -1297,5 +1298,13 @@ defmodule ElixirLS.LanguageServer.Server do
       {from, ^uri} -> GenServer.reply(from, [])
       _ -> false
     end)
+  end
+
+  defp maybe_rebuild(state = %__MODULE__{}) do
+    # detect if we are opening a project that has been compiled without a tracer
+    if is_binary(state.project_dir) and state.mix_project and File.dir?(Path.join([project_dir, ".elixir_ls"])) and not Tracer.has_databases?(project_dir) do
+      Logger.info("DETS databases rebuild will be rebuilt")
+      Build.clean(true)
+    end
   end
 end
