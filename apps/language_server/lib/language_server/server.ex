@@ -38,6 +38,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   alias ElixirLS.Utils.Launch
   alias ElixirLS.LanguageServer.Tracer
+  alias ElixirLS.Utils.MixfileHelpers
 
   use Protocol
 
@@ -1239,7 +1240,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        %{state | project_dir: File.cwd!(), mix_project?: File.exists?("mix.exs")}
+        %{state | project_dir: File.cwd!(), mix_project?: File.exists?(MixfileHelpers.mix_exs())}
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
