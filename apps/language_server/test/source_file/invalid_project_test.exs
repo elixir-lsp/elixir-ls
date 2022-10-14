@@ -5,9 +5,22 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
   alias ElixirLS.LanguageServer.SourceFile
   import ExUnit.CaptureLog
 
+  def appropriate_formatter_function_name(_) do
+    formatter_function =
+      if function_exported?(Mix.Tasks.Format, :formatter_for_file, 1) do
+        :formatter_for_file
+      else
+        :formatter_opts_for_file
+      end
+
+    {:ok, formatter_name: formatter_function}
+  end
+
   describe "formatter_for " do
-    test "should handle syntax errors" do
-      patch(Mix.Tasks.Format, :formatter_for_file, fn _ ->
+    setup [:appropriate_formatter_function_name]
+
+    test "should handle syntax errors", ctx do
+      patch(Mix.Tasks.Format, ctx.formatter_name, fn _ ->
         raise %SyntaxError{file: ".formatter.exs", line: 1}
       end)
 
@@ -19,8 +32,8 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
       assert String.contains?(output, "Unable to get formatter options")
     end
 
-    test "should handle compile errors" do
-      patch(Mix.Tasks.Format, :formatter_for_file, fn _ ->
+    test "should handle compile errors", ctx do
+      patch(Mix.Tasks.Format, ctx.formatter_name, fn _ ->
         raise %SyntaxError{file: ".formatter.exs", line: 1}
       end)
 
