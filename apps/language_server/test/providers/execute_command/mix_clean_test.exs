@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
   use Protocol
 
   setup do
-    {:ok, _} = Tracer.start_link([])
+    {:ok, _} = start_supervised(Tracer)
     server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
 
     {:ok, %{server: server}}

@@ -235,13 +235,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   setup context do
-    unless context[:skip_server] do
+    if context[:skip_server] do
+      :ok
+    else
       server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
-      {:ok, tracer} = Tracer.start_link([])
+      {:ok, tracer} = start_supervised(Tracer)
 
       {:ok, %{server: server, tracer: tracer}}
-    else
-      :ok
     end
   end
 
