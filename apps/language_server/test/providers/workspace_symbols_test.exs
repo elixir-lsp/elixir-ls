@@ -5,8 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
   setup do
     alias ElixirLS.Utils.PacketCapture
     packet_capture = start_supervised!({PacketCapture, self()})
-
-    {:ok, pid} = WorkspaceSymbols.start_link(name: nil)
+    {:ok, pid} = start_supervised({WorkspaceSymbols, name: nil})
     Process.group_leader(pid, packet_capture)
 
     state = :sys.get_state(pid)

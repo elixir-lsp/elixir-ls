@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.TracerTest do
   setup context do
     File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
     File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/modules.dets"))
-    {:ok, _pid} = Tracer.start_link([])
+    {:ok, _pid} = start_supervised(Tracer)
 
     {:ok, context}
   end
