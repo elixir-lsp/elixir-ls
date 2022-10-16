@@ -4,6 +4,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
   use GenServer
   require Logger
 
+  @version 1
+
   @tables ~w(modules calls)a
 
   for table <- @tables do
@@ -18,6 +20,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def set_project_dir(project_dir) do
     GenServer.call(__MODULE__, {:set_project_dir, project_dir})
+  end
+
+  def save() do
+    GenServer.cast(__MODULE__, :save)
   end
 
   defp get_project_dir() do
@@ -81,6 +87,19 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   @impl true
+  def handle_cast(:save, %{project_dir: project_dir} = state) do
+    for table <- @tables do
+      table_name = table_name(table)
+
+      sync(table_name)
+    end
+
+    write_manifest(project_dir)
+
+    {:noreply, state}
+  end
+
+  @impl true
   def terminate(_reason, state) do
     maybe_close_tables(state)
   end
@@ -93,10 +112,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
     end
 
     :ok
-  end
-
-  def has_databases?(project_dir) do
-    File.exists?(dets_path(project_dir, hd(@tables)))
   end
 
   defp dets_path(project_dir, table) do
@@ -270,14 +285,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
     end)
   end
 
-  def save do
-    for table <- @tables do
-      table_name = table_name(table)
-
-      sync(table_name)
-    end
-  end
-
   defp sync(table_name) do
     with :ok <- :dets.from_ets(table_name, table_name),
          :ok <- :dets.sync(table_name) do
@@ -335,5 +342,35 @@ defmodule ElixirLS.LanguageServer.Tracer do
         :ets.insert(table_name, {callee, calls_by_file})
       end
     end
+  end
+
+  defp manifest_path(project_dir) do
+    Path.join([project_dir, ".elixir_ls", "tracer_db.manifest"])
+  end
+
+  def write_manifest(project_dir) do
+    path = manifest_path(project_dir)
+    File.rm_rf!(path)
+    File.write!(path, "#{@version}")
+  end
+
+  def read_manifest(project_dir) do
+    with {:ok, text} <- File.read(manifest_path(project_dir)),
+         {version, ""} <- Integer.parse(text) do
+      version
+    else
+      _ -> nil
+    end
+  end
+
+  def manifest_version_current?(project_dir) do
+    read_manifest(project_dir) == @version
+  end
+
+  def clean_dets(project_dir) do
+    for path <-
+          Path.join([project_dir, ".elixir_ls/*.dets"])
+          |> Path.wildcard(),
+        do: File.rm_rf!(path)
   end
 end

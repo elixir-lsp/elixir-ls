@@ -58,7 +58,7 @@ defmodule ElixirLS.LanguageServer.Build do
     :global.trans({__MODULE__, self()}, func)
   end
 
-  defp reload_project do
+  def reload_project do
     mixfile = Path.absname(MixfileHelpers.mix_exs())
 
     if File.exists?(mixfile) do

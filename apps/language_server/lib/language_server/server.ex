@@ -529,6 +529,7 @@ defmodule ElixirLS.LanguageServer.Server do
         "file://" <> _ ->
           root_path = SourceFile.Path.absolute_from_uri(root_uri)
           File.cd!(root_path)
+          Logger.info("cd initialize")
           cwd_uri = SourceFile.Path.to_uri(File.cwd!())
           %{state | root_uri: cwd_uri}
 
@@ -1241,6 +1242,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
+        Logger.info("cd set_project_dir")
         %{state | project_dir: File.cwd!(), mix_project?: File.exists?(MixfileHelpers.mix_exs())}
 
       prev_project_dir != project_dir ->
@@ -1300,11 +1302,21 @@ defmodule ElixirLS.LanguageServer.Server do
     end)
   end
 
-  defp maybe_rebuild(state = %__MODULE__{}) do
+  defp maybe_rebuild(state = %__MODULE__{project_dir: project_dir}) do
     # detect if we are opening a project that has been compiled without a tracer
-    if is_binary(state.project_dir) and state.mix_project and File.dir?(Path.join([project_dir, ".elixir_ls"])) and not Tracer.has_databases?(project_dir) do
-      Logger.info("DETS databases rebuild will be rebuilt")
-      Build.clean(true)
+    if is_binary(project_dir) and state.mix_project? and
+         File.dir?(Path.join([project_dir, ".elixir_ls"])) and
+         not Tracer.manifest_version_current?(project_dir) do
+      Logger.info("DETS databases will be rebuilt")
+      Tracer.clean_dets(project_dir)
+
+      case Build.reload_project() do
+        {:ok, _} ->
+          Build.clean(true)
+
+        _ ->
+          :ok
+      end
     end
   end
 end
