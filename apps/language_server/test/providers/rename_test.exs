@@ -132,6 +132,44 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
                ]
              } == changes
     end
+
+    test "rename function with multiple heads: handle_error -> handle_errors" do
+      file_path = FixtureHelpers.get_path("rename_example.exs")
+      text = File.read!(file_path)
+      uri = SourceFile.path_to_uri(file_path)
+
+      {line, char} = {29, 8}
+
+      assert {:ok, %{"documentChanges" => [changes]}} =
+               Rename.rename(
+                 %SourceFile{text: text, version: 0},
+                 uri,
+                 line,
+                 char,
+                 "handle_errors"
+               )
+
+      assert %{
+               "textDocument" => %{
+                 "uri" => uri,
+                 "version" => 1
+               },
+               "edits" => [
+                 %{
+                   "newText" => "handle_errors",
+                   "range" => %{end: %{character: 19, line: 39}, start: %{character: 7, line: 39}}
+                 },
+                 %{
+                   "newText" => "handle_errors",
+                   "range" => %{end: %{character: 19, line: 37}, start: %{character: 7, line: 37}}
+                 },
+                 %{
+                   "newText" => "handle_errors",
+                   "range" => %{end: %{character: 19, line: 28}, start: %{character: 7, line: 28}}
+                 }
+               ]
+             } == changes
+    end
   end
 
   describe "not yet (fully) supported/working renaming cases" do
@@ -172,42 +210,6 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
                  }
                ]
              } == List.first(changes)
-    end
-
-    test "rename function with multiple heads" do
-      file_path = FixtureHelpers.get_path("rename_example.exs")
-      text = File.read!(file_path)
-      uri = SourceFile.path_to_uri(file_path)
-
-      # |> _handle_error
-      {line, char} = {29, 8}
-
-      assert {:ok, %{"documentChanges" => [changes]}} =
-               Rename.rename(
-                 %SourceFile{text: text, version: 0},
-                 uri,
-                 line,
-                 char,
-                 "handle_errors"
-               )
-
-      # missed second function head on line 40: handle_error({:error, changeset})
-      assert %{
-               "textDocument" => %{
-                 "uri" => uri,
-                 "version" => 1
-               },
-               "edits" => [
-                 %{
-                   "newText" => "handle_errors",
-                   "range" => %{end: %{character: 19, line: 37}, start: %{character: 7, line: 37}}
-                 },
-                 %{
-                   "newText" => "handle_errors",
-                   "range" => %{end: %{character: 19, line: 28}, start: %{character: 7, line: 28}}
-                 }
-               ]
-             } == changes
     end
   end
 end
