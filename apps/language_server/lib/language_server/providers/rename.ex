@@ -9,8 +9,8 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
 
   def rename(%SourceFile{} = source_file, start_uri, line, character, new_name) do
     edits =
-      with %{context: {context, char_ident}} when context in [:local_or_var, :local_call] <-
-             Code.Fragment.surround_context(source_file.text, {line, character}),
+      with char_ident when not is_nil(char_ident) <-
+             get_char_ident(source_file.text, line, character),
            %ElixirSense.Location{} = definition <-
              ElixirSense.definition(source_file.text, line, character),
            references <- ElixirSense.references(source_file.text, line, character) do
@@ -18,10 +18,15 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
 
         definition_references =
           case definition do
-            %{type: :function} ->
-              parse_definition_source_code(definition, source_file.text)
+            %{file: nil, type: :function} ->
+              parse_definition_source_code(source_file.text)
               |> get_all_fn_header_positions(char_ident)
               |> positions_to_references(start_uri, length_old)
+
+            %{file: separate_file_path, type: :function} ->
+              parse_definition_source_code(definition)
+              |> get_all_fn_header_positions(char_ident)
+              |> positions_to_references(SourceFile.path_to_uri(separate_file_path), length_old)
 
             _ ->
               positions_to_references(
@@ -93,14 +98,12 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
     end
   end
 
-  defp parse_definition_source_code(definition, source_text)
-
-  defp parse_definition_source_code(%{file: nil}, source_text) do
-    ElixirSense.Core.Parser.parse_string(source_text, true, true, 0)
+  defp parse_definition_source_code(%{file: file}) do
+    ElixirSense.Core.Parser.parse_file(file, true, true, 0)
   end
 
-  defp parse_definition_source_code(%{file: file}, _) do
-    ElixirSense.Core.Parser.parse_file(file, true, true, 0)
+  defp parse_definition_source_code(source_text) when is_binary(source_text) do
+    ElixirSense.Core.Parser.parse_string(source_text, true, true, 0)
   end
 
   defp get_all_fn_header_positions(parsed_source, char_ident) do
@@ -128,5 +131,13 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
       start: %{line: start_line - 1, character: start_character - 1},
       end: %{line: end_line - 1, character: end_character - 1}
     }
+  end
+
+  defp get_char_ident(text, line, character) do
+    case Code.Fragment.surround_context(text, {line, character}) do
+      %{context: {context, char_ident}} when context in [:local_or_var, :local_call] -> char_ident
+      %{context: {:dot, _, char_ident}} -> char_ident
+      _ -> nil
+    end
   end
 end

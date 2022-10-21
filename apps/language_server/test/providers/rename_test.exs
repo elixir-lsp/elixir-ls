@@ -112,7 +112,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
       assert sort_edit_by_start_line(edits) == expected_edits
     end
 
-    test "rename function with multiple heads: handle_error -> handle_errors" do
+    test "rename function with multiple heads: add -> new_add" do
       file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
       uri = SourceFile.path_to_uri(file_path)
@@ -141,6 +141,56 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
         |> get_expected_edits("new_add")
 
       assert sort_edit_by_start_line(edits) == expected_edits
+    end
+
+    test "rename function defined in a different file ten -> new_ten" do
+      file_path = FixtureHelpers.get_path("rename_example.ex")
+      text = File.read!(file_path)
+      uri = SourceFile.path_to_uri(file_path)
+
+      fn_definition_file_uri =
+        FixtureHelpers.get_path("rename_example_b.ex") |> SourceFile.path_to_uri()
+
+      #     b = ElixirLS.Test.RenameExampleB.ten()
+      {line, char} = {4, 38}
+
+      assert {:ok,
+              %{
+                "documentChanges" => [
+                  %{
+                    "textDocument" => %{
+                      "uri" => ^uri,
+                      "version" => 1
+                    },
+                    "edits" => file_edits
+                  },
+                  %{
+                    "textDocument" => %{
+                      "uri" => ^fn_definition_file_uri,
+                      "version" => 1
+                    },
+                    "edits" => fn_definition_file_edits
+                  }
+                ]
+              }} =
+               Rename.rename(
+                 %SourceFile{text: text, version: 0},
+                 uri,
+                 line,
+                 char,
+                 "new_ten"
+               )
+
+      expected_edits_fn_definition_file =
+        [%{line: 1, start_char: 6, end_char: 9}] |> get_expected_edits("new_ten")
+
+      assert sort_edit_by_start_line(fn_definition_file_edits) ==
+               expected_edits_fn_definition_file
+
+      expected_edits = [%{line: 3, start_char: 37, end_char: 40}] |> get_expected_edits("new_ten")
+
+      assert sort_edit_by_start_line(file_edits) ==
+               expected_edits
     end
   end
 
