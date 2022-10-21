@@ -36,25 +36,18 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
       # _a + b
       {line, char} = {3, 5}
 
-      assert {:ok, %{"documentChanges" => changes}} =
-               Rename.rename(%SourceFile{text: text, version: 0}, @fake_uri, line, char, "test")
+      edits =
+        Rename.rename(%SourceFile{text: text, version: 0}, @fake_uri, line, char, "test")
+        |> assert_return_structure_and_get_edits(@fake_uri, 1)
 
-      assert %{
-               "textDocument" => %{
-                 "uri" => @fake_uri,
-                 "version" => 1
-               },
-               "edits" => [
-                 %{
-                   "range" => %{end: %{character: 11, line: 1}, start: %{character: 10, line: 1}},
-                   "newText" => "test"
-                 },
-                 %{
-                   "range" => %{end: %{character: 5, line: 2}, start: %{character: 4, line: 2}},
-                   "newText" => "test"
-                 }
-               ]
-             } == List.first(changes)
+      expected_edits =
+        [
+          %{line: 1, start_char: 10, end_char: 11},
+          %{line: 2, start_char: 4, end_char: 5}
+        ]
+        |> get_expected_edits("test")
+
+      assert sort_edit_by_start_line(edits) == expected_edits
     end
 
     test "nema -> name" do
@@ -69,112 +62,91 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
       # "Hello " <> ne_ma
       {line, char} = {3, 19}
 
-      assert {:ok, %{"documentChanges" => [changes]}} =
-               Rename.rename(
-                 %SourceFile{text: text, version: 0},
-                 @fake_uri,
-                 line,
-                 char,
-                 "name"
-               )
+      edits =
+        Rename.rename(
+          %SourceFile{text: text, version: 0},
+          @fake_uri,
+          line,
+          char,
+          "name"
+        )
+        |> assert_return_structure_and_get_edits(@fake_uri, 1)
 
-      assert %{
-               "textDocument" => %{
-                 "uri" => @fake_uri,
-                 "version" => 1
-               },
-               "edits" => [
-                 %{
-                   "range" => %{end: %{character: 16, line: 1}, start: %{character: 12, line: 1}},
-                   "newText" => "name"
-                 },
-                 %{
-                   "range" => %{end: %{character: 20, line: 2}, start: %{character: 16, line: 2}},
-                   "newText" => "name"
-                 }
-               ]
-             } == changes
+      expected_edits =
+        [
+          %{line: 1, start_char: 12, end_char: 16},
+          %{line: 2, start_char: 16, end_char: 20}
+        ]
+        |> get_expected_edits("name")
+
+      assert sort_edit_by_start_line(edits) == expected_edits
     end
   end
 
   describe "renaming local function" do
-    test "create_message -> store_message" do
-      file_path = FixtureHelpers.get_path("rename_example.exs")
+    test "subtract -> new_subtract" do
+      file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
       uri = SourceFile.path_to_uri(file_path)
 
-      # |> _create_message
-      {line, char} = {28, 8}
+      #     d = subtract(a, b)
+      {line, char} = {6, 10}
 
-      assert {:ok, %{"documentChanges" => [changes]}} =
-               Rename.rename(
-                 %SourceFile{text: text, version: 0},
-                 uri,
-                 line,
-                 char,
-                 "store_message"
-               )
+      edits =
+        Rename.rename(
+          %SourceFile{text: text, version: 0},
+          uri,
+          line,
+          char,
+          "new_subtract"
+        )
+        |> assert_return_structure_and_get_edits(uri, 1)
 
-      assert %{
-               "textDocument" => %{
-                 "uri" => uri,
-                 "version" => 1
-               },
-               "edits" => [
-                 %{
-                   "newText" => "store_message",
-                   "range" => %{end: %{character: 21, line: 43}, start: %{character: 7, line: 43}}
-                 },
-                 %{
-                   "newText" => "store_message",
-                   "range" => %{end: %{character: 21, line: 27}, start: %{character: 7, line: 27}}
-                 }
-               ]
-             } == changes
+      expected_edits =
+        [
+          %{line: 5, start_char: 8, end_char: 16},
+          %{line: 13, start_char: 7, end_char: 15}
+        ]
+        |> get_expected_edits("new_subtract")
+
+      assert sort_edit_by_start_line(edits) == expected_edits
     end
 
     test "rename function with multiple heads: handle_error -> handle_errors" do
-      file_path = FixtureHelpers.get_path("rename_example.exs")
+      file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
       uri = SourceFile.path_to_uri(file_path)
 
-      {line, char} = {29, 8}
+      #     c = add(a, b)
+      {line, char} = {5, 9}
 
-      assert {:ok, %{"documentChanges" => [changes]}} =
-               Rename.rename(
-                 %SourceFile{text: text, version: 0},
-                 uri,
-                 line,
-                 char,
-                 "handle_errors"
-               )
+      edits =
+        Rename.rename(
+          %SourceFile{text: text, version: 0},
+          uri,
+          line,
+          char,
+          "new_add"
+        )
+        |> assert_return_structure_and_get_edits(uri, 1)
 
-      assert %{
-               "textDocument" => %{
-                 "uri" => uri,
-                 "version" => 1
-               },
-               "edits" => [
-                 %{
-                   "newText" => "handle_errors",
-                   "range" => %{end: %{character: 19, line: 39}, start: %{character: 7, line: 39}}
-                 },
-                 %{
-                   "newText" => "handle_errors",
-                   "range" => %{end: %{character: 19, line: 37}, start: %{character: 7, line: 37}}
-                 },
-                 %{
-                   "newText" => "handle_errors",
-                   "range" => %{end: %{character: 19, line: 28}, start: %{character: 7, line: 28}}
-                 }
-               ]
-             } == changes
+      expected_edits =
+        [
+          %{line: 4, start_char: 8, end_char: 11},
+          %{line: 6, start_char: 4, end_char: 7},
+          %{line: 9, start_char: 7, end_char: 10},
+          %{line: 10, start_char: 7, end_char: 10},
+          %{line: 11, start_char: 7, end_char: 10}
+        ]
+        |> get_expected_edits("new_add")
+
+      assert sort_edit_by_start_line(edits) == expected_edits
     end
   end
 
   describe "not yet (fully) supported/working renaming cases" do
     test "rename started with cursor at function definition" do
-      file_path = FixtureHelpers.get_path("rename_example.exs")
+      file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
       uri = SourceFile.path_to_uri(file_path)
 
@@ -211,5 +183,39 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
                ]
              } == List.first(changes)
     end
+  end
+
+  defp get_expected_edits(edits, new_text) when is_list(edits),
+    do: Enum.map(edits, &get_expected_edits(&1, new_text))
+
+  defp get_expected_edits(%{line: line, start_char: start_char, end_char: end_char}, new_text) do
+    %{
+      "newText" => new_text,
+      "range" => %{
+        start: %{line: line, character: start_char},
+        end: %{line: line, character: end_char}
+      }
+    }
+  end
+
+  defp assert_return_structure_and_get_edits(rename_result, uri, version) do
+    assert {:ok,
+            %{
+              "documentChanges" => [
+                %{
+                  "textDocument" => %{
+                    "uri" => ^uri,
+                    "version" => ^version
+                  },
+                  "edits" => edits
+                }
+              ]
+            }} = rename_result
+
+    edits
+  end
+
+  defp sort_edit_by_start_line(edits) do
+    Enum.sort(edits, &(&1["range"].start.line < &2["range"].start.line))
   end
 end
