@@ -1,7 +1,7 @@
 defmodule ElixirLS.Test.RenameExample do
   def main do
     a = 5
-    b = 10
+    b = ElixirLS.Test.RenameExampleB.ten()
     c = add(a, b)
     d = subtract(a, b)
     add(c, d)
