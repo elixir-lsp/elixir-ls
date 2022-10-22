@@ -1,7 +1,7 @@
 defmodule ElixirLS.Utils.MixTest.Case do
   # This module is based heavily on MixTest.Case in Elixir's tests
+  # https://github.com/elixir-lang/elixir/blob/db64b413a036c01c8e1cac8dd5e1c65107d90176/lib/mix/test/test_helper.exs#L29
   use ExUnit.CaseTemplate
-  alias ElixirLS.Utils.MixfileHelpers
 
   using do
     quote do
@@ -9,32 +9,37 @@ defmodule ElixirLS.Utils.MixTest.Case do
     end
   end
 
-  setup config do
-    if apps = config[:apps] do
-      Logger.remove_backend(:console)
-    end
+  @apps Enum.map(Application.loaded_applications(), &elem(&1, 0))
+  @allowed_apps ~w(docsh xmerl syntax_tools edoc elixir_sense elixir_ls_debugger elixir_ls_utils language_server stream_data)a
 
+  setup do
     on_exit(fn ->
       Application.start(:logger)
+      Mix.env(:dev)
+      Mix.target(:host)
       Mix.Task.clear()
       Mix.Shell.Process.flush()
+      Mix.State.clear_cache()
+      Mix.ProjectStack.clear_stack()
       delete_tmp_paths()
 
-      if apps do
-        for app <- apps do
-          Application.stop(app)
-          Application.unload(app)
-        end
-
-        Logger.add_backend(:console, flush: true)
+      for {app, _, _} <- Application.loaded_applications(),
+          app not in @apps,
+          app not in @allowed_apps do
+        Application.stop(app)
+        Application.unload(app)
       end
     end)
 
     :ok
   end
 
+  def fixture_path(dir) do
+    Path.expand("fixtures", dir)
+  end
+
   def fixture_path(dir, extension) do
-    Path.join(Path.expand("fixtures", dir), extension)
+    Path.join(fixture_path(dir), remove_colons(extension))
   end
 
   def tmp_path do
@@ -42,7 +47,13 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   def tmp_path(extension) do
-    Path.join(tmp_path(), to_string(extension))
+    Path.join(tmp_path(), remove_colons(extension))
+  end
+
+  defp remove_colons(term) do
+    term
+    |> to_string()
+    |> String.replace(":", "")
   end
 
   def purge(modules) do
@@ -73,14 +84,6 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
     get_path = :code.get_path()
     previous = :code.all_loaded()
-    project_stack = clear_project_stack!()
-
-    ExUnit.CaptureLog.capture_log(fn ->
-      Application.stop(:mix)
-      Application.stop(:hex)
-    end)
-
-    Application.start(:mix)
 
     try do
       File.cd!(dest, function)
@@ -88,63 +91,16 @@ defmodule ElixirLS.Utils.MixTest.Case do
       :code.set_path(get_path)
 
       for {mod, file} <- :code.all_loaded() -- previous,
-          file == :in_memory or file == [] or (is_list(file) and :lists.prefix(flag, file)) do
+          file == [] or (is_list(file) and List.starts_with?(file, flag)) do
         mod
       end
       |> purge
-
-      restore_project_stack!(project_stack)
     end
   end
 
   defp delete_tmp_paths do
     tmp = tmp_path() |> String.to_charlist()
     for path <- :code.get_path(), :string.str(path, tmp) != 0, do: :code.del_path(path)
-  end
-
-  defp clear_project_stack! do
-    stack = clear_project_stack!([])
-
-    # FIXME: Private API
-    Mix.State.clear_cache()
-
-    # Attempt to purge mixfiles for dependencies to avoid module redefinition warnings
-    mix_exs = MixfileHelpers.mix_exs()
-
-    for {mod, :in_memory} <- :code.all_loaded(),
-        source = mod.module_info[:compile][:source],
-        is_list(source),
-        String.ends_with?(to_string(source), mix_exs),
-        do: purge([mod])
-
-    stack
-  end
-
-  defp clear_project_stack!(stack) do
-    # FIXME: Private API
-    case Mix.Project.pop() do
-      nil ->
-        stack
-
-      project ->
-        clear_project_stack!([project | stack])
-    end
-  end
-
-  defp restore_project_stack!(stack) do
-    # FIXME: Private API
-    Mix.ProjectStack.clear_stack()
-    # FIXME: Private API
-    Mix.State.clear_cache()
-
-    for %{name: module, file: file} <- stack do
-      :code.purge(module)
-      :code.delete(module)
-      # It's important to use `compile_file` here instead of `require_file`
-      # because we are recompiling this file to reload the mix project back onto
-      # the project stack.
-      Code.compile_file(file)
-    end
   end
 
   def capture_log_and_io(device, fun) when is_function(fun, 0) do
