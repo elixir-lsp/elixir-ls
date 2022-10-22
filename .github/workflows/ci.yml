@@ -90,8 +90,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - elixir: 1.13.x
-            otp: 24.3.x
+          - elixir: 1.14.x
+            otp: 25.x
     steps:
       - uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
