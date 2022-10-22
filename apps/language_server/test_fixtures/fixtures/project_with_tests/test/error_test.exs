@@ -1,4 +1,4 @@
-defmodule FixtureTest do
+defmodule ErrorTest do
   use ExUnit.Case
 
   defmodule ModuleWithoutTests do
