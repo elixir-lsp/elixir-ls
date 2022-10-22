@@ -19,52 +19,33 @@ jobs:
           - elixir: 1.11.x
             otp: 22.3.x
             tests_may_fail: false
-            check_unused_deps: false
           - elixir: 1.11.x
             otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: false
           - elixir: 1.12.x
             otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: false
           - elixir: 1.13.x
             otp: 22.3.x
             tests_may_fail: false
-            check_unused_deps: true
-            warnings_as_errors: false
           - elixir: 1.13.x
             otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: false
-            warnings_as_errors: false
           - elixir: 1.13.x
             otp: 24.3.x
             tests_may_fail: false
-            check_unused_deps: false
-            warnings_as_errors: false
           - elixir: 1.13.x
             otp: 25.x
             tests_may_fail: false
-            check_unused_deps: false
-            warnings_as_errors: false
           - elixir: 1.14.x
             otp: 23.3.x
             tests_may_fail: false
-            check_unused_deps: false
-            warnings_as_errors: false
           - elixir: 1.14.x
             otp: 24.3.x
             tests_may_fail: false
-            check_unused_deps: false
-            warnings_as_errors: false
           - elixir: 1.14.x
             otp: 25.x
             tests_may_fail: false
-            warnings_as_errors: false
-            check_formatted: true
-            check_unused_deps: true
-            run_dialyzer: true
     env:
       MIX_ENV: test
     steps:
@@ -78,10 +59,6 @@ jobs:
           mix local.hex --force
           mix local.rebar --force
           mix deps.get --only test
-      - run: mix format --check-formatted
-        if: matrix.check_formatted
-      - run: mix compile --warnings-as-errors
-        if: matrix.warnings_as_errors
       - run: mix test || ${{ matrix.tests_may_fail }}
 
   static_analysis:
@@ -113,5 +90,5 @@ jobs:
           mix deps.get
       - name: Restore timestamps to prevent unnecessary recompilation
         run: IFS=$'\n'; for f in $(git ls-files); do touch -d "$(git log -n 1 --pretty='%cI' -- $f)" "$f"; done
+      - run: mix format --check-formatted
       - run: mix dialyzer
-        if: matrix.run_dialyzer
