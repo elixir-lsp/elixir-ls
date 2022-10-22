@@ -39,7 +39,8 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
   def handle_call({:get_tests, path}, _from, state) do
     :ets.delete_all_objects(table_name(:tests))
     tracers = Code.compiler_options()[:tracers]
-    Code.put_compiler_option(:tracers, tracers ++ [__MODULE__])
+    # TODO build lock?
+    Code.put_compiler_option(:tracers, [__MODULE__])
 
     result =
       try do
