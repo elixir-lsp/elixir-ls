@@ -16,7 +16,6 @@ defmodule ElixirLS.Mixfile do
           # enable only to verify error handling
           # :unmatched_returns,
           :error_handling,
-          :race_conditions,
           :unknown,
           :underspecs
         ]
