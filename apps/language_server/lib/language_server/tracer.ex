@@ -206,14 +206,22 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   defp build_module_info(module, file, line) do
     defs =
-      for {name, arity} <- Module.definitions_in(module) do
-        def_info = Module.get_definition(module, {name, arity})
-        {{name, arity}, build_def_info(def_info)}
+      if Version.match?(System.version(), ">= 1.12.0") do
+        for {name, arity} <- Module.definitions_in(module) do
+          def_info = apply(Module, :get_definition, [module, {name, arity}])
+          {{name, arity}, build_def_info(def_info)}
+        end
+      else
+        []
       end
 
     attributes =
-      for name <- Module.attributes_in(module) do
-        {name, Module.get_attribute(module, name)}
+      if Version.match?(System.version(), ">= 1.13.0") do
+        for name <- apply(Module, :attributes_in, [module]) do
+          {name, Module.get_attribute(module, name)}
+        end
+      else
+        []
       end
 
     %{

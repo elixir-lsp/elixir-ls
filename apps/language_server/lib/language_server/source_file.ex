@@ -240,10 +240,10 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     try do
       true = Code.ensure_loaded?(Mix.Tasks.Format)
 
-      if function_exported?(Mix.Tasks.Format, :formatter_for_file, 1) do
-        {:ok, Mix.Tasks.Format.formatter_for_file(path)}
+      if Version.match?(System.version(), ">= 1.13.0") do
+        {:ok, apply(Mix.Tasks.Format, :formatter_for_file, [path])}
       else
-        {:ok, {nil, Mix.Tasks.Format.formatter_opts_for_file(path)}}
+        {:ok, {nil, apply(Mix.Tasks.Format, :formatter_opts_for_file, [path])}}
       end
     rescue
       e ->

@@ -1,4 +1,7 @@
-impossible_to_format = ["test/fixtures/token_missing_error/lib/has_error.ex"]
+impossible_to_format = [
+  "test/fixtures/token_missing_error/lib/has_error.ex",
+  "test/fixtures/project_with_tests/test/error_test.exs"
+]
 
 [
   inputs:

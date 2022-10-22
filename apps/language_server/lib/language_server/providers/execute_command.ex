@@ -10,7 +10,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     "expandMacro" => ExecuteCommand.ExpandMacro,
     "manipulatePipes" => ExecuteCommand.ManipulatePipes,
     "restart" => ExecuteCommand.Restart,
-    "mixClean" => ExecuteCommand.MixClean
+    "mixClean" => ExecuteCommand.MixClean,
+    "getExUnitTestsInFile" => ExecuteCommand.GetExUnitTestsInFile
   }
 
   @callback execute([any], %ElixirLS.LanguageServer.Server{}) ::
