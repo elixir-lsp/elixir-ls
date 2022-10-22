@@ -5,12 +5,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFile 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
   def execute([uri], _state) do
     path = SourceFile.Path.from_uri(uri)
-    # with {:ok, _} = Code.compile_file(path) do
-      tests = ExUnitTestTracer.get_tests(path)
-      {:ok, tests}
-    # else
-    #   {:error, reason} ->
-    #     {:error, :server_error, inspect(reason)}
-    # end
+
+    case ExUnitTestTracer.get_tests(path) do
+      {:ok, tests} -> {:ok, tests}
+      {:error, reason} -> {:error, :server_error, inspect(reason)}
+    end
   end
 end

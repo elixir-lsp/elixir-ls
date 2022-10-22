@@ -40,18 +40,29 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
     :ets.delete_all_objects(table_name(:tests))
     tracers = Code.compiler_options()[:tracers]
     Code.put_compiler_option(:tracers, tracers ++ [__MODULE__])
-    # TODO parallel compiler and diagnostics?
-    _ = Code.compile_file(path)
 
-    Code.put_compiler_option(:tracers, tracers)
-    result = :ets.tab2list(table_name(:tests))
-    |> Enum.map(fn {{_file, module, line}, describes} ->
-      %{
-        module: inspect(module),
-        line: line,
-        describes: describes
-      }
-    end)
+    result =
+      try do
+        # TODO parallel compiler and diagnostics?
+        _ = Code.compile_file(path)
+
+        result =
+          :ets.tab2list(table_name(:tests))
+          |> Enum.map(fn {{_file, module, line}, describes} ->
+            %{
+              module: inspect(module),
+              line: line,
+              describes: describes
+            }
+          end)
+
+        {:ok, result}
+      rescue
+        e ->
+          {:error, e}
+      after
+        Code.put_compiler_option(:tracers, tracers)
+      end
 
     {:reply, result, state}
   end
@@ -60,17 +71,29 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
     test_info = Module.get_attribute(env.module, :ex_unit_tests)
 
     if test_info != nil do
-        describe_infos =test_info
+      describe_infos =
+        test_info
         |> Enum.group_by(fn %ExUnit.Test{tags: tags} -> {tags.describe, tags.describe_line} end)
         |> Enum.map(fn {{describe, describe_line}, tests} ->
-          tests = tests
-          |> Enum.map(fn %ExUnit.Test{tags: tags} = test ->
-            %{
-              name: test.name,
-              type: tags.test_type,
-              line: tags.line - 1,
-            }
-          end)
+          tests =
+            tests
+            |> Enum.map(fn %ExUnit.Test{tags: tags} = test ->
+              # drop test prefix
+              "test " <> test_name = Atom.to_string(test.name)
+
+              test_name =
+                if describe != nil do
+                  test_name |> String.replace_prefix(describe <> " ", "")
+                else
+                  test_name
+                end
+
+              %{
+                name: test_name,
+                type: tags.test_type,
+                line: tags.line - 1
+              }
+            end)
 
           %{
             describe: describe,
@@ -79,8 +102,9 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
           }
         end)
 
-        :ets.insert(table_name(:tests), {{env.file, env.module, env.line - 1}, describe_infos})
+      :ets.insert(table_name(:tests), {{env.file, env.module, env.line - 1}, describe_infos})
     end
+
     :ok
   end
 
