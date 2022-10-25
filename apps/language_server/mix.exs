@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
-      consolidate_protocols: false,
+      consolidate_protocols: Mix.env() != :test,
       deps: deps()
     ]
   end
