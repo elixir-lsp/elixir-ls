@@ -11,17 +11,18 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Document do
     lines =
       text
       |> LineParser.parse(starting_index)
-      |> :array.from_list()
+      |> List.to_tuple()
 
     %__MODULE__{lines: lines, starting_index: starting_index}
   end
 
   def to_iodata(%__MODULE__{} = document) do
-    :array.sparse_foldl(
-      fn _, line(text: text, ending: ending), acc -> [acc, text, ending] end,
-      [],
-      document.lines
-    )
+    document.lines
+    |> Tuple.to_list()
+    |> Enum.reduce([], fn
+      line(text: text, ending: ending), acc ->
+        [acc | [text | ending]]
+    end)
   end
 
   def to_string(%__MODULE__{} = document) do
@@ -31,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Document do
   end
 
   def size(%__MODULE__{} = document) do
-    :array.sparse_size(document.lines)
+    tuple_size(document.lines)
   end
 
   def fetch_line(%__MODULE__{} = document, index) when is_integer(index) do
@@ -55,7 +56,7 @@ defimpl Enumerable, for: ElixirLS.LanguageServer.Experimental.SourceFile.Documen
 
   def reduce(%Document{} = document, acc, fun) do
     document.lines
-    |> :array.sparse_to_list()
+    |> Tuple.to_list()
     |> Enumerable.reduce(acc, fun)
   end
 
@@ -64,10 +65,10 @@ defimpl Enumerable, for: ElixirLS.LanguageServer.Experimental.SourceFile.Documen
   end
 
   defp do_slice(%Document{} = document, start, 1) do
-    [:array.get(start, document.lines)]
+    [elem(document.lines, start)]
   end
 
   defp do_slice(%Document{} = document, start, length) do
-    Enum.map(start..(start + length - 1), &:array.get(&1, document.lines))
+    Enum.map(start..(start + length - 1), &elem(document.lines, &1))
   end
 end
