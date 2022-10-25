@@ -18,11 +18,11 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParserTest do
     end
 
     test "beginning with endline" do
-      assert [line(text: "", ending: "\n")] = parse("\n")
+      assert [line(text: "", ending: "\n", ascii?: true)] = parse("\n")
 
       assert [
-               line(text: "", ending: "\n"),
-               line(text: "basic", ending: "")
+               line(text: "", ending: "\n", ascii?: true),
+               line(text: "basic", ending: "", ascii?: true)
              ] = parse("\nbasic")
     end
 
@@ -63,14 +63,14 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParserTest do
 
     test "with an emoji" do
       text = "👨‍👩‍👦 test"
-      assert [line(text: ^text, ending: "")] = parse(text)
+      assert [line(text: ^text, ending: "", ascii?: false)] = parse(text)
     end
 
     test "example multi-byte string" do
       text = "𐂀"
 
       assert String.valid?(text)
-      [line(text: line, ending: "")] = parse(text)
+      [line(text: line, ending: "", ascii?: false)] = parse(text)
       assert String.valid?(line)
     end
 
@@ -96,6 +96,18 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParserTest do
         assert String.starts_with?(orig_line, text)
         assert line_ending == ending
       end
+    end
+  end
+
+  alias ElixirLS.LanguageServer.SourceFile
+
+  property "ascii lines have the same offset in utf8 and utf16" do
+    check all(
+            line <- string(:ascii),
+            offset <- integer(0..String.length(line))
+          ) do
+      source_file_offset = SourceFile.lsp_character_to_elixir(line, offset)
+      assert source_file_offset == offset + 1
     end
   end
 end

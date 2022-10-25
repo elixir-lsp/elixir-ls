@@ -31,10 +31,10 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:erl2ex, github: "dazuma/erl2ex"},
       {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
-      {:stream_data, "~> 0.5", only: [:dev, :test]},
+      {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
       {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},
       {:patch, "~> 0.12.0", only: :test},
-      {:benchee, "~> 1.0", only: :dev}
+      {:benchee, "~> 1.0", only: :dev, runtime: false}
     ]
   end
 

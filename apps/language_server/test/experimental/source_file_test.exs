@@ -192,6 +192,12 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
       assert source.version == 0
     end
 
+    test "setting the version" do
+      assert {:ok, source} = run_changes("abc123", [%{"text" => "mornin"}], version: 3)
+      assert "mornin" == text(source)
+      assert source.version == 3
+    end
+
     test "full update" do
       assert {:ok, source} = run_changes("abc123", [%{"text" => "efg456"}])
       assert "efg456" == text(source)
@@ -209,6 +215,18 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
 
       assert "world" == text(source)
       assert 2 = source.version
+    end
+
+    test "starting a document" do
+      assert {:ok, source} =
+               run_changes("", [
+                 %{
+                   "text" => "document",
+                   "range" => range_create(0, 0, 1, 0)
+                 }
+               ])
+
+      assert "document" = text(source)
     end
 
     test "incrementally removing content" do
@@ -340,13 +358,13 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
     test "incrementally replacing multi-line content, fewer lines" do
       orig = "a1\nb1\na2\nb2\na3\nb3\na4\nb4\n"
 
-      {:ok, source} =
-        run_changes(orig, [
-          %{
-            "text" => "xx\nyy",
-            "range" => range_for_substring(orig, "\na3\nb3\na4\nb4\n")
-          }
-        ])
+      assert {:ok, source} =
+               run_changes(orig, [
+                 %{
+                   "text" => "xx\nyy",
+                   "range" => range_for_substring(orig, "\na3\nb3\na4\nb4\n")
+                 }
+               ])
 
       assert "a1\nb1\na2\nb2xx\nyy" == text(source)
     end
