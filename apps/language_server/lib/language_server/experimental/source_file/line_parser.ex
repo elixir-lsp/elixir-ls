@@ -1,61 +1,115 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
+  @moduledoc """
+  A parser that parses a binary into `Line` records.any()
+
+  The approach taken by the parser is to first go through the binary to find out where
+  the lines break, what their endings are and if the line is ascii. As we go through the
+  binary, we store this information, and when we're done, go back and split up the binary
+  using binary_slice. This performs 3x faster than iterating through the binary and collecting
+  IOlists that represent each line.
+  """
   import ElixirLS.LanguageServer.Experimental.SourceFile.Line
 
-  @endings ["\r\n", "\n", "\r"]
-
+  # it's important that "\r\n" comes before \r here, otherwise the generated pattern
+  # matches won't match.
+  @endings ["\r\n", "\r", "\n"]
   def parse("", _starting_index) do
     []
   end
 
-  def parse(text, starting_index) when is_binary(text) do
+  def parse(text, starting_index) do
     text
-    |> do_split(starting_index, [], true, [])
-    |> Enum.reduce([], fn line(text: iodata) = orig, acc ->
-      new_line = line(orig, text: IO.iodata_to_binary(iodata))
-      [new_line | acc]
-    end)
+    |> traverse(starting_index)
+    |> Enum.reduce([], fn index, acc -> [extract_line(text, index) | acc] end)
   end
 
-  for ending <- @endings do
-    defp do_split(<<unquote(ending)>>, line_number, curr_line, curr_line_is_ascii, lines) do
-      [new_line(line_number, curr_line, curr_line_is_ascii, unquote(ending)) | lines]
-    end
+  defp extract_line(text, {line_number, start, stop, is_ascii?, ending}) do
+    line_text = binary_slice(text, start, stop)
+    line(line_number: line_number, text: line_text, ascii?: is_ascii?, ending: ending)
+  end
 
-    defp do_split(
-           <<unquote(ending), rest::binary>>,
+  defp traverse(text, starting_index) do
+    traverse(text, 0, starting_index, 0, true, [])
+  end
+
+  for ending <- @endings,
+      ending_length = byte_size(ending) do
+    defp traverse(
+           <<unquote(ending)>>,
+           current_index,
            line_number,
-           curr_line,
-           curr_line_is_ascii,
-           lines
+           line_start_index,
+           is_ascii?,
+           acc
          ) do
-      do_split(rest, line_number + 1, [], true, [
-        new_line(line_number, curr_line, curr_line_is_ascii, unquote(ending)) | lines
-      ])
+      line_length = current_index - line_start_index
+      line_index = {line_number, line_start_index, line_length, is_ascii?, unquote(ending)}
+      [line_index | acc]
+    end
+
+    defp traverse(
+           <<unquote(ending), rest::binary>>,
+           current_index,
+           line_number,
+           line_start_index,
+           is_ascii?,
+           acc
+         ) do
+      line_length = current_index - line_start_index
+
+      acc = [{line_number, line_start_index, line_length, is_ascii?, unquote(ending)} | acc]
+      next_index = current_index + unquote(ending_length)
+      traverse(rest, next_index, line_number + 1, next_index, is_ascii?, acc)
     end
   end
 
-  defp do_split(<<c, rest::binary>>, line_number, curr_line, curr_line_is_ascii, lines)
+  defp traverse(
+         <<c, rest::binary>>,
+         current_index,
+         line_number,
+         line_start_index,
+         is_ascii?,
+         acc
+       )
        when c <= 128 do
-    do_split(rest, line_number, [curr_line, c], curr_line_is_ascii, lines)
+    traverse(
+      rest,
+      current_index + 1,
+      line_number,
+      line_start_index,
+      is_ascii?,
+      acc
+    )
   end
 
-  defp do_split(<<c, rest::binary>>, line_number, curr_line, _, lines) do
-    do_split(rest, line_number, [curr_line, c], false, lines)
+  defp traverse(
+         <<_c, rest::binary>>,
+         current_index,
+         line_number,
+         line_start_index,
+         _is_ascii?,
+         acc
+       ) do
+    traverse(
+      rest,
+      current_index + 1,
+      line_number,
+      line_start_index,
+      false,
+      acc
+    )
   end
 
-  defp do_split(<<>>, _line_number, [], _, lines) do
+  defp traverse(<<>>, same_index, _line_number, same_index, _is_ascii, acc) do
     # this is a line at the end of the document with no content
     # I'm choosing not to represent it as a line to simplify things
     # and to make the line count what we expect
-    lines
+    acc
   end
 
-  defp do_split(<<>>, line_number, curr_line, curr_line_is_ascii, lines) do
+  defp traverse(<<>>, current_index, line_number, line_start_index, is_ascii?, acc) do
     # file doesn't end with a newline
-    [new_line(line_number, curr_line, curr_line_is_ascii, "") | lines]
-  end
-
-  defp new_line(line_number, line_text, is_ascii?, ending) do
-    line(line_number: line_number, text: line_text, ending: ending, ascii?: is_ascii?)
+    line_length = current_index - line_start_index
+    [{line_number, line_start_index, line_length, is_ascii?, ""} | acc]
   end
 end

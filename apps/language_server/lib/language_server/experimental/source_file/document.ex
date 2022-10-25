@@ -17,11 +17,8 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Document do
   end
 
   def to_iodata(%__MODULE__{} = document) do
-    document.lines
-    |> Tuple.to_list()
-    |> Enum.reduce([], fn
-      line(text: text, ending: ending), acc ->
-        [acc | [text | ending]]
+    Enum.reduce(document, [], fn line(text: text, ending: ending), acc ->
+      [acc | [text | ending]]
     end)
   end
 
@@ -55,9 +52,7 @@ defimpl Enumerable, for: ElixirLS.LanguageServer.Experimental.SourceFile.Documen
   end
 
   def reduce(%Document{} = document, acc, fun) do
-    document.lines
-    |> Tuple.to_list()
-    |> Enumerable.reduce(acc, fun)
+    tuple_reduce({0, tuple_size(document.lines), document.lines}, acc, fun)
   end
 
   def slice(%Document{} = document) do
@@ -70,5 +65,21 @@ defimpl Enumerable, for: ElixirLS.LanguageServer.Experimental.SourceFile.Documen
 
   defp do_slice(%Document{} = document, start, length) do
     Enum.map(start..(start + length - 1), &elem(document.lines, &1))
+  end
+
+  defp tuple_reduce(_, {:halt, acc}, _fun) do
+    {:halted, acc}
+  end
+
+  defp tuple_reduce(current_state, {:suspend, acc}, fun) do
+    {:suspended, acc, &tuple_reduce(current_state, &1, fun)}
+  end
+
+  defp tuple_reduce({same, same, _}, {:cont, acc}, _) do
+    {:done, acc}
+  end
+
+  defp tuple_reduce({index, size, tuple}, {:cont, acc}, fun) do
+    tuple_reduce({index + 1, size, tuple}, fun.(elem(tuple, index), acc), fun)
   end
 end

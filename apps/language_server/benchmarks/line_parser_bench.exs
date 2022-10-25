@@ -21,6 +21,7 @@ Benchee.run(
   },
   inputs: %{
     "80 lines" => generate_file.(80),
-    "500 lines" => generate_file.(500)
+    "500 lines" => generate_file.(500),
+    "1500 lines" => generate_file.(1500)
   }
 )
