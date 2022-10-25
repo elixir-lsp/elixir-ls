@@ -16,6 +16,9 @@ Benchee.run(
       |> String.split(line_endings)
       |> Enum.at(count - 1)
     end,
+    "Enum.at" => fn %{lines: lines, count: count} ->
+      Enum.at(lines, count - 1)
+    end,
     "Document" => fn %{document: doc, count: count} ->
       {:ok, _} = Document.fetch_line(doc, count)
     end,
