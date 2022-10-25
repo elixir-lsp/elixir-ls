@@ -210,14 +210,16 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
       %{"start" => position_create(sl, sc), "end" => position_create(el, ec)}
     end
 
-    def run_changes(original, changes) do
+    def run_changes(original, changes, opts \\ []) do
+      final_version = Keyword.get(opts, :version, 1)
+
       "file:///elixir.ex"
       |> new(original, 0)
-      |> apply_content_changes(changes)
+      |> apply_content_changes(final_version, changes)
     end
 
     test "empty update" do
-      assert {:ok, source} = run_changes("abc123", [])
+      assert {:ok, source} = run_changes("abc123", [], version: 1)
       assert "abc123" == text(source)
       assert source.version == 0
     end
@@ -228,10 +230,14 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
       assert source.version == 1
 
       assert {:ok, source} =
-               run_changes("abc123", [
-                 %{"text" => "hello"},
-                 %{"text" => "world"}
-               ])
+               run_changes(
+                 "abc123",
+                 [
+                   %{"text" => "hello"},
+                   %{"text" => "world"}
+                 ],
+                 version: 2
+               )
 
       assert "world" == text(source)
       assert 2 = source.version
