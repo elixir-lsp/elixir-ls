@@ -13,9 +13,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
   # it's important that "\r\n" comes before \r here, otherwise the generated pattern
   # matches won't match.
   @endings ["\r\n", "\r", "\n"]
-  def parse("", _starting_index) do
-    []
-  end
+  @max_ascii_character 127
 
   def parse(text, starting_index) do
     text
@@ -24,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
   end
 
   defp extract_line(text, {line_number, start, stop, is_ascii?, ending}) do
-    line_text = binary_slice(text, start, stop)
+    line_text = binary_part(text, start, stop)
     line(line_number: line_number, text: line_text, ascii?: is_ascii?, ending: ending)
   end
 
@@ -70,32 +68,13 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
          line_start_index,
          is_ascii?,
          acc
-       )
-       when c <= 128 do
-    traverse(
-      rest,
-      current_index + 1,
-      line_number,
-      line_start_index,
-      is_ascii?,
-      acc
-    )
-  end
-
-  defp traverse(
-         <<_c, rest::binary>>,
-         current_index,
-         line_number,
-         line_start_index,
-         _is_ascii?,
-         acc
        ) do
     traverse(
       rest,
       current_index + 1,
       line_number,
       line_start_index,
-      false,
+      is_ascii? or c <= @max_ascii_character,
       acc
     )
   end

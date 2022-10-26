@@ -1,6 +1,5 @@
 alias ElixirLS.LanguageServer.SourceFile
 alias ElixirLS.LanguageServer.Experimental.SourceFile.LineParser
-file_generator = StreamData.string(:alphanumeric, min_size: 10, max_size: 120)
 
 line_endings = ["\r", "\n", "\r\n"]
 
