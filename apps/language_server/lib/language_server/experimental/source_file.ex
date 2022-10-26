@@ -186,18 +186,17 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
         {:append, [text, ending]}
 
       line_number == start_line && line_number == end_line ->
-        {:ok, prefix_text} = utf16_prefix(line, start_char)
-
-        {:ok, suffix_text} = utf16_suffix(line, end_char)
+        prefix_text = utf8_prefix(line, start_char)
+        suffix_text = utf8_suffix(line, end_char)
 
         {:append, [prefix_text, edit_text, suffix_text, ending]}
 
       line_number == start_line ->
-        {:ok, prefix_text} = utf16_prefix(line, start_char)
+        prefix_text = utf8_prefix(line, start_char)
         {:append, [prefix_text, edit_text]}
 
       line_number == end_line ->
-        {:ok, suffix_text} = utf16_suffix(line, end_char)
+        suffix_text = utf8_suffix(line, end_char)
         {:append, [suffix_text, ending]}
 
       true ->
@@ -205,36 +204,16 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  defp utf16_prefix(line(text: text, ascii?: _), start_index) do
-    {:ok, binary_part(text, 0, start_index)}
+  defp utf8_prefix(line(text: text), start_index) do
+    length = max(0, start_index)
+    binary_part(text, 0, length)
   end
 
-  defp utf16_prefix(line(text: utf8_text), start_index) do
-    with {:ok, utf16_text} <- to_utf16(utf8_text) do
-      end_index = min(start_index * 2, byte_size(utf16_text))
-
-      utf16_text
-      |> binary_part(0, end_index)
-      |> to_utf8()
-    end
-  end
-
-  defp utf16_suffix(line(text: text, ascii?: _), end_index) do
-    count = max(byte_size(text) - end_index, 0)
-
-    {:ok, String.slice(text, end_index, count)}
-  end
-
-  defp utf16_suffix(line(text: utf8_text), end_index) do
-    with {:ok, utf16_text} <- to_utf16(utf8_text) do
-      utf16_length = byte_size(utf16_text)
-      utf16_start = min(end_index * 2, utf16_length)
-      utf16_end = max(utf16_length - end_index * 2, 0)
-
-      utf16_text
-      |> binary_part(utf16_start, utf16_end)
-      |> to_utf8()
-    end
+  defp utf8_suffix(line(text: text), start_index) do
+    byte_count = byte_size(text)
+    start_index = min(start_index, byte_count)
+    length = byte_count - start_index
+    binary_part(text, start_index, length)
   end
 
   defp to_iodata(%__MODULE__{} = source) do
@@ -249,21 +228,5 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
       end
 
     %__MODULE__{source | version: version}
-  end
-
-  defp to_utf16(b) do
-    case :unicode.characters_to_binary(b, :utf8, :utf16) do
-      b when is_binary(b) -> {:ok, b}
-      {:error, _, _} = err -> err
-      {:incomplete, _, _} -> {:error, :incomplete}
-    end
-  end
-
-  defp to_utf8(b) do
-    case :unicode.characters_to_binary(b, :utf16, :utf8) do
-      b when is_binary(b) -> {:ok, b}
-      {:error, _, _} = err -> err
-      {:incomplete, _, _} -> {:error, :incomplete}
-    end
   end
 end

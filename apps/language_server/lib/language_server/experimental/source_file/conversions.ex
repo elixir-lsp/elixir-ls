@@ -121,38 +121,17 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
     byte_size = byte_size(utf16_line)
 
     # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
-
-    diff = div(max(lsp_character * 2 - byte_size, 0), 2)
-
-    utf8_character =
-      utf16_line
-      |> binary_part(0, min(lsp_character * 2, byte_size))
-      |> to_utf8()
-      |> byte_size()
-  end
-
-  defp lsp_character_to_elixir_old(utf16_line, lsp_character) do
-    byte_size = byte_size(utf16_line)
-
-    # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
-
-    diff = div(max(lsp_character * 2 - byte_size, 0), 2)
-
-    utf8_character =
-      utf16_line
-      |> binary_part(0, min(lsp_character * 2, byte_size))
-      |> to_utf8()
-      |> String.length()
-
-    utf8_character + 1 + diff
+    utf16_line
+    |> binary_part(0, min(lsp_character * 2, byte_size))
+    |> to_utf8()
+    |> byte_size()
   end
 
   def elixir_character_to_lsp(utf8_line, elixir_character) do
-    utf8_line
-    |> String.slice(0..(elixir_character - 2))
-    |> to_utf16()
-    |> byte_size()
-    |> div(2)
+    case utf8_line |> String.slice(0..(elixir_character - 2)) |> to_utf16() do
+      {:ok, utf16_line} -> {:ok, byte_size(utf16_line) / 2}
+      error -> error
+    end
   end
 
   defp to_utf16(b) do
