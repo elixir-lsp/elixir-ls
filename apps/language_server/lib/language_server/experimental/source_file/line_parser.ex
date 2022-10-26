@@ -74,7 +74,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
       current_index + 1,
       line_number,
       line_start_index,
-      is_ascii? or c <= @max_ascii_character,
+      is_ascii? and c <= @max_ascii_character,
       acc
     )
   end

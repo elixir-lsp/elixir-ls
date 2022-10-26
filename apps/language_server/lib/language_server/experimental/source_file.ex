@@ -186,18 +186,18 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
         {:append, [text, ending]}
 
       line_number == start_line && line_number == end_line ->
-        {:ok, prefix_text} = utf16_prefix(text, start_char)
+        {:ok, prefix_text} = utf16_prefix(line, start_char)
 
-        {:ok, suffix_text} = utf16_suffix(text, end_char)
+        {:ok, suffix_text} = utf16_suffix(line, end_char)
 
         {:append, [prefix_text, edit_text, suffix_text, ending]}
 
       line_number == start_line ->
-        {:ok, prefix_text} = utf16_prefix(text, start_char)
+        {:ok, prefix_text} = utf16_prefix(line, start_char)
         {:append, [prefix_text, edit_text]}
 
       line_number == end_line ->
-        {:ok, suffix_text} = utf16_suffix(text, end_char)
+        {:ok, suffix_text} = utf16_suffix(line, end_char)
         {:append, [suffix_text, ending]}
 
       true ->
@@ -205,7 +205,11 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  defp utf16_prefix(utf8_text, start_index) do
+  defp utf16_prefix(line(text: text, ascii?: true), start_index) do
+    {:ok, String.slice(text, 0, start_index)}
+  end
+
+  defp utf16_prefix(line(text: utf8_text), start_index) do
     with {:ok, utf16_text} <- to_utf16(utf8_text) do
       end_index = min(start_index * 2, byte_size(utf16_text))
 
@@ -215,7 +219,13 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  defp utf16_suffix(utf8_text, end_index) do
+  defp utf16_suffix(line(text: text, ascii?: true), end_index) do
+    count = max(byte_size(text) - end_index, 0)
+
+    {:ok, String.slice(text, end_index, count)}
+  end
+
+  defp utf16_suffix(line(text: utf8_text), end_index) do
     with {:ok, utf16_text} <- to_utf16(utf8_text) do
       utf16_length = byte_size(utf16_text)
       utf16_start = min(end_index * 2, utf16_length)
