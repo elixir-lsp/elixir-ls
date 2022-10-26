@@ -73,6 +73,14 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParserTest do
       [line(text: line, ending: "")] = parse(text)
       assert String.valid?(line)
     end
+
+    test "a utf-16 line" do
+      utf8_text = "this is probably on windows. Sorry"
+      utf16_text = :unicode.characters_to_binary(utf8_text, :utf8, :utf16)
+
+      assert [line(text: text, ascii?: false, ending: "")] = parse(utf16_text)
+      assert utf8_text == :unicode.characters_to_binary(text, :utf16, :utf8)
+    end
   end
 
   property "random files" do

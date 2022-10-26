@@ -7,6 +7,10 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
   binary, we store this information, and when we're done, go back and split up the binary
   using binary_slice. This performs 3x faster than iterating through the binary and collecting
   IOlists that represent each line.
+
+  I determines if a line is ascii (and what it really means is utf8 ascii) by checking to see if
+  each byte is greater than 0 and less than 128. UTF-16 files won't be marked as ascii, which
+  allows us to skip a lot of byte conversions later in the process.
   """
   import ElixirLS.LanguageServer.Experimental.SourceFile.Line
 
@@ -69,12 +73,16 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.LineParser do
          is_ascii?,
          acc
        ) do
+    # Note, this heuristic assumes the NUL character won't occur in elixir source files.
+    # if this isn't true, then we need a better heuristic for detecting utf16 text.
+    is_still_ascii? = is_ascii? and c <= @max_ascii_character and c > 0
+
     traverse(
       rest,
       current_index + 1,
       line_number,
       line_start_index,
-      is_ascii? and c <= @max_ascii_character,
+      is_still_ascii?,
       acc
     )
   end

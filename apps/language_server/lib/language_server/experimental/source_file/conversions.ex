@@ -50,28 +50,34 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
     # by starting with an empty document and appending to the beginning of it, with a start range of
     # {0, 0} and and end range of {1, 0} (replace the first line)
     document_line_number = min(position.line, document_size)
+    elixir_line_number = document_line_number + @elixir_ls_index_base
     ls_character = position.character
 
     cond do
-      # allow a line one more than the document size, as long as the character is 0.
-      # that means we're operating on the last line of the document
       document_line_number == document_size and ls_character == 0 ->
-        {:ok, ElixirPosition.new(document_line_number + @elixir_ls_index_base, ls_character)}
+        # allow a line one more than the document size, as long as the character is 0.
+        # that means we're operating on the last line of the document
+
+        {:ok, ElixirPosition.new(elixir_line_number, ls_character)}
+
+      position.line > document_size ->
+        # they've specified something outside of the document clamp it down so they can append at the
+        # end
+        {:ok, ElixirPosition.new(elixir_line_number, 0)}
 
       true ->
-        with {:ok, line} <- Document.fetch_line(document, document_line_number) do
+        with {:ok, line} <- Document.fetch_line(document, elixir_line_number) do
           elixir_character =
             case line do
               line(ascii?: true) ->
                 ls_character
 
               line(text: text) ->
-                utf16_text = to_utf16(text)
+                {:ok, utf16_text} = to_utf16(text)
                 lsp_character_to_elixir(utf16_text, ls_character)
             end
 
-          {:ok,
-           ElixirPosition.new(document_line_number + @elixir_ls_index_base, elixir_character)}
+          {:ok, ElixirPosition.new(elixir_line_number, elixir_character)}
         end
     end
   end
@@ -106,6 +112,26 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
   end
 
   defp lsp_character_to_elixir(utf16_line, lsp_character) do
+    # In LSP, the word "character" is a misnomer. What's being counted is a code unit.
+    # in utf16, a code unit is two bytes long, while in utf8 it is one byte long.
+    # This function converts from utf16 code units to utf8 code units. The code units
+    # can then be used to do a simple byte-level operation on elixir binaries.
+    # For ascii text, the code unit will mirror the number of bytes, but if there's any
+    # unicode characters, it will vary from the byte count.
+    byte_size = byte_size(utf16_line)
+
+    # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
+
+    diff = div(max(lsp_character * 2 - byte_size, 0), 2)
+
+    utf8_character =
+      utf16_line
+      |> binary_part(0, min(lsp_character * 2, byte_size))
+      |> to_utf8()
+      |> byte_size()
+  end
+
+  defp lsp_character_to_elixir_old(utf16_line, lsp_character) do
     byte_size = byte_size(utf16_line)
 
     # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
