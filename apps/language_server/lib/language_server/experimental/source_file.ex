@@ -184,17 +184,17 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
         {:append, [text, ending]}
 
       line_number == start_line && line_number == end_line ->
-        prefix_text = utf8_prefix(line, start_char)
-        suffix_text = utf8_suffix(line, end_char)
+        prefix_text = utf8_prefix(text, start_char)
+        suffix_text = utf8_suffix(text, end_char)
 
         {:append, [prefix_text, edit_text, suffix_text, ending]}
 
       line_number == start_line ->
-        prefix_text = utf8_prefix(line, start_char)
+        prefix_text = utf8_prefix(text, start_char)
         {:append, [prefix_text, edit_text]}
 
       line_number == end_line ->
-        suffix_text = utf8_suffix(line, end_char)
+        suffix_text = utf8_suffix(text, end_char)
         {:append, [suffix_text, ending]}
 
       true ->
@@ -202,12 +202,12 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  defp utf8_prefix(line(text: text), start_index) do
+  defp utf8_prefix(text, start_index) do
     length = max(0, start_index)
     binary_part(text, 0, length)
   end
 
-  defp utf8_suffix(line(text: text), start_index) do
+  defp utf8_suffix(text, start_index) do
     byte_count = byte_size(text)
     start_index = min(start_index, byte_count)
     length = byte_count - start_index

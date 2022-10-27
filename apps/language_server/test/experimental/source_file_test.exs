@@ -4,7 +4,6 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
   use ExUnitProperties
   use Patch
 
-  import ExUnit.CaptureIO
   alias ElixirLS.LanguageServer.Experimental
   alias ElixirLS.LanguageServer.SourceFile
 
