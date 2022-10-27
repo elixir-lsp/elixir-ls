@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
   alias ElixirLS.LanguageServer.Experimental
   alias ElixirLS.LanguageServer.SourceFile
 
+  import ExUnit.CaptureIO
   import ElixirLS.LanguageServer.Experimental.SourceFile, except: [to_string: 1]
 
   test "format_spec/2 with nil" do
