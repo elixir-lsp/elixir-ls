@@ -20,7 +20,7 @@ Benchee.run(
       Enum.at(lines, count - 1)
     end,
     "Document" => fn %{document: doc, count: count} ->
-      {:ok, _} = Document.fetch_line(doc, count)
+      {:ok, _} = Document.fetch_line(doc, count - 1)
     end,
     "Document.new |> Document.fetch_line" => fn %{text: text, count: count} ->
       text
