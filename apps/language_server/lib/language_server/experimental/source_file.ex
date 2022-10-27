@@ -1,6 +1,4 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent
-
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Position
@@ -52,7 +50,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  @spec apply_content_changes(t, pos_integer(), [map | ContentChangeEvent.t()]) ::
+  @spec apply_content_changes(t, pos_integer(), [map]) ::
           {:ok, t} | change_application_error()
   def apply_content_changes(%__MODULE__{version: current_version}, new_version, _)
       when new_version <= current_version do
