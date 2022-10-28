@@ -24,6 +24,8 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
   # public
   @spec new(URI.t(), String.t(), pos_integer()) :: t
   def new(uri, text, version) do
+    uri = Conversions.ensure_uri(uri)
+
     %__MODULE__{
       uri: uri,
       version: version,
@@ -44,11 +46,17 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
 
   @spec fetch_text_at(t, version()) :: {:ok, String.t()} | :error
   def fetch_text_at(%__MODULE{} = source, line_number) do
-    with {:ok, line(text: text)} <- Document.fetch_line(source.document, line_number) do
-      {:ok, text}
-    else
-      _ ->
-        :error
+    case fetch_line_at(source, line_number) do
+      {:ok, line(text: text)} -> {:ok, text}
+      _ -> :error
+    end
+  end
+
+  @spec fetch_line_at(t, version()) :: {:ok, Line.t()} | :error
+  def fetch_line_at(%__MODULE__{} = source, line_number) do
+    case Document.fetch_line(source.document, line_number) do
+      {:ok, line} -> {:ok, line}
+      _ -> :error
     end
   end
 
@@ -221,15 +229,16 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  defp utf8_prefix(line(text: text), start_index) do
-    length = max(0, start_index)
+  defp utf8_prefix(line(text: text), start_code_unit) do
+    length = max(0, start_code_unit)
     binary_part(text, 0, length)
   end
 
-  defp utf8_suffix(line(text: text), start_index) do
+  defp utf8_suffix(line(text: text), start_code_unit) do
     byte_count = byte_size(text)
-    start_index = min(start_index, byte_count)
+    start_index = min(start_code_unit, byte_count)
     length = byte_count - start_index
+
     binary_part(text, start_index, length)
   end
 

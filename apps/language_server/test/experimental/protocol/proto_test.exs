@@ -248,9 +248,10 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "textDocument/somethingHappened",
-        line: integer(),
-        notice_message: string(),
-        column: integer()
+                      :exlusive,
+                      line: integer(),
+                      notice_message: string(),
+                      column: integer()
     end
 
     test "parse fills out the notification" do
@@ -293,7 +294,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "notif/withTextDoc",
-        text_document: Types.TextDocument
+                      :exclusive,
+                      text_document: Types.TextDocument
     end
 
     test "to_elixir fills out the source file", ctx do
@@ -307,8 +309,9 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "notif/WithPos",
-        text_document: Types.TextDocument,
-        position: Types.Position
+                      :exclusive,
+                      text_document: Types.TextDocument,
+                      position: Types.Position
     end
 
     test "to_elixir fills out a position", ctx do
@@ -331,8 +334,9 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "notif/WithPos",
-        text_document: Types.TextDocument,
-        range: Types.Range
+                      :exclusive,
+                      text_document: Types.TextDocument,
+                      range: Types.Range
     end
 
     test "to_elixir fills out a range", ctx do
@@ -363,19 +367,19 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     defmodule Req do
       use Proto
 
-      defrequest "something", line: integer(), error_message: string()
+      defrequest "something", :exclusive, line: integer(), error_message: string()
     end
 
     defmodule TextDocReq do
       use Proto
 
-      defrequest "textDoc", text_document: Types.TextDocument
+      defrequest "textDoc", :exclusive, text_document: Types.TextDocument
     end
 
     test "parse fills out the request" do
       assert {:ok, params} = params_for(Req, id: 3, line: 9, error_message: "borked")
       assert {:ok, req} = Req.parse(params)
-      assert req.id == 3
+      assert req.id == "3"
       assert req.method == "something"
       assert req.jsonrpc == "2.0"
       assert req.lsp.line == 9
@@ -417,7 +421,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
     defmodule PositionReq do
       use Proto
-      defrequest "posReq", text_document: Types.TextDocument, position: Types.Position
+      defrequest "posReq", :exclusive, text_document: Types.TextDocument, position: Types.Position
     end
 
     test "to_elixir fills out a position", ctx do
@@ -440,7 +444,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
     defmodule RangeReq do
       use Proto
-      defrequest "rangeReq", text_document: Types.TextDocument, range: Types.Range
+      defrequest "rangeReq", :exclusive, text_document: Types.TextDocument, range: Types.Range
     end
 
     test "to_elixir fills out a range", ctx do

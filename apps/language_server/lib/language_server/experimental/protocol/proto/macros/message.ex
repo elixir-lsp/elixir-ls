@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Message do
 
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
-  def build(meta_type, method, types, param_names, opts \\ []) do
+  def build(meta_type, method, access, types, param_names, opts \\ []) do
     parse_fn =
       if Keyword.get(opts, :include_parse?, true) do
         Parse.build(types)
@@ -22,6 +22,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Message do
       unquote(parse_fn)
       unquote(Meta.build(types))
 
+      def method do
+        unquote(method)
+      end
+
       def __meta__(:method_name) do
         unquote(method)
       end
@@ -32,6 +36,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Message do
 
       def __meta__(:param_names) do
         unquote(param_names)
+      end
+
+      def __meta__(:access) do
+        unquote(access)
       end
     end
   end

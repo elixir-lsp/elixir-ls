@@ -1,6 +1,8 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server do
+  alias ElixirLS.LanguageServer.Experimental.Provider
   alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
   alias ElixirLS.LanguageServer.Experimental.Server.State
 
   import Logger
@@ -8,6 +10,11 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
   import Requests, only: [request: 2]
 
   use GenServer
+
+  @spec response_complete(Requests.request(), Responses.response()) :: :ok
+  def response_complete(request, response) do
+    GenServer.call(__MODULE__, {:response_complete, request, response})
+  end
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -17,11 +24,14 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
     {:ok, State.new()}
   end
 
-  def handle_cast({:receive_packet, request(method, _id) = request}, %State{} = state) do
+  def handle_call({:response_complete, _request, _response}, _from, %State{} = state) do
+    {:reply, :ok, state}
+  end
+
+  def handle_cast({:receive_packet, request(_id, method) = request}, %State{} = state) do
     new_state =
       with {:ok, request} <- Requests.decode(method, request),
            {:ok, new_state} <- handle_request(request, %State{} = state) do
-        info("Decoded #{request.__struct__}")
         new_state
       else
         {:error, {:unknown_request, _}} ->
@@ -58,7 +68,36 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
     {:noreply, state}
   end
 
-  def handle_request(_, %State{} = state) do
+  def handle_info(:default_config, %State{configuration: nil} = state) do
+    Logger.warn(
+      "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
+        "Using default settings."
+    )
+
+    {:ok, config} = State.default_configuration(state)
+    {:noreply, %State{state | configuration: config}}
+  end
+
+  def handle_info(:default_config, %State{} = state) do
+    {:noreply, state}
+  end
+
+  def handle_request(%Requests.Initialize{} = initialize, %State{} = state) do
+    Logger.info("handling initialize")
+    Process.send_after(self(), :default_config, :timer.seconds(5))
+
+    case State.initialize(state, initialize) do
+      {:ok, _state} = success ->
+        success
+
+      error ->
+        {error, state}
+    end
+  end
+
+  def handle_request(request, %State{} = state) do
+    Provider.Queue.add(request, state.configuration)
+
     {:ok, %State{} = state}
   end
 
@@ -72,14 +111,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
     end
   end
 
-  defp apply_to_state(%State{} = state, %protocol_module{} = protocol_action) do
-    {elapsed_us, result} = :timer.tc(fn -> State.apply(state, protocol_action) end)
-    elapsed_ms = Float.round(elapsed_us / 1000, 2)
-    method_name = protocol_module.__meta__(:method_name)
-
-    info("#{method_name} took #{elapsed_ms}ms")
-
-    case result do
+  defp apply_to_state(%State{} = state, %{} = request_or_notification) do
+    case State.apply(state, request_or_notification) do
       {:ok, new_state} -> {:ok, new_state}
       :ok -> {:ok, state}
       error -> {error, state}

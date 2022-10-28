@@ -1,4 +1,5 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.Initialize
   alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.Server.State
@@ -16,6 +17,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
     "file:///file.ex"
   end
 
+  def initialized_state do
+    {:ok, initialize} = build(Initialize, root_uri: "file:///my_project", capabilities: %{})
+    {:ok, state} = State.initialize(State.new(), initialize)
+
+    state
+  end
+
   def with_an_open_document(_) do
     {:ok, did_open} =
       build(Notifications.DidOpen,
@@ -23,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
         text_document: [uri: uri(), version: 1, text: "hello"]
       )
 
-    {:ok, state} = State.apply(State.new(), did_open)
+    {:ok, state} = State.apply(initialized_state(), did_open)
     {:ok, state: state}
   end
 
@@ -51,12 +59,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
 
   test "closing a document that isn't open fails" do
     {:ok, did_close} = build(Notifications.DidClose, text_document: [uri: uri()])
-    assert {:error, :not_open} = State.apply(State.new(), did_close)
+    assert {:error, :not_open} = State.apply(initialized_state(), did_close)
   end
 
   test "saving a document that isn't open fails" do
     {:ok, save} = build(Notifications.DidSave, text_document: [uri: uri()])
-    assert {:error, :not_open} = State.apply(State.new(), save)
+    assert {:error, :not_open} = State.apply(initialized_state(), save)
   end
 
   test "applying a didOpen notification" do
@@ -68,7 +76,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
         text_document: [uri: uri(), version: 1, text: "hello"]
       )
 
-    {:ok, _state} = State.apply(State.new(), did_open)
+    {:ok, _state} = State.apply(initialized_state(), did_open)
     assert {:ok, file} = SourceFile.Store.fetch(uri())
     assert SourceFile.to_string(file) == "hello"
     assert file.version == 1

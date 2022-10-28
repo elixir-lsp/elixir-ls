@@ -1,6 +1,5 @@
 defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert do
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
   def to_elixir(%{text_document: _} = request) do
@@ -21,17 +20,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert do
     {:ok, request}
   end
 
-  defp fetch_source_file(%{text_document: %Types.TextDocument{} = text_document}) do
-    with {:ok, source_file} <- SourceFile.Store.fetch(text_document.uri) do
-      {:ok, source_file}
-    end
+  defp fetch_source_file(%{text_document: %{uri: uri}}) do
+    SourceFile.Store.fetch(uri)
   end
 
   defp fetch_source_file(%{source_file: %SourceFile{} = source_file}) do
     {:ok, source_file}
   end
 
-  defp fetch_source_file(_), do: :error
+  defp fetch_source_file(_) do
+    :error
+  end
 
   defp convert(%{range: range}, source_file) do
     with {:ok, ex_range} <- Conversions.to_elixir(range, source_file) do

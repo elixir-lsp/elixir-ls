@@ -79,7 +79,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
             data: optional(any())
   end
 
-  defmodule TypeFormattingOptions do
+  defmodule TextEdit do
+    use Proto
+    deftype range: Range, new_text: string()
+  end
+
+  defmodule FormattingOptions do
     use Proto
 
     deftype tab_size: integer(),
@@ -87,7 +92,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
             trim_trailing_whitespace: optional(boolean()),
             insert_final_newline: optional(boolean()),
             trim_final_newlines: optional(boolean()),
-            "*rest": one_of([string(), boolean(), integer()])
+            ..: map_of(one_of([string(), boolean(), integer()]), as: :opts)
   end
 
   defmodule FileChangeType do
@@ -139,7 +144,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
     use Proto
 
     deftype document_changes: optional(boolean()),
-            resource_operations: optional(boolean())
+            resource_operations: optional(list_of(ResourceOperationKind))
   end
 
   defmodule DidChangeConfiguration.ClientCapabilities do
@@ -247,7 +252,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
     deftype refresh_support: optional(boolean())
   end
 
-  defmodule CodeLensWorkspac.ClientCapabilities do
+  defmodule CodeLensWorkspace.ClientCapabilities do
     use Proto
 
     deftype refresh_support: optional(boolean())
@@ -418,12 +423,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
 
     deftype workspace: WorkspaceCapabilities,
             text_document: TextDocument.Capabilities,
-            window: WindowCapabilities,
-            general: GeneralCapabilities
+            #            window: WindowCapabilities,
+            general: optional(GeneralCapabilities)
   end
 
   defmodule InitializeParams do
     use Proto
     deftype root_uri: uri(), capabilities: map_of(any())
+  end
+
+  defmodule WorkspaceFolder do
+    use Proto
+    deftype uri: uri(), name: string()
   end
 end

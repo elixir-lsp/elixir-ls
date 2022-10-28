@@ -60,7 +60,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Field do
   end
 
   def extract(module, _name, orig_value)
-      when is_atom(module) and module not in [:integer, :string] do
+      when is_atom(module) and module not in [:integer, :string, :boolean] do
     module.parse(orig_value)
   end
 

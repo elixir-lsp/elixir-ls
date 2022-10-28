@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.PacketRouter do
   defmodule State do
-    defstruct monitor_references: %{}
+    defstruct monitor_references: %{}, names_to_pids: %{}
 
     def new(names_or_pids) when is_list(names_or_pids) do
       Enum.reduce(names_or_pids, %__MODULE__{}, &add(&2, &1))

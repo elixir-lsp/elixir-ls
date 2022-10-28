@@ -3,15 +3,15 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Message
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions
 
-  import TypeFunctions, only: [optional: 1, integer: 0, literal: 1]
+  import TypeFunctions, only: [optional: 1, literal: 1]
 
-  defmacro defrequest(method, types) do
+  defmacro defrequest(method, access, types) do
     CompileMetadata.add_request_module(__CALLER__.module)
     # id is optional so we can resuse the parse function. If it's required,
     # it will go in the pattern match for the params, which won't work.
 
     jsonrpc_types = [
-      id: quote(do: optional(integer())),
+      id: quote(do: optional(one_of([string(), integer()]))),
       jsonrpc: quote(do: literal("2.0")),
       method: quote(do: literal(unquote(method)))
     ]
@@ -19,17 +19,18 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
     lsp_types = Keyword.merge(jsonrpc_types, types)
     elixir_types = Message.generate_elixir_types(__CALLER__.module, lsp_types)
     param_names = Keyword.keys(types)
+    lsp_module_name = Module.concat(__CALLER__.module, LSP)
 
     quote location: :keep do
       defmodule LSP do
-        unquote(Message.build({:request, :lsp}, method, lsp_types, param_names))
+        unquote(Message.build({:request, :lsp}, method, access, lsp_types, param_names))
       end
 
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
       alias ElixirLS.LanguageServer.Experimental.Protocol.Types
 
       unquote(
-        Message.build({:request, :elixir}, method, elixir_types, param_names,
+        Message.build({:request, :elixir}, method, access, elixir_types, param_names,
           include_parse?: false
         )
       )
@@ -43,6 +44,24 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
 
       def to_elixir(%__MODULE__{} = request) do
         Convert.to_elixir(request)
+      end
+
+      defimpl JasonVendored.Encoder, for: unquote(__CALLER__.module) do
+        def encode(request, opts) do
+          JasonVendored.Encoder.encode(request.lsp, opts)
+        end
+      end
+
+      defimpl JasonVendored.Encoder, for: unquote(lsp_module_name) do
+        def encode(request, opts) do
+          %{
+            id: request.id,
+            jsonrpc: "2.0",
+            method: unquote(method),
+            params: Map.take(request, unquote(param_names))
+          }
+          |> JasonVendored.Encode.map(opts)
+        end
       end
     end
   end

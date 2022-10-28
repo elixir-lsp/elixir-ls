@@ -15,3 +15,15 @@ import Config
 #       level: :info,
 #       format: "$date $time [$level] $metadata$message\n",
 #       metadata: [:user_id]
+
+env_bool = fn name ->
+  enabled_str =
+    name
+    |> System.get_env("false")
+    |> String.downcase()
+
+  enabled_str == "true"
+end
+
+config :language_server,
+  enable_experimental_server: env_bool.("ENABLE_EXPERIMENTAL_SERVER")

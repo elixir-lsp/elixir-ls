@@ -5,8 +5,11 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Decoders do
     notification_modules = CompileMetadata.notification_modules()
     notification_matchers = Enum.map(notification_modules, &build_notification_matcher_macro/1)
     notification_decoders = Enum.map(notification_modules, &build_notifications_decoder/1)
+    access_map = build_acces_map(notification_modules)
 
     quote do
+      alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
+
       defmacro notification(method) do
         quote do
           %{"method" => unquote(method), "jsonrpc" => "2.0"}
@@ -37,6 +40,14 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Decoders do
       def __meta__(:notifications) do
         unquote(notification_modules)
       end
+
+      def __meta__(:access) do
+        %{unquote_splicing(access_map)}
+      end
+
+      def to_elixir(%{lsp: _} = request_or_notification) do
+        Convert.to_elixir(request_or_notification)
+      end
     end
   end
 
@@ -44,10 +55,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Decoders do
     request_modules = CompileMetadata.request_modules()
     request_matchers = Enum.map(request_modules, &build_request_matcher_macro/1)
     request_decoders = Enum.map(request_modules, &build_request_decoder/1)
+    access_map = build_acces_map(request_modules)
 
     quote do
+      alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
+
       def __meta__(:requests) do
         unquote(request_modules)
+      end
+
+      def __meta__(:access) do
+        %{unquote_splicing(access_map)}
       end
 
       defmacro request(id, method) do
@@ -72,7 +90,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Decoders do
       def decode(method, _) do
         {:error, {:unknown_request, method}}
       end
+
+      def to_elixir(%{lsp: _} = request_or_notification) do
+        Convert.to_elixir(request_or_notification)
+      end
     end
+  end
+
+  defp build_acces_map(modules) do
+    Enum.map(modules, fn module ->
+      quote(do: {unquote(module.method()), unquote(module.__meta__(:access))})
+    end)
   end
 
   defp build_notification_matcher_macro(notification_module) do

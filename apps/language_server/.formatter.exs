@@ -6,12 +6,14 @@ impossible_to_format = [
 proto_dsl = [
   defenum: 1,
   defnotification: 2,
-  defrequest: 2,
+  defnotification: 3,
+  defrequest: 3,
   defresponse: 1,
   deftype: 1
 ]
 
 [
+  import_deps: [:patch],
   export: [
     locals_without_parens: proto_dsl
   ],
