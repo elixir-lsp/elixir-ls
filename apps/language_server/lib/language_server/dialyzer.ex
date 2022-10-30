@@ -516,7 +516,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       end
 
     try do
-      %{^warning_name => warning_module} = Dialyxir.Warnings.warnings()
+      %{^warning_name => warning_module} = DialyxirVendored.Warnings.warnings()
       <<_::binary>> = apply(warning_module, format_function, [args])
     rescue
       _ -> warning_message(raw_warning, "dialyzer")

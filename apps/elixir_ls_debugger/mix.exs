@@ -27,7 +27,7 @@ defmodule ElixirLS.Debugger.Mixfile do
     [
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
       {:elixir_ls_utils, in_umbrella: true},
-      {:dialyxir, "~> 1.0", runtime: false}
+      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false}
     ]
   end
 end
