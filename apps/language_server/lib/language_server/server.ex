@@ -529,7 +529,6 @@ defmodule ElixirLS.LanguageServer.Server do
         "file://" <> _ ->
           root_path = SourceFile.Path.absolute_from_uri(root_uri)
           File.cd!(root_path)
-          Logger.info("cd initialize")
           cwd_uri = SourceFile.Path.to_uri(File.cwd!())
           %{state | root_uri: cwd_uri}
 
@@ -1242,7 +1241,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         File.cd!(project_dir)
-        Logger.info("cd set_project_dir")
         %{state | project_dir: File.cwd!(), mix_project?: File.exists?(MixfileHelpers.mix_exs())}
 
       prev_project_dir != project_dir ->
