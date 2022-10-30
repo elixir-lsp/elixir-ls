@@ -39,7 +39,8 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
     GenServer.call(name, {:has_condition?, {module, lines}})
   end
 
-  @spec get_condition(module, non_neg_integer) :: {String.t(), non_neg_integer, non_neg_integer}
+  @spec get_condition(module, non_neg_integer) ::
+          {String.t(), String.t(), non_neg_integer, non_neg_integer}
   def get_condition(name \\ __MODULE__, number) do
     GenServer.call(name, {:get_condition, number})
   end
@@ -171,6 +172,7 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
     end
   end
 
+  @spec eval_condition(String.t(), keyword) :: boolean
   def eval_condition("true", _binding), do: true
 
   def eval_condition(condition, elixir_binding) do
