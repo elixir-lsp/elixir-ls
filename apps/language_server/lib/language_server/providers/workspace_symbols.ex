@@ -73,7 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end
   end
 
-  @spec notify_uris_modified([String.t()]) :: :ok
+  @spec notify_uris_modified([String.t()]) :: :ok | nil
   def notify_uris_modified(uris, server \\ __MODULE__, override_test_mode \\ false) do
     unless Application.get_env(:language_server, :test_mode) && not override_test_mode do
       GenServer.cast(server, {:uris_modified, uris})

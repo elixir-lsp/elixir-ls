@@ -17,7 +17,9 @@ defmodule ElixirLS.Mixfile do
           # :unmatched_returns,
           :error_handling,
           :unknown,
-          :underspecs
+          :underspecs,
+          :extra_return,
+          :missing_return
         ]
       ]
     ]
