@@ -233,7 +233,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
-  @spec formatter_for(String.t()) :: {:ok, keyword()} | :error
+  @spec formatter_for(String.t()) :: {:ok, {function | nil, keyword()}} | :error
   def formatter_for(uri = "file:" <> _) do
     path = __MODULE__.Path.from_uri(uri)
 

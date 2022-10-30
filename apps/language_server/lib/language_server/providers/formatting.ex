@@ -14,13 +14,6 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
             {:ok, []}
           end
 
-        {:ok, opts} ->
-          if should_format?(uri, project_dir, opts[:inputs]) do
-            do_format(source_file, opts)
-          else
-            {:ok, []}
-          end
-
         :error ->
           {:error, :internal_error, "Unable to fetch formatter options"}
       end
@@ -35,10 +28,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   # if project_dir is not set or schema is not file: we format with default options
   def format(%SourceFile{} = source_file, _uri, _project_dir) do
-    do_format(source_file)
+    do_format(source_file, nil, [])
   end
-
-  defp do_format(%SourceFile{} = source_file, opts \\ []), do: do_format(source_file, nil, opts)
 
   defp do_format(%SourceFile{text: text}, formatter, opts) do
     formatted = get_formatted(text, formatter, opts)
