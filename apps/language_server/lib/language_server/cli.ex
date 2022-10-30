@@ -38,6 +38,8 @@ defmodule ElixirLS.LanguageServer.CLI do
       "Running on elixir #{versions.current_elixir_version} on OTP #{versions.current_otp_version}"
     )
 
+    check_otp_doc_chunks()
+
     Launch.limit_num_schedulers()
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
@@ -80,6 +82,13 @@ defmodule ElixirLS.LanguageServer.CLI do
         JsonRpc.show_message(:error, message)
         Process.sleep(5000)
         raise message
+    end
+  end
+
+  def check_otp_doc_chunks() do
+    if match?({:error, _}, Code.fetch_docs(:erlang)) do
+      JsonRpc.show_message(:warning, "OTP compiled without EEP48 documentation chunks")
+      Logger.warn("OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with approperiate flags.")
     end
   end
 end
