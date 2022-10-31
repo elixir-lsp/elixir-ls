@@ -12,10 +12,25 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     parent = self()
 
     Task.start_link(fn ->
-      active_plt = load_elixir_plt()
-      transfer_plt(active_plt, parent)
+      watcher = self()
 
-      Dialyzer.analysis_finished(parent, :noop, active_plt, %{}, %{}, %{}, nil, nil)
+      {pid, ref} = spawn_monitor(fn ->
+        active_plt = load_elixir_plt()
+        send(watcher, :plt_loaded)
+        transfer_plt(active_plt, parent)
+
+        Dialyzer.analysis_finished(parent, :noop, active_plt, %{}, %{}, %{}, nil, nil)
+      end)
+
+      receive do
+        :plt_loaded -> :ok
+        {:DOWN, ^ref, :process, ^pid, reason} ->
+          JsonRpc.show_message(:error, "Unable to build dialyzer PLT. Most likely there are problems with your OTP and elixir installation.")
+          Logger.error("Dialyzer PLT build process exited with reason: #{inspect(reason)}")
+          Logger.warn("Dialyzer support disabled. Most likely there are problems with your elixir and OTP installation. Visit https://github.com/elixir-lsp/elixir-ls/issues/540 for help")
+          # NOTE We do not call Dialyzer.analysis_finished. LS keeps working and building normally
+          # only dialyzer is not being triggered after every build
+      end
     end)
   end
 
