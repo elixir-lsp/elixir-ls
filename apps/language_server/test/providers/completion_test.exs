@@ -368,6 +368,48 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
   end
 
   describe "structs and maps" do
+    test "suggests full module path as additionalTextEdits" do
+      text = """
+      defmodule MyModule do
+        @moduledoc \"\"\"
+        This
+        is a
+        long
+        moduledoc
+
+        \"\"\"
+
+        def dummy_function() do
+          ExampleS
+          #       ^
+        end
+      end
+      """
+
+      {line, char} = {10, 12}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert [item] = items
+
+      # 22 is struct
+      assert item["kind"] == 22
+      assert item["label"] == "ExampleStruct (struct)"
+
+      assert [%{newText: "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct\n"}] =
+               item["additionalTextEdits"]
+
+      assert [
+               %{
+                 range: %{
+                   "end" => %{"character" => 0, "line" => 8},
+                   "start" => %{"character" => 0, "line" => 8}
+                 }
+               }
+             ] = item["additionalTextEdits"]
+    end
+
     test "completions of structs are rendered as a struct" do
       text = """
       defmodule MyModule do
