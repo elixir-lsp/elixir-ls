@@ -326,7 +326,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       Atom.to_string(required_alias)
       |> String.replace_prefix("Elixir.", "")
 
-    indentation = 1..column_to_insert_alias |> Enum.map(fn _ -> " " end) |> Enum.join()
+    indentation =
+      if column_to_insert_alias >= 1,
+        do: 1..column_to_insert_alias |> Enum.map_join(fn _ -> " " end),
+        else: ""
+
     alias_edit = indentation <> "alias " <> alias_value <> "\n"
 
     struct(completion_without_additional_text_edit,
