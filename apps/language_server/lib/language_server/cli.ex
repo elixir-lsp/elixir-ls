@@ -90,24 +90,39 @@ defmodule ElixirLS.LanguageServer.CLI do
   def check_otp_doc_chunks() do
     if match?({:error, _}, Code.fetch_docs(:erlang)) do
       JsonRpc.show_message(:warning, "OTP compiled without EEP48 documentation chunks")
-      Logger.warn("OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with approperiate flags.")
+
+      Logger.warn(
+        "OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with approperiate flags."
+      )
     end
   end
 
   def check_elixir_sources() do
-    enum_ex_path = Enum.module_info[:compile][:source]
+    enum_ex_path = Enum.module_info()[:compile][:source]
+
     unless File.exists?(enum_ex_path, [:raw]) do
-      dir = Path.join(enum_ex_path, "../../../..") |> Path.expand
-      Logger.notice("Elixir sources not found (checking in #{dir}). Code navigation to Elixir modules disabled.")
+      dir = Path.join(enum_ex_path, "../../../..") |> Path.expand()
+
+      Logger.notice(
+        "Elixir sources not found (checking in #{dir}). Code navigation to Elixir modules disabled."
+      )
     end
   end
 
   def check_otp_sources() do
     {_module, _binary, beam_filename} = :code.get_object_code(:erlang)
-    erlang_erl_path = beam_filename |> to_string |> String.replace(Regex.recompile!(~r/(.+)\/ebin\/([^\s]+)\.beam$/), "\\1/src/\\2.erl")
+
+    erlang_erl_path =
+      beam_filename
+      |> to_string
+      |> String.replace(Regex.recompile!(~r/(.+)\/ebin\/([^\s]+)\.beam$/), "\\1/src/\\2.erl")
+
     unless File.exists?(erlang_erl_path, [:raw]) do
-      dir = Path.join(erlang_erl_path, "../../../..") |> Path.expand
-      Logger.notice("OTP sources not found (checking in #{dir}). Code navigation to OTP modules disabled.")
+      dir = Path.join(erlang_erl_path, "../../../..") |> Path.expand()
+
+      Logger.notice(
+        "OTP sources not found (checking in #{dir}). Code navigation to OTP modules disabled."
+      )
     end
   end
 end
