@@ -713,7 +713,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
               "plugs",
               "endpoints",
               "sockets",
-              "live"
+              "live",
+              "components"
             ] do
     if String.ends_with?(project_web_dir, "_web") do
       # by convention Phoenix doesn't use these folders as part of the module names
