@@ -1288,6 +1288,75 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   @tag :fixture
+  test "returns code lenses for runnable tests in umbrella apps",
+       %{
+         server: server
+       } do
+    in_fixture(__DIR__, "umbrella_test_code_lens", fn ->
+      file_path = "apps/app1/test/fixture_custom_test.exs"
+      file_uri = SourceFile.Path.to_uri(file_path)
+      file_absolute_path = SourceFile.Path.from_uri(file_uri)
+      text = File.read!(file_path)
+      project_dir = SourceFile.Path.from_uri("#{root_uri()}/apps/app1")
+
+      initialize(server)
+
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{"elixirLS" => %{"enableTestLenses" => true}})
+      )
+
+      Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+
+      wait_until_compiled(server)
+
+      Server.receive_packet(
+        server,
+        code_lens_req(4, file_uri)
+      )
+
+      resp = assert_receive(%{"id" => 4}, 5000)
+
+      assert response(4, [
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => ^file_absolute_path,
+                       "testName" => "fixture test",
+                       "projectDir" => ^project_dir
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run test"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 3},
+                   "start" => %{"character" => 0, "line" => 3}
+                 }
+               },
+               %{
+                 "command" => %{
+                   "arguments" => [
+                     %{
+                       "filePath" => ^file_absolute_path,
+                       "module" => "Elixir.App1.UmbrellaTestCodeLensTest",
+                       "projectDir" => ^project_dir
+                     }
+                   ],
+                   "command" => "elixir.lens.test.run",
+                   "title" => "Run tests in module"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 0},
+                   "start" => %{"character" => 0, "line" => 0}
+                 }
+               }
+             ]) = resp
+    end)
+  end
+
+  @tag :fixture
   test "does not return code lenses for runnable tests when test lenses settings is not set", %{
     server: server
   } do
