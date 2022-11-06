@@ -283,9 +283,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
     byte_size = byte_size(utf16_line)
 
-    # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
-    diff = div(max(lsp_character * 2 - byte_size, 0), 2)
-
     utf8_character =
       utf16_line
       |> (&binary_part(
@@ -296,19 +293,30 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       |> characters_to_binary!(:utf16, :utf8)
       |> String.length()
 
-    utf8_character + 1 + diff
+    utf8_character + 1
   end
+
+  def lsp_position_to_elixir(_urf8_text, {lsp_line, _lsp_character}) when lsp_line < 0,
+    do: {1, 1}
 
   def lsp_position_to_elixir(_urf8_text, {lsp_line, lsp_character}) when lsp_character <= 0,
     do: {max(lsp_line + 1, 1), 1}
 
   def lsp_position_to_elixir(urf8_text, {lsp_line, lsp_character}) do
-    utf8_character =
-      lines(urf8_text)
-      |> Enum.at(max(lsp_line, 0))
-      |> lsp_character_to_elixir(lsp_character)
+    source_file_lines = lines(urf8_text)
+    total_lines = length(source_file_lines)
 
-    {lsp_line + 1, utf8_character}
+    if lsp_line > total_lines - 1 do
+      # sanitize to position after last char in last line
+      {total_lines, String.length(source_file_lines |> Enum.at(total_lines - 1)) + 1}
+    else
+      utf8_character =
+        source_file_lines
+        |> Enum.at(lsp_line)
+        |> lsp_character_to_elixir(lsp_character)
+
+      {lsp_line + 1, utf8_character}
+    end
   end
 
   def elixir_character_to_lsp(_utf8_line, elixir_character) when elixir_character <= 1, do: 0

@@ -39,12 +39,24 @@ defmodule ElixirLS.Debugger.UtilsTest do
       assert 0 == Utils.dap_character_to_elixir("", 0)
     end
 
+    test "dap_character_to_elixir empty after end" do
+      assert 0 == Utils.dap_character_to_elixir("", 1)
+    end
+
     test "dap_character_to_elixir first char" do
       assert 0 == Utils.dap_character_to_elixir("abcde", 0)
     end
 
     test "dap_character_to_elixir line" do
       assert 1 == Utils.dap_character_to_elixir("abcde", 1)
+    end
+
+    test "dap_character_to_elixir before line start" do
+      assert 0 == Utils.dap_character_to_elixir("abcde", -1)
+    end
+
+    test "dap_character_to_elixir after line end" do
+      assert 5 == Utils.dap_character_to_elixir("abcde", 15)
     end
 
     test "dap_character_to_elixir utf8" do

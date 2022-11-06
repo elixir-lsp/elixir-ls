@@ -34,9 +34,6 @@ defmodule ElixirLS.Debugger.Utils do
 
     byte_size = byte_size(utf16_line)
 
-    # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
-    diff = div(max(dap_character * 2 - byte_size, 0), 2)
-
     utf8_character =
       utf16_line
       |> (&binary_part(
@@ -47,6 +44,6 @@ defmodule ElixirLS.Debugger.Utils do
       |> characters_to_binary!(:utf16, :utf8)
       |> String.length()
 
-    utf8_character + diff
+    utf8_character
   end
 end
