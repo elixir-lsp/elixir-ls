@@ -869,7 +869,7 @@ defmodule ElixirLS.LanguageServer.Server do
     file_path = SourceFile.Path.from_uri(uri)
 
     Mix.Project.apps_paths()
-    |> Enum.find(fn {_app, app_path} -> String.contains?(file_path, app_path) end)
+    |> Enum.find(fn {_app, app_path} -> under_app?(file_path, project_dir, app_path) end)
     |> case do
       nil ->
         {:ok, []}
@@ -927,6 +927,13 @@ defmodule ElixirLS.LanguageServer.Server do
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.map(&Path.absname/1)
     |> Enum.any?(&(&1 == file_path))
+  end
+
+  defp under_app?(file_path, project_dir, app_path) do
+    file_path_list = file_path |> Path.relative_to(project_dir) |> Path.split()
+    app_path_list = app_path |> Path.split()
+
+    List.starts_with?(file_path_list, app_path_list)
   end
 
   # Build
