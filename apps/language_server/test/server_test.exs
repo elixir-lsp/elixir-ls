@@ -13,14 +13,18 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end)
   end
 
-  defp initialize(server) do
+  defp initialize(server, config \\ nil) do
     Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
     Server.receive_packet(server, notification("initialized"))
 
+    config = (config || %{}) |> Map.merge(%{"dialyzerEnabled" => false})
+
     Server.receive_packet(
       server,
-      did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => false}})
+      did_change_configuration(%{"elixirLS" => config})
     )
+
+    wait_until_compiled(server)
   end
 
   defp fake_initialize(server) do
@@ -968,8 +972,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       # File is already formatted
       assert response(3, []) == resp
-
-      wait_until_compiled(server)
     end)
   end
 
@@ -1048,8 +1050,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      1000
-
-      wait_until_compiled(server)
     end)
   end
 
@@ -1071,8 +1071,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      1000
-
-      wait_until_compiled(server)
     end)
   end
 
@@ -1094,8 +1092,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        ]
                      }),
                      2000
-
-      wait_until_compiled(server)
     end)
   end
 
@@ -1110,7 +1106,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Build.set_compiler_options()
 
       initialize(server)
-      wait_until_compiled(server)
+
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
       Server.receive_packet(
@@ -1126,8 +1122,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
-
-      wait_until_compiled(server)
     end)
   after
     Code.put_compiler_option(:tracers, [])
@@ -1144,7 +1138,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       Build.set_compiler_options()
 
       initialize(server)
-      wait_until_compiled(server)
+
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
       Server.receive_packet(
@@ -1160,8 +1154,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
-
-      wait_until_compiled(server)
     end)
   after
     Code.put_compiler_option(:tracers, [])
@@ -1176,7 +1168,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       with_new_server(fn server ->
         {:ok, _pid} = Tracer.start_link([])
         initialize(server)
-        wait_until_compiled(server)
       end)
 
       # unload App2.Foo
@@ -1185,7 +1176,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       # re-visiting the same project
       with_new_server(fn server ->
         initialize(server)
-        wait_until_compiled(server)
 
         file_path = "apps/app1/lib/bar.ex"
         uri = SourceFile.Path.to_uri(file_path)
@@ -1230,12 +1220,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
-      initialize(server)
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{"elixirLS" => %{"enableTestLenses" => true}})
-      )
+      initialize(server, %{"enableTestLenses" => true})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
@@ -1282,8 +1267,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
-
-      wait_until_compiled(server)
     end)
   end
 
@@ -1299,16 +1282,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       project_dir = SourceFile.Path.from_uri("#{root_uri()}/apps/app1")
 
-      initialize(server)
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{"elixirLS" => %{"enableTestLenses" => true}})
-      )
+      initialize(server, %{"enableTestLenses" => true})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
-
-      wait_until_compiled(server)
 
       Server.receive_packet(
         server,
@@ -1391,16 +1367,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       project_dir = SourceFile.Path.from_uri(root_uri())
 
-      initialize(server)
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{"elixirLS" => %{"enableTestLenses" => true}})
-      )
+      initialize(server, %{"enableTestLenses" => true})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
-
-      wait_until_compiled(server)
 
       Server.receive_packet(
         server,
@@ -1460,22 +1429,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       project_dir = SourceFile.Path.from_uri("#{root_uri()}/apps/app1")
 
-      initialize(server)
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{
-          "elixirLS" => %{
-            "enableTestLenses" => true,
-            "testPaths" => %{"app1" => ["custom_path"]},
-            "testPattern" => %{"app1" => "*_custom_test.exs"}
-          }
-        })
-      )
+      initialize(server, %{
+        "enableTestLenses" => true,
+        "testPaths" => %{"app1" => ["custom_path"]},
+        "testPattern" => %{"app1" => "*_custom_test.exs"}
+      })
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
-
-      wait_until_compiled(server)
 
       Server.receive_packet(
         server,
@@ -1541,8 +1501,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert_receive notification("window/logMessage", %{
                          "message" => "Compile took" <> _
                        })
-
-        wait_until_compiled(server)
       end)
     end
 
