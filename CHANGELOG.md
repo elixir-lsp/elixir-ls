@@ -1,5 +1,33 @@
 ### Unreleased
 
+### v0.12.0: 7 November 2022
+
+Improvements:
+
+- Support for list destructuring and comprehension in `for` and `with` expressions. ElixirLS is able to provide completions for destructured list element [Łukasz Samson](https://github.com/elixir-lsp/elixir_sense/pull/168)
+- Introduction of compile tracers. ElixirLS now builds a databases basing on compile tracers API available since elixir 1.10. References provider has been rewritten to support tracer database [Łukasz Samson](https://github.com/elixir-lsp/elixir_sense/pull/160), [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/pull/724)
+- Code action prefixing unused variables with `_` [Luca Cervello](https://github.com/elixir-lsp/elixir-ls/pull/718)
+- Complete now proposes not aliased modules and adds required `alias` [Ajay](https://github.com/elixir-lsp/elixir-ls/pull/722), [Ajay](https://github.com/elixir-lsp/elixir_sense/pull/155)
+- Custom command running mix clean added. Useful when server hits a compilation error [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/pull/730)
+- Custom command returning tests in `.exs` file [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/pull/753)
+- Better handling of Phoenix components [Aaron Tinio](https://github.com/elixir-lsp/elixir-ls/pull/757)
+- Test code lense improvements in umbrella apps [我没有抓狂](https://github.com/elixir-lsp/elixir-ls/pull/759)
+- Start script improved when `$XDG_CONFIG_HOME` is not set [Sahn Lam](https://github.com/elixir-lsp/elixir-ls/pull/721)
+- Deprecated symbols are now deprioretized in completions [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/036d876484b8a8265cd93af7a14c729a6089af5e)
+- Improvements to logging [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/pull/746)
+- Dialyxir is now vendored. This should avert dependency conflicts [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/84500aedc46ae872f8ad097758a3e90efe75c1fc)
+- ElixirLS emits more helpful error messages in case of common problems [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/685c2fa6ef2b9d1702b34f372a6e479a01646af9), [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/32e4c2959d8b6ae99d0319aa13be940f3cf1cc15), [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/d3e05a6c3dfd01d4cdb993edc0cf1d41f77783cf)
+- Automatic builds can now be disabled [Hans](https://github.com/elixir-lsp/elixir-ls/pull/440)
+- Better module name suggested for `defprotocol` [Milo Lee](https://github.com/elixir-lsp/elixir-ls/pull/715)
+- Improved LSP position handling [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/93c196f2161becfdc200e2e8b4bc950b46a4bef3)
+
+Fixes:
+
+- Several crashes with `untitled:` schema URIs fixed [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/1cf22eee7f126dddedbed55786a6dc63b57d49d8), [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/65e889a65420d06133acc2e8d2085477b840490b), [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/dacdcdf47b8feec87d187302d1a880bcd6f54d25)
+- Longstanding bug in dependencies reloading leading to infamous `** (Mix.Error) Can't continue due to errors on dependencies` fixed [Łukasz Samson](https://github.com/elixir-lsp/elixir-ls/commit/031bd0a7246dc7f6d6e1077a975b55b2110f209c)
+- Fixed crash when formatting a file with syntax errors [Steve Cohen](https://github.com/elixir-lsp/elixir-ls/pull/738)
+- Fixed several crashes in document symbols [Steve Cohen](https://github.com/elixir-lsp/elixir-ls/pull/736)
+
 ### v0.11.0: 14 August 2022
 
 Improvements:
