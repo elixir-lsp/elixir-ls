@@ -1,9 +1,10 @@
 defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
-  def build(type, opts \\ []) do
-    true = Code.ensure_loaded?(type)
+  def build(module_to_build, opts \\ []) do
+    true = Code.ensure_loaded?(module_to_build)
 
-    if function_exported?(type, :__meta__, 1) do
-      params = Map.take(type.__meta__(:types), type.__meta__(:param_names))
+    if function_exported?(module_to_build, :__meta__, 1) do
+      protocol_module = ensure_protocol_module(module_to_build)
+      params = Map.take(protocol_module.__meta__(:types), protocol_module.__meta__(:param_names))
 
       result =
         Enum.reduce_while(params, [], fn {field_name, field_type}, acc ->
@@ -16,26 +17,26 @@ defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
       case result do
         args when is_list(args) ->
           args =
-            case type.__meta__(:type) do
+            case module_to_build.__meta__(:type) do
               {:notification, _} ->
-                Keyword.put(args, :method, type.__meta__(:method_name))
+                Keyword.put(args, :method, module_to_build.__meta__(:method_name))
 
               {:request, _} ->
                 args
                 |> Keyword.put(:id, Keyword.get(opts, :id, next_int()))
-                |> Keyword.put(:method, type.__meta__(:method_name))
+                |> Keyword.put(:method, module_to_build.__meta__(:method_name))
 
               _ ->
                 args
             end
 
-          {:ok, type.new(args)}
+          {:ok, module_to_build.new(args)}
 
         {:error, _} = err ->
           err
       end
     else
-      {:error, {:invalid_module, type}}
+      {:error, {:invalid_module, module_to_build}}
     end
   end
 
@@ -47,6 +48,19 @@ defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
         |> camelize()
 
       {:ok, params}
+    end
+  end
+
+  defp ensure_protocol_module(module_to_build) do
+    case module_to_build.__meta__(:type) do
+      {message_type, :lsp} when message_type in [:notification, :request] ->
+        module_to_build
+
+      {message_type, :elixir} when message_type in [:notification, :request] ->
+        Module.concat(module_to_build, LSP)
+
+      _ ->
+        module_to_build
     end
   end
 
