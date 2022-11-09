@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
     %__MODULE__{}
   end
 
-  def apply(%__MODULE__{} = state, %DidChange{} = event) do
+  def apply(%__MODULE__{} = state, %DidChange{lsp: event}) do
     uri = event.text_document.uri
     version = event.text_document.version
 
@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
     end
   end
 
-  def apply(%__MODULE__{} = state, %DidOpen{} = event) do
+  def apply(%__MODULE__{} = state, %DidOpen{lsp: event}) do
     %TextDocument{text: text, uri: uri, version: version} = text_document = event.text_document
 
     case SourceFile.Store.open(uri, text, version) do
@@ -44,7 +44,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
     end
   end
 
-  def apply(%__MODULE__{} = state, %DidClose{} = event) do
+  def apply(%__MODULE__{} = state, %DidClose{lsp: event}) do
     uri = event.text_document.uri
 
     case SourceFile.Store.close(uri) do
@@ -57,7 +57,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
     end
   end
 
-  def apply(%__MODULE__{} = state, %DidSave{} = event) do
+  def apply(%__MODULE__{} = state, %DidSave{lsp: event}) do
     uri = event.text_document.uri
 
     case SourceFile.Store.save(uri) do

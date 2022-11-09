@@ -25,6 +25,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Struct do
       def new(opts \\ []) do
         struct(__MODULE__, opts)
       end
+
+      defoverridable new: 0, new: 1
     end
   end
 end

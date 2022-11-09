@@ -16,16 +16,22 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Notification do
 
     quote location: :keep do
       defmodule LSP do
-        unquote(Message.build(:notification, method, lsp_types, param_names))
+        unquote(Message.build({:notification, :lsp}, method, lsp_types, param_names))
       end
 
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
 
       unquote(
-        Message.build(:notification, method, elixir_types, param_names, include_parse?: false)
+        Message.build({:notification, :elixir}, method, elixir_types, param_names,
+          include_parse?: false
+        )
       )
 
       unquote(build_parse(method))
+
+      def new(opts \\ []) do
+        %__MODULE__{lsp: LSP.new(opts)}
+      end
 
       def to_elixir(%__MODULE__{} = request) do
         Convert.to_elixir(request)

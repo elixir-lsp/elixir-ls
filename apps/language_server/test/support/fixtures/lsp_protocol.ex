@@ -29,7 +29,7 @@ defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
                 args
             end
 
-          {:ok, struct(type, args)}
+          {:ok, type.new(args)}
 
         {:error, _} = err ->
           err
@@ -51,24 +51,36 @@ defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
   end
 
   defp maybe_wrap_with_json_rpc(%proto_module{} = proto, opts) do
+    proto_struct =
+      case proto_module.__meta__(:type) do
+        {message_type, :lsp} when message_type in [:notification, :request] ->
+          proto
+
+        {message_type, :elixir} when message_type in [:notification, :request] ->
+          proto.lsp
+
+        other ->
+          other
+      end
+
     case proto_module.__meta__(:type) do
-      :notification ->
+      {:notification, _} ->
         %{
           jsonrpc: Keyword.get(opts, :jsonrpc, "2.0"),
           method: proto_module.__meta__(:method_name),
-          params: extract_params(proto)
+          params: extract_params(proto_struct)
         }
 
-      :request ->
+      {:request, _} ->
         %{
           jsonrpc: Keyword.get(opts, :jsonrpc, "2.0"),
           method: proto_module.__meta__(:method_name),
-          params: extract_params(proto),
+          params: extract_params(proto_struct),
           id: Keyword.get(opts, :id, next_int())
         }
 
       _other ->
-        proto
+        proto_struct
     end
   end
 
