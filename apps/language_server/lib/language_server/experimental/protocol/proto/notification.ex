@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Notification do
       unquote(build_parse(method))
 
       def new(opts \\ []) do
-        %__MODULE__{lsp: LSP.new(opts)}
+        %__MODULE__{lsp: LSP.new(opts), method: unquote(method)}
       end
 
       def to_elixir(%__MODULE__{} = request) do

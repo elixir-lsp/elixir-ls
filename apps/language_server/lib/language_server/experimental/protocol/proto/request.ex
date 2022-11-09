@@ -37,7 +37,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
       unquote(build_parse(method))
 
       def new(opts \\ []) do
-        %__MODULE__{lsp: LSP.new(opts)}
+        raw = LSP.new(opts)
+        %__MODULE__{lsp: raw, id: raw.id, method: unquote(method)}
       end
 
       def to_elixir(%__MODULE__{} = request) do
