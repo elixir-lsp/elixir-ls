@@ -17,10 +17,10 @@ defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
         args when is_list(args) ->
           args =
             case type.__meta__(:type) do
-              :notification ->
+              {:notification, _} ->
                 Keyword.put(args, :method, type.__meta__(:method_name))
 
-              :request ->
+              {:request, _} ->
                 args
                 |> Keyword.put(:id, Keyword.get(opts, :id, next_int()))
                 |> Keyword.put(:method, type.__meta__(:method_name))
