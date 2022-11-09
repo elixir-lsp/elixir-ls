@@ -1,20 +1,12 @@
 defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.CompileMetadata
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Message
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.{
-    Access,
-    Struct,
-    Parse,
-    Typespec,
-    Meta
-  }
+  import TypeFunctions, only: [optional: 1, integer: 0, literal: 1]
 
   defmacro defrequest(method, types) do
-    alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions
-    import TypeFunctions, only: [optional: 1, integer: 0, literal: 1]
-
     CompileMetadata.add_request_module(__CALLER__.module)
-
     # id is optional so we can resuse the parse function. If it's required,
     # it will go in the pattern match for the params, which won't work.
 
@@ -24,43 +16,38 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
       method: quote(do: literal(unquote(method)))
     ]
 
-    all_types = Keyword.merge(jsonrpc_types, types)
+    lsp_types = Keyword.merge(jsonrpc_types, types)
+    elixir_types = Message.generate_elixir_types(__CALLER__.module, lsp_types)
+    param_names = Keyword.keys(types)
 
     quote location: :keep do
-      unquote(Access.build())
-      unquote(Struct.build(all_types))
-      unquote(Typespec.build())
-      unquote(build_request_parse_function(method))
-      unquote(Parse.build(types))
-      unquote(Meta.build(all_types))
-
-      def __meta__(:method_name) do
-        unquote(method)
+      defmodule LSP do
+        unquote(Message.build(:request, method, lsp_types, param_names))
       end
 
-      def __meta__(:type) do
-        :request
-      end
+      alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
+      alias ElixirLS.LanguageServer.Experimental.Protocol.Types
 
-      def __meta__(:param_names) do
-        unquote(Keyword.keys(types))
+      unquote(Message.build(:request, method, elixir_types, param_names, include_parse?: false))
+
+      unquote(build_parse(method))
+
+      def to_elixir(%__MODULE__{} = request) do
+        Convert.to_elixir(request)
       end
     end
   end
 
-  defp build_request_parse_function(method) do
+  defp build_parse(method) do
     quote do
       def parse(%{"method" => unquote(method), "id" => id, "jsonrpc" => "2.0"} = request) do
         params = Map.get(request, "params", %{})
+        flattened_request = Map.merge(request, params)
 
-        case parse(params) do
-          {:ok, request} ->
-            request =
-              request
-              |> Map.put(:id, id)
-              |> Map.put(:method, unquote(method))
-              |> Map.put(:jsonrpc, "2.0")
-
+        case LSP.parse(flattened_request) do
+          {:ok, raw_lsp} ->
+            struct_opts = [id: id, method: unquote(method), jsonrpc: "2.0", lsp: raw_lsp]
+            request = struct(__MODULE__, struct_opts)
             {:ok, request}
 
           error ->

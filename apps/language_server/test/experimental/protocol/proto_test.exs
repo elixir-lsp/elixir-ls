@@ -1,10 +1,13 @@
 defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias ElixirLS.LanguageServer.Experimental.SourceFile
   import ElixirLS.LanguageServer.Fixtures.LspProtocol
 
-  use ExUnit.Case, asnyc: true
   require LspTypes.ErrorCodes
+
+  use ExUnit.Case, async: true
 
   defmodule Child do
     use Proto
@@ -224,7 +227,23 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     end
   end
 
+  def with_source_file_store(_) do
+    source_file = """
+    defmodule MyTest do
+      def add(a, b), do: a + b
+    end
+    """
+
+    file_uri = "file:///file.ex"
+    {:ok, _} = start_supervised(SourceFile.Store)
+    SourceFile.Store.open(file_uri, source_file, 1)
+
+    {:ok, uri: file_uri}
+  end
+
   describe "notifications" do
+    setup [:with_source_file_store]
+
     defmodule Notif do
       use Proto
 
@@ -234,7 +253,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
         column: integer()
     end
 
-    test "parse works" do
+    test "parse fills out the notification" do
       assert {:ok, params} =
                params_for(Notif, line: 3, column: 5, notice_message: "This went wrong")
 
@@ -242,27 +261,203 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
       assert notif.method == "textDocument/somethingHappened"
       assert notif.jsonrpc == "2.0"
+      assert notif.lsp.line == 3
+      assert notif.lsp.column == 5
+      assert notif.lsp.notice_message == "This went wrong"
+    end
+
+    test "the base request is not filled out when parse is called" do
+      assert {:ok, params} =
+               params_for(Notif, line: 3, column: 5, notice_message: "This went wrong")
+
+      assert {:ok, notif} = Notif.parse(params)
+
+      refute notif.line
+      refute notif.column
+      refute notif.notice_message
+    end
+
+    test "to_elixir fills out the elixir fields" do
+      assert {:ok, params} =
+               params_for(Notif, line: 3, column: 5, notice_message: "This went wrong")
+
+      assert {:ok, notif} = Notif.parse(params)
+      assert {:ok, notif} = Notif.to_elixir(notif)
+
       assert notif.line == 3
       assert notif.column == 5
       assert notif.notice_message == "This went wrong"
     end
+
+    defmodule Notif.WithTextDoc do
+      use Proto
+
+      defnotification "notif/withTextDoc",
+        text_document: Types.TextDocument
+    end
+
+    test "to_elixir fills out the source file", ctx do
+      assert {:ok, params} = params_for(Notif.WithTextDoc.LSP, text_document: [uri: ctx.uri])
+      assert {:ok, notif} = Notif.WithTextDoc.parse(params)
+      assert {:ok, notif} = Notif.WithTextDoc.to_elixir(notif)
+      assert %SourceFile{} = notif.source_file
+    end
+
+    defmodule Notif.WithPos do
+      use Proto
+
+      defnotification "notif/WithPos",
+        text_document: Types.TextDocument,
+        position: Types.Position
+    end
+
+    test "to_elixir fills out a position", ctx do
+      assert {:ok, params} =
+               params_for(Notif.WithPos.LSP,
+                 text_document: [uri: ctx.uri],
+                 position: [line: 0, character: 0]
+               )
+
+      assert {:ok, notif} = Notif.WithPos.parse(params)
+      assert {:ok, notif} = Notif.WithPos.to_elixir(notif)
+
+      assert %SourceFile{} = notif.source_file
+      assert %SourceFile.Position{} = notif.position
+      assert notif.position.line == 1
+      assert notif.position.character == 0
+    end
+
+    defmodule Notif.WithRange do
+      use Proto
+
+      defnotification "notif/WithPos",
+        text_document: Types.TextDocument,
+        range: Types.Range
+    end
+
+    test "to_elixir fills out a range", ctx do
+      assert {:ok, params} =
+               params_for(Notif.WithRange.LSP,
+                 text_document: [uri: ctx.uri],
+                 range: [
+                   start: [line: 0, character: 0],
+                   end: [line: 0, character: 3]
+                 ]
+               )
+
+      assert {:ok, notif} = Notif.WithRange.parse(params)
+      assert {:ok, notif} = Notif.WithRange.to_elixir(notif)
+
+      assert %SourceFile{} = notif.source_file
+      assert %SourceFile.Range{} = notif.range
+      assert notif.range.start.line == 1
+      assert notif.range.start.character == 0
+      assert notif.range.end.line == 1
+      assert notif.range.end.character == 3
+    end
   end
 
   describe "requests" do
+    setup [:with_source_file_store]
+
     defmodule Req do
       use Proto
 
       defrequest "something", line: integer(), error_message: string()
     end
 
-    test "parse works" do
+    defmodule TextDocReq do
+      use Proto
+
+      defrequest "textDoc", text_document: Types.TextDocument
+    end
+
+    test "parse fills out the request" do
       assert {:ok, params} = params_for(Req, id: 3, line: 9, error_message: "borked")
       assert {:ok, req} = Req.parse(params)
       assert req.id == 3
       assert req.method == "something"
       assert req.jsonrpc == "2.0"
+      assert req.lsp.line == 9
+      assert req.lsp.error_message == "borked"
+    end
+
+    test "the base request is not filled out via parsing" do
+      assert {:ok, params} = params_for(Req, id: 3, line: 9, error_message: "borked")
+      assert {:ok, req} = Req.parse(params)
+
+      refute req.line
+      refute req.error_message
+    end
+
+    test "parse fills out the raw lsp request" do
+      assert {:ok, params} = params_for(Req, id: 3, line: 9, error_message: "borked")
+      assert {:ok, req} = Req.parse(params)
+      assert req.lsp.line == 9
+      assert req.lsp.error_message == "borked"
+    end
+
+    test "to_elixir fills out the base request" do
+      assert {:ok, params} = params_for(Req, id: 3, line: 9, error_message: "borked")
+      assert {:ok, req} = Req.parse(params)
+      assert {:ok, req} = Req.to_elixir(req)
+
       assert req.line == 9
       assert req.error_message == "borked"
+    end
+
+    test "to_elixir fills out a source file", ctx do
+      assert {:ok, params} = params_for(TextDocReq.LSP, text_document: [uri: ctx.uri])
+      assert {:ok, req} = TextDocReq.parse(params)
+      assert {:ok, ex_req} = TextDocReq.to_elixir(req)
+
+      assert %TextDocReq{} = ex_req
+      assert %SourceFile{} = ex_req.source_file
+    end
+
+    defmodule PositionReq do
+      use Proto
+      defrequest "posReq", text_document: Types.TextDocument, position: Types.Position
+    end
+
+    test "to_elixir fills out a position", ctx do
+      assert {:ok, params} =
+               params_for(PositionReq.LSP,
+                 text_document: [uri: ctx.uri],
+                 position: [line: 1, character: 6]
+               )
+
+      assert {:ok, req} = PositionReq.parse(params)
+
+      refute req.position
+      refute req.source_file
+
+      assert {:ok, ex_req} = PositionReq.to_elixir(req)
+
+      assert %SourceFile.Position{} = ex_req.position
+      assert %SourceFile{} = ex_req.source_file
+    end
+
+    defmodule RangeReq do
+      use Proto
+      defrequest "rangeReq", text_document: Types.TextDocument, range: Types.Range
+    end
+
+    test "to_elixir fills out a range", ctx do
+      assert {:ok, params} =
+               params_for(RangeReq.LSP,
+                 text_document: [uri: ctx.uri],
+                 range: [start: [line: 0, character: 0], end: [line: 0, character: 5]]
+               )
+
+      assert {:ok, req} = RangeReq.parse(params)
+      assert {:ok, req} = RangeReq.to_elixir(req)
+
+      assert req.range ==
+               SourceFile.Range.new(
+                 SourceFile.Position.new(1, 0),
+                 SourceFile.Position.new(1, 5)
+               )
     end
   end
 

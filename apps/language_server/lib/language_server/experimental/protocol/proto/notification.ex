@@ -1,13 +1,6 @@
 defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Notification do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.CompileMetadata
-
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.{
-    Access,
-    Meta,
-    Parse,
-    Struct,
-    Typespec
-  }
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Message
 
   defmacro defnotification(method, types) do
     CompileMetadata.add_notification_module(__CALLER__.module)
@@ -17,43 +10,40 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Notification do
       method: quote(do: literal(unquote(method)))
     ]
 
-    all_types = Keyword.merge(jsonrpc_types, types)
+    param_names = Keyword.keys(types)
+    lsp_types = Keyword.merge(jsonrpc_types, types)
+    elixir_types = Message.generate_elixir_types(__CALLER__.module, lsp_types)
 
     quote location: :keep do
-      unquote(Access.build())
-      unquote(Struct.build(all_types))
-      unquote(Typespec.build())
-      unquote(build_notification_parse_function(method))
-      unquote(Parse.build(types))
-      unquote(Meta.build(all_types))
-
-      def __meta__(:method_name) do
-        unquote(method)
+      defmodule LSP do
+        unquote(Message.build(:notification, method, lsp_types, param_names))
       end
 
-      def __meta__(:type) do
-        :notification
-      end
+      alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
 
-      def __meta__(:param_names) do
-        unquote(Keyword.keys(types))
+      unquote(
+        Message.build(:notification, method, elixir_types, param_names, include_parse?: false)
+      )
+
+      unquote(build_parse(method))
+
+      def to_elixir(%__MODULE__{} = request) do
+        Convert.to_elixir(request)
       end
     end
   end
 
-  defp build_notification_parse_function(method) do
+  defp build_parse(method) do
     quote do
       def parse(%{"method" => unquote(method), "jsonrpc" => "2.0"} = request) do
         params = Map.get(request, "params", %{})
+        flattened_notificaiton = Map.merge(request, params)
 
-        case parse(params) do
-          {:ok, result} ->
-            result =
-              result
-              |> Map.put(:method, unquote(method))
-              |> Map.put(:jsonrpc, "2.0")
-
-            {:ok, result}
+        case LSP.parse(flattened_notificaiton) do
+          {:ok, raw_lsp} ->
+            struct_opts = [method: unquote(method), jsonrpc: "2.0", lsp: raw_lsp]
+            notification = struct(__MODULE__, struct_opts)
+            {:ok, notification}
 
           error ->
             error

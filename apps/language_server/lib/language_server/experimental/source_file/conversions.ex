@@ -40,6 +40,10 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
     to_elixir(ls_range, source)
   end
 
+  def to_elixir(%LSPosition{} = position, %SourceFile{} = source_file) do
+    to_elixir(position, source_file.document)
+  end
+
   def to_elixir(%ElixirPosition{} = position, _) do
     position
   end
