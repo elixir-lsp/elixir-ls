@@ -36,7 +36,7 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
               )
           end
 
-        definition_references ++ repack_references(references, start_uri)
+        Enum.uniq(definition_references ++ repack_references(references, start_uri))
       else
         _ ->
           []

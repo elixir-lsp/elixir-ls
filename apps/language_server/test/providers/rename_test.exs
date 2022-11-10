@@ -81,6 +81,39 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
 
       assert sort_edit_by_start_line(edits) == expected_edits
     end
+
+    test "renaming a variable definition works original -> new_original" do
+      text = """
+      defmodule MyModule do
+        def hello do
+          original = "original"
+          new = original <> " new stuff"
+        end
+      end
+      """
+
+      # new = "#{original} + new stuff!"
+      {line, char} = {3, 6}
+
+      edits =
+        Rename.rename(
+          %SourceFile{text: text, version: 0},
+          @fake_uri,
+          line,
+          char,
+          "new_original"
+        )
+        |> assert_return_structure_and_get_edits(@fake_uri, nil)
+
+      expected_edits =
+        [
+          %{line: 2, start_char: 4, end_char: 12},
+          %{line: 3, start_char: 10, end_char: 18}
+        ]
+        |> get_expected_edits("new_original")
+
+      assert sort_edit_by_start_line(edits) == expected_edits
+    end
   end
 
   describe "renaming local function" do
