@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
         %{
           "textDocument" => %{
             "uri" => uri,
-            "version" => source_file.version + 1
+            "version" => nil
           },
           "edits" =>
             Enum.map(edits, fn edit ->
@@ -83,8 +83,10 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
     {:ok, result}
   end
 
-  defp repack_references(references, uri) do
+  defp repack_references(references, start_uri) do
     for reference <- references do
+      uri = if reference.uri, do: SourceFile.path_to_uri(reference.uri), else: start_uri
+
       %{
         uri: uri,
         range: %{
@@ -99,11 +101,11 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
   end
 
   defp parse_definition_source_code(%{file: file}) do
-    ElixirSense.Core.Parser.parse_file(file, true, true, 0)
+    ElixirSense.Core.Parser.parse_file(file, true, true, nil)
   end
 
   defp parse_definition_source_code(source_text) when is_binary(source_text) do
-    ElixirSense.Core.Parser.parse_string(source_text, true, true, 0)
+    ElixirSense.Core.Parser.parse_string(source_text, true, true, nil)
   end
 
   defp get_all_fn_header_positions(parsed_source, char_ident) do

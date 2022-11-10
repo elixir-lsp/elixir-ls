@@ -38,7 +38,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
 
       edits =
         Rename.rename(%SourceFile{text: text, version: 0}, @fake_uri, line, char, "test")
-        |> assert_return_structure_and_get_edits(@fake_uri, 1)
+        |> assert_return_structure_and_get_edits(@fake_uri, nil)
 
       expected_edits =
         [
@@ -70,7 +70,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
           char,
           "name"
         )
-        |> assert_return_structure_and_get_edits(@fake_uri, 1)
+        |> assert_return_structure_and_get_edits(@fake_uri, nil)
 
       expected_edits =
         [
@@ -100,7 +100,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
           char,
           "new_subtract"
         )
-        |> assert_return_structure_and_get_edits(uri, 1)
+        |> assert_return_structure_and_get_edits(uri, nil)
 
       expected_edits =
         [
@@ -128,7 +128,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
           char,
           "new_add"
         )
-        |> assert_return_structure_and_get_edits(uri, 1)
+        |> assert_return_structure_and_get_edits(uri, nil)
 
       expected_edits =
         [
@@ -160,14 +160,14 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
                   %{
                     "textDocument" => %{
                       "uri" => ^uri,
-                      "version" => 1
+                      "version" => nil
                     },
                     "edits" => file_edits
                   },
                   %{
                     "textDocument" => %{
                       "uri" => ^fn_definition_file_uri,
-                      "version" => 1
+                      "version" => nil
                     },
                     "edits" => fn_definition_file_edits
                   }
