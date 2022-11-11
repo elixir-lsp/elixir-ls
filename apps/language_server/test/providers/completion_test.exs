@@ -128,6 +128,24 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     end
   end
 
+  test "returns fn autocompletion when inside parentheses" do
+    text = """
+    defmodule MyModule do
+
+      def dummy_function() do
+        Task.async(fn)
+        #            ^
+      end
+    end
+    """
+
+    {line, char} = {3, 17}
+    TestUtils.assert_has_cursor_char(text, line, char)
+    {:ok, %{"items" => [first_suggestion | _tail]}} = Completion.completion(text, line, char, @supports)
+
+    assert first_suggestion["label"] === "fn"
+  end
+
   test "unless with snippets not supported does not return a completion" do
     text = """
     defmodule MyModule do
