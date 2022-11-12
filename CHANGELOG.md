@@ -1,5 +1,8 @@
 ### Unreleased
 
+**Deprecations**
+- Minimum version of Elixir is now 1.12.3
+
 ### v0.12.0: 7 November 2022
 
 Improvements:

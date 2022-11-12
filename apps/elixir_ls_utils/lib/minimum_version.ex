@@ -11,11 +11,11 @@ defmodule ElixirLS.Utils.MinimumVersion do
   end
 
   def check_elixir_version do
-    if Version.match?(System.version(), ">= 1.11.0") do
+    if Version.match?(System.version(), ">= 1.12.3") do
       :ok
     else
       {:error,
-       "Elixir versions below 1.11 are not supported. (Currently running v#{System.version()})"}
+       "Elixir versions below 1.12.3 are not supported. (Currently running v#{System.version()})"}
     end
   end
 end

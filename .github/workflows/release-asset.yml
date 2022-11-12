@@ -52,12 +52,6 @@ jobs:
             otp-version: '23.3'
           - elixir-version: '1.12'
             otp-version: '22.3'
-          - elixir-version: '1.11'
-            otp-version: '24.3'
-          - elixir-version: '1.11'
-            otp-version: '23.3'
-          - elixir-version: '1.11'
-            otp-version: '22.3'
             default: true
 
     steps:
