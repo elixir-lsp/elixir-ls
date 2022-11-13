@@ -36,14 +36,20 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
       # _a + b
       {line, char} = {3, 5}
 
+      source = %SourceFile{text: text, version: 0}
+      target_range = %{line: 2, start_char: 4, end_char: 5}
+
+      Rename.prepare(source, @fake_uri, line, char)
+      |> assert_prepare_range_and_placeholder_is(target_range, "a")
+
       edits =
-        Rename.rename(%SourceFile{text: text, version: 0}, @fake_uri, line, char, "test")
+        Rename.rename(source, @fake_uri, line, char, "test")
         |> assert_return_structure_and_get_edits(@fake_uri, nil)
 
       expected_edits =
         [
           %{line: 1, start_char: 10, end_char: 11},
-          %{line: 2, start_char: 4, end_char: 5}
+          target_range
         ]
         |> get_expected_edits("test")
 
@@ -62,9 +68,15 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
       # "Hello " <> ne_ma
       {line, char} = {3, 19}
 
+      source = %SourceFile{text: text, version: 0}
+      target_range = %{line: 2, start_char: 16, end_char: 20}
+
+      Rename.prepare(source, @fake_uri, line, char)
+      |> assert_prepare_range_and_placeholder_is(target_range, "nema")
+
       edits =
         Rename.rename(
-          %SourceFile{text: text, version: 0},
+          source,
           @fake_uri,
           line,
           char,
@@ -75,7 +87,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
       expected_edits =
         [
           %{line: 1, start_char: 12, end_char: 16},
-          %{line: 2, start_char: 16, end_char: 20}
+          target_range
         ]
         |> get_expected_edits("name")
 
@@ -94,10 +106,15 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
 
       # new = "#{original} + new stuff!"
       {line, char} = {3, 6}
+      source = %SourceFile{text: text, version: 0}
+      target_range = %{line: 2, start_char: 4, end_char: 12}
+
+      Rename.prepare(source, @fake_uri, line, char)
+      |> assert_prepare_range_and_placeholder_is(target_range, "original")
 
       edits =
         Rename.rename(
-          %SourceFile{text: text, version: 0},
+          source,
           @fake_uri,
           line,
           char,
@@ -107,7 +124,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
 
       expected_edits =
         [
-          %{line: 2, start_char: 4, end_char: 12},
+          target_range,
           %{line: 3, start_char: 10, end_char: 18}
         ]
         |> get_expected_edits("new_original")
@@ -120,14 +137,19 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
     test "subtract -> new_subtract" do
       file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
-      uri = SourceFile.path_to_uri(file_path)
+      uri = SourceFile.Path.to_uri(file_path)
 
       #     d = subtract(a, b)
       {line, char} = {6, 10}
+      source = %SourceFile{text: text, version: 0}
+      target_range = %{line: 5, start_char: 8, end_char: 16}
+
+      Rename.prepare(source, @fake_uri, line, char)
+      |> assert_prepare_range_and_placeholder_is(target_range, "subtract")
 
       edits =
         Rename.rename(
-          %SourceFile{text: text, version: 0},
+          source,
           uri,
           line,
           char,
@@ -137,7 +159,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
 
       expected_edits =
         [
-          %{line: 5, start_char: 8, end_char: 16},
+          target_range,
           %{line: 13, start_char: 7, end_char: 15}
         ]
         |> get_expected_edits("new_subtract")
@@ -148,14 +170,19 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
     test "rename function with multiple heads: add -> new_add" do
       file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
-      uri = SourceFile.path_to_uri(file_path)
+      uri = SourceFile.Path.to_uri(file_path)
 
       #     c = add(a, b)
       {line, char} = {5, 9}
+      source = %SourceFile{text: text, version: 0}
+      target_range = %{line: 4, start_char: 8, end_char: 11}
+
+      Rename.prepare(source, @fake_uri, line, char)
+      |> assert_prepare_range_and_placeholder_is(target_range, "add")
 
       edits =
         Rename.rename(
-          %SourceFile{text: text, version: 0},
+          source,
           uri,
           line,
           char,
@@ -165,7 +192,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
 
       expected_edits =
         [
-          %{line: 4, start_char: 8, end_char: 11},
+          target_range,
           %{line: 6, start_char: 4, end_char: 7},
           %{line: 9, start_char: 7, end_char: 10},
           %{line: 10, start_char: 7, end_char: 10},
@@ -179,13 +206,17 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
     test "rename function defined in a different file ten -> new_ten" do
       file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
-      uri = SourceFile.path_to_uri(file_path)
+      uri = SourceFile.Path.to_uri(file_path)
 
       fn_definition_file_uri =
-        FixtureHelpers.get_path("rename_example_b.ex") |> SourceFile.path_to_uri()
+        FixtureHelpers.get_path("rename_example_b.ex") |> SourceFile.Path.to_uri()
 
       #     b = ElixirLS.Test.RenameExampleB.ten()
       {line, char} = {4, 38}
+      source = %SourceFile{text: text, version: 0}
+
+      Rename.prepare(source, uri, line, char)
+      |> assert_prepare_range_and_placeholder_is(%{line: 3, start_char: 8, end_char: 40}, "ten")
 
       assert {:ok,
               %{
@@ -207,7 +238,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
                 ]
               }} =
                Rename.rename(
-                 %SourceFile{text: text, version: 0},
+                 source,
                  uri,
                  line,
                  char,
@@ -231,7 +262,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
     test "rename started with cursor at function definition" do
       file_path = FixtureHelpers.get_path("rename_example.ex")
       text = File.read!(file_path)
-      uri = SourceFile.path_to_uri(file_path)
+      uri = SourceFile.Path.to_uri(file_path)
 
       # defp _handle_error({:ok, message})
       {line, char} = {4, 8}
@@ -300,5 +331,20 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
 
   defp sort_edit_by_start_line(edits) do
     Enum.sort(edits, &(&1["range"].start.line < &2["range"].start.line))
+  end
+
+  defp assert_prepare_range_and_placeholder_is(
+         prepare_result,
+         %{line: line, start_char: start_char, end_char: end_char} = _expected_range,
+         expected_placeholder
+       ) do
+    assert {:ok,
+            %{
+              placeholder: expected_placeholder,
+              range: %{
+                start: %{line: line, character: start_char},
+                end: %{line: line, character: end_char}
+              }
+            }} == prepare_result
   end
 end

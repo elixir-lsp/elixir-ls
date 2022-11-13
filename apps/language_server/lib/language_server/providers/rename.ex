@@ -66,10 +66,10 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
       with %{
              begin: {start_line, start_col},
              end: {end_line, end_col},
-             context: {context, char_ident}
-           }
-           when context in [:local_or_var, :local_call] <-
-             Code.Fragment.surround_context(source_file.text, {line, character}) do
+             char_ident: char_ident
+           } = res
+           when not is_nil(res) <-
+             get_begin_end_and_char_ident(source_file.text, line, character) do
         %{
           range: adjust_range(start_line, start_col, end_line, end_col),
           placeholder: to_string(char_ident)
@@ -140,6 +140,20 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
       %{context: {context, char_ident}} when context in [:local_or_var, :local_call] -> char_ident
       %{context: {:dot, _, char_ident}} -> char_ident
       _ -> nil
+    end
+  end
+
+  defp get_begin_end_and_char_ident(text, line, character) do
+    case Code.Fragment.surround_context(text, {line, character}) do
+      %{begin: begin, end: the_end, context: {context, char_ident}}
+      when context in [:local_or_var, :local_call] ->
+        %{begin: begin, end: the_end, char_ident: char_ident}
+
+      %{begin: begin, end: the_end, context: {:dot, _, char_ident}} ->
+        %{begin: begin, end: the_end, char_ident: char_ident}
+
+      _ ->
+        nil
     end
   end
 end
