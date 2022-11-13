@@ -8,12 +8,14 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
   alias ElixirLS.LanguageServer.SourceFile
 
   def rename(%SourceFile{} = source_file, start_uri, line, character, new_name) do
+    trace = ElixirLS.LanguageServer.Tracer.get_trace()
+
     edits =
       with char_ident when not is_nil(char_ident) <-
              get_char_ident(source_file.text, line, character),
            %ElixirSense.Location{} = definition <-
              ElixirSense.definition(source_file.text, line, character),
-           references <- ElixirSense.references(source_file.text, line, character) do
+           references <- ElixirSense.references(source_file.text, line, character, trace) do
         length_old = length(char_ident)
 
         definition_references =
@@ -26,7 +28,7 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
             %{file: separate_file_path, type: :function} ->
               parse_definition_source_code(definition)
               |> get_all_fn_header_positions(char_ident)
-              |> positions_to_references(SourceFile.path_to_uri(separate_file_path), length_old)
+              |> positions_to_references(SourceFile.Path.to_uri(separate_file_path), length_old)
 
             _ ->
               positions_to_references(
@@ -85,7 +87,7 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
 
   defp repack_references(references, start_uri) do
     for reference <- references do
-      uri = if reference.uri, do: SourceFile.path_to_uri(reference.uri), else: start_uri
+      uri = if reference.uri, do: SourceFile.Path.to_uri(reference.uri), else: start_uri
 
       %{
         uri: uri,

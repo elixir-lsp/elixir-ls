@@ -1,12 +1,38 @@
 defmodule ElixirLS.LanguageServer.Providers.RenameTest do
   use ExUnit.Case, async: true
 
+  alias ElixirLS.LanguageServer.Build
   alias ElixirLS.LanguageServer.Providers.Rename
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+  alias ElixirLS.LanguageServer.Tracer
   # mix cmd --app language_server mix test test/providers/rename_test.exs
 
   @fake_uri "file:///World/Netherlands/Amsterdam/supercomputer/amazing.ex"
+
+  setup_all context do
+    File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
+    {:ok, pid} = Tracer.start_link([])
+    Tracer.set_project_dir(FixtureHelpers.get_path(""))
+
+    compiler_options = Code.compiler_options()
+    Build.set_compiler_options(ignore_module_conflict: true)
+
+    on_exit(fn ->
+      Process.monitor(pid)
+      Process.unlink(pid)
+      GenServer.stop(pid)
+
+      receive do
+        {:DOWN, _, _, _, _} -> :ok
+      end
+    end)
+
+    Code.compile_file(FixtureHelpers.get_path("rename_example.ex"))
+    Code.compile_file(FixtureHelpers.get_path("rename_example_b.ex"))
+
+    {:ok, context}
+  end
 
   test "rename blank space" do
     text = """
