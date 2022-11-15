@@ -22,12 +22,12 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
           case definition do
             %{file: nil, type: :function} ->
               parse_definition_source_code(source_file.text)
-              |> get_all_fn_header_positions(char_ident)
+              |> get_all_fn_header_positions(char_ident, definition)
               |> positions_to_references(start_uri, length_old)
 
             %{file: separate_file_path, type: :function} ->
               parse_definition_source_code(definition)
-              |> get_all_fn_header_positions(char_ident)
+              |> get_all_fn_header_positions(char_ident, definition)
               |> positions_to_references(SourceFile.Path.to_uri(separate_file_path), length_old)
 
             _ ->
@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
         }
       else
         _ ->
-          # Not a variable or local call, skipping for now
+          # Not a variable or function call, skipping
           nil
       end
 
@@ -86,7 +86,7 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
   end
 
   defp repack_references(references, start_uri) do
-    for reference <- references do
+    Enum.map(references, fn reference ->
       uri = if reference.uri, do: SourceFile.Path.to_uri(reference.uri), else: start_uri
 
       %{
@@ -99,7 +99,7 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
           }
         }
       }
-    end
+    end)
   end
 
   defp parse_definition_source_code(%{file: file}) do
@@ -110,10 +110,16 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
     ElixirSense.Core.Parser.parse_string(source_text, true, true, nil)
   end
 
-  defp get_all_fn_header_positions(parsed_source, char_ident) do
+  defp get_all_fn_header_positions(
+         parsed_source,
+         definition_name,
+         %{column: column, line: line} = _definition
+       ) do
     parsed_source.mods_funs_to_positions
     |> Map.filter(fn
-      {{_, fn_name, _}, _} -> Atom.to_charlist(fn_name) == char_ident
+      {{_, fn_name, fn_arity}, %{positions: fn_positions}} ->
+        Atom.to_charlist(fn_name) === definition_name and not is_nil(fn_arity) and
+          Enum.member?(fn_positions, {line, column})
     end)
     |> Enum.flat_map(fn {_, %{positions: positions}} -> positions end)
     |> Enum.uniq()

@@ -186,7 +186,7 @@ defmodule ElixirLS.LanguageServer.Providers.RenameTest do
       expected_edits =
         [
           target_range,
-          %{line: 13, start_char: 7, end_char: 15}
+          %{line: 15, start_char: 7, end_char: 15}
         ]
         |> get_expected_edits("new_subtract")
 
