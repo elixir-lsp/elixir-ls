@@ -144,10 +144,9 @@ defmodule ElixirLS.LanguageServer.Providers.Rename do
   end
 
   defp get_char_ident(text, line, character) do
-    case Code.Fragment.surround_context(text, {line, character}) do
-      %{context: {context, char_ident}} when context in [:local_or_var, :local_call] -> char_ident
-      %{context: {:dot, _, char_ident}} -> char_ident
-      _ -> nil
+    case get_begin_end_and_char_ident(text, line, character) do
+      nil -> nil
+      %{char_ident: char_ident} -> char_ident
     end
   end
 
