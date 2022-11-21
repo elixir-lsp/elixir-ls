@@ -1,7 +1,12 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.Env do
+  @moduledoc """
+  An environment passed to provider handlers.
+  This represents the current state of the project, and should include additional
+  information that provider handles might need to complete their tasks.
+  """
+
   alias ElixirLS.LanguageServer.Experimental.Project
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration
-  alias ElixirLS.LanguageServer.SourceFile
 
   defstruct [:root_uri, :root_path, :project_uri, :project_path]
 

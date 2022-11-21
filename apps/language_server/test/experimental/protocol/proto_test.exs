@@ -525,7 +525,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
               i: integer(),
               lit: literal("foo"),
               enum: Mood,
-              c: optional(Child)
+              c: optional(Child),
+              snake_case_name: string()
     end
 
     def fixture(:encoding, include_child \\ false) do
@@ -535,7 +536,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
         "l" => ~w(these are strings),
         "i" => 42,
         "enum" => 1,
-        "lit" => "foo"
+        "lit" => "foo",
+        "snakeCaseName" => "foo"
       }
 
       if include_child do
@@ -556,6 +558,14 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       assert {:ok, proto} = EncodingTest.parse(expected)
       assert {:ok, decoded} = encode_and_decode(proto)
       assert decoded == expected
+    end
+
+    test "it camelizes encoded field names" do
+      expected = fixture(:encoding)
+      assert {:ok, proto} = EncodingTest.parse(expected)
+      assert proto.snake_case_name == "foo"
+      assert {:ok, decoded} = encode_and_decode(proto)
+      assert decoded["snakeCaseName"] == "foo"
     end
   end
 

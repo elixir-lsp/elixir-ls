@@ -14,7 +14,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Queue do
 
     @requests_to_handler %{
       Requests.FindReferences => Handlers.FindReferences,
-      Requests.Formatting => Handlers.Formatting
+      Requests.Formatting => Handlers.Formatting,
+      Requests.CodeAction => Handlers.CodeAction
     }
 
     def new do

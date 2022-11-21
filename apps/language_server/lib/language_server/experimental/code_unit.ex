@@ -52,9 +52,30 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnit do
     do_to_utf16(binary, utf16_unit + 1, 0)
   end
 
+  def count(:utf16, binary) do
+    do_count_utf16(binary, 0)
+  end
+
   # Private
 
   # UTF-16
+
+  def do_count_utf16(<<>>, count) do
+    count
+  end
+
+  def do_count_utf16(<<c, rest::binary>>, count) when c < 128 do
+    do_count_utf16(rest, count + 1)
+  end
+
+  def do_count_utf16(<<c::utf8, rest::binary>>, count) do
+    increment =
+      <<c::utf16>>
+      |> byte_size()
+      |> div(2)
+
+    do_count_utf16(rest, count + increment)
+  end
 
   defp do_utf16_offset(_, 0, offset) do
     offset

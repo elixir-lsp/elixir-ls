@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Document do
   end
 
   def to_iodata(%__MODULE__{} = document) do
-    Enum.reduce(document, [], fn line(text: text, ending: ending), acc ->
+    reduce(document, [], fn line(text: text, ending: ending), acc ->
       [acc | [text | ending]]
     end)
   end
@@ -32,10 +32,29 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Document do
     tuple_size(document.lines)
   end
 
+  def fetch_line(%__MODULE__{lines: lines, starting_index: starting_index}, index)
+      when index - starting_index >= tuple_size(lines) do
+    :error
+  end
+
   def fetch_line(%__MODULE__{} = document, index) when is_integer(index) do
-    case Enum.at(document, index - document.starting_index) do
+    case elem(document.lines, index - document.starting_index) do
       line() = line -> {:ok, line}
       _ -> :error
+    end
+  end
+
+  def reduce(%__MODULE__{} = document, initial, reducer_fn) do
+    size = size(document)
+
+    if size == 0 do
+      initial
+    else
+      Enum.reduce(0..(size - 1), initial, fn index, acc ->
+        document.lines
+        |> elem(index)
+        |> reducer_fn.(acc)
+      end)
     end
   end
 end

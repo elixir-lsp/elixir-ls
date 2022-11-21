@@ -1,4 +1,5 @@
 defmodule ElixirLS.LanguageServer.Experimental.Format.Diff do
+  alias ElixirLS.LanguageServer.Experimental.CodeUnit
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
@@ -79,14 +80,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.Diff do
   end
 
   def advance(<<c::utf8, rest::binary>>, {line, unit}) do
-    increment = utf16_code_units(<<c::utf16>>)
+    increment = CodeUnit.count(:utf16, <<c::utf8>>)
     advance(rest, {line, unit + increment})
-  end
-
-  def utf16_code_units(<<_::utf16>> = utf16_grapheme) do
-    utf16_grapheme
-    |> byte_size()
-    |> div(2)
   end
 
   defp edit(text, start_line, start_unit, end_line, end_unit) do

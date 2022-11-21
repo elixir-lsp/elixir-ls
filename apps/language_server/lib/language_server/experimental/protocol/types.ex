@@ -36,10 +36,23 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
     deftype uri: uri(), version: integer()
   end
 
+  defmodule TextDocument.OptionalVersionedIdentifier do
+    use Proto
+
+    deftype uri: uri(), version: optional(integer())
+  end
+
   defmodule TextDocument.ContentChangeEvent do
     use Proto
 
     deftype range: optional(Range), text: string()
+  end
+
+  defmodule TextDocument.Edit do
+    use Proto
+
+    deftype text_document: TextDocument.OptionalVersionedIdentifier,
+            edits: list_of(TextEdit)
   end
 
   defmodule CodeDescription do
@@ -145,6 +158,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
 
     deftype document_changes: optional(boolean()),
             resource_operations: optional(list_of(ResourceOperationKind))
+  end
+
+  defmodule WorkspaceEdit do
+    use Proto
+
+    deftype document_changes: optional(list_of(TextDocument.Edit)),
+            changes: optional(map_of(list_of(TextEdit)))
   end
 
   defmodule DidChangeConfiguration.ClientCapabilities do
@@ -435,5 +455,54 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
   defmodule WorkspaceFolder do
     use Proto
     deftype uri: uri(), name: string()
+  end
+
+  defmodule Command do
+    use Proto
+
+    deftype title: string(),
+            command: string(),
+            arguments: optional(list_of(any()))
+  end
+
+  defmodule CodeActionKind do
+    use Proto
+
+    defenum empty: "",
+            quick_fix: "quickfix",
+            refactor: "refactor",
+            refactor_extract: "refactor.extract",
+            refactor_inline: "refactor.inline",
+            refactor_rewrite: "refactor.rewrite",
+            source: "source",
+            source_organize_imports: "source.organizeImports",
+            source_fix_all: "source.fixAll"
+  end
+
+  defmodule CodeActionTriggerKind do
+    use Proto
+
+    defenum invoked: 1,
+            automatic: 2
+  end
+
+  defmodule CodeActionContext do
+    use Proto
+
+    deftype diagnostics: list_of(Diagnostic),
+            only: optional(list_of(CodeActionKind)),
+            trigger_kind: optional(CodeActionTriggerKind)
+  end
+
+  defmodule CodeAction do
+    use Proto
+
+    deftype title: string(),
+            kind: optional(CodeActionKind),
+            diagnostics: optional(list_of(Diagnostic)),
+            is_preferred: optional(boolean()),
+            edit: optional(WorkspaceEdit),
+            command: optional(Command),
+            data: optional(any())
   end
 end

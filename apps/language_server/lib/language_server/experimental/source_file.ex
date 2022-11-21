@@ -186,7 +186,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
   end
 
   defp apply_valid_edits(%__MODULE{} = source, edit_text, start_pos, end_pos) do
-    Enum.reduce(source.document, [], fn line() = line, acc ->
+    Document.reduce(source.document, [], fn line() = line, acc ->
       case edit_action(line, edit_text, start_pos, end_pos) do
         :drop ->
           acc

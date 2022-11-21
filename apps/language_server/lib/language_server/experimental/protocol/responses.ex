@@ -13,4 +13,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Responses do
 
     defresponse optional(list_of(Types.TextEdit))
   end
+
+  defmodule CodeAction do
+    use Proto
+
+    defresponse optional(list_of(Types.CodeAction))
+  end
 end

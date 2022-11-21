@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types
 
+  # Client -> Server request
   defmodule Initialize do
     use Proto
 
@@ -12,36 +13,44 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
       locale: optional(string()),
       root_path: optional(string()),
       root_uri: string(),
-      initialization_options: optional(map_of(any())),
+      initialization_options: optional(any()),
       trace: optional(string()),
-      workspace_folders: optional(Types.WorkspaceFolder),
+      workspace_folders: optional(list_of(Types.WorkspaceFolder)),
       capabilities: optional(map_of(any()))
   end
 
   defmodule FindReferences do
     use Proto
 
-    defrequest("textDocument/references", :exclusive,
+    defrequest "textDocument/references", :exclusive,
       text_document: Types.TextDocument.Identifier,
       position: Types.Position
-    )
   end
 
   defmodule Formatting do
     use Proto
 
-    defrequest("textDocument/formatting", :exclusive,
+    defrequest "textDocument/formatting", :exclusive,
       text_document: Types.TextDocument.Identifier,
       options: Types.FormattingOptions
-    )
   end
+
+  defmodule CodeAction do
+    use Proto
+
+    defrequest "textDocument/codeAction", :exclusive,
+      text_document: Types.TextDocument.Identifier,
+      range: Types.Range,
+      context: Types.CodeActionContext
+  end
+
+  # Server -> Client requests
 
   defmodule RegisterCapability do
     use Proto
 
-    defrequest("client/registerCapability", :shared,
+    defrequest "client/registerCapability", :shared,
       registrations: optional(list_of(LspTypes.Registration))
-    )
   end
 
   use Proto, decoders: :requests

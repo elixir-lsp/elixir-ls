@@ -8,8 +8,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.Configuration do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.RegisterCapability
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration.Support
-  alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirLS.Utils.MixfileHelpers
 
   defstruct project: nil,
             support: nil,

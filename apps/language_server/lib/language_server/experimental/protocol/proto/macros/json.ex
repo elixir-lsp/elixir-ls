@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Json do
           |> Enum.flat_map(fn
             # flatten the spread into the current map
             {:.., value} when is_map(value) -> Enum.to_list(value)
-            {k, v} -> [{k, v}]
+            {k, v} -> [{camelize(k), v}]
           end)
           |> JasonVendored.Encode.keyword(opts)
         end
@@ -28,6 +28,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Json do
 
         defp get_field_value(struct, field_name) do
           Map.get(struct, field_name)
+        end
+
+        def camelize(field_name) do
+          field_name
+          |> to_string()
+          |> Macro.camelize()
+          |> downcase_first()
+        end
+
+        defp downcase_first(<<c::binary-size(1), rest::binary>>) do
+          String.downcase(c) <> rest
         end
       end
     end
