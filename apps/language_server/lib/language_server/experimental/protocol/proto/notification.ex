@@ -13,6 +13,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Notification do
     param_names = Keyword.keys(types)
     lsp_types = Keyword.merge(jsonrpc_types, types)
     elixir_types = Message.generate_elixir_types(__CALLER__.module, lsp_types)
+    lsp_module_name = Module.concat(__CALLER__.module, LSP)
 
     quote location: :keep do
       defmodule LSP do
@@ -35,6 +36,23 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Notification do
 
       def to_elixir(%__MODULE__{} = request) do
         Convert.to_elixir(request)
+      end
+
+      defimpl JasonVendored.Encoder, for: unquote(__CALLER__.module) do
+        def encode(notification, opts) do
+          JasonVendored.Encoder.encode(notification.lsp, opts)
+        end
+      end
+
+      defimpl JasonVendored.Encoder, for: unquote(lsp_module_name) do
+        def encode(notification, opts) do
+          %{
+            jsonrpc: "2.0",
+            method: unquote(method),
+            params: Map.take(notification, unquote(param_names))
+          }
+          |> JasonVendored.Encode.map(opts)
+        end
       end
     end
   end
