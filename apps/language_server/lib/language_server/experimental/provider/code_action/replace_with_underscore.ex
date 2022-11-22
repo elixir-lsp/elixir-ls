@@ -32,12 +32,11 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
   defp build_code_action(%SourceFile{} = source_file, one_based_line, variable_name) do
     with {:ok, line_text} <- SourceFile.fetch_text_at(source_file, one_based_line),
          {:ok, line_ast} <- ElixirSense.string_to_quoted(line_text, 0),
-         {:ok, transformed} <- apply_transform(line_ast, variable_name) do
+         {:ok, transformed} <- apply_transform(line_text, line_ast, variable_name) do
       text_edits =
         line_text
         |> to_text_edits(transformed)
         |> update_lines(one_based_line)
-        |> Enum.filter(fn edit -> edit.new_text == "_" end)
 
       reply =
         CodeActionResult.new(
@@ -53,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
   defp to_text_edits(orig_text, fixed_text) do
     orig_text
     |> Diff.diff(fixed_text)
-    |> Enum.filter(fn edit -> edit.new_text == "_" end)
+    |> Enum.filter(&String.contains?(&1.new_text, "_"))
   end
 
   defp update_lines(text_edits, one_based_line) do
@@ -71,8 +70,9 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
     end)
   end
 
-  defp apply_transform(quoted_ast, unused_variable_name) do
+  defp apply_transform(line_text, quoted_ast, unused_variable_name) do
     underscored_variable_name = :"_#{unused_variable_name}"
+    leading_indent = leading_indent(line_text)
 
     Macro.postwalk(quoted_ast, fn
       {^unused_variable_name, meta, context} ->
@@ -87,6 +87,21 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
     # adds additional lines do documents with errors, so take the first line, as it's
     # the properly transformed source
     |> fetch_line(0)
+    |> case do
+      {:ok, text} ->
+        {:ok, "#{leading_indent}#{text}"}
+
+      error ->
+        error
+    end
+  end
+
+  @indent_regex ~r/^\s+/
+  defp leading_indent(line_text) do
+    case Regex.scan(@indent_regex, line_text) do
+      [indent] -> indent
+      _ -> ""
+    end
   end
 
   defp extract_variable_and_line(%Diagnostic{} = diagnostic) do

@@ -1,13 +1,11 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscoreTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction
-
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionReply
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeActionContext
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent
-
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscore
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Fixtures.LspProtocol
@@ -27,7 +25,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
   end
 
   def code_action(file_body, file_path, line, variable_name, opts \\ []) do
-    trimmed_body = String.trim(file_body)
+    trimmed_body = String.trim(file_body, "\n")
+
     file_uri = SourceFilePath.to_uri(file_path)
     patch(SourceFile.Store, :fetch, {:ok, SourceFile.new(file_uri, trimmed_body, 1)})
 
@@ -61,7 +60,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
     |> JasonVendored.decode!()
   end
 
-  def apply_edit(source, edits) do
+  def apply_edit(source, edits, opts \\ []) do
     source_file = SourceFile.new("file:///none", source, 1)
 
     converted_edits =
@@ -71,9 +70,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
     {:ok, source} = SourceFile.apply_content_changes(source_file, 3, converted_edits)
 
-    source
-    |> SourceFile.to_string()
-    |> String.trim()
+    if Keyword.get(opts, :trim, true) do
+      source
+      |> SourceFile.to_string()
+      |> String.trim()
+    else
+      SourceFile.to_string(source)
+    end
   end
 
   test "produces no actions if the line is empty" do
@@ -182,6 +185,16 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
       assert [%CodeActionReply{edit: %{changes: %{^file_uri => edit}}}] = apply(code_action)
 
       assert "_x = 3" == apply_edit(source, edit)
+    end
+
+    test "preserves spacing" do
+      {file_uri, source, code_action} =
+        "   x = 3"
+        |> code_action("/project/file.ex", 0, "x", mfa: {"iex", "nofunction", 1})
+
+      assert [%CodeActionReply{edit: %{changes: %{^file_uri => edit}}}] = apply(code_action)
+
+      assert "   _x = 3" == apply_edit(source, edit, trim: false)
     end
 
     test "applied to a variable with a pattern matched struct" do
