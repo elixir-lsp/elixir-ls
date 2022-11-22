@@ -24,6 +24,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
     quote location: :keep do
       defmodule LSP do
         unquote(Message.build({:request, :lsp}, method, access, lsp_types, param_names))
+
+        def new(opts \\ []) do
+          opts
+          |> Keyword.merge(method: unquote(method), jsonrpc: "2.0")
+          |> super()
+        end
       end
 
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
@@ -38,8 +44,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
       unquote(build_parse(method))
 
       def new(opts \\ []) do
+        opts = Keyword.merge(opts, method: unquote(method), jsonrpc: "2.0")
+
         raw = LSP.new(opts)
-        %__MODULE__{lsp: raw, id: raw.id, method: unquote(method)}
+        # use struct here because initially, the non-lsp struct doesn't have
+        # to be filled out. Calling to_elixir fills it out.
+        struct(__MODULE__, lsp: raw, id: raw.id, method: unquote(method), jsonrpc: "2.0")
       end
 
       def to_elixir(%__MODULE__{} = request) do

@@ -227,6 +227,26 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     end
   end
 
+  describe "constructors" do
+    defmodule RequiredFields do
+      use Proto
+
+      deftype name: string(), value: optional(string()), age: integer()
+    end
+
+    test "required fields are required" do
+      assert_raise ArgumentError, fn ->
+        RequiredFields.new()
+      end
+
+      assert_raise ArgumentError, fn ->
+        RequiredFields.new(name: "hi", value: "good")
+      end
+
+      assert RequiredFields.new(name: "hi", value: "good", age: 29)
+    end
+  end
+
   def with_source_file_store(_) do
     source_file = """
     defmodule MyTest do
@@ -595,7 +615,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
   describe "access behavior" do
     defmodule Recursive do
       use Proto
-      deftype name: string(), age: integer(), child: __MODULE__
+      deftype name: string(), age: integer(), child: optional(__MODULE__)
     end
 
     def family do
