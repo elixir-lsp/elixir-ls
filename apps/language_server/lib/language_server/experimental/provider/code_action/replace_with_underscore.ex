@@ -17,7 +17,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
     source_file = code_action.source_file
     diagnostics = code_action.context.diagnostics
 
-    Enum.reduce(diagnostics, [], fn %Diagnostic{} = diagnostic, actions ->
+    diagnostics
+    |> Enum.reduce([], fn %Diagnostic{} = diagnostic, actions ->
       with {:ok, variable_name, one_based_line} <- extract_variable_and_line(diagnostic),
            {:ok, reply} <- build_code_action(source_file, one_based_line, variable_name) do
         [reply | actions]
