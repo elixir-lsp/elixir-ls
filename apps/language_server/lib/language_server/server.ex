@@ -543,7 +543,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         initialize_req(_id, root_uri, client_capabilities) = request,
+         initialize_req(_id, root_uri, client_capabilities),
          state = %__MODULE__{server_instance_id: server_instance_id}
        )
        when not is_initialized(server_instance_id) do
