@@ -14,23 +14,38 @@ defmodule ElixirLS.LanguageServer.Build do
             :timer.tc(fn ->
               Logger.info("Starting build with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}")
 
+              # read cache before cleaning up mix state in reload_project
+              cached_deps = read_cached_deps()
+
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
                   # FIXME: Private API
-                  if Keyword.get(opts, :fetch_deps?) and
-                       Mix.Dep.load_on_environment([]) != cached_deps() do
-                    # NOTE: Clear deps cache when deps in mix.exs has change to prevent
-                    # formatter crash from clearing deps during build.
-                    :ok = Mix.Project.clear_deps_cache()
-                    fetch_deps()
+
+                  try do
+                    # this call can raise
+                    current_deps = Mix.Dep.load_on_environment([])
+
+                    purge_changed_deps(current_deps, cached_deps)
+
+                    if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
+                      fetch_deps(current_deps)
+                    end
+
+                    # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
+                    purge_consolidated_protocols()
+                    {status, diagnostics} = run_mix_compile()
+
+                    diagnostics = Diagnostics.normalize(diagnostics, root_path)
+                    Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
+                  rescue
+                    e ->
+                      Logger.warn(
+                        "Mix.Dep.load_on_environment([]) failed: #{inspect(e.__struct__)} #{Exception.message(e)}"
+                      )
+
+                      # TODO pass diagnostic
+                      Server.build_finished(parent, {:error, []})
                   end
-
-                  # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
-                  purge_consolidated_protocols()
-                  {status, diagnostics} = run_mix_compile()
-
-                  diagnostics = Diagnostics.normalize(diagnostics, root_path)
-                  Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
 
                 {:error, mixfile_diagnostics} ->
                   Server.build_finished(parent, {:error, mixfile_diagnostics})
@@ -73,8 +88,8 @@ defmodule ElixirLS.LanguageServer.Build do
       # see https://github.com/elixir-lsp/elixir-ls/issues/120
       # originally reported in https://github.com/JakeBecker/elixir-ls/issues/71
       # Note that `Mix.State.clear_cache()` is not enough (at least on elixir 1.14)
-      # FIXME: Private API
-      Mix.Dep.clear_cached()
+      Mix.Project.clear_deps_cache()
+      Mix.State.clear_cache()
 
       Mix.Task.clear()
 
@@ -184,19 +199,112 @@ defmodule ElixirLS.LanguageServer.Build do
       # FIXME: Private API
       Mix.Dep.cached()
     rescue
-      _ ->
+      e ->
+        Logger.warn("Mix.Dep.cached() failed: #{inspect(e.__struct__)} #{Exception.message(e)}")
         []
     end
   end
 
-  defp fetch_deps do
-    # FIXME: Private API and struct
+  defp purge_app(app) do
+    # TODO use hack with ets
+    modules =
+      case :application.get_key(app, :modules) do
+        {:ok, modules} -> modules
+        _ -> []
+      end
+
+    if modules != [] do
+      Logger.debug("Purging #{length(modules)} modules from #{app}")
+      for module <- modules, do: purge_module(module)
+    end
+
+    Logger.debug("Unloading #{app}")
+
+    case Application.stop(app) do
+      :ok -> :ok
+      {:error, :not_started} -> :ok
+      {:error, error} -> Logger.error("Application.stop failed for #{app}: #{inspect(error)}")
+    end
+
+    case Application.unload(app) do
+      :ok -> :ok
+      {:error, error} -> Logger.error("Application.unload failed for #{app}: #{inspect(error)}")
+    end
+
+    # Code.delete_path()
+  end
+
+  defp get_deps_by_app(deps), do: get_deps_by_app(deps, %{})
+  defp get_deps_by_app([], acc), do: acc
+
+  defp get_deps_by_app([curr = %Mix.Dep{app: app, deps: deps} | rest], acc) do
+    acc = get_deps_by_app(deps, acc)
+
+    list =
+      case acc[app] do
+        nil -> [curr]
+        list -> [curr | list]
+      end
+
+    get_deps_by_app(rest, acc |> Map.put(app, list))
+  end
+
+  defp maybe_purge_dep(
+         %Mix.Dep{status: status, app: app, deps: deps, requirement: requirement} = dep
+       ) do
+    for dep <- deps, do: maybe_purge_dep(dep)
+
+    purge? =
+      case status do
+        {:nomatchvsn, _} -> true
+        :lockoutdated -> true
+        {:lockmismatch, _} -> true
+        _ -> false
+      end
+
+    if purge? do
+      purge_dep(dep)
+    end
+  end
+
+  defp purge_dep(%Mix.Dep{app: app} = dep) do
+    for path <- Mix.Dep.load_paths(dep) do
+      Code.delete_path(path)
+    end
+
+    purge_app(app)
+  end
+
+  defp purge_changed_deps(_current_deps, nil), do: :ok
+
+  defp purge_changed_deps(current_deps, cached_deps) do
+    current_deps_by_app = get_deps_by_app(current_deps)
+    cached_deps_by_app = get_deps_by_app(cached_deps)
+    removed_apps = Map.keys(cached_deps_by_app) -- Map.keys(current_deps_by_app)
+
+    removed_deps = cached_deps_by_app |> Map.take(removed_apps)
+
+    for {_app, deps} <- removed_deps,
+        dep <- deps do
+      purge_dep(dep)
+    end
+
+    for dep <- current_deps do
+      maybe_purge_dep(dep)
+    end
+  end
+
+  defp fetch_deps(current_deps) do
+    # FIXME: private struct
     missing_deps =
-      Mix.Dep.load_on_environment([])
-      |> Enum.filter(fn %Mix.Dep{status: status} ->
+      current_deps
+      |> Enum.filter(fn %Mix.Dep{status: status, scm: scm} ->
         case status do
-          {:unavailable, _} -> true
+          {:unavailable, _} -> scm.fetchable?()
           {:nomatchvsn, _} -> true
+          :nolock -> true
+          :lockoutdated -> true
+          {:lockmismatch, _} -> true
           _ -> false
         end
       end)
@@ -215,6 +323,8 @@ defmodule ElixirLS.LanguageServer.Build do
         :info,
         "Done fetching deps"
       )
+    else
+      Logger.debug("All deps are up to date")
     end
 
     :ok
@@ -236,5 +346,16 @@ defmodule ElixirLS.LanguageServer.Build do
       )
 
     Code.compiler_options(options)
+  end
+
+  defp read_cached_deps() do
+    if project = Mix.Project.get() do
+      env_target = {Mix.env(), Mix.target()}
+
+      case Mix.State.read_cache({:cached_deps, project}) do
+        {^env_target, deps} -> deps
+        _ -> nil
+      end
+    end
   end
 end
