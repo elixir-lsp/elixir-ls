@@ -194,17 +194,6 @@ defmodule ElixirLS.LanguageServer.Build do
     :code.delete(module)
   end
 
-  defp cached_deps do
-    try do
-      # FIXME: Private API
-      Mix.Dep.cached()
-    rescue
-      e ->
-        Logger.warn("Mix.Dep.cached() failed: #{inspect(e.__struct__)} #{Exception.message(e)}")
-        []
-    end
-  end
-
   defp purge_app(app) do
     # TODO use hack with ets
     modules =
@@ -249,9 +238,7 @@ defmodule ElixirLS.LanguageServer.Build do
     get_deps_by_app(rest, acc |> Map.put(app, list))
   end
 
-  defp maybe_purge_dep(
-         %Mix.Dep{status: status, app: app, deps: deps, requirement: requirement} = dep
-       ) do
+  defp maybe_purge_dep(%Mix.Dep{status: status, deps: deps} = dep) do
     for dep <- deps, do: maybe_purge_dep(dep)
 
     purge? =
@@ -349,6 +336,8 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp read_cached_deps() do
+    # FIXME: Private api
+    # we cannot use Mix.Dep.cached() here as it tries to load deps
     if project = Mix.Project.get() do
       env_target = {Mix.env(), Mix.target()}
 
