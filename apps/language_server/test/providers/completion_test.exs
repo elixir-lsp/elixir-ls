@@ -141,7 +141,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = {3, 17}
     TestUtils.assert_has_cursor_char(text, line, char)
-    {:ok, %{"items" => [first_suggestion | _tail]}} = Completion.completion(text, line, char, @supports)
+
+    {:ok, %{"items" => [first_suggestion | _tail]}} =
+      Completion.completion(text, line, char, @supports)
 
     assert first_suggestion["label"] === "fn"
   end
