@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build Mkdocs website
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
         max-parallel: 1
     container:
@@ -27,7 +27,7 @@ jobs:
   publish:
     needs: build
     name: Publish Mkdocs website to GH Pages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       max-parallel: 1
     steps:
