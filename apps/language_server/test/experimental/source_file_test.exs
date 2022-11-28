@@ -590,30 +590,28 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
 
     test "invalid update range - before the document starts -> before the document starts" do
       orig = "foo\nbar"
+      invalid_range = range_create(-2, 0, -1, 3)
 
-      assert {:ok, source} =
+      assert {:error, {:invalid_range, ^invalid_range}} =
                run_changes(orig, [
                  %{
                    "text" => "abc123",
                    "range" => range_create(-2, 0, -1, 3)
                  }
                ])
-
-      assert "abc123foo\nbar" = text(source)
     end
 
     test "invalid update range - before the document starts -> the middle of document" do
       orig = "foo\nbar"
+      invalid_range = range_create(-1, 0, 0, 3)
 
-      assert {:ok, source} =
+      assert {:error, {:invalid_range, ^invalid_range}} =
                run_changes(orig, [
                  %{
                    "text" => "foobar",
                    "range" => range_create(-1, 0, 0, 3)
                  }
                ])
-
-      assert "foobar\nbar" = text(source)
     end
 
     test "invalid update range - the middle of document -> after the document ends" do
@@ -648,15 +646,13 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
       orig = "foo\nbar"
       invalid_range = range_create(-1, 1, 2, 10000)
 
-      assert {:ok, source} =
+      assert {:error, {:invalid_range, ^invalid_range}} =
                run_changes(orig, [
                  %{
                    "text" => "entirely new content",
                    "range" => invalid_range
                  }
                ])
-
-      assert "entirely new content" = text(source)
     end
   end
 

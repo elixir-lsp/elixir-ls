@@ -139,50 +139,6 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  # the following apply_change heads are to maintain compatibility with the out-of-spec tests
-  # in microsoft's node test suite
-  defp apply_change(
-         %__MODULE__{} = source,
-         %{
-           "range" => range(start_line, _, end_line, _) = range,
-           "text" => new_text
-         }
-       )
-       when start_line < 0 and end_line < 0 do
-    apply_change(source, %{
-      "range" => range(0, 0, 0, 0),
-      "text" => new_text
-    })
-  end
-
-  defp apply_change(
-         %__MODULE__{} = source,
-         %{
-           "range" => range(start_line, start_char, end_line, end_char) = range,
-           "text" => new_text
-         }
-       )
-       when start_line < 0 or end_line < 0 do
-    {start_line, start_char} =
-      if start_line < 0 do
-        {0, 0}
-      else
-        {start_line, start_char}
-      end
-
-    {end_line, end_char} =
-      if end_line < 0 do
-        {0, 0}
-      else
-        {end_line, end_char}
-      end
-
-    apply_change(source, %{
-      "range" => range(start_line, start_char, end_line, end_char),
-      "text" => new_text
-    })
-  end
-
   defp apply_change(%__MODULE__{}, %{"range" => invalid_range}) do
     {:error, {:invalid_range, invalid_range}}
   end

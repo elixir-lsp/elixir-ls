@@ -60,14 +60,23 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
 
         {:ok, ElixirPosition.new(elixir_line_number, ls_character)}
 
-      position.line >= document_size ->
+      position.line > document_size ->
         # they've specified something outside of the document clamp it down so they can append at the
         # end
         {:ok, ElixirPosition.new(elixir_line_number, 0)}
 
       true ->
-        with {:ok, line} <- Document.fetch_line(document, elixir_line_number),
-             {:ok, elixir_character} <- extract_elixir_character(position, line) do
+        with {:ok, line} <- Document.fetch_line(document, elixir_line_number) do
+          elixir_character =
+            case line do
+              line(ascii?: true) ->
+                ls_character
+
+              line(text: text) ->
+                {:ok, utf16_text} = to_utf16(text)
+                lsp_character_to_elixir(utf16_text, ls_character)
+            end
+
           {:ok, ElixirPosition.new(elixir_line_number, elixir_character)}
         end
     end
@@ -81,11 +90,19 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
   end
 
   def to_lsp(%ElixirPosition{} = position, %Document{} = document) do
-    with {:ok, line} <- Document.fetch_line(document, position.line),
-         {:ok, lsp_character} <- extract_lsp_character(position, line) do
-      ls_pos =
-        LSPosition.new(character: lsp_character, line: position.line - @elixir_ls_index_base)
+    %ElixirPosition{character: elixir_character, line: elixir_line} = position
 
+    with {:ok, line} <- Document.fetch_line(document, elixir_line) do
+      lsp_character =
+        case line do
+          line(ascii?: true) ->
+            position.character
+
+          line(text: utf8_text) ->
+            elixir_character_to_lsp(utf8_text, elixir_character)
+        end
+
+      ls_pos = LSPosition.new(character: lsp_character, line: elixir_line - @elixir_ls_index_base)
       {:ok, ls_pos}
     end
   end
@@ -104,18 +121,15 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
     byte_size = byte_size(utf16_line)
 
     # if character index is over the length of the string assume we pad it with spaces (1 byte in utf8)
-    elixir_character =
-      utf16_line
-      |> binary_part(0, min(lsp_character * 2, byte_size))
-      |> to_utf8()
-      |> byte_size()
-
-    {:ok, elixir_character}
+    utf16_line
+    |> binary_part(0, min(lsp_character * 2, byte_size))
+    |> to_utf8()
+    |> byte_size()
   end
 
   def elixir_character_to_lsp(utf8_line, elixir_character) do
     case utf8_line |> String.slice(0..(elixir_character - 2)) |> to_utf16() do
-      {:ok, utf16_line} -> {:ok, div(byte_size(utf16_line), 2)}
+      {:ok, utf16_line} -> {:ok, byte_size(utf16_line) / 2}
       error -> error
     end
   end
@@ -133,26 +147,6 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
       b when is_binary(b) -> b
       {:error, _, _} = err -> err
       {:incomplete, _, _} -> {:error, :incomplete}
-    end
-  end
-
-  defp extract_lsp_character(%ElixirPosition{} = position, line(ascii?: true)) do
-    {:ok, position.character}
-  end
-
-  defp extract_lsp_character(%ElixirPosition{} = position, line(text: utf8_text)) do
-    with {:ok, utf16_txt} <- to_utf16(utf8_text) do
-      elixir_character_to_lsp(utf16_txt, position.character)
-    end
-  end
-
-  defp extract_elixir_character(%LSPosition{} = position, line(ascii?: true)) do
-    {:ok, position.character}
-  end
-
-  defp extract_elixir_character(%LSPosition{} = position, line(text: utf8_text)) do
-    with {:ok, utf16_text} <- to_utf16(utf8_text) do
-      lsp_character_to_elixir(utf16_text, position.character)
     end
   end
 end
