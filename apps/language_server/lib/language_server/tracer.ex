@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   use GenServer
   require Logger
 
-  @version 1
+  @version 2
 
   @tables ~w(modules calls)a
 
@@ -180,12 +180,14 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def trace(:start, %Macro.Env{} = env) do
     delete_modules_by_file(env.file)
     delete_calls_by_file(env.file)
+
     :ok
   end
 
   def trace({:on_module, _, _}, %Macro.Env{} = env) do
     info = build_module_info(env.module, env.file, env.line)
     :ets.insert(table_name(:modules), {env.module, info})
+
     :ok
   end
 
@@ -256,37 +258,24 @@ defmodule ElixirLS.LanguageServer.Tracer do
   defp do_register_call(meta, module, name, arity, env) do
     callee = {module, name, arity}
 
-    call = %{
-      callee: callee,
-      file: env.file,
-      line: meta[:line],
-      column: meta[:column]
-    }
+    line = meta[:line]
+    column = meta[:column]
 
-    updated_calls =
-      case :ets.lookup(table_name(:calls), callee) do
-        [{_callee, callee_calls}] when is_map(callee_calls) ->
-          file_calle_calls =
-            case callee_calls[env.file] do
-              nil -> [call]
-              file_calle_calls -> [call | file_calle_calls]
-            end
-
-          Map.put(callee_calls, env.file, file_calle_calls)
-
-        [] ->
-          %{env.file => [call]}
-      end
-
-    :ets.insert(table_name(:calls), {callee, updated_calls})
+    :ets.insert(table_name(:calls), {{callee, env.file, line, column}, :ok})
   end
 
   def get_trace do
+    # TODO get by calee
     :ets.tab2list(table_name(:calls))
-    |> Map.new(fn {callee, calls_by_file} ->
-      calls = calls_by_file |> Map.values() |> List.flatten()
-      {callee, calls}
+    |> Enum.map(fn {{callee, file, line, column}, _} ->
+      %{
+        callee: callee,
+        file: file,
+        line: line,
+        column: column
+      }
     end)
+    |> Enum.group_by(fn %{callee: callee} -> callee end)
   end
 
   defp sync(table_name) do
@@ -317,13 +306,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   defp calls_by_file_matchspec(file, return) do
     [
-      {{:"$1", :"$2"},
-       [
-         {
-           :andalso,
-           {:andalso, {:is_list, {:map_get, file, :"$2"}}}
-         }
-       ], [return]}
+      {{{:_, :"$1", :_, :_}, :_}, [{:==, :"$1", file}], [return]}
     ]
   end
 
@@ -334,18 +317,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   def delete_calls_by_file(file) do
-    ms = calls_by_file_matchspec(file, :"$_")
-    table_name = table_name(:calls)
+    ms = calls_by_file_matchspec(file, true)
 
-    for {callee, calls_by_file} <- :ets.select(table_name(:calls), ms) do
-      calls_by_file = calls_by_file |> Map.delete(file)
-
-      if calls_by_file == %{} do
-        :ets.delete(table_name, callee)
-      else
-        :ets.insert(table_name, {callee, calls_by_file})
-      end
-    end
+    :ets.select_delete(table_name(:calls), ms)
   end
 
   defp manifest_path(project_dir) do

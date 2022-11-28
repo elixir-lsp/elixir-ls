@@ -41,7 +41,7 @@ defmodule ElixirLS.LanguageServer.TracerTest do
     end
 
     defp sorted_calls() do
-      :ets.tab2list(:"#{Tracer}:calls") |> Enum.sort()
+      :ets.tab2list(:"#{Tracer}:calls") |> Enum.map(&(&1 |> elem(0))) |> Enum.sort()
     end
 
     test "trace is empty" do
@@ -66,25 +66,8 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       )
 
       assert [
-               {{CalledModule, :called, 1},
-                %{
-                  "calling_module.ex" => [
-                    %{
-                      callee: {CalledModule, :called, 1},
-                      column: 2,
-                      file: "calling_module.ex",
-                      line: 12
-                    }
-                  ],
-                  "other_calling_module.ex" => [
-                    %{
-                      callee: {CalledModule, :called, 1},
-                      column: 3,
-                      file: "other_calling_module.ex",
-                      line: 13
-                    }
-                  ]
-                }}
+               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2},
+               {{CalledModule, :called, 1}, "other_calling_module.ex", 13, 3}
              ] == sorted_calls()
     end
 
@@ -106,23 +89,8 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       )
 
       assert [
-               {{CalledModule, :called, 1},
-                %{
-                  "calling_module.ex" => [
-                    %{
-                      callee: {CalledModule, :called, 1},
-                      column: 3,
-                      file: "calling_module.ex",
-                      line: 13
-                    },
-                    %{
-                      callee: {CalledModule, :called, 1},
-                      column: 2,
-                      file: "calling_module.ex",
-                      line: 12
-                    }
-                  ]
-                }}
+               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2},
+               {{CalledModule, :called, 1}, "calling_module.ex", 13, 3}
              ] == sorted_calls()
     end
 
@@ -144,28 +112,8 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       )
 
       assert [
-               {{CalledModule, :called, 1},
-                %{
-                  "calling_module.ex" => [
-                    %{
-                      callee: {CalledModule, :called, 1},
-                      column: 2,
-                      file: "calling_module.ex",
-                      line: 12
-                    }
-                  ]
-                }},
-               {{CalledModule, :other_called, 1},
-                %{
-                  "other_calling_module.ex" => [
-                    %{
-                      callee: {CalledModule, :other_called, 1},
-                      column: 3,
-                      file: "other_calling_module.ex",
-                      line: 13
-                    }
-                  ]
-                }}
+               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2},
+               {{CalledModule, :other_called, 1}, "other_calling_module.ex", 13, 3}
              ] == sorted_calls()
     end
 
@@ -189,17 +137,7 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       Tracer.delete_calls_by_file("other_calling_module.ex")
 
       assert [
-               {{CalledModule, :called, 1},
-                %{
-                  "calling_module.ex" => [
-                    %{
-                      callee: {CalledModule, :called, 1},
-                      column: 2,
-                      file: "calling_module.ex",
-                      line: 12
-                    }
-                  ]
-                }}
+               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2}
              ] == sorted_calls()
 
       Tracer.delete_calls_by_file("calling_module.ex")
@@ -218,7 +156,7 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       project_path = FixtureHelpers.get_path("")
       Tracer.write_manifest(project_path)
 
-      assert 1 == Tracer.read_manifest(project_path)
+      assert 2 == Tracer.read_manifest(project_path)
     end
   end
 end
