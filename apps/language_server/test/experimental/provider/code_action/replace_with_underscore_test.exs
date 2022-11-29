@@ -187,6 +187,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
       assert "_x = 3" == apply_edit(source, edit)
     end
 
+    test "applied to a variable match, preserves comments" do
+      {file_uri, source, code_action} =
+        ~S[
+          a = bar # TODO: Fix this
+        ]
+        |> code_action("/project/file.ex", 0, "a")
+
+      assert [%CodeActionReply{edit: %{changes: %{^file_uri => edit}}}] = apply(code_action)
+      assert "_a = bar # TODO: Fix this" == apply_edit(source, edit)
+    end
+
     test "preserves spacing" do
       {file_uri, source, code_action} =
         "   x = 3"
@@ -206,6 +217,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
       assert [%CodeActionReply{edit: %{changes: %{^file_uri => edit}}}] = apply(code_action)
       assert "_unused = %Struct{}" = apply_edit(source, edit)
+    end
+
+    test "applied to a variable with a pattern matched struct preserves trailing comments" do
+      {file_uri, source, code_action} =
+        ~S[
+          unused = %Struct{} # TODO: fix
+        ]
+        |> code_action("/project/file.ex", 0, "unused")
+
+      assert [%CodeActionReply{edit: %{changes: %{^file_uri => edit}}}] = apply(code_action)
+      assert "_unused = %Struct{} # TODO: fix" = apply_edit(source, edit)
     end
 
     test "applied to struct param matches" do

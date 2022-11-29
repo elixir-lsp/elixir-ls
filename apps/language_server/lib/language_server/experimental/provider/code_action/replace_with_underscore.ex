@@ -32,7 +32,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
   defp build_code_action(%SourceFile{} = source_file, one_based_line, variable_name) do
     with {:ok, line_text} <- SourceFile.fetch_text_at(source_file, one_based_line),
-         {:ok, line_ast} <- ElixirSense.string_to_quoted(line_text, 0),
+         {:ok, line_ast} <-
+           ElixirSense.string_to_quoted(line_text, 1, 6),
          {:ok, transformed} <- apply_transform(line_text, line_ast, variable_name) do
       text_edits =
         line_text
