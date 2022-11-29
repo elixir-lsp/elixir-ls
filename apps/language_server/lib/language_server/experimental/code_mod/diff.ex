@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Experimental.Format.Diff do
+defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Diff do
   alias ElixirLS.LanguageServer.Experimental.CodeUnit
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
@@ -17,7 +17,15 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.Diff do
         apply_diff(diff_type, position, diff_string, edits)
       end)
 
-    Enum.reduce(edits, [], &collapse/2)
+    edits
+    |> Enum.reduce([], &collapse/2)
+
+    # Sorting in reverse by start character and line ensures edits are applied back to front on
+    # throughout a document which means deletes won't affect subsequent edits and mess up their
+    # start / end ranges
+    # TODO: This would be more easily accomplished by adding edits to a list for each line
+    # and then flat_mapping the result
+    |> Enum.sort_by(fn edit -> {edit.range.start.line, edit.range.start.character} end, :desc)
   end
 
   # This collapses a delete and an an insert that are adjacent to one another

@@ -34,6 +34,11 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     }
   end
 
+  @spec size(t) :: non_neg_integer()
+  def size(%__MODULE__{} = source) do
+    Document.size(source.document)
+  end
+
   @spec mark_dirty(t) :: t
   def mark_dirty(%__MODULE__{} = source) do
     %__MODULE__{source | dirty?: true}

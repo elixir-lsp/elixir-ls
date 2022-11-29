@@ -1,11 +1,12 @@
 defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
-  alias ElixirLS.LanguageServer.Experimental.Format.Diff
+  alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
 
   import Diff
-  use ExUnit.Case
+
+  use ElixirLS.Test.CodeMod.Case
 
   def edit(start_line, start_code_unit, end_line, end_code_unit, replacement) do
     TextEdit.new(
@@ -18,13 +19,24 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
     )
   end
 
+  def apply_code_mod(source, _, opts) do
+    result = Keyword.get(opts, :result)
+    {:ok, Diff.diff(source, result)}
+  end
+
+  def assert_edited(initial, final) do
+    assert {:ok, edited} = modify(initial, result: final, convert_to_ast: false)
+    assert edited == final
+  end
+
   describe "single line ascii diffs" do
     test "a deletion at the start" do
       orig = "  hello"
       final = "hello"
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 0, 0, 2, "") == edit
+      assert edit == edit(0, 0, 0, 2, "")
+      assert_edited(orig, final)
     end
 
     test "appending in the middle" do
@@ -32,7 +44,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       final = "heyello"
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 2, 0, 2, "ye") == edit
+      assert edit == edit(0, 2, 0, 2, "ye")
+      assert_edited(orig, final)
     end
 
     test "deleting in the middle" do
@@ -40,7 +53,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       final = "heo"
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 2, 0, 4, "") == edit
+      assert edit == edit(0, 2, 0, 4, "")
+      assert_edited(orig, final)
     end
 
     test "inserting after a delete" do
@@ -50,7 +64,26 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       # this is collapsed into a single edit of an
       # insert that spans the delete and the insert
       assert [edit] = diff(orig, final)
-      assert edit(0, 3, 0, 5, "vetica went") == edit
+      assert edit == edit(0, 3, 0, 5, "vetica went")
+      assert_edited(orig, final)
+    end
+
+    test "edits are ordered back to front on a line" do
+      orig = "hello there"
+      final = "hellothe"
+
+      assert [e1, e2] = diff(orig, final)
+      assert e1 == edit(0, 9, 0, 11, "")
+      assert e2 == edit(0, 5, 0, 6, "")
+    end
+  end
+
+  describe "applied edits" do
+    test "multiple edits on the same line don't conflict" do
+      orig = "foo(   a,   b)"
+      expected = "foo(a, b)"
+
+      assert_edited(orig, expected)
     end
   end
 
@@ -67,7 +100,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       final = "hello"
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 0, 2, 0, "") == edit
+      assert edit == edit(0, 0, 2, 0, "")
+      assert_edited(orig, final)
     end
 
     test "multi-line appending in the middle" do
@@ -75,7 +109,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       final = "he\n\n ye\n\nllo"
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 2, 0, 2, "\n\n ye\n\n") == edit
+      assert edit == edit(0, 2, 0, 2, "\n\n ye\n\n")
+      assert_edited(orig, final)
     end
 
     test "deleting multiple lines in the middle" do
@@ -91,7 +126,23 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       final = "hellogoodbye"
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 5, 3, 0, "") == edit
+      assert edit == edit(0, 5, 3, 0, "")
+      assert_edited(orig, final)
+    end
+
+    test "deleting multiple lines" do
+      orig = ~q[
+        foo(a,
+          b,
+          c,
+          d)
+      ]
+
+      final = ~q[
+        foo(a, b, c, d)
+      ]t
+
+      assert_edited(orig, final)
     end
 
     test "deletions keep indentation" do
@@ -114,7 +165,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
         |> String.trim()
 
       assert [edit] = diff(orig, final)
-      assert edit(2, 0, 4, 0, "") == edit
+      assert edit == edit(2, 0, 4, 0, "")
+      assert_edited(orig, final)
     end
   end
 
@@ -124,7 +176,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       final = ~S[{"🎸", "after"}]
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 7, 0, 9, "") == edit
+      assert edit == edit(0, 7, 0, 9, "")
+      assert_edited(orig, final)
     end
 
     test "inserting in the middle" do
@@ -132,18 +185,55 @@ defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
       final = ~S[🎸🎺🎸]
 
       assert [edit] = diff(orig, final)
-      assert edit(0, 2, 0, 2, "🎺") == edit
+      assert edit == edit(0, 2, 0, 2, "🎺")
+      assert_edited(orig, final)
     end
 
     test "deleting in the middle" do
       orig = ~S[🎸🎺🎺🎸]
       final = ~S[🎸🎸]
-      assert [edit] = diff(orig, final)
 
-      assert edit(0, 2, 0, 6, "") == edit
+      assert [edit] = diff(orig, final)
+      assert edit == edit(0, 2, 0, 6, "")
+      assert_edited(orig, final)
+    end
+
+    test "multiple deletes on the same line" do
+      orig = ~S[🎸a 🎺b 🎺c 🎸]
+      final = ~S[🎸ab🎸]
+
+      assert_edited(orig, final)
     end
   end
 
   describe("multi line emoji") do
+    test "deleting on the first line" do
+      orig = ~q[
+        🎸a 🎺b 🎺c 🎸
+        hello
+      ]t
+
+      final = ~q[
+        🎸a b c 🎸
+        hello
+      ]t
+
+      assert_edited(orig, final)
+    end
+
+    test "deleting on subsequent lines" do
+      orig = ~q[
+        🎸a 🎺b 🎺c 🎸
+        hello
+        🎸a 🎺b 🎺c 🎸
+      ]t
+      final = ~q[
+        🎸a 🎺b 🎺c 🎸
+        ello
+        🎸a 🎺b 🎺c 🎸
+      ]t
+
+      assert_edited(orig, final)
+    end
   end
 end
