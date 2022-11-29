@@ -5,43 +5,11 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
   use Patch
 
   alias ElixirLS.LanguageServer.Experimental
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.SourceFile
 
   import ExUnit.CaptureIO
   import ElixirLS.LanguageServer.Experimental.SourceFile, except: [to_string: 1]
-
-  test "format_spec/2 with nil" do
-    assert SourceFile.format_spec(nil, []) == ""
-  end
-
-  test "format_spec/2 with empty string" do
-    assert SourceFile.format_spec("", []) == ""
-  end
-
-  test "format_spec/2 with a plain string" do
-    spec = "@spec format_spec(String.t(), keyword()) :: String.t()"
-
-    assert SourceFile.format_spec(spec, line_length: 80) == """
-
-           ```
-           @spec format_spec(String.t(), keyword()) :: String.t()
-           ```
-           """
-  end
-
-  test "format_spec/2 with a spec that needs to be broken over lines" do
-    spec = "@spec format_spec(String.t(), keyword()) :: String.t()"
-
-    assert SourceFile.format_spec(spec, line_length: 30) == """
-
-           ```
-           @spec format_spec(
-             String.t(),
-             keyword()
-           ) :: String.t()
-           ```
-           """
-  end
 
   def text(%Experimental.SourceFile{} = source) do
     Experimental.SourceFile.to_string(source)
@@ -653,119 +621,6 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
                    "range" => invalid_range
                  }
                ])
-    end
-  end
-
-  test "lines" do
-    assert [""] == SourceFile.lines("")
-    assert ["abc"] == SourceFile.lines("abc")
-    assert ["", ""] == SourceFile.lines("\n")
-    assert ["a", ""] == SourceFile.lines("a\n")
-    assert ["", "a"] == SourceFile.lines("\na")
-    assert ["ABCDE", "FGHIJ"] == SourceFile.lines("ABCDE\rFGHIJ")
-    assert ["ABCDE", "FGHIJ"] == SourceFile.lines("ABCDE\r\nFGHIJ")
-    assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\nFGHIJ")
-    assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\r\rFGHIJ")
-    assert ["ABCDE", "", "FGHIJ"] == SourceFile.lines("ABCDE\n\rFGHIJ")
-  end
-
-  test "full_range" do
-    assert %{
-             "end" => %{"character" => 0, "line" => 0},
-             "start" => %{"character" => 0, "line" => 0}
-           } = SourceFile.full_range(new(""))
-
-    assert %{"end" => %{"character" => 1, "line" => 0}} = SourceFile.full_range(new("a"))
-    assert %{"end" => %{"character" => 0, "line" => 1}} = SourceFile.full_range(new("\n"))
-    assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\naa"))
-    assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\r\naa"))
-    assert %{"end" => %{"character" => 8, "line" => 1}} = SourceFile.full_range(new("a\naa🏳️‍🌈"))
-  end
-
-  describe "positions" do
-    test "lsp_position_to_elixir empty" do
-      assert {1, 1} == SourceFile.lsp_position_to_elixir("", {0, 0})
-    end
-
-    test "lsp_position_to_elixir single first char" do
-      assert {1, 1} == SourceFile.lsp_position_to_elixir("abcde", {0, 0})
-    end
-
-    test "lsp_position_to_elixir single line" do
-      assert {1, 2} == SourceFile.lsp_position_to_elixir("abcde", {0, 1})
-    end
-
-    test "lsp_position_to_elixir single line utf8" do
-      assert {1, 2} == SourceFile.lsp_position_to_elixir("🏳️‍🌈abcde", {0, 6})
-    end
-
-    test "lsp_position_to_elixir multi line" do
-      assert {2, 2} == SourceFile.lsp_position_to_elixir("abcde\n1234", {1, 1})
-    end
-
-    test "elixir_position_to_lsp empty" do
-      assert {0, 0} == SourceFile.elixir_position_to_lsp("", {1, 1})
-    end
-
-    test "elixir_position_to_lsp single line first char" do
-      assert {0, 0} == SourceFile.elixir_position_to_lsp("abcde", {1, 1})
-    end
-
-    test "elixir_position_to_lsp single line" do
-      assert {0, 1} == SourceFile.elixir_position_to_lsp("abcde", {1, 2})
-    end
-
-    test "elixir_position_to_lsp single line utf8" do
-      assert {0, 6} == SourceFile.elixir_position_to_lsp("🏳️‍🌈abcde", {1, 2})
-    end
-
-    test "elixir_position_to_lsp multi line" do
-      assert {1, 1} == SourceFile.elixir_position_to_lsp("abcde\n1234", {2, 2})
-    end
-
-    test "sanity check" do
-      text = "aąłsd🏳️‍🌈abcde"
-
-      for i <- 0..String.length(text) do
-        elixir_pos = {1, i + 1}
-        lsp_pos = SourceFile.elixir_position_to_lsp(text, elixir_pos)
-
-        assert elixir_pos == SourceFile.lsp_position_to_elixir(text, lsp_pos)
-      end
-    end
-  end
-
-  describe "formatter_for" do
-    setup [:temporary_elixir_file]
-
-    def temporary_elixir_file(_) do
-      unique_number = System.unique_integer([:positive, :monotonic])
-      path = Path.join([System.tmp_dir!(), "formatted_#{unique_number}.ex"])
-      File.touch!(path)
-      uri = %URI{path: path, scheme: "file://"}
-
-      on_exit(fn ->
-        File.rm(path)
-      end)
-
-      {:ok, file_path: path, file_uri: URI.to_string(uri)}
-    end
-
-    def as_contents(contents, %{file_path: file_path}) do
-      File.write!(file_path, contents)
-    end
-
-    test "it should not crash on syntax errors", ctx do
-      as_contents("", ctx)
-
-      patch(Mix.Tasks.Format, :formatter_for_file, fn _ -> raise %SyntaxError{} end)
-
-      assert {:error, message} =
-               with_io(:stderr, fn ->
-                 SourceFile.formatter_for(ctx.file_uri)
-               end)
-
-      assert String.contains?(message, "Unable to get formatter options for")
     end
   end
 end
