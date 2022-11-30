@@ -781,7 +781,9 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(code_action_req(_id, uri, diagnostics), state = %__MODULE__{}) do
-    {:async, fn -> CodeAction.code_actions(uri, diagnostics) end, state}
+    source_file = get_source_file(state, uri)
+
+    {:async, fn -> CodeAction.code_actions(uri, diagnostics, source_file) end, state}
   end
 
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
