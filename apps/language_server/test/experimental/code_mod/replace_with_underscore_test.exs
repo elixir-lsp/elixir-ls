@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.ReplaceWithUnderscoreTest
 
   def apply_code_mod(original_text, ast, options) do
     variable = Keyword.get(options, :variable, :unused)
-    ReplaceWithUnderscore.apply(original_text, ast, variable)
+    ReplaceWithUnderscore.text_edits(original_text, ast, variable)
   end
 
   describe "fixes in parameters" do

@@ -3,8 +3,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.ReplaceWithUnderscore do
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Ast
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
 
-  @spec apply(String.t(), Ast.t(), String.t() | atom) :: {:ok, [TextEdit.t()]}
-  def apply(original_text, ast, variable_name) do
+  @spec text_edits(String.t(), Ast.t(), String.t() | atom) :: {:ok, [TextEdit.t()]}
+  def text_edits(original_text, ast, variable_name) do
     variable_name = ensure_atom(variable_name)
 
     with {:ok, transformed} <- apply_transform(original_text, ast, variable_name) do

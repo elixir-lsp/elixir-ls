@@ -12,20 +12,18 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Diff do
   end
 
   defp to_text_edits(difference) do
-    {_, edits} =
-      Enum.reduce(difference, {{0, 0}, []}, fn {diff_type, diff_string}, {position, edits} ->
-        apply_diff(diff_type, position, diff_string, edits)
+    {_, {current_line, prev_lines}} =
+      Enum.reduce(difference, {{0, 0}, {[], []}}, fn
+        {diff_type, diff_string}, {position, edits} ->
+          apply_diff(diff_type, position, diff_string, edits)
       end)
 
-    edits
-    |> Enum.reduce([], &collapse/2)
-
-    # Sorting in reverse by start character and line ensures edits are applied back to front on
-    # throughout a document which means deletes won't affect subsequent edits and mess up their
-    # start / end ranges
-    # TODO: This would be more easily accomplished by adding edits to a list for each line
-    # and then flat_mapping the result
-    |> Enum.sort_by(fn edit -> {edit.range.start.line, edit.range.start.character} end, :desc)
+    [current_line | prev_lines]
+    |> Enum.flat_map(fn line_edits ->
+      line_edits
+      |> Enum.reduce([], &collapse/2)
+      |> Enum.reverse()
+    end)
   end
 
   # This collapses a delete and an an insert that are adjacent to one another
@@ -60,36 +58,39 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Diff do
   end
 
   defp apply_diff(:eq, position, doc_string, edits) do
-    new_position = advance(doc_string, position)
-    {new_position, edits}
+    advance(doc_string, position, edits)
   end
 
   defp apply_diff(:del, {line, code_unit} = position, change, edits) do
-    after_pos = {edit_end_line, edit_end_unit} = advance(change, position)
-    {after_pos, [edit("", line, code_unit, edit_end_line, edit_end_unit) | edits]}
+    {after_pos, {current_line, prev_lines}} = advance(change, position, edits)
+    {edit_end_line, edit_end_unit} = after_pos
+    current_line = [edit("", line, code_unit, edit_end_line, edit_end_unit) | current_line]
+    {after_pos, {current_line, prev_lines}}
   end
 
-  defp apply_diff(:ins, {line, code_unit} = position, change, edits) do
-    {advance(change, position), [edit(change, line, code_unit, line, code_unit) | edits]}
+  defp apply_diff(:ins, {line, code_unit} = position, change, {current_line, prev_lines}) do
+    current_line = [edit(change, line, code_unit, line, code_unit) | current_line]
+    advance(change, position, {current_line, prev_lines})
   end
 
-  def advance(<<>>, position) do
-    position
+  defp advance(<<>>, position, edits) do
+    {position, edits}
   end
 
   for ending <- ["\r\n", "\r", "\n"] do
-    def advance(<<unquote(ending), rest::binary>>, {line, _unit}) do
-      advance(rest, {line + 1, 0})
+    defp advance(<<unquote(ending), rest::binary>>, {line, _unit}, {current_line, prev_lines}) do
+      edits = {[], [current_line | prev_lines]}
+      advance(rest, {line + 1, 0}, edits)
     end
   end
 
-  def advance(<<c, rest::binary>>, {line, unit}) when c < 128 do
-    advance(rest, {line, unit + 1})
+  defp advance(<<c, rest::binary>>, {line, unit}, edits) when c < 128 do
+    advance(rest, {line, unit + 1}, edits)
   end
 
-  def advance(<<c::utf8, rest::binary>>, {line, unit}) do
+  defp advance(<<c::utf8, rest::binary>>, {line, unit}, edits) do
     increment = CodeUnit.count(:utf16, <<c::utf8>>)
-    advance(rest, {line, unit + increment})
+    advance(rest, {line, unit + increment}, edits)
   end
 
   defp edit(text, start_line, start_unit, end_line, end_unit) do

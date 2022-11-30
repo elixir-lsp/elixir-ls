@@ -31,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
     with {:ok, line_text} <- SourceFile.fetch_text_at(source_file, one_based_line),
          {:ok, line_ast} <- Ast.from(line_text),
          {:ok, text_edits} <-
-           CodeMod.ReplaceWithUnderscore.apply(line_text, line_ast, variable_name) do
+           CodeMod.ReplaceWithUnderscore.text_edits(line_text, line_ast, variable_name) do
       case text_edits do
         [] ->
           :error
