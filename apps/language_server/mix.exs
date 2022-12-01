@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
-      consolidate_protocols: false,
+      consolidate_protocols: Mix.env() != :test,
       deps: deps()
     ]
   end
@@ -31,9 +31,10 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:erl2ex, github: "dazuma/erl2ex"},
       {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
-      {:stream_data, "~> 0.5", only: :test},
+      {:stream_data, "~> 0.5", only: [:dev, :test]},
       {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},
-      {:patch, "~> 0.12.0", only: :test}
+      {:patch, "~> 0.12.0", only: :test},
+      {:benchee, "~> 1.0", only: :dev}
     ]
   end
 
