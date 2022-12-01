@@ -44,12 +44,12 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnit do
 
   @spec to_utf8(String.t(), utf16_code_unit()) :: {:ok, utf8_code_unit()} | error
   def to_utf8(binary, utf16_unit) do
-    do_to_utf8(binary, utf16_unit + 1, 0)
+    do_to_utf8(binary, utf16_unit, 0)
   end
 
   @spec to_utf16(String.t(), utf8_code_unit()) :: {:ok, utf16_code_unit()} | error
   def to_utf16(binary, utf16_unit) do
-    do_to_utf16(binary, utf16_unit + 1, 0)
+    do_to_utf16(binary, utf16_unit, 0)
   end
 
   def count(:utf16, binary) do
@@ -98,7 +98,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnit do
   end
 
   defp do_to_utf16(_, 0, utf16_unit) do
-    {:ok, utf16_unit - 1}
+    {:ok, utf16_unit}
   end
 
   defp do_to_utf16(_, utf8_unit, _) when utf8_unit < 0 do
@@ -152,7 +152,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnit do
   end
 
   defp do_to_utf8(_, 0, utf8_unit) do
-    {:ok, utf8_unit - 1}
+    {:ok, utf8_unit}
   end
 
   defp do_to_utf8(_, utf_16_units, _) when utf_16_units < 0 do

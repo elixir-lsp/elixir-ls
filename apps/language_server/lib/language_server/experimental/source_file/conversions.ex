@@ -81,17 +81,8 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
         {:ok, ElixirPosition.new(elixir_line_number, 0)}
 
       true ->
-        with {:ok, line} <- Document.fetch_line(document, elixir_line_number) do
-          elixir_character =
-            case line do
-              line(ascii?: true, text: text) ->
-                min(ls_character, byte_size(text))
-
-              line(text: text) ->
-                {:ok, utf16_text} = to_utf16(text)
-                lsp_character_to_elixir(utf16_text, ls_character)
-            end
-
+        with {:ok, line} <- Document.fetch_line(document, elixir_line_number),
+             {:ok, elixir_character} <- extract_elixir_character(position, line) do
           {:ok, ElixirPosition.new(elixir_line_number, elixir_character)}
         end
     end
@@ -123,20 +114,11 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
   end
 
   def to_lsp(%ElixirPosition{} = position, %Document{} = document) do
-    %ElixirPosition{character: elixir_character, line: elixir_line} = position
+    with {:ok, line} <- Document.fetch_line(document, position.line),
+         {:ok, lsp_character} <- extract_lsp_character(position, line) do
+      ls_pos =
+        LSPosition.new(character: lsp_character, line: position.line - @elixir_ls_index_base)
 
-    with {:ok, line} <- Document.fetch_line(document, elixir_line) do
-      lsp_character =
-        case line do
-          line(ascii?: true, text: text) ->
-            min(position.character, byte_size(text))
-
-          line(text: utf8_text) ->
-            {:ok, character} = elixir_character_to_lsp(utf8_text, elixir_character)
-            character
-        end
-
-      ls_pos = LSPosition.new(character: lsp_character, line: elixir_line - @elixir_ls_index_base)
       {:ok, ls_pos}
     end
   end
@@ -147,19 +129,27 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
 
   # Private
 
-  defp extract_lsp_character(%ElixirPosition{} = position, line(ascii?: true)) do
-    {:ok, position.character}
+  defp extract_lsp_character(%ElixirPosition{} = position, line(ascii?: true, text: text)) do
+    character = min(position.character, byte_size(text))
+    {:ok, character}
   end
 
   defp extract_lsp_character(%ElixirPosition{} = position, line(text: utf8_text)) do
-    {:ok, CodeUnit.utf16_offset(utf8_text, position.character)}
+    with {:ok, code_unit} <- CodeUnit.to_utf16(utf8_text, position.character) do
+      character = min(code_unit, CodeUnit.count(:utf16, utf8_text))
+      {:ok, character}
+    end
   end
 
-  defp extract_elixir_character(%LSPosition{} = position, line(ascii?: true)) do
-    {:ok, position.character}
+  defp extract_elixir_character(%LSPosition{} = position, line(ascii?: true, text: text)) do
+    character = min(position.character, byte_size(text))
+    {:ok, character}
   end
 
   defp extract_elixir_character(%LSPosition{} = position, line(text: utf8_text)) do
-    {:ok, CodeUnit.utf8_offset(utf8_text, position.character)}
+    with {:ok, code_unit} <- CodeUnit.to_utf8(utf8_text, position.character) do
+      character = min(code_unit, byte_size(utf8_text))
+      {:ok, character}
+    end
   end
 end

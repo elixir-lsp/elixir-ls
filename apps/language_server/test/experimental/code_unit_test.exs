@@ -64,6 +64,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnitTest do
     end
 
     test "handles multi-byte characters properly" do
+      # guitar is 2 code units in utf16 but 4 in utf8
       line = "b🎸abc"
       assert 0 == utf16_offset(line, 0)
       assert 1 == utf16_offset(line, 1)
@@ -77,19 +78,21 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnitTest do
 
   describe "converting to utf8" do
     test "bounds are respected" do
-      assert {:error, :out_of_bounds} = to_utf16("h", 1)
+      assert {:error, :out_of_bounds} = to_utf16("h", 2)
     end
 
     test "with a multi-byte character" do
       line = "🏳️‍🌈"
+
       code_unit_count = count_utf8_code_units(line)
 
-      assert to_utf8(line, 0) == {:error, :misaligned}
-      assert to_utf8(line, 1) == {:ok, 3}
-      assert to_utf8(line, 2) == {:ok, 6}
-      assert to_utf8(line, 3) == {:ok, 9}
-      assert to_utf8(line, 4) == {:error, :misaligned}
-      assert to_utf8(line, 5) == {:ok, code_unit_count - 1}
+      assert to_utf8(line, 0) == {:ok, 0}
+      assert to_utf8(line, 1) == {:error, :misaligned}
+      assert to_utf8(line, 2) == {:ok, 4}
+      assert to_utf8(line, 3) == {:ok, 7}
+      assert to_utf8(line, 4) == {:ok, 10}
+      assert to_utf8(line, 5) == {:error, :misaligned}
+      assert to_utf8(line, 6) == {:ok, code_unit_count}
     end
 
     test "after a unicode character" do
@@ -99,8 +102,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnitTest do
       assert to_utf8(line, 1) == {:ok, 1}
       assert to_utf8(line, 4) == {:ok, 4}
       assert to_utf8(line, 5) == {:ok, 5}
-      assert to_utf8(line, 6) == {:error, :misaligned}
-      assert to_utf8(line, 7) == {:ok, 9}
+      assert to_utf8(line, 6) == {:ok, 6}
+      assert to_utf8(line, 7) == {:error, :misaligned}
       # after the guitar character
       assert to_utf8(line, 8) == {:ok, 10}
       assert to_utf8(line, 9) == {:ok, 11}
@@ -114,24 +117,27 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnitTest do
 
   describe "converting to utf16" do
     test "respects bounds" do
-      assert {:error, :out_of_bounds} = to_utf16("h", 1)
+      assert {:error, :out_of_bounds} = to_utf16("h", 2)
     end
 
     test "with a multi-byte character" do
       line = "🏳️‍🌈"
+
       code_unit_count = count_utf16_code_units(line)
       utf8_code_unit_count = count_utf8_code_units(line)
 
-      assert to_utf16(line, 0) == {:error, :misaligned}
+      assert to_utf16(line, 0) == {:ok, 0}
       assert to_utf16(line, 1) == {:error, :misaligned}
       assert to_utf16(line, 2) == {:error, :misaligned}
-      assert to_utf16(line, 3) == {:ok, 1}
-      assert to_utf16(line, 4) == {:error, :misaligned}
-      assert to_utf16(line, utf8_code_unit_count - 1) == {:ok, code_unit_count - 1}
+      assert to_utf16(line, 3) == {:error, :misaligned}
+      assert to_utf16(line, 4) == {:ok, 2}
+      assert to_utf16(line, utf8_code_unit_count - 1) == {:error, :misaligned}
+      assert to_utf16(line, utf8_code_unit_count) == {:ok, code_unit_count}
     end
 
     test "after a multi-byte character" do
       line = "    {\"🎸\",   \"ok\"}"
+
       utf16_code_unit_count = count_utf16_code_units(line)
       utf8_code_unit_count = count_utf8_code_units(line)
 
@@ -140,11 +146,12 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnitTest do
         assert to_utf16(line, index) == {:ok, index}
       end
 
-      assert to_utf16(line, 6) == {:error, :misaligned}
+      assert to_utf16(line, 6) == {:ok, 6}
       assert to_utf16(line, 7) == {:error, :misaligned}
       assert to_utf16(line, 8) == {:error, :misaligned}
+      assert to_utf16(line, 9) == {:error, :misaligned}
 
-      for index <- 9..17 do
+      for index <- 10..19 do
         assert to_utf16(line, index) == {:ok, index - 2}
       end
 
@@ -157,11 +164,11 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnitTest do
       utf8_code_unit_count = count_utf8_code_units(s)
       utf16_unit_count = count_utf16_code_units(s)
 
-      assert {:ok, utf16_unit} = to_utf16(s, utf8_code_unit_count - 1)
-      assert utf16_unit == utf16_unit_count - 1
+      assert {:ok, utf16_unit} = to_utf16(s, utf8_code_unit_count)
+      assert utf16_unit == utf16_unit_count
 
       assert {:ok, utf8_unit} = to_utf8(s, utf16_unit)
-      assert utf8_unit == utf8_code_unit_count - 1
+      assert utf8_unit == utf8_code_unit_count
     end
   end
 
@@ -170,11 +177,11 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeUnitTest do
       utf16_code_unit_count = count_utf16_code_units(s)
       utf8_code_unit_count = count_utf8_code_units(s)
 
-      assert {:ok, utf8_code_unit} = to_utf8(s, utf16_code_unit_count - 1)
-      assert utf8_code_unit == utf8_code_unit_count - 1
+      assert {:ok, utf8_code_unit} = to_utf8(s, utf16_code_unit_count)
+      assert utf8_code_unit == utf8_code_unit_count
 
       assert {:ok, utf16_unit} = to_utf16(s, utf8_code_unit)
-      assert utf16_unit == utf16_code_unit_count - 1
+      assert utf16_unit == utf16_code_unit_count
     end
   end
 
