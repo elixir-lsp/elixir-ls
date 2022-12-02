@@ -1,6 +1,7 @@
 defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Ast do
   alias ElixirLS.LanguageServer.Experimental.SourceFile
-  @opaque t :: tuple()
+
+  @type t :: any()
 
   def from(%SourceFile{} = source_file) do
     source_file
