@@ -131,4 +131,18 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
     assert [%CodeActionReply{edit: %{changes: %{^file_uri => [edit]}}}] = apply(code_action)
     assert edit.new_text == "_"
   end
+
+  test "works with multiple lines" do
+    {file_uri, code_action} = ~S[
+      defmodule MyModule do
+        def my_func(a) do
+        end
+      end
+    ] |> code_action("/project/file.ex", 1, "a")
+
+    assert [%CodeActionReply{edit: %{changes: %{^file_uri => [edit]}}}] = apply(code_action)
+    assert edit.new_text == "_"
+    assert edit.range.start.line == 1
+    assert edit.range.end.line == 1
+  end
 end

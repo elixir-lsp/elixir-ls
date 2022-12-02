@@ -2,11 +2,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
   @moduledoc """
   A code action that prefixes unused variables with an underscore
   """
+
   alias ElixirLS.LanguageServer.Experimental.CodeMod
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Ast
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionResult
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkspaceEdit
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
@@ -37,6 +39,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
           :error
 
         [_ | _] ->
+          text_edits = Enum.map(text_edits, &update_line(&1, one_based_line))
+
           reply =
             CodeActionResult.new(
               title: "Rename to _#{variable_name}",
@@ -47,6 +51,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
           {:ok, reply}
       end
     end
+  end
+
+  defp update_line(%TextEdit{} = text_edit, line_number) do
+    text_edit
+    |> put_in([:range, :start, :line], line_number - 1)
+    |> put_in([:range, :end, :line], line_number - 1)
   end
 
   defp extract_variable_and_line(%Diagnostic{} = diagnostic) do
