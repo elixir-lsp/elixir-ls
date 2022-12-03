@@ -730,7 +730,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     Server.receive_packet(server, did_open(uri, "elixir", 1, code))
     Server.receive_packet(server, completion_req(1, uri, 2, 25))
 
-    resp = assert_receive(%{"id" => 1}, 5000)
+    resp = assert_receive(%{"id" => 1}, 10000)
 
     assert response(1, %{
              "isIncomplete" => true,
@@ -1280,7 +1280,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       file_uri = SourceFile.Path.to_uri(file_path)
       file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
-      project_dir = SourceFile.Path.from_uri("#{root_uri()}/apps/app1")
+      project_dir = SourceFile.Path.absolute_from_uri("#{root_uri()}/apps/app1")
 
       initialize(server, %{"enableTestLenses" => true})
 
@@ -1365,7 +1365,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       file_uri = SourceFile.Path.to_uri(file_path)
       file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
-      project_dir = SourceFile.Path.from_uri(root_uri())
+      project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
       initialize(server, %{"enableTestLenses" => true})
 
@@ -1427,7 +1427,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       file_uri = SourceFile.Path.to_uri(file_path)
       file_absolute_path = SourceFile.Path.from_uri(file_uri)
       text = File.read!(file_path)
-      project_dir = SourceFile.Path.from_uri("#{root_uri()}/apps/app1")
+      project_dir = SourceFile.Path.absolute_from_uri("#{root_uri()}/apps/app1")
 
       initialize(server, %{
         "enableTestLenses" => true,

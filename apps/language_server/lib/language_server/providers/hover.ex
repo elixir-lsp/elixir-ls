@@ -165,13 +165,17 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp third_dep?(_source, nil), do: false
 
   defp third_dep?(source, project_dir) do
-    prefix = project_dir <> "/deps"
+    prefix = deps_path(project_dir)
     String.starts_with?(source, prefix)
   end
 
   defp third_dep_name(source, project_dir) do
-    prefix = project_dir <> "/deps/"
+    prefix = deps_path(project_dir) <> "/"
     String.replace_prefix(source, prefix, "") |> String.split("/") |> hd()
+  end
+
+  defp deps_path(project_dir) do
+    project_dir |> Path.expand() |> Path.join("deps")
   end
 
   defp builtin?(source) do

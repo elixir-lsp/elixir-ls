@@ -486,8 +486,10 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       assert_formatted("test/file.exs", project_dir)
       refute_formatted("test/file.ex", project_dir)
 
-      assert_formatted("symlink/file.exs", project_dir)
-      refute_formatted("symlink/file.ex", project_dir)
+      unless is_windows() do
+        assert_formatted("symlink/file.exs", project_dir)
+        refute_formatted("symlink/file.ex", project_dir)
+      end
 
       File.mkdir!("#{project_dir}/test/foo")
       refute_formatted("test/foo/file.ex", project_dir)

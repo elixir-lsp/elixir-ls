@@ -7,7 +7,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
 
   def appropriate_formatter_function_name(_) do
     formatter_function =
-      if function_exported?(Mix.Tasks.Format, :formatter_for_file, 1) do
+      if Version.match?(System.version(), ">= 1.13.0") do
         :formatter_for_file
       else
         :formatter_opts_for_file
@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
     {:ok, formatter_name: formatter_function}
   end
 
-  describe "formatter_for " do
+  describe "formatter_for" do
     setup [:appropriate_formatter_function_name]
 
     test "should handle syntax errors", ctx do

@@ -916,6 +916,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
+    file_path = Path.expand(file_path)
+
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.any?(fn path -> String.ends_with?(file_path, path) end)
   end
@@ -923,6 +925,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp is_test_file?(file_path) do
     test_paths = Mix.Project.config()[:test_paths] || ["test"]
     test_pattern = Mix.Project.config()[:test_pattern] || "*_test.exs"
+    file_path = Path.expand(file_path)
 
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.map(&Path.absname/1)
