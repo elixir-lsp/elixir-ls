@@ -107,6 +107,8 @@ defmodule Logger.Backends.JsonRpc do
     format = Logger.Formatter.compile(Keyword.get(config, :format))
     metadata = Keyword.get(config, :metadata, []) |> configure_metadata()
 
+    Code.ensure_loaded!(ElixirLS.Utils.WireProtocol)
+
     %{
       state
       | format: format,
