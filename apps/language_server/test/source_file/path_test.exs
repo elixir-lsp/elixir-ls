@@ -144,18 +144,19 @@ defmodule ElixirLS.LanguageServer.SourceFile.PathTest do
 
     test "windows path" do
       if is_windows() do
-        assert "file:///c%3A/win/path" == to_uri("c:/win/path")
-        assert "file:///c%3A/win/path" == to_uri("C:/win/path")
-        assert "file:///c%3A/win/path" == to_uri("c:/win/path/")
-        assert "file:///c%3A/win/path" == to_uri("/c:/win/path")
+        drive_letter = Path.expand("/") |> String.split(":") |> hd()
+        assert "file:///#{drive_letter}%3A/win/path" == to_uri("c:/win/path")
+        assert "file:///#{drive_letter}%3A/win/path" == to_uri("C:/win/path")
+        assert "file:///#{drive_letter}%3A/win/path" == to_uri("c:/win/path/")
+        assert "file:///#{drive_letter}%3A/win/path" == to_uri("/c:/win/path")
 
-        assert "file:///c%3A/win/path" == to_uri("c:\\win\\path")
-        assert "file:///c%3A/win/path" == to_uri("c:\\win/path")
+        assert "file:///#{drive_letter}%3A/win/path" == to_uri("c:\\win\\path")
+        assert "file:///#{drive_letter}%3A/win/path" == to_uri("c:\\win/path")
 
-        assert "file:///c%3A/test%20with%20%25/path" ==
+        assert "file:///#{drive_letter}%3A/test%20with%20%25/path" ==
                  to_uri("c:\\test with %\\path")
 
-        assert "file:///c%3A/test%20with%20%2525/c%23code" ==
+        assert "file:///#{drive_letter}%3A/test%20with%20%2525/c%23code" ==
                  to_uri("c:\\test with %25\\c#code")
       end
     end
