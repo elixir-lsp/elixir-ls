@@ -107,8 +107,6 @@ defmodule Logger.Backends.JsonRpc do
     format = Logger.Formatter.compile(Keyword.get(config, :format))
     metadata = Keyword.get(config, :metadata, []) |> configure_metadata()
 
-    Code.ensure_loaded!(ElixirLS.Utils.WireProtocol)
-
     %{
       state
       | format: format,
@@ -127,8 +125,11 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   defp log_event(level, msg, ts, md, state) do
-    output = format_event(level, msg, ts, md, state) |> IO.chardata_to_string()
-    ElixirLS.LanguageServer.JsonRpc.log_message(elixir_log_level_to_lsp(level), output)
+    if function_exported?(ElixirLS.Utils.WireProtocol, :send, 1) do
+      output = format_event(level, msg, ts, md, state) |> IO.chardata_to_string()
+      ElixirLS.LanguageServer.JsonRpc.log_message(elixir_log_level_to_lsp(level), output)
+    end
+
     state
   end
 
