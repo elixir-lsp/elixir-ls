@@ -192,7 +192,7 @@ defmodule ElixirLS.Debugger.VariablesTest do
 
     test "port" do
       children = Variables.children(hd(:erlang.ports()), 0, 10)
-      case os_type() do
+      case :os.type() do
         {:win32, _} ->
           assert children[:name] == '2/2'
         _ ->
