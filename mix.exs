@@ -9,7 +9,7 @@ defmodule ElixirLS.Mixfile do
       start_permanent: Mix.env() == :prod,
       build_per_environment: false,
       deps: deps(),
-      elixir: ">= 1.12.3",
+      elixir: ">= 1.12.0",
       dialyzer: [
         plt_add_apps: [:dialyxir_vendored, :debugger, :dialyzer, :ex_unit],
         flags: [
