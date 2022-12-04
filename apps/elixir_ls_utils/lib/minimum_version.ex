@@ -11,7 +11,7 @@ defmodule ElixirLS.Utils.MinimumVersion do
   end
 
   def check_elixir_version do
-    if Version.match?(System.version(), ">= 1.12.3") do
+    if Version.match?(System.version(), ">= 1.12.0") do
       otp_release = String.to_integer(System.otp_release())
 
       if Version.match?(System.version(), "< 1.13.0") and otp_release == 24 do
@@ -23,7 +23,7 @@ defmodule ElixirLS.Utils.MinimumVersion do
       end
     else
       {:error,
-       "Elixir versions below 1.12.3 are not supported. (Currently running v#{System.version()})"}
+       "Elixir versions below 1.12.0 are not supported. (Currently running v#{System.version()})"}
     end
   end
 end
