@@ -33,7 +33,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction do
       |> SourceFile.lines()
       |> Enum.at(start_line)
 
-    pattern = Regex.compile!("(?<![[:alnum:]._])#{variable}(?![[:alnum:]._])")
+    pattern = Regex.compile!("(?<![[:alnum:]._])#{Regex.escape(variable)}(?![[:alnum:]._])")
 
     if pattern |> Regex.scan(source_line) |> length() == 1 do
       %{
