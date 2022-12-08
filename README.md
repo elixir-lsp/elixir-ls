@@ -88,7 +88,7 @@ For VSCode install the extension: https://marketplace.visualstudio.com/items?ite
 
 Elixir:
 
-- 1.12.3 minimum
+- 1.12 minimum
 
 Erlang:
 
@@ -108,7 +108,7 @@ Currently there is a limit of 100 breakpoints.
 
 In order to debug modules in `.exs` files (such as tests), they must be specified under `requireFiles` in your launch configuration so they can be loaded and interpreted prior to running the task. For example, the default launch configuration for "mix test" in the VS Code plugin looks like this:
 
-```
+```json
 {
   "type": "mix_task",
   "name": "mix test",
@@ -128,7 +128,7 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
 
 In order to debug a single test or a single test file it is currently necessary to modify `taskArgs` and make sure no other tests are required in `requireFiles`.
 
-```
+```json
 {
   "type": "mix_task",
   "name": "mix test",
@@ -148,7 +148,7 @@ In order to debug a single test or a single test file it is currently necessary 
 
 Use the following launch config to debug phoenix apps
 
-```
+```json
 {
   "type": "mix_task",
   "name": "phx.server",
@@ -164,7 +164,7 @@ Please make sure that `startApps` is not set to `true` as it prevents phoenix fr
 
 Please note that due to `:int` limitation NIF modules cannot be interpreted and need to be excluded via `excludeModules` option. This option can be also used to disable interpreting for some modules when it is not desirable e.g. when performance is not satisfactory.
 
-```
+```json
 {
   "type": "mix_task",
   "name": "mix test",
@@ -291,7 +291,15 @@ https://github.com/elixir-lsp/elixir-ls/issues/364#issuecomment-829589139
 
 ## Building and running
 
-Run `mix compile`, then `mix elixir_ls.release -o <release_dir>`. This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
+In order to build a release use the following commands.
+
+```bash
+mix deps.get
+MIX_ENV=prod mix compile
+MIX_ENV=prod mix elixir_ls.release -o <release_dir>
+```
+
+This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
 
 If you're packaging these archives in an IDE plugin, make sure to build using the minimum supported OTP version for the best backwards-compatibility. Alternatively, you can use a [precompiled release](https://github.com/elixir-lsp/elixir-ls/releases).
 
