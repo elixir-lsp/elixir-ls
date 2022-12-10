@@ -47,6 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       Completion.completion(text, line, char, @supports)
 
     assert first_item["label"] == "do"
+    assert first_item["preselect"] == true
   end
 
   test "end is returned" do
@@ -94,9 +95,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     TestUtils.assert_has_cursor_char(text, line, char)
     {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
-    logger_labels =
-      ["warn", "debug", "error", "info"]
-      |> Enum.map(&(&1 <> "/2"))
+    logger_labels = ["warn", "debug", "error", "info"]
 
     for lfn <- logger_labels do
       assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
@@ -119,9 +118,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     TestUtils.assert_has_cursor_char(text, line, char)
     {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
 
-    logger_labels =
-      ["warn", "debug", "error", "info"]
-      |> Enum.map(&(&1 <> "/2"))
+    logger_labels = ["warn", "debug", "error", "info"]
 
     for lfn <- logger_labels do
       assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
@@ -194,7 +191,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     # 8 is interface
     assert item["kind"] == 8
-    assert item["label"] == "ExampleProtocol (protocol)"
+    assert item["label"] == "ExampleProtocol"
+    assert item["labelDetails"]["detail"] == "protocol"
+
+    assert item["labelDetails"]["description"] ==
+             "ElixirLS.LanguageServer.Fixtures.ExampleProtocol"
   end
 
   test "provides completions for protocol functions" do
@@ -238,7 +239,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     # 8 is interface
     assert item["kind"] == 8
-    assert item["label"] == "ExampleBehaviour (behaviour)"
+    assert item["label"] == "ExampleBehaviour"
+    assert item["labelDetails"]["detail"] == "behaviour"
+
+    assert item["labelDetails"]["description"] ==
+             "ElixirLS.LanguageServer.Fixtures.ExampleBehaviour"
   end
 
   test "completions of exceptions are rendered as a struct" do
@@ -260,7 +265,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     # 22 is struct
     assert item["kind"] == 22
-    assert item["label"] == "ExampleException (exception)"
+    assert item["label"] == "ExampleException"
+    assert item["labelDetails"]["detail"] == "exception"
+
+    assert item["labelDetails"]["description"] ==
+             "ElixirLS.LanguageServer.Fixtures.ExampleException"
   end
 
   test "provides completions for callbacks without `def` before" do
@@ -330,7 +339,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.filter(&(&1["detail"] =~ "struct"))
       |> Enum.map(& &1["label"])
 
-    assert "NaiveDateTime (struct)" in completions
+    assert "NaiveDateTime" in completions
 
     {line, char} = {4, 17}
     TestUtils.assert_has_cursor_char(text, line, char)
@@ -352,7 +361,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       |> Enum.filter(&(&1["detail"] =~ "struct"))
       |> Enum.map(& &1["label"])
 
-    assert "NaiveDateTime (struct)" in completions
+    assert "NaiveDateTime" in completions
   end
 
   describe "deprecated" do
@@ -387,7 +396,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     end
   end
 
-  describe "structs and maps" do
+  describe "auto alias" do
     test "suggests full module path as additionalTextEdits" do
       text = """
       defmodule MyModule do
@@ -415,7 +424,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       # 22 is struct
       assert item["kind"] == 22
-      assert item["label"] == "ExampleStruct (struct)"
+      assert item["label"] == "ExampleStruct"
+      assert item["labelDetails"]["detail"] == "struct"
+
+      assert item["labelDetails"]["description"] ==
+               "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct"
 
       assert [%{newText: "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct\n"}] =
                item["additionalTextEdits"]
@@ -430,6 +443,18 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
              ] = item["additionalTextEdits"]
     end
 
+    test "no crash on first line" do
+      text = "defmodule MyModule do"
+
+      {:ok, %{"items" => items}} = Completion.completion(text, 0, 21, @supports)
+
+      assert [item | _] = items
+
+      assert item["label"] == "do"
+    end
+  end
+
+  describe "structs and maps" do
     test "completions of structs are rendered as a struct" do
       text = """
       defmodule MyModule do
@@ -449,7 +474,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       # 22 is struct
       assert item["kind"] == 22
-      assert item["label"] == "ExampleStruct (struct)"
+      assert item["label"] == "ExampleStruct"
+      assert item["labelDetails"]["detail"] == "struct"
+
+      assert item["labelDetails"]["description"] ==
+               "ElixirLS.LanguageServer.Fixtures.ExampleStruct"
     end
 
     test "returns struct fields in call syntax" do
@@ -750,13 +779,13 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {:ok, %{"items" => [item1, item2, item3]}} = Completion.completion(text, line, char, opts)
 
-      assert item1["label"] == "my_func/1"
+      assert item1["label"] == "my_func"
       assert item1["insertText"] == "my_func(${1:text})"
 
-      assert item2["label"] == "my_func/2"
+      assert item2["label"] == "my_func"
       assert item2["insertText"] == "my_func(${1:text}, ${2:opts1})"
 
-      assert item3["label"] == "my_func/3"
+      assert item3["label"] == "my_func"
       assert item3["insertText"] == "my_func(${1:text}, ${2:opts1}, ${3:opts2})"
     end
 
@@ -778,30 +807,30 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {:ok, %{"items" => [item1, item2, item3]}} =
         Completion.completion(text, line, char, @supports)
 
-      assert item1["label"] == "my_func/1"
+      assert item1["label"] == "my_func"
       assert item1["insertText"] == "my_func${1:/1}$0"
       assert item1["command"] == nil
 
-      assert item2["label"] == "my_func/2"
+      assert item2["label"] == "my_func"
       assert item2["insertText"] == "my_func${1:/2}$0"
       assert item2["command"] == nil
 
-      assert item3["label"] == "my_func/3"
+      assert item3["label"] == "my_func"
       assert item3["insertText"] == "my_func${1:/3}$0"
       assert item3["command"] == nil
 
       opts = Keyword.merge(@supports, snippets_supported: false)
       {:ok, %{"items" => [item1, item2, item3]}} = Completion.completion(text, line, char, opts)
 
-      assert item1["label"] == "my_func/1"
+      assert item1["label"] == "my_func"
       assert item1["insertText"] == "my_func/1"
       assert item1["command"] == nil
 
-      assert item2["label"] == "my_func/2"
+      assert item2["label"] == "my_func"
       assert item2["insertText"] == "my_func/2"
       assert item2["command"] == nil
 
-      assert item3["label"] == "my_func/3"
+      assert item3["label"] == "my_func"
       assert item3["insertText"] == "my_func/3"
       assert item3["command"] == nil
     end
@@ -822,7 +851,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
-      assert item["label"] == "my_func/3"
+      assert item["label"] == "my_func"
       assert item["insertText"] == "my_func($1)$0"
       assert item["command"] == @signature_command
     end
@@ -846,8 +875,12 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(timestamps: 0))
       {:ok, %{"items" => [item_1, item_2]}} = Completion.completion(text, line, char, opts)
 
-      assert item_1["label"] == "timestamps/0"
-      assert item_2["label"] == "timestamps/1"
+      assert item_1["label"] == "timestamps"
+      assert item_1["labelDetails"]["detail"] == "()"
+      assert item_1["labelDetails"]["description"] == "MyModule.timestamps/0"
+      assert item_2["label"] == "timestamps"
+      assert item_1["labelDetails"]["detail"] == "()"
+      assert item_2["labelDetails"]["description"] == "MyModule.timestamps/1"
     end
 
     test "with signature support, a function with 1 default argument triggers signature" do
@@ -866,7 +899,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
-      assert item["label"] == "func_with_1_arg/1"
+      assert item["label"] == "func_with_1_arg"
       assert item["insertText"] == "func_with_1_arg($1)$0"
       assert item["command"] == @signature_command
     end
@@ -887,7 +920,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, @supports)
-      assert item["label"] == "func_with_1_arg/1"
+      assert item["label"] == "func_with_1_arg"
       assert item["insertText"] == "func_with_1_arg()"
       assert item["command"] == nil
     end
@@ -911,9 +944,14 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {:ok, %{"items" => [pub, priv]}} = Completion.completion(text, line, char, @supports)
 
+      assert pub["label"] == "my_func"
       assert pub["detail"] == "(function) my_func(text)"
-
+      assert pub["labelDetails"]["detail"] == "(text)"
+      assert pub["labelDetails"]["description"] == "MyModule.my_func/1"
+      assert priv["label"] == "my_func_priv"
       assert priv["detail"] == "(function) my_func_priv(text)"
+      assert priv["labelDetails"]["detail"] == "(text)"
+      assert priv["labelDetails"]["description"] == "MyModule.my_func_priv/1"
     end
 
     test "the detail of a remote function is origin + type + signature" do
@@ -936,7 +974,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {:ok, %{"items" => [item | _]}} = Completion.completion(text, line, char, @supports)
 
+      assert item["label"] == "func"
       assert item["detail"] == "(function) RemoteMod.func()"
+      assert item["labelDetails"]["detail"] == "()"
+      assert item["labelDetails"]["description"] == "RemoteMod.func/0"
     end
 
     test "documentation is the markdown of summary + formatted spec" do

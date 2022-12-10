@@ -21,6 +21,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     :filter_text,
     # Lower priority is shown higher in the result list
     :priority,
+    :label_details,
     :tags,
     :command,
     {:preselect, false},
@@ -304,6 +305,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          %{
            type: :module,
            name: name,
+           full_name: full_name,
            summary: summary,
            subtype: subtype,
            metadata: metadata,
@@ -317,14 +319,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
        ) do
     completion_without_additional_text_edit =
       from_completion_item(
-        %{type: :module, name: name, summary: summary, subtype: subtype, metadata: metadata},
+        %{
+          type: :module,
+          name: name,
+          full_name: full_name,
+          summary: summary,
+          subtype: subtype,
+          metadata: metadata
+        },
         %{def_before: nil},
         options
       )
 
-    alias_value =
-      Atom.to_string(required_alias)
-      |> String.replace_prefix("Elixir.", "")
+    alias_value = inspect(required_alias)
 
     indentation =
       if column_to_insert_alias >= 1,
@@ -338,12 +345,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
         newText: alias_edit
       },
-      documentation: alias_value <> "\n" <> summary
+      documentation: alias_value <> "\n" <> summary,
+      label_details:
+        completion_without_additional_text_edit.label_details
+        |> Map.update!("description", &("alias " <> &1)),
+      priority: 24
     )
   end
 
   defp from_completion_item(
-         %{type: :module, name: name, summary: summary, subtype: subtype, metadata: metadata},
+         %{
+           type: :module,
+           name: name,
+           full_name: full_name,
+           summary: summary,
+           subtype: subtype,
+           metadata: metadata
+         },
          %{def_before: nil},
          _options
        ) do
@@ -363,12 +381,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         _ -> :module
       end
 
-    label =
-      if subtype do
-        "#{name} (#{subtype})"
-      else
-        name
-      end
+    label_details = %{
+      "description" => full_name
+    }
+
+    label_details =
+      if detail != "module", do: Map.put(label_details, "detail", detail), else: label_details
 
     insert_text =
       case name do
@@ -377,12 +395,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: label,
+      label: name,
       kind: kind,
       detail: detail,
       documentation: summary,
       insert_text: insert_text,
       filter_text: name,
+      label_details: label_details,
       priority: 14,
       tags: metadata_to_tags(metadata)
     }
@@ -546,8 +565,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          _context,
          _options
        ) do
-    %{name: name, arity: arity, origin: _origin, doc: doc, signature: signature, spec: spec} =
-      suggestion
+    %{
+      name: name,
+      arity: arity,
+      args_list: args_list,
+      origin: origin,
+      doc: doc,
+      signature: signature,
+      spec: spec
+    } = suggestion
 
     formatted_spec =
       if spec != "" do
@@ -564,8 +590,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: signature,
+      label: name,
       detail: "typespec #{signature}",
+      label_details: %{
+        "detail" => "(#{Enum.join(args_list, ", ")})",
+        "description" => if(origin, do: "#{origin}.#{name}/#{arity}", else: "#{name}/#{arity}")
+      },
       documentation: "#{doc}#{formatted_spec}",
       insert_text: snippet,
       priority: 10,
@@ -952,7 +982,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           {name, name}
 
         true ->
-          label = "#{name}/#{arity}"
+          label = name
 
           insert_text =
             function_snippet(
@@ -997,6 +1027,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       label: label,
       kind: :function,
       detail: detail,
+      label_details: %{
+        "detail" => "(#{Enum.join(args_list, ", ")})",
+        "description" => "#{origin}.#{name}/#{arity}"
+      },
       documentation: summary <> footer,
       insert_text: insert_text,
       priority: 17,
@@ -1044,6 +1078,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       "kind" => completion_kind(item.kind),
       "detail" => item.detail,
       "documentation" => %{"value" => item.documentation || "", kind: "markdown"},
+      "labelDetails" => item.label_details,
       "filterText" => item.filter_text,
       "sortText" => String.pad_leading(to_string(idx), 8, "0"),
       "insertText" => item.insert_text,

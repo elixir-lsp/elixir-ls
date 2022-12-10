@@ -739,7 +739,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "detail" => "behaviour",
                  "documentation" => _,
                  "kind" => 8,
-                 "label" => "GenServer (behaviour)"
+                 "label" => "GenServer"
                }
                | _
              ]
