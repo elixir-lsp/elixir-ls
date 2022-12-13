@@ -7,9 +7,12 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   """
 
   use GenServer
+  alias ElixirLS.LanguageServer
   alias ElixirLS.Utils.WireProtocol
 
-  defstruct language_server: ElixirLS.LanguageServer.Server,
+  @default_server LanguageServer.Server
+
+  defstruct language_server: @default_server,
             next_id: 1,
             outgoing_requests: %{}
 
@@ -135,25 +138,20 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   @impl GenServer
   def init(opts) do
-    state =
-      if language_server = opts[:language_server] do
-        %__MODULE__{language_server: language_server}
-      else
-        %__MODULE__{}
-      end
-
+    language_server_module = Keyword.get(opts, :language_server, @default_server)
+    state = %__MODULE__{language_server: language_server_module}
     {:ok, state}
   end
 
   @impl GenServer
   def handle_call({:packet, notification(_) = packet}, _from, state) do
-    ElixirLS.LanguageServer.Server.receive_packet(packet)
+    state.language_server.receive_packet(packet)
     {:reply, :ok, state}
   end
 
   @impl GenServer
   def handle_call({:packet, request(_, _, _) = packet}, _from, state) do
-    ElixirLS.LanguageServer.Server.receive_packet(packet)
+    state.language_server.receive_packet(packet)
     {:reply, :ok, state}
   end
 

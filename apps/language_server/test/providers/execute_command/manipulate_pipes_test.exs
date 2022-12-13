@@ -29,11 +29,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
   end
 
+  setup do
+    {:ok, _} =
+      start_supervised(%{
+        id: JsonRpcMock,
+        start:
+          {JsonRpcMock, :start_link,
+           [[success_reply: {:ok, %{"applied" => true}}, test_pid: self()]]}
+      })
+
+    :ok
+  end
+
   describe "execute/2 toPipe" do
     test "can pipe remote calls in single lines" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:///some_file.ex"
 
       text = """
@@ -105,9 +114,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can pipe remote calls with multi-line args" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -182,9 +188,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can pipe remote calls when there are multi-line args" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -486,9 +489,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can pipe local calls in single line" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -562,9 +562,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "converts function_call_not_found to 3-tuple" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -595,9 +592,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
     for {line_sep, test_name_suffix} <- [{"\r\n", "\\r\\n"}, {"\n", "\\n"}] do
       test "can pipe correctly when the line separator is #{test_name_suffix}" do
-        {:ok, _} =
-          JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
         uri = "file:/some_file.ex"
 
         base_code = [
@@ -672,9 +666,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can handle utf 16 characters" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -773,9 +764,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can handle multiple calls" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -849,9 +837,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
   describe "execute/2 fromPipe" do
     test "can unpipe remote calls in single lines" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -923,9 +908,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can unpipe remote calls when there are multi-line args" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -1000,9 +982,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can unpipe local calls in single line" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -1077,9 +1056,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
     for {line_sep, test_name_suffix} <- [{"\r\n", "\\r\\n"}, {"\n", "\\n"}] do
       test "can unpipe correctly when the line separator is #{test_name_suffix}" do
-        {:ok, _} =
-          JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
         uri = "file:/some_file.ex"
 
         base_code = [
@@ -1152,9 +1128,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can handle multiple calls in no-op execution" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """
@@ -1187,9 +1160,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
     end
 
     test "can handle utf 16 characters" do
-      {:ok, _} =
-        JsonRpcMock.start_link(success_reply: {:ok, %{"applied" => true}}, test_pid: self())
-
       uri = "file:/some_file.ex"
 
       text = """

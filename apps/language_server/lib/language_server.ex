@@ -4,24 +4,31 @@ defmodule ElixirLS.LanguageServer do
   """
   use Application
 
+  alias ElixirLS.LanguageServer
+  alias ElixirLS.LanguageServer.Experimental
+
   @impl Application
   def start(_type, _args) do
     children = [
+      Experimental.SourceFile.Store,
       {ElixirLS.LanguageServer.Server, ElixirLS.LanguageServer.Server},
-      {ElixirLS.LanguageServer.JsonRpc, name: ElixirLS.LanguageServer.JsonRpc},
+      Experimental.Server,
+      {ElixirLS.LanguageServer.PacketRouter, [LanguageServer.Server, Experimental.Server]},
+      {ElixirLS.LanguageServer.JsonRpc,
+       name: ElixirLS.LanguageServer.JsonRpc, language_server: LanguageServer.PacketRouter},
       {ElixirLS.LanguageServer.Providers.WorkspaceSymbols, []},
       {ElixirLS.LanguageServer.Tracer, []},
       {ElixirLS.LanguageServer.ExUnitTestTracer, []}
     ]
 
-    opts = [strategy: :one_for_one, name: ElixirLS.LanguageServer.Supervisor, max_restarts: 0]
+    opts = [strategy: :one_for_one, name: LanguageServer.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)
   end
 
   @impl Application
   def stop(_state) do
     if ElixirLS.Utils.WireProtocol.io_intercepted?() do
-      ElixirLS.LanguageServer.JsonRpc.show_message(
+      LanguageServer.JsonRpc.show_message(
         :error,
         "ElixirLS has crashed. See Output panel."
       )
