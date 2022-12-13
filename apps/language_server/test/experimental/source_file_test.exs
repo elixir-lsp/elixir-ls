@@ -5,10 +5,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
   use Patch
 
   alias ElixirLS.LanguageServer.Experimental
-  alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.SourceFile
-
-  import ExUnit.CaptureIO
   import ElixirLS.LanguageServer.Experimental.SourceFile, except: [to_string: 1]
 
   def text(%Experimental.SourceFile{} = source) do

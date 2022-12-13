@@ -48,10 +48,6 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
     position
   end
 
-  def to_elixir(%LSPosition{} = position, %SourceFile{} = source_file) do
-    to_elixir(position, source_file.document)
-  end
-
   def to_elixir(%LSPosition{} = position, %Document{} = document) do
     document_size = Document.size(document)
     # we need to handle out of bounds line numbers, because it's possible to build a document

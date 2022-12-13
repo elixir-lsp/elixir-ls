@@ -71,7 +71,9 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Parse do
              Field.extract(
                unquote(splat_opt),
                :..,
-               Map.reject(unquote(map_parameter_var), fn {k, _} -> k in unquote(known_keys) end)
+               unquote(map_parameter_var)
+               |> Enum.reject(fn {k, _} -> k in unquote(known_keys) end)
+               |> Map.new()
              )}
           end
 

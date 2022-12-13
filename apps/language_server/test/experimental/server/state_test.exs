@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
     setup [:with_an_open_document]
 
     test "can be changed", %{state: state} do
-      assert {:ok, state} = State.apply(state, change_notification())
+      assert {:ok, _state} = State.apply(state, change_notification())
 
       assert {:ok, file} = SourceFile.Store.fetch(uri())
       assert file.dirty?
@@ -98,7 +98,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
     test "should clear the dirty field when saved", ctx do
       assert {:ok, save} = build(Notifications.DidSave, text_document: [uri: uri()])
       assert {:ok, %{dirty?: true}} = SourceFile.Store.fetch(uri())
-      assert {:ok, state} = State.apply(ctx.state, save)
+      assert {:ok, _state} = State.apply(ctx.state, save)
 
       assert {:ok, %{dirty?: false}} = SourceFile.Store.fetch(uri())
     end
