@@ -338,9 +338,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       lines(urf8_text)
       |> Enum.at(max(elixir_line - 1, 0))
 
-    utf16_character =
-      (line || "")
-      |> elixir_character_to_lsp(elixir_character)
+    utf16_character = elixir_character_to_lsp(line || "", elixir_character)
 
     {elixir_line - 1, utf16_character}
   end
