@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Store do
       %__MODULE__{}
     end
 
-    @spec fetch(t, Store.uri()) :: SourceFile.t()
+    @spec fetch(t, Store.uri()) :: {:ok, SourceFile.t()} | {:error, :not_open}
     def fetch(%__MODULE__{} = store, uri) do
       case Map.fetch(store.source_files, uri) do
         :error -> {:error, :not_open}
@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Store do
       end
     end
 
-    @spec save(t, Store.uri()) :: t()
+    @spec save(t, Store.uri()) :: {:ok, t()} | {:error, :not_open}
     def save(%__MODULE__{} = store, uri) do
       case Map.fetch(store.source_files, uri) do
         {:ok, source_file} ->

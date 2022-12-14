@@ -238,12 +238,6 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
   end
 
   defp increment_version(%__MODULE__{} = source) do
-    version =
-      case source.version do
-        v when is_integer(v) -> v + 1
-        _ -> 1
-      end
-
-    %__MODULE__{source | version: version}
+    %__MODULE__{source | version: source.version + 1}
   end
 end
