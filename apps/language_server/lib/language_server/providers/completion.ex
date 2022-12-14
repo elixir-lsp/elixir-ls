@@ -399,6 +399,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         other -> other
       end
 
+    priority =
+      case subtype do
+        :exception ->
+          # show exceptions after functions
+          18
+
+        _ ->
+          14
+      end
+
     %__MODULE__{
       label: name,
       kind: kind,
@@ -407,7 +417,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       insert_text: insert_text,
       filter_text: name,
       label_details: label_details,
-      priority: 14,
+      priority: priority,
       tags: metadata_to_tags(metadata)
     }
   end
