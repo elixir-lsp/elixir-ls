@@ -340,15 +340,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     alias_edit = indentation <> "alias " <> alias_value <> "\n"
 
+    label_details =
+      Map.update!(
+        completion_without_additional_text_edit.label_details,
+        "description",
+        &("alias " <> &1)
+      )
+
     struct(completion_without_additional_text_edit,
       additional_text_edit: %TextEdit{
         range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
         newText: alias_edit
       },
       documentation: alias_value <> "\n" <> summary,
-      label_details:
-        completion_without_additional_text_edit.label_details
-        |> Map.update!("description", &("alias " <> &1)),
+      label_details: label_details,
       priority: 24
     )
   end
