@@ -88,6 +88,31 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Field do
     end
   end
 
+  def extract({:tuple, tuple_types}, field_name, field_value) when is_list(field_value) do
+    result =
+      field_value
+      |> Enum.zip(tuple_types)
+      |> Enum.reduce_while([], fn {value, type}, acc ->
+        case extract(type, field_name, value) do
+          {:ok, value} -> {:cont, [value | acc]}
+          error -> {:halt, error}
+        end
+      end)
+
+    case result do
+      value when is_list(value) ->
+        value_as_tuple =
+          value
+          |> Enum.reverse()
+          |> List.to_tuple()
+
+        {:ok, value_as_tuple}
+
+      error ->
+        error
+    end
+  end
+
   def extract({:params, param_defs}, _field_name, field_value)
       when is_map(field_value) do
     result =
@@ -168,6 +193,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Field do
     {:ok, float_value}
   end
 
+  def encode(:float, field_value) when is_float(field_value) do
+    field_value
+  end
+
   def encode(:string, field_value) when is_binary(field_value) do
     {:ok, field_value}
   end
@@ -189,6 +218,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Field do
       fields when is_list(fields) -> {:ok, Map.new(fields)}
       error -> error
     end
+  end
+
+  def encode({:tuple, types}, field_value) when is_tuple(field_value) do
+    field_value
+    |> Tuple.to_list()
+    |> Enum.zip(types)
+    |> Enum.map(fn {value, type} -> encode(type, value) end)
   end
 
   def encode({:params, param_defs}, field_value) when is_map(field_value) do

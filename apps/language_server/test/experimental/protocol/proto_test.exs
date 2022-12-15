@@ -15,6 +15,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     deftype name: string()
   end
 
+  setup
+
   describe "string fields" do
     defmodule StringField do
       use Proto
@@ -86,6 +88,29 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
       assert {:ok, result} = ListField.parse(%{"listField" => [99]})
       assert result.list_field == [99]
+    end
+  end
+
+  describe "tuple fields" do
+    defmodule TupleField do
+      use Proto
+      deftype tuple_field: tuple_of([integer(), string(), map_of(string())])
+    end
+
+    test "can be parsed" do
+      assert {:ok, proto} =
+               TupleField.parse(%{"tupleField" => [1, "hello", %{"k" => "3", "v" => "9"}]})
+
+      assert proto.tuple_field == {1, "hello", %{"k" => "3", "v" => "9"}}
+    end
+
+    test "can be encoded" do
+      proto =
+        TupleField.new(tuple_field: {1, "hello", %{"k" => "v"}})
+        |> IO.inspect(label: "proto")
+
+      assert {:ok, encoded} = encode_and_decode(proto)
+      assert encoded["tupleField"] == [1, "hello", %{"k" => "v"}]
     end
   end
 
