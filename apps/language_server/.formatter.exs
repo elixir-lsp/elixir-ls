@@ -4,6 +4,7 @@ impossible_to_format = [
 ]
 
 proto_dsl = [
+  defalias: 1,
   defenum: 1,
   defnotification: 2,
   defnotification: 3,

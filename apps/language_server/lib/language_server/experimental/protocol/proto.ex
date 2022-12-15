@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto do
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes
 
       import ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions
+      import Proto.Alias, only: [defalias: 1]
       import Proto.Enum, only: [defenum: 1]
       import Proto.Notification, only: [defnotification: 2, defnotification: 3]
       import Proto.Request, only: [defrequest: 3]

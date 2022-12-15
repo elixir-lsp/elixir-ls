@@ -50,6 +50,23 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     end
   end
 
+  describe "float fields" do
+    defmodule FloatField do
+      use Proto
+      deftype float_field: float()
+    end
+
+    test "can parse a float field" do
+      assert {:ok, val} = FloatField.parse(%{"floatField" => 494.02})
+      assert val.float_field == 494.02
+    end
+
+    test "rejects nil float fields" do
+      assert {:error, {:invalid_value, :float_field, "string"}} =
+               FloatField.parse(%{"floatField" => "string"})
+    end
+  end
+
   describe "list fields" do
     defmodule ListField do
       use Proto
@@ -96,6 +113,42 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
       assert {:error, {:missing_keys, ["name"], Child}} ==
                SingleParent.parse(%{"name" => "parent", "child" => %{"oof" => "not good"}})
+    end
+  end
+
+  describe "type aliases" do
+    defmodule TypeAlias do
+      use Proto
+      defalias one_of([string(), list_of(string())])
+    end
+
+    defmodule UsesAlias do
+      use Proto
+
+      deftype alias: type_alias(TypeAlias), name: string()
+    end
+
+    test "parses a single item correctly" do
+      assert {:ok, uses} = UsesAlias.parse(%{"name" => "uses", "alias" => "foo"})
+      assert uses.name == "uses"
+      assert uses.alias == "foo"
+    end
+
+    test "parses a list correctly" do
+      assert {:ok, uses} = UsesAlias.parse(%{"name" => "uses", "alias" => ["foo", "bar"]})
+      assert uses.name == "uses"
+      assert uses.alias == ~w(foo bar)
+    end
+
+    test "encodes correctly" do
+      assert {:ok, encoded} = encode_and_decode(UsesAlias.new(alias: "hi", name: "easy"))
+      assert encoded["alias"] == "hi"
+      assert encoded["name"] == "easy"
+    end
+
+    test "parse fails if the type isn't correct" do
+      assert {:error, {:incorrect_type, _, %{}}} =
+               UsesAlias.parse(%{"name" => "ua", "alias" => %{}})
     end
   end
 

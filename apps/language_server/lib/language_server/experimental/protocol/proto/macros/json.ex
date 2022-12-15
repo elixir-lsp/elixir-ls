@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Json do
           encoded_pairs =
             for {field_name, field_type} <- unquote(dest_module).__meta__(:types),
                 field_value = get_field_value(value, field_name),
-                encoded_value = Field.encode(field_type, field_value),
+                {:ok, encoded_value} = Field.encode(field_type, field_value),
                 encoded_value != :"$__drop__" do
               {field_name, encoded_value}
             end
