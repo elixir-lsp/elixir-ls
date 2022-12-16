@@ -334,10 +334,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       do: {max(elixir_line - 1, 0), 0}
 
   def elixir_position_to_lsp(urf8_text, {elixir_line, elixir_character}) do
-    utf16_character =
+    line =
       lines(urf8_text)
       |> Enum.at(max(elixir_line - 1, 0))
-      |> elixir_character_to_lsp(elixir_character)
+
+    utf16_character = elixir_character_to_lsp(line || "", elixir_character)
 
     {elixir_line - 1, utf16_character}
   end
