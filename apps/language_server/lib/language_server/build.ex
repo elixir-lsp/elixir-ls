@@ -257,6 +257,21 @@ defmodule ElixirLS.LanguageServer.Build do
   defp purge_dep(%Mix.Dep{app: app} = dep) do
     IO.warn("Unloading #{app}")
 
+    if app in [
+         :language_server,
+         :elixir_ls_utils,
+         :elixir_sense,
+         :stream_data,
+         :jason_vendored,
+         :path_glob_vendored,
+         :dialyxir_vendored,
+         :erl2ex,
+         :patch,
+         :benchee
+       ] do
+      raise "Unloading #{app}"
+    end
+
     for path <- Mix.Dep.load_paths(dep) do
       Code.delete_path(path)
     end
