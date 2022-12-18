@@ -255,6 +255,8 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp purge_dep(%Mix.Dep{app: app} = dep) do
+    IO.warn("Unloading #{app}")
+
     for path <- Mix.Dep.load_paths(dep) do
       Code.delete_path(path)
     end
