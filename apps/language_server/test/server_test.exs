@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
+  require Logger
 
   doctest(Server)
 
@@ -1548,9 +1549,11 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   defp wait_until_compiled(pid) do
+    Logger.warn("getting state")
     state = :sys.get_state(pid)
 
     if state.build_running? do
+      Logger.warn("build running #{inspect(state)}")
       Process.sleep(500)
       wait_until_compiled(pid)
     end
