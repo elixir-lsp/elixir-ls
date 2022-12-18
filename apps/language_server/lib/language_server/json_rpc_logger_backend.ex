@@ -24,7 +24,9 @@ defmodule Logger.Backends.JsonRpc do
 
   @behaviour :gen_event
 
-  defstruct format: nil,
+  defstruct group_leader: nil,
+            default_group_leader: nil,
+            format: nil,
             level: nil,
             metadata: nil
 
@@ -46,8 +48,10 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   def handle_call({:set_group_leader, pid}, state) do
+    Process.monitor(pid)
+    default_group_leader = Process.group_leader()
     Process.group_leader(self(), pid)
-    {:ok, :ok, state}
+    {:ok, :ok, %{state | group_leader: pid, default_group_leader: default_group_leader}}
   end
 
   @impl true
@@ -74,6 +78,11 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   @impl true
+  def handle_info({:DOWN, _, :process, pid, _}, state = %{group_leader: pid, default_group_leader: default_group_leader}) do
+    Process.group_leader(self(), default_group_leader)
+    {:ok, %{state | group_leader: nil}}
+  end
+
   def handle_info(_, state) do
     {:ok, state}
   end
@@ -125,10 +134,8 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   defp log_event(level, msg, ts, md, state) do
-    if function_exported?(ElixirLS.Utils.WireProtocol, :send, 1) do
-      output = format_event(level, msg, ts, md, state) |> IO.chardata_to_string()
-      ElixirLS.LanguageServer.JsonRpc.log_message(elixir_log_level_to_lsp(level), output)
-    end
+    output = format_event(level, msg, ts, md, state) |> IO.chardata_to_string()
+    ElixirLS.LanguageServer.JsonRpc.log_message(elixir_log_level_to_lsp(level), output)
 
     state
   end
