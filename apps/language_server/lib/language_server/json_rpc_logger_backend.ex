@@ -78,7 +78,10 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   @impl true
-  def handle_info({:DOWN, _, :process, pid, _}, state = %{group_leader: pid, default_group_leader: default_group_leader}) do
+  def handle_info(
+        {:DOWN, _, :process, pid, _},
+        state = %{group_leader: pid, default_group_leader: default_group_leader}
+      ) do
     Process.group_leader(self(), default_group_leader)
     {:ok, %{state | group_leader: nil}}
   end
