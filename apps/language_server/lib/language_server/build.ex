@@ -355,7 +355,9 @@ defmodule ElixirLS.LanguageServer.Build do
   defp read_cached_deps() do
     # FIXME: Private api
     # we cannot use Mix.Dep.cached() here as it tries to load deps
-    if project = Mix.Project.get() do
+    project = Mix.Project.get()
+    # in test do not try to load cache from elixir_ls
+    if project != nil and project != ElixirLS.LanguageServer.Mixfile do
       env_target = {Mix.env(), Mix.target()}
 
       case Mix.State.read_cache({:cached_deps, project}) do
