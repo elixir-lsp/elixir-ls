@@ -11,8 +11,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
   @apps Enum.map(Application.loaded_applications(), &elem(&1, 0))
   @allowed_apps ~w(
-    syntax_tools
-    edoc
+    iex
     elixir_sense
     elixir_ls_debugger
     elixir_ls_utils
@@ -27,6 +26,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     dialyzer
     dialyxir_vendored
     erl2ex
+    jason_vendored
     )a
 
   setup do
