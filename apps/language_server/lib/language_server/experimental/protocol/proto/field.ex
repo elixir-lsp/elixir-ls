@@ -152,12 +152,18 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Field do
   end
 
   def encode({:one_of, types}, field_value) do
-    Enum.reduce_while(types, nil, fn type, _ ->
-      case encode(type, field_value) do
-        {:ok, _} = success -> {:halt, success}
-        error -> {:cont, error}
-      end
-    end)
+    encoded =
+      Enum.reduce_while(types, nil, fn type, _ ->
+        case encode(type, field_value) do
+          {:ok, _} = success -> {:halt, success}
+          error -> {:cont, error}
+        end
+      end)
+
+    case encoded do
+      encoded_list when is_list(encoded_list) -> {:ok, encoded_list}
+      error -> error
+    end
   end
 
   def encode({:list, list_type}, field_value) when is_list(field_value) do
@@ -221,10 +227,21 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Field do
   end
 
   def encode({:tuple, types}, field_value) when is_tuple(field_value) do
-    field_value
-    |> Tuple.to_list()
-    |> Enum.zip(types)
-    |> Enum.map(fn {value, type} -> encode(type, value) end)
+    encoded =
+      field_value
+      |> Tuple.to_list()
+      |> Enum.zip(types)
+      |> Enum.reduce_while([], fn {value, type}, acc ->
+        case encode(type, value) do
+          {:ok, encoded} -> {:cont, [encoded | acc]}
+          error -> {:halt, error}
+        end
+      end)
+
+    case encoded do
+      encoded_list when is_list(encoded_list) -> {:ok, Enum.reverse(encoded_list)}
+      error -> error
+    end
   end
 
   def encode({:params, param_defs}, field_value) when is_map(field_value) do

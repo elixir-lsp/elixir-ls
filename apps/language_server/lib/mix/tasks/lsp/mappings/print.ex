@@ -59,8 +59,6 @@ defmodule Mix.Tasks.Lsp.Mappings.Print do
   graphically as opposed to remembering all the mappings in the json file.
   """
   use Mix.Task
-  @prefix "ElixirLS.LanguageServer.Experimental.Protocol"
-  @prefix_length String.length(@prefix)
   @down "└"
   @right "─"
   @tee "├"
@@ -170,21 +168,13 @@ defmodule Mix.Tasks.Lsp.Mappings.Print do
 
   defp build_tree(%Mappings{} = mappings) do
     Enum.reduce(mappings.mappings, Node.new(), fn %Mapping{} = mapping, %Node{} = root ->
-      path =
-        mapping.destination
-        |> drop_prefix()
-        |> split_module()
-
+      path = split_module(mapping.destination)
       Node.add(root, path, List.last(path))
     end)
   end
 
   defp last?(item_count, index) do
     index == item_count - 1
-  end
-
-  defp drop_prefix(s) do
-    String.slice(s, (@prefix_length + 1)..-1)
   end
 
   defp split_module(s) do

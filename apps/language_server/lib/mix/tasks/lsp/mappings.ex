@@ -17,69 +17,101 @@ defmodule Mix.Tasks.Lsp.Mappings do
     end
   end
 
-  defstruct [:mappings, :imported_lsp_names]
+  @types_module ElixirLS.LanguageServer.Experimental.Protocol.Types
+  @proto_module ElixirLS.LanguageServer.Experimental.Protocol.Proto
 
-  def new do
+  defstruct [:mappings, :imported_lsp_names, :types_module, :proto_module]
+
+  def new(options \\ []) do
+    types_module =
+      options
+      |> Keyword.get(:types_module, @types_module)
+      |> List.wrap()
+      |> Module.concat()
+
+    proto_module =
+      options
+      |> Keyword.get(:proto_module, @proto_module)
+      |> List.wrap()
+      |> Module.concat()
+
     with {:ok, type_mappings} = load_type_mappings() do
       imported_lsp_names = MapSet.new(type_mappings, & &1.source)
-      current = %__MODULE__{mappings: type_mappings, imported_lsp_names: imported_lsp_names}
-      {:ok, current}
+
+      mappings = %__MODULE__{
+        mappings: type_mappings,
+        imported_lsp_names: imported_lsp_names,
+        types_module: types_module,
+        proto_module: proto_module
+      }
+
+      {:ok, mappings}
     end
   end
 
-  def put_new(%__MODULE__{} = current, source, destination) do
-    if imported?(current, source) do
+  def proto_module(%__MODULE__{} = mappings) do
+    mappings.proto_module
+  end
+
+  def types_module(%__MODULE__{} = mappings) do
+    mappings.types_module
+  end
+
+  def put_new(%__MODULE__{} = mappings, source, destination) do
+    if imported?(mappings, source) do
       :error
     else
       i = Mapping.new(source, destination)
 
-      current = %__MODULE__{
-        imported_lsp_names: MapSet.put(current.imported_lsp_names, i.source),
-        mappings: [i | current.mappings]
+      mappings = %__MODULE__{
+        imported_lsp_names: MapSet.put(mappings.imported_lsp_names, i.source),
+        mappings: [i | mappings.mappings]
       }
 
-      {:ok, current}
+      {:ok, mappings}
     end
   end
 
-  def write(%__MODULE__{} = current) do
-    sorted = Enum.sort_by(current.mappings, fn %Mapping{} = mapping -> mapping.source end)
+  def write(%__MODULE__{} = mappings) do
+    sorted = Enum.sort_by(mappings.mappings, fn %Mapping{} = mapping -> mapping.source end)
 
     with {:ok, json_text} <- JasonVendored.encode(sorted, pretty: true) do
+      json_text = [json_text, "\n"]
       File.write(file_path(), json_text)
     end
   end
 
-  def imported?(%__MODULE__{} = current, lsp_name) do
-    lsp_name in current.imported_lsp_names
+  def imported?(%__MODULE__{} = mappings, lsp_name) do
+    lsp_name in mappings.imported_lsp_names
   end
 
-  def fetch(%__MODULE__{} = current, lsp_name) do
-    case Enum.find(current.mappings, fn %Mapping{source: source} -> source == lsp_name end) do
+  def fetch(%__MODULE__{} = mappings, lsp_name) do
+    case Enum.find(mappings.mappings, fn %Mapping{source: source} -> source == lsp_name end) do
       %Mapping{} = mapping -> {:ok, mapping}
       nil -> :error
     end
   end
 
-  def fetch_destination_module(current, needle, truncate? \\ false)
+  def fetch_destination_module(mappings, needle, truncate? \\ false)
 
-  def fetch_destination_module(%__MODULE__{} = current, %_{name: lsp_name}, truncate?) do
-    fetch_destination_module(current, lsp_name, truncate?)
+  def fetch_destination_module(%__MODULE__{} = mappings, %_{name: lsp_name}, truncate?) do
+    fetch_destination_module(mappings, lsp_name, truncate?)
   end
 
-  def fetch_destination_module(%__MODULE__{} = current, lsp_name, truncate?) do
-    case fetch(current, lsp_name) do
+  def fetch_destination_module(%__MODULE__{} = mappings, lsp_name, truncate?) do
+    case fetch(mappings, lsp_name) do
       {:ok, %Mapping{} = mapping} ->
         module_string =
           if truncate? do
-            [_, truncated] =
-              mapping.destination
-              |> String.splitter("Protocol.")
-              |> Enum.to_list()
+            aliased =
+              mappings
+              |> types_module()
+              |> Module.split()
+              |> List.last()
 
-            truncated
+            Module.concat([aliased, mapping.destination])
           else
-            mapping.destination
+            Module.concat([types_module(mappings), mapping.destination])
           end
 
         {:ok, Module.concat([module_string])}

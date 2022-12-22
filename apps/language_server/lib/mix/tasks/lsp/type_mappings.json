@@ -1,1851 +1,1851 @@
 [
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.AnnotatedTextEdit",
+    "destination": "TextEdit.Annotated",
     "imported_version": "3.17",
     "source": "AnnotatedTextEdit"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ApplyWorkspaceEdit.Params",
+    "destination": "ApplyWorkspaceEdit.Params",
     "imported_version": "3.17",
     "source": "ApplyWorkspaceEditParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ApplyWorkspaceEdit.Result",
+    "destination": "ApplyWorkspaceEdit.Result",
     "imported_version": "3.17",
     "source": "ApplyWorkspaceEditResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.BaseSymbolInformation",
+    "destination": "BaseSymbolInformation",
     "imported_version": "3.17",
     "source": "BaseSymbolInformation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.ClientCapabilities",
+    "destination": "CallHierarchy.ClientCapabilities",
     "imported_version": "3.17",
     "source": "CallHierarchyClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.IncomingCall",
+    "destination": "CallHierarchy.IncomingCall",
     "imported_version": "3.17",
     "source": "CallHierarchyIncomingCall"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.IncomingCalls.Params",
+    "destination": "CallHierarchy.IncomingCalls.Params",
     "imported_version": "3.17",
     "source": "CallHierarchyIncomingCallsParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.Item",
+    "destination": "CallHierarchy.Item",
     "imported_version": "3.17",
     "source": "CallHierarchyItem"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.Options",
+    "destination": "CallHierarchy.Options",
     "imported_version": "3.17",
     "source": "CallHierarchyOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.OutgoingCall",
+    "destination": "CallHierarchy.OutgoingCall",
     "imported_version": "3.17",
     "source": "CallHierarchyOutgoingCall"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.OutgoingCalls.Params",
+    "destination": "CallHierarchy.OutgoingCalls.Params",
     "imported_version": "3.17",
     "source": "CallHierarchyOutgoingCallsParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.Prepare.Params",
+    "destination": "CallHierarchy.Prepare.Params",
     "imported_version": "3.17",
     "source": "CallHierarchyPrepareParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CallHierarchy.Registration.Options",
+    "destination": "CallHierarchy.Registration.Options",
     "imported_version": "3.17",
     "source": "CallHierarchyRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Cancel.Params",
+    "destination": "Cancel.Params",
     "imported_version": "3.17",
     "source": "CancelParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ChangeAnnotation",
+    "destination": "ChangeAnnotation",
     "imported_version": "3.17",
     "source": "ChangeAnnotation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ChangeAnnotation.Identifier",
+    "destination": "ChangeAnnotation.Identifier",
     "imported_version": "3.17",
     "source": "ChangeAnnotationIdentifier"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ClientCapabilities",
+    "destination": "ClientCapabilities",
     "imported_version": "3.17",
     "source": "ClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction",
+    "destination": "CodeAction",
     "imported_version": "3.17",
     "source": "CodeAction"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.ClientCapabilities",
+    "destination": "CodeAction.ClientCapabilities",
     "imported_version": "3.17",
     "source": "CodeActionClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.Context",
+    "destination": "CodeAction.Context",
     "imported_version": "3.17",
     "source": "CodeActionContext"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.Kind",
+    "destination": "CodeAction.Kind",
     "imported_version": "3.17",
     "source": "CodeActionKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.Options",
+    "destination": "CodeAction.Options",
     "imported_version": "3.17",
     "source": "CodeActionOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.Params",
+    "destination": "CodeAction.Params",
     "imported_version": "3.17",
     "source": "CodeActionParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.Registration.Options",
+    "destination": "CodeAction.Registration.Options",
     "imported_version": "3.17",
     "source": "CodeActionRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.Trigger.Kind",
+    "destination": "CodeAction.Trigger.Kind",
     "imported_version": "3.17",
     "source": "CodeActionTriggerKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeDescription",
+    "destination": "CodeDescription",
     "imported_version": "3.17",
     "source": "CodeDescription"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeLens",
+    "destination": "CodeLens",
     "imported_version": "3.17",
     "source": "CodeLens"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeLens.ClientCapabilities",
+    "destination": "CodeLens.ClientCapabilities",
     "imported_version": "3.17",
     "source": "CodeLensClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeLens.Options",
+    "destination": "CodeLens.Options",
     "imported_version": "3.17",
     "source": "CodeLensOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeLens.Params",
+    "destination": "CodeLens.Params",
     "imported_version": "3.17",
     "source": "CodeLensParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeLens.Registration.Options",
+    "destination": "CodeLens.Registration.Options",
     "imported_version": "3.17",
     "source": "CodeLensRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeLens.Workspace.ClientCapabilities",
+    "destination": "CodeLens.Workspace.ClientCapabilities",
     "imported_version": "3.17",
     "source": "CodeLensWorkspaceClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Color",
+    "destination": "Color",
     "imported_version": "3.17",
     "source": "Color"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Color.Information",
+    "destination": "Color.Information",
     "imported_version": "3.17",
     "source": "ColorInformation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Color.Presentation",
+    "destination": "Color.Presentation",
     "imported_version": "3.17",
     "source": "ColorPresentation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Color.Presentation.Params",
+    "destination": "Color.Presentation.Params",
     "imported_version": "3.17",
     "source": "ColorPresentationParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Command",
+    "destination": "Command",
     "imported_version": "3.17",
     "source": "Command"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.ClientCapabilities",
+    "destination": "Completion.ClientCapabilities",
     "imported_version": "3.17",
     "source": "CompletionClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Context",
+    "destination": "Completion.Context",
     "imported_version": "3.17",
     "source": "CompletionContext"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Item",
+    "destination": "Completion.Item",
     "imported_version": "3.17",
     "source": "CompletionItem"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Item.Kind",
+    "destination": "Completion.Item.Kind",
     "imported_version": "3.17",
     "source": "CompletionItemKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Item.LabelDetails",
+    "destination": "Completion.Item.LabelDetails",
     "imported_version": "3.17",
     "source": "CompletionItemLabelDetails"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Item.Tag",
+    "destination": "Completion.Item.Tag",
     "imported_version": "3.17",
     "source": "CompletionItemTag"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.List",
+    "destination": "Completion.List",
     "imported_version": "3.17",
     "source": "CompletionList"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Options",
+    "destination": "Completion.Options",
     "imported_version": "3.17",
     "source": "CompletionOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Params",
+    "destination": "Completion.Params",
     "imported_version": "3.17",
     "source": "CompletionParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Registration.Options",
+    "destination": "Completion.Registration.Options",
     "imported_version": "3.17",
     "source": "CompletionRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Trigger.Kind",
+    "destination": "Completion.Trigger.Kind",
     "imported_version": "3.17",
     "source": "CompletionTriggerKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Configuration.Item",
+    "destination": "Configuration.Item",
     "imported_version": "3.17",
     "source": "ConfigurationItem"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Configuration.Params",
+    "destination": "Configuration.Params",
     "imported_version": "3.17",
     "source": "ConfigurationParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CreateFile",
+    "destination": "CreateFile",
     "imported_version": "3.17",
     "source": "CreateFile"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CreateFile.Options",
+    "destination": "CreateFile.Options",
     "imported_version": "3.17",
     "source": "CreateFileOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.CreateFiles.Params",
+    "destination": "CreateFiles.Params",
     "imported_version": "3.17",
     "source": "CreateFilesParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Declaration",
+    "destination": "Declaration",
     "imported_version": "3.17",
     "source": "Declaration"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Declaration.ClientCapabilities",
+    "destination": "Declaration.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DeclarationClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Declaration.Link",
+    "destination": "Declaration.Link",
     "imported_version": "3.17",
     "source": "DeclarationLink"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Declaration.Options",
+    "destination": "Declaration.Options",
     "imported_version": "3.17",
     "source": "DeclarationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Declaration.Params",
+    "destination": "Declaration.Params",
     "imported_version": "3.17",
     "source": "DeclarationParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Declaration.Registration.Options",
+    "destination": "Declaration.Registration.Options",
     "imported_version": "3.17",
     "source": "DeclarationRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Definition",
+    "destination": "Definition",
     "imported_version": "3.17",
     "source": "Definition"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Definition.ClientCapabilities",
+    "destination": "Definition.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DefinitionClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Definition.Link",
+    "destination": "Definition.Link",
     "imported_version": "3.17",
     "source": "DefinitionLink"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Definition.Options",
+    "destination": "Definition.Options",
     "imported_version": "3.17",
     "source": "DefinitionOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Definition.Params",
+    "destination": "Definition.Params",
     "imported_version": "3.17",
     "source": "DefinitionParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Definition.Registration.Options",
+    "destination": "Definition.Registration.Options",
     "imported_version": "3.17",
     "source": "DefinitionRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DeleteFile",
+    "destination": "DeleteFile",
     "imported_version": "3.17",
     "source": "DeleteFile"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DeleteFile.Options",
+    "destination": "DeleteFile.Options",
     "imported_version": "3.17",
     "source": "DeleteFileOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DeleteFiles.Params",
+    "destination": "DeleteFiles.Params",
     "imported_version": "3.17",
     "source": "DeleteFilesParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic",
+    "destination": "Diagnostic",
     "imported_version": "3.17",
     "source": "Diagnostic"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.ClientCapabilities",
+    "destination": "Diagnostic.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DiagnosticClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.Options",
+    "destination": "Diagnostic.Options",
     "imported_version": "3.17",
     "source": "DiagnosticOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.Registration.Options",
+    "destination": "Diagnostic.Registration.Options",
     "imported_version": "3.17",
     "source": "DiagnosticRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.RelatedInformation",
+    "destination": "Diagnostic.RelatedInformation",
     "imported_version": "3.17",
     "source": "DiagnosticRelatedInformation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.ServerCancellationData",
+    "destination": "Diagnostic.ServerCancellationData",
     "imported_version": "3.17",
     "source": "DiagnosticServerCancellationData"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.Severity",
+    "destination": "Diagnostic.Severity",
     "imported_version": "3.17",
     "source": "DiagnosticSeverity"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.Tag",
+    "destination": "Diagnostic.Tag",
     "imported_version": "3.17",
     "source": "DiagnosticTag"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic.Workspace.ClientCapabilities",
+    "destination": "Diagnostic.Workspace.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DiagnosticWorkspaceClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeConfiguration.ClientCapabilities",
+    "destination": "DidChangeConfiguration.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DidChangeConfigurationClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeConfiguration.Params",
+    "destination": "DidChangeConfiguration.Params",
     "imported_version": "3.17",
     "source": "DidChangeConfigurationParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeConfiguration.Registration.Options",
+    "destination": "DidChangeConfiguration.Registration.Options",
     "imported_version": "3.17",
     "source": "DidChangeConfigurationRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeNotebookDocument.Params",
+    "destination": "DidChangeNotebookDocument.Params",
     "imported_version": "3.17",
     "source": "DidChangeNotebookDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeTextDocument.Params",
+    "destination": "DidChangeTextDocument.Params",
     "imported_version": "3.17",
     "source": "DidChangeTextDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeWatchedFiles.ClientCapabilities",
+    "destination": "DidChangeWatchedFiles.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DidChangeWatchedFilesClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeWatchedFiles.Params",
+    "destination": "DidChangeWatchedFiles.Params",
     "imported_version": "3.17",
     "source": "DidChangeWatchedFilesParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeWatchedFiles.Registration.Options",
+    "destination": "DidChangeWatchedFiles.Registration.Options",
     "imported_version": "3.17",
     "source": "DidChangeWatchedFilesRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidChangeWorkspaceFolders.Params",
+    "destination": "DidChangeWorkspaceFolders.Params",
     "imported_version": "3.17",
     "source": "DidChangeWorkspaceFoldersParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidCloseNotebookDocument.Params",
+    "destination": "DidCloseNotebookDocument.Params",
     "imported_version": "3.17",
     "source": "DidCloseNotebookDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidCloseTextDocument.Params",
+    "destination": "DidCloseTextDocument.Params",
     "imported_version": "3.17",
     "source": "DidCloseTextDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidOpenNotebookDocument.Params",
+    "destination": "DidOpenNotebookDocument.Params",
     "imported_version": "3.17",
     "source": "DidOpenNotebookDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidOpenTextDocument.Params",
+    "destination": "DidOpenTextDocument.Params",
     "imported_version": "3.17",
     "source": "DidOpenTextDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidSaveNotebookDocument.Params",
+    "destination": "DidSaveNotebookDocument.Params",
     "imported_version": "3.17",
     "source": "DidSaveNotebookDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DidSaveTextDocument.Params",
+    "destination": "DidSaveTextDocument.Params",
     "imported_version": "3.17",
     "source": "DidSaveTextDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Color.ClientCapabilities",
+    "destination": "Document.Color.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DocumentColorClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Color.Options",
+    "destination": "Document.Color.Options",
     "imported_version": "3.17",
     "source": "DocumentColorOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Color.Params",
+    "destination": "Document.Color.Params",
     "imported_version": "3.17",
     "source": "DocumentColorParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Color.Registration.Options",
+    "destination": "Document.Color.Registration.Options",
     "imported_version": "3.17",
     "source": "DocumentColorRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Diagnostic.Params",
+    "destination": "Document.Diagnostic.Params",
     "imported_version": "3.17",
     "source": "DocumentDiagnosticParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.DocumentDiagnosticReport",
+    "destination": "DocumentDiagnosticReport",
     "imported_version": "3.17",
     "source": "DocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.DiagnosticReport.Kind",
+    "destination": "Document.DiagnosticReport.Kind",
     "imported_version": "3.17",
     "source": "DocumentDiagnosticReportKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.DiagnosticReport.PartialResult",
+    "destination": "Document.DiagnosticReport.PartialResult",
     "imported_version": "3.17",
     "source": "DocumentDiagnosticReportPartialResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Filter",
+    "destination": "Document.Filter",
     "imported_version": "3.17",
     "source": "DocumentFilter"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Formatting.ClientCapabilities",
+    "destination": "Document.Formatting.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DocumentFormattingClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Formatting.Options",
+    "destination": "Document.Formatting.Options",
     "imported_version": "3.17",
     "source": "DocumentFormattingOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Formatting.Params",
+    "destination": "Document.Formatting.Params",
     "imported_version": "3.17",
     "source": "DocumentFormattingParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Formatting.Registration.Options",
+    "destination": "Document.Formatting.Registration.Options",
     "imported_version": "3.17",
     "source": "DocumentFormattingRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Highlight",
+    "destination": "Document.Highlight",
     "imported_version": "3.17",
     "source": "DocumentHighlight"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Highlight.ClientCapabilities",
+    "destination": "Document.Highlight.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DocumentHighlightClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.HighlightKind",
+    "destination": "Document.HighlightKind",
     "imported_version": "3.17",
     "source": "DocumentHighlightKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Highlight.Options",
+    "destination": "Document.Highlight.Options",
     "imported_version": "3.17",
     "source": "DocumentHighlightOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Highlight.Params",
+    "destination": "Document.Highlight.Params",
     "imported_version": "3.17",
     "source": "DocumentHighlightParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Highlight.Registration.Options",
+    "destination": "Document.Highlight.Registration.Options",
     "imported_version": "3.17",
     "source": "DocumentHighlightRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Link",
+    "destination": "Document.Link",
     "imported_version": "3.17",
     "source": "DocumentLink"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Link.ClientCapabilities",
+    "destination": "Document.Link.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DocumentLinkClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Link.Options",
+    "destination": "Document.Link.Options",
     "imported_version": "3.17",
     "source": "DocumentLinkOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Link.Params",
+    "destination": "Document.Link.Params",
     "imported_version": "3.17",
     "source": "DocumentLinkParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Link.Registration.Options",
+    "destination": "Document.Link.Registration.Options",
     "imported_version": "3.17",
     "source": "DocumentLinkRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.OnTypeFormatting.ClientCapabilities",
+    "destination": "Document.OnTypeFormatting.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DocumentOnTypeFormattingClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.OnTypeFormatting.Options",
+    "destination": "Document.OnTypeFormatting.Options",
     "imported_version": "3.17",
     "source": "DocumentOnTypeFormattingOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.OnTypeFormatting.Params",
+    "destination": "Document.OnTypeFormatting.Params",
     "imported_version": "3.17",
     "source": "DocumentOnTypeFormattingParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.OnTypeFormatting.Registration.Options",
+    "destination": "Document.OnTypeFormatting.Registration.Options",
     "imported_version": "3.17",
     "source": "DocumentOnTypeFormattingRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.RangeFormatting.ClientCapabilities",
+    "destination": "Document.RangeFormatting.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DocumentRangeFormattingClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.RangeFormatting.Options",
+    "destination": "Document.RangeFormatting.Options",
     "imported_version": "3.17",
     "source": "DocumentRangeFormattingOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.RangeFormatting.Params",
+    "destination": "Document.RangeFormatting.Params",
     "imported_version": "3.17",
     "source": "DocumentRangeFormattingParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.RangeFormatting.Registration.Options",
+    "destination": "Document.RangeFormatting.Registration.Options",
     "imported_version": "3.17",
     "source": "DocumentRangeFormattingRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Selector",
+    "destination": "Document.Selector",
     "imported_version": "3.17",
     "source": "DocumentSelector"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Symbol",
+    "destination": "Document.Symbol",
     "imported_version": "3.17",
     "source": "DocumentSymbol"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Symbol.ClientCapabilities",
+    "destination": "Document.Symbol.ClientCapabilities",
     "imported_version": "3.17",
     "source": "DocumentSymbolClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Symbol.Options",
+    "destination": "Document.Symbol.Options",
     "imported_version": "3.17",
     "source": "DocumentSymbolOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Symbol.Params",
+    "destination": "Document.Symbol.Params",
     "imported_version": "3.17",
     "source": "DocumentSymbolParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Symbol.Registration.Options",
+    "destination": "Document.Symbol.Registration.Options",
     "imported_version": "3.17",
     "source": "DocumentSymbolRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ErrorCodes",
+    "destination": "ErrorCodes",
     "imported_version": "3.17",
     "source": "ErrorCodes"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ExecuteCommand.ClientCapabilities",
+    "destination": "ExecuteCommand.ClientCapabilities",
     "imported_version": "3.17",
     "source": "ExecuteCommandClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ExecuteCommand.Options",
+    "destination": "ExecuteCommand.Options",
     "imported_version": "3.17",
     "source": "ExecuteCommandOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ExecuteCommand.Params",
+    "destination": "ExecuteCommand.Params",
     "imported_version": "3.17",
     "source": "ExecuteCommandParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ExecuteCommand.Registration.Options",
+    "destination": "ExecuteCommand.Registration.Options",
     "imported_version": "3.17",
     "source": "ExecuteCommandRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ExecutionSummary",
+    "destination": "ExecutionSummary",
     "imported_version": "3.17",
     "source": "ExecutionSummary"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FailureHandling.Kind",
+    "destination": "FailureHandling.Kind",
     "imported_version": "3.17",
     "source": "FailureHandlingKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileChangeType",
+    "destination": "FileChangeType",
     "imported_version": "3.17",
     "source": "FileChangeType"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileCreate",
+    "destination": "FileCreate",
     "imported_version": "3.17",
     "source": "FileCreate"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileDelete",
+    "destination": "FileDelete",
     "imported_version": "3.17",
     "source": "FileDelete"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileEvent",
+    "destination": "FileEvent",
     "imported_version": "3.17",
     "source": "FileEvent"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileOperation.ClientCapabilities",
+    "destination": "FileOperation.ClientCapabilities",
     "imported_version": "3.17",
     "source": "FileOperationClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileOperation.Filter",
+    "destination": "FileOperation.Filter",
     "imported_version": "3.17",
     "source": "FileOperationFilter"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileOperation.Options",
+    "destination": "FileOperation.Options",
     "imported_version": "3.17",
     "source": "FileOperationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileOperation.Pattern",
+    "destination": "FileOperation.Pattern",
     "imported_version": "3.17",
     "source": "FileOperationPattern"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileOperation.Pattern.Kind",
+    "destination": "FileOperation.Pattern.Kind",
     "imported_version": "3.17",
     "source": "FileOperationPatternKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileOperation.Pattern.Options",
+    "destination": "FileOperation.Pattern.Options",
     "imported_version": "3.17",
     "source": "FileOperationPatternOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileOperation.Registration.Options",
+    "destination": "FileOperation.Registration.Options",
     "imported_version": "3.17",
     "source": "FileOperationRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileRename",
+    "destination": "FileRename",
     "imported_version": "3.17",
     "source": "FileRename"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FileSystemWatcher",
+    "destination": "FileSystemWatcher",
     "imported_version": "3.17",
     "source": "FileSystemWatcher"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FoldingRange",
+    "destination": "FoldingRange",
     "imported_version": "3.17",
     "source": "FoldingRange"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FoldingRange.ClientCapabilities",
+    "destination": "FoldingRange.ClientCapabilities",
     "imported_version": "3.17",
     "source": "FoldingRangeClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FoldingRange.Kind",
+    "destination": "FoldingRange.Kind",
     "imported_version": "3.17",
     "source": "FoldingRangeKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FoldingRange.Options",
+    "destination": "FoldingRange.Options",
     "imported_version": "3.17",
     "source": "FoldingRangeOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FoldingRange.Params",
+    "destination": "FoldingRange.Params",
     "imported_version": "3.17",
     "source": "FoldingRangeParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FoldingRange.Registration.Options",
+    "destination": "FoldingRange.Registration.Options",
     "imported_version": "3.17",
     "source": "FoldingRangeRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Formatting.Options",
+    "destination": "Formatting.Options",
     "imported_version": "3.17",
     "source": "FormattingOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.FullDocumentDiagnosticReport",
+    "destination": "FullDocumentDiagnosticReport",
     "imported_version": "3.17",
     "source": "FullDocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.General.ClientCapabilities",
+    "destination": "General.ClientCapabilities",
     "imported_version": "3.17",
     "source": "GeneralClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.GlobPattern",
+    "destination": "GlobPattern",
     "imported_version": "3.17",
     "source": "GlobPattern"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Hover",
+    "destination": "Hover",
     "imported_version": "3.17",
     "source": "Hover"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Hover.ClientCapabilities",
+    "destination": "Hover.ClientCapabilities",
     "imported_version": "3.17",
     "source": "HoverClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Hover.Options",
+    "destination": "Hover.Options",
     "imported_version": "3.17",
     "source": "HoverOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Hover.Params",
+    "destination": "Hover.Params",
     "imported_version": "3.17",
     "source": "HoverParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Hover.Registration.Options",
+    "destination": "Hover.Registration.Options",
     "imported_version": "3.17",
     "source": "HoverRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Implementation.ClientCapabilities",
+    "destination": "Implementation.ClientCapabilities",
     "imported_version": "3.17",
     "source": "ImplementationClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Implementation.Options",
+    "destination": "Implementation.Options",
     "imported_version": "3.17",
     "source": "ImplementationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Implementation.Params",
+    "destination": "Implementation.Params",
     "imported_version": "3.17",
     "source": "ImplementationParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Implementation.Registration.Options",
+    "destination": "Implementation.Registration.Options",
     "imported_version": "3.17",
     "source": "ImplementationRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Initialize.Error",
+    "destination": "Initialize.Error",
     "imported_version": "3.17",
     "source": "InitializeError"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Initialize.Params",
+    "destination": "Initialize.Params",
     "imported_version": "3.17",
     "source": "InitializeParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Initialize.Result",
+    "destination": "Initialize.Result",
     "imported_version": "3.17",
     "source": "InitializeResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Initialized.Params",
+    "destination": "Initialized.Params",
     "imported_version": "3.17",
     "source": "InitializedParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint",
+    "destination": "InlayHint",
     "imported_version": "3.17",
     "source": "InlayHint"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint.ClientCapabilities",
+    "destination": "InlayHint.ClientCapabilities",
     "imported_version": "3.17",
     "source": "InlayHintClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint.Kind",
+    "destination": "InlayHint.Kind",
     "imported_version": "3.17",
     "source": "InlayHintKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint.LabelPart",
+    "destination": "InlayHint.LabelPart",
     "imported_version": "3.17",
     "source": "InlayHintLabelPart"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint.Options",
+    "destination": "InlayHint.Options",
     "imported_version": "3.17",
     "source": "InlayHintOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint.Params",
+    "destination": "InlayHint.Params",
     "imported_version": "3.17",
     "source": "InlayHintParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint.Registration.Options",
+    "destination": "InlayHint.Registration.Options",
     "imported_version": "3.17",
     "source": "InlayHintRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHintWorkspace.ClientCapabilities",
+    "destination": "InlayHintWorkspace.ClientCapabilities",
     "imported_version": "3.17",
     "source": "InlayHintWorkspaceClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue",
+    "destination": "InlineValue",
     "imported_version": "3.17",
     "source": "InlineValue"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.ClientCapabilities",
+    "destination": "InlineValue.ClientCapabilities",
     "imported_version": "3.17",
     "source": "InlineValueClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.Context",
+    "destination": "InlineValue.Context",
     "imported_version": "3.17",
     "source": "InlineValueContext"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.EvaluatableExpression",
+    "destination": "InlineValue.EvaluatableExpression",
     "imported_version": "3.17",
     "source": "InlineValueEvaluatableExpression"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.Options",
+    "destination": "InlineValue.Options",
     "imported_version": "3.17",
     "source": "InlineValueOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.Params",
+    "destination": "InlineValue.Params",
     "imported_version": "3.17",
     "source": "InlineValueParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.Registration.Options",
+    "destination": "InlineValue.Registration.Options",
     "imported_version": "3.17",
     "source": "InlineValueRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.Text",
+    "destination": "InlineValue.Text",
     "imported_version": "3.17",
     "source": "InlineValueText"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.VariableLookup",
+    "destination": "InlineValue.VariableLookup",
     "imported_version": "3.17",
     "source": "InlineValueVariableLookup"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InlineValue.Workspace.ClientCapabilities",
+    "destination": "InlineValue.Workspace.ClientCapabilities",
     "imported_version": "3.17",
     "source": "InlineValueWorkspaceClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InsertReplaceEdit",
+    "destination": "InsertReplaceEdit",
     "imported_version": "3.17",
     "source": "InsertReplaceEdit"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InsertTextFormat",
+    "destination": "InsertTextFormat",
     "imported_version": "3.17",
     "source": "InsertTextFormat"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.InsertTextMode",
+    "destination": "InsertTextMode",
     "imported_version": "3.17",
     "source": "InsertTextMode"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LSPAny",
+    "destination": "LSPAny",
     "imported_version": "3.17",
     "source": "LSPAny"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LSPArray",
+    "destination": "LSPArray",
     "imported_version": "3.17",
     "source": "LSPArray"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LSPErrorCodes",
+    "destination": "LSPErrorCodes",
     "imported_version": "3.17",
     "source": "LSPErrorCodes"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LSPObject",
+    "destination": "LSPObject",
     "imported_version": "3.17",
     "source": "LSPObject"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LinkedEditingRange.ClientCapabilities",
+    "destination": "LinkedEditingRange.ClientCapabilities",
     "imported_version": "3.17",
     "source": "LinkedEditingRangeClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LinkedEditingRange.Options",
+    "destination": "LinkedEditingRange.Options",
     "imported_version": "3.17",
     "source": "LinkedEditingRangeOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LinkedEditingRange.Params",
+    "destination": "LinkedEditingRange.Params",
     "imported_version": "3.17",
     "source": "LinkedEditingRangeParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LinkedEditingRange.Registration.Options",
+    "destination": "LinkedEditingRange.Registration.Options",
     "imported_version": "3.17",
     "source": "LinkedEditingRangeRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LinkedEditingRanges",
+    "destination": "LinkedEditingRanges",
     "imported_version": "3.17",
     "source": "LinkedEditingRanges"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Location",
+    "destination": "Location",
     "imported_version": "3.17",
     "source": "Location"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Location.Link",
+    "destination": "Location.Link",
     "imported_version": "3.17",
     "source": "LocationLink"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LogMessage.Params",
+    "destination": "LogMessage.Params",
     "imported_version": "3.17",
     "source": "LogMessageParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.LogTrace.Params",
+    "destination": "LogTrace.Params",
     "imported_version": "3.17",
     "source": "LogTraceParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Markdown.ClientCapabilities",
+    "destination": "Markdown.ClientCapabilities",
     "imported_version": "3.17",
     "source": "MarkdownClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.MarkedString",
+    "destination": "MarkedString",
     "imported_version": "3.17",
     "source": "MarkedString"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Markup.Content",
+    "destination": "Markup.Content",
     "imported_version": "3.17",
     "source": "MarkupContent"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Markup.Kind",
+    "destination": "Markup.Kind",
     "imported_version": "3.17",
     "source": "MarkupKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Message.ActionItem",
+    "destination": "Message.ActionItem",
     "imported_version": "3.17",
     "source": "MessageActionItem"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Message.Type",
+    "destination": "Message.Type",
     "imported_version": "3.17",
     "source": "MessageType"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Moniker",
+    "destination": "Moniker",
     "imported_version": "3.17",
     "source": "Moniker"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Moniker.ClientCapabilities",
+    "destination": "Moniker.ClientCapabilities",
     "imported_version": "3.17",
     "source": "MonikerClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Moniker.Kind",
+    "destination": "Moniker.Kind",
     "imported_version": "3.17",
     "source": "MonikerKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Moniker.Options",
+    "destination": "Moniker.Options",
     "imported_version": "3.17",
     "source": "MonikerOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Moniker.Params",
+    "destination": "Moniker.Params",
     "imported_version": "3.17",
     "source": "MonikerParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Moniker.Registration.Options",
+    "destination": "Moniker.Registration.Options",
     "imported_version": "3.17",
     "source": "MonikerRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Cell",
+    "destination": "Notebook.Cell",
     "imported_version": "3.17",
     "source": "NotebookCell"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Cell.ArrayChange",
+    "destination": "Notebook.Cell.ArrayChange",
     "imported_version": "3.17",
     "source": "NotebookCellArrayChange"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Cell.Kind",
+    "destination": "Notebook.Cell.Kind",
     "imported_version": "3.17",
     "source": "NotebookCellKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Cell.TextDocument.Filter",
+    "destination": "Notebook.Cell.TextDocument.Filter",
     "imported_version": "3.17",
     "source": "NotebookCellTextDocumentFilter"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document",
+    "destination": "Notebook.Document",
     "imported_version": "3.17",
     "source": "NotebookDocument"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.ChangeEvent",
+    "destination": "Notebook.Document.ChangeEvent",
     "imported_version": "3.17",
     "source": "NotebookDocumentChangeEvent"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.ClientCapabilities",
+    "destination": "Notebook.Document.ClientCapabilities",
     "imported_version": "3.17",
     "source": "NotebookDocumentClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.Filter",
+    "destination": "Notebook.Document.Filter",
     "imported_version": "3.17",
     "source": "NotebookDocumentFilter"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.Identifier",
+    "destination": "Notebook.Document.Identifier",
     "imported_version": "3.17",
     "source": "NotebookDocumentIdentifier"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.Sync.ClientCapabilities",
+    "destination": "Notebook.Document.Sync.ClientCapabilities",
     "imported_version": "3.17",
     "source": "NotebookDocumentSyncClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.Sync.Options",
+    "destination": "Notebook.Document.Sync.Options",
     "imported_version": "3.17",
     "source": "NotebookDocumentSyncOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.Sync.Registration.Options",
+    "destination": "Notebook.Document.Sync.Registration.Options",
     "imported_version": "3.17",
     "source": "NotebookDocumentSyncRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.OptionalVersionedTextDocument.Identifier",
+    "destination": "TextDocument.OptionalVersioned.Identifier",
     "imported_version": "3.17",
     "source": "OptionalVersionedTextDocumentIdentifier"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ParameterInformation",
+    "destination": "ParameterInformation",
     "imported_version": "3.17",
     "source": "ParameterInformation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.PartialResult.Params",
+    "destination": "PartialResult.Params",
     "imported_version": "3.17",
     "source": "PartialResultParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Pattern",
+    "destination": "Pattern",
     "imported_version": "3.17",
     "source": "Pattern"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Position",
+    "destination": "Position",
     "imported_version": "3.17",
     "source": "Position"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Position.Encoding.Kind",
+    "destination": "Position.Encoding.Kind",
     "imported_version": "3.17",
     "source": "PositionEncodingKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.PrepareRename.Params",
+    "destination": "PrepareRename.Params",
     "imported_version": "3.17",
     "source": "PrepareRenameParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.PrepareRenameResult",
+    "destination": "PrepareRenameResult",
     "imported_version": "3.17",
     "source": "PrepareRenameResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.PrepareSupportDefaultBehavior",
+    "destination": "PrepareSupportDefaultBehavior",
     "imported_version": "3.17",
     "source": "PrepareSupportDefaultBehavior"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.PreviousResultId",
+    "destination": "PreviousResultId",
     "imported_version": "3.17",
     "source": "PreviousResultId"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Progress.Params",
+    "destination": "Progress.Params",
     "imported_version": "3.17",
     "source": "ProgressParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Progress.Token",
+    "destination": "Progress.Token",
     "imported_version": "3.17",
     "source": "ProgressToken"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.PublishDiagnostics.ClientCapabilities",
+    "destination": "PublishDiagnostics.ClientCapabilities",
     "imported_version": "3.17",
     "source": "PublishDiagnosticsClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.PublishDiagnostics.Params",
+    "destination": "PublishDiagnostics.Params",
     "imported_version": "3.17",
     "source": "PublishDiagnosticsParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Range",
+    "destination": "Range",
     "imported_version": "3.17",
     "source": "Range"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Reference.ClientCapabilities",
+    "destination": "Reference.ClientCapabilities",
     "imported_version": "3.17",
     "source": "ReferenceClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Reference.Context",
+    "destination": "Reference.Context",
     "imported_version": "3.17",
     "source": "ReferenceContext"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Reference.Options",
+    "destination": "Reference.Options",
     "imported_version": "3.17",
     "source": "ReferenceOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Reference.Params",
+    "destination": "Reference.Params",
     "imported_version": "3.17",
     "source": "ReferenceParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Reference.Registration.Options",
+    "destination": "Reference.Registration.Options",
     "imported_version": "3.17",
     "source": "ReferenceRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Registration",
+    "destination": "Registration",
     "imported_version": "3.17",
     "source": "Registration"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Registration.Params",
+    "destination": "Registration.Params",
     "imported_version": "3.17",
     "source": "RegistrationParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.RegularExpressions.ClientCapabilities",
+    "destination": "RegularExpressions.ClientCapabilities",
     "imported_version": "3.17",
     "source": "RegularExpressionsClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.RelatedFullDocumentDiagnosticReport",
+    "destination": "RelatedFullDocumentDiagnosticReport",
     "imported_version": "3.17",
     "source": "RelatedFullDocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.RelatedUnchangedDocumentDiagnosticReport",
+    "destination": "RelatedUnchangedDocumentDiagnosticReport",
     "imported_version": "3.17",
     "source": "RelatedUnchangedDocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.RelativePattern",
+    "destination": "RelativePattern",
     "imported_version": "3.17",
     "source": "RelativePattern"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Rename.ClientCapabilities",
+    "destination": "Rename.ClientCapabilities",
     "imported_version": "3.17",
     "source": "RenameClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.RenameFile",
+    "destination": "RenameFile",
     "imported_version": "3.17",
     "source": "RenameFile"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.RenameFile.Options",
+    "destination": "RenameFile.Options",
     "imported_version": "3.17",
     "source": "RenameFileOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.RenameFiles.Params",
+    "destination": "RenameFiles.Params",
     "imported_version": "3.17",
     "source": "RenameFilesParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Rename.Options",
+    "destination": "Rename.Options",
     "imported_version": "3.17",
     "source": "RenameOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Rename.Params",
+    "destination": "Rename.Params",
     "imported_version": "3.17",
     "source": "RenameParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Rename.Registration.Options",
+    "destination": "Rename.Registration.Options",
     "imported_version": "3.17",
     "source": "RenameRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ResourceOperation",
+    "destination": "ResourceOperation",
     "imported_version": "3.17",
     "source": "ResourceOperation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ResourceOperation.Kind",
+    "destination": "ResourceOperation.Kind",
     "imported_version": "3.17",
     "source": "ResourceOperationKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Save.Options",
+    "destination": "Save.Options",
     "imported_version": "3.17",
     "source": "SaveOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SelectionRange",
+    "destination": "SelectionRange",
     "imported_version": "3.17",
     "source": "SelectionRange"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SelectionRange.ClientCapabilities",
+    "destination": "SelectionRange.ClientCapabilities",
     "imported_version": "3.17",
     "source": "SelectionRangeClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SelectionRange.Options",
+    "destination": "SelectionRange.Options",
     "imported_version": "3.17",
     "source": "SelectionRangeOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SelectionRange.Params",
+    "destination": "SelectionRange.Params",
     "imported_version": "3.17",
     "source": "SelectionRangeParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SelectionRange.Registration.Options",
+    "destination": "SelectionRange.Registration.Options",
     "imported_version": "3.17",
     "source": "SelectionRangeRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokenModifiers",
+    "destination": "SemanticTokenModifiers",
     "imported_version": "3.17",
     "source": "SemanticTokenModifiers"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokenTypes",
+    "destination": "SemanticTokenTypes",
     "imported_version": "3.17",
     "source": "SemanticTokenTypes"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens",
+    "destination": "SemanticTokens",
     "imported_version": "3.17",
     "source": "SemanticTokens"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.ClientCapabilities",
+    "destination": "SemanticTokens.ClientCapabilities",
     "imported_version": "3.17",
     "source": "SemanticTokensClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Delta",
+    "destination": "SemanticTokens.Delta",
     "imported_version": "3.17",
     "source": "SemanticTokensDelta"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Delta.Params",
+    "destination": "SemanticTokens.Delta.Params",
     "imported_version": "3.17",
     "source": "SemanticTokensDeltaParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Delta.PartialResult",
+    "destination": "SemanticTokens.Delta.PartialResult",
     "imported_version": "3.17",
     "source": "SemanticTokensDeltaPartialResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Edit",
+    "destination": "SemanticTokens.Edit",
     "imported_version": "3.17",
     "source": "SemanticTokensEdit"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Legend",
+    "destination": "SemanticTokens.Legend",
     "imported_version": "3.17",
     "source": "SemanticTokensLegend"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Options",
+    "destination": "SemanticTokens.Options",
     "imported_version": "3.17",
     "source": "SemanticTokensOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Params",
+    "destination": "SemanticTokens.Params",
     "imported_version": "3.17",
     "source": "SemanticTokensParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.PartialResult",
+    "destination": "SemanticTokens.PartialResult",
     "imported_version": "3.17",
     "source": "SemanticTokensPartialResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Range.Params",
+    "destination": "SemanticTokens.Range.Params",
     "imported_version": "3.17",
     "source": "SemanticTokensRangeParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Registration.Options",
+    "destination": "SemanticTokens.Registration.Options",
     "imported_version": "3.17",
     "source": "SemanticTokensRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SemanticTokens.Workspace.ClientCapabilities",
+    "destination": "SemanticTokens.Workspace.ClientCapabilities",
     "imported_version": "3.17",
     "source": "SemanticTokensWorkspaceClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ServerCapabilities",
+    "destination": "ServerCapabilities",
     "imported_version": "3.17",
     "source": "ServerCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SetTrace.Params",
+    "destination": "SetTrace.Params",
     "imported_version": "3.17",
     "source": "SetTraceParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ShowDocument.ClientCapabilities",
+    "destination": "ShowDocument.ClientCapabilities",
     "imported_version": "3.17",
     "source": "ShowDocumentClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ShowDocument.Params",
+    "destination": "ShowDocument.Params",
     "imported_version": "3.17",
     "source": "ShowDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ShowDocumentResult",
+    "destination": "ShowDocumentResult",
     "imported_version": "3.17",
     "source": "ShowDocumentResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ShowMessage.Params",
+    "destination": "ShowMessage.Params",
     "imported_version": "3.17",
     "source": "ShowMessageParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ShowMessageRequest.ClientCapabilities",
+    "destination": "ShowMessageRequest.ClientCapabilities",
     "imported_version": "3.17",
     "source": "ShowMessageRequestClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.ShowMessageRequest.Params",
+    "destination": "ShowMessageRequest.Params",
     "imported_version": "3.17",
     "source": "ShowMessageRequestParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureHelp",
+    "destination": "SignatureHelp",
     "imported_version": "3.17",
     "source": "SignatureHelp"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureHelp.ClientCapabilities",
+    "destination": "SignatureHelp.ClientCapabilities",
     "imported_version": "3.17",
     "source": "SignatureHelpClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureHelp.Context",
+    "destination": "SignatureHelp.Context",
     "imported_version": "3.17",
     "source": "SignatureHelpContext"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureHelp.Options",
+    "destination": "SignatureHelp.Options",
     "imported_version": "3.17",
     "source": "SignatureHelpOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureHelp.Params",
+    "destination": "SignatureHelp.Params",
     "imported_version": "3.17",
     "source": "SignatureHelpParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureHelp.Registration.Options",
+    "destination": "SignatureHelp.Registration.Options",
     "imported_version": "3.17",
     "source": "SignatureHelpRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureHelp.Trigger.Kind",
+    "destination": "SignatureHelp.Trigger.Kind",
     "imported_version": "3.17",
     "source": "SignatureHelpTriggerKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.SignatureInformation",
+    "destination": "SignatureInformation",
     "imported_version": "3.17",
     "source": "SignatureInformation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Static.Registration.Options",
+    "destination": "Static.Registration.Options",
     "imported_version": "3.17",
     "source": "StaticRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Symbol.Information",
+    "destination": "Symbol.Information",
     "imported_version": "3.17",
     "source": "SymbolInformation"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Symbol.Kind",
+    "destination": "Symbol.Kind",
     "imported_version": "3.17",
     "source": "SymbolKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Symbol.Tag",
+    "destination": "Symbol.Tag",
     "imported_version": "3.17",
     "source": "SymbolTag"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Change.Registration.Options",
+    "destination": "TextDocument.Change.Registration.Options",
     "imported_version": "3.17",
     "source": "TextDocumentChangeRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ClientCapabilities",
+    "destination": "TextDocument.ClientCapabilities",
     "imported_version": "3.17",
     "source": "TextDocumentClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent",
+    "destination": "TextDocument.ContentChangeEvent",
     "imported_version": "3.17",
     "source": "TextDocumentContentChangeEvent"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Edit",
+    "destination": "TextDocument.Edit",
     "imported_version": "3.17",
     "source": "TextDocumentEdit"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Filter",
+    "destination": "TextDocument.Filter",
     "imported_version": "3.17",
     "source": "TextDocumentFilter"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Identifier",
+    "destination": "TextDocument.Identifier",
     "imported_version": "3.17",
     "source": "TextDocumentIdentifier"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Item",
+    "destination": "TextDocument.Item",
     "imported_version": "3.17",
     "source": "TextDocumentItem"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Position.Params",
+    "destination": "TextDocument.Position.Params",
     "imported_version": "3.17",
     "source": "TextDocumentPositionParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Registration.Options",
+    "destination": "TextDocument.Registration.Options",
     "imported_version": "3.17",
     "source": "TextDocumentRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Save.Reason",
+    "destination": "TextDocument.Save.Reason",
     "imported_version": "3.17",
     "source": "TextDocumentSaveReason"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Save.Registration.Options",
+    "destination": "TextDocument.Save.Registration.Options",
     "imported_version": "3.17",
     "source": "TextDocumentSaveRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Sync.ClientCapabilities",
+    "destination": "TextDocument.Sync.ClientCapabilities",
     "imported_version": "3.17",
     "source": "TextDocumentSyncClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Sync.Kind",
+    "destination": "TextDocument.Sync.Kind",
     "imported_version": "3.17",
     "source": "TextDocumentSyncKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.Sync.Options",
+    "destination": "TextDocument.Sync.Options",
     "imported_version": "3.17",
     "source": "TextDocumentSyncOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit",
+    "destination": "TextEdit",
     "imported_version": "3.17",
     "source": "TextEdit"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TokenFormat",
+    "destination": "TokenFormat",
     "imported_version": "3.17",
     "source": "TokenFormat"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TraceValues",
+    "destination": "TraceValues",
     "imported_version": "3.17",
     "source": "TraceValues"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeDefinition.ClientCapabilities",
+    "destination": "TypeDefinition.ClientCapabilities",
     "imported_version": "3.17",
     "source": "TypeDefinitionClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeDefinition.Options",
+    "destination": "TypeDefinition.Options",
     "imported_version": "3.17",
     "source": "TypeDefinitionOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeDefinition.Params",
+    "destination": "TypeDefinition.Params",
     "imported_version": "3.17",
     "source": "TypeDefinitionParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeDefinition.Registration.Options",
+    "destination": "TypeDefinition.Registration.Options",
     "imported_version": "3.17",
     "source": "TypeDefinitionRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeHierarchy.ClientCapabilities",
+    "destination": "TypeHierarchy.ClientCapabilities",
     "imported_version": "3.17",
     "source": "TypeHierarchyClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeHierarchy.Item",
+    "destination": "TypeHierarchy.Item",
     "imported_version": "3.17",
     "source": "TypeHierarchyItem"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeHierarchy.Options",
+    "destination": "TypeHierarchy.Options",
     "imported_version": "3.17",
     "source": "TypeHierarchyOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeHierarchy.Prepare.Params",
+    "destination": "TypeHierarchy.Prepare.Params",
     "imported_version": "3.17",
     "source": "TypeHierarchyPrepareParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeHierarchy.Registration.Options",
+    "destination": "TypeHierarchy.Registration.Options",
     "imported_version": "3.17",
     "source": "TypeHierarchyRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeHierarchy.Subtypes.Params",
+    "destination": "TypeHierarchy.Subtypes.Params",
     "imported_version": "3.17",
     "source": "TypeHierarchySubtypesParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.TypeHierarchy.Supertypes.Params",
+    "destination": "TypeHierarchy.Supertypes.Params",
     "imported_version": "3.17",
     "source": "TypeHierarchySupertypesParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.UnchangedDocumentDiagnosticReport",
+    "destination": "UnchangedDocumentDiagnosticReport",
     "imported_version": "3.17",
     "source": "UnchangedDocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.UniquenessLevel",
+    "destination": "UniquenessLevel",
     "imported_version": "3.17",
     "source": "UniquenessLevel"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Unregistration",
+    "destination": "Unregistration",
     "imported_version": "3.17",
     "source": "Unregistration"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Unregistration.Params",
+    "destination": "Unregistration.Params",
     "imported_version": "3.17",
     "source": "UnregistrationParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.VersionedNotebookDocument.Identifier",
+    "destination": "Notebook.VersionedDocument.Identifier",
     "imported_version": "3.17",
     "source": "VersionedNotebookDocumentIdentifier"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.VersionedTextDocument.Identifier",
+    "destination": "TextDocument.Versioned.Identifier",
     "imported_version": "3.17",
     "source": "VersionedTextDocumentIdentifier"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Watch.Kind",
+    "destination": "Watch.Kind",
     "imported_version": "3.17",
     "source": "WatchKind"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WillSaveTextDocument.Params",
+    "destination": "WillSaveTextDocument.Params",
     "imported_version": "3.17",
     "source": "WillSaveTextDocumentParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Window.ClientCapabilities",
+    "destination": "Window.ClientCapabilities",
     "imported_version": "3.17",
     "source": "WindowClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkDone.ProgressBegin",
+    "destination": "WorkDone.ProgressBegin",
     "imported_version": "3.17",
     "source": "WorkDoneProgressBegin"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkDone.Progress.Cancel.Params",
+    "destination": "WorkDone.Progress.Cancel.Params",
     "imported_version": "3.17",
     "source": "WorkDoneProgressCancelParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkDone.Progress.Create.Params",
+    "destination": "WorkDone.Progress.Create.Params",
     "imported_version": "3.17",
     "source": "WorkDoneProgressCreateParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkDone.ProgressEnd",
+    "destination": "WorkDone.ProgressEnd",
     "imported_version": "3.17",
     "source": "WorkDoneProgressEnd"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkDone.Progress.Options",
+    "destination": "WorkDone.Progress.Options",
     "imported_version": "3.17",
     "source": "WorkDoneProgressOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkDone.Progress.Params",
+    "destination": "WorkDone.Progress.Params",
     "imported_version": "3.17",
     "source": "WorkDoneProgressParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkDone.Progress.Report",
+    "destination": "WorkDone.Progress.Report",
     "imported_version": "3.17",
     "source": "WorkDoneProgressReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.ClientCapabilities",
+    "destination": "Workspace.ClientCapabilities",
     "imported_version": "3.17",
     "source": "WorkspaceClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Diagnostic.Params",
+    "destination": "Workspace.Diagnostic.Params",
     "imported_version": "3.17",
     "source": "WorkspaceDiagnosticParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Diagnostic.Report",
+    "destination": "Workspace.Diagnostic.Report",
     "imported_version": "3.17",
     "source": "WorkspaceDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Diagnostic.Report.PartialResult",
+    "destination": "Workspace.Diagnostic.Report.PartialResult",
     "imported_version": "3.17",
     "source": "WorkspaceDiagnosticReportPartialResult"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkspaceDocumentDiagnosticReport",
+    "destination": "WorkspaceDocumentDiagnosticReport",
     "imported_version": "3.17",
     "source": "WorkspaceDocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Edit",
+    "destination": "Workspace.Edit",
     "imported_version": "3.17",
     "source": "WorkspaceEdit"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Edit.ClientCapabilities",
+    "destination": "Workspace.Edit.ClientCapabilities",
     "imported_version": "3.17",
     "source": "WorkspaceEditClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Folder",
+    "destination": "Workspace.Folder",
     "imported_version": "3.17",
     "source": "WorkspaceFolder"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.FoldersChangeEvent",
+    "destination": "Workspace.FoldersChangeEvent",
     "imported_version": "3.17",
     "source": "WorkspaceFoldersChangeEvent"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.FoldersInitialize.Params",
+    "destination": "Workspace.FoldersInitialize.Params",
     "imported_version": "3.17",
     "source": "WorkspaceFoldersInitializeParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.FoldersServerCapabilities",
+    "destination": "Workspace.FoldersServerCapabilities",
     "imported_version": "3.17",
     "source": "WorkspaceFoldersServerCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.FullDocument.Diagnostic.Report",
+    "destination": "Workspace.FullDocument.Diagnostic.Report",
     "imported_version": "3.17",
     "source": "WorkspaceFullDocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Symbol",
+    "destination": "Workspace.Symbol",
     "imported_version": "3.17",
     "source": "WorkspaceSymbol"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Symbol.ClientCapabilities",
+    "destination": "Workspace.Symbol.ClientCapabilities",
     "imported_version": "3.17",
     "source": "WorkspaceSymbolClientCapabilities"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Symbol.Options",
+    "destination": "Workspace.Symbol.Options",
     "imported_version": "3.17",
     "source": "WorkspaceSymbolOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Symbol.Params",
+    "destination": "Workspace.Symbol.Params",
     "imported_version": "3.17",
     "source": "WorkspaceSymbolParams"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Symbol.Registration.Options",
+    "destination": "Workspace.Symbol.Registration.Options",
     "imported_version": "3.17",
     "source": "WorkspaceSymbolRegistrationOptions"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.UnchangedDocument.Diagnostic.Report",
+    "destination": "Workspace.UnchangedDocument.Diagnostic.Report",
     "imported_version": "3.17",
     "source": "WorkspaceUnchangedDocumentDiagnosticReport"
   },
   {
-    "destination": "ElixirLS.LanguageServer.Experimental.Protocol.Types._InitializeParams",
+    "destination": "_InitializeParams",
     "imported_version": "3.17",
     "source": "_InitializeParams"
   }

@@ -26,4 +26,12 @@ defmodule Mix.Tasks.Lsp.DataModel.Property do
       quote(do: {unquote(underscored), optional(unquote(type_call))})
     end
   end
+
+  def references(%__MODULE__{} = property) do
+    %type_module{} = property.type
+
+    property.type
+    |> type_module.references()
+    |> Enum.reject(fn name -> String.starts_with?(name, "LSP") end)
+  end
 end

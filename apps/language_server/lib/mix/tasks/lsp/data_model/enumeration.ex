@@ -35,6 +35,8 @@ defmodule Mix.Tasks.Lsp.DataModel.Enumeration do
         %Mappings{} = mappings,
         %DataModel{}
       ) do
+    proto_module = Mappings.proto_module(mappings)
+
     with {:ok, destination_module} <-
            Mappings.fetch_destination_module(mappings, enumeration.name) do
       values =
@@ -46,7 +48,7 @@ defmodule Mix.Tasks.Lsp.DataModel.Enumeration do
       ast =
         quote do
           defmodule unquote(destination_module) do
-            alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
+            alias unquote(proto_module)
             use Proto
 
             defenum unquote(values)
@@ -55,5 +57,9 @@ defmodule Mix.Tasks.Lsp.DataModel.Enumeration do
 
       {:ok, ast}
     end
+  end
+
+  def references(%__MODULE__{}) do
+    []
   end
 end

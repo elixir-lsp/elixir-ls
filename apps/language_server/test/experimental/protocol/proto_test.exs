@@ -15,8 +15,6 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     deftype name: string()
   end
 
-  setup
-
   describe "string fields" do
     defmodule StringField do
       use Proto

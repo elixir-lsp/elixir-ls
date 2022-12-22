@@ -36,17 +36,20 @@ defmodule Mix.Tasks.Lsp.DataModel do
   end
 
   def all_types(%__MODULE__{} = data_model) do
-    data_model.type_aliases
-    |> Map.merge(data_model.enumerations)
-    |> Map.merge(data_model.structures)
+    aliases = Map.values(data_model.type_aliases)
+    structures = Map.values(data_model.structures)
+    enumerations = Map.values(data_model.enumerations)
+
+    aliases ++ enumerations ++ structures
   end
 
   def fetch(%__MODULE__{} = data_model, name) do
     field =
       case kind(data_model, name) do
-        :structure -> :structures
-        :type_alias -> :type_aliases
-        :enumeration -> :enumerations
+        {:ok, :structure} -> :structures
+        {:ok, :type_alias} -> :type_aliases
+        {:ok, :enumeration} -> :enumerations
+        :error -> :error
       end
 
     data_model
@@ -68,6 +71,29 @@ defmodule Mix.Tasks.Lsp.DataModel do
     end
   end
 
+  def references(%__MODULE__{} = data_model, %{name: name}) do
+    references(data_model, name)
+  end
+
+  def references(%__MODULE__{} = data_model, roots) do
+    collect_references(data_model, List.wrap(roots), MapSet.new())
+  end
+
+  defp collect_references(%__MODULE__{}, [], %MapSet{} = references) do
+    MapSet.to_list(references)
+  end
+
+  defp collect_references(%__MODULE__{} = data_model, [first | rest], %MapSet{} = references) do
+    with false <- MapSet.member?(references, first),
+         {:ok, %referred_type{} = referred} <- fetch(data_model, first) do
+      new_refs = referred_type.references(referred)
+      collect_references(data_model, rest ++ new_refs, MapSet.put(references, first))
+    else
+      _ ->
+        collect_references(data_model, rest, references)
+    end
+  end
+
   defp load_from_meta(root_meta, name, new_fn) do
     root_meta
     |> Map.get(name)
@@ -78,7 +104,7 @@ defmodule Mix.Tasks.Lsp.DataModel do
   end
 
   defp kind(%__MODULE__{} = data_model, name) do
-    Map.fetch!(data_model.names_to_types, name)
+    Map.fetch(data_model.names_to_types, name)
   end
 
   defp type_name("structures"), do: :structure

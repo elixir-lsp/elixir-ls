@@ -1,4 +1,5 @@
 defmodule Mix.Tasks.Lsp.DataModel.Structure do
+  alias Mix.Tasks.Lsp.Mappings.NumberingContext
   alias Mix.Tasks.Lsp.DataModel.Type.ObjectLiteral
   alias Mix.Tasks.Lsp.Mappings
   alias Mix.Tasks.Lsp.DataModel
@@ -8,6 +9,8 @@ defmodule Mix.Tasks.Lsp.DataModel.Structure do
   defstruct name: nil, documentation: nil, properties: nil, definition: nil, module: nil
 
   def new(%{"name" => name, "properties" => _} = definition) do
+    NumberingContext.new()
+
     %__MODULE__{
       name: name,
       documentation: definition[:documentation],
@@ -26,6 +29,9 @@ defmodule Mix.Tasks.Lsp.DataModel.Structure do
         %DataModel{} = data_model
       ) do
     with {:ok, destination_module} <- Mappings.fetch_destination_module(mappings, structure.name) do
+      NumberingContext.new()
+      types_module = Mappings.types_module(mappings)
+      proto_module = Mappings.proto_module(mappings)
       structure = resolve(structure, data_model)
       object_literals = Type.collect_object_literals(structure, data_model)
 
@@ -33,12 +39,22 @@ defmodule Mix.Tasks.Lsp.DataModel.Structure do
         Enum.map(object_literals, &ObjectLiteral.build_definition(&1, data_model, mappings))
 
       protocol_properties =
-        Enum.map(structure.properties, &Property.to_protocol(&1, data_model, mappings))
+        structure.properties
+        |> Enum.sort_by(& &1.name)
+        |> Enum.map(&Property.to_protocol(&1, data_model, mappings))
+
+      type_module_alias =
+        case references(structure) do
+          [] -> []
+          _ -> [quote(do: alias(unquote(types_module)))]
+        end
 
       ast =
         quote do
           defmodule unquote(destination_module) do
-            alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
+            alias unquote(proto_module)
+            unquote_splicing(type_module_alias)
+
             unquote_splicing(literal_definitions)
 
             use Proto
@@ -48,6 +64,10 @@ defmodule Mix.Tasks.Lsp.DataModel.Structure do
 
       {:ok, ast}
     end
+  end
+
+  def references(%__MODULE__{} = structure) do
+    Enum.flat_map(structure.properties, &Property.references/1)
   end
 
   def resolve(%__MODULE__{properties: properties} = structure) when is_list(properties) do
