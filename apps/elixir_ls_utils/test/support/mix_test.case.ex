@@ -10,7 +10,24 @@ defmodule ElixirLS.Utils.MixTest.Case do
   end
 
   @apps Enum.map(Application.loaded_applications(), &elem(&1, 0))
-  @allowed_apps ~w(docsh xmerl syntax_tools edoc elixir_sense elixir_ls_debugger elixir_ls_utils language_server stream_data)a
+  @allowed_apps ~w(
+    iex
+    elixir_sense
+    elixir_ls_debugger
+    elixir_ls_utils
+    language_server
+    stream_data
+    statistex
+    patch
+    deep_merge
+    erlex
+    benchee
+    path_glob_vendored
+    dialyzer
+    dialyxir_vendored
+    erl2ex
+    jason_vendored
+    )a
 
   setup do
     on_exit(fn ->

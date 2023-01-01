@@ -255,6 +255,21 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp purge_dep(%Mix.Dep{app: app} = dep) do
+    if app in [
+         :language_server,
+         :elixir_ls_utils,
+         :elixir_sense,
+         :stream_data,
+         :jason_vendored,
+         :path_glob_vendored,
+         :dialyxir_vendored,
+         :erl2ex,
+         :patch,
+         :benchee
+       ] do
+      raise "Unloading #{app}"
+    end
+
     for path <- Mix.Dep.load_paths(dep) do
       Code.delete_path(path)
     end
@@ -338,7 +353,9 @@ defmodule ElixirLS.LanguageServer.Build do
   defp read_cached_deps() do
     # FIXME: Private api
     # we cannot use Mix.Dep.cached() here as it tries to load deps
-    if project = Mix.Project.get() do
+    project = Mix.Project.get()
+    # in test do not try to load cache from elixir_ls
+    if project != nil and project != ElixirLS.LanguageServer.Mixfile do
       env_target = {Mix.env(), Mix.target()}
 
       case Mix.State.read_cache({:cached_deps, project}) do

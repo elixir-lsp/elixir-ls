@@ -1533,6 +1533,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     try do
       func.(server)
     after
+      wait_until_compiled(server)
       stop_supervised(Server)
       stop_supervised(PacketCapture)
       flush_mailbox()
