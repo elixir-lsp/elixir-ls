@@ -255,8 +255,6 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp purge_dep(%Mix.Dep{app: app} = dep) do
-    IO.warn("Unloading #{app}")
-
     if app in [
          :language_server,
          :elixir_ls_utils,

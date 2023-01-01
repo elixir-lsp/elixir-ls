@@ -4,7 +4,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
-  require Logger
 
   doctest(Server)
 

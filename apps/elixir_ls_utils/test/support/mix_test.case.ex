@@ -43,7 +43,6 @@ defmodule ElixirLS.Utils.MixTest.Case do
       for {app, _, _} <- Application.loaded_applications(),
           app not in @apps,
           app not in @allowed_apps do
-        IO.warn("mix case unload #{app}")
         Application.stop(app)
         Application.unload(app)
       end
