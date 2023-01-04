@@ -149,6 +149,11 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
 
   def with_patched_system_put_env(_) do
     patch(System, :put_env, :ok)
+
+    on_exit(fn ->
+      restore(System)
+    end)
+
     :ok
   end
 

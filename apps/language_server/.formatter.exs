@@ -3,6 +3,13 @@ impossible_to_format = [
   "test/fixtures/project_with_tests/test/error_test.exs"
 ]
 
+deps =
+  if Mix.env() == :test do
+    [:patch]
+  else
+    []
+  end
+
 proto_dsl = [
   defalias: 1,
   defenum: 1,
@@ -14,7 +21,7 @@ proto_dsl = [
 ]
 
 [
-  import_deps: [:patch],
+  import_deps: deps,
   export: [
     locals_without_parens: proto_dsl
   ],
