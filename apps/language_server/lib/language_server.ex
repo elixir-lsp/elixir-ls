@@ -7,9 +7,6 @@ defmodule ElixirLS.LanguageServer do
   alias ElixirLS.LanguageServer
   alias ElixirLS.LanguageServer.Experimental
 
-  # @maybe_experimental_server [Experimental.Server]
-  @maybe_experimental_server []
-
   @impl Application
   def start(_type, _args) do
     Experimental.LanguageServer.persist_enabled_state()
