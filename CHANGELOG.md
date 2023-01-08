@@ -4,7 +4,7 @@
 
 #### Improvements
 
-- Completions now retur LSP 3.17 `labelDetails`. This allows to provide more contextual detais to completion items
+- Completions now return LSP 3.17 `labelDetails`. This allows to provide more contextual detais to completion items
 - Protocol implementations are no longer auto aliased
 - Completions requiring auto aliasing are deprioretized and visually marked
 - Optimisation of references tracing. It should make difference especially in macro heavy modules (e.g. Absinthe schemas)
