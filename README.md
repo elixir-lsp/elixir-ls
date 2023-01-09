@@ -1,4 +1,4 @@
-# Elixir Language Server (ElixirLS)
+# Elixir Language Server (ElixirLS) [![Actions Status](https://img.shields.io/github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)](github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)
 
 The Elixir Language Server provides a server that runs in the background, providing IDEs, editors, and other tools with information about Elixir Mix projects. It adheres to the [Language Server Protocol](https://github.com/Microsoft/language-server-protocol), a standard for frontend-independent IDE support. Debugger integration is accomplished through the similar [VS Code Debug Protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging).
 
