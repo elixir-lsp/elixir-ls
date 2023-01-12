@@ -8,7 +8,12 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test.DescribeBlock do
 
   def find_block_info(line, lines_to_env_list, lines_to_env_list_length, source_lines) do
     name = get_name(source_lines, line)
-    module = lines_to_env_list |> Enum.find(fn {env_line, _env} -> env_line == line end) |> elem(1) |> Map.get(:module)
+
+    module =
+      lines_to_env_list
+      |> Enum.find(fn {env_line, _env} -> env_line == line end)
+      |> elem(1)
+      |> Map.get(:module)
 
     body_scope_id =
       get_body_scope_id(

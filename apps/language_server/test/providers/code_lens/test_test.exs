@@ -73,44 +73,68 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
-    assert Enum.member?(lenses, build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => MyModule
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => MyModule
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(9, :module, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => MyModule2
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(9, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => MyModule2
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule",
-      "testName" => "doctest MyModule"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule",
+               "testName" => "doctest MyModule"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(5, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule",
-      "testName" => "test1"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(5, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule",
+               "testName" => "test1"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(14, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule2",
-      "testName" => "test1"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(14, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule2",
+               "testName" => "test1"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(12, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule2",
-      "testName" => "doctest MyModule2"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(12, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule2",
+               "testName" => "doctest MyModule2"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(18, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule2",
-      "testName" => "doctest MyModule",
-      "describe" => "nested"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(18, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule2",
+               "testName" => "doctest MyModule",
+               "describe" => "nested"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(17, :describe, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule2",
-      "describe" => "nested"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(17, :describe, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule2",
+               "describe" => "nested"
+             })
+           )
   end
 
   test "returns all nested module code lenses" do
@@ -172,44 +196,68 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
-    assert Enum.member?(lenses, build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => MyModule
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => MyModule
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(8, :module, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => MyModule.MyModule2
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(8, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => MyModule.MyModule2
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule",
-      "testName" => "doctest MyModule"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule",
+               "testName" => "doctest MyModule"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(5, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule",
-      "testName" => "test1"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(5, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule",
+               "testName" => "test1"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(13, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule.MyModule2",
-      "testName" => "test1"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(13, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule.MyModule2",
+               "testName" => "test1"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(11, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule.MyModule2",
-      "testName" => "doctest MyModule2"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(11, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule.MyModule2",
+               "testName" => "doctest MyModule2"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(17, :test, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule.MyModule2",
-      "testName" => "doctest MyModule",
-      "describe" => "nested"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(17, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule.MyModule2",
+               "testName" => "doctest MyModule",
+               "describe" => "nested"
+             })
+           )
 
-    assert Enum.member?(lenses, build_code_lens(16, :describe, maybe_convert_path_separators("/project/file.ex"), %{
-      "module" => "MyModule.MyModule2",
-      "describe" => "nested"
-    }))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(16, :describe, maybe_convert_path_separators("/project/file.ex"), %{
+               "module" => "MyModule.MyModule2",
+               "describe" => "nested"
+             })
+           )
   end
 
   test "returns lenses for all describe blocks" do
@@ -299,13 +347,19 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
     {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
 
-    assert Enum.member?(lenses, build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{"testName" => "doctest MyModule", "module" => "MyModuleTest"}))
+    assert Enum.member?(
+             lenses,
+             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               "testName" => "doctest MyModule",
+               "module" => "MyModuleTest"
+             })
+           )
 
     assert Enum.member?(
              lenses,
              build_code_lens(5, :test, maybe_convert_path_separators("/project/file.ex"), %{
                "testName" => "test1",
-                "module" => "MyModuleTest"
+               "module" => "MyModuleTest"
              })
            )
 
