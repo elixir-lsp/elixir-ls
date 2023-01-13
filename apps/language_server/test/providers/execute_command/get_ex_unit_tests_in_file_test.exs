@@ -23,7 +23,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFileT
                         describe: nil,
                         line: nil,
                         tests: [
-                          %{line: 19, name: "this will be a test in future", type: :test},
+                          %{
+                            line: 19,
+                            name: "this will be a test in future",
+                            type: :test
+                          },
                           %{line: 6, name: "fixture test", type: :test}
                         ]
                       },
