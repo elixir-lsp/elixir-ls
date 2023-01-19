@@ -44,7 +44,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
     |> formatter.()
   end
 
-  @spec formatter_for(String.t()) :: {:ok, formatter_function, keyword()} | :error
+  @spec formatter_for(String.t()) ::
+          {:ok, formatter_function, keyword()} | {:error, :no_formatter_available}
   defp formatter_for(uri_or_path) do
     path = Conversions.ensure_path(uri_or_path)
 

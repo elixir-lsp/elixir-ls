@@ -25,8 +25,9 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.Configuration do
 
   @spec default(t) ::
           {:ok, t}
-          | {:ok, t, Requests.RegisterCapabilities.t()}
+          | {:ok, t, Requests.RegisterCapability.t()}
           | {:restart, Logger.level(), String.t()}
+          | {:error, String.t()}
   def default(%__MODULE__{} = config) do
     apply_config_change(config, default_config())
   end
@@ -35,6 +36,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.Configuration do
           {:ok, t}
           | {:ok, t, Requests.RegisterCapability.t()}
           | {:restart, Logger.level(), String.t()}
+          | {:error, String.t()}
   def on_change(%__MODULE__{} = old_config, :defaults) do
     apply_config_change(old_config, default_config())
   end

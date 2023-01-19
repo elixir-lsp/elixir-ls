@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
 
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Line
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Position
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Range
   alias ElixirLS.LanguageServer.SourceFile
@@ -22,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
   @type version :: pos_integer()
   @type change_application_error :: {:error, {:invalid_range, map()}}
   # public
-  @spec new(URI.t(), String.t(), pos_integer()) :: t
+
   def new(uri, text, version) do
     uri = Conversions.ensure_uri(uri)
 

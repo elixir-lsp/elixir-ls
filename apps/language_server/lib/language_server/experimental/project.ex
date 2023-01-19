@@ -19,16 +19,16 @@ defmodule ElixirLS.LanguageServer.Experimental.Project do
   @type message :: String.t()
   @type restart_notification :: {:restart, Logger.level(), String.t()}
   @type t :: %__MODULE__{
-          root_uri: LanguageServer.uri(),
-          working_uri: LanguageServer.uri(),
-          mix_exs_uri: LanguageServer.uri(),
+          root_uri: LanguageServer.uri() | nil,
+          working_uri: LanguageServer.uri() | nil,
+          mix_exs_uri: LanguageServer.uri() | nil,
           mix_env: atom(),
           mix_target: atom(),
-          env_variables: %{String.t() => String.t()}
+          env_variables: %{String.t() => String.t()} | nil
         }
   @type error_with_message :: {:error, message}
   # Public
-  @spec new(LanguageServer.uri()) :: t
+  @spec new(LanguageServer.uri() | nil) :: t
   def new(root_uri) do
     maybe_set_root_uri(%__MODULE__{}, root_uri)
   end
@@ -253,8 +253,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Project do
         mix_exs
     end
   end
-
-  defp mix_exs_exists?(nil), do: false
 
   defp mix_exs_exists?(mix_exs_path) do
     File.exists?(mix_exs_path)

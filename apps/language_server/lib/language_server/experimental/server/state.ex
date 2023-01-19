@@ -18,6 +18,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
 
   defstruct configuration: nil, initialized?: false
 
+  @type t :: %__MODULE__{}
+
   def new do
     %__MODULE__{}
   end

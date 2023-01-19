@@ -74,7 +74,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
         "Using default settings."
     )
 
-    {:ok, config} = State.default_configuration(state)
+    {:ok, config} = State.default_configuration(state.configuration)
     {:noreply, %State{state | configuration: config}}
   end
 
@@ -114,7 +114,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
   defp apply_to_state(%State{} = state, %{} = request_or_notification) do
     case State.apply(state, request_or_notification) do
       {:ok, new_state} -> {:ok, new_state}
-      :ok -> {:ok, state}
       error -> {error, state}
     end
   end

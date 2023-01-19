@@ -12,7 +12,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkspaceEdit
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
-  @spec apply(CodeAction.t()) :: [CodeActionReply.t()]
+  @spec apply(CodeAction.t()) :: [CodeActionResult.t()]
   def apply(%CodeAction{} = code_action) do
     source_file = code_action.source_file
     diagnostics = get_in(code_action, [:context, :diagnostics]) || []
