@@ -4,7 +4,7 @@ impossible_to_format = [
 ]
 
 deps =
-  if Mix.env() == :test do
+  if Mix.env() in [:dev, :test] do
     [:patch]
   else
     []
