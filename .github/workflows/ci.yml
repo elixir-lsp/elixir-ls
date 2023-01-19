@@ -123,6 +123,6 @@ jobs:
           mix deps.get
       - name: Restore timestamps to prevent unnecessary recompilation
         run: IFS=$'\n'; for f in $(git ls-files); do touch -d "$(git log -n 1 --pretty='%cI' -- $f)" "$f"; done
-      - run: mix format --check-formatted
-      - run: cd apps/language_server && mix format --check-formatted
+      - run: MIX_ENV=test mix format --check-formatted
+      - run: cd apps/language_server && MIX_ENV=test mix format --check-formatted
       - run: mix dialyzer_vendored
