@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Type do
 
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.{
     Access,
+    Inspect,
     Json,
     Match,
     Meta,
@@ -17,6 +18,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Type do
 
     quote location: :keep do
       unquote(Json.build(caller_module))
+      unquote(Inspect.build(caller_module))
       unquote(Access.build())
       unquote(Struct.build(types))
       unquote(Typespec.build(types))

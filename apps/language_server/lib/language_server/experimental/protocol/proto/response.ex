@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Response do
     jsonrpc_types = [
       id: quote(do: optional(one_of([integer(), string()]))),
       error: quote(do: optional(LspTypes.ResponseError)),
-      result: response_type
+      result: quote(do: optional(unquote(response_type)))
     ]
 
     quote location: :keep do

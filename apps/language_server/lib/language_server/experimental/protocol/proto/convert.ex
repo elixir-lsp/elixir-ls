@@ -1,18 +1,24 @@
 defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert do
-  alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
+  alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
-  def to_elixir(%{text_document: _} = request) do
-    with {:ok, source_file} <- fetch_source_file(request.lsp),
-         {:ok, updates} <- convert(request.lsp, source_file) do
+  def to_elixir(%{lsp: lsp_request} = request) do
+    with {:ok, elixir_request, source_file} <- convert(lsp_request) do
       updated_request =
-        request
-        |> Map.put(:source_file, source_file)
-        |> Map.merge(updates)
+        case Map.merge(request, Map.from_struct(elixir_request)) do
+          %_{source_file: _} = updated -> Map.put(updated, :source_file, source_file)
+          updated -> updated
+        end
 
       {:ok, updated_request}
     end
+  end
+
+  def to_elixir(%_request_module{lsp: lsp_request} = request) do
+    converted = Map.merge(request, Map.from_struct(lsp_request))
+    {:ok, converted}
   end
 
   def to_elixir(request) do
@@ -21,31 +27,70 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert do
     {:ok, request}
   end
 
-  defp fetch_source_file(%{text_document: %Types.TextDocument{} = text_document}) do
-    with {:ok, source_file} <- SourceFile.Store.fetch(text_document.uri) do
-      {:ok, source_file}
-    end
+  defp fetch_source_file(%{text_document: %{uri: uri}}) do
+    SourceFile.Store.fetch(uri)
   end
 
   defp fetch_source_file(%{source_file: %SourceFile{} = source_file}) do
     {:ok, source_file}
   end
 
-  defp fetch_source_file(_), do: :error
+  defp fetch_source_file(_) do
+    :error
+  end
 
-  defp convert(%{range: range}, source_file) do
-    with {:ok, ex_range} <- Conversions.to_elixir(range, source_file) do
-      {:ok, %{range: ex_range}}
+  defp convert(%_{text_document: _} = request) do
+    with {:ok, source_file} <- fetch_source_file(request),
+         {:ok, converted} <- convert(request, source_file) do
+      {:ok, converted, source_file}
     end
   end
 
-  defp convert(%{position: position}, source_file) do
-    with {:ok, ex_pos} <- Conversions.to_elixir(position, source_file) do
-      {:ok, %{position: ex_pos}}
-    end
+  defp convert(%_{} = request) do
+    {:ok, request, nil}
   end
 
-  defp convert(_, _) do
-    {:ok, %{}}
+  defp convert(%Types.Range{} = range, %SourceFile{} = source_file) do
+    Conversions.to_elixir(range, source_file)
+  end
+
+  defp convert(%Types.Position{} = pos, %SourceFile{} = source_file) do
+    Conversions.to_elixir(pos, source_file)
+  end
+
+  defp convert(%_struct{} = request, %SourceFile{} = source_file) do
+    kvps =
+      request
+      |> Map.from_struct()
+      |> Enum.reduce(request, fn {key, value}, request ->
+        {:ok, value} = convert(value, source_file)
+        Map.put(request, key, value)
+      end)
+
+    {:ok, Map.merge(request, kvps)}
+  end
+
+  defp convert(list, %SourceFile{} = source_file) when is_list(list) do
+    items =
+      Enum.map(list, fn item ->
+        {:ok, item} = convert(item, source_file)
+        item
+      end)
+
+    {:ok, items}
+  end
+
+  defp convert(%{} = map, %SourceFile{} = source_file) do
+    converted =
+      Map.new(map, fn {k, v} ->
+        {:ok, converted} = convert(v, source_file)
+        {k, converted}
+      end)
+
+    {:ok, converted}
+  end
+
+  defp convert(item, %SourceFile{} = _) do
+    {:ok, item}
   end
 end
