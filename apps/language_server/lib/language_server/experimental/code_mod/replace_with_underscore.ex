@@ -37,7 +37,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.ReplaceWithUnderscore do
       other ->
         other
     end)
-    |> Sourceror.to_string()
+    |> Ast.to_string()
     # We're dealing with a single error on a single line.
     # If the line doesn't compile (like it has a do with no end), ElixirSense
     # adds additional lines do documents with errors, so take the first line, as it's
