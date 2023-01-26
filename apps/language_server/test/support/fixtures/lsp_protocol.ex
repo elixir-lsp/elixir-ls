@@ -22,8 +22,13 @@ defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
                 Keyword.put(args, :method, module_to_build.__meta__(:method_name))
 
               {:request, _} ->
+                id =
+                  opts
+                  |> Keyword.get(:id, next_int())
+                  |> to_string()
+
                 args
-                |> Keyword.put(:id, Keyword.get(opts, :id, next_int()))
+                |> Keyword.put(:id, id)
                 |> Keyword.put(:method, module_to_build.__meta__(:method_name))
 
               _ ->
@@ -86,11 +91,16 @@ defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
         }
 
       {:request, _} ->
+        id =
+          opts
+          |> Keyword.get(:id, next_int())
+          |> to_string()
+
         %{
           jsonrpc: Keyword.get(opts, :jsonrpc, "2.0"),
           method: proto_module.__meta__(:method_name),
           params: extract_params(proto_struct),
-          id: Keyword.get(opts, :id, next_int())
+          id: id
         }
 
       _other ->

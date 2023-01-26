@@ -22,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Enum do
       for {name, value} <- opts do
         quote location: :keep do
           def encode(unquote(name)) do
-            unquote(value)
+            {:ok, unquote(value)}
           end
         end
       end
@@ -35,6 +35,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Enum do
       end
 
       unquote_splicing(encoders)
+
+      def encode(val) do
+        {:error, {:invalid_value, __MODULE__, val}}
+      end
 
       unquote_splicing(enum_macros)
 

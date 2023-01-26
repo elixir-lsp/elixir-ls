@@ -1,20 +1,64 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server.State do
+  alias ElixirLS.Utils.WireProtocol
+
   alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications.{
     DidChange,
+    DidChangeConfiguration,
     DidClose,
-    DidSave,
-    DidOpen
+    DidOpen,
+    DidSave
   }
 
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.Initialize
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument
+  alias ElixirLS.LanguageServer.Experimental.Server.Configuration
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
   import Logger
 
-  defstruct []
+  defstruct configuration: nil, initialized?: false
+
+  @type t :: %__MODULE__{}
 
   def new do
     %__MODULE__{}
+  end
+
+  def initialize(%__MODULE__{initialized?: false} = state, %Initialize{
+        lsp: %Initialize.LSP{} = event
+      }) do
+    config = Configuration.new(event.root_uri, event.capabilities)
+    new_state = %__MODULE__{state | configuration: config, initialized?: true}
+    {:ok, new_state}
+  end
+
+  def initialize(%__MODULE__{initialized?: true}, %Initialize{}) do
+    {:error, :already_initialized}
+  end
+
+  def default_configuration(%__MODULE__{configuration: config} = state) do
+    with {:ok, config} <- Configuration.default(config) do
+      {:ok, %__MODULE__{state | configuration: config}}
+    end
+  end
+
+  def apply(%__MODULE__{initialized?: false}, request) do
+    Logger.error("Received #{request.method} before server was initialized")
+    {:error, :not_initialized}
+  end
+
+  def apply(%__MODULE__{} = state, %DidChangeConfiguration{} = event) do
+    case Configuration.on_change(state.configuration, event) do
+      {:ok, config} ->
+        {:ok, %__MODULE__{state | configuration: config}}
+
+      {:ok, config, response} ->
+        WireProtocol.send(response)
+        {:ok, %__MODULE__{state | configuration: config}}
+
+      error ->
+        error
+    end
   end
 
   def apply(%__MODULE__{} = state, %DidChange{lsp: event}) do

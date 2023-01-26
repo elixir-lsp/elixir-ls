@@ -22,4 +22,20 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes do
     use Proto
     deftype code: ErrorCodes, message: string(), data: optional(any())
   end
+
+  defmodule ClientInfo do
+    use Proto
+    deftype name: string(), version: optional(string())
+  end
+
+  defmodule TraceValue do
+    use Proto
+    defenum off: "off", messages: "messages", verbose: "verbose"
+  end
+
+  defmodule Registration do
+    use Proto
+
+    deftype id: string(), method: string(), register_options: optional(any())
+  end
 end

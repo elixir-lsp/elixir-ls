@@ -4,13 +4,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
   @spec dialyzable?(module()) :: boolean()
   def dialyzable?(module) do
     file = get_beam_file(module)
+
     is_list(file) and match?({:ok, _}, :dialyzer_utils.get_core_from_beam(file))
   end
 
   @spec get_beam_file(module()) :: charlist() | :preloaded | :non_existing | :cover_compiled
   def get_beam_file(module) do
     case :code.which(module) do
-      file when is_list(file) ->
+      [_ | _] = file ->
         file
 
       other ->

@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.CompileMetadata do
 
   @notification_modules_key {__MODULE__, :notification_modules}
   @type_modules_key {__MODULE__, :type_modules}
+  @type_alias_modules_key {__MODULE__, :type_alias_modules}
   @request_modules_key {__MODULE__, :request_modules}
   @response_modules_key {__MODULE__, :response_modules}
 
@@ -18,6 +19,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.CompileMetadata do
 
   def response_modules do
     :persistent_term.get(@response_modules_key, [])
+  end
+
+  def type_alias_modules do
+    :persistent_term.get(@type_alias_modules_key)
   end
 
   def type_modules do
@@ -38,6 +43,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.CompileMetadata do
 
   def add_type_module(module) do
     add_module(@type_modules_key, module)
+  end
+
+  def add_type_alias_module(module) do
+    add_module(@type_alias_modules_key, module)
   end
 
   defp update(key, initial_value, update_fn) do

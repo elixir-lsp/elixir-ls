@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
   import ElixirLS.LanguageServer.Fixtures.LspProtocol
 
   use ExUnit.Case
+  use Patch
 
   setup do
     {:ok, _} = start_supervised(SourceFile.Store)
@@ -93,6 +94,51 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
                  uri(),
                  &SourceFile.apply_content_changes(&1, 3, [event])
                )
+    end
+  end
+
+  def with_a_temp_document(_) do
+    contents = """
+    defmodule FakeDocument do
+    end
+    """
+
+    patch(File, :read, fn _uri ->
+      {:ok, contents}
+    end)
+
+    {:ok, contents: contents, uri: "file:///file.ex"}
+  end
+
+  describe "a temp document" do
+    setup [:with_a_temp_document]
+
+    test "can be opened", ctx do
+      assert {:ok, doc} = SourceFile.Store.open_temporary(ctx.uri, 100)
+      assert SourceFile.to_string(doc) == ctx.contents
+    end
+
+    test "closes after a timeout", ctx do
+      assert {:ok, _} = SourceFile.Store.open_temporary(ctx.uri, 100)
+      Process.sleep(101)
+      refute SourceFile.Store.open?(ctx.uri)
+    end
+
+    test "the extension is extended on subsequent access", ctx do
+      assert {:ok, _doc} = SourceFile.Store.open_temporary(ctx.uri, 100)
+      Process.sleep(75)
+      assert {:ok, _} = SourceFile.Store.open_temporary(ctx.uri, 100)
+      Process.sleep(75)
+      assert SourceFile.Store.open?(ctx.uri)
+      Process.sleep(50)
+      refute SourceFile.Store.open?(ctx.uri)
+    end
+
+    test "opens permanently when a call to open is made", ctx do
+      assert {:ok, _doc} = SourceFile.Store.open_temporary(ctx.uri, 100)
+      assert :ok = SourceFile.Store.open(ctx.uri, ctx.contents, 1)
+      Process.sleep(120)
+      assert SourceFile.Store.open?(ctx.uri)
     end
   end
 end

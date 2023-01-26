@@ -3,6 +3,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions do
     :integer
   end
 
+  def float do
+    :float
+  end
+
   def string do
     :string
   end
@@ -13,6 +17,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions do
 
   def uri do
     :string
+  end
+
+  def type_alias(alias_module) do
+    {:type_alias, alias_module}
   end
 
   def literal(what) do

@@ -50,6 +50,23 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     end
   end
 
+  describe "float fields" do
+    defmodule FloatField do
+      use Proto
+      deftype float_field: float()
+    end
+
+    test "can parse a float field" do
+      assert {:ok, val} = FloatField.parse(%{"floatField" => 494.02})
+      assert val.float_field == 494.02
+    end
+
+    test "rejects nil float fields" do
+      assert {:error, {:invalid_value, :float_field, "string"}} =
+               FloatField.parse(%{"floatField" => "string"})
+    end
+  end
+
   describe "list fields" do
     defmodule ListField do
       use Proto
@@ -96,6 +113,42 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
       assert {:error, {:missing_keys, ["name"], Child}} ==
                SingleParent.parse(%{"name" => "parent", "child" => %{"oof" => "not good"}})
+    end
+  end
+
+  describe "type aliases" do
+    defmodule TypeAlias do
+      use Proto
+      defalias one_of([string(), list_of(string())])
+    end
+
+    defmodule UsesAlias do
+      use Proto
+
+      deftype alias: type_alias(TypeAlias), name: string()
+    end
+
+    test "parses a single item correctly" do
+      assert {:ok, uses} = UsesAlias.parse(%{"name" => "uses", "alias" => "foo"})
+      assert uses.name == "uses"
+      assert uses.alias == "foo"
+    end
+
+    test "parses a list correctly" do
+      assert {:ok, uses} = UsesAlias.parse(%{"name" => "uses", "alias" => ["foo", "bar"]})
+      assert uses.name == "uses"
+      assert uses.alias == ~w(foo bar)
+    end
+
+    test "encodes correctly" do
+      assert {:ok, encoded} = encode_and_decode(UsesAlias.new(alias: "hi", name: "easy"))
+      assert encoded["alias"] == "hi"
+      assert encoded["name"] == "easy"
+    end
+
+    test "parse fails if the type isn't correct" do
+      assert {:error, {:incorrect_type, _, %{}}} =
+               UsesAlias.parse(%{"name" => "ua", "alias" => %{}})
     end
   end
 
@@ -227,6 +280,26 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     end
   end
 
+  describe "constructors" do
+    defmodule RequiredFields do
+      use Proto
+
+      deftype name: string(), value: optional(string()), age: integer()
+    end
+
+    test "required fields are required" do
+      assert_raise ArgumentError, fn ->
+        RequiredFields.new()
+      end
+
+      assert_raise ArgumentError, fn ->
+        RequiredFields.new(name: "hi", value: "good")
+      end
+
+      assert RequiredFields.new(name: "hi", value: "good", age: 29)
+    end
+  end
+
   def with_source_file_store(_) do
     source_file = """
     defmodule MyTest do
@@ -248,9 +321,10 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "textDocument/somethingHappened",
-        line: integer(),
-        notice_message: string(),
-        column: integer()
+                      :exlusive,
+                      line: integer(),
+                      notice_message: string(),
+                      column: integer()
     end
 
     test "parse fills out the notification" do
@@ -293,7 +367,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "notif/withTextDoc",
-        text_document: Types.TextDocument
+                      :exclusive,
+                      text_document: Types.TextDocument
     end
 
     test "to_elixir fills out the source file", ctx do
@@ -307,8 +382,9 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "notif/WithPos",
-        text_document: Types.TextDocument,
-        position: Types.Position
+                      :exclusive,
+                      text_document: Types.TextDocument,
+                      position: Types.Position
     end
 
     test "to_elixir fills out a position", ctx do
@@ -331,8 +407,9 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       use Proto
 
       defnotification "notif/WithPos",
-        text_document: Types.TextDocument,
-        range: Types.Range
+                      :exclusive,
+                      text_document: Types.TextDocument,
+                      range: Types.Range
     end
 
     test "to_elixir fills out a range", ctx do
@@ -363,19 +440,19 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     defmodule Req do
       use Proto
 
-      defrequest "something", line: integer(), error_message: string()
+      defrequest "something", :exclusive, line: integer(), error_message: string()
     end
 
     defmodule TextDocReq do
       use Proto
 
-      defrequest "textDoc", text_document: Types.TextDocument
+      defrequest "textDoc", :exclusive, text_document: Types.TextDocument
     end
 
     test "parse fills out the request" do
       assert {:ok, params} = params_for(Req, id: 3, line: 9, error_message: "borked")
       assert {:ok, req} = Req.parse(params)
-      assert req.id == 3
+      assert req.id == "3"
       assert req.method == "something"
       assert req.jsonrpc == "2.0"
       assert req.lsp.line == 9
@@ -417,7 +494,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
     defmodule PositionReq do
       use Proto
-      defrequest "posReq", text_document: Types.TextDocument, position: Types.Position
+      defrequest "posReq", :exclusive, text_document: Types.TextDocument, position: Types.Position
     end
 
     test "to_elixir fills out a position", ctx do
@@ -440,7 +517,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
     defmodule RangeReq do
       use Proto
-      defrequest "rangeReq", text_document: Types.TextDocument, range: Types.Range
+      defrequest "rangeReq", :exclusive, text_document: Types.TextDocument, range: Types.Range
     end
 
     test "to_elixir fills out a range", ctx do
@@ -521,7 +598,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
               i: integer(),
               lit: literal("foo"),
               enum: Mood,
-              c: optional(Child)
+              c: optional(Child),
+              snake_case_name: string()
     end
 
     def fixture(:encoding, include_child \\ false) do
@@ -531,7 +609,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
         "l" => ~w(these are strings),
         "i" => 42,
         "enum" => 1,
-        "lit" => "foo"
+        "lit" => "foo",
+        "snakeCaseName" => "foo"
       }
 
       if include_child do
@@ -552,6 +631,14 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
       assert {:ok, proto} = EncodingTest.parse(expected)
       assert {:ok, decoded} = encode_and_decode(proto)
       assert decoded == expected
+    end
+
+    test "it camelizes encoded field names" do
+      expected = fixture(:encoding)
+      assert {:ok, proto} = EncodingTest.parse(expected)
+      assert proto.snake_case_name == "foo"
+      assert {:ok, decoded} = encode_and_decode(proto)
+      assert decoded["snakeCaseName"] == "foo"
     end
   end
 
@@ -581,7 +668,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
   describe "access behavior" do
     defmodule Recursive do
       use Proto
-      deftype name: string(), age: integer(), child: __MODULE__
+      deftype name: string(), age: integer(), child: optional(__MODULE__)
     end
 
     def family do

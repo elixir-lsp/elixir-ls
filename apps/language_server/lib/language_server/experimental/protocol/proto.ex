@@ -5,11 +5,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto do
     quote location: :keep do
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes
-      import ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions
 
+      import ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions
+      import Proto.Alias, only: [defalias: 1]
       import Proto.Enum, only: [defenum: 1]
-      import Proto.Notification, only: [defnotification: 2]
-      import Proto.Request, only: [defrequest: 2]
+      import Proto.Notification, only: [defnotification: 2, defnotification: 3]
+      import Proto.Request, only: [defrequest: 3]
       import Proto.Response, only: [defresponse: 1]
       import Proto.Type, only: [deftype: 1]
     end

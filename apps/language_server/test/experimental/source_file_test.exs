@@ -1,11 +1,14 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
-  use ExUnit.Case, async: true
+  alias ElixirLS.LanguageServer.Experimental
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent
+  alias ElixirLS.LanguageServer.SourceFile
 
+  use ExUnit.Case
   use ExUnitProperties
   use Patch
 
-  alias ElixirLS.LanguageServer.Experimental
-  alias ElixirLS.LanguageServer.SourceFile
   import ElixirLS.LanguageServer.Experimental.SourceFile, except: [to_string: 1]
 
   def text(%Experimental.SourceFile{} = source) do
@@ -569,6 +572,67 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
                ])
 
       assert "foooo\nbaz🏳️‍🌈z\nbaz" == text(source)
+    end
+
+    test "works with a content change event" do
+      orig = """
+      defmodule LanguageServer.Experimental.Server.Test do
+        def foo do
+          {"🎸",    "other"}
+        end
+      end
+      """
+
+      event =
+        ContentChangeEvent.new(
+          text: "",
+          range:
+            Range.new(
+              start: Position.new(character: 0, line: 2),
+              end: Position.new(character: 22, line: 2)
+            )
+        )
+
+      assert {:ok, source} = run_changes(orig, [event])
+      assert {:ok, ""} = fetch_text_at(source, 3)
+    end
+
+    test "deleting a line with a multi-byte character" do
+      orig = """
+      defmodule LanguageServer.Experimental.Server.Test do
+        def foo do
+          {"🎸", "other"}
+        end
+      end
+      """
+
+      assert {:ok, source} =
+               run_changes(orig, [
+                 %{"text" => "", "range" => range_create(2, 0, 2, 19)}
+               ])
+
+      {:ok, line} = fetch_text_at(source, 3)
+      assert line == ""
+    end
+
+    test "inserting a line with unicode" do
+      orig = """
+      defmodule MyModule do
+        def func do
+
+        end
+      end
+      """
+
+      assert {:ok, source} =
+               run_changes(orig, [
+                 %{"text" => "    {\"🎸\",   \"ok\"}", "range" => range_create(2, 0, 2, 0)},
+                 %{"text" => "", "range" => range_create(2, 11, 2, 13)}
+               ])
+
+      {:ok, line} = fetch_text_at(source, 3)
+
+      assert line == "    {\"🎸\", \"ok\"}"
     end
 
     test "invalid update range - before the document starts -> before the document starts" do
