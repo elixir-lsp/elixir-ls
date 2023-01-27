@@ -31,6 +31,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.TypeFunctions do
     {:list, type}
   end
 
+  def tuple_of(types) when is_list(types) do
+    {:tuple, types}
+  end
+
   def map_of(type, opts \\ []) do
     field_name = Keyword.get(opts, :as)
     {:map, type, field_name}
