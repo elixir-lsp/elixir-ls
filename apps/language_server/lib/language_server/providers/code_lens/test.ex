@@ -54,7 +54,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         "filePath" => file_path,
         "testName" => block.name,
         "projectDir" => project_dir,
-        "module" => Atom.to_string(block.module) |> String.replace("Elixir.", "")
+        "module" => get_module_name(block.module)
       }
       |> Map.merge(if block.describe != nil, do: %{"describe" => block.describe.name}, else: %{})
     end
@@ -72,7 +72,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         "filePath" => file_path,
         "describe" => block.name,
         "projectDir" => project_dir,
-        "module" => Atom.to_string(block.module) |> String.replace("Elixir.", "")
+        "module" => get_module_name(block.module)
       })
     end)
   end
@@ -97,11 +97,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         |> String.trim()
         |> case do
           "test " <> rest ->
-            String.split(rest, ~r/"/)
+            rest
+            |> String.split(~s("))
             |> Enum.at(1)
 
           "doctest" <> _ = line ->
-            String.split(line, ~r/,/)
+            line
+            |> String.split(~s(,))
             |> Enum.at(0)
         end
 
@@ -156,5 +158,11 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     else
       {:ok, buffer_file_metadata}
     end
+  end
+
+  defp get_module_name(module) do
+    module
+    |> Module.split()
+    |> Enum.join(".")
   end
 end
