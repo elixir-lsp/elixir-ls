@@ -76,11 +76,14 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
         test_info
         |> Enum.group_by(fn %ExUnit.Test{tags: tags} -> {tags.describe, tags.describe_line} end)
         |> Enum.map(fn {{describe, describe_line}, tests} ->
+          grouped_tests = Enum.group_by(tests, fn %ExUnit.Test{tags: tags} -> tags.test_type end)
+
           tests =
-            tests
+            grouped_tests
+            |> Map.get(:test, [])
             |> Enum.map(fn %ExUnit.Test{tags: tags} = test ->
               # drop test prefix
-              "test " <> test_name = Atom.to_string(test.name)
+              test_name = drop_test_prefix(test.name)
 
               test_name =
                 if describe != nil do
@@ -95,6 +98,21 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
                 line: tags.line - 1
               }
             end)
+
+          tests =
+            case grouped_tests do
+              %{doctest: [doctest | _]} ->
+                test_meta = %{
+                  name: "doctest #{inspect(doctest.tags.doctest)}",
+                  line: doctest.tags.line - 1,
+                  type: :doctest
+                }
+
+                [test_meta | tests]
+
+              _ ->
+                tests
+            end
 
           %{
             describe: describe,
@@ -112,4 +130,10 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
   def trace(_, %Macro.Env{} = _env) do
     :ok
   end
+
+  defp drop_test_prefix(test_name) when is_atom(test_name),
+    do: test_name |> Atom.to_string() |> drop_test_prefix
+
+  defp drop_test_prefix("test " <> rest), do: rest
+  defp drop_test_prefix(test_name), do: test_name
 end

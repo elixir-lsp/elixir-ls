@@ -53,7 +53,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
       %{
         "filePath" => file_path,
         "testName" => block.name,
-        "projectDir" => project_dir
+        "projectDir" => project_dir,
+        "module" => get_module_name(block.module)
       }
       |> Map.merge(if block.describe != nil, do: %{"describe" => block.describe.name}, else: %{})
     end
@@ -70,17 +71,18 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
       CodeLens.build_code_lens(block.line, "Run tests", @run_test_command, %{
         "filePath" => file_path,
         "describe" => block.name,
-        "projectDir" => project_dir
+        "projectDir" => project_dir,
+        "module" => get_module_name(block.module)
       })
     end)
   end
 
   defp find_test_blocks(lines_to_env_list, calls_list, describe_blocks, source_lines) do
-    runnable_functions = [{:test, 3}, {:test, 2}]
+    runnable_functions = [test: 3, test: 2, doctest: 2, doctest: 1]
 
     for func <- runnable_functions,
         {line, _col} <- calls_to(calls_list, func) do
-      {_line, %{scope_id: scope_id}} =
+      {_line, %{scope_id: scope_id, module: module}} =
         Enum.find(lines_to_env_list, fn {env_line, _env} -> env_line == line end)
 
       describe =
@@ -89,11 +91,23 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
           describe.body_scope_id == scope_id
         end)
 
-      %{"name" => test_name} =
-        ~r/^\s*test "(?<name>.*)"(,.*)?/
-        |> Regex.named_captures(Enum.at(source_lines, line - 1))
+      test_name =
+        source_lines
+        |> Enum.at(line - 1)
+        |> String.trim()
+        |> case do
+          "test " <> rest ->
+            rest
+            |> String.split(~s("))
+            |> Enum.at(1)
 
-      %TestBlock{name: test_name, describe: describe, line: line}
+          "doctest" <> _ = line ->
+            line
+            |> String.split(~s(,))
+            |> Enum.at(0)
+        end
+
+      %TestBlock{name: test_name, describe: describe, line: line, module: module}
     end
   end
 
@@ -144,5 +158,11 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     else
       {:ok, buffer_file_metadata}
     end
+  end
+
+  defp get_module_name(module) do
+    module
+    |> Module.split()
+    |> Enum.join(".")
   end
 end
