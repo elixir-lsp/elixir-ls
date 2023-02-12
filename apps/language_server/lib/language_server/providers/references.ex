@@ -12,6 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
 
   alias ElixirLS.LanguageServer.{SourceFile, Build}
   import ElixirLS.LanguageServer.Protocol
+  require Logger
 
   def references(text, uri, line, character, _include_declaration) do
     {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
@@ -24,24 +25,32 @@ defmodule ElixirLS.LanguageServer.Providers.References do
         elixir_sense_reference
         |> build_reference(uri, text)
       end)
+      |> Enum.filter(&(not is_nil(&1)))
     end)
   end
 
   defp build_reference(ref, current_file_uri, current_file_text) do
-    text = get_text(ref, current_file_text)
+    case get_text(ref, current_file_text) do
+      {:ok, text} ->
+        {start_line, start_column} =
+          SourceFile.elixir_position_to_lsp(text, {ref.range.start.line, ref.range.start.column})
 
-    {start_line, start_column} =
-      SourceFile.elixir_position_to_lsp(text, {ref.range.start.line, ref.range.start.column})
+        {end_line, end_column} =
+          SourceFile.elixir_position_to_lsp(text, {ref.range.end.line, ref.range.end.column})
 
-    {end_line, end_column} =
-      SourceFile.elixir_position_to_lsp(text, {ref.range.end.line, ref.range.end.column})
+        range = range(start_line, start_column, end_line, end_column)
 
-    range = range(start_line, start_column, end_line, end_column)
+        %{
+          "range" => range,
+          "uri" => build_uri(ref, current_file_uri)
+        }
 
-    %{
-      "range" => range,
-      "uri" => build_uri(ref, current_file_uri)
-    }
+      {:error, reason} ->
+        # workaround for elixir tracer returning invalid paths
+        # https://github.com/elixir-lang/elixir/issues/12393
+        Logger.warn("Unable to open reference from #{inspect(ref.uri)}: #{inspect(reason)}")
+        nil
+    end
   end
 
   def build_uri(elixir_sense_ref, current_file_uri) do
@@ -57,8 +66,8 @@ defmodule ElixirLS.LanguageServer.Providers.References do
 
   def get_text(elixir_sense_ref, current_file_text) do
     case elixir_sense_ref.uri do
-      nil -> current_file_text
-      path when is_binary(path) -> File.read!(path)
+      nil -> {:ok, current_file_text}
+      path when is_binary(path) -> File.read(path)
     end
   end
 end
