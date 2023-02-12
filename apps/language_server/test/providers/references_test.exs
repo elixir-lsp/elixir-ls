@@ -32,6 +32,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     Code.compile_file(FixtureHelpers.get_path("references_remote.ex"))
     Code.compile_file(FixtureHelpers.get_path("uses_macro_a.ex"))
     Code.compile_file(FixtureHelpers.get_path("macro_a.ex"))
+    Code.compile_file(FixtureHelpers.get_path("references_erlang.ex"))
     {:ok, context}
   end
 
@@ -175,5 +176,43 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                "uri" => uri
              }
            ]
+  end
+
+  test "finds remote references to erlang function" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
+
+    {line, char} = {31, 10}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        :ets.new(:abc, [])
+              ^
+    """)
+
+    list = References.references(text, uri, line, char, true)
+
+    assert length(list) == 2
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
+  end
+
+  test "finds remote references to erlang module" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
+
+    {line, char} = {31, 6}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        :ets.new(:abc, [])
+          ^
+    """)
+
+    list = References.references(text, uri, line, char, true)
+
+    assert length(list) == 2
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
   end
 end
