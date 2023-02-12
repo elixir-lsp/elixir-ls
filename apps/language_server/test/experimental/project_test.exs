@@ -62,7 +62,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
       Project.new(root_uri())
       root_path = SourceFile.Path.absolute_from_uri(root_uri())
 
-      assert_called File.cd(^root_path)
+      assert_called(File.cd(^root_path))
     end
 
     test "shouldn't cd to the root uri if it doesn't exist" do
@@ -86,20 +86,20 @@ defmodule ElixirLS.Experimental.ProjectTest do
       assert {:ok, %Project{} = project} = Project.change_mix_env(ctx.project, "dev")
 
       assert project.mix_env == :dev
-      assert_called Mix.env(:dev)
+      assert_called(Mix.env(:dev))
     end
 
     test "defaults to test", ctx do
       assert {:ok, %Project{} = project} = Project.change_mix_env(ctx.project, "")
 
       assert project.mix_env == :test
-      assert_called Mix.env(:test)
+      assert_called(Mix.env(:test))
     end
 
     test "defaults to test with an empty param", ctx do
       assert {:ok, %Project{} = project} = Project.change_mix_env(ctx.project, nil)
       assert project.mix_env == :test
-      assert_called Mix.env(:test)
+      assert_called(Mix.env(:test))
     end
 
     test "with the same mix env has no effect ", ctx do
@@ -107,7 +107,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:ok, %Project{} = project} = Project.change_mix_env(project, "dev")
       assert project.mix_env == :dev
-      refute_called Mix.env(_)
+      refute_called(Mix.env(_))
     end
 
     test "overriding with nil has no effect", ctx do
@@ -115,7 +115,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:ok, %Project{} = project} = Project.change_mix_env(project, nil)
       assert project.mix_env == :dev
-      refute_called Mix.env(_)
+      refute_called(Mix.env(_))
     end
 
     test "overriding with an emppty string has no effect", ctx do
@@ -123,7 +123,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:ok, %Project{} = project} = Project.change_mix_env(project, "")
       assert project.mix_env == :dev
-      refute_called Mix.env(_)
+      refute_called(Mix.env(_))
     end
 
     test "to a new env requires a restar", ctx do
@@ -131,7 +131,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:restart, :warning, message} = Project.change_mix_env(project, "dev")
       assert message =~ "Mix env change detected."
-      refute_called Mix.env(_)
+      refute_called(Mix.env(_))
     end
   end
 
@@ -154,7 +154,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
       }
 
       assert project.env_variables == expected_env_vars
-      assert_called System.put_env(^expected_env_vars)
+      assert_called(System.put_env(^expected_env_vars))
     end
 
     test "keeps existing env vars if they're the same as the old ones", ctx do
@@ -168,7 +168,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:ok, %Project{} = project} = Project.change_environment_variables(project, vars)
       assert project.env_variables == expected_env_vars
-      refute_called System.put_env(_)
+      refute_called(System.put_env(_))
     end
 
     test "rejects env variables that aren't a compatible format", ctx do
@@ -176,7 +176,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:ok, %Project{} = project} = Project.change_environment_variables(ctx.project, vars)
       assert project.env_variables == nil
-      refute_called System.put_env(_)
+      refute_called(System.put_env(_))
     end
 
     test "requires a restart if the variables have been set and are being overridden", ctx do
@@ -185,7 +185,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:restart, :warning, message} = Project.change_environment_variables(project, vars)
       assert message =~ "Environment variables have changed"
-      refute_called System.put_env(_)
+      refute_called(System.put_env(_))
     end
   end
 
@@ -200,19 +200,19 @@ defmodule ElixirLS.Experimental.ProjectTest do
     test "allows you to set the mix target if it was unset", ctx do
       assert {:ok, %Project{} = project} = Project.change_mix_target(ctx.project, "local")
       assert project.mix_target == :local
-      assert_called Mix.target(:local)
+      assert_called(Mix.target(:local))
     end
 
     test "rejects nil for the new target", ctx do
       assert {:ok, %Project{} = project} = Project.change_mix_target(ctx.project, nil)
       assert project.mix_target == nil
-      refute_called Mix.target(:local)
+      refute_called(Mix.target(:local))
     end
 
     test "rejects empty string for the new target", ctx do
       assert {:ok, %Project{} = project} = Project.change_mix_target(ctx.project, "")
       assert project.mix_target == nil
-      refute_called Mix.target(:local)
+      refute_called(Mix.target(:local))
     end
 
     test "does nothing if the mix target is the same as the old target", ctx do
@@ -220,7 +220,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:ok, %Project{} = project} = Project.change_mix_target(project, "local")
       assert project.mix_target == :local
-      refute_called Mix.target(:local)
+      refute_called(Mix.target(:local))
     end
 
     test "requires a restart if it was changed after being previously set", ctx do
@@ -228,7 +228,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
       assert {:restart, :warning, message} = Project.change_mix_target(project, "docs")
       assert message =~ "Mix target change detected."
-      refute_called Mix.target(_)
+      refute_called(Mix.target(_))
     end
   end
 

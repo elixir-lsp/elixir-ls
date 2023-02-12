@@ -67,7 +67,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
       Configuration.new(root_uri(), fixture())
       root_path = SourceFile.Path.absolute_from_uri(root_uri())
 
-      assert_called File.cd(^root_path)
+      assert_called(File.cd(^root_path))
     end
 
     test "shouldn't cd to the root uri if it doesn't exist" do
@@ -135,7 +135,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
       assert {:ok, %Configuration{} = config} = Configuration.on_change(ctx.config, change)
 
       assert config.project.mix_env == :dev
-      assert_called Mix.env(:dev)
+      assert_called(Mix.env(:dev))
     end
 
     test "defaults to test", ctx do
@@ -143,7 +143,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
       assert {:ok, %Configuration{} = config} = Configuration.on_change(ctx.config, change)
 
       assert config.project.mix_env == :test
-      assert_called Mix.env(:test)
+      assert_called(Mix.env(:test))
     end
   end
 
@@ -172,7 +172,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
       }
 
       assert config.project.env_variables == expected_env_vars
-      assert_called System.put_env(^expected_env_vars)
+      assert_called(System.put_env(^expected_env_vars))
     end
   end
 
@@ -189,7 +189,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
 
       assert {:ok, %Configuration{} = config} = Configuration.on_change(ctx.config, change)
       assert config.project.mix_target == :local
-      assert_called Mix.target(:local)
+      assert_called(Mix.target(:local))
     end
   end
 
