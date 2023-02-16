@@ -71,7 +71,7 @@ defmodule ElixirLS.Experimental.FormatTest do
       ]t == result
     end
 
-    test "it can handles long lines" do
+    test "it can split a long line to two lines" do
       unformatted = ~q[
         defmodule Unformatted do
           def foo1(s) do
@@ -103,7 +103,7 @@ defmodule ElixirLS.Experimental.FormatTest do
       assert {:ok, formatted} == modify(unformatted)
     end
 
-    test "it can handles the case of long line split into multiple lines" do
+    test "it can split a long line into multiple lines" do
       unformatted = ~q[
         defmodule Unformatted do
           def foo(foo1, foo2, foo3, foo4, foo5, foo6, foo7, foo8, foo9, foo10, foo11, foo12, foo13, foo14, foo15, foo16) do
