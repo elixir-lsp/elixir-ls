@@ -70,20 +70,20 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Diff do
 
   defp apply_diff(:ins, {line, code_unit} = position, change, {current_line, prev_lines}) do
     current_line = [edit(change, line, code_unit, line, code_unit) | current_line]
-    advance(:ins, change, position, {current_line, prev_lines})
+    advance_ins(change, position, {current_line, prev_lines})
   end
 
-  defp advance(:ins, <<>>, position, edits) do
+  defp advance_ins(<<>>, position, edits) do
     {position, edits}
   end
 
   for ending <- ["\r\n", "\r", "\n"] do
-    defp advance(:ins, <<unquote(ending), rest::binary>>, position, edits) do
+    defp advance_ins(<<unquote(ending), rest::binary>>, position, edits) do
       advance(rest, position, edits)
     end
   end
 
-  defp advance(:ins, <<_c::utf8, rest::binary>>, position, edits) do
+  defp advance_ins(<<_c::utf8, rest::binary>>, position, edits) do
     advance(rest, position, edits)
   end
 
