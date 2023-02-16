@@ -77,12 +77,6 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Diff do
     {position, edits}
   end
 
-  for ending <- ["\r\n", "\r", "\n"] do
-    defp advance_ins(<<unquote(ending), rest::binary>>, position, edits) do
-      advance_ins(rest, position, edits)
-    end
-  end
-
   defp advance_ins(<<_c::utf8, rest::binary>>, position, edits) do
     advance_ins(rest, position, edits)
   end
