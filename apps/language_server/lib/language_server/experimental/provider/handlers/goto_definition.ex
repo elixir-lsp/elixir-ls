@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range, as: LSRange
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
+  require Logger
 
   def handle(%GotoDefinition{} = request, _) do
     source_file = request.source_file
@@ -18,9 +19,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
       {:reply, Responses.GotoDefinition.new(request.id, definition)}
     else
       nil ->
-        {:reply, nil}
+        {:reply, Responses.GotoDefinition.new(request.id, nil)}
 
       {:error, reason} ->
+        Logger.error("GotoDefinition failed: #{inspect(reason)}")
         {:error, Responses.GotoDefinition.error(request.id, :request_failed, reason)}
     end
   end
