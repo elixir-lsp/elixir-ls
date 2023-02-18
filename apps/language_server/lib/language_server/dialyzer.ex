@@ -248,6 +248,16 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           |> Enum.concat(new_paths)
           |> Enum.uniq()
 
+        Process.flag(:trap_exit, true)
+
+        # TODO remove when we require elixir 1.14
+        elixir_version_dependant_options =
+          if Version.match?(System.version(), ">= 1.14.0") do
+            [zip_input_on_exit: true]
+          else
+            []
+          end
+
         changed_contents =
           Task.async_stream(
             changed,
@@ -255,9 +265,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               content = File.read!(file)
               {file, content, module_md5(file)}
             end,
-            timeout: :infinity
+            [timeout: :infinity] ++ elixir_version_dependant_options
           )
           |> Enum.into([])
+
+        Process.flag(:trap_exit, false)
 
         {changed, changed_contents}
       end)
@@ -267,12 +279,22 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     )
 
     file_changes =
-      Enum.reduce(changed_contents, file_changes, fn {:ok, {file, content, hash}}, file_changes ->
-        if is_nil(hash) or hash == md5[file] do
-          Map.delete(file_changes, file)
-        else
-          Map.put(file_changes, file, {content, hash})
-        end
+      Enum.reduce(changed_contents, file_changes, fn
+        {:ok, {file, content, hash}}, file_changes ->
+          if is_nil(hash) or hash == md5[file] do
+            Map.delete(file_changes, file)
+          else
+            Map.put(file_changes, file, {content, hash})
+          end
+
+        {:exit, reason}, file_changes ->
+          # on elixir >= 1.14 reason will actually be {beam_path, reason} but
+          # it's not easy to pattern match on that
+          Logger.error(
+            "[ElixirLS Dialyzer] Unable to process one of the beams: #{inspect(reason)}"
+          )
+
+          file_changes
       end)
 
     undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
@@ -322,10 +344,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     {us, {active_plt, mod_deps, md5, warnings}} =
       :timer.tc(fn ->
+        Process.flag(:trap_exit, true)
+
         Task.async_stream(file_changes, fn {file, {content, _}} ->
           write_temp_file(root_path, file, content)
         end)
         |> Stream.run()
+
+        Process.flag(:trap_exit, false)
 
         for file <- removed_files do
           path = temp_file_path(root_path, file)
@@ -338,7 +364,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               :ok
 
             {:error, reason} ->
-              Logger.warn("Unable to remove temporary file #{path}: #{inspect(reason)}")
+              Logger.warn(
+                "[ElixirLS Dialyzer] Unable to remove temporary file #{path}: #{inspect(reason)}"
+              )
           end
         end
 
@@ -464,7 +492,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
 
-      {:error, _} ->
+      {:error, reason} ->
+        Logger.warn(
+          "[ElixirLS Dialyzer] get_core_from_beam failed for #{file}: #{inspect(reason)}"
+        )
+
         nil
     end
   end
@@ -503,7 +535,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp normalize_postion(position) do
-    Logger.warn("dialyzer returned warning with invalid position #{inspect(position)}")
+    Logger.warn(
+      "[ElixirLS Dialyzer] dialyzer returned warning with invalid position #{inspect(position)}"
+    )
+
     0
   end
 
