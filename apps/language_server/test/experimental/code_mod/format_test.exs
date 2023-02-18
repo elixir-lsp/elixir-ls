@@ -71,7 +71,29 @@ defmodule ElixirLS.Experimental.FormatTest do
       ]t == result
     end
 
-    test "it can split a long line to two lines" do
+    test "it can format a long line function definition into multiple lines" do
+      unformatted = ~q[
+        defmodule Unformatted do
+          def very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong(s) do
+            s
+          end
+        end
+      ]t
+
+      formatted = ~q[
+        defmodule Unformatted do
+          def very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong(
+                s
+              ) do
+            s
+          end
+        end
+      ]t
+
+      assert {:ok, formatted} == modify(unformatted)
+    end
+
+    test "it can format a long line function call into two lines" do
       unformatted = ~q[
         defmodule Unformatted do
           def foo1(s) do
@@ -103,37 +125,32 @@ defmodule ElixirLS.Experimental.FormatTest do
       assert {:ok, formatted} == modify(unformatted)
     end
 
-    test "it can split a long line into multiple lines" do
+    test "it can format a long line function definition(with multiple args) into multiple lines" do
       unformatted = ~q[
         defmodule Unformatted do
-          def foo(foo1, foo2, foo3, foo4, foo5, foo6, foo7, foo8, foo9, foo10, foo11, foo12, foo13, foo14, foo15, foo16) do
-            foo = foo14 <> foo15 <> foo16
-            {foo1, foo2, foo3, foo4, foo5, foo6, foo7, foo8, foo9, foo10, foo11, foo12, foo13, foo}
+          def foo(arg1, arg2, arg3, _arg4, _arg5, _arg6, _arg7, _arg8, _arg9, _arg10, _arg11, _arg12, _arg13) do
+            arg1 <> arg2 <> arg3
           end
         end
       ]t
       formatted = ~q[
         defmodule Unformatted do
           def foo(
-                foo1,
-                foo2,
-                foo3,
-                foo4,
-                foo5,
-                foo6,
-                foo7,
-                foo8,
-                foo9,
-                foo10,
-                foo11,
-                foo12,
-                foo13,
-                foo14,
-                foo15,
-                foo16
+                arg1,
+                arg2,
+                arg3,
+                _arg4,
+                _arg5,
+                _arg6,
+                _arg7,
+                _arg8,
+                _arg9,
+                _arg10,
+                _arg11,
+                _arg12,
+                _arg13
               ) do
-            foo = foo14 <> foo15 <> foo16
-            {foo1, foo2, foo3, foo4, foo5, foo6, foo7, foo8, foo9, foo10, foo11, foo12, foo13, foo}
+            arg1 <> arg2 <> arg3
           end
         end
       ]t
