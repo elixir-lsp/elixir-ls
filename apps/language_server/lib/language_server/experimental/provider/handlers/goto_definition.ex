@@ -45,7 +45,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
   end
 
   defp get_source_file(%{file: path}, _) do
-    uri = Conversions.ensure_uri(path)
-    SourceFile.Store.open_temporary(uri)
+    SourceFile.Store.open_temporary(path)
   end
 end
