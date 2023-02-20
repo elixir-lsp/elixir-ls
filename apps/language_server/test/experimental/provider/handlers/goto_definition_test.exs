@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinitionTest do
+defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   use ExUnit.Case, async: true
 
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.GotoDefinition
