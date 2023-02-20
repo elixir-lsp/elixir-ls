@@ -13,8 +13,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
 
     with %ElixirSense.Location{} = location <-
            ElixirSense.definition(source_file_string, pos.line, pos.character + 1),
-         {:ok, definition} <- CodeModLocation.to_lsp(location, source_file) do
-      {:reply, Responses.GotoDefinition.new(request.id, definition)}
+         {:ok, lsp_location} <- CodeModLocation.to_lsp(location, source_file) do
+      {:reply, Responses.GotoDefinition.new(request.id, lsp_location)}
     else
       nil ->
         {:reply, Responses.GotoDefinition.new(request.id, nil)}
