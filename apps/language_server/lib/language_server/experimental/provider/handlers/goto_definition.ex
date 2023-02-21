@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
     source_file = request.source_file
     pos = request.position
 
-    source_file_string = source_file |> SourceFile.to_string()
+    source_file_string = SourceFile.to_string(source_file)
 
     with %ElixirSense.Location{} = location <-
            ElixirSense.definition(source_file_string, pos.line, pos.character + 1),

@@ -7,7 +7,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Location do
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
 
-  def to_lsp(%{line: line, column: column} = elixir_sense_location, current_source_file) do
+  def to_lsp(%{line: line, column: column} = elixir_sense_location, %SourceFile{} = source_file) do
     {:ok, current_source_file}
     position = SourceFile.Position.new(line, column - 1)
 
