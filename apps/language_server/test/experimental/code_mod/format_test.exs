@@ -71,6 +71,93 @@ defmodule ElixirLS.Experimental.FormatTest do
       ]t == result
     end
 
+    test "it can format a long line function definition into multiple lines" do
+      unformatted = ~q[
+        defmodule Unformatted do
+          def very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong(s) do
+            s
+          end
+        end
+      ]t
+
+      formatted = ~q[
+        defmodule Unformatted do
+          def very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong(
+                s
+              ) do
+            s
+          end
+        end
+      ]t
+
+      assert {:ok, formatted} == modify(unformatted)
+    end
+
+    test "it can format a long line function call into two lines" do
+      unformatted = ~q[
+        defmodule Unformatted do
+          def foo1(s) do
+            s = very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooonooooong(s) |> IO.inputs()
+            s
+          end
+
+          def very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooonooooong(s) do
+            s
+          end
+        end
+      ]t
+
+      formatted = ~q[
+        defmodule Unformatted do
+          def foo1(s) do
+            s =
+              very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooonooooong(s) |> IO.inputs()
+
+            s
+          end
+
+          def very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooonooooong(s) do
+            s
+          end
+        end
+      ]t
+
+      assert {:ok, formatted} == modify(unformatted)
+    end
+
+    test "it can format a long line function definition(with multiple args) into multiple lines" do
+      unformatted = ~q[
+        defmodule Unformatted do
+          def foo(arg1, arg2, arg3, _arg4, _arg5, _arg6, _arg7, _arg8, _arg9, _arg10, _arg11, _arg12, _arg13) do
+            arg1 <> arg2 <> arg3
+          end
+        end
+      ]t
+      formatted = ~q[
+        defmodule Unformatted do
+          def foo(
+                arg1,
+                arg2,
+                arg3,
+                _arg4,
+                _arg5,
+                _arg6,
+                _arg7,
+                _arg8,
+                _arg9,
+                _arg10,
+                _arg11,
+                _arg12,
+                _arg13
+              ) do
+            arg1 <> arg2 <> arg3
+          end
+        end
+      ]t
+
+      assert {:ok, formatted} == modify(unformatted)
+    end
+
     test "it handles extra lines" do
       assert {:ok, result} = ~q[
         defmodule  Unformatted do
