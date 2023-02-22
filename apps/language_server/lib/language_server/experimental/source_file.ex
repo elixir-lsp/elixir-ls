@@ -26,6 +26,8 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
 
   @type version :: pos_integer()
   @type change_application_error :: {:error, {:invalid_range, map()}}
+  @type content_change_event ::
+          RangedTextDocumentContentChangeEvent.t() | ReplaceContentChangeEvent.t()
   # public
 
   def new(uri, text, version) do
@@ -70,7 +72,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  @spec apply_content_changes(t, pos_integer(), [map | ContentChangeEvent.t()]) ::
+  @spec apply_content_changes(t, pos_integer(), [map | content_change_event]) ::
           {:ok, t} | change_application_error()
   def apply_content_changes(%__MODULE__{version: current_version}, new_version, _)
       when new_version <= current_version do
