@@ -35,6 +35,14 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
       position: Types.Position
   end
 
+  defmodule GotoImplementation do
+    use Proto
+
+    defrequest "textDocument/implementation", :exclusive,
+      text_document: Types.TextDocument.Identifier,
+      position: Types.Position
+  end
+
   defmodule Formatting do
     use Proto
 

@@ -16,7 +16,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Queue do
       Requests.FindReferences => Handlers.FindReferences,
       Requests.Formatting => Handlers.Formatting,
       Requests.CodeAction => Handlers.CodeAction,
-      Requests.GotoDefinition => Handlers.GotoDefinition
+      Requests.GotoDefinition => Handlers.GotoDefinition,
+      Requests.GotoImplementation => Handlers.GotoImplementation
     }
 
     def new do
