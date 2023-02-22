@@ -1,8 +1,8 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.GotoDefinition
   alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
-  alias ElixirLS.LanguageServer.Experimental.CodeMod.Location, as: CodeModLocation
   alias ElixirLS.LanguageServer.Experimental.SourceFile
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   require Logger
 
   def handle(%GotoDefinition{} = request, _) do
@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
 
     with %ElixirSense.Location{} = location <-
            ElixirSense.definition(source_file_string, pos.line, pos.character + 1),
-         {:ok, lsp_location} <- CodeModLocation.to_lsp(location, source_file) do
+         {:ok, lsp_location} <- Conversions.to_lsp(location, source_file) do
       {:reply, Responses.GotoDefinition.new(request.id, lsp_location)}
     else
       nil ->
@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
 
       {:error, reason} ->
         Logger.error("GotoDefinition failed: #{inspect(reason)}")
-        {:error, Responses.GotoDefinition.error(request.id, :request_failed, reason)}
+        {:error, Responses.GotoDefinition.error(request.id, :request_failed, inspect(reason))}
     end
   end
 end

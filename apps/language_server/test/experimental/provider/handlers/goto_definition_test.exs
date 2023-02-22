@@ -29,7 +29,6 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     with {:ok, contents} <- File.read(file_path),
          :ok <- SourceFile.Store.open(uri, contents, 1),
-         {:ok, _source_file} <- SourceFile.Store.fetch(uri),
          {:ok, req} <- build(GotoDefinition, params) do
       GotoDefinition.to_elixir(req)
     end
@@ -40,13 +39,13 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   defp arrange_referenced_file do
-    file_path = FixtureHelpers.get_path("references_referenced.ex")
-    uri = Conversions.ensure_uri(file_path)
-    %{uri: uri}
+    "references_referenced.ex"
+    |> FixtureHelpers.get_path()
+    |> Conversions.ensure_uri()
   end
 
   test "find definition remote function call" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_remote.ex")
     {line, char} = {4, 28}
 
@@ -59,7 +58,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 1
     assert definition.range.start.character == 6
     assert definition.range.end.line == 1
@@ -67,7 +66,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition remote macro call" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_remote.ex")
     {line, char} = {8, 28}
 
@@ -80,7 +79,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 8
     assert definition.range.start.character == 11
     assert definition.range.end.line == 8
@@ -88,7 +87,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition imported function call" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_imported.ex")
     {line, char} = {4, 5}
 
@@ -101,7 +100,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 1
     assert definition.range.start.character == 6
     assert definition.range.end.line == 1
@@ -109,7 +108,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition imported macro call" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_imported.ex")
     {line, char} = {8, 5}
 
@@ -122,7 +121,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 8
     assert definition.range.start.character == 11
     assert definition.range.end.line == 8
@@ -130,7 +129,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition local function call" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {15, 5}
 
@@ -143,7 +142,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 1
     assert definition.range.start.character == 6
     assert definition.range.end.line == 1
@@ -151,7 +150,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition local macro call" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {19, 5}
 
@@ -164,7 +163,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 8
     assert definition.range.start.character == 11
     assert definition.range.end.line == 8
@@ -172,7 +171,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition variable" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {4, 13}
 
@@ -185,7 +184,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 2
     assert definition.range.start.character == 4
     assert definition.range.end.line == 2
@@ -193,7 +192,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition attribute" do
-    b_file = arrange_referenced_file()
+    referenced_uri = arrange_referenced_file()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {27, 5}
 
@@ -206,7 +205,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
     {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-    assert definition.uri == b_file.uri
+    assert definition.uri == referenced_uri
     assert definition.range.start.line == 24
     assert definition.range.start.character == 2
     assert definition.range.end.line == 24
