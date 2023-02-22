@@ -15,8 +15,15 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.Formatting do
       {:error, reason} ->
         Logger.error("Formatter failed #{inspect(reason)}")
 
-        {:reply,
-         Responses.Formatting.error(request.id, :request_failed, Exception.message(reason))}
+        {:reply, Responses.Formatting.error(request.id, :request_failed, message(reason))}
     end
+  end
+
+  defp message(reason) when is_exception(reason) do
+    Exception.message(reason)
+  end
+
+  defp message(reason) do
+    "#{inspect(reason)}"
   end
 end
