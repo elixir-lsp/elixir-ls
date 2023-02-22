@@ -2,7 +2,10 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
   alias ElixirLS.LanguageServer.Experimental
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent
+
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+    as: RangedContentChangeEvent
+
   alias ElixirLS.LanguageServer.SourceFile
 
   use ExUnit.Case
@@ -584,7 +587,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
       """
 
       event =
-        ContentChangeEvent.new(
+        RangedContentChangeEvent.new(
           text: "",
           range:
             Range.new(

@@ -1,8 +1,9 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscoreTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction, as: CodeActionRequest
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionReply
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeActionContext
+
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscore
@@ -49,10 +50,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
       end)
 
     diagnostic = Diagnostic.new(range: range, message: message)
-    {:ok, context} = build(CodeActionContext, diagnostics: [diagnostic])
+    {:ok, context} = build(CodeAction.Context, diagnostics: [diagnostic])
 
     {:ok, action} =
-      build(CodeAction,
+      build(CodeActionRequest,
         text_document: [uri: file_uri],
         range: range,
         context: context

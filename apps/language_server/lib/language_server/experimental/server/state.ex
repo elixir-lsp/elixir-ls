@@ -75,7 +75,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
   end
 
   def apply(%__MODULE__{} = state, %DidOpen{lsp: event}) do
-    %TextDocument{text: text, uri: uri, version: version} = text_document = event.text_document
+    %TextDocument.Item{text: text, uri: uri, version: version} =
+      text_document = event.text_document
 
     case SourceFile.Store.open(uri, text, version) do
       :ok ->

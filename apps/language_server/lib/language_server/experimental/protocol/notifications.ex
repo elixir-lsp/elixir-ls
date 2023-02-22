@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Notifications do
   defmodule DidOpen do
     use Proto
 
-    defnotification "textDocument/didOpen", :shared, text_document: Types.TextDocument
+    defnotification "textDocument/didOpen", :shared, text_document: Types.TextDocument.Item
   end
 
   defmodule DidClose do
@@ -29,8 +29,14 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Notifications do
     use Proto
 
     defnotification "textDocument/didChange", :shared,
-      text_document: Types.TextDocument.VersionedIdentifier,
-      content_changes: list_of(Types.TextDocument.ContentChangeEvent)
+      text_document: Types.TextDocument.Versioned.Identifier,
+      content_changes:
+        list_of(
+          one_of([
+            Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+            Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1
+          ])
+        )
   end
 
   defmodule DidChangeConfiguration do
