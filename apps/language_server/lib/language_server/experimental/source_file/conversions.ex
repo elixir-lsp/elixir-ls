@@ -103,13 +103,10 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
     {:ok, range}
   end
 
-  def to_lsp(
-        %ElixirSense.Location{line: line, column: column} = elixir_sense_location,
-        %SourceFile{} = source_file
-      ) do
-    position = SourceFile.Position.new(line, column - 1)
+  def to_lsp(%ElixirSense.Location{} = location, %SourceFile{} = source_file) do
+    position = SourceFile.Position.new(location.line, location.column - 1)
 
-    with {:ok, source_file} <- fetch_source_file(elixir_sense_location, source_file),
+    with {:ok, source_file} <- fetch_source_file(location, source_file),
          {:ok, ls_position} <- to_lsp(position, source_file) do
       ls_range = %LSRange{start: ls_position, end: ls_position}
       {:ok, LSLocation.new(uri: source_file.uri, range: ls_range)}

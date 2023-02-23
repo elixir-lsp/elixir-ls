@@ -9,19 +9,26 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
     source_file = request.source_file
     pos = request.position
 
-    source_file_string = SourceFile.to_string(source_file)
+    maybe_location =
+      source_file |> SourceFile.to_string() |> ElixirSense.definition(pos.line, pos.character + 1)
 
-    with %ElixirSense.Location{} = location <-
-           ElixirSense.definition(source_file_string, pos.line, pos.character + 1),
-         {:ok, lsp_location} <- Conversions.to_lsp(location, source_file) do
-      {:reply, Responses.GotoDefinition.new(request.id, lsp_location)}
-    else
-      nil ->
-        {:reply, Responses.GotoDefinition.new(request.id, nil)}
+    case to_response(request.id, maybe_location, source_file) do
+      {:ok, response} ->
+        {:reply, response}
 
       {:error, reason} ->
-        Logger.error("GotoDefinition failed: #{inspect(reason)}")
+        Logger.error("GotoDefinition conversion failed: #{inspect(reason)}")
         {:error, Responses.GotoDefinition.error(request.id, :request_failed, inspect(reason))}
     end
+  end
+
+  defp to_response(request_id, %ElixirSense.Location{} = location, %SourceFile{} = source_file) do
+    with {:ok, lsp_location} <- Conversions.to_lsp(location, source_file) do
+      {:ok, Responses.GotoDefinition.new(request_id, lsp_location)}
+    end
+  end
+
+  defp to_response(request_id, nil, _source_file) do
+    {:ok, Responses.GoToDefinition.new(request_id, nil)}
   end
 end
