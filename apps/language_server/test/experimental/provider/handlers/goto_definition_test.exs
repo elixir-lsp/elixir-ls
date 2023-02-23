@@ -38,14 +38,14 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
     Handlers.GotoDefinition.handle(request, Env.new())
   end
 
-  defp arrange_referenced_file do
+  defp get_referenced_file_uri do
     "references_referenced.ex"
     |> FixtureHelpers.get_path()
     |> Conversions.ensure_uri()
   end
 
   test "find definition remote function call" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_remote.ex")
     {line, char} = {4, 28}
 
@@ -66,7 +66,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition remote macro call" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_remote.ex")
     {line, char} = {8, 28}
 
@@ -87,7 +87,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition imported function call" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_imported.ex")
     {line, char} = {4, 5}
 
@@ -108,7 +108,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition imported macro call" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_imported.ex")
     {line, char} = {8, 5}
 
@@ -129,7 +129,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition local function call" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {15, 5}
 
@@ -150,7 +150,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition local macro call" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {19, 5}
 
@@ -171,7 +171,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition variable" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {4, 13}
 
@@ -192,7 +192,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
   end
 
   test "find definition attribute" do
-    referenced_uri = arrange_referenced_file()
+    referenced_uri = get_referenced_file_uri()
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     {line, char} = {27, 5}
 
