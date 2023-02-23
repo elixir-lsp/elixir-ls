@@ -29,6 +29,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition 
   end
 
   defp to_response(request_id, nil, _source_file) do
-    {:ok, Responses.GoToDefinition.new(request_id, nil)}
+    {:ok, Responses.GotoDefinition.new(request_id, nil)}
   end
 end
