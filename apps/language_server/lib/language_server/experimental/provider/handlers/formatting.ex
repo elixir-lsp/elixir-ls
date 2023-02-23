@@ -24,6 +24,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.Formatting do
   end
 
   defp message(reason) do
-    "#{inspect(reason)}"
+    inspect(reason)
   end
 end
