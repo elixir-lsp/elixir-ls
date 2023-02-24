@@ -8,6 +8,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Responses do
     defresponse optional(list_of(Types.Location))
   end
 
+  defmodule Hover do
+    use Proto
+
+    defresponse optional(Types.Hover)
+  end
+
   defmodule Formatting do
     use Proto
 

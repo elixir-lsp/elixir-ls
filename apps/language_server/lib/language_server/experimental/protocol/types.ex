@@ -19,6 +19,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
     deftype uri: uri(), range: Range
   end
 
+  defmodule Hover do
+    use Proto
+
+    deftype contents: one_of([list_of(string()), MarkupContent]),
+            range: optional(Range)
+  end
+
   defmodule TextDocument do
     use Proto
     deftype uri: uri(), language_id: string(), version: integer(), text: string()
@@ -315,6 +322,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types do
   defmodule TextDocument.SyncKind do
     use Proto
     defenum none: 0, full: 1, incremental: 2
+  end
+
+  defmodule MarkupContent do
+    use Proto
+
+    deftype kind: MarkupKind,
+            value: string()
   end
 
   defmodule MarkupKind do
