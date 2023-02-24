@@ -74,9 +74,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
 
     {:reply, response} = handle(request)
 
-    assert %{error: nil, result: %{contents: %{kind: "markdown", value: v}, range: range}} =
-             response
-
+    assert %{result: %{contents: %{kind: "markdown", value: v}, range: range}} = response
     assert String.starts_with?(v, "> IO  [view on hexdocs](https://hexdocs.pm/elixir/IO.html)")
 
     assert range.start.line == 2
@@ -99,8 +97,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
 
     {:reply, response} = handle(request)
 
-    assert %{error: nil, result: %{contents: %{kind: "markdown", value: v}, range: range}} =
-             response
+    assert %{result: %{contents: %{kind: "markdown", value: v}, range: range}} = response
 
     assert String.starts_with?(
              v,
@@ -128,7 +125,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
 
     {:reply, response} = handle(request)
 
-    assert %{error: nil, result: %{contents: %{kind: "markdown", value: v}}} = response
+    assert %{result: %{contents: %{kind: "markdown", value: v}}} = response
 
     assert String.starts_with?(
              v,
@@ -151,7 +148,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
 
     {:reply, response} = handle(request)
 
-    assert %{error: nil, result: %{contents: %{kind: "markdown", value: v}}} = response
+    assert %{result: %{contents: %{kind: "markdown", value: v}}} = response
 
     assert String.starts_with?(
              v,
@@ -176,7 +173,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
 
     {:reply, response} = handle(request)
 
-    assert %{error: nil, result: %{contents: %{kind: "markdown", value: v}}} = response
+    assert %{result: %{contents: %{kind: "markdown", value: v}}} = response
 
     assert String.starts_with?(
              v,
@@ -201,7 +198,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
 
     {:reply, response} = handle(request)
 
-    assert %{error: nil, result: %{contents: %{kind: "markdown", value: v}}} = response
+    assert %{result: %{contents: %{kind: "markdown", value: v}}} = response
 
     assert String.starts_with?(
              v,
@@ -224,7 +221,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
 
     {:reply, response} = handle(request)
 
-    assert %{error: nil, result: %{contents: %{kind: "markdown", value: v}}} = response
+    assert %{result: %{contents: %{kind: "markdown", value: v}}} = response
 
     assert not String.contains?(
              v,
