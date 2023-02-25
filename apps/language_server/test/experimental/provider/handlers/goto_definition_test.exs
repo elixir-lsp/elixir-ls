@@ -38,177 +38,173 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
     Handlers.GotoDefinition.handle(request, Env.new())
   end
 
-  defp get_referenced_file_uri do
-    "references_referenced.ex"
-    |> FixtureHelpers.get_path()
-    |> Conversions.ensure_uri()
+  def with_referenced_file(_) do
+    path = FixtureHelpers.get_path("references_referenced.ex")
+    uri = Conversions.ensure_uri(path)
+    {:ok, file_uri: uri, file_path: path}
   end
 
-  test "find definition remote function call" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_remote.ex")
-    {line, char} = {4, 28}
+  describe "when a file contains references" do
+    setup [:with_referenced_file]
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition remote function call", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_remote.ex")
+      {line, char} = {4, 28}
 
-    annotate_assert(file_path, line, char, """
-        ReferencesReferenced.referenced_fun()
-                                ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          ReferencesReferenced.referenced_fun()
+                                  ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 1
-    assert definition.range.start.character == 6
-    assert definition.range.end.line == 1
-    assert definition.range.end.character == 6
-  end
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-  test "find definition remote macro call" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_remote.ex")
-    {line, char} = {8, 28}
+      assert definition.uri == uri
+      assert definition.range.start.line == 1
+      assert definition.range.start.character == 6
+      assert definition.range.end.line == 1
+      assert definition.range.end.character == 6
+    end
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition remote macro call", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_remote.ex")
+      {line, char} = {8, 28}
 
-    annotate_assert(file_path, line, char, """
-        ReferencesReferenced.referenced_macro a do
-                                ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          ReferencesReferenced.referenced_macro a do
+                                  ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 8
-    assert definition.range.start.character == 11
-    assert definition.range.end.line == 8
-    assert definition.range.end.character == 11
-  end
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-  test "find definition imported function call" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_imported.ex")
-    {line, char} = {4, 5}
+      assert definition.uri == uri
+      assert definition.range.start.line == 8
+      assert definition.range.start.character == 11
+      assert definition.range.end.line == 8
+      assert definition.range.end.character == 11
+    end
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition imported function call", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_imported.ex")
+      {line, char} = {4, 5}
 
-    annotate_assert(file_path, line, char, """
-        referenced_fun()
-         ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          referenced_fun()
+           ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 1
-    assert definition.range.start.character == 6
-    assert definition.range.end.line == 1
-    assert definition.range.end.character == 6
-  end
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-  test "find definition imported macro call" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_imported.ex")
-    {line, char} = {8, 5}
+      assert definition.uri == uri
+      assert definition.range.start.line == 1
+      assert definition.range.start.character == 6
+      assert definition.range.end.line == 1
+      assert definition.range.end.character == 6
+    end
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition imported macro call", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_imported.ex")
+      {line, char} = {8, 5}
 
-    annotate_assert(file_path, line, char, """
-        referenced_macro a do
-         ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          referenced_macro a do
+           ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 8
-    assert definition.range.start.character == 11
-    assert definition.range.end.line == 8
-    assert definition.range.end.character == 11
-  end
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-  test "find definition local function call" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_referenced.ex")
-    {line, char} = {15, 5}
+      assert definition.uri == uri
+      assert definition.range.start.line == 8
+      assert definition.range.start.character == 11
+      assert definition.range.end.line == 8
+      assert definition.range.end.character == 11
+    end
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition local function call", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_referenced.ex")
+      {line, char} = {15, 5}
 
-    annotate_assert(file_path, line, char, """
-        referenced_fun()
-         ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          referenced_fun()
+           ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 1
-    assert definition.range.start.character == 6
-    assert definition.range.end.line == 1
-    assert definition.range.end.character == 6
-  end
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-  test "find definition local macro call" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_referenced.ex")
-    {line, char} = {19, 5}
+      assert definition.uri == uri
+      assert definition.range.start.line == 1
+      assert definition.range.start.character == 6
+      assert definition.range.end.line == 1
+      assert definition.range.end.character == 6
+    end
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition local macro call", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_referenced.ex")
+      {line, char} = {19, 5}
 
-    annotate_assert(file_path, line, char, """
-        referenced_macro a do
-         ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          referenced_macro a do
+           ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 8
-    assert definition.range.start.character == 11
-    assert definition.range.end.line == 8
-    assert definition.range.end.character == 11
-  end
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-  test "find definition variable" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_referenced.ex")
-    {line, char} = {4, 13}
+      assert definition.uri == uri
+      assert definition.range.start.line == 8
+      assert definition.range.start.character == 11
+      assert definition.range.end.line == 8
+      assert definition.range.end.character == 11
+    end
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition variable", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_referenced.ex")
+      {line, char} = {4, 13}
 
-    annotate_assert(file_path, line, char, """
-        IO.puts(referenced_variable + 1)
-                 ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          IO.puts(referenced_variable + 1)
+                   ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 2
-    assert definition.range.start.character == 4
-    assert definition.range.end.line == 2
-    assert definition.range.end.character == 4
-  end
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
 
-  test "find definition attribute" do
-    referenced_uri = get_referenced_file_uri()
-    file_path = FixtureHelpers.get_path("references_referenced.ex")
-    {line, char} = {27, 5}
+      assert definition.uri == uri
+      assert definition.range.start.line == 2
+      assert definition.range.start.character == 4
+      assert definition.range.end.line == 2
+      assert definition.range.end.character == 4
+    end
 
-    {:ok, request} = request(file_path, line, char)
+    test "find definition attribute", %{file_uri: uri} do
+      file_path = FixtureHelpers.get_path("references_referenced.ex")
+      {line, char} = {27, 5}
 
-    annotate_assert(file_path, line, char, """
-        @referenced_attribute
-         ^
-    """)
+      {:ok, request} = request(file_path, line, char)
 
-    {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+      annotate_assert(file_path, line, char, """
+          @referenced_attribute
+           ^
+      """)
 
-    assert definition.uri == referenced_uri
-    assert definition.range.start.line == 24
-    assert definition.range.start.character == 2
-    assert definition.range.end.line == 24
-    assert definition.range.end.character == 2
+      {:reply, %Responses.GotoDefinition{result: definition}} = handle(request)
+
+      assert definition.uri == uri
+      assert definition.range.start.line == 24
+      assert definition.range.start.character == 2
+      assert definition.range.end.line == 24
+      assert definition.range.end.character == 2
+    end
   end
 end
