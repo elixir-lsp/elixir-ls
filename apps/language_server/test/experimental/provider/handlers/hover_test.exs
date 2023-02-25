@@ -120,7 +120,6 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
     """
 
     {line, char} = {2, 10}
-
     {:ok, request} = build_request(text, line, char)
 
     {:reply, response} = handle(request)
@@ -143,7 +142,6 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
     """
 
     {line, char} = {2, 18}
-
     {:ok, request} = build_request(text, line, char)
 
     {:reply, response} = handle(request)
@@ -168,7 +166,6 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
     """
 
     {line, char} = {4, 5}
-
     {:ok, request} = build_request(text, line, char)
 
     {:reply, response} = handle(request)
@@ -193,7 +190,6 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
     """
 
     {line, char} = {4, 15}
-
     {:ok, request} = build_request(text, line, char)
 
     {:reply, response} = handle(request)
@@ -216,7 +212,6 @@ defmodule ElixirLS.Experimental.Provider.Handlers.HoverTest do
     """
 
     {line, char} = {2, 10}
-
     {:ok, request} = build_request(text, line, char)
 
     {:reply, response} = handle(request)
