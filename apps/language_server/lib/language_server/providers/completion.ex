@@ -508,7 +508,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp from_completion_item(
-         %{type: :field, subtype: subtype, name: name, origin: origin, call?: call?},
+         %{
+           type: :field,
+           subtype: subtype,
+           name: name,
+           origin: origin,
+           call?: call?,
+           type_spec: type_spec
+         },
          _context,
          _options
        ) do
@@ -519,10 +526,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         {:struct_field, module_name} -> "#{module_name} struct field"
       end
 
+    formatted_spec =
+      if type_spec != "" do
+        "```\n#{type_spec}\n```\n"
+      else
+        ""
+      end
+
     %__MODULE__{
       label: to_string(name),
       detail: detail,
       insert_text: if(call?, do: name, else: "#{name}: "),
+      documentation: "#{formatted_spec}",
       priority: 10,
       kind: :field,
       tags: []
