@@ -592,10 +592,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     Process.exit(pid, :kill)
   end
 
-  defp with_trapping_exits(fun) do 
-    Process.flag(:trap_exit, true) 
+  defp with_trapping_exits(fun) do
+    Process.flag(:trap_exit, true)
     fun.()
   after
-    Process.flag(:trap_exit, false) 
+    Process.flag(:trap_exit, false)
   end
 end
