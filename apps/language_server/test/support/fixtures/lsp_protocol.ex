@@ -1,6 +1,8 @@
 defmodule ElixirLS.LanguageServer.Fixtures.LspProtocol do
   def build(module_to_build, opts \\ []) do
-    true = Code.ensure_loaded?(module_to_build)
+    unless Code.ensure_loaded?(module_to_build) do
+      raise "Couldn't load #{inspect(module_to_build)}"
+    end
 
     if function_exported?(module_to_build, :__meta__, 1) do
       protocol_module = ensure_protocol_module(module_to_build)

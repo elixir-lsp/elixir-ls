@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
       root_uri: string(),
       initialization_options: optional(any()),
       trace: optional(string()),
-      workspace_folders: optional(list_of(Types.WorkspaceFolder)),
+      workspace_folders: optional(list_of(Types.Workspace.Folder)),
       capabilities: optional(map_of(any()))
   end
 
@@ -41,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
     defrequest "textDocument/codeAction", :exclusive,
       text_document: Types.TextDocument.Identifier,
       range: Types.Range,
-      context: Types.CodeActionContext
+      context: Types.CodeAction.Context
   end
 
   # Server -> Client requests

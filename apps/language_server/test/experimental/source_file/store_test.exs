@@ -1,6 +1,12 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
   alias ElixirLS.LanguageServer.Experimental.SourceFile
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent
+
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+    as: RangedContentChangeEvent
+
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
+    as: ReplaceContextChangeEvent
+
   import ElixirLS.LanguageServer.Fixtures.LspProtocol
 
   use ExUnit.Case
@@ -29,7 +35,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
     end
 
     test "rejects changes to a file that isn't open" do
-      {:ok, event} = build(ContentChangeEvent, text: "dog", range: nil)
+      {:ok, event} = build(ReplaceContextChangeEvent, text: "dog")
 
       assert {:error, :not_open} =
                SourceFile.Store.get_and_update(
@@ -55,7 +61,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
 
     test "can have its content changed" do
       {:ok, event} =
-        build(ContentChangeEvent,
+        build(RangedContentChangeEvent,
           text: "dog",
           range: [
             start: [line: 0, character: 0],
@@ -76,7 +82,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
     end
 
     test "rejects a change if the version is less than the current version" do
-      {:ok, event} = build(ContentChangeEvent, text: "dog", range: nil)
+      {:ok, event} = build(ReplaceContextChangeEvent, text: "dog")
 
       assert {:error, :invalid_version} =
                SourceFile.Store.get_and_update(
@@ -86,7 +92,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
     end
 
     test "a change cannot be applied once a file is closed" do
-      {:ok, event} = build(ContentChangeEvent, text: "dog", range: nil)
+      {:ok, event} = build(ReplaceContextChangeEvent, text: "dog")
       assert :ok = SourceFile.Store.close(uri())
 
       assert {:error, :not_open} =
