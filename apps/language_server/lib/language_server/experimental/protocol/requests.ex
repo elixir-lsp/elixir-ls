@@ -32,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
 
     defrequest "textDocument/formatting", :exclusive,
       text_document: Types.TextDocument.Identifier,
-      options: Types.FormattingOptions
+      options: Types.Formatting.Options
   end
 
   defmodule CodeAction do
