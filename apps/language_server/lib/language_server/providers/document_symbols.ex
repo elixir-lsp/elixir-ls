@@ -169,13 +169,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   # Types
   defp extract_symbol(_current_module, {:@, location, [{type_kind, _, type_expression}]})
-       when type_kind in [:type, :typep, :opaque, :callback, :macrocallback] do
+       when type_kind in [:type, :typep, :opaque, :callback, :macrocallback] and
+              not is_nil(type_expression) do
     {type_name, type_head_location} =
       case type_expression do
         [{:"::", _, [{_, type_head_location, _} = type_head | _]}] ->
           {Macro.to_string(type_head), type_head_location}
 
         [{:when, _, [{:"::", _, [{_, type_head_location, _} = type_head, _]}, _]}] ->
+          {Macro.to_string(type_head), type_head_location}
+
+        [{_, type_head_location, _} = type_head | _] ->
           {Macro.to_string(type_head), type_head_location}
       end
 

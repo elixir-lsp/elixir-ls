@@ -1172,6 +1172,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @opaque my_simple_opaque :: integer
       @type my_with_args(key, value) :: [{key, value}]
       @type my_with_args_when(key, value) :: [{key, value}] when value: integer
+      @type abc
+      @type
     end
     """
 
@@ -1216,6 +1218,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 5,
                     name: "@type my_with_args_when(key, value)"
+                  },
+                  %Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 5,
+                    name: "@type abc"
+                  },
+                  %Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 14,
+                    name: "@type"
                   }
                 ],
                 kind: 2,
@@ -1235,6 +1247,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @opaque my_simple_opaque :: integer
       @type my_with_args(key, value) :: [{key, value}]
       @type my_with_args_when(key, value) :: [{key, value}] when value: integer
+      @type abc
+      @type
     end
     """
 
@@ -1278,6 +1292,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %Protocol.SymbolInformation{
                 kind: 5,
                 name: "@type my_with_args_when(key, value)",
+                containerName: "MyModule"
+              },
+              %Protocol.SymbolInformation{
+                kind: 5,
+                name: "@type abc",
+                containerName: "MyModule"
+              },
+              %Protocol.SymbolInformation{
+                kind: 14,
+                name: "@type",
                 containerName: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, text, false)
