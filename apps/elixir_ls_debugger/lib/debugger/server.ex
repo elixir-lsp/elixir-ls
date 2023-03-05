@@ -34,6 +34,7 @@ defmodule ElixirLS.Debugger.Server do
   defstruct client_info: nil,
             config: %{},
             task_ref: nil,
+            update_threads_ref: nil,
             threads: %{},
             threads_inverse: %{},
             paused_processes: %{
@@ -129,7 +130,7 @@ defmodule ElixirLS.Debugger.Server do
       if Process.alive?(pid) do
         # monitor to clanup state if process dies
         ref = Process.monitor(pid)
-        {state, thread_id} = ensure_thread_id(state, pid)
+        {state, thread_id, _new_ids} = ensure_thread_id(state, pid, [])
 
         paused_process = %PausedProcess{stack: Stacktrace.get(pid), ref: ref}
         state = put_in(state.paused_processes[pid], paused_process)
@@ -166,9 +167,7 @@ defmodule ElixirLS.Debugger.Server do
           0
 
         _ ->
-          Output.debugger_important(
-            "(Debugger) Task failed because " <> Exception.format_exit(reason)
-          )
+          Output.debugger_important("Task failed: " <> Exception.format_exit(reason))
 
           1
       end
@@ -184,22 +183,13 @@ defmodule ElixirLS.Debugger.Server do
       "debugged process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
     )
 
-    {thread_id, threads_inverse} = state.threads_inverse |> Map.pop(pid)
-    paused_processes = remove_paused_process(state, pid)
+    state = handle_process_exit(state, pid)
 
-    state = %{
-      state
-      | threads: state.threads |> Map.delete(thread_id),
-        paused_processes: paused_processes,
-        threads_inverse: threads_inverse
-    }
+    {:noreply, state}
+  end
 
-    if thread_id do
-      Output.send_event("thread", %{
-        "reason" => "exited",
-        "threadId" => thread_id
-      })
-    end
+  def handle_info(:update_threads, state = %__MODULE__{}) do
+    {state, _thread_ids} = update_threads(state)
 
     {:noreply, state}
   end
@@ -220,7 +210,7 @@ defmodule ElixirLS.Debugger.Server do
   @impl GenServer
   def terminate(reason, _state = %__MODULE__{}) do
     if reason != :normal do
-      Output.debugger_important("(Debugger) Terminating because #{Exception.format_exit(reason)}")
+      Output.debugger_important("Terminating: #{Exception.format_exit(reason)}")
     end
   end
 
@@ -264,14 +254,14 @@ defmodule ElixirLS.Debugger.Server do
     receive do
       {:DOWN, ^ref, :process, _pid, reason} ->
         if reason != :normal do
-          Output.debugger_important(
-            "(Debugger) Initialization failed because " <> Exception.format_exit(reason)
-          )
+          Output.debugger_important("Initialization failed: " <> Exception.format_exit(reason))
 
           Output.send_event("exited", %{"exitCode" => 1})
           Output.send_event("terminated", %{"restart" => false})
         end
     end
+
+    send(self(), :update_threads)
 
     {%{}, %{state | config: config}}
   end
@@ -409,27 +399,17 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(threads_req(_), state = %__MODULE__{}) do
-    pids = :erlang.processes()
-    {state, thread_ids} = ensure_thread_ids(state, pids)
+    {state, thread_ids} = update_threads(state)
 
     threads =
-      for {pid, thread_id} <- List.zip([pids, thread_ids]), (info = Process.info(pid)) != nil do
-        thread_info = Enum.into(info, %{})
-
-        name =
-          case Enum.into(thread_info, %{}) do
-            %{:registered_name => registered_name} ->
-              inspect(registered_name)
-
-            %{:initial_call => {mod, func, arity}} ->
-              "#{inspect(mod)}.#{to_string(func)}/#{arity}"
-          end
-
-        full_name = Enum.join([name, String.trim_leading(inspect(pid), "#PID")], " ")
+      for thread_id <- thread_ids,
+          pid = state.threads[thread_id],
+          (process_info = Process.info(pid)) != nil do
+        full_name = "#{process_name(process_info)} #{:erlang.pid_to_list(pid)}"
         %{"id" => thread_id, "name" => full_name}
       end
+      |> Enum.sort_by(fn %{"name" => name} -> name end)
 
-    threads = Enum.sort_by(threads, fn %{"name" => name} -> name end)
     {%{"threads" => threads}, state}
   end
 
@@ -887,23 +867,26 @@ defmodule ElixirLS.Debugger.Server do
     end)
   end
 
-  defp ensure_thread_id(state = %__MODULE__{}, pid) when is_pid(pid) do
+  defp ensure_thread_id(state = %__MODULE__{}, pid, new_ids) when is_pid(pid) do
     if Map.has_key?(state.threads_inverse, pid) do
-      {state, state.threads_inverse[pid]}
+      {state, state.threads_inverse[pid], new_ids}
     else
       id = state.next_id
       state = put_in(state.threads[id], pid)
       state = put_in(state.threads_inverse[pid], id)
       state = put_in(state.next_id, id + 1)
-      {state, id}
+      {state, id, [id | new_ids]}
     end
   end
 
   defp ensure_thread_ids(state = %__MODULE__{}, pids) do
-    Enum.reduce(pids, {state, []}, fn pid, {state, ids} ->
-      {state, id} = ensure_thread_id(state, pid)
-      {state, ids ++ [id]}
-    end)
+    {state, ids, new_ids} =
+      Enum.reduce(pids, {state, [], []}, fn pid, {state, ids, new_ids} ->
+        {state, id, new_ids} = ensure_thread_id(state, pid, new_ids)
+        {state, [id | ids], new_ids}
+      end)
+
+    {state, Enum.reverse(ids), Enum.reverse(new_ids)}
   end
 
   defp ensure_var_id(state = %__MODULE__{}, pid, var) when is_pid(pid) or pid == :evaluator do
@@ -974,7 +957,7 @@ defmodule ElixirLS.Debugger.Server do
       case Mix.Task.run("compile", ["--ignore-module-conflict"]) do
         {:error, _} ->
           Output.debugger_important("Aborting debugger due to compile errors")
-          :init.stop(1)
+          System.stop(1)
 
         _ ->
           :ok
@@ -1296,5 +1279,64 @@ defmodule ElixirLS.Debugger.Server do
   defp build_attach_mfa(reason) do
     server = Process.info(self())[:registered_name] || self()
     {__MODULE__, reason, [server]}
+  end
+
+  defp update_threads(state = %__MODULE__{}) do
+    pids = :erlang.processes()
+    {state, thread_ids, new_ids} = ensure_thread_ids(state, pids)
+
+    for thread_id <- new_ids do
+      Output.send_event("thread", %{
+        "reason" => "started",
+        "threadId" => thread_id
+      })
+    end
+
+    exited_pids = Map.keys(state.threads_inverse) -- pids
+
+    state =
+      Enum.reduce(exited_pids, state, fn pid, state ->
+        handle_process_exit(state, pid)
+      end)
+
+    {schedule_update_threads(state), thread_ids}
+  end
+
+  defp handle_process_exit(state = %__MODULE__{}, pid) when is_pid(pid) do
+    {thread_id, threads_inverse} = state.threads_inverse |> Map.pop(pid)
+    paused_processes = remove_paused_process(state, pid)
+
+    state = %__MODULE__{
+      state
+      | threads: state.threads |> Map.delete(thread_id),
+        paused_processes: paused_processes,
+        threads_inverse: threads_inverse
+    }
+
+    if thread_id do
+      Output.send_event("thread", %{
+        "reason" => "exited",
+        "threadId" => thread_id
+      })
+    end
+
+    state
+  end
+
+  defp process_name(process_info) do
+    registered_name = Keyword.get(process_info, :registered_name)
+
+    if registered_name do
+      inspect(registered_name)
+    else
+      {mod, func, arity} = Keyword.fetch!(process_info, :initial_call)
+      "#{inspect(mod)}.#{to_string(func)}/#{arity}"
+    end
+  end
+
+  defp schedule_update_threads(state = %__MODULE__{update_threads_ref: old_ref}) do
+    if old_ref, do: Process.cancel_timer(old_ref, info: false)
+    ref = Process.send_after(self(), :update_threads, 3000)
+    %__MODULE__{state | update_threads_ref: ref}
   end
 end
