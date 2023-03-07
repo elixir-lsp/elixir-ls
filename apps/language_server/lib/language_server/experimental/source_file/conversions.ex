@@ -15,6 +15,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Position, as: ElixirPosition
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position, as: LSPosition
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range, as: LSRange
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Location, as: LSLocation
   alias ElixirLS.LanguageServer.Protocol
 
   import Line
@@ -102,6 +103,16 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
     {:ok, range}
   end
 
+  def to_lsp(%ElixirSense.Location{} = location, %SourceFile{} = source_file) do
+    position = SourceFile.Position.new(location.line, location.column - 1)
+
+    with {:ok, source_file} <- fetch_source_file(location, source_file),
+         {:ok, ls_position} <- to_lsp(position, source_file) do
+      ls_range = %LSRange{start: ls_position, end: ls_position}
+      {:ok, LSLocation.new(uri: source_file.uri, range: ls_range)}
+    end
+  end
+
   def to_lsp(%ElixirRange{} = ex_range, %SourceFile{} = source) do
     with {:ok, start_pos} <- to_lsp(ex_range.start, source.document),
          {:ok, end_pos} <- to_lsp(ex_range.end, source.document) do
@@ -128,6 +139,13 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
   end
 
   # Private
+  defp fetch_source_file(%{file: nil}, source_file) do
+    {:ok, source_file}
+  end
+
+  defp fetch_source_file(%{file: path}, _) do
+    SourceFile.Store.open_temporary(path)
+  end
 
   defp extract_lsp_character(%ElixirPosition{} = position, line(ascii?: true, text: text)) do
     character = min(position.character, byte_size(text))
