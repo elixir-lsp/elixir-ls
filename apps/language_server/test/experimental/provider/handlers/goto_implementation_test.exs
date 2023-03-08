@@ -54,6 +54,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoImplementat
 
     assert %{result: [location]} = response
     assert String.ends_with?(location.uri, "example_behaviour.ex")
+
     assert location.range == %LSPTypes.Range{
              end: %LSPTypes.Position{character: 10, line: 5},
              start: %LSPTypes.Position{character: 10, line: 5}
