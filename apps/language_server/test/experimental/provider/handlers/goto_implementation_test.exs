@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoImplementationTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.GotoImplementation
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types, as: LSPTypes
