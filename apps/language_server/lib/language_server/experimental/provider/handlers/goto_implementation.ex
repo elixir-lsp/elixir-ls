@@ -9,16 +9,17 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoImplementat
     source_file = request.source_file
     pos = request.position
 
-    locations =
+    elixir_sense_locations =
       source_file
       |> SourceFile.to_string()
       |> ElixirSense.implementations(pos.line, pos.character + 1)
 
-    results =
-      locations
-      |> Enum.map(&Conversions.to_lsp(&1, source_file))
-      |> then(&for({:ok, result} <- &1, do: result))
+    locations =
+      for {:ok, location} <-
+            Enum.map(elixir_sense_locations, &Conversions.to_lsp(&1, source_file)) do
+        location
+      end
 
-    {:reply, Responses.GotoImplementation.new(request.id, results)}
+    {:reply, Responses.GotoImplementation.new(request.id, locations)}
   end
 end
