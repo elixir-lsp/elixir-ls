@@ -11,7 +11,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
   alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
 
   import LspProtocol
-  import ReplaceWithUnderscore
 
   use ExUnit.Case
   use Patch
@@ -70,12 +69,24 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
   test "produces no actions if the name or variable is not found" do
     assert {_, action} = code_action("other_var = 6", "/project/file.ex", 1, "not_found")
-    assert [] = apply(action)
+
+    source_file = action.source_file
+    diagnostics = get_in(action, [:context, :diagnostics])
+
+    Enum.each(diagnostics, fn diagnostic ->
+      assert [] = ReplaceWithUnderscore.apply(source_file, diagnostic)
+    end)
   end
 
   test "produces no actions if the line is empty" do
     {_, action} = code_action("", "/project/file.ex", 1, "a")
-    assert [] = apply(action)
+
+    source_file = action.source_file
+    diagnostics = get_in(action, [:context, :diagnostics])
+
+    Enum.each(diagnostics, fn diagnostic ->
+      assert [] = ReplaceWithUnderscore.apply(source_file, diagnostic)
+    end)
   end
 
   test "produces no results if the diagnostic message doesn't fit the format" do
@@ -84,7 +95,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
                diagnostic_message: "This isn't cool"
              )
 
-    assert [] = apply(action)
+    source_file = action.source_file
+    diagnostics = get_in(action, [:context, :diagnostics])
+
+    Enum.each(diagnostics, fn diagnostic ->
+      assert [] = ReplaceWithUnderscore.apply(source_file, diagnostic)
+    end)
   end
 
   test "produces no results for buggy source code" do
@@ -94,31 +110,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
         ]
       |> code_action("/project/file.ex", 0, "unused")
 
-    assert [] = apply(action)
-  end
+    source_file = action.source_file
+    diagnostics = get_in(action, [:context, :diagnostics])
 
-  test "handles nil context" do
-    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 1, "not_found")
-
-    action = put_in(action, [:context], nil)
-
-    assert [] = apply(action)
-  end
-
-  test "handles nil diagnostics" do
-    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 1, "not_found")
-
-    action = put_in(action, [:context, :diagnostics], nil)
-
-    assert [] = apply(action)
-  end
-
-  test "handles empty diagnostics" do
-    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 1, "not_found")
-
-    action = put_in(action, [:context, :diagnostics], [])
-
-    assert [] = apply(action)
+    Enum.each(diagnostics, fn diagnostic ->
+      assert [] = ReplaceWithUnderscore.apply(source_file, diagnostic)
+    end)
   end
 
   test "applied to an unadorned param" do
@@ -128,7 +125,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
         ]
       |> code_action("/project/file.ex", 0, "a")
 
-    assert [%CodeActionReply{edit: %{changes: %{^file_uri => [edit]}}}] = apply(code_action)
+    source_file = code_action.source_file
+    [diagnostic] = get_in(code_action, [:context, :diagnostics])
+
+    assert [%CodeActionReply{edit: %{changes: %{^file_uri => [edit]}}}] =
+             ReplaceWithUnderscore.apply(source_file, diagnostic)
+
     assert edit.new_text == "_"
   end
 
@@ -140,7 +142,12 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
       end
     ] |> code_action("/project/file.ex", 1, "a")
 
-    assert [%CodeActionReply{edit: %{changes: %{^file_uri => [edit]}}}] = apply(code_action)
+    source_file = code_action.source_file
+    [diagnostic] = get_in(code_action, [:context, :diagnostics])
+
+    assert [%CodeActionReply{edit: %{changes: %{^file_uri => [edit]}}}] =
+             ReplaceWithUnderscore.apply(source_file, diagnostic)
+
     assert edit.new_text == "_"
     assert edit.range.start.line == 1
     assert edit.range.end.line == 1

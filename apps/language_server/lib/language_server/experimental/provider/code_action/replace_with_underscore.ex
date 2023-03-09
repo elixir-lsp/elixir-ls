@@ -5,28 +5,26 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
   alias ElixirLS.LanguageServer.Experimental.CodeMod
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Ast
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionResult
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkspaceEdit
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
-  @spec apply(CodeAction.t()) :: [CodeActionResult.t()]
-  def apply(%CodeAction{} = code_action) do
-    source_file = code_action.source_file
-    diagnostics = get_in(code_action, [:context, :diagnostics]) || []
+  @pattern ~r/variable "([^"]+)" is unused/
 
-    diagnostics
-    |> Enum.flat_map(fn %Diagnostic{} = diagnostic ->
-      with {:ok, variable_name, one_based_line} <- extract_variable_and_line(diagnostic),
-           {:ok, reply} <- build_code_action(source_file, one_based_line, variable_name) do
-        [reply]
-      else
-        _ ->
-          []
-      end
-    end)
+  @spec pattern() :: Regex.t()
+  def pattern, do: @pattern
+
+  @spec apply(SourceFile.t(), Diagnostic.t()) :: [CodeActionResult.t()]
+  def apply(source_file, diagnostic) do
+    with {:ok, variable_name, one_based_line} <- extract_variable_and_line(diagnostic),
+         {:ok, reply} <- build_code_action(source_file, one_based_line, variable_name) do
+      [reply]
+    else
+      _ ->
+        []
+    end
   end
 
   defp build_code_action(%SourceFile{} = source_file, one_based_line, variable_name) do
@@ -66,9 +64,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
     end
   end
 
-  @variable_re ~r/variable "([^"]+)" is unused/
   defp extract_variable_name(message) do
-    case Regex.scan(@variable_re, message) do
+    case Regex.scan(@pattern, message) do
       [[_, variable_name]] ->
         {:ok, String.to_atom(variable_name)}
 
