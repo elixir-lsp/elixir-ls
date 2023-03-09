@@ -1,18 +1,16 @@
 defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
-  use ExUnit.Case, async: true
-
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.GotoDefinition
   alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
   alias ElixirLS.LanguageServer.Experimental.Provider.Handlers
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
-
   alias ElixirLS.LanguageServer.Fixtures.LspProtocol
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
 
   import LspProtocol
   import ElixirLS.Test.TextLoc, only: [annotate_assert: 4]
+  use ExUnit.Case, async: true
 
   setup do
     {:ok, _} = start_supervised(SourceFile.Store)
