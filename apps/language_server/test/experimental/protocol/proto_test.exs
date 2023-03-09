@@ -103,9 +103,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     end
 
     test "can be encoded" do
-      proto =
-        TupleField.new(tuple_field: {1, "hello", %{"k" => "v"}})
-        |> IO.inspect(label: "proto")
+      proto = TupleField.new(tuple_field: {1, "hello", %{"k" => "v"}})
 
       assert {:ok, encoded} = encode_and_decode(proto)
       assert encoded["tupleField"] == [1, "hello", %{"k" => "v"}]
@@ -391,7 +389,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
       defnotification "notif/withTextDoc",
                       :exclusive,
-                      text_document: Types.TextDocument
+                      text_document: Types.TextDocument.Identifier
     end
 
     test "to_elixir fills out the source file", ctx do
@@ -406,7 +404,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
       defnotification "notif/WithPos",
                       :exclusive,
-                      text_document: Types.TextDocument,
+                      text_document: Types.TextDocument.Identifier,
                       position: Types.Position
     end
 
@@ -431,7 +429,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
       defnotification "notif/WithPos",
                       :exclusive,
-                      text_document: Types.TextDocument,
+                      text_document: Types.TextDocument.Identifier,
                       range: Types.Range
     end
 
@@ -469,7 +467,7 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     defmodule TextDocReq do
       use Proto
 
-      defrequest "textDoc", :exclusive, text_document: Types.TextDocument
+      defrequest "textDoc", :exclusive, text_document: Types.TextDocument.Identifier
     end
 
     test "parse fills out the request" do
@@ -517,7 +515,10 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
     defmodule PositionReq do
       use Proto
-      defrequest "posReq", :exclusive, text_document: Types.TextDocument, position: Types.Position
+
+      defrequest "posReq", :exclusive,
+        text_document: Types.TextDocument.Identifier,
+        position: Types.Position
     end
 
     test "to_elixir fills out a position", ctx do
@@ -540,7 +541,10 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
     defmodule RangeReq do
       use Proto
-      defrequest "rangeReq", :exclusive, text_document: Types.TextDocument, range: Types.Range
+
+      defrequest "rangeReq", :exclusive,
+        text_document: Types.TextDocument.Identifier,
+        range: Types.Range
     end
 
     test "to_elixir fills out a range", ctx do

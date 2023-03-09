@@ -2,7 +2,7 @@
   "benchee": {:hex, :benchee, "1.1.0", "f3a43817209a92a1fade36ef36b86e1052627fd8934a8b937ac9ab3a76c43062", [:mix], [{:deep_merge, "~> 1.0", [hex: :deep_merge, repo: "hexpm", optional: false]}, {:statistex, "~> 1.0", [hex: :statistex, repo: "hexpm", optional: false]}], "hexpm", "7da57d545003165a012b587077f6ba90b89210fd88074ce3c60ce239eb5e6d93"},
   "deep_merge": {:hex, :deep_merge, "1.0.0", "b4aa1a0d1acac393bdf38b2291af38cb1d4a52806cf7a4906f718e1feb5ee961", [:mix], [], "hexpm", "ce708e5f094b9cd4e8f2be4f00d2f4250c4095be93f8cd6d018c753894885430"},
   "dialyxir_vendored": {:git, "https://github.com/elixir-lsp/dialyxir.git", "b610d1a87885576e0e2aa4cfb5e176072bcd9457", [branch: "vendored"]},
-  "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "ed875265f54994911774ac05c3a1b9adb65b80e7", []},
+  "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "b037089325e64952f67d72959b2573ef46b28bda", []},
   "erl2ex": {:git, "https://github.com/dazuma/erl2ex.git", "244c2d9ed5805ef4855a491d8616b8842fef7ca4", []},
   "erlex": {:hex, :erlex, "0.2.6", "c7987d15e899c7a2f34f5420d2a2ea0d659682c06ac607572df55a43753aa12e", [:mix], [], "hexpm", "2ed2e25711feb44d52b17d2780eabf998452f6efda104877a3881c2f8c0c0c75"},
   "jason_vendored": {:git, "https://github.com/elixir-lsp/jason.git", "e23c65b98411a3066ca73534b4aed1d23bcf0356", [branch: "vendored"]},

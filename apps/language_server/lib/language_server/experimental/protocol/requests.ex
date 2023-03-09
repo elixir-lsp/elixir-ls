@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
       root_uri: string(),
       initialization_options: optional(any()),
       trace: optional(string()),
-      workspace_folders: optional(list_of(Types.WorkspaceFolder)),
+      workspace_folders: optional(list_of(Types.Workspace.Folder)),
       capabilities: optional(map_of(any()))
   end
 
@@ -27,12 +27,20 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
       position: Types.Position
   end
 
+  defmodule GotoDefinition do
+    use Proto
+
+    defrequest "textDocument/definition", :exclusive,
+      text_document: Types.TextDocument.Identifier,
+      position: Types.Position
+  end
+
   defmodule Formatting do
     use Proto
 
     defrequest "textDocument/formatting", :exclusive,
       text_document: Types.TextDocument.Identifier,
-      options: Types.FormattingOptions
+      options: Types.Formatting.Options
   end
 
   defmodule CodeAction do
@@ -41,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
     defrequest "textDocument/codeAction", :exclusive,
       text_document: Types.TextDocument.Identifier,
       range: Types.Range,
-      context: Types.CodeActionContext
+      context: Types.CodeAction.Context
   end
 
   # Server -> Client requests

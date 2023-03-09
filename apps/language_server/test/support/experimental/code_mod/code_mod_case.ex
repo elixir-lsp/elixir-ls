@@ -1,5 +1,7 @@
 defmodule ElixirLS.Test.CodeMod.Case do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+    as: RangedContentChangeEvent
+
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
   use ExUnit.CaseTemplate
@@ -47,7 +49,7 @@ defmodule ElixirLS.Test.CodeMod.Case do
 
     converted_edits =
       Enum.map(text_edits, fn edit ->
-        ContentChangeEvent.new(text: edit.new_text, range: edit.range)
+        RangedContentChangeEvent.new(text: edit.new_text, range: edit.range)
       end)
 
     {:ok, edited_source_file} = SourceFile.apply_content_changes(source_file, 1, converted_edits)

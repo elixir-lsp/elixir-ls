@@ -248,16 +248,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           |> Enum.concat(new_paths)
           |> Enum.uniq()
 
-        changed_contents =
-          Task.async_stream(
-            changed,
-            fn file ->
-              content = File.read!(file)
-              {file, content, module_md5(file)}
-            end,
-            timeout: :infinity
-          )
-          |> Enum.into([])
+        changed_contents = get_changed_files_contents(changed)
 
         {changed, changed_contents}
       end)
@@ -267,17 +258,50 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     )
 
     file_changes =
-      Enum.reduce(changed_contents, file_changes, fn {:ok, {file, content, hash}}, file_changes ->
-        if is_nil(hash) or hash == md5[file] do
-          Map.delete(file_changes, file)
-        else
-          Map.put(file_changes, file, {content, hash})
-        end
+      Enum.reduce(changed_contents, file_changes, fn
+        {:ok, {file, content, hash}}, file_changes ->
+          if is_nil(hash) or hash == md5[file] do
+            Map.delete(file_changes, file)
+          else
+            Map.put(file_changes, file, {content, hash})
+          end
+
+        {:exit, reason}, file_changes ->
+          # on elixir >= 1.14 reason will actually be {beam_path, reason} but
+          # it's not easy to pattern match on that
+          Logger.error(
+            "[ElixirLS Dialyzer] Unable to process one of the beams: #{inspect(reason)}"
+          )
+
+          file_changes
       end)
 
     undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
     removed_files = Enum.uniq(removed_files ++ removed ++ (undialyzable -- changed))
     {removed_files, file_changes}
+  end
+
+  defp get_changed_files_contents(changed) do
+    with_trapping_exits(fn ->
+      # TODO remove if when we require elixir 1.14
+      task_options =
+        if Version.match?(System.version(), ">= 1.14.0") do
+          [zip_input_on_exit: true]
+        else
+          []
+        end
+        |> Keyword.put(:timeout, :infinity)
+
+      Task.async_stream(
+        changed,
+        fn file ->
+          content = File.read!(file)
+          {file, content, module_md5(file)}
+        end,
+        task_options
+      )
+      |> Enum.into([])
+    end)
   end
 
   defp extract_stale(sources, timestamp) do
@@ -322,10 +346,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     {us, {active_plt, mod_deps, md5, warnings}} =
       :timer.tc(fn ->
-        Task.async_stream(file_changes, fn {file, {content, _}} ->
-          write_temp_file(root_path, file, content)
+        with_trapping_exits(fn ->
+          Task.async_stream(file_changes, fn {file, {content, _}} ->
+            write_temp_file(root_path, file, content)
+          end)
+          |> Stream.run()
         end)
-        |> Stream.run()
 
         for file <- removed_files do
           path = temp_file_path(root_path, file)
@@ -338,7 +364,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               :ok
 
             {:error, reason} ->
-              Logger.warn("Unable to remove temporary file #{path}: #{inspect(reason)}")
+              Logger.warn(
+                "[ElixirLS Dialyzer] Unable to remove temporary file #{path}: #{inspect(reason)}"
+              )
           end
         end
 
@@ -464,7 +492,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
 
-      {:error, _} ->
+      {:error, reason} ->
+        Logger.warn(
+          "[ElixirLS Dialyzer] get_core_from_beam failed for #{file}: #{inspect(reason)}"
+        )
+
         nil
     end
   end
@@ -503,7 +535,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp normalize_postion(position) do
-    Logger.warn("dialyzer returned warning with invalid position #{inspect(position)}")
+    Logger.warn(
+      "[ElixirLS Dialyzer] dialyzer returned warning with invalid position #{inspect(position)}"
+    )
+
     0
   end
 
@@ -555,5 +590,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   defp maybe_cancel_write_manifest(%{write_manifest_pid: pid}) do
     Process.unlink(pid)
     Process.exit(pid, :kill)
+  end
+
+  defp with_trapping_exits(fun) do
+    Process.flag(:trap_exit, true)
+    fun.()
+  after
+    Process.flag(:trap_exit, false)
   end
 end

@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionResult
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkspaceEdit
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
   @pattern ~r/variable "([^"]+)" is unused/
@@ -43,7 +43,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
             CodeActionResult.new(
               title: "Rename to _#{variable_name}",
               kind: :quick_fix,
-              edit: WorkspaceEdit.new(changes: %{source_file.uri => text_edits})
+              edit: Workspace.Edit.new(changes: %{source_file.uri => text_edits})
             )
 
           {:ok, reply}

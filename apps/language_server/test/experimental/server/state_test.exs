@@ -1,6 +1,14 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.Initialize
   alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument
+
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+    as: RangedContentChangeEvent
+
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
+    as: ReplaceContentChangeEvent
+
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.Server.State
 
@@ -36,20 +44,22 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
   end
 
   def change_notification(opts \\ []) do
-    {:ok, did_change} =
-      build(Notifications.DidChange,
-        id: 2,
-        text_document: [
-          uri: Keyword.get(opts, :uri, uri()),
-          version: Keyword.get(opts, :version, 2)
-        ],
-        content_changes: [
-          [text: "goodbye"],
-          [range: [start: [line: 0, character: 0], end: [line: 0, character: 4]], text: "dog"]
-        ]
+    {:ok, ranged_event} =
+      build(RangedContentChangeEvent,
+        range: [start: [line: 0, character: 0], end: [line: 0, character: 4]],
+        text: "dog"
       )
 
-    did_change
+    {:ok, identifier} =
+      build(TextDocument.Versioned.Identifier,
+        uri: Keyword.get(opts, :uri, uri()),
+        version: Keyword.get(opts, :version, 2)
+      )
+
+    Notifications.DidChange.new(
+      text_document: identifier,
+      content_changes: [ReplaceContentChangeEvent.new(text: "goodbye"), ranged_event]
+    )
   end
 
   def with_a_changed_document(ctx) do

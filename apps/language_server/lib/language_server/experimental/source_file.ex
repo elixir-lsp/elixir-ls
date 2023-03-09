@@ -1,5 +1,9 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+    as: RangedTextDocumentContentChangeEvent
+
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
+    as: ReplaceContentChangeEvent
 
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
@@ -22,6 +26,8 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
 
   @type version :: pos_integer()
   @type change_application_error :: {:error, {:invalid_range, map()}}
+  @type content_change_event ::
+          RangedTextDocumentContentChangeEvent.t() | ReplaceContentChangeEvent.t()
   # public
 
   def new(uri, text, version) do
@@ -66,7 +72,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     end
   end
 
-  @spec apply_content_changes(t, pos_integer(), [map | ContentChangeEvent.t()]) ::
+  @spec apply_content_changes(t, pos_integer(), [map | content_change_event]) ::
           {:ok, t} | change_application_error()
   def apply_content_changes(%__MODULE__{version: current_version}, new_version, _)
       when new_version <= current_version do
@@ -139,7 +145,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     {:ok, %__MODULE__{source | document: new_document}}
   end
 
-  defp apply_change(%__MODULE__{} = source, %ContentChangeEvent{range: nil} = change) do
+  defp apply_change(%__MODULE__{} = source, %ReplaceContentChangeEvent{} = change) do
     new_state =
       source.uri
       |> new(change.text, source.version)
@@ -148,7 +154,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
     {:ok, new_state}
   end
 
-  defp apply_change(%__MODULE__{} = source, %ContentChangeEvent{} = change) do
+  defp apply_change(%__MODULE__{} = source, %RangedTextDocumentContentChangeEvent{} = change) do
     with {:ok, ex_range} <- Conversions.to_elixir(change.range, source) do
       apply_change(source, ex_range, change.text)
     else
