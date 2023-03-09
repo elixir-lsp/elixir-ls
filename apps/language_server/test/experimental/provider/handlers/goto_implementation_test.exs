@@ -1,6 +1,4 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoImplementationTest do
-  use ExUnit.Case, async: false
-
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.GotoImplementation
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types, as: LSPTypes
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
@@ -13,6 +11,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoImplementat
 
   import LspProtocol
   import ElixirLS.Test.TextLoc, only: [annotate_assert: 4]
+
+  use ExUnit.Case, async: false
 
   setup do
     {:ok, _} = start_supervised(SourceFile.Store)
