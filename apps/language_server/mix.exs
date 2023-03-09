@@ -34,7 +34,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "elixir-lsp/elixir_sense"},
       {:erl2ex, github: "dazuma/erl2ex"},
-      {:sourceror, "0.11.2"},
+      # use tag to ensure sourceror/lib_vendored is included
+      {:sourceror, github: "doorgan/sourceror", tag: "v0.12.1"},
       {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false},
       {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
