@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionResult
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.WorkspaceEdit
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
   @pattern ~r/(.*)\/(.*) is undefined or private. .*:\n(.*)/s
@@ -97,7 +97,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
               CodeActionResult.new(
                 title: construct_title(module, function_name),
                 kind: :quick_fix,
-                edit: WorkspaceEdit.new(changes: %{source_file.uri => text_edits})
+                edit: Workspace.Edit.new(changes: %{source_file.uri => text_edits})
               )
             end)
 

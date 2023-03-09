@@ -1,13 +1,13 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunctionTest do
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
-  alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunction
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction, as: CodeActionRequest
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionReply
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeActionContext
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunction
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Fixtures.LspProtocol
   alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
@@ -50,10 +50,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
       end)
 
     diagnostic = Diagnostic.new(range: range, message: message)
-    {:ok, context} = build(CodeActionContext, diagnostics: [diagnostic])
+    {:ok, context} = build(CodeAction.Context, diagnostics: [diagnostic])
 
     {:ok, action} =
-      build(CodeAction,
+      build(CodeActionRequest,
         text_document: [uri: file_uri],
         range: range,
         context: context
