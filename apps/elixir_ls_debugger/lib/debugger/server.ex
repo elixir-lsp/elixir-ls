@@ -35,8 +35,8 @@ defmodule ElixirLS.Debugger.Server do
             config: %{},
             task_ref: nil,
             update_threads_ref: nil,
-            threads: %{},
-            threads_inverse: %{},
+            thread_ids_to_pids: %{},
+            pids_to_thread_ids: %{},
             paused_processes: %{
               evaluator: %{
                 vars: %{},
@@ -403,7 +403,7 @@ defmodule ElixirLS.Debugger.Server do
 
     threads =
       for thread_id <- thread_ids,
-          pid = state.threads[thread_id],
+          pid = state.thread_ids_to_pids[thread_id],
           (process_info = Process.info(pid)) != nil do
         full_name = "#{process_name(process_info)} #{:erlang.pid_to_list(pid)}"
         %{"id" => thread_id, "name" => full_name}
@@ -414,7 +414,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(terminate_threads_req(_, thread_ids), state = %__MODULE__{}) do
-    for {id, pid} <- state.threads,
+    for {id, pid} <- state.thread_ids_to_pids,
         id in thread_ids do
       # :kill is untrappable
       # do not need to cleanup here, :DOWN message handler will do it
@@ -426,7 +426,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(pause_req(_, thread_id), state = %__MODULE__{}) do
-    pid = state.threads[thread_id]
+    pid = state.thread_ids_to_pids[thread_id]
 
     if pid do
       :int.attach(pid, build_attach_mfa(:paused))
@@ -726,7 +726,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id) do
-    case state.threads[thread_id] do
+    case state.thread_ids_to_pids[thread_id] do
       nil ->
         raise ServerError,
           message: "invalidArgument",
@@ -868,11 +868,11 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp ensure_thread_id(state = %__MODULE__{}, pid, new_ids) when is_pid(pid) do
-    case state.threads_inverse[pid] do
+    case state.pids_to_thread_ids[pid] do
       nil ->
         id = state.next_id
-        state = put_in(state.threads[id], pid)
-        state = put_in(state.threads_inverse[pid], id)
+        state = put_in(state.thread_ids_to_pids[id], pid)
+        state = put_in(state.pids_to_thread_ids[pid], id)
         state = put_in(state.next_id, id + 1)
         {state, id, [id | new_ids]}
       thread_id -> {state, thread_id, new_ids}
@@ -1292,7 +1292,7 @@ defmodule ElixirLS.Debugger.Server do
       })
     end
 
-    exited_pids = Map.keys(state.threads_inverse) -- pids
+    exited_pids = Map.keys(state.pids_to_thread_ids) -- pids
 
     state =
       Enum.reduce(exited_pids, state, fn pid, state ->
@@ -1303,14 +1303,14 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_process_exit(state = %__MODULE__{}, pid) when is_pid(pid) do
-    {thread_id, threads_inverse} = Map.pop(state.threads_inverse, pid)
+    {thread_id, pids_to_thread_ids} = Map.pop(state.pids_to_thread_ids, pid)
     paused_processes = remove_paused_process(state, pid)
 
     state = %__MODULE__{
       state
-      | threads: Map.delete(state.threads, thread_id),
+      | thread_ids_to_pids: Map.delete(state.thread_ids_to_pids, thread_id),
         paused_processes: paused_processes,
-        threads_inverse: threads_inverse
+        pids_to_thread_ids: pids_to_thread_ids
     }
 
     if thread_id do

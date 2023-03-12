@@ -1503,9 +1503,9 @@ defmodule ElixirLS.Debugger.ServerTest do
       send(server, :update_threads)
       state = :sys.get_state(server)
 
-      thread_id = state.threads_inverse[pid]
+      thread_id = state.pids_to_thread_ids[pid]
       assert thread_id
-      assert state.threads[thread_id] == pid
+      assert state.thread_ids_to_pids[thread_id] == pid
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -1522,8 +1522,8 @@ defmodule ElixirLS.Debugger.ServerTest do
       send(server, :update_threads)
       state = :sys.get_state(server)
 
-      refute Map.has_key?(state.threads_inverse, pid)
-      refute Map.has_key?(state.threads, thread_id)
+      refute Map.has_key?(state.pids_to_thread_ids, pid)
+      refute Map.has_key?(state.thread_ids_to_pids, thread_id)
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
