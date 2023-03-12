@@ -868,14 +868,14 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp ensure_thread_id(state = %__MODULE__{}, pid, new_ids) when is_pid(pid) do
-    if Map.has_key?(state.threads_inverse, pid) do
-      {state, state.threads_inverse[pid], new_ids}
-    else
-      id = state.next_id
-      state = put_in(state.threads[id], pid)
-      state = put_in(state.threads_inverse[pid], id)
-      state = put_in(state.next_id, id + 1)
-      {state, id, [id | new_ids]}
+    case state.threads_inverse[pid] do
+      nil ->
+        id = state.next_id
+        state = put_in(state.threads[id], pid)
+        state = put_in(state.threads_inverse[pid], id)
+        state = put_in(state.next_id, id + 1)
+        {state, id, [id | new_ids]}
+      thread_id -> {state, thread_id, new_ids}
     end
   end
 
@@ -1303,12 +1303,12 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_process_exit(state = %__MODULE__{}, pid) when is_pid(pid) do
-    {thread_id, threads_inverse} = state.threads_inverse |> Map.pop(pid)
+    {thread_id, threads_inverse} = Map.pop(state.threads_inverse, pid)
     paused_processes = remove_paused_process(state, pid)
 
     state = %__MODULE__{
       state
-      | threads: state.threads |> Map.delete(thread_id),
+      | threads: Map.delete(state.threads, thread_id),
         paused_processes: paused_processes,
         threads_inverse: threads_inverse
     }
