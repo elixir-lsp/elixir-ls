@@ -896,18 +896,18 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp ensure_var_id(state = %__MODULE__{}, pid, var) when is_pid(pid) or pid == :evaluator do
-    unless Map.has_key?(state.paused_processes, pid) do
-      raise ArgumentError, message: "paused process #{inspect(pid)} not found"
-    end
+    paused_process = Map.fetch!(state.paused_processes, pid)
 
-    if Map.has_key?(state.paused_processes[pid].vars_to_var_ids, var) do
-      {state, state.paused_processes[pid].vars_to_var_ids[var]}
-    else
-      id = state.next_id
-      state = put_in(state.paused_processes[pid].var_ids_to_vars[id], var)
-      state = put_in(state.paused_processes[pid].vars_to_var_ids[var], id)
-      state = put_in(state.next_id, id + 1)
-      {state, id}
+    case paused_process.vars_to_var_ids[var] do
+      nil ->
+        id = state.next_id
+        state = put_in(state.paused_processes[pid].var_ids_to_vars[id], var)
+        state = put_in(state.paused_processes[pid].vars_to_var_ids[var], id)
+        state = put_in(state.next_id, id + 1)
+        {state, id}
+
+      var_id ->
+        {state, var_id}
     end
   end
 
@@ -919,18 +919,18 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) when is_pid(pid) do
-    unless Map.has_key?(state.paused_processes, pid) do
-      raise ArgumentError, message: "paused process #{inspect(pid)} not found"
-    end
+    paused_process = Map.fetch!(state.paused_processes, pid)
 
-    if Map.has_key?(state.paused_processes[pid].frames_to_frame_ids, frame) do
-      {state, state.paused_processes[pid].frames_to_frame_ids[frame]}
-    else
-      id = state.next_id
-      state = put_in(state.paused_processes[pid].frame_ids_to_frames[id], frame)
-      state = put_in(state.paused_processes[pid].frames_to_frame_ids[frame], id)
-      state = put_in(state.next_id, id + 1)
-      {state, id}
+    case paused_process.frames_to_frame_ids[frame] do
+      nil ->
+        id = state.next_id
+        state = put_in(state.paused_processes[pid].frame_ids_to_frames[id], frame)
+        state = put_in(state.paused_processes[pid].frames_to_frame_ids[frame], id)
+        state = put_in(state.next_id, id + 1)
+        {state, id}
+
+      frame_id ->
+        {state, frame_id}
     end
   end
 
