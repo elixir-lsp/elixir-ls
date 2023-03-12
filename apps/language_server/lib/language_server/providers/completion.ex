@@ -537,7 +537,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       label: to_string(name),
       detail: detail,
       insert_text: if(call?, do: name, else: "#{name}: "),
-      documentation: "#{formatted_spec}",
+      documentation: formatted_spec,
       priority: 10,
       kind: :field,
       tags: []
