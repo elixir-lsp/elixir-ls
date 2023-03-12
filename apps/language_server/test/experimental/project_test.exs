@@ -30,11 +30,13 @@ defmodule ElixirLS.Experimental.ProjectTest do
   end
 
   def root_uri do
-    "file:///tmp/my_project"
+    System.tmp_dir!()
+    |> Path.join("my_project")
+    |> SourceFile.Path.to_uri()
   end
 
   def with_a_root_uri(_) do
-    {:ok, root_uri: "file:///tmp/my_project"}
+    {:ok, root_uri: root_uri()}
   end
 
   setup do
@@ -249,8 +251,9 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
     test "only sets the project directory if the root uri is set" do
       project = Project.new(nil)
+      sub_dir = Path.join(~w(sub_dir new dir))
 
-      assert {:ok, project} = Project.change_project_directory(project, "sub_dir/new/dir")
+      assert {:ok, project} = Project.change_project_directory(project, sub_dir)
       assert project.root_uri == nil
       assert Project.project_path(project) == nil
     end
@@ -268,7 +271,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
     end
 
     test "normalizes the project directory", ctx do
-      subdirectory = "sub_dir/../sub_dir/new/../new/dir"
+      subdirectory = Path.join(~w(sub_dir .. sub_dir new .. new dir))
 
       patch(File, :exists?, fn path, _ ->
         String.ends_with?(path, "mix.exs")
@@ -277,9 +280,10 @@ defmodule ElixirLS.Experimental.ProjectTest do
       assert {:ok, %Project{} = project} =
                Project.change_project_directory(ctx.project, subdirectory)
 
-      assert Project.project_path(project) == "#{File.cwd!()}/sub_dir/new/dir"
+      assert sub_dir = Path.join([File.cwd!(), "sub_dir", "new", "dir"])
+      assert Project.project_path(project) == sub_dir
       assert project.mix_project?
-      assert Project.mix_exs_path(project) == "#{File.cwd!()}/sub_dir/new/dir/mix.exs"
+      assert Project.mix_exs_path(project) == Path.join(sub_dir, "mix.exs")
     end
 
     test "sets mix project to false if the mix.exs doesn't exist", ctx do
@@ -287,19 +291,22 @@ defmodule ElixirLS.Experimental.ProjectTest do
         !String.ends_with?(file_name, "mix.exs")
       end)
 
-      assert {:ok, %Project{} = project} =
-               Project.change_project_directory(ctx.project, "sub_dir/new/dir")
+      sub_dir = Path.join(~w(sub_dir new dir))
+      assert {:ok, %Project{} = project} = Project.change_project_directory(ctx.project, sub_dir)
 
-      assert Project.project_path(project) == "#{File.cwd!()}/sub_dir/new/dir"
+      assert Project.project_path(project) == Path.join(File.cwd!(), sub_dir)
       refute project.mix_project?
     end
 
     test "asks for a restart if the project directory was set and the new one isn't the same",
          ctx do
-      {:ok, project} = Project.change_project_directory(ctx.project, "sub_dir/foo")
+      foo_sub_dir = Path.join(~w(sub_dir foo))
+      {:ok, project} = Project.change_project_directory(ctx.project, foo_sub_dir)
+
+      new_dir_sub_dir = Path.join(~w(sub_dir new dir))
 
       assert {:restart, :warning, message} =
-               Project.change_project_directory(project, "sub_dir/new/dir")
+               Project.change_project_directory(project, new_dir_sub_dir)
 
       assert message =~ "Project directory change detected"
     end
@@ -308,7 +315,8 @@ defmodule ElixirLS.Experimental.ProjectTest do
       {:ok, project} = Project.change_project_directory(ctx.project, "sub_dir/foo")
 
       patch(File, :dir?, false)
-      new_directory = "sub_dir/new/dir"
+
+      new_directory = Path.join(~w(sub_dir new dir))
       expected_message_directory = Path.join(File.cwd!(), new_directory)
 
       assert {:error, message} = Project.change_project_directory(project, new_directory)
@@ -317,8 +325,9 @@ defmodule ElixirLS.Experimental.ProjectTest do
 
     test "rejects a change if the project directory isn't a subdirectory of the project root",
          ctx do
-      assert {:error, message} =
-               Project.change_project_directory(ctx.project, "../../../../not-a-subdir")
+      not_in_project = Path.join(~w(.. .. .. .. not-a-subdir))
+
+      assert {:error, message} = Project.change_project_directory(ctx.project, not_in_project)
 
       assert message =~ "is not a subdirectory of"
     end

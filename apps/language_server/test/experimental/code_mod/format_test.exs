@@ -1,6 +1,7 @@
 defmodule ElixirLS.Experimental.FormatTest do
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Format
   alias ElixirLS.LanguageServer.Experimental.SourceFile
+  alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
 
   use ElixirLS.Test.CodeMod.Case
 
@@ -13,7 +14,9 @@ defmodule ElixirLS.Experimental.FormatTest do
   end
 
   def source_file(text) do
-    SourceFile.new("file://#{__ENV__.file}", text, 1)
+    __ENV__.file
+    |> SourceFilePath.to_uri()
+    |> SourceFile.new(text, 1)
   end
 
   def unformatted do
