@@ -10,15 +10,21 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Ast do
           | {any(), any()}
           | {atom() | {any(), [any()], atom() | [any()]}, Keyword.t(), atom() | [any()]}
 
-  @spec from(source) :: t
-  def from(%SourceFile{} = source_file) do
+  def from(source_file, opts \\ [])
+
+  @spec from(source, keyword()) :: t
+  def from(%SourceFile{} = source_file, opts) do
     source_file
     |> SourceFile.to_string()
-    |> from()
+    |> from(opts)
   end
 
-  def from(s) when is_binary(s) do
-    ElixirSense.string_to_quoted(s, 1, 6, token_metadata: true)
+  def from(s, opts) when is_binary(s) do
+    if opts[:include_comments] do
+      Sourceror.parse_string(s)
+    else
+      ElixirSense.string_to_quoted(s, 1, 6, token_metadata: true)
+    end
   end
 
   @spec to_string(t()) :: String.t()
