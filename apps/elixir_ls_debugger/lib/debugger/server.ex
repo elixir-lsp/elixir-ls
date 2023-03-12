@@ -41,8 +41,8 @@ defmodule ElixirLS.Debugger.Server do
             pids_to_thread_ids: %{},
             paused_processes: %{
               evaluator: %{
-                vars: %{},
-                vars_inverse: %{}
+                var_ids_to_vars: %{},
+                vars_to_var_ids: %{}
               }
             },
             next_id: 1,
@@ -54,8 +54,8 @@ defmodule ElixirLS.Debugger.Server do
     defstruct stack: nil,
               frame_ids_to_frames: %{},
               frames_to_frame_ids: %{},
-              vars: %{},
-              vars_inverse: %{},
+              var_ids_to_vars: %{},
+              vars_to_var_ids: %{},
               ref: nil
   end
 
@@ -850,18 +850,20 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp find_var(paused_processes, var_id) do
-    Enum.find_value(paused_processes, fn {pid, %{vars: vars}} ->
-      if Map.has_key?(vars, var_id) do
-        {pid, vars[var_id]}
+    Enum.find_value(paused_processes, fn {pid, %{var_ids_to_vars: var_ids_to_vars}} ->
+      case var_ids_to_vars[var_id] do
+        nil -> nil
+        var -> {pid, var}
       end
     end)
   end
 
   defp find_frame(paused_processes, frame_id) do
     Enum.find_value(paused_processes, fn
-      {pid, %PausedProcess{frame_ids_to_frames: frame_ids_to_frames}} ->
-        if Map.has_key?(frame_ids_to_frames, frame_id) do
-          {pid, frame_ids_to_frames[frame_id]}
+      {pid, %{frame_ids_to_frames: frame_ids_to_frames}} ->
+        case frame_ids_to_frames[frame_id] do
+          nil -> nil
+          frame -> {pid, frame}
         end
 
       {:evaluator, _} ->
@@ -898,12 +900,12 @@ defmodule ElixirLS.Debugger.Server do
       raise ArgumentError, message: "paused process #{inspect(pid)} not found"
     end
 
-    if Map.has_key?(state.paused_processes[pid].vars_inverse, var) do
-      {state, state.paused_processes[pid].vars_inverse[var]}
+    if Map.has_key?(state.paused_processes[pid].vars_to_var_ids, var) do
+      {state, state.paused_processes[pid].vars_to_var_ids[var]}
     else
       id = state.next_id
-      state = put_in(state.paused_processes[pid].vars[id], var)
-      state = put_in(state.paused_processes[pid].vars_inverse[var], id)
+      state = put_in(state.paused_processes[pid].var_ids_to_vars[id], var)
+      state = put_in(state.paused_processes[pid].vars_to_var_ids[var], id)
       state = put_in(state.next_id, id + 1)
       {state, id}
     end
