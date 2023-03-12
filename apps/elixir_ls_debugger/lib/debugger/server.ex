@@ -2,12 +2,14 @@ defmodule ElixirLS.Debugger.Server do
   @moduledoc """
   Implements the VS Code Debug Protocol
 
-  Refer to the protocol's [documentation](https://github.com/Microsoft/vscode/blob/master/src/vs/workbench/parts/debug/common/debugProtocol.d.ts)
+  Refer to the protocol's [documentation](https://microsoft.github.io/debug-adapter-protocol)
   for details.
 
   The protocol specifies that we must assign unique IDs to "threads" (or processes), to stack
   frames, and to any variables that can be expanded. We keep a counter with the next ID to use and
-  increment it any time we assign an ID.
+  increment it any time we assign an ID. Note that besides thread ids all other are defined in
+  the suspended state and can be reused.
+  See [Lifetime of Objects References](https://microsoft.github.io/debug-adapter-protocol/overview#lifetime-of-objects-references)
   """
 
   defmodule ServerError do
