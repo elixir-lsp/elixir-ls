@@ -831,7 +831,7 @@ defmodule ElixirLS.Debugger.Server do
         []
 
       {_pid, %PausedProcess{} = paused_process} ->
-        paused_process.frame_ids_to_frames |> Map.values()
+        Map.values(paused_process.frame_ids_to_frames)
     end)
     |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
     |> Enum.flat_map(fn %Frame{bindings: bindings} ->
