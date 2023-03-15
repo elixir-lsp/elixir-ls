@@ -6,6 +6,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.RegisterCapability
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.Test.Paths
 
   use ExUnit.Case, async: false
   use Patch
@@ -203,7 +204,11 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
       change = DidChangeConfiguration.new(settings: %{"projectDir" => subdir_path})
 
       assert {:ok, %Configuration{} = config} = Configuration.on_change(ctx.config, change)
-      assert Project.project_path(config.project) == Path.join(File.cwd!(), subdir_path)
+
+      assert Project.project_path(config.project) ==
+               File.cwd!()
+               |> Path.join(subdir_path)
+               |> Paths.maybe_fix_separators()
     end
 
     test "only sets the project directory if the root uri is set" do
