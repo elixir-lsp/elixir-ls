@@ -1,9 +1,9 @@
-impossible_to_format = [
-  "test/fixtures/token_missing_error/lib/has_error.ex",
-  "test/fixtures/project_with_tests/test/error_test.exs"
-]
-
 current_directory = Path.dirname(__ENV__.file)
+
+impossible_to_format = [
+  Path.join(current_directory, "test/fixtures/token_missing_error/lib/has_error.ex"),
+  Path.join(current_directory, "test/fixtures/project_with_tests/test/error_test.exs")
+]
 
 deps =
   if Mix.env() == :test do
