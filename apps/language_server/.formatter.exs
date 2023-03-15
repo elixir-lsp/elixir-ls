@@ -3,6 +3,8 @@ impossible_to_format = [
   "test/fixtures/project_with_tests/test/error_test.exs"
 ]
 
+current_directory = Path.dirname(__ENV__.file)
+
 deps =
   if Mix.env() == :test do
     [:patch]
@@ -29,8 +31,8 @@ proto_dsl = [
   inputs:
     Enum.flat_map(
       [
-        "*.exs",
-        "{lib,test,config}/**/*.{ex,exs}"
+        Path.join(current_directory, "*.exs"),
+        Path.join(current_directory, "{lib,test}/**/*.{ex,exs}")
       ],
       &Path.wildcard(&1, match_dot: true)
     ) -- impossible_to_format
