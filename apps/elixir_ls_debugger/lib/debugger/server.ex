@@ -850,38 +850,36 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp find_var(paused_processes, var_id) do
-    Enum.find_value(paused_processes, fn {pid, %{var_ids_to_vars: var_ids_to_vars}} ->
-      case var_ids_to_vars[var_id] do
-        nil -> nil
-        var -> {pid, var}
-      end
+    Enum.find_value(paused_processes, fn
+      {pid, %{var_ids_to_vars: %{^var_id => var}}} ->
+        {pid, var}
+
+      _ ->
+        nil
     end)
   end
 
   defp find_frame(paused_processes, frame_id) do
     Enum.find_value(paused_processes, fn
-      {pid, %{frame_ids_to_frames: frame_ids_to_frames}} ->
-        case frame_ids_to_frames[frame_id] do
-          nil -> nil
-          frame -> {pid, frame}
-        end
+      {pid, %{frame_ids_to_frames: %{^frame_id => frame}}} when is_pid(pid) ->
+        {pid, frame}
 
-      {:evaluator, _} ->
+      _ ->
         nil
     end)
   end
 
   defp ensure_thread_id(state = %__MODULE__{}, pid, new_ids) when is_pid(pid) do
-    case state.pids_to_thread_ids[pid] do
-      nil ->
+    case state.pids_to_thread_ids do
+      %{^pid => thread_id} ->
+        {state, thread_id, new_ids}
+
+      _ ->
         id = state.next_id
         state = put_in(state.thread_ids_to_pids[id], pid)
         state = put_in(state.pids_to_thread_ids[pid], id)
         state = put_in(state.next_id, id + 1)
         {state, id, [id | new_ids]}
-
-      thread_id ->
-        {state, thread_id, new_ids}
     end
   end
 
@@ -898,16 +896,17 @@ defmodule ElixirLS.Debugger.Server do
   defp ensure_var_id(state = %__MODULE__{}, pid, var) when is_pid(pid) or pid == :evaluator do
     paused_process = Map.fetch!(state.paused_processes, pid)
 
-    case paused_process.vars_to_var_ids[var] do
-      nil ->
+    case paused_process.vars_to_var_ids do
+      %{^var => var_id} ->
+        {state, var_id}
+
+      _ ->
         id = state.next_id
-        state = put_in(state.paused_processes[pid].var_ids_to_vars[id], var)
-        state = put_in(state.paused_processes[pid].vars_to_var_ids[var], id)
+        paused_process = put_in(paused_process.var_ids_to_vars[id], var)
+        paused_process = put_in(paused_process.vars_to_var_ids[var], id)
+        state = put_in(state.paused_processes[pid], paused_process)
         state = put_in(state.next_id, id + 1)
         {state, id}
-
-      var_id ->
-        {state, var_id}
     end
   end
 
@@ -921,16 +920,17 @@ defmodule ElixirLS.Debugger.Server do
   defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) when is_pid(pid) do
     paused_process = Map.fetch!(state.paused_processes, pid)
 
-    case paused_process.frames_to_frame_ids[frame] do
-      nil ->
+    case paused_process.frames_to_frame_ids do
+      %{^frame => frame_id} ->
+        {state, frame_id}
+
+      _ ->
         id = state.next_id
-        state = put_in(state.paused_processes[pid].frame_ids_to_frames[id], frame)
-        state = put_in(state.paused_processes[pid].frames_to_frame_ids[frame], id)
+        paused_process = put_in(paused_process.frame_ids_to_frames[id], frame)
+        paused_process = put_in(paused_process.frames_to_frame_ids[frame], id)
+        state = put_in(state.paused_processes[pid], paused_process)
         state = put_in(state.next_id, id + 1)
         {state, id}
-
-      frame_id ->
-        {state, frame_id}
     end
   end
 
