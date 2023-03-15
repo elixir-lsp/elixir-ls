@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
 
   require Logger
   @type formatter_function :: (String.t() -> any) | nil
@@ -135,8 +136,9 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   defp check_inputs_apply(_, _, _), do: :ok
 
   defp subdirectory?(child, parent: parent) do
-    normalized_parent = Path.absname(parent)
-    String.starts_with?(child, normalized_parent)
+    normalized_parent = normalize_path(parent)
+    normalized_child = normalize_path(child)
+    String.starts_with?(normalized_child, normalized_parent)
   end
 
   # Finds the directory with the .formatter.exs that's the nearest parent to the
@@ -161,5 +163,12 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
       |> Path.dirname()
       |> dominating_formatter_exs_dir(project_path)
     end
+  end
+
+  def normalize_path(path) do
+    path
+    |> Path.absname()
+    |> SourceFilePath.to_uri()
+    |> SourceFilePath.from_uri()
   end
 end
