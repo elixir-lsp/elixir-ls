@@ -115,7 +115,13 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
 
     inputs_apply? =
       Enum.any?(inputs, fn input_glob ->
-        glob = Path.join(formatter_dir, input_glob)
+        glob =
+          if Path.type(input_glob) == :relative do
+            Path.join(formatter_dir, input_glob)
+          else
+            input_glob
+          end
+
         PathGlobVendored.match?(document.path, glob, match_dot: true)
       end)
 
