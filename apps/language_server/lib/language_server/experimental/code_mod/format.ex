@@ -102,8 +102,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
       :ok
     else
       message =
-        "Cannot format file from current directory " <>
-          "(Currently in #{Path.relative_to(cwd, project_path)})"
+        "Cannot format '#{document.path}' from current directory " <>
+          "(Currently in #{project_path})"
 
       {:error, message}
     end
