@@ -83,6 +83,13 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     |> URI.to_string()
   end
 
+  def windows? do
+    case os_type() do
+      {:win32, _} -> true
+      _ -> false
+    end
+  end
+
   defp convert_separators_to_native(path) do
     if windows?() do
       # convert path separators from URI to Windows
@@ -98,13 +105,6 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
       String.replace(path, ~r/\\/, "/")
     else
       path
-    end
-  end
-
-  defp windows? do
-    case os_type() do
-      {:win32, _} -> true
-      _ -> false
     end
   end
 
