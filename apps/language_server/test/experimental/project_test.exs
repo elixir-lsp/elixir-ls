@@ -247,7 +247,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
       assert {:ok, %Project{} = project} = Project.change_project_directory(ctx.project, sub_dir)
 
       assert Project.project_path(project) ==
-               [File.cwd!(), "sub_dir", "new_dir"]
+               [File.cwd!(), "sub_dir", "new", "dir"]
                |> Path.join()
                |> Paths.maybe_fix_separators()
 
@@ -286,7 +286,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
                Project.change_project_directory(ctx.project, subdirectory)
 
       assert sub_dir = Path.join([File.cwd!(), "sub_dir", "new", "dir"])
-      assert Project.project_path(project) == sub_dir
+      assert Project.project_path(project) == Paths.maybe_fix_separators(sub_dir)
       assert project.mix_project?
 
       assert Project.mix_exs_path(project) ==
