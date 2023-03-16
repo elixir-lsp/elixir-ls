@@ -122,7 +122,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
         glob =
           if Path.type(input_glob) == :relative do
             formatter_dir
-            |> Path.join( input_glob)
+            |> Path.join(input_glob)
             |> SourceFilePath.absolute()
           else
             input_glob
