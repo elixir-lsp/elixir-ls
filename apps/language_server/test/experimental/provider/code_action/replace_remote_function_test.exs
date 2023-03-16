@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionReply
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunction
   alias ElixirLS.LanguageServer.Experimental.SourceFile
@@ -190,5 +191,67 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
       |> code_action("/project/file.ex", 0)
 
     assert [] = apply(code_action)
+  end
+
+  test "works with aliased modules" do
+    diagnostic_message = """
+    Example.A.B.my_fun/1 is undefined or private. Did you mean:
+
+          * my_func/1
+    """
+
+    code = ~S[
+        defmodule Example do
+          defmodule A.B do
+            def my_func(a), do: a
+          end
+
+          defmodule C do
+            def my_fun(a), do: a
+          end
+
+          defmodule D do
+            alias Example.A
+            alias Example.A.B
+            alias Example.C
+            def bar() do
+              A.B.my_fun(42)
+              C.my_fun(42) + B.my_fun(42)
+            end
+          end
+        end
+    ]
+
+    # A.B.my_fun(42)
+    {file_uri, code_action} =
+      code_action(code, "/project/file.ex", 14, diagnostic_message: diagnostic_message)
+
+    assert [%CodeActionReply{edit: %{changes: %{^file_uri => edits}}}] = apply(code_action)
+
+    assert [
+             %TextEdit{
+               new_text: "c",
+               range: %Range{
+                 end: %Position{character: 24, line: 14},
+                 start: %Position{character: 24, line: 14}
+               }
+             }
+           ] = edits
+
+    # B.my_fun(42)
+    {file_uri, code_action} =
+      code_action(code, "/project/file.ex", 15, diagnostic_message: diagnostic_message)
+
+    assert [%CodeActionReply{edit: %{changes: %{^file_uri => edits}}}] = apply(code_action)
+
+    assert [
+             %TextEdit{
+               new_text: "c",
+               range: %Range{
+                 end: %Position{character: 37, line: 15},
+                 start: %Position{character: 37, line: 15}
+               }
+             }
+           ] = edits
   end
 end

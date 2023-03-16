@@ -11,6 +11,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace
   alias ElixirLS.LanguageServer.Experimental.SourceFile
+  alias ElixirSense.Core.Parser
 
   @function_re ~r/(.*)\/(.*) is undefined or private. .*:\n(.*)/s
 
@@ -24,9 +25,9 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
       one_based_line = extract_start_line(diagnostic)
       suggestions = extract_suggestions(diagnostic.message)
 
-      with {:ok, module_aliases, name} <- extract_function(diagnostic.message),
+      with {:ok, module_alias, name} <- extract_function(diagnostic.message),
            {:ok, replies} <-
-             build_code_actions(source_file, one_based_line, module_aliases, name, suggestions) do
+             build_code_actions(source_file, one_based_line, module_alias, name, suggestions) do
         replies
       else
         _ -> []
@@ -37,8 +38,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   defp extract_function(message) do
     case Regex.scan(@function_re, message) do
       [[_, full_name, _, _]] ->
-        {module_aliases, name} = separate_module_from_name(full_name)
-        {:ok, module_aliases, name}
+        {module_alias, name} = separate_module_from_name(full_name)
+        {:ok, module_alias, name}
 
       _ ->
         :error
@@ -46,13 +47,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   end
 
   defp separate_module_from_name(full_name) do
-    {name, module_aliases} =
+    {name, module_alias} =
       full_name
       |> String.split(".")
       |> Enum.map(&String.to_atom/1)
       |> List.pop_at(-1)
 
-    {module_aliases, name}
+    {module_alias, name}
   end
 
   @suggestion_re ~r/\* .*\/[\d]+/
@@ -80,14 +81,16 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   defp build_code_actions(
          %SourceFile{} = source_file,
          one_based_line,
-         module_aliases,
+         module_alias,
          name,
          suggestions
        ) do
     with {:ok, line_text} <- SourceFile.fetch_text_at(source_file, one_based_line),
          {:ok, line_ast} <- Ast.from(line_text),
+         {:ok, possible_aliases} <-
+           fetch_possible_aliases(source_file, one_based_line, module_alias),
          {:ok, edits_per_suggestion} <-
-           text_edits_per_suggestion(line_text, line_ast, module_aliases, name, suggestions) do
+           text_edits_per_suggestion(line_text, line_ast, possible_aliases, name, suggestions) do
       case edits_per_suggestion do
         [] ->
           :error
@@ -98,7 +101,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
               text_edits = Enum.map(text_edits, &update_line(&1, one_based_line))
 
               CodeActionResult.new(
-                title: construct_title(module_aliases, suggestion),
+                title: construct_title(module_alias, suggestion),
                 kind: :quick_fix,
                 edit: Workspace.Edit.new(changes: %{source_file.uri => text_edits})
               )
@@ -109,13 +112,42 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
     end
   end
 
-  defp text_edits_per_suggestion(line_text, line_ast, module_aliases, name, suggestions) do
+  # Extracted `ElixirSense.Core.State.Env` contains all reachable aliases as a list of tuples
+  # `{alias, aliased}`. If `aliased` is a prefix of `module_alias`, the function to be replaced
+  # may use the corresponding `alias`.
+  defp fetch_possible_aliases(source_file, one_based_line, module_alias) do
+    metadata =
+      source_file
+      |> SourceFile.to_string()
+      |> Parser.parse_string(true, true, one_based_line)
+
+    case metadata.lines_to_env[one_based_line] do
+      %ElixirSense.Core.State.Env{aliases: aliases} ->
+        possible_aliases =
+          Enum.flat_map(aliases, fn {_alias, aliased} ->
+            aliased = aliased |> Module.split() |> Enum.map(&String.to_atom/1)
+
+            if aliased == Enum.take(module_alias, length(aliased)) do
+              [Enum.drop(module_alias, length(aliased) - 1)]
+            else
+              []
+            end
+          end)
+
+        {:ok, [module_alias | possible_aliases]}
+
+      _ ->
+        :error
+    end
+  end
+
+  defp text_edits_per_suggestion(line_text, line_ast, possible_aliases, name, suggestions) do
     suggestions
     |> Enum.reduce_while([], fn suggestion, acc ->
       case CodeMod.ReplaceRemoteFunction.text_edits(
              line_text,
              line_ast,
-             module_aliases,
+             possible_aliases,
              name,
              suggestion
            ) do
@@ -136,8 +168,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
     |> put_in([:range, :end, :line], line_number - 1)
   end
 
-  defp construct_title(module_aliases, suggestion) do
-    module_string = Enum.map_join(module_aliases, ".", &Atom.to_string/1)
+  defp construct_title(module_alias, suggestion) do
+    module_string = Enum.map_join(module_alias, ".", &Atom.to_string/1)
 
     "Replace with #{module_string}.#{suggestion}"
   end
