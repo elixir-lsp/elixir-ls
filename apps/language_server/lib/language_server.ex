@@ -35,7 +35,7 @@ defmodule ElixirLS.LanguageServer do
         "ElixirLS has crashed. See Output panel."
       )
 
-      :init.stop(1)
+      System.stop(1)
     end
 
     :ok

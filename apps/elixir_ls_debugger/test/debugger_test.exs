@@ -1466,6 +1466,72 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
   end
 
+  @tag :fixture
+  test "server tracks running processes", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "run",
+          "taskArgs" => ["-e", "MixProject.Some.sleep()"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+      Process.sleep(1000)
+
+      {:ok, pid} =
+        Task.start(fn ->
+          receive do
+            :done -> :ok
+          end
+        end)
+
+      Process.monitor(pid)
+
+      send(server, :update_threads)
+      state = :sys.get_state(server)
+
+      thread_id = state.pids_to_thread_ids[pid]
+      assert thread_id
+      assert state.thread_ids_to_pids[thread_id] == pid
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
+
+      assert Enum.find(threads, &(&1["id"] == thread_id))["name"] ==
+               ":proc_lib.init_p/5 #{:erlang.pid_to_list(pid)}"
+
+      send(pid, :done)
+
+      receive do
+        {:DOWN, _, _, ^pid, _} -> :ok
+      end
+
+      send(server, :update_threads)
+      state = :sys.get_state(server)
+
+      refute Map.has_key?(state.pids_to_thread_ids, pid)
+      refute Map.has_key?(state.thread_ids_to_pids, thread_id)
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
+
+      refute Enum.find(threads, &(&1["id"] == thread_id))
+    end)
+  end
+
   describe "Watch section" do
     defp gen_watch_expression_packet(expr) do
       %{
