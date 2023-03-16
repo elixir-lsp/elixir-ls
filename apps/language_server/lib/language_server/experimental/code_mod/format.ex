@@ -121,7 +121,9 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
       Enum.any?(inputs, fn input_glob ->
         glob =
           if Path.type(input_glob) == :relative do
-            Path.join(formatter_dir, input_glob)
+            formatter_dir
+            |> Path.join( input_glob)
+            |> SourceFilePath.absolute()
           else
             input_glob
           end
@@ -132,7 +134,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
     if inputs_apply? do
       :ok
     else
-      {:error, {:input_mismatch, "#{document.path} is not matched by #{inspect(inputs)}"}}
+      {:error, {:input_mismatch, "#{document_path} is not matched by #{inspect(inputs)}"}}
     end
   end
 
