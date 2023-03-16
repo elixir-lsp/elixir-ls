@@ -13,8 +13,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
 
   import LspProtocol
+  import ReplaceRemoteFunction
 
   use ExUnit.Case
+  use Patch
 
   setup do
     {:ok, _} = start_supervised(SourceFile.Store)
@@ -80,36 +82,19 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
 
   test "produces no actions if the function is not found" do
     assert {_, action} = code_action("Enum.count([1, 2])", "/project/file.ex", 0)
-
-    source_file = action.source_file
-    diagnostics = get_in(action, [:context, :diagnostics])
-
-    Enum.each(diagnostics, fn diagnostic ->
-      assert [] = ReplaceRemoteFunction.apply(source_file, diagnostic)
-    end)
+    assert [] = apply(action)
   end
 
   test "produces no actions if the line is empty" do
     {_, action} = code_action("", "/project/file.ex", 0)
-
-    source_file = action.source_file
-    diagnostics = get_in(action, [:context, :diagnostics])
-
-    Enum.each(diagnostics, fn diagnostic ->
-      assert [] = ReplaceRemoteFunction.apply(source_file, diagnostic)
-    end)
+    assert [] = apply(action)
   end
 
   test "produces no results if the diagnostic message doesn't fit the format" do
     assert {_, action} =
              code_action("", "/project/file.ex", 0, diagnostic_message: "This isn't cool")
 
-    source_file = action.source_file
-    diagnostics = get_in(action, [:context, :diagnostics])
-
-    Enum.each(diagnostics, fn diagnostic ->
-      assert [] = ReplaceRemoteFunction.apply(source_file, diagnostic)
-    end)
+    assert [] = apply(action)
   end
 
   test "produces no results for buggy source code" do
@@ -119,12 +104,31 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
         ]
       |> code_action("/project/file.ex", 0)
 
-    source_file = action.source_file
-    diagnostics = get_in(action, [:context, :diagnostics])
+    assert [] = apply(action)
+  end
 
-    Enum.each(diagnostics, fn diagnostic ->
-      assert [] = ReplaceRemoteFunction.apply(source_file, diagnostic)
-    end)
+  test "handles nil context" do
+    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 0)
+
+    action = put_in(action, [:context], nil)
+
+    assert [] = apply(action)
+  end
+
+  test "handles nil diagnostics" do
+    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 0)
+
+    action = put_in(action, [:context, :diagnostics], nil)
+
+    assert [] = apply(action)
+  end
+
+  test "handles empty diagnostics" do
+    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 0)
+
+    action = put_in(action, [:context, :diagnostics], [])
+
+    assert [] = apply(action)
   end
 
   test "applied to an isolated function" do
@@ -134,11 +138,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
         ]
       |> code_action("/project/file.ex", 0)
 
-    source_file = code_action.source_file
-    [diagnostic] = get_in(code_action, [:context, :diagnostics])
-
-    assert [to_count_action, to_concat_action] =
-             ReplaceRemoteFunction.apply(source_file, diagnostic)
+    assert [to_count_action, to_concat_action] = apply(code_action)
 
     assert_expected_text_edits(file_uri, to_count_action, "count", 0)
     assert_expected_text_edits(file_uri, to_concat_action, "concat", 0)
@@ -151,11 +151,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
         ]
       |> code_action("/project/file.ex", 0)
 
-    source_file = code_action.source_file
-    [diagnostic] = get_in(code_action, [:context, :diagnostics])
-
-    assert [to_count_action, to_concat_action] =
-             ReplaceRemoteFunction.apply(source_file, diagnostic)
+    assert [to_count_action, to_concat_action] = apply(code_action)
 
     assert_expected_text_edits(file_uri, to_count_action, "count", 0)
     assert_expected_text_edits(file_uri, to_concat_action, "concat", 0)
@@ -170,27 +166,20 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
       end
     ] |> code_action("/project/file.ex", 2)
 
-    source_file = code_action.source_file
-    [diagnostic] = get_in(code_action, [:context, :diagnostics])
-
-    assert [to_count_action, to_concat_action] =
-             ReplaceRemoteFunction.apply(source_file, diagnostic)
+    assert [to_count_action, to_concat_action] = apply(code_action)
 
     assert_expected_text_edits(file_uri, to_count_action, "count", 2)
     assert_expected_text_edits(file_uri, to_concat_action, "concat", 2)
   end
 
-  test "proposed functions need to match function arity" do
+  test "proposed functions need to match the replaced function arity" do
     {_, code_action} =
       ~S[
           Enum.counts(a)
         ]
       |> code_action("/project/file.ex", 0, diagnostic_message: diagnostic_message(3))
 
-    source_file = code_action.source_file
-    [diagnostic] = get_in(code_action, [:context, :diagnostics])
-
-    assert [] = ReplaceRemoteFunction.apply(source_file, diagnostic)
+    assert [] = apply(code_action)
   end
 
   test "does not replace variables" do
@@ -200,9 +189,6 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
         ]
       |> code_action("/project/file.ex", 0)
 
-    source_file = code_action.source_file
-    [diagnostic] = get_in(code_action, [:context, :diagnostics])
-
-    assert [] = ReplaceRemoteFunction.apply(source_file, diagnostic)
+    assert [] = apply(code_action)
   end
 end

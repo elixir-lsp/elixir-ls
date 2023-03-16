@@ -7,23 +7,11 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.CodeAction do
 
   require Logger
 
+  @code_actions [ReplaceRemoteFunction, ReplaceWithUnderscore]
+
   def handle(%Requests.CodeAction{} = request, %Env{}) do
-    source_file = request.source_file
-    diagnostics = get_in(request, [:context, :diagnostics]) || []
-
     code_actions =
-      Enum.flat_map(diagnostics, fn %{message: message} = diagnostic ->
-        cond do
-          String.match?(message, ReplaceRemoteFunction.pattern()) ->
-            ReplaceRemoteFunction.apply(source_file, diagnostic)
-
-          String.match?(message, ReplaceWithUnderscore.pattern()) ->
-            ReplaceWithUnderscore.apply(source_file, diagnostic)
-
-          true ->
-            []
-        end
-      end)
+      Enum.flat_map(@code_actions, fn code_action_module -> code_action_module.apply(request) end)
 
     reply = Responses.CodeAction.new(request.id, code_actions)
 
