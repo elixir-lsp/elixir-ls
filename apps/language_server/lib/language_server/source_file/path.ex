@@ -41,6 +41,10 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     uri |> from_uri |> Path.absname()
   end
 
+  def absolute(path) do
+    path |> Path.expand() |> convert_separators_to_native()
+  end
+
   def to_uri(path) do
     path =
       path
