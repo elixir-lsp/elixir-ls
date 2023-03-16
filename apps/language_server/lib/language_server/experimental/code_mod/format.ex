@@ -113,6 +113,9 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   defp check_inputs_apply(%SourceFile{} = document, project_path, inputs)
        when is_list(inputs) do
     formatter_dir = dominating_formatter_exs_dir(document, project_path)
+    # Ensure the document path is using the system path separators
+    # (don't use the document.path, as it might have universal separators)
+    document_path = SourceFilePath.from_uri(document.uri)
 
     inputs_apply? =
       Enum.any?(inputs, fn input_glob ->
@@ -123,7 +126,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
             input_glob
           end
 
-        PathGlobVendored.match?(document.path, glob, match_dot: true)
+        PathGlobVendored.match?(document_path, glob, match_dot: true)
       end)
 
     if inputs_apply? do
