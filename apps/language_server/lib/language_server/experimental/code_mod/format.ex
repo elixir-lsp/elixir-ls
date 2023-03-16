@@ -129,7 +129,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
     if inputs_apply? do
       :ok
     else
-      {:error, {:input_mismatch, "#{project_path} is not matched by #{inspect(inputs)}"}}
+      {:error, {:input_mismatch, "#{document.path} is not matched by #{inspect(inputs)}"}}
     end
   end
 
