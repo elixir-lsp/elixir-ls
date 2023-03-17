@@ -137,18 +137,7 @@ defmodule ElixirLS.Debugger.Server do
         paused_process = %PausedProcess{stack: Stacktrace.get(pid), ref: ref}
         state = put_in(state.paused_processes[pid], paused_process)
 
-        reason =
-          case event do
-            :breakpoint_reached ->
-              # Debugger Adapter Protocol requires us to return 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto'
-              # | 'function breakpoint' | 'data breakpoint' | 'instruction breakpoint'
-              # but we can't tell what kind of a breakpoint was hit
-              "breakpoint"
-
-            :paused ->
-              "pause"
-          end
-
+        reason = get_stop_reason(state, event, paused_process.stack)
         body = %{"reason" => reason, "threadId" => thread_id, "allThreadsStopped" => false}
         Output.send_event("stopped", body)
         state
@@ -272,6 +261,7 @@ defmodule ElixirLS.Debugger.Server do
          set_breakpoints_req(_, %{"path" => path}, breakpoints),
          state = %__MODULE__{}
        ) do
+    path = Path.absname(path)
     new_lines = for %{"line" => line} <- breakpoints, do: line
 
     new_conditions =
@@ -1344,5 +1334,30 @@ defmodule ElixirLS.Debugger.Server do
     if old_ref, do: Process.cancel_timer(old_ref, info: false)
     ref = Process.send_after(self(), :update_threads, 3000)
     %__MODULE__{state | update_threads_ref: ref}
+  end
+
+  # Debugger Adapter Protocol stop reasons 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto'
+  # | 'function breakpoint' | 'data breakpoint' | 'instruction breakpoint'
+  defp get_stop_reason(_state, :paused, _frames), do: "pause"
+  defp get_stop_reason(_state, :breakpoint_reached, []), do: "breakpoint"
+
+  defp get_stop_reason(state = %__MODULE__{}, :breakpoint_reached, [first_frame = %Frame{} | _]) do
+    file_breakpoints = state.breakpoints[first_frame.file] || []
+
+    function_breakpoints =
+      Map.new(state.function_breakpoints)[
+        {first_frame.module, first_frame.function, length(first_frame.args)}
+      ] || []
+
+    cond do
+      {first_frame.module, first_frame.line} in file_breakpoints ->
+        "breakpoint"
+
+      first_frame.line in function_breakpoints ->
+        "function breakpoint"
+
+      true ->
+        "step"
+    end
   end
 end
