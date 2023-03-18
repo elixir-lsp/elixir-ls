@@ -69,4 +69,12 @@ defmodule Some do
 
     x + 2
   end
+
+  def with_multi_clauses(a) when is_atom(a) do
+    Atom.to_string(a)
+  end
+
+  def with_multi_clauses(a) when is_integer(a) do
+    a + 2
+  end
 end

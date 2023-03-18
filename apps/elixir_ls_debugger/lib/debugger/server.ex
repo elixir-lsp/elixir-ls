@@ -48,7 +48,7 @@ defmodule ElixirLS.Debugger.Server do
             next_id: 1,
             output: Output,
             breakpoints: %{},
-            function_breakpoints: []
+            function_breakpoints: %{}
 
   defmodule PausedProcess do
     defstruct stack: nil,
@@ -322,7 +322,7 @@ defmodule ElixirLS.Debugger.Server do
       end
     end
 
-    current = state.function_breakpoints |> Map.new()
+    current = state.function_breakpoints
 
     results =
       for {{m, f, a}, {condition, hit_count}} <- parsed_mfas_conditions,
@@ -358,7 +358,7 @@ defmodule ElixirLS.Debugger.Server do
               {{m, f, a}, result}
             )
 
-    successful = for {mfa, {:ok, lines}} <- results, do: {mfa, lines}
+    successful = for {mfa, {:ok, lines}} <- results, into: %{}, do: {mfa, lines}
 
     state = %{
       state
@@ -1344,10 +1344,8 @@ defmodule ElixirLS.Debugger.Server do
   defp get_stop_reason(state = %__MODULE__{}, :breakpoint_reached, [first_frame = %Frame{} | _]) do
     file_breakpoints = Map.get(state.breakpoints, first_frame.file, [])
 
-    function_breakpoints =
-      Map.new(state.function_breakpoints)[
-        {first_frame.module, first_frame.function, length(first_frame.args)}
-      ] || []
+    frame_mfa = {first_frame.module, first_frame.function, length(first_frame.args)}
+    function_breakpoints = Map.get(state.function_breakpoints, frame_mfa, [])
 
     cond do
       {first_frame.module, first_frame.line} in file_breakpoints ->

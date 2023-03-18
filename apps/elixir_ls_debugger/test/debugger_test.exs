@@ -1407,13 +1407,13 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert :hello in :int.interpreted()
         assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
-        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+        assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
         Server.receive_packet(
           server,
           set_function_breakpoints_req(3, [
             %{"name" => ":hello.hello_world/0"},
-            %{"name" => "MixProject.quadruple/1"}
+            %{"name" => "Some.with_multi_clauses/1"}
           ])
         )
 
@@ -1424,11 +1424,11 @@ defmodule ElixirLS.Debugger.ServerTest do
           3000
         )
 
-        assert MixProject in :int.interpreted()
+        assert Some in :int.interpreted()
         assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
-        assert [{{MixProject, 3}, _}] = :int.all_breaks(MixProject)
+        assert [{{Some, 74}, _}, {{Some, 78}, _}] = :int.all_breaks(Some)
 
-        assert [{{MixProject, :quadruple, 1}, [3]}, {{:hello, :hello_world, 0}, [5]}] =
+        assert %{{Some, :with_multi_clauses, 1} => [74, 78], {:hello, :hello_world, 0} => [5]} =
                  :sys.get_state(server).function_breakpoints
 
         Server.receive_packet(
@@ -1443,7 +1443,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert [] = :int.all_breaks(:hello)
         assert [{{MixProject, 3}, _}] = :int.all_breaks(MixProject)
-        assert [{{MixProject, :quadruple, 1}, [3]}] = :sys.get_state(server).function_breakpoints
+        assert %{{MixProject, :quadruple, 1} => [3]} = :sys.get_state(server).function_breakpoints
       end)
     end
 
@@ -1489,7 +1489,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                  {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(:hello)
 
-        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+        assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
         assert BreakpointCondition.has_condition?(:hello, [5])
 
@@ -1515,7 +1515,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                  {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(:hello)
 
-        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+        assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
         assert BreakpointCondition.has_condition?(:hello, [5])
 
@@ -1534,7 +1534,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         )
 
         assert [] = :int.all_breaks(:hello)
-        assert [] = :sys.get_state(server).function_breakpoints
+        assert %{} == :sys.get_state(server).function_breakpoints
 
         refute BreakpointCondition.has_condition?(:hello, [5])
       end)
@@ -1582,7 +1582,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                  {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(:hello)
 
-        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+        assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
         assert BreakpointCondition.has_condition?(:hello, [5])
 
@@ -1608,7 +1608,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                  {{:hello, 5}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(:hello)
 
-        assert [{{:hello, :hello_world, 0}, [5]}] = :sys.get_state(server).function_breakpoints
+        assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
         assert BreakpointCondition.has_condition?(:hello, [5])
 
@@ -1627,7 +1627,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         )
 
         assert [] = :int.all_breaks(:hello)
-        assert [] = :sys.get_state(server).function_breakpoints
+        assert %{} == :sys.get_state(server).function_breakpoints
 
         refute BreakpointCondition.has_condition?(:hello, [5])
       end)
