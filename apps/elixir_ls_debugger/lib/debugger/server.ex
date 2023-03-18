@@ -201,7 +201,7 @@ defmodule ElixirLS.Debugger.Server do
   @impl GenServer
   def handle_continue(:disconnect, state = %__MODULE__{}) do
     unless Application.get_env(:elixir_ls_debugger, :test_mode) do
-      System.halt(0)
+      System.stop(0)
     else
       Process.exit(self(), {:exit_code, 0})
     end

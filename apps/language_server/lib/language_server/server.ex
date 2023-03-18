@@ -337,7 +337,7 @@ defmodule ElixirLS.LanguageServer.Server do
     code = if state.received_shutdown?, do: 0, else: 1
 
     unless Application.get_env(:language_server, :test_mode) do
-      System.halt(code)
+      System.stop(code)
     else
       Process.exit(self(), {:exit_code, code})
     end
@@ -1211,7 +1211,7 @@ defmodule ElixirLS.LanguageServer.Server do
       )
 
       Process.sleep(5000)
-      System.halt(1)
+      System.stop(1)
     end
 
     state
@@ -1226,7 +1226,7 @@ defmodule ElixirLS.LanguageServer.Server do
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
 
       Process.sleep(5000)
-      System.halt(1)
+      System.stop(1)
     end
 
     state
@@ -1249,7 +1249,7 @@ defmodule ElixirLS.LanguageServer.Server do
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
 
       Process.sleep(5000)
-      System.halt(1)
+      System.stop(1)
     end
 
     state
@@ -1285,7 +1285,7 @@ defmodule ElixirLS.LanguageServer.Server do
         )
 
         Process.sleep(5000)
-        System.halt(1)
+        System.stop(1)
 
       true ->
         state
