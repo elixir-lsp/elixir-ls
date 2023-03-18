@@ -154,7 +154,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         []
       end
 
-    # TODO there is no end/closing metadata in the AST
+    # TODO there is no end/closing metadata in the AST - use literal encoder
 
     %Info{
       type: :struct,

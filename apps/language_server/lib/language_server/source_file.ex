@@ -171,6 +171,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         nil
 
       docs ->
+        # TODO handle default arguments
         Enum.find_value(docs, fn
           {{^fun, ^arity}, line, _, _, _, _metadata} -> line
           _ -> nil
