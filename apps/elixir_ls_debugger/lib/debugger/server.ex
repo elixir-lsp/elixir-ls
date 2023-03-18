@@ -1342,7 +1342,7 @@ defmodule ElixirLS.Debugger.Server do
   defp get_stop_reason(_state, :breakpoint_reached, []), do: "breakpoint"
 
   defp get_stop_reason(state = %__MODULE__{}, :breakpoint_reached, [first_frame = %Frame{} | _]) do
-    file_breakpoints = state.breakpoints[first_frame.file] || []
+    file_breakpoints = Map.get(state.breakpoints, first_frame.file, [])
 
     function_breakpoints =
       Map.new(state.function_breakpoints)[
