@@ -113,9 +113,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   defp check_inputs_apply(%SourceFile{} = document, project_path, inputs)
        when is_list(inputs) do
     formatter_dir = dominating_formatter_exs_dir(document, project_path)
-    # Ensure the document path is using the system path separators
-    # (don't use the document.path directly, as it might have universal separators)
-    document_path = SourceFilePath.absolute(document.path)
+    # document.path is native, convert to universal separators
+    document_path = Path.absname(document.path)
 
     inputs_apply? =
       Enum.any?(inputs, fn input_glob ->
@@ -123,7 +122,6 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
           if Path.type(input_glob) == :relative do
             formatter_dir
             |> Path.join(input_glob)
-            |> SourceFilePath.absolute()
           else
             input_glob
           end
@@ -141,8 +139,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   defp check_inputs_apply(_, _, _), do: :ok
 
   defp subdirectory?(child, parent: parent) do
-    normalized_parent = normalize_path(parent)
-    normalized_child = normalize_path(child)
+    normalized_parent = Path.absname(parent)
+    normalized_child = Path.absname(child)
     String.starts_with?(normalized_child, normalized_parent)
   end
 
@@ -168,12 +166,5 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
       |> Path.dirname()
       |> dominating_formatter_exs_dir(project_path)
     end
-  end
-
-  def normalize_path(path) do
-    path
-    |> Path.absname()
-    |> SourceFilePath.to_uri()
-    |> SourceFilePath.from_uri()
   end
 end
