@@ -104,7 +104,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     prefix = get_prefix(text_before_cursor)
 
-    # TODO: Don't call into here directly
     # Can we use ElixirSense.Providers.Suggestion? ElixirSense.suggestions/3
     metadata = ElixirSense.Core.Parser.parse_string(text, true, true, line)
 

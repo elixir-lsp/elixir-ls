@@ -385,7 +385,6 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       chunked_module_paths
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
-            # TODO: Don't call into here directly
             {kind, {type, type_ast, args}} <-
               ElixirSense.Core.Normalized.Typespec.get_types(module),
             kind in [:type, :opaque] do
@@ -405,7 +404,6 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
             function_exported?(module, :behaviour_info, 1),
-            # TODO: Don't call into here directly
             {{callback, arity}, [{:type, location, _, _}]} <-
               ElixirSense.Core.Normalized.Typespec.get_callbacks(module) do
           {callback, arity} = SourceFile.strip_macro_prefix({callback, arity})

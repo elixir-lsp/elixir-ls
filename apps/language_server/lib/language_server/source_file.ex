@@ -154,7 +154,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   def module_line(module) do
-    # TODO: Don't call into here directly
     case ElixirSense.Core.Normalized.Code.get_docs(module, :moduledoc) do
       nil ->
         nil
@@ -165,7 +164,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   def function_line(mod, fun, arity) do
-    # TODO: Don't call into here directly
     case ElixirSense.Core.Normalized.Code.get_docs(mod, :docs) do
       nil ->
         nil
