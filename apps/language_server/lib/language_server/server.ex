@@ -1157,7 +1157,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
     maybe_rebuild(state)
     state = create_gitignore(state)
-    Tracer.set_project_dir(state.project_dir)
+
+    if state.mix_project? do
+      Tracer.set_project_dir(state.project_dir)
+    end
+
     trigger_build(%{state | settings: settings})
   end
 

@@ -87,6 +87,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   @impl true
+  def handle_cast(:save, %{project_dir: nil} = state) do
+    {:noreply, state}
+  end
+
   def handle_cast(:save, %{project_dir: project_dir} = state) do
     for table <- @tables do
       table_name = table_name(table)
