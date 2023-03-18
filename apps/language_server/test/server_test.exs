@@ -1501,6 +1501,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert_receive notification("window/logMessage", %{
                          "message" => "Compile took" <> _
                        })
+
+        uri = SourceFile.Path.to_uri("a.ex")
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_save(uri))
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "Compile took" <> _
+                       })
+
+        wait_until_compiled(server)
       end)
     end
 
@@ -1519,6 +1529,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          "message" => "No mixfile found in project." <> _
                        }),
                        1000
+
+        wait_until_compiled(server)
+        uri = SourceFile.Path.to_uri("a.ex")
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_save(uri))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "diagnostics" => [],
+                         "uri" => ^uri
+                       })
 
         wait_until_compiled(server)
       end)
