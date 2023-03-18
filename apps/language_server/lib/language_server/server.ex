@@ -438,11 +438,9 @@ defmodule ElixirLS.LanguageServer.Server do
              state.source_files[uri].dirty?)
       end)
 
-    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
     deleted_paths =
       for change <- changes,
           change["type"] == 3,
-          uniq: true,
           do: SourceFile.Path.from_uri(change["uri"])
 
     for path <- deleted_paths do
@@ -481,10 +479,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
     state = %{state | source_files: source_files}
 
-    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
     changes
     |> Enum.map(& &1["uri"])
-    |> Enum.uniq()
     |> WorkspaceSymbols.notify_uris_modified()
 
     if needs_build, do: trigger_build(state), else: state
