@@ -8,6 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
   @handlers %{
     "spec" => ExecuteCommand.ApplySpec,
     "expandMacro" => ExecuteCommand.ExpandMacro,
+    "extractFunction" => ExecuteCommand.ExtractFunction,
     "manipulatePipes" => ExecuteCommand.ManipulatePipes,
     "restart" => ExecuteCommand.Restart,
     "mixClean" => ExecuteCommand.MixClean,
