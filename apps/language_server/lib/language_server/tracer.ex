@@ -201,8 +201,14 @@ defmodule ElixirLS.LanguageServer.Tracer do
     register_call(meta, env.module, name, arity, env)
   end
 
-  def trace(_trace, _env) do
-    # IO.inspect(trace, label: "skipped")
+  def trace({:alias_reference, meta, module}, %Macro.Env{} = env) do
+    register_call(meta, module, nil, nil, env)
+  end
+
+  def trace(trace, env) do
+    # if env.file |> String.ends_with?("references_alias.ex") do
+    #   IO.inspect(trace, label: "skipped")
+    # end
     :ok
   end
 
@@ -260,6 +266,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     line = meta[:line]
     column = meta[:column]
+    # TODO meta can have last or maybe other?
 
     :ets.insert(table_name(:calls), {{callee, env.file, line, column}, :ok})
   end
