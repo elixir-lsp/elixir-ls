@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   use GenServer
   require Logger
 
-  @version 2
+  @version 3
 
   @tables ~w(modules calls)a
 
