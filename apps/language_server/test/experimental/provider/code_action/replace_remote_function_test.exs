@@ -59,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
       )
 
     {:ok, action} = Requests.to_elixir(action)
-    
+
     {file_uri, file_body, action}
   end
 
