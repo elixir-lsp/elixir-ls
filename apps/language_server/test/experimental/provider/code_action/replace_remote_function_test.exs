@@ -1,15 +1,13 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunctionTest do
-  alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction, as: CodeActionRequest
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionReply
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunction
   alias ElixirLS.LanguageServer.Experimental.SourceFile
+  alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
   alias ElixirLS.LanguageServer.Fixtures.LspProtocol
   alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
 
@@ -36,10 +34,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   end
 
   defp code_action(file_body, file_path, line, opts \\ []) do
-    trimmed_body = String.trim(file_body, "\n")
-
     file_uri = SourceFilePath.to_uri(file_path)
-    SourceFile.Store.open(file_uri, trimmed_body, 0)
+    SourceFile.Store.open(file_uri, file_body, 0)
 
     {:ok, range} =
       build(Range,
@@ -63,43 +59,45 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
       )
 
     {:ok, action} = Requests.to_elixir(action)
-    {file_uri, action}
+    
+    {file_uri, file_body, action}
   end
 
-  defp assert_expected_text_edits(file_uri, action, expected_name, line) do
+  defp apply_selected_action({file_uri, file_body, code_action}, index) do
+    action =
+      code_action
+      |> apply()
+      |> Enum.at(index)
+
     assert %CodeActionReply{edit: %{changes: %{^file_uri => edits}}} = action
 
-    expected_edits = Diff.diff("counts", expected_name)
+    {:ok, %SourceFile{document: document}} =
+      file_uri
+      |> SourceFile.new(file_body, 0)
+      |> SourceFile.apply_content_changes(1, edits)
 
-    assert edits
-           |> Enum.zip(expected_edits)
-           |> Enum.all?(fn {%TextEdit{new_text: new_text}, %TextEdit{new_text: expected_new_text}} ->
-             new_text == expected_new_text
-           end)
-
-    assert Enum.all?(edits, fn edit -> edit.range.start.line == line end)
-    assert Enum.all?(edits, fn edit -> edit.range.end.line == line end)
+    document
   end
 
   test "produces no actions if the function is not found" do
-    assert {_, action} = code_action("Enum.count([1, 2])", "/project/file.ex", 0)
+    assert {_, _, action} = code_action("Enum.count([1, 2])", "/project/file.ex", 0)
     assert [] = apply(action)
   end
 
   test "produces no actions if the line is empty" do
-    {_, action} = code_action("", "/project/file.ex", 0)
+    {_, _, action} = code_action("", "/project/file.ex", 0)
     assert [] = apply(action)
   end
 
   test "produces no results if the diagnostic message doesn't fit the format" do
-    assert {_, action} =
+    assert {_, _, action} =
              code_action("", "/project/file.ex", 0, diagnostic_message: "This isn't cool")
 
     assert [] = apply(action)
   end
 
   test "produces no results for buggy source code" do
-    {_, action} =
+    {_, _, action} =
       ~S[
         1 + 2~/3 ; 4ab(
         ]
@@ -109,7 +107,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   end
 
   test "handles nil context" do
-    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 0)
+    assert {_, _, action} = code_action("other_var = 6", "/project/file.ex", 0)
 
     action = put_in(action, [:context], nil)
 
@@ -117,7 +115,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   end
 
   test "handles nil diagnostics" do
-    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 0)
+    assert {_, _, action} = code_action("other_var = 6", "/project/file.ex", 0)
 
     action = put_in(action, [:context, :diagnostics], nil)
 
@@ -125,7 +123,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   end
 
   test "handles empty diagnostics" do
-    assert {_, action} = code_action("other_var = 6", "/project/file.ex", 0)
+    assert {_, _, action} = code_action("other_var = 6", "/project/file.ex", 0)
 
     action = put_in(action, [:context, :diagnostics], [])
 
@@ -133,48 +131,91 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   end
 
   test "applied to an isolated function" do
-    {file_uri, code_action} =
-      ~S[
-          Enum.counts(a)
-        ]
-      |> code_action("/project/file.ex", 0)
+    actual_code = ~S[
+        Enum.counts(a)
+      ]
 
-    assert [to_count_action, to_concat_action] = apply(code_action)
+    expected_doc = ~S[
+        Enum.count(a)
+      ] |> Document.new()
 
-    assert_expected_text_edits(file_uri, to_count_action, "count", 0)
-    assert_expected_text_edits(file_uri, to_concat_action, "concat", 0)
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 1)
+             |> apply_selected_action(0)
+
+    expected_doc = ~S[
+        Enum.concat(a)
+      ] |> Document.new()
+
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 1)
+             |> apply_selected_action(1)
   end
 
   test "works for a function assigned to a variable" do
-    {file_uri, code_action} =
-      ~S[
-          var = &Enum.counts/1
-        ]
-      |> code_action("/project/file.ex", 0)
+    actual_code = ~S[
+      var = &Enum.counts/1
+    ]
 
-    assert [to_count_action, to_concat_action] = apply(code_action)
+    expected_doc = ~S[
+      var = &Enum.count/1
+    ] |> Document.new()
 
-    assert_expected_text_edits(file_uri, to_count_action, "count", 0)
-    assert_expected_text_edits(file_uri, to_concat_action, "concat", 0)
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 1)
+             |> apply_selected_action(0)
+
+    expected_doc = ~S[
+      var = &Enum.concat/1
+    ] |> Document.new()
+
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 1)
+             |> apply_selected_action(1)
   end
 
   test "works with multiple lines" do
-    {file_uri, code_action} = ~S[
+    actual_code = ~S[
       defmodule MyModule do
         def my_func(a) do
           Enum.counts(a)
         end
       end
-    ] |> code_action("/project/file.ex", 2)
+    ]
 
-    assert [to_count_action, to_concat_action] = apply(code_action)
+    expected_doc = ~S[
+      defmodule MyModule do
+        def my_func(a) do
+          Enum.count(a)
+        end
+      end
+    ] |> Document.new()
 
-    assert_expected_text_edits(file_uri, to_count_action, "count", 2)
-    assert_expected_text_edits(file_uri, to_concat_action, "concat", 2)
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 3)
+             |> apply_selected_action(0)
+
+    expected_doc = ~S[
+      defmodule MyModule do
+        def my_func(a) do
+          Enum.concat(a)
+        end
+      end
+    ] |> Document.new()
+
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 3)
+             |> apply_selected_action(1)
   end
 
   test "proposed functions need to match the replaced function arity" do
-    {_, code_action} =
+    {_, _, code_action} =
       ~S[
           Enum.counts(a)
         ]
@@ -184,7 +225,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   end
 
   test "does not replace variables" do
-    {_, code_action} =
+    {_, _, code_action} =
       ~S[
           counts + 42
         ]
@@ -200,58 +241,82 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
           * my_func/1
     """
 
-    code = ~S[
-        defmodule Example do
-          defmodule A.B do
-            def my_func(a), do: a
-          end
+    actual_code = ~S[
+      defmodule Example do
+        defmodule A.B do
+          def my_func(a), do: a
+        end
 
-          defmodule C do
-            def my_fun(a), do: a
-          end
+        defmodule C do
+          def my_fun(a), do: a
+        end
 
-          defmodule D do
-            alias Example.A
-            alias Example.A.B
-            alias Example.C
-            def bar() do
-              A.B.my_fun(42)
-              C.my_fun(42) + B.my_fun(42)
-            end
+        defmodule D do
+          alias Example.A
+          alias Example.A.B
+          alias Example.C
+          def bar() do
+            A.B.my_fun(42)
+            C.my_fun(42) + B.my_fun(42)
           end
         end
+      end
     ]
 
     # A.B.my_fun(42)
-    {file_uri, code_action} =
-      code_action(code, "/project/file.ex", 14, diagnostic_message: diagnostic_message)
+    expected_doc = ~S[
+      defmodule Example do
+        defmodule A.B do
+          def my_func(a), do: a
+        end
 
-    assert [%CodeActionReply{edit: %{changes: %{^file_uri => edits}}}] = apply(code_action)
+        defmodule C do
+          def my_fun(a), do: a
+        end
 
-    assert [
-             %TextEdit{
-               new_text: "c",
-               range: %Range{
-                 end: %Position{character: 24, line: 14},
-                 start: %Position{character: 24, line: 14}
-               }
-             }
-           ] = edits
+        defmodule D do
+          alias Example.A
+          alias Example.A.B
+          alias Example.C
+          def bar() do
+            A.B.my_func(42)
+            C.my_fun(42) + B.my_fun(42)
+          end
+        end
+      end
+    ] |> Document.new()
+
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 15, diagnostic_message: diagnostic_message)
+             |> apply_selected_action(0)
 
     # B.my_fun(42)
-    {file_uri, code_action} =
-      code_action(code, "/project/file.ex", 15, diagnostic_message: diagnostic_message)
+    expected_doc = ~S[
+      defmodule Example do
+        defmodule A.B do
+          def my_func(a), do: a
+        end
 
-    assert [%CodeActionReply{edit: %{changes: %{^file_uri => edits}}}] = apply(code_action)
+        defmodule C do
+          def my_fun(a), do: a
+        end
 
-    assert [
-             %TextEdit{
-               new_text: "c",
-               range: %Range{
-                 end: %Position{character: 37, line: 15},
-                 start: %Position{character: 37, line: 15}
-               }
-             }
-           ] = edits
+        defmodule D do
+          alias Example.A
+          alias Example.A.B
+          alias Example.C
+          def bar() do
+            A.B.my_fun(42)
+            C.my_fun(42) + B.my_func(42)
+          end
+        end
+      end
+    ] |> Document.new()
+
+    assert expected_doc ==
+             actual_code
+             |> code_action("/project/file.ex", 16, diagnostic_message: diagnostic_message)
+             |> apply_selected_action(0)
   end
 end

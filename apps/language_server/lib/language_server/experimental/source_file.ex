@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
     as: ReplaceContentChangeEvent
 
+  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Line
@@ -157,6 +158,14 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
   defp apply_change(%__MODULE__{} = source, %RangedTextDocumentContentChangeEvent{} = change) do
     with {:ok, ex_range} <- Conversions.to_elixir(change.range, source) do
       apply_change(source, ex_range, change.text)
+    else
+      _ -> {:error, {:invalid_range, change.range}}
+    end
+  end
+
+  defp apply_change(%__MODULE__{} = source, %TextEdit{} = change) do
+    with {:ok, ex_range} <- Conversions.to_elixir(change.range, source) do
+      apply_change(source, ex_range, change.new_text)
     else
       _ -> {:error, {:invalid_range, change.range}}
     end
