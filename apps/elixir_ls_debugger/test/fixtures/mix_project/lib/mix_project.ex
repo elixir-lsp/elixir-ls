@@ -44,3 +44,37 @@ defmodule MixProject.Some do
     Process.sleep(:infinity)
   end
 end
+
+defmodule Some do
+  def fun_1(x) do
+    a = fun_3(x + 1)
+    b = fun_2(a)
+    b * 2
+  end
+
+  def fun_2(x) do
+    a = fun_3(x + 2)
+    b = a + x
+    b * 2
+  end
+
+  def fun_3(x) do
+    x + 9
+  end
+
+  def multiple(x) do
+    Task.start(fn ->
+      fun_2(3)
+    end)
+
+    x + 2
+  end
+
+  def with_multi_clauses(a) when is_atom(a) do
+    Atom.to_string(a)
+  end
+
+  def with_multi_clauses(a) when is_integer(a) do
+    a + 2
+  end
+end

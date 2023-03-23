@@ -48,7 +48,7 @@ defmodule ElixirLS.Debugger.Server do
             next_id: 1,
             output: Output,
             breakpoints: %{},
-            function_breakpoints: []
+            function_breakpoints: %{}
 
   defmodule PausedProcess do
     defstruct stack: nil,
@@ -137,18 +137,7 @@ defmodule ElixirLS.Debugger.Server do
         paused_process = %PausedProcess{stack: Stacktrace.get(pid), ref: ref}
         state = put_in(state.paused_processes[pid], paused_process)
 
-        reason =
-          case event do
-            :breakpoint_reached ->
-              # Debugger Adapter Protocol requires us to return 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto'
-              # | 'function breakpoint' | 'data breakpoint' | 'instruction breakpoint'
-              # but we can't tell what kind of a breakpoint was hit
-              "breakpoint"
-
-            :paused ->
-              "pause"
-          end
-
+        reason = get_stop_reason(state, event, paused_process.stack)
         body = %{"reason" => reason, "threadId" => thread_id, "allThreadsStopped" => false}
         Output.send_event("stopped", body)
         state
@@ -272,6 +261,7 @@ defmodule ElixirLS.Debugger.Server do
          set_breakpoints_req(_, %{"path" => path}, breakpoints),
          state = %__MODULE__{}
        ) do
+    path = Path.absname(path)
     new_lines = for %{"line" => line} <- breakpoints, do: line
 
     new_conditions =
@@ -332,7 +322,7 @@ defmodule ElixirLS.Debugger.Server do
       end
     end
 
-    current = state.function_breakpoints |> Map.new()
+    current = state.function_breakpoints
 
     results =
       for {{m, f, a}, {condition, hit_count}} <- parsed_mfas_conditions,
@@ -368,7 +358,7 @@ defmodule ElixirLS.Debugger.Server do
               {{m, f, a}, result}
             )
 
-    successful = for {mfa, {:ok, lines}} <- results, do: {mfa, lines}
+    successful = for {mfa, {:ok, lines}} <- results, into: %{}, do: {mfa, lines}
 
     state = %{
       state
@@ -1344,5 +1334,28 @@ defmodule ElixirLS.Debugger.Server do
     if old_ref, do: Process.cancel_timer(old_ref, info: false)
     ref = Process.send_after(self(), :update_threads, 3000)
     %__MODULE__{state | update_threads_ref: ref}
+  end
+
+  # Debugger Adapter Protocol stop reasons 'step' | 'breakpoint' | 'exception' | 'pause' | 'entry' | 'goto'
+  # | 'function breakpoint' | 'data breakpoint' | 'instruction breakpoint'
+  defp get_stop_reason(_state, :paused, _frames), do: "pause"
+  defp get_stop_reason(_state, :breakpoint_reached, []), do: "breakpoint"
+
+  defp get_stop_reason(state = %__MODULE__{}, :breakpoint_reached, [first_frame = %Frame{} | _]) do
+    file_breakpoints = Map.get(state.breakpoints, first_frame.file, [])
+
+    frame_mfa = {first_frame.module, first_frame.function, length(first_frame.args)}
+    function_breakpoints = Map.get(state.function_breakpoints, frame_mfa, [])
+
+    cond do
+      {first_frame.module, first_frame.line} in file_breakpoints ->
+        "breakpoint"
+
+      first_frame.line in function_breakpoints ->
+        "function breakpoint"
+
+      true ->
+        "step"
+    end
   end
 end
