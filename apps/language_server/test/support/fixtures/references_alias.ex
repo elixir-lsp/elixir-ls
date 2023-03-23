@@ -2,6 +2,7 @@ defmodule ElixirLS.Test.ReferencesAlias do
   require ElixirLS.Test.ReferencesReferenced, as: ReferencesReferenced
   alias ElixirLS.Test.ReferencesReferenced, as: Some
   alias Some, as: Other
+  import Other
 
   def uses_alias_1 do
     ReferencesReferenced
@@ -16,6 +17,7 @@ defmodule ElixirLS.Test.ReferencesAlias do
   end
 
   def uses_alias_4 do
+    uses_attribute()
     Other
   end
 end

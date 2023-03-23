@@ -205,10 +205,16 @@ defmodule ElixirLS.LanguageServer.Tracer do
     register_call(meta, module, nil, nil, env)
   end
 
-  def trace(trace, env) do
-    # if env.file |> String.ends_with?("references_alias.ex") do
-    #   IO.inspect(trace, label: "skipped")
-    # end
+  def trace({:alias, meta, module, _as, _opts}, %Macro.Env{} = env) do
+    register_call(meta, module, nil, nil, env)
+  end
+
+  def trace({kind, meta, module, _opts}, %Macro.Env{} = env) when kind in [:import, :require] do
+    register_call(meta, module, nil, nil, env)
+  end
+
+  def trace(_trace, _env) do
+    # IO.inspect(trace, label: "skipped")
     :ok
   end
 

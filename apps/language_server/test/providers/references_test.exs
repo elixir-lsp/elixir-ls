@@ -229,13 +229,12 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                              ^
     """)
 
-    list = References.references(text, uri, line, char, true)
-    |> Enum.filter(& String.ends_with?(&1["uri"], "references_alias.ex"))
+    list =
+      References.references(text, uri, line, char, true)
+      |> Enum.filter(&String.ends_with?(&1["uri"], "references_alias.ex"))
 
-    assert length(list) == 4
-    assert Enum.any?(list, &(&1["range"]["start"]["line"] == 6))
-    assert Enum.any?(list, &(&1["range"]["start"]["line"] == 10))
-    assert Enum.any?(list, &(&1["range"]["start"]["line"] == 14))
-    assert Enum.any?(list, &(&1["range"]["start"]["line"] == 18))
+    references_lines = Enum.map(list, & &1["range"]["start"]["line"])
+
+    assert references_lines == [1, 2, 3, 4, 7, 11, 15, 19, 20]
   end
 end
