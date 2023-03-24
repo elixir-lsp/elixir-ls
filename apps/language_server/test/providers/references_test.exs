@@ -33,6 +33,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     Code.compile_file(FixtureHelpers.get_path("uses_macro_a.ex"))
     Code.compile_file(FixtureHelpers.get_path("macro_a.ex"))
     Code.compile_file(FixtureHelpers.get_path("references_erlang.ex"))
+    Code.compile_file(FixtureHelpers.get_path("references_alias.ex"))
     {:ok, context}
   end
 
@@ -214,5 +215,26 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     assert length(list) == 2
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
+  end
+
+  test "finds alias references" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    text = File.read!(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
+
+    {line, char} = {0, 25}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+    defmodule ElixirLS.Test.ReferencesReferenced do
+                             ^
+    """)
+
+    list =
+      References.references(text, uri, line, char, true)
+      |> Enum.filter(&String.ends_with?(&1["uri"], "references_alias.ex"))
+
+    references_lines = Enum.map(list, & &1["range"]["start"]["line"])
+
+    assert references_lines == [1, 2, 3, 4, 7, 11, 15, 19, 20]
   end
 end

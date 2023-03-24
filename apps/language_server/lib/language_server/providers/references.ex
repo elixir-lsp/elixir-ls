@@ -45,6 +45,10 @@ defmodule ElixirLS.LanguageServer.Providers.References do
           "uri" => build_uri(ref, current_file_uri)
         }
 
+      {:error, :nofile} ->
+        Logger.debug("Skipping reference from `nofile`")
+        nil
+
       {:error, reason} ->
         # workaround for elixir tracer returning invalid paths
         # https://github.com/elixir-lang/elixir/issues/12393
@@ -67,6 +71,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   def get_text(elixir_sense_ref, current_file_text) do
     case elixir_sense_ref.uri do
       nil -> {:ok, current_file_text}
+      "nofile" -> {:error, :nofile}
       path when is_binary(path) -> File.read(path)
     end
   end

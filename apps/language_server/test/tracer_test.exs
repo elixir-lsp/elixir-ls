@@ -160,7 +160,7 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       project_path = FixtureHelpers.get_path("")
       Tracer.write_manifest(project_path)
 
-      assert 2 == Tracer.read_manifest(project_path)
+      assert 3 == Tracer.read_manifest(project_path)
     end
   end
 end

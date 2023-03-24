@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   use GenServer
   require Logger
 
-  @version 2
+  @version 3
 
   @tables ~w(modules calls)a
 
@@ -205,6 +205,18 @@ defmodule ElixirLS.LanguageServer.Tracer do
     register_call(meta, env.module, name, arity, env)
   end
 
+  def trace({:alias_reference, meta, module}, %Macro.Env{} = env) do
+    register_call(meta, module, nil, nil, env)
+  end
+
+  def trace({:alias, meta, module, _as, _opts}, %Macro.Env{} = env) do
+    register_call(meta, module, nil, nil, env)
+  end
+
+  def trace({kind, meta, module, _opts}, %Macro.Env{} = env) when kind in [:import, :require] do
+    register_call(meta, module, nil, nil, env)
+  end
+
   def trace(_trace, _env) do
     # IO.inspect(trace, label: "skipped")
     :ok
@@ -264,6 +276,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     line = meta[:line]
     column = meta[:column]
+    # TODO meta can have last or maybe other?
 
     :ets.insert(table_name(:calls), {{callee, env.file, line, column}, :ok})
   end
