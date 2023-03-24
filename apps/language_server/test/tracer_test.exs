@@ -33,6 +33,10 @@ defmodule ElixirLS.LanguageServer.TracerTest do
     assert File.exists?(FixtureHelpers.get_path(".elixir_ls/modules.dets"))
   end
 
+  test "skips save if project dir not set" do
+    Tracer.save()
+  end
+
   describe "call trace" do
     setup context do
       Tracer.set_project_dir(FixtureHelpers.get_path(""))
