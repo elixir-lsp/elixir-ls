@@ -208,7 +208,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
       assert Project.project_path(config.project) ==
                File.cwd!()
                |> Path.join(subdir_path)
-               |> Paths.maybe_fix_separators()
+               |> Paths.to_native_separators()
     end
 
     test "only sets the project directory if the root uri is set" do

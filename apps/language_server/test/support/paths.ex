@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Test.Paths do
     |> SourceFile.Path.from_uri()
   end
 
-  def maybe_fix_separators(path) do
+  def to_native_separators(path) do
     if SourceFile.Path.windows?() do
       String.replace(path, ~r/\//, "\\")
     else

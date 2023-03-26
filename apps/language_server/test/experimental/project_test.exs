@@ -249,7 +249,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
       assert Project.project_path(project) ==
                [File.cwd!(), "sub_dir", "new", "dir"]
                |> Path.join()
-               |> Paths.maybe_fix_separators()
+               |> Paths.to_native_separators()
 
       assert project.mix_project?
     end
@@ -266,13 +266,13 @@ defmodule ElixirLS.Experimental.ProjectTest do
     test "defaults to the root uri's directory", ctx do
       assert {:ok, project} = Project.change_project_directory(ctx.project, nil)
       root_path = SourceFile.Path.absolute_from_uri(project.root_uri)
-      assert Project.project_path(project) == Paths.maybe_fix_separators(root_path)
+      assert Project.project_path(project) == Paths.to_native_separators(root_path)
     end
 
     test "defaults to the root uri's directory if the project directory is empty", ctx do
       assert {:ok, project} = Project.change_project_directory(ctx.project, "")
       root_path = SourceFile.Path.absolute_from_uri(project.root_uri)
-      assert Project.project_path(project) == Paths.maybe_fix_separators(root_path)
+      assert Project.project_path(project) == Paths.to_native_separators(root_path)
     end
 
     test "normalizes the project directory", ctx do
@@ -286,13 +286,13 @@ defmodule ElixirLS.Experimental.ProjectTest do
                Project.change_project_directory(ctx.project, subdirectory)
 
       assert sub_dir = Path.join([File.cwd!(), "sub_dir", "new", "dir"])
-      assert Project.project_path(project) == Paths.maybe_fix_separators(sub_dir)
+      assert Project.project_path(project) == Paths.to_native_separators(sub_dir)
       assert project.mix_project?
 
       assert Project.mix_exs_path(project) ==
                sub_dir
                |> Path.join("mix.exs")
-               |> Paths.maybe_fix_separators()
+               |> Paths.to_native_separators()
     end
 
     test "sets mix project to false if the mix.exs doesn't exist", ctx do
@@ -306,7 +306,7 @@ defmodule ElixirLS.Experimental.ProjectTest do
       assert Project.project_path(project) ==
                File.cwd!()
                |> Path.join(sub_dir)
-               |> Paths.maybe_fix_separators()
+               |> Paths.to_native_separators()
 
       refute project.mix_project?
     end
