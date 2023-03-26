@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
 
   require Logger
   @type formatter_function :: (String.t() -> any) | nil
@@ -102,8 +103,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
       :ok
     else
       message =
-        "Cannot format file from current directory " <>
-          "(Currently in #{Path.relative_to(cwd, project_path)})"
+        "Cannot format '#{document.path}' from current directory " <>
+          "(Currently in #{project_path})"
 
       {:error, message}
     end
@@ -112,23 +113,26 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   defp check_inputs_apply(%SourceFile{} = document, project_path, inputs)
        when is_list(inputs) do
     formatter_dir = dominating_formatter_exs_dir(document, project_path)
+    # document.path is native, convert to universal separators
+    document_path = Path.absname(document.path)
 
     inputs_apply? =
       Enum.any?(inputs, fn input_glob ->
         glob =
           if Path.type(input_glob) == :relative do
-            Path.join(formatter_dir, input_glob)
+            formatter_dir
+            |> Path.join(input_glob)
           else
             input_glob
           end
 
-        PathGlobVendored.match?(document.path, glob, match_dot: true)
+        PathGlobVendored.match?(document_path, glob, match_dot: true)
       end)
 
     if inputs_apply? do
       :ok
     else
-      {:error, :input_mismatch}
+      {:error, {:input_mismatch, "#{document_path} is not matched by #{inspect(inputs)}"}}
     end
   end
 
@@ -136,7 +140,8 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
 
   defp subdirectory?(child, parent: parent) do
     normalized_parent = Path.absname(parent)
-    String.starts_with?(child, normalized_parent)
+    normalized_child = Path.absname(child)
+    String.starts_with?(normalized_child, normalized_parent)
   end
 
   # Finds the directory with the .formatter.exs that's the nearest parent to the

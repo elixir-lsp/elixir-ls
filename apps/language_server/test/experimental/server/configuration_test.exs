@@ -6,6 +6,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.RegisterCapability
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.Test.Paths
 
   use ExUnit.Case, async: false
   use Patch
@@ -35,11 +36,13 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
   end
 
   def root_uri do
-    "file:///tmp/my_project"
+    System.tmp_dir()
+    |> Path.join("my_project")
+    |> SourceFile.Path.to_uri()
   end
 
   def with_a_root_uri(_) do
-    {:ok, root_uri: "file:///tmp/my_project"}
+    {:ok, root_uri: root_uri()}
   end
 
   setup do
@@ -197,15 +200,21 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
     setup [:with_an_empty_config]
 
     test "becomes part of the project if the state is empty", ctx do
-      change = DidChangeConfiguration.new(settings: %{"projectDir" => "sub_dir/new/dir"})
+      subdir_path = Path.join(~w(sub_dir new dir))
+      change = DidChangeConfiguration.new(settings: %{"projectDir" => subdir_path})
 
       assert {:ok, %Configuration{} = config} = Configuration.on_change(ctx.config, change)
-      assert Project.project_path(config.project) == "#{File.cwd!()}/sub_dir/new/dir"
+
+      assert Project.project_path(config.project) ==
+               File.cwd!()
+               |> Path.join(subdir_path)
+               |> Paths.to_native_separators()
     end
 
     test "only sets the project directory if the root uri is set" do
       config = Configuration.new(nil, fixture())
-      change = DidChangeConfiguration.new(settings: %{"projectDir" => "sub_dir/new/dir"})
+      subdir_path = Path.join(~w(sub_dir new dir))
+      change = DidChangeConfiguration.new(settings: %{"projectDir" => subdir_path})
 
       assert {:ok, config} = Configuration.on_change(config, change)
       assert config.project.root_uri == nil
