@@ -660,23 +660,49 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id)
+        pid = get_pid_by_thread_id!(state, thread_id)
 
-    safe_int_action(pid, :continue)
+        state = case state.dbg_session do
+          {^pid, _ref} = from ->
+            GenServer.reply(from, :ok)
+            %{state | dbg_session: nil}
+          _ ->
+            safe_int_action(pid, :continue)
+            state
+        end
 
-    paused_processes = remove_paused_process(state, pid)
-    paused_processes = maybe_continue_other_processes(args, paused_processes, pid)
+        # state = if match?({^pid, _ref}, state.dbg_session) do
+        #   GenServer.reply(state.dbg_session, :ok)
+        #   %{state | dbg_session: nil}
+        # else
+        #   state
+        # end
 
-    processes_paused? = paused_processes |> Map.keys() |> Enum.any?(&is_pid/1)
+        safe_int_action(pid, :continue)
 
-    {%{"allThreadsContinued" => not processes_paused?},
-     %{state | paused_processes: paused_processes}}
+        paused_processes = remove_paused_process(state, pid)
+        paused_processes = maybe_continue_other_processes(args, paused_processes, pid)
+
+        processes_paused? = paused_processes |> Map.keys() |> Enum.any?(&is_pid/1)
+
+        {%{"allThreadsContinued" => not processes_paused?},
+        %{state | paused_processes: paused_processes}}
   end
 
   defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
+    validate_dbg_pid!(state, pid, "next")
+
+    # state = if match?({^pid, _ref}, state.dbg_session) do
+    #   GenServer.reply(state.dbg_session, :ok)
+    #   %{state | dbg_session: nil}
+    # else
+    #   state
+    # end
+
     safe_int_action(pid, :next)
+
     paused_processes = remove_paused_process(state, pid)
 
     {%{},
@@ -686,7 +712,17 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(step_in_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
+    validate_dbg_pid!(state, pid, "stepIn")
+
+    # state = if match?({^pid, _ref}, state.dbg_session) do
+    #   GenServer.reply(state.dbg_session, :ok)
+    #   %{state | dbg_session: nil}
+    # else
+    #   state
+    # end
+
     safe_int_action(pid, :step)
+
     paused_processes = remove_paused_process(state, pid)
 
     {%{},
@@ -696,7 +732,17 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(step_out_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
+    validate_dbg_pid!(state, pid, "stepOut")
+
+    # state = if match?({^pid, _ref}, state.dbg_session) do
+    #   GenServer.reply(state.dbg_session, :ok)
+    #   %{state | dbg_session: nil}
+    # else
+    #   state
+    # end
+
     safe_int_action(pid, :finish)
+
     paused_processes = remove_paused_process(state, pid)
 
     {%{},
@@ -1498,6 +1544,16 @@ defmodule ElixirLS.Debugger.Server do
       end
     else
       :error
+  end
+
+  defp validate_dbg_pid!(state, pid, command) do
+    if match?({^pid, _ref}, state.dbg_session) do
+      raise ServerError,
+        message: "notSupported",
+        format: "Kernel.dbg breakpoints do not support {command} command",
+        variables: %{
+          "command" => command
+        }
     end
   end
 end
