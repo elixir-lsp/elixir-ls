@@ -938,8 +938,12 @@ defmodule ElixirLS.Debugger.Server do
 
   defp all_variables(paused_processes, frame_id) do
     case find_frame(paused_processes, frame_id) do
-      {_pid, %Frame{bindings: bindings}} when is_map(bindings) ->
-        Binding.to_elixir_variable_names(bindings)
+      {_pid, %Frame{bindings: bindings, dbg_frame?: dbg_frame?}} when is_map(bindings) ->
+        if dbg_frame? do
+          bindings |> Enum.to_list()
+        else
+          Binding.to_elixir_variable_names(bindings)
+        end
 
       _ ->
         []
