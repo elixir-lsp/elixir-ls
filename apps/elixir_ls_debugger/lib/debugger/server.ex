@@ -1463,7 +1463,11 @@ defmodule ElixirLS.Debugger.Server do
       })
     end
 
-    state
+    if match?({^pid, _ref}, state.dbg_session) do
+      %{state | dbg_session: nil}
+    else
+      state
+    end
   end
 
   defp process_name(process_info) do
