@@ -36,6 +36,7 @@ defmodule ElixirLS.Debugger.Server do
 
   defstruct client_info: nil,
             config: %{},
+            dbg_session: nil,
             task_ref: nil,
             update_threads_ref: nil,
             thread_ids_to_pids: %{},
@@ -80,6 +81,15 @@ defmodule ElixirLS.Debugger.Server do
     GenServer.cast(server, {:paused, pid})
   end
 
+  @spec dbg(Macro.t(), Macro.t(), Macro.Env.t()) :: Macro.t()
+  def dbg(code, options, %Macro.Env{} = caller) do
+    quote do
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+      GenServer.call(unquote(__MODULE__), {:dbg, binding(), stacktrace, __ENV__}, :infinity)
+      unquote(Macro.dbg(code, options, caller))
+    end
+  end
+
   ## Server Callbacks
 
   @impl GenServer
@@ -88,6 +98,33 @@ defmodule ElixirLS.Debugger.Server do
     ModuleInfoCache.start_link(%{})
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
+  end
+
+  @impl GenServer
+  def handle_call({:dbg, binding, stacktrace, %Macro.Env{} = env}, from, state = %__MODULE__{}) do
+    {pid, _ref} = from
+    # :int.attach(pid, build_attach_mfa(:paused))
+    ref = Process.monitor(pid)
+
+    {state, thread_id, _new_ids} = ensure_thread_id(state, pid, [])
+
+    # drop GenServer call to Debugger.Server from dbg callback
+    [_, first_frame | stacktrace] = Stacktrace.get(pid)
+    # overvrite debugger erlang debugger bindings with exact elixir ones
+    first_frame = %{first_frame | bindings: Map.new(binding), dbg_frame?: true}
+
+    # Stacktrace.get(pid) |> tl |> IO.inspect(label: "debugger stack")
+
+    paused_process = %PausedProcess{stack: [first_frame | stacktrace], ref: ref}
+    state = put_in(state.paused_processes[pid], paused_process)
+
+    body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
+    Output.send_event("stopped", body)
+    # Output.debugger_console("#{inspect binding}\n")
+    # Output.debugger_console("#{inspect env}\n")
+    # Output.debugger_console("#{inspect stacktrace}\n")
+
+    {:noreply, %{state | dbg_session: from}}
   end
 
   @impl GenServer
