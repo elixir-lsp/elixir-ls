@@ -82,12 +82,64 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @spec dbg(Macro.t(), Macro.t(), Macro.Env.t()) :: Macro.t()
+  def dbg({:|>, _meta, _args} = ast, options, %Macro.Env{} = env) when is_list(options) do
+    [first_ast_chunk | asts_chunks] = ast |> Macro.unpipe() |> chunk_pipeline_asts_by_line(env)
+
+    initial_acc = [
+      quote do
+        env = __ENV__
+        options = unquote(options)
+
+        options =
+          if IO.ANSI.enabled?() do
+            Keyword.put_new(options, :syntax_colors, IO.ANSI.syntax_colors())
+          else
+            options
+          end
+
+        env = unquote(env_with_line_from_asts(first_ast_chunk))
+
+        next? = unquote(__MODULE__).pry_with_next(true, binding(), env)
+        value = unquote(pipe_chunk_of_asts(first_ast_chunk))
+
+        unquote(__MODULE__).__dbg_pipe_step__(
+          value,
+          unquote(asts_chunk_to_strings(first_ast_chunk)),
+          _start_with_pipe? = false,
+          options
+        )
+      end
+    ]
+
+    for asts_chunk <- asts_chunks, reduce: initial_acc do
+      ast_acc ->
+        piped_asts = pipe_chunk_of_asts([{quote(do: value), _index = 0}] ++ asts_chunk)
+
+        quote do
+          unquote(ast_acc)
+          env = unquote(env_with_line_from_asts(asts_chunk))
+          next? = unquote(__MODULE__).pry_with_next(next?, binding(), env)
+          value = unquote(piped_asts)
+
+          unquote(__MODULE__).__dbg_pipe_step__(
+            value,
+            unquote(asts_chunk_to_strings(asts_chunk)),
+            _start_with_pipe? = true,
+            options
+          )
+        end
+    end
+  end
+
   def dbg(code, options, %Macro.Env{} = caller) do
     quote do
-      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
-      GenServer.call(unquote(__MODULE__), {:dbg, binding(), stacktrace, __ENV__}, :infinity)
+      GenServer.call(unquote(__MODULE__), {:dbg, binding(), __ENV__}, :infinity)
       unquote(Macro.dbg(code, options, caller))
     end
+  end
+
+  def pry_with_next(next?, binding, opts_or_env) when is_boolean(next?) do
+    next? and GenServer.call(__MODULE__, {:dbg, binding, opts_or_env}, :infinity) == {:ok, true}
   end
 
   ## Server Callbacks
@@ -101,7 +153,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
-  def handle_call({:dbg, binding, stacktrace, %Macro.Env{} = env}, from, state = %__MODULE__{}) do
+  def handle_call({:dbg, binding, %Macro.Env{} = env}, from, state = %__MODULE__{}) do
     {pid, _ref} = from
     # :int.attach(pid, build_attach_mfa(:paused))
     ref = Process.monitor(pid)
@@ -111,7 +163,8 @@ defmodule ElixirLS.Debugger.Server do
     # drop GenServer call to Debugger.Server from dbg callback
     [_, first_frame | stacktrace] = Stacktrace.get(pid)
     # overvrite debugger erlang debugger bindings with exact elixir ones
-    first_frame = %{first_frame | bindings: Map.new(binding), dbg_frame?: true}
+    first_frame = %{first_frame | 
+    bindings: Map.new(binding), dbg_frame?: true, dbg_env: env, file: env.file, line: env.line}
 
     # Stacktrace.get(pid) |> tl |> IO.inspect(label: "debugger stack")
 
@@ -664,7 +717,7 @@ defmodule ElixirLS.Debugger.Server do
 
         state = case state.dbg_session do
           {^pid, _ref} = from ->
-            GenServer.reply(from, :ok)
+            GenServer.reply(from, {:ok, false})
             %{state | dbg_session: nil}
           _ ->
             safe_int_action(pid, :continue)
@@ -692,16 +745,15 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
 
-    validate_dbg_pid!(state, pid, "next")
+    # validate_dbg_pid!(state, pid, "next")
 
-    # state = if match?({^pid, _ref}, state.dbg_session) do
-    #   GenServer.reply(state.dbg_session, :ok)
-    #   %{state | dbg_session: nil}
-    # else
-    #   state
-    # end
-
-    safe_int_action(pid, :next)
+    state = if match?({^pid, _ref}, state.dbg_session) do
+      GenServer.reply(state.dbg_session, {:ok, true})
+      %{state | dbg_session: nil}
+    else
+      safe_int_action(pid, :next)
+      state
+    end
 
     paused_processes = remove_paused_process(state, pid)
 
@@ -1562,6 +1614,54 @@ defmodule ElixirLS.Debugger.Server do
         variables: %{
           "command" => command
         }
+    end
+  end
+
+  # Made public to be called from dbg/3 to reduce the amount of generated code.
+  @doc false
+  def __dbg_pipe_step__(value, string_asts, start_with_pipe?, options) do
+    asts_string = Enum.intersperse(string_asts, [:faint, " |> ", :reset])
+
+    asts_string =
+      if start_with_pipe? do
+        IO.ANSI.format([:faint, "|> ", :reset, asts_string])
+      else
+        asts_string
+      end
+
+    [asts_string, :faint, " #=> ", :reset, inspect(value, options), "\n\n"]
+    |> IO.ANSI.format()
+    |> IO.write()
+  end
+
+  defp chunk_pipeline_asts_by_line(asts, %Macro.Env{line: env_line}) do
+    Enum.chunk_by(asts, fn
+      {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line] || env_line
+      {_other_ast, _pipe_index} -> env_line
+    end)
+  end
+
+  defp pipe_chunk_of_asts([{first_ast, _first_index} | asts] = _ast_chunk) do
+    Enum.reduce(asts, first_ast, fn {ast, index}, acc -> Macro.pipe(acc, ast, index) end)
+  end
+
+  defp asts_chunk_to_strings(asts) do
+    Enum.map(asts, fn {ast, _pipe_index} -> Macro.to_string(ast) end)
+  end
+
+  defp env_with_line_from_asts(asts) do
+    line =
+      Enum.find_value(asts, fn
+        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
+        {_ast, _pipe_index} -> nil
+      end)
+
+    if line do
+      quote do
+        %{env | line: unquote(line)}
+      end
+    else
+      quote do: env
     end
   end
 end

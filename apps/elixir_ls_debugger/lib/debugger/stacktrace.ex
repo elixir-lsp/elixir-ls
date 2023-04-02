@@ -6,7 +6,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
   alias ElixirLS.Debugger.ModuleInfoCache
 
   defmodule Frame do
-    defstruct [:level, :file, :module, :function, :args, :line, :bindings, :messages, {:dbg_frame?, false}]
+    defstruct [:level, :file, :module, :function, :args, :line, :bindings, :messages, {:dbg_frame?, false}, :dbg_env]
 
     def name(%__MODULE__{} = frame) do
       "#{inspect(frame.module)}.#{frame.function}/#{Enum.count(frame.args)}"
