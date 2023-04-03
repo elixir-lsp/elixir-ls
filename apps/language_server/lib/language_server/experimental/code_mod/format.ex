@@ -3,7 +3,6 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
-  alias ElixirLS.LanguageServer.SourceFile.Path, as: SourceFilePath
 
   require Logger
   @type formatter_function :: (String.t() -> any) | nil
