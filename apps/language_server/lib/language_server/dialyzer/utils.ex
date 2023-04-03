@@ -8,6 +8,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
     is_list(file) and match?({:ok, _}, :dialyzer_utils.get_core_from_beam(file))
   end
 
+  # TODO
   @spec get_beam_file(module()) :: charlist() | :preloaded | :non_existing | :cover_compiled
   def get_beam_file(module) do
     case :code.which(module) do

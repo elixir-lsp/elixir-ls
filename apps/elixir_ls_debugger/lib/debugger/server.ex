@@ -155,27 +155,21 @@ defmodule ElixirLS.Debugger.Server do
   @impl GenServer
   def handle_call({:dbg, binding, %Macro.Env{} = env}, from, state = %__MODULE__{}) do
     {pid, _ref} = from
-    # :int.attach(pid, build_attach_mfa(:paused))
     ref = Process.monitor(pid)
 
     {state, thread_id, _new_ids} = ensure_thread_id(state, pid, [])
 
     # drop GenServer call to Debugger.Server from dbg callback
     [_, first_frame | stacktrace] = Stacktrace.get(pid)
-    # overvrite debugger erlang debugger bindings with exact elixir ones
-    first_frame = %{first_frame | 
-    bindings: Map.new(binding), dbg_frame?: true, dbg_env: env, file: env.file, line: env.line}
-
-    # Stacktrace.get(pid) |> tl |> IO.inspect(label: "debugger stack")
+    # overwrite erlang debugger bindings with exact elixir ones
+    first_frame = %{first_frame |
+    bindings: Map.new(binding), dbg_frame?: true, dbg_env: Code.env_for_eval(env), line: env.line}
 
     paused_process = %PausedProcess{stack: [first_frame | stacktrace], ref: ref}
     state = put_in(state.paused_processes[pid], paused_process)
 
     body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
     Output.send_event("stopped", body)
-    # Output.debugger_console("#{inspect binding}\n")
-    # Output.debugger_console("#{inspect env}\n")
-    # Output.debugger_console("#{inspect stacktrace}\n")
 
     {:noreply, %{state | dbg_session: from}}
   end
@@ -675,9 +669,9 @@ defmodule ElixirLS.Debugger.Server do
          state = %__MODULE__{}
        ) do
     timeout = Map.get(state.config, "debugExpressionTimeoutMs", 10_000)
-    bindings = all_variables(state.paused_processes, args["frameId"])
+    {binding, env_for_eval} = binding_and_env(state.paused_processes, args["frameId"])
 
-    result = evaluate_code_expression(expr, bindings, timeout)
+    result = evaluate_code_expression(expr, binding, env_for_eval, timeout)
 
     case result do
       {:ok, value} ->
@@ -724,14 +718,7 @@ defmodule ElixirLS.Debugger.Server do
             state
         end
 
-        # state = if match?({^pid, _ref}, state.dbg_session) do
-        #   GenServer.reply(state.dbg_session, :ok)
-        #   %{state | dbg_session: nil}
-        # else
-        #   state
-        # end
-
-        safe_int_action(pid, :continue)
+        # safe_int_action(pid, :continue)
 
         paused_processes = remove_paused_process(state, pid)
         paused_processes = maybe_continue_other_processes(args, paused_processes, pid)
@@ -744,8 +731,6 @@ defmodule ElixirLS.Debugger.Server do
 
   defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
     pid = get_pid_by_thread_id!(state, thread_id)
-
-    # validate_dbg_pid!(state, pid, "next")
 
     state = if match?({^pid, _ref}, state.dbg_session) do
       GenServer.reply(state.dbg_session, {:ok, true})
@@ -766,13 +751,6 @@ defmodule ElixirLS.Debugger.Server do
 
     validate_dbg_pid!(state, pid, "stepIn")
 
-    # state = if match?({^pid, _ref}, state.dbg_session) do
-    #   GenServer.reply(state.dbg_session, :ok)
-    #   %{state | dbg_session: nil}
-    # else
-    #   state
-    # end
-
     safe_int_action(pid, :step)
 
     paused_processes = remove_paused_process(state, pid)
@@ -785,13 +763,6 @@ defmodule ElixirLS.Debugger.Server do
     pid = get_pid_by_thread_id!(state, thread_id)
 
     validate_dbg_pid!(state, pid, "stepOut")
-
-    # state = if match?({^pid, _ref}, state.dbg_session) do
-    #   GenServer.reply(state.dbg_session, :ok)
-    #   %{state | dbg_session: nil}
-    # else
-    #   state
-    # end
 
     safe_int_action(pid, :finish)
 
@@ -812,12 +783,15 @@ defmodule ElixirLS.Debugger.Server do
       |> String.split(["\r\n", "\n", "\r"])
       |> Enum.at(line)
 
-    # it's not documented but VSCode uses utf16 positions
+    # It is measured in UTF-16 code units and the client capability
+    # `columnsStartAt1` determines whether it is 0- or 1-based.
     column = Utils.dap_character_to_elixir(line, column)
     prefix = String.slice(line, 0, column)
 
-    vars =
-      all_variables(state.paused_processes, args["arguments"]["frameId"])
+    {binding, env_for_eval} =
+      binding_and_env(state.paused_processes, args["arguments"]["frameId"])
+
+    vars = binding
       |> Enum.map(fn {name, value} ->
         %ElixirSense.Core.State.VarInfo{
           name: name,
@@ -848,6 +822,7 @@ defmodule ElixirLS.Debugger.Server do
     resumed_pids =
       for {paused_pid, %PausedProcess{ref: ref}} when paused_pid != requested_pid <-
             paused_processes do
+        # TODO
         safe_int_action(paused_pid, :continue)
         true = Process.demonitor(ref, [:flush])
         paused_pid
@@ -945,7 +920,7 @@ defmodule ElixirLS.Debugger.Server do
 
   defp maybe_append_variable_type(map, _, _value), do: map
 
-  defp evaluate_code_expression(expr, bindings, timeout) do
+  defp evaluate_code_expression(expr, binding, env_or_opts, timeout) do
     task =
       Task.async(fn ->
         receive do
@@ -953,7 +928,7 @@ defmodule ElixirLS.Debugger.Server do
         end
 
         try do
-          {term, _bindings} = Code.eval_string(expr, bindings)
+          {term, _bindings} = Code.eval_string(expr, binding, env_or_opts)
           term
         catch
           error -> error
@@ -972,8 +947,11 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp all_variables(paused_processes, nil) do
-    paused_processes
+  # for null frameId DAP spec suggest to return variables in the global scope
+  # there is no global scope in erlang/elixir so instead we flat map all variables
+  # from all paused processes and evaluator
+  defp binding_and_env(paused_processes, nil) do
+    binding = paused_processes
     |> Enum.flat_map(fn
       {:evaluator, _} ->
         # TODO setVariable?
@@ -986,19 +964,31 @@ defmodule ElixirLS.Debugger.Server do
     |> Enum.flat_map(fn %Frame{bindings: bindings} ->
       Binding.to_elixir_variable_names(bindings)
     end)
+
+    {binding, []}
   end
 
-  defp all_variables(paused_processes, frame_id) do
+  defp binding_and_env(paused_processes, frame_id) do
     case find_frame(paused_processes, frame_id) do
-      {_pid, %Frame{bindings: bindings, dbg_frame?: dbg_frame?}} when is_map(bindings) ->
+      {_pid, %Frame{bindings: bindings, dbg_frame?: dbg_frame?} = frame} when is_map(bindings) ->
         if dbg_frame? do
-          bindings |> Enum.to_list()
+          {bindings |> Enum.to_list(), frame.dbg_env}
         else
-          Binding.to_elixir_variable_names(bindings)
+          {Binding.to_elixir_variable_names(bindings), [
+            file: frame.file,
+            line: frame.line
+          ]}
         end
 
+      {_pid, %Frame{} = frame} ->
+        {[], [
+          file: frame.file,
+          line: frame.line
+        ]}
+
       _ ->
-        []
+        Output.debugger_console("Unable to find frame #{inspect(frame_id)}")
+        {[], []}
     end
   end
 
@@ -1520,6 +1510,7 @@ defmodule ElixirLS.Debugger.Server do
     end
 
     if match?({^pid, _ref}, state.dbg_session) do
+      # no need to respond - the debugged process was waiting in GenServer.call but it exited
       %{state | dbg_session: nil}
     else
       state
@@ -1604,6 +1595,7 @@ defmodule ElixirLS.Debugger.Server do
       end
     else
       :error
+    end
   end
 
   defp validate_dbg_pid!(state, pid, command) do
