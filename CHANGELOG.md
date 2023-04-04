@@ -2,6 +2,30 @@
 
 ### v0.14.0: x April 2023
 
+#### Improvements
+
+- Numerous improvements to variable tracking. This should make navigation to variable definition and references work correctly [sheldak](https://github.com/sheldak)
+- Doctests can now be run via Test UI [Carl-Foster](https://github.com/Carl-Foster)
+- Fixed completions of records defined in the same file
+- Silent crashes in dialyzer fixed
+- Document symbol provider now does not crash on incomplete typespec
+- Debugger now properly tracks running processes. Previously UI was not updated when new processes start or running not monitored processese exit
+- Completion provider returns tpespecs for struct properties in documentation if struct module defines type `t()`
+- Debugger now returns type of breakpoint in the hit event as required by DAP
+- Fixed crash when elixir-ls is run in a directory without `mix.exs`
+- References provider now can find references to elixir modules. Previously modules were found only when a function or macro from that module was called
+- Typespecs from behaviour module are used on callback implementations in completions, hover and specyfication providers
+- `@after_verify` attribute added in elixir 1.14 is recognized as builtin
+- Fixed edge cases when private def would overshadow a public one
+- Quoted expressions are now skipped when code AST is analysed. There is low chance anything useful can be extracted from them
+- Submodule implicit alias behavior is now correctly implementd. This should improve quality in various providers
+- Fixed crash in references provider when reference does not have a line (e.g. in phoenix live views)
+
+### Refactorings
+
+- Mix Formatter now properly formats elixir-ls code from the top directory
+- Major refactoring of elixir-ls server driven by [Steve Cohen](https://github.com/scohen) is under way. It's not yet complete and can be tested by enabling experimental server. Thanks to others involved ([Scott Ming](https://github.com/scottming), [Samuel Hełdak](https://github.com/sheldak))
+
 ### v0.13.0: 8 January 2023
 
 #### Improvements
