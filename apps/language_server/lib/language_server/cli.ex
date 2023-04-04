@@ -28,7 +28,7 @@ defmodule ElixirLS.LanguageServer.CLI do
     start_language_server()
 
     Logger.info("Started ElixirLS v#{Launch.language_server_version()}")
-    
+
     Logger.info("Running in #{File.cwd!()}")
 
     versions = Launch.get_versions()
