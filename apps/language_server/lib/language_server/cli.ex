@@ -28,6 +28,8 @@ defmodule ElixirLS.LanguageServer.CLI do
     start_language_server()
 
     Logger.info("Started ElixirLS v#{Launch.language_server_version()}")
+    
+    Logger.info("Running in #{File.cwd!()}")
 
     versions = Launch.get_versions()
 
@@ -47,7 +49,8 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
     # FIXME: Private API
-    Mix.Hex.ensure_updated?()
+    true = Mix.Hex.ensure_installed?(false)
+    true = Mix.Hex.ensure_updated?()
 
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
   end

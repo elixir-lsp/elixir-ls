@@ -3,6 +3,7 @@ defmodule ElixirLS.Utils.Launch do
   @compiled_otp_version System.otp_release()
 
   def start_mix do
+    Hex.start()
     # FIXME: Private API
     Mix.start()
     # FIXME: Private API
