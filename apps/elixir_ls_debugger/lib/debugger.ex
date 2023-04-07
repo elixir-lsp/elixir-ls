@@ -22,12 +22,6 @@ defmodule ElixirLS.Debugger do
 
   @impl Application
   def stop(_state) do
-    if ElixirLS.Utils.WireProtocol.io_intercepted?() do
-      Output.debugger_important("ElixirLS debugger has crashed")
-
-      System.stop(1)
-    end
-
     :ok
   end
 end
