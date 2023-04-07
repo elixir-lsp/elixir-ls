@@ -3,10 +3,13 @@ defmodule ElixirLS.Utils.Launch do
   @compiled_otp_version System.otp_release()
 
   def start_mix do
+    Mix.start()
     # when running via mix install script mix starts and stops hex
     # we need to make sure it's started
-    Hex.start()
-    Mix.start()
+    if function_exported?(Hex, :start, 0) do
+      Hex.start()
+    end
+
     # FIXME: Private API
     Mix.Local.append_archives()
     # FIXME: Private API
