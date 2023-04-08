@@ -313,10 +313,9 @@ if available, but that may not be what you want or need. Therefore, prior to exe
 
 Note: for windows the local setup script path is `%APPDATA%/elixir_ls/setup.bat` (which is often `C:\Users\<username>\AppData\Roaming\elixir_ls`)
 
-Note: It is important that the setup script not print any output. On linux this might be
-accomplished by adding `>/dev/null` and/or `2>/dev/null` at the end of any line that produces
-output, and for a windows batch script you will want `@echo off` at the top and `>nul` on every
-line.
+Note: The script must not read from `stdin` and write to `stdout` and `stderr`. On unix/linux/macOS
+this might be accomplished by adding `>/dev/null` and/or `2>/dev/null` at the end of any line that produces
+output, and for a windows batch script you will want `@echo off` at the top and `>nul` and/or `2>nul`.
 
 ## Environment variables
 
