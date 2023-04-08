@@ -31,6 +31,14 @@ If you're debugging a running server than `IO.inspect` or `dbg()` is a good appr
 
 To debug in tests you can use `IO.inspect(Process.whereis(:user), message, label: "message")` to send your output directly to the group leader of the test process.
 
+## Documenting configuration options
+
+Use this jq program to extract configuration option from VSCode extension [package.json](https://github.com/elixir-lsp/vscode-elixir-ls/blob/master/package.json)
+
+```shell
+jq -r '.contributes.configuration.properties | to_entries | map("<dt>\(.key)</dt><dd>\(.value.description)</dd>") | join("\n")' package.json
+```
+
 ## Documentation website
 
 The documentation website is built using the [Mkdocs](https://www.mkdocs.org) static website generator. The content is written in Markdown format in the directory [docs](./docs) and is configured via the [mkdocs.yml](./mkdocs.yml) file.

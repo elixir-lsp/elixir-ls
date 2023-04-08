@@ -284,6 +284,46 @@ The completions include:
 
 With Dialyzer integration enabled ElixirLS will build an index of symbols (modules, functions, types and callbacks). The symbols are taken from the current workspace, all dependencies and stdlib (Elixir and erlang). This feature enables quick navigation to symbol definitions.
 
+## ElixirLS configuration settings
+
+Below is a list configuration options supported by ElixirLS language server. Please refer to your editor's documentation on how to configure language servers.
+
+<dl>
+<dt>elixirLS.autoBuild</dt><dd>Trigger ElixirLS build when code is saved</dd>
+<dt>elixirLS.dialyzerEnabled</dt><dd>Run ElixirLS's rapid Dialyzer when code is saved</dd>
+<dt>elixirLS.dialyzerWarnOpts</dt><dd>Dialyzer options to enable or disable warnings. See Dialyzer's documentation for options. Note that the "race_conditions" option is unsupported</dd>
+<dt>elixirLS.dialyzerFormat</dt><dd>Formatter to use for Dialyzer warnings</dd>
+<dt>elixirLS.envVariables</dt><dd>Environment variables to use for compilation</dd>
+<dt>elixirLS.mixEnv</dt><dd>Mix environment to use for compilation</dd>
+<dt>elixirLS.mixTarget</dt><dd>Mix target to use for compilation</dd>
+<dt>elixirLS.projectDir</dt><dd>Subdirectory containing Mix project if not in the project root</dd>
+<dt>elixirLS.fetchDeps</dt><dd>Automatically fetch project dependencies when compiling</dd>
+<dt>elixirLS.suggestSpecs</dt><dd>Suggest @spec annotations inline using Dialyzer's inferred success typings (Requires Dialyzer)</dd>
+<dt>elixirLS.trace.server</dt><dd>Traces the communication between VS Code and the Elixir language server.</dd>
+<dt>elixirLS.signatureAfterComplete</dt><dd>Show signature help after confirming autocomplete</dd>
+<dt>elixirLS.enableTestLenses</dt><dd>Show code lenses to run tests in terminal</dd>
+<dt>elixirLS.additionalWatchedExtensions</dt><dd>Additional file types capable of triggering a build on change</dd>
+<dt>elixirLS.languageServerOverridePath</dt><dd>Absolute path to alternative ElixirLS release that will override packaged release.</dd>
+</dl>
+
+## Debugger configuration options
+
+Below is a list of configuration options supported by ElixirLS Debugger. Configuration options can be supplied via debugger launch configuration. Please refer to your editor's documentation on how to configure debugger adapters.
+
+<dl>
+  <dt>startApps</dt><dd>Run `mix app.start` before launching the debugger. Some tasks (such as Phoenix tests) expect apps to already be running before the test files are required</dd>
+  <dt>task</dt><dd>Mix task to run with debugger. Defaults to task set under `:default_task` key in mixfile</dd>
+  <dt>taskArgs</dt><dd>A list of arguments to mix task</dd>
+  <dt>debugAutoInterpretAllModules</dt><dd>Auto interpret all modules from project build path. Defaults to `true`.</dd>
+  <dt>env</dt><dd>An object with environment variables to set. Object keys specify environment variables, values should be strings</dd>
+  <dt>stackTraceMode</dt><dd>Debugger stacktrace mode. Allowed values: `all`, `no_tail`, or `false`.</dd>
+  <dt>requireFiles</dt><dd>A list of additional files that should be required and interpreted. Useful especially for debugging tests</dd>
+  <dt>debugInterpretModulesPatterns</dt><dd>A list of globs specifying modules that should be interpreted</dd>
+  <dt>debugExpressionTimeoutMs</dt><dd>Expression evaluator timeout in milliseconds. Defaults to 10 000</dd>
+  <dt>projectDir</dt><dd>An absolute path to the directory where `mix.exs` is located. In VSCode `${workspaceRoot}` can be used</dd>
+  <dt>excludeModules</dt><dd>A list of modules that should not be interpreted</dd>
+</dl>
+
 ## Troubleshooting
 
 Basic troubleshooting steps:
