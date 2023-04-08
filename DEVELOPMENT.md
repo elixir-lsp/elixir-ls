@@ -27,7 +27,7 @@ Follow those instructions when publishing a new release.
 
 ## Debugging
 
-If you're debugging a running server than `IO.inspect` is a good approach, any messages you create with it will be sent to your LSP client as a log message
+If you're debugging a running server than `IO.inspect` or `dbg()` is a good approach, any messages you create with it will be sent to your LSP client as a log message
 
 To debug in tests you can use `IO.inspect(Process.whereis(:user), message, label: "message")` to send your output directly to the group leader of the test process.
 
@@ -35,7 +35,7 @@ To debug in tests you can use `IO.inspect(Process.whereis(:user), message, label
 
 The documentation website is built using the [Mkdocs](https://www.mkdocs.org) static website generator. The content is written in Markdown format in the directory [docs](./docs) and is configured via the [mkdocs.yml](./mkdocs.yml) file.
 
-### Development
+### Documentation Development
 
 Make sure you have a recent version of Python 3 and [Pip](https://pip.readthedocs.io/en/stable/installing/) installed.
 

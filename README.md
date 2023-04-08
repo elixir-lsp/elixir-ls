@@ -44,13 +44,17 @@ Note: On first run Dialyzer will build a PLT cache which will take a considerabl
 | Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                          | Does not support debugger                                             |
 | VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                                        |
 
-Feel free to create and publish your own client packages and add them to this list!
+Please feel free to create and publish your own client packages and add them to this list!
 
 ## Detailed Installation Instructions
 
-How you install ElixirLS depends on your editor.
+The installation process for ElixirLS depends on your editor.
 
-For VSCode install the extension: https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls
+<details>
+  <summary>VSCode</summary>
+
+  Please install the extension via the following link: https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls\
+</details>
 
 <details>
   <summary>Emacs Installation Instructions</summary>
@@ -61,6 +65,7 @@ For VSCode install the extension: https://marketplace.visualstudio.com/items?ite
   `"path-to-elixir-ls/release"` below)
 
   If using `lsp-mode` add this configuration:
+
   ```elisp
     (use-package lsp-mode
       :commands lsp
@@ -73,6 +78,7 @@ For VSCode install the extension: https://marketplace.visualstudio.com/items?ite
   ```
 
   For eglot use:
+
   ```elisp
   (require 'eglot)
 
@@ -94,19 +100,17 @@ Erlang:
 
 - OTP 22 minimum
 
-Installing Elixir and Erlang from [ASDF](https://github.com/asdf-vm/asdf) is generally recommended so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS will detect and use the version of Elixir and Erlang that you have configured in asdf.
+It is generally recommended to install Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS can detect and use the version of Elixir and Erlang that you have configured in ASDF.
 
 ## Debugger support
 
-ElixirLS includes debugger support adhering to the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) which is closely related to the Language Server Protocol. At the moment, line breakpoints and function breakpoints are supported.
+ElixirLS provides debugger support adhering to the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) which is closely related to the Language Server Protocol.
 
-When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and dependencies prior to launching the Mix task, so you can set breakpoints anywhere in your project or dependency modules.
+When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and its dependencies before launching the Mix task. Therefore, you can set breakpoints anywhere in your project or dependency modules.
 
-Currently there is a limit of 100 breakpoints.
+Please note that there is currently a limit of 100 breakpoints.
 
-### Debugging tests and `.exs` files
-
-In order to debug modules in `.exs` files (such as tests), they must be specified under `requireFiles` in your launch configuration so they can be loaded and interpreted prior to running the task. For example, the default launch configuration for "mix test" in the VS Code plugin looks like this:
+To debug modules in .exs files (such as tests), they must be specified under requireFiles in your launch configuration so that they can be loaded and interpreted before running the task. For example, the default launch configuration for "mix test" in the VSCode plugin is shown below:
 
 ```json
 {
@@ -126,7 +130,7 @@ In order to debug modules in `.exs` files (such as tests), they must be specifie
 }
 ```
 
-In order to debug a single test or a single test file it is currently necessary to modify `taskArgs` and make sure no other tests are required in `requireFiles`.
+Currently, to debug a single test or a single test file, it is necessary to modify `taskArgs` and ensure that no other tests are required in `requireFiles`.
 
 ```json
 {
@@ -144,9 +148,9 @@ In order to debug a single test or a single test file it is currently necessary 
 }
 ```
 
-### Phoenix apps
+### Debugging Phoenix apps
 
-Use the following launch config to debug phoenix apps
+To debug Phoenix applications using ElixirLS, you can use the following launch configuration:
 
 ```json
 {
@@ -158,11 +162,13 @@ Use the following launch config to debug phoenix apps
 }
 ```
 
-Please make sure that `startApps` is not set to `true` as it prevents phoenix from starting correctly. On the other hand phoenix tests expects that the apps are already started so in that case set it to `true`.
+Please make sure that `startApps` is not set to `true`. To clarify, `startApps` is a configuration option in ElixirLS debugger that controls whether or not to start the applications in the mix project before running the task. In the case of Phoenix applications, setting `startApps` to `true` can interfere with the application's normal startup process and cause issues.
+
+If you are running tests in the Phoenix application, you may need to set `startApps` to true to ensure that the necessary applications are started before the tests run.
 
 ### NIF modules limitation
 
-Please note that due to `:int` limitation NIF modules cannot be interpreted and need to be excluded via `excludeModules` option. This option can be also used to disable interpreting for some modules when it is not desirable e.g. when performance is not satisfactory.
+It's important to note that NIF (Native Implemented Function) modules cannot be interpreted due to limitations in `:int`. Therefore, these modules need to be excluded using the `excludeModules` option. This option can also be used to disable interpretation for specific modules when it's not desirable, such as when performance is unsatisfactory.
 
 ```json
 {
@@ -185,23 +191,37 @@ Please note that due to `:int` limitation NIF modules cannot be interpreted and 
 
 ### Function breakpoints
 
-Function breakpoints will break on the first line of every clause of the specified function. The function needs to be specified as MFA (module, function, arity) in the standard elixir format, e.g. `:some_module.function/1` or `Some.Module.some_function/2`. Breaking on private functions is not supported via function breakpoints.
+Function breakpoints in ElixirLS allow you to break on the first line of every clause of a specific function. In order to set a function breakpoint, you need to specify the function in the format of MFA (module, function, arity).
+
+For example, to set a function breakpoint on the `foo` function in the `MyModule` module that takes one argument, you would specify it as `MyModule.foo/1`.
+
+Please note that function breakpoints only work for public functions, and do not support breaking on private functions.
 
 ### Conditional breakpoints
 
-Break conditions are supported and evaluate elixir expressions within the context set of breakpoints. See also limitations on Expression evaluator for further details.
+Break conditions allow you to specify an expression that, when evaluated, determines whether the breakpoint should be triggered or not. The expression is evaluated within the context of the breakpoint, which includes all bound variables.
+
+For example, you could set a breakpoint on a line of code that sets a variable `x`, and add a break condition of `x > 10`. This would cause the breakpoint to only trigger if the value of `x` is greater than `10` when that line of code is executed.
+
+However, it's important to note that the expression evaluator used by ElixirLS has some limitations. For example, it doesn't support some Elixir language features, such as macros and some built-in functions. In addition, the expression evaluator is not as powerful as the one used by the Elixir interpreter, so some expressions that work in the interpreter may not work in ElixirLS.
 
 ### Hit conditions
 
-An expression that evaluates to integer can be used to control how many hits of a breakpoint are ignored before the process is stopped.
+A hit condition is an optional parameter that can be set on a breakpoint to control how many times a breakpoint should be hit before stopping the process. It is expressed as an integer and can be used to filter out uninteresting hits, allowing the process to continue until a certain condition is met.
+
+For example, if you have a loop that runs 10 times and you want to stop the process only when the loop reaches the 5th iteration, you can set a breakpoint with a hit condition of 5. This will cause the breakpoint to be hit only on the 5th iteration of the loop, and the process will continue to run until then.
 
 ### Log points
 
-When log message is set on a breakpoint the debugger will not break but instead log a message to standard output (as required by Debug Adapter Protocol specification). The message may contain interpolated expressions in `{}`, e.g. `my_var is {inspect(my_var)}` and will be evaluated in the context of the process. Special characters `{` and `}` can be emitted with escape sequence `\{` and `\}`. As of Debug Adapter Protocol specification version 1.51, log messages are not supported on function breakpoints.
+Log points are a type of breakpoint that logs a message to the standard output without stopping the program execution. When a log point is hit, the message is evaluated and printed to the console. The message can include interpolated expressions enclosed in curly braces `{}`, e.g. `my_var is {inspect(my_var)}` which will be evaluated in the context of the breakpoint. To escape the curly braces, you can use the escape sequence `\{` and `\}`.
+
+It's important to note that as of version 1.51 of the Debug Adapter Protocol specification, log messages are not supported on function breakpoints.
 
 ### Expression evaluator
 
-An expression evaluator is included in the debugger. It evaluates elixir expressions in the context of a process stopped on a breakpoint. All bound variables are accessible (no support for attributes as those are compile time). Please note that there are limitations due to `:int` operating on beam instruction level. The binding returns multiple versions of variables in Static Singe Assignment with no indication which one is valid in the current elixir scope. A heuristic is used that selects the highest versions but it does not behave correctly in all cases, e.g. in
+The debugger's expression evaluator has some limitations due to how the Erlang VM works. Specifically, the evaluator is implemented using :int, which works at the level of individual BEAM instructions. As a result, it returns multiple versions of variables in Static Single Assignment form, without indicating which one is valid in the current Elixir scope.
+
+To work around this, the evaluator uses a heuristic to select the highest versions of variables, but this doesn't always behave correctly in all cases. For example, in the following code snippet:
 
 ```elixir
 a = 4
@@ -211,29 +231,35 @@ end
 some
 ```
 
-when a breakpoint is reached on line with `some`, the last bound value for `a` seen by expression breakpoint evaluator is 5 (should be 4).
+If a breakpoint is set on the line with `some_function()`, the last bound value for a seen by the expression breakpoint evaluator will be `5`, even though it should be `4`.
+
+Additionally, while all bound variables are accessible in the expression evaluator, it doesn't support accessing module attributes since those are determined at compile-time.
 
 ## Automatic builds and error reporting
 
-Builds are performed automatically when files are saved. If you want this to happen automatically when you type, you can turn on "autosave" in your IDE.
+The ElixirLS provides automatic builds and error reporting. By default, builds are triggered automatically when files are saved, but you can also enable "autosave" in your IDE to trigger builds as you type. If you prefer to disable automatic builds, you can set the `elixirLS.autoBuild` configuration option to `false`.
 
-Starting in Elixir 1.6, Mix compilers adhere to the [Mix.Task.Compiler](https://hexdocs.pm/mix/master/Mix.Task.Compiler.html) behaviour and return their error and warning diagnostics in a standardized way. Errors and warnings will be shown inline in your code as well as in the "Problems" pane in the IDE. If you're using an earlier version of Elixir, you'll need to look at the text log from the extension to see the errors and warnings.
+Internally, ElixirLS uses the `mix compile` task to compile Elixir code. When errors or warnings are encountered during compilation, they are returned as LSP diagnostics. Your IDE may display them inline in your code as well as in the "Problems" pane. This allows you to quickly identify and fix errors in your code as you work.
 
 ## Dialyzer integration
 
-ElixirLS will automatically analyze your project with [Dialyzer](http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html) after each successful build. It maintains a "manifest" file in `.elixir_ls/dialyzer_manifest` that stores the results of the analysis. The initial analysis for a project can take a few minutes, but after that's completed, modules are re-analyzed only if necessary, so subsequent analyses are typically very fast -- often less than a second. It also looks at your modules' abstract code to determine whether they reference any modules that haven't been analyzed and includes them automatically.
+[Dialyzer](http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html) is a static analysis tool used to identify type discrepancies, unused code, unreachable code, and other warnings in Erlang and Elixir code. ElixirLS provides automatic integration with Dialyzer to help catch issues early on in the development process.
 
-You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. Find available options in Erlang [docs](http://erlang.org/doc/man/dialyzer.html) at section "Warning options".
+After each successful build, ElixirLS automatically analyzes the project with Dialyzer and maintains a "manifest" file in .elixir_ls/dialyzer_manifest to store the results of the analysis. The initial analysis of a project can take a few minutes, but subsequent analyses are usually very fast, often taking less than a second. ElixirLS also looks at your modules' abstract code to determine whether they reference any modules that haven't been analyzed and includes them automatically.
+
+You can control which warnings are shown using the `elixirLS.dialyzerWarnOpts` setting in your project or IDE's `settings.json`. You can find available options in [dialyzer documentation](http://erlang.org/doc/man/dialyzer.html) under the section "Warning options".
 
 To disable Dialyzer completely, set `elixirLS.dialyzerEnabled` to false.
 
-Sometimes dialyzer can get stuck with incorrect/no longer applying warnings. It's best to restart the language server in that case.
-
-ElixirLS's Dialyzer integration uses internal, undocumented Dialyzer APIs, and so it won't be robust against changes to these APIs in future Erlang versions.
+If Dialyzer gets stuck and emits incorrect or no longer applying warnings, it's best to restart the language server.
 
 ## Code completion
 
-ElixirLS bundles an advanced code completion provider. The provider builds on [Elixir Sense](https://github.com/elixir-lsp/elixir_sense) library and utilizes two main mechanisms. The first one is reflection - getting information about compiled modules from Erlang and Elixir APIs. The second one is AST analysis of the current text buffer. While reflection gives precise results, it is not well suited for on demand completion of symbols from the currently edited file. The compiled version is likely to be outdated or the file may not compile at all. AST analysis helps in that case but it has its limitations. Unfortunately it is infeasible to be 100% accurate, especially with Elixir being a metaprogramming heavy language.
+ElixirLS provides an advanced code completion provider, which is built on top of the [Elixir Sense](https://github.com/elixir-lsp/elixir_sense) library. This code completion provider uses two main mechanisms to provide suggestions to the user.
+
+The first mechanism is reflection, which involves getting information about compiled modules from the Erlang and Elixir APIs. This mechanism provides precise results, but it is not well suited for on-demand completion of symbols from the currently edited file. The compiled version of the code may be outdated or the file may not even compile, which can lead to inaccurate results.
+
+The second mechanism used by the code completion provider is AST analysis of the current text buffer. This mechanism helps in cases where reflection is not accurate enough, such as when completing symbols from the currently edited file. However, it also has its limitations. Due to the metaprogramming-heavy nature of Elixir, it is infeasible to be 100% accurate with AST analysis.
 
 The completions include:
 
@@ -243,9 +269,11 @@ The completions include:
 - macros
 - modules
 - variables
+- sigils
 - struct fields (only if the struct type is explicitly stated or can be inferred from the variable binding)
 - atom map keys (if map keys can be inferred from variable binding)
 - attributes
+- binary modifiers
 - types (in typespecs)
 - behaviour callbacks (inside the body of implementing module)
 - protocol functions (inside the body of implementing module)
@@ -259,11 +287,14 @@ With Dialyzer integration enabled ElixirLS will build an index of symbols (modul
 ## Troubleshooting
 
 Basic troubleshooting steps:
-* Restart your editor (which will restart ElixirLS)
-* After stopping your editor, remove the entire `.elixir_ls` directory, then restart your editor
-  * NOTE: This will cause you to have to re-run the entire dialyzer build
 
-If your code doesn't compile in ElixirLS, it may be because ElixirLS compiles code with `MIX_ENV=test` (by default). So if you are missing some configuration in the test environment, your code may not compile.
+- Restart ElixirLS with a custom command `restart`
+- Run `mix clean` or `mix clean --deps` in ElixirLS with custom command `mixClean`
+- Restart your editor (which will restart ElixirLS)
+- After stopping your editor, remove the entire `.elixir_ls` directory, then restart your editor
+  - NOTE: This will cause you to have to re-run the entire dialyzer build
+
+You may need to set `elixirLS.mixEnv`, `elixirLS.mixTarget` and `elixirLS.projectDir` if your project requires it. By default ElixirLS compiles code with `MIX_ENV=test`, `MIX_TARGET=host` and assumes that `mix.exs` is located in the workspace root directory.
 
 If you get an error like the following immediately on startup:
 
@@ -283,11 +314,11 @@ https://github.com/elixir-lsp/elixir-ls/issues/364#issuecomment-829589139
 
 ## Known Issues/Limitations
 
-* `.exs` files don't return compilation errors
-* "Fetching n dependencies" sometimes get stuck (remove the `.elixir_ls` directory to fix)
-* "Go to definition" does not work within the `scope` of a Phoenix router
-* On first launch dialyzer will cause high CPU usage for a considerable time
-* Dialyzer does not pick up changes involving remote types (https://github.com/elixir-lsp/elixir-ls/issues/502)
+- `.exs` files don't return compilation errors
+- "Fetching n dependencies" sometimes get stuck (remove the `.elixir_ls` directory to fix)
+- "Go to definition" does not work within the `scope` of a Phoenix router
+- On first launch dialyzer will cause high CPU usage for a considerable time
+- Dialyzer does not pick up changes involving remote types (https://github.com/elixir-lsp/elixir-ls/issues/502)
 
 ## Building and running
 
@@ -305,21 +336,21 @@ If you're packaging these archives in an IDE plugin, make sure to build using th
 
 ### Local setup
 
-Because ElixirLS may get launched from an IDE that itself got launched from a graphical shell, the environment may not
-be complete enough to run or even find the correct Elixir/OTP version. The wrapper scripts try to configure `asdf-vm`
-if available, but that may not be what you want or need. Therefore, prior to executing Elixir, the script will source
-`$XDG_CONFIG_HOME/elixir_ls/setup.sh` (e.g. `~/.config/elixir_ls/setup.sh`), if available. The environment variable
-`ELS_MODE` is set to either `debugger` or `language_server` to help you decide what to do inside the script, if needed.
+This section provides additional information on how to set up the ElixirLS locally.
 
-Note: for windows the local setup script path is `%APPDATA%/elixir_ls/setup.bat` (which is often `C:\Users\<username>\AppData\Roaming\elixir_ls`)
+When launching ElixirLS from an IDE that is itself launched from a graphical shell, the environment may not be complete enough to find or run the correct Elixir/OTP version. To address this on unix, the ElixirLS wrapper scripts try to configure [ASDF](https://github.com/asdf-vm/asdf) (a version manager for Elixir and other languages), but that may not always be what is needed.
 
-Note: The script must not read from `stdin` and write to `stdout` and `stderr`. On unix/linux/macOS
+To ensure that the correct environment is set up, you can create a setup script at `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (for Unix-based systems) or `%APPDATA%\elixir_ls\setup.bat` (for Windows).
+
+In the setup script the environment variable `ELS_MODE` available and set to either `debugger` or `language_server` to help you decide what to do.
+
+Note: The setup script must not read from `stdin` and write to `stdout` and `stderr`. On unix/linux/macOS
 this might be accomplished by adding `>/dev/null` and/or `2>/dev/null` at the end of any line that produces
 output, and for a windows batch script you will want `@echo off` at the top and `>nul` and/or `2>nul`.
 
 ## Environment variables
 
-* `ELS_INSTALL_PREFIX`: The folder where the language server got installed to. If set eq. through a wrapper script, it makes maintaining multiple versions/instances on the same host much easier. If not set or empty, a heuristic will be used to discover the install location.
+- `ELS_INSTALL_PREFIX`: The folder where the language server got installed to. If set, it makes maintaining multiple versions/instances on the same host much easier. If not set or empty, a heuristic will be used to discover the install location.
 
 ## Acknowledgements and related projects
 
