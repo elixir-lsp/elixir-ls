@@ -136,8 +136,8 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp run_mix_compile do
-    # TODO consider adding --no-compile
-    case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
+    # TODO --all-warnings not needed on 1.15
+    case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict", "--all-warnings", "--no-protocol-consolidation"]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
 
