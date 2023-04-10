@@ -156,7 +156,8 @@ defmodule ElixirLS.LanguageServer.Build do
       status when status in [:ok, :noop] ->
         {status, []}
 
-      _ ->
+      other ->
+        Logger.debug("mix compile returned #{inspect(other)}")
         {:ok, []}
     end
   end
