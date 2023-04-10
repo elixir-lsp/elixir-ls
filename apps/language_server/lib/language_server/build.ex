@@ -31,8 +31,6 @@ defmodule ElixirLS.LanguageServer.Build do
                       fetch_deps(current_deps)
                     end
 
-                    # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
-                    purge_consolidated_protocols()
                     {status, diagnostics} = run_mix_compile()
 
                     diagnostics = Diagnostics.normalize(diagnostics, root_path)
@@ -81,9 +79,10 @@ defmodule ElixirLS.LanguageServer.Build do
         build_path = Mix.Project.config()[:build_path]
 
         for {app, path} <- Mix.Project.deps_paths() || %{} do
-          child_module = Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
-            mix_project
-          end)
+          child_module =
+            Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
+              mix_project
+            end)
 
           if child_module do
             purge_module(child_module)
@@ -149,7 +148,12 @@ defmodule ElixirLS.LanguageServer.Build do
 
   defp run_mix_compile do
     # TODO --all-warnings not needed on 1.15
-    case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict", "--all-warnings", "--no-protocol-consolidation"]) do
+    case Mix.Task.run("compile", [
+           "--return-errors",
+           "--ignore-module-conflict",
+           "--all-warnings",
+           "--no-protocol-consolidation"
+         ]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
 
@@ -180,26 +184,6 @@ defmodule ElixirLS.LanguageServer.Build do
       Logger.error("mix clean returned #{inspect(results)}")
       {:error, :clean_failed}
     end
-  end
-
-  defp purge_consolidated_protocols do
-    config = Mix.Project.config()
-    path = Mix.Project.consolidation_path(config)
-
-    with {:ok, beams} <- File.ls(path) do
-      Enum.map(beams, &(&1 |> Path.rootname(".beam") |> String.to_atom() |> purge_module()))
-    else
-      {:error, :enoent} ->
-        # consolidation_path does not exist
-        :ok
-
-      {:error, reason} ->
-        Logger.warn("Unable to purge consolidated protocols from #{path}: #{inspect(reason)}")
-    end
-
-    # NOTE this implementation is based on https://github.com/phoenixframework/phoenix/commit/b5580e9
-    # calling `Code.delete_path(path)` may be unnecessary in our case
-    Code.delete_path(path)
   end
 
   defp purge_module(module) do
