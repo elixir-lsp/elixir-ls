@@ -78,6 +78,18 @@ defmodule ElixirLS.LanguageServer.Build do
 
     if File.exists?(mixfile) do
       if module = Mix.Project.get() do
+        build_path = Mix.Project.config()[:build_path]
+
+        for {app, path} <- Mix.Project.deps_paths() || %{} do
+          child_module = Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
+            mix_project
+          end)
+
+          if child_module do
+            purge_module(child_module)
+          end
+        end
+
         # FIXME: Private API
         Mix.Project.pop()
         purge_module(module)
