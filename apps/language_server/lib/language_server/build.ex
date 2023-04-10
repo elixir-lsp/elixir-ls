@@ -341,6 +341,10 @@ defmodule ElixirLS.LanguageServer.Build do
       options
       |> Keyword.merge(
         tracers: [Tracer],
+        # we are running the server with consolidated protocols
+        # this disables warnings `X has already been consolidated`
+        # when running `compile` task
+        ignore_already_consolidated: true,
         parser_options: parser_options
       )
 
