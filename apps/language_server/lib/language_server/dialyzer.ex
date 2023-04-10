@@ -215,18 +215,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     prev_paths = Map.keys(md5) |> MapSet.new()
 
     # FIXME: Private API
-    consolidation_path = Mix.Project.consolidation_path()
-
-    consolidated_protocol_beams =
-      for path <- Path.join(consolidation_path, "*.beam") |> Path.wildcard(),
-          into: MapSet.new(),
-          do: Path.basename(path)
-
-    # FIXME: Private API
     all_paths =
       for path <- Mix.Utils.extract_files([Mix.Project.build_path()], [:beam]),
-          Path.basename(path) not in consolidated_protocol_beams or
-            Path.dirname(path) == consolidation_path,
           into: MapSet.new(),
           do: Path.relative_to_cwd(path)
 
