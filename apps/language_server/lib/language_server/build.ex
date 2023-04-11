@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Build do
       if module = Mix.Project.get() do
         build_path = Mix.Project.config()[:build_path]
 
-        for {app, path} <- Mix.Project.deps_paths() || %{} do
+        for {app, path} <- Mix.Project.deps_paths() do
           child_module =
             Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
               mix_project
