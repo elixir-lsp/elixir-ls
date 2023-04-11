@@ -331,22 +331,28 @@ defmodule ElixirLS.LanguageServer.Build do
 
   def set_compiler_options(options \\ [], parser_options \\ []) do
     parser_options =
-      parser_options
-      |> Keyword.merge(
+      Keyword.merge(parser_options,
         columns: true,
         token_metadata: true
       )
 
     options =
-      options
-      |> Keyword.merge(
+      Keyword.merge(options,
         tracers: [Tracer],
-        # we are running the server with consolidated protocols
-        # this disables warnings `X has already been consolidated`
-        # when running `compile` task
-        ignore_already_consolidated: true,
         parser_options: parser_options
       )
+
+    options =
+      if Version.match?(System.version(), ">= 1.14.0") do
+        Keyword.merge(options,
+          # we are running the server with consolidated protocols
+          # this disables warnings `X has already been consolidated`
+          # when running `compile` task
+          ignore_already_consolidated: true
+        )
+      else
+        options
+      end
 
     Code.compiler_options(options)
   end
