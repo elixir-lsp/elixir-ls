@@ -113,6 +113,13 @@ defmodule ElixirLS.LanguageServer.Build do
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
+
+      # since elixir 1.10 mix disables undefined warnings for mix.exs
+      # see discussion in https://github.com/elixir-lang/elixir/issues/9676
+      # https://github.com/elixir-lang/elixir/blob/6f96693b355a9b670f2630fd8e6217b69e325c5a/lib/mix/lib/mix/cli.ex#L41
+      old_undefined = Code.get_compiler_option(:no_warn_undefined)
+      Code.put_compiler_option(:no_warn_undefined, :all)
+
       # We can get diagnostics if Mixfile fails to load
       {status, diagnostics} =
         case Kernel.ParallelCompiler.compile([mixfile]) do
@@ -126,6 +133,9 @@ defmodule ElixirLS.LanguageServer.Build do
                 Enum.map(errors, &Diagnostics.mixfile_diagnostic(&1, :error))
             }
         end
+
+      # restore warnings
+      Code.put_compiler_option(:no_warn_undefined, old_undefined)
 
       if status == :ok do
         # The project may override our logger config, so we reset it after loading their config
