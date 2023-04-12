@@ -113,6 +113,11 @@ defmodule ElixirLS.LanguageServer.Build do
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
+      # TODO elixir 1.15 calls
+      # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
+      # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
+      # def cli
+      # do we need that?
 
       # since elixir 1.10 mix disables undefined warnings for mix.exs
       # see discussion in https://github.com/elixir-lang/elixir/issues/9676
