@@ -113,11 +113,11 @@ defmodule ElixirLS.Utils.Launch do
   end
 
   def maybe_change_env_and_target(task) do
-    task = String.to_atom(task) |> dbg
-    config = Mix.Project.config() |> dbg
+    task = String.to_atom(task)
+    config = Mix.Project.config()
 
-    env = preferred_cli_env(task, config) |> dbg
-    target = preferred_cli_target(task, config) |> dbg
+    env = preferred_cli_env(task, config)
+    target = preferred_cli_target(task, config)
     env && Mix.env(env)
     target && Mix.target(target)
 
