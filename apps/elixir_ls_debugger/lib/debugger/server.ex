@@ -938,7 +938,7 @@ defmodule ElixirLS.Debugger.Server do
     # https://github.com/elixir-lang/elixir/blob/v1.14.4/lib/mix/lib/mix/cli.ex#L158
     # we assume that mix is already started and has archives and tasks loaded
     ElixirLS.Utils.Launch.load_mix_exs()
-    {task, task_args} = ElixirLS.Utils.Launch.get_task([task, task_args])
+    {task, task_args} = ElixirLS.Utils.Launch.get_task([List.wrap(task) | task_args])
     ElixirLS.Utils.Launch.maybe_change_env_and_target(task)
 
     Output.debugger_console("Running with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}\n")
