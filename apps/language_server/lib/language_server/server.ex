@@ -1226,7 +1226,7 @@ defmodule ElixirLS.LanguageServer.Server do
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
 
       Process.sleep(5000)
-      System.stop(1)
+      System.stop(0)
     end
 
     state
@@ -1249,7 +1249,7 @@ defmodule ElixirLS.LanguageServer.Server do
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
 
       Process.sleep(5000)
-      System.stop(1)
+      System.stop(0)
     end
 
     state
@@ -1285,7 +1285,7 @@ defmodule ElixirLS.LanguageServer.Server do
         )
 
         Process.sleep(5000)
-        System.stop(1)
+        System.stop(0)
 
       true ->
         state
