@@ -27,7 +27,6 @@ defmodule ElixirLS.Debugger.Server do
   }
 
   alias ElixirLS.Debugger.Stacktrace.Frame
-  alias ElixirLS.Utils.MixfileHelpers
   use GenServer
   use Protocol
 
@@ -926,9 +925,8 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp initialize(%{"projectDir" => project_dir} = config) do
-    prev_env = Mix.env()
     task = config["task"]
-    task_args = config["taskArgs"]
+    task_args = config["taskArgs"] || []
     auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
 
     set_stack_trace_mode(config["stackTraceMode"])
@@ -936,17 +934,14 @@ defmodule ElixirLS.Debugger.Server do
 
     File.cd!(project_dir)
 
-    # Mixfile may already be loaded depending on cwd when launching debugger task
-    mixfile = Path.absname(MixfileHelpers.mix_exs())
+    # the startup sequence here is taken from
+    # https://github.com/elixir-lang/elixir/blob/v1.14.4/lib/mix/lib/mix/cli.ex#L158
+    # we assume that mix is already started and has archives and tasks loaded
+    ElixirLS.Utils.Launch.load_mix_exs()
+    {task, task_args} = ElixirLS.Utils.Launch.get_task(List.wrap(task) ++ task_args)
+    ElixirLS.Utils.Launch.maybe_change_env_and_target(task)
 
-    # FIXME: Private API
-    unless match?(%{file: ^mixfile}, Mix.ProjectStack.peek()) do
-      Code.compile_file(MixfileHelpers.mix_exs())
-    end
-
-    task = task || Mix.Project.config()[:default_task]
-    env = task_env(task)
-    if env != prev_env, do: change_env(env)
+    Output.debugger_console("Running with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}\n")
 
     Mix.Task.run("loadconfig")
 
@@ -1068,32 +1063,8 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp change_env(env) do
-    Mix.env(env)
-
-    # FIXME: Private API
-    if project = Mix.Project.pop() do
-      %{name: name, file: file} = project
-      :code.purge(name)
-      :code.delete(name)
-      # It's important to use `compile_file` here instead of `require_file`
-      # because we are recompiling this file to reload the mix project back onto
-      # the project stack.
-      Code.compile_file(file)
-    end
-  end
-
-  defp task_env(task) do
-    if System.get_env("MIX_ENV") do
-      String.to_atom(System.get_env("MIX_ENV"))
-    else
-      task = String.to_atom(task)
-      Mix.Project.config()[:preferred_cli_env][task] || Mix.Task.preferred_cli_env(task) || :dev
-    end
-  end
-
   defp launch_task(task, args) do
-    # This fixes a race condition in  the tests and likely improves reliability when using the
+    # This fixes a race condition in the tests and likely improves reliability when using the
     # debugger as well.
     Process.sleep(100)
 

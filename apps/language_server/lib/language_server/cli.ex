@@ -48,9 +48,6 @@ defmodule ElixirLS.LanguageServer.CLI do
     Launch.limit_num_schedulers()
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
-    # FIXME: Private API
-    true = Mix.Hex.ensure_installed?(false)
-    true = Mix.Hex.ensure_updated?()
 
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
   end

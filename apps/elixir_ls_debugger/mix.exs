@@ -13,6 +13,8 @@ defmodule ElixirLS.Debugger.Mixfile do
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
+      # if we consolidate here debugged code will not work correctly
+      # and debugged protocol implementation will not be available
       consolidate_protocols: false,
       deps: deps(),
       xref: [exclude: [:int, :dbg_iserver]]

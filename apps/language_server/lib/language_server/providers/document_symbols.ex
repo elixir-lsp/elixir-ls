@@ -448,7 +448,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           )
 
         end_location = location[:closing] ->
-          # all closing tags we expect hera are 1 char width
+          # all closing tags we expect here are 1 char width
           SourceFile.elixir_position_to_lsp(
             text,
             {end_location[:line], end_location[:column] + 1}

@@ -31,8 +31,6 @@ defmodule ElixirLS.LanguageServer.Build do
                       fetch_deps(current_deps)
                     end
 
-                    # if we won't do it elixir >= 1.11 warns that protocols have already been consolidated
-                    purge_consolidated_protocols()
                     {status, diagnostics} = run_mix_compile()
 
                     diagnostics = Diagnostics.normalize(diagnostics, root_path)
@@ -78,6 +76,19 @@ defmodule ElixirLS.LanguageServer.Build do
 
     if File.exists?(mixfile) do
       if module = Mix.Project.get() do
+        build_path = Mix.Project.config()[:build_path]
+
+        for {app, path} <- Mix.Project.deps_paths() do
+          child_module =
+            Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
+              mix_project
+            end)
+
+          if child_module do
+            purge_module(child_module)
+          end
+        end
+
         # FIXME: Private API
         Mix.Project.pop()
         purge_module(module)
@@ -102,6 +113,18 @@ defmodule ElixirLS.LanguageServer.Build do
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
 
+      # TODO elixir 1.15 calls
+      # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
+      # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
+      # def cli
+      # do we need that?
+
+      # since elixir 1.10 mix disables undefined warnings for mix.exs
+      # see discussion in https://github.com/elixir-lang/elixir/issues/9676
+      # https://github.com/elixir-lang/elixir/blob/6f96693b355a9b670f2630fd8e6217b69e325c5a/lib/mix/lib/mix/cli.ex#L41
+      old_undefined = Code.get_compiler_option(:no_warn_undefined)
+      Code.put_compiler_option(:no_warn_undefined, :all)
+
       # We can get diagnostics if Mixfile fails to load
       {status, diagnostics} =
         case Kernel.ParallelCompiler.compile([mixfile]) do
@@ -115,6 +138,9 @@ defmodule ElixirLS.LanguageServer.Build do
                 Enum.map(errors, &Diagnostics.mixfile_diagnostic(&1, :error))
             }
         end
+
+      # restore warnings
+      Code.put_compiler_option(:no_warn_undefined, old_undefined)
 
       if status == :ok do
         # The project may override our logger config, so we reset it after loading their config
@@ -136,15 +162,21 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp run_mix_compile do
-    # TODO consider adding --no-compile
-    case Mix.Task.run("compile", ["--return-errors", "--ignore-module-conflict"]) do
+    # TODO --all-warnings not needed on 1.15
+    case Mix.Task.run("compile", [
+           "--return-errors",
+           "--ignore-module-conflict",
+           "--all-warnings",
+           "--no-protocol-consolidation"
+         ]) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
 
       status when status in [:ok, :noop] ->
         {status, []}
 
-      _ ->
+      other ->
+        Logger.debug("mix compile returned #{inspect(other)}")
         {:ok, []}
     end
   end
@@ -167,26 +199,6 @@ defmodule ElixirLS.LanguageServer.Build do
       Logger.error("mix clean returned #{inspect(results)}")
       {:error, :clean_failed}
     end
-  end
-
-  defp purge_consolidated_protocols do
-    config = Mix.Project.config()
-    path = Mix.Project.consolidation_path(config)
-
-    with {:ok, beams} <- File.ls(path) do
-      Enum.map(beams, &(&1 |> Path.rootname(".beam") |> String.to_atom() |> purge_module()))
-    else
-      {:error, :enoent} ->
-        # consolidation_path does not exist
-        :ok
-
-      {:error, reason} ->
-        Logger.warn("Unable to purge consolidated protocols from #{path}: #{inspect(reason)}")
-    end
-
-    # NOTE this implementation is based on https://github.com/phoenixframework/phoenix/commit/b5580e9
-    # calling `Code.delete_path(path)` may be unnecessary in our case
-    Code.delete_path(path)
   end
 
   defp purge_module(module) do
@@ -334,18 +346,28 @@ defmodule ElixirLS.LanguageServer.Build do
 
   def set_compiler_options(options \\ [], parser_options \\ []) do
     parser_options =
-      parser_options
-      |> Keyword.merge(
+      Keyword.merge(parser_options,
         columns: true,
         token_metadata: true
       )
 
     options =
-      options
-      |> Keyword.merge(
+      Keyword.merge(options,
         tracers: [Tracer],
         parser_options: parser_options
       )
+
+    options =
+      if Version.match?(System.version(), ">= 1.14.0") do
+        Keyword.merge(options,
+          # we are running the server with consolidated protocols
+          # this disables warnings `X has already been consolidated`
+          # when running `compile` task
+          ignore_already_consolidated: true
+        )
+      else
+        options
+      end
 
     Code.compiler_options(options)
   end
