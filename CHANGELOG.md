@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.14.1: 14 April 2023
+
+#### Fixes
+
+- Reorder startup sequence to avert mix crash
+
 ### v0.14.0: 14 April 2023
 
 #### Improvements

@@ -3,11 +3,6 @@ defmodule ElixirLS.Utils.Launch do
   @compiled_otp_version System.otp_release()
 
   def start_mix do
-    # reset env and target if it is set
-    Mix.env(:dev)
-    Mix.target(:host)
-    System.put_env([{"MIX_ENV", nil}, {"MIX_TARGET", nil}])
-
     Mix.start()
     Mix.Local.append_archives()
     Mix.Local.append_paths()
@@ -17,6 +12,11 @@ defmodule ElixirLS.Utils.Launch do
     if function_exported?(Hex, :start, 0) do
       Hex.start()
     end
+
+    # reset env and target if it is set
+    Mix.env(:dev)
+    Mix.target(:host)
+    System.put_env([{"MIX_ENV", nil}, {"MIX_TARGET", nil}])
 
     load_dot_config()
 
