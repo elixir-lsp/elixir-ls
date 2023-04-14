@@ -1,5 +1,6 @@
 @echo off & setlocal enabledelayedexpansion
 
+SET ELS_MODE=debugger
 IF EXIST "%APPDATA%\elixir_ls\setup.bat" (
     CALL "%APPDATA%\elixir_ls\setup.bat" > nul
 )
