@@ -88,6 +88,7 @@ The installation process for ElixirLS depends on your editor.
   ;; Make sure to edit the path appropriately, use the .bat script instead for Windows
   (add-to-list 'eglot-server-programs '(elixir-mode "path-to-elixir-ls/release/language_server.sh"))
   ```
+
 </details>
 
 ## Supported versions

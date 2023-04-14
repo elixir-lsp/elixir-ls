@@ -1,39 +1,48 @@
 ### Unreleased
 
-### v0.14.0: x April 2023
+### v0.14.0: 14 April 2023
 
 #### Improvements
 
-- Numerous improvements to variable tracking. This should make navigation to variable definition and references work correctly [sheldak](https://github.com/sheldak)
+- Numerous improvements to variable tracking. This should make navigation to variable definition and references work correctly [Samuel Hełdak](https://github.com/sheldak)
 - Doctests can now be run via Test UI [Carl-Foster](https://github.com/Carl-Foster)
 - Fixed completions of records defined in the same file
+- Fixed support for `alias __MODULE__`
 - Silent crashes in dialyzer fixed
 - Document symbol provider now does not crash on incomplete typespec
-- Debugger now properly tracks running processes. Previously UI was not updated when new processes start or running not monitored processese exit
-- Completion provider returns tpespecs for struct properties in documentation if struct module defines type `t()`
+- Debugger now properly tracks running processes. Previously UI was not updated when new processes start or running not monitored processes exit
+- Debugger now respects `MIX_TARGET` environment variable
+- Undefined function diagnostics no longer emitted from `mix.exs` dependencies. Elixir `mix` swallows those warnings since 1.10
+- Builds now use `--all-warnings` flag on `mix compile`. This should result in more predictable diagnostics in umbrella apps.
+- Completion provider returns typespecs for struct properties in documentation if struct module defines type `t()`
 - Debugger now returns type of breakpoint in the hit event as required by DAP
 - Fixed crash when elixir-ls is run in a directory without `mix.exs`
 - References provider now can find references to elixir modules. Previously modules were found only when a function or macro from that module was called
-- Typespecs from behaviour module are used on callback implementations in completions, hover and specyfication providers
+- Typespecs from behaviour module are used on callback implementations in completions, hover and specification providers
 - `@after_verify` attribute added in elixir 1.14 is recognized as builtin
 - Fixed edge cases when private def would overshadow a public one
-- Quoted expressions are now skipped when code AST is analysed. There is low chance anything useful can be extracted from them
-- Submodule implicit alias behavior is now correctly implementd. This should improve quality in various providers
+- Quoted expressions are now skipped when code AST is analyzed. There is low chance anything useful can be extracted from them
+- Submodule implicit alias behavior is now correctly implemented. This should improve quality in various providers
 - Fixed crash in references provider when reference does not have a line (e.g. in phoenix live views)
 
 ### Refactorings
 
 - Mix Formatter now properly formats elixir-ls code from the top directory
 - Major refactoring of elixir-ls server driven by [Steve Cohen](https://github.com/scohen) is under way. It's not yet complete and can be tested by enabling experimental server. Thanks to others involved ([Scott Ming](https://github.com/scottming), [Samuel Hełdak](https://github.com/sheldak))
+- Language server now runs with consolidated protocols. Consolidation is disabled on each build with `--no-protocol-consolidation` flag on `mix compile`. This should make the server faster. The side effect is more protocol consolidation warnings printed to the console on elixir < 1.14.
+
+#### Deprecations
+
+- This is the last release supporting elixir 1.12
 
 ### v0.13.0: 8 January 2023
 
 #### Improvements
 
-- Completions now return LSP 3.17 `labelDetails`. This allows to provide more contextual detais to completion items
+- Completions now return LSP 3.17 `labelDetails`. This allows to provide more contextual details to completion items
 - Protocol implementations are no longer auto aliased
 - Completions requiring auto aliasing are deprioretized and visually marked
-- Optimisation of references tracing. It should make difference especially in macro heavy modules (e.g. Absinthe schemas)
+- Optimization of references tracing. It should make difference especially in macro heavy modules (e.g. Absinthe schemas)
 - Improvements to dependency reloading on switching branches.
 - Improved compatibility on Windows
 - Definitions provider improved handling of multiline variables [timgent](https://github.com/timgent)
@@ -86,19 +95,20 @@ Improvements:
 - Fixed dialyzer crash on OTP 25
 - Added support for mix formatter plugins ([Dalibor Horinek](https://github.com/DaliborHorinek))
 - Debugger now returns detailed info about ports, pids and function variables
-- Debugger completions now return detal field
+- Debugger completions now return detail field
 - Diagnostic positions now return column position returned by compiler (elixir 1.14+)
 - Diagnostic position fixed to never return invalid negative values
 - An exact `do` keyword completion is now preselected and more preferred over `defoverridable`
-- Fixed hexdoc links in hover for aliased modules and imported functions ([Milo Lee](https://github.com/oo6))
+- Fixed hexdocs links in hover for aliased modules and imported functions ([Milo Lee](https://github.com/oo6))
 - Better module name suggestions in Phoenix `live` directory ([Manos Emmanouilidis](https://github.com/bottlenecked))
 
 **Deprecations**
+
 - Minimum version of Elixir is now 1.11
 
 ### v0.10.0: 10 June 2022
 
-Improvements to debugger addapter:
+Improvements to debugger adapter:
 
 - A lot of new features around breakpoints: function breakpoints, conditional breakpoints, hit count and log points [#656](https://github.com/elixir-lsp/elixir-ls/pull/656), [#661](https://github.com/elixir-lsp/elixir-ls/pull/661), [#671](https://github.com/elixir-lsp/elixir-ls/pull/671) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 - Completions in debugger eval console [#679](https://github.com/elixir-lsp/elixir-ls/pull/679) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
@@ -135,7 +145,7 @@ VSCode:
 - New OTP 25 dialyzer settings (https://github.com/elixir-lsp/vscode-elixir-ls/commit/50a8a53fa79c14d2ea4031f872ec3d7cd32155f5) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 - Compile time environment variables can now be set in extension config [#213](https://github.com/elixir-lsp/vscode-elixir-ls/pull/213) (thanks [vacarsu](https://github.com/vacarsu))
 - Additional watched extensions can now be set in extension config [#197](https://github.com/elixir-lsp/vscode-elixir-ls/pull/197) (thanks [Vanja Bucic](https://github.com/vanjabucic))
-- Improved unquite_slicing highlighting [#221](https://github.com/elixir-lsp/vscode-elixir-ls/pull/221) (thanks [Milo Lee](https://github.com/oo6))
+- Improved unquote_slicing highlighting [#221](https://github.com/elixir-lsp/vscode-elixir-ls/pull/221) (thanks [Milo Lee](https://github.com/oo6))
 - Improved string interpolation highlighting [#229](https://github.com/elixir-lsp/vscode-elixir-ls/pull/229) (thanks [Milo Lee](https://github.com/oo6))
 - Improved regex with < highlighting [#226](https://github.com/elixir-lsp/vscode-elixir-ls/pull/226) (thanks [Tiago Moraes](https://github.com/tiagoefmoraes))
 - Extension updated to use LSP v3.16 [#227](https://github.com/elixir-lsp/vscode-elixir-ls/pull/227) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
@@ -147,6 +157,7 @@ thanks [Łukasz Samson](https://github.com/lukaszsamson), [Thanabodee Charoenpir
 ### v0.9.0: 4 December 2021
 
 Improvements:
+
 - Elixir 1.13 support (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#620](https://github.com/elixir-lsp/elixir-ls/pull/620)
 - Fix formatting performance problems with .formatter.exs in subdirectories (thanks [Jon Leighton](https://github.com/jonleighton)) [#609](https://github.com/elixir-lsp/elixir-ls/pull/609)
 - Allow watching additional extensions via `additionalWatchedExtensions` (thanks [Vanja Bucic](https://github.com/vanjabucic)) [#569](https://github.com/elixir-lsp/elixir-ls/pull/569)
@@ -154,17 +165,21 @@ Improvements:
 - Allow configuring debugExpressionTimeoutMs (thanks [Jason Axelson](https://github.com/axelson)) [#613](https://github.com/elixir-lsp/elixir-ls/pull/613)
 
 Changes:
+
 - Default `fetchDeps` to false (thanks [Jason Axelson](https://github.com/axelson)) [#633](https://github.com/elixir-lsp/elixir-ls/pull/633)
   - `fetchDeps` causes some bad race conditions, especially with Elixir 1.13
 
 Bug Fixes:
+
 - Add indentation following \"do\" completion (thanks [AJ Foster](https://github.com/aj-foster)) [#606](https://github.com/elixir-lsp/elixir-ls/pull/606)
 
 Housekeeping:
+
 - Add initial mkdocs documentation website (thanks [Daniils Petrovs](https://github.com/DaniruKun)) [#619](https://github.com/elixir-lsp/elixir-ls/pull/619)
 - Update to elixir-lsp fork of mix_task_archive_deps (thanks [Jason Axelson](https://github.com/axelson)) [#628](https://github.com/elixir-lsp/elixir-ls/pull/628)
 
 VSCode:
+
 - Change the default of `fetchDeps` to false (thanks [Jason Axelson](https://github.com/axelson)) [#189](https://github.com/elixir-lsp/vscode-elixir-ls/pull/189)
 - Allow configuring the debug expression timeout (thanks [Jason Axelson](https://github.com/axelson)) [#210](https://github.com/elixir-lsp/vscode-elixir-ls/pull/210)
 - Set which pairs of brackets should be colorized (thanks [S. Arjun](https://github.com/systemctl603)) [#207](https://github.com/elixir-lsp/vscode-elixir-ls/pull/207)
@@ -177,7 +192,7 @@ Improvements:
 
 Housekeeping:
 - Remove dependency on forms (thanks [Awlexus](https://github.com/Awlexus)) [#596](https://github.com/elixir-lsp/elixir-ls/pull/596)
-- CI releases: utilize auto seleciton of latest patch version (thanks [Po Chen](https://github.com/princemaple)) [#591](https://github.com/elixir-lsp/elixir-ls/pull/591)
+- CI releases: utilize auto selection of latest patch version (thanks [Po Chen](https://github.com/princemaple)) [#591](https://github.com/elixir-lsp/elixir-ls/pull/591)
 - Change minimum OTP version to 22 in warning message (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#592](https://github.com/elixir-lsp/elixir-ls/pull/592)
 - Fix various typos (thanks [Kian Meng Ang](https://github.com/kianmeng)) [#594](https://github.com/elixir-lsp/elixir-ls/pull/594)
 
