@@ -129,7 +129,7 @@ defmodule ElixirLS.Debugger.Server do
     # check if process is alive to not debug dead ones
     state =
       if Process.alive?(pid) do
-        # monitor to clanup state if process dies
+        # monitor to cleanup state if process dies
         ref = Process.monitor(pid)
         {state, thread_id, _new_ids} = ensure_thread_id(state, pid, [])
 

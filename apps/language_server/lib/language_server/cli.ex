@@ -93,7 +93,7 @@ defmodule ElixirLS.LanguageServer.CLI do
       JsonRpc.show_message(:warning, "OTP compiled without EEP48 documentation chunks")
 
       Logger.warn(
-        "OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with approperiate flags."
+        "OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with appropriate flags."
       )
     end
   end
