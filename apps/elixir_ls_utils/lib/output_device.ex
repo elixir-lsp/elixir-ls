@@ -1,7 +1,7 @@
 defmodule ElixirLS.Utils.OutputDevice do
   @moduledoc """
   Intercepts IO request messages and forwards them to the Output server to be sent as events to
-  the IDE. Implements Erlang I/O Protocol https://erlang.org/doc/apps/stdlib/io_protocol.html
+  the IDE. Implements [Erlang I/O Protocol](https://erlang.org/doc/apps/stdlib/io_protocol.html)
 
   In order to send console output to Visual Studio Code, the debug adapter needs to send events
   using the usual wire protocol. In order to intercept the debugged code's output, we replace the

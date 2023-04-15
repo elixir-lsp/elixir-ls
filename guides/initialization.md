@@ -11,13 +11,13 @@ When launching the elixir_ls server using the scripts, the initialization steps 
 7. Gets the "initialize" request
 8. Starts building/analyzing the project
 
-## Replace default IO with Json RPC notifications
+## Replace default IO with JSON-RPC notifications
 
-The Language Server protocol mandates that all communication between servers are made using UTF-16. BEAM is UTF-8 as default currently (was latin1 in the past which is a type of UTF-16). So, in order to have this kind of encoding/decoding out of the way, it first overrides two processes started by all BEAM instances: `:user` and `:stderr`.
+The Language Server Protocol and Debugger Adapter Protocol mandate that all communication between the client and the server is made using UTF-8 encoded JSON-RPC based protocol. See [LSP Base Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#baseProtocol) and [DAP Base Protocol](https://microsoft.github.io/debug-adapter-protocol/overview/#base-protocol). BEAM character IO is UTF-8 as default currently (was latin1 in the past which is a type of UTF-16). So, in order to have this kind of encoding/decoding out of the way, it first overrides two processes started by all BEAM instances: `:user` and `:stderr` with `ElixirLS.Utils.OutputDevice` in `ElixirLS.Utils.WireProtocol` module.
 
 The first process is the name for standard IO while the second is the the standard error. They are both IO servers, that means, `:gen_server` implementations that follows the [IO protocol](http://erlang.org/doc/apps/stdlib/io_protocol.html).
 
-The servers delegate the callbacks to the module `ElixirLS.LanguageServer.JsonRpc`.
+The servers reads and decodes protocol messages in `ElixirLS.Utils.PacketStream`. Output messages are sent via `ElixirLS.LanguageServer.JsonRpc` or `ElixirLS.Debugger.Output`.
 
 ## Starts Mix
 
