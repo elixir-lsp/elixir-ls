@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.14.2: 15 April 2023
+
+#### Fixes
+
+- Print correct version
+
 ### v0.14.1: 14 April 2023
 
 #### Fixes
