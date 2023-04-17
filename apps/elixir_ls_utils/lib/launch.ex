@@ -16,7 +16,10 @@ defmodule ElixirLS.Utils.Launch do
     # reset env and target if it is set
     Mix.env(:dev)
     Mix.target(:host)
-    System.put_env([{"MIX_ENV", nil}, {"MIX_TARGET", nil}])
+
+    for env <- ["MIX_ENV", "MIX_TARGET"] do
+      System.delete_env(env)
+    end
 
     load_dot_config()
 
