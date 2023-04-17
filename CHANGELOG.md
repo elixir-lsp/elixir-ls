@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.14.3: 17 April 2023
+
+#### Fixes
+
+- Fixed compatibility with elixir 1.12 and 1.13 [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)
+
 ### v0.14.2: 15 April 2023
 
 #### Fixes
