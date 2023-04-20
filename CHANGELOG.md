@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.14.4: 20 April 2023
+
+#### Fixes
+
+- Fixed invalid encoding of messages with unicode strings. This should resolve issues when starting the server in in non-ASCII path
+
 ### v0.14.3: 17 April 2023
 
 #### Fixes
