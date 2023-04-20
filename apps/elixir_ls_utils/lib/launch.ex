@@ -163,4 +163,20 @@ defmodule ElixirLS.Utils.Launch do
     The --help and --version options can be given instead of a task for usage and versioning information.
     """)
   end
+
+  defp from_env(varname, default) do
+    case System.get_env(varname) do
+      nil -> default
+      "" -> default
+      value -> String.to_atom(value)
+    end
+  end
+
+  # this code is executed on Mix.State.init
+  # since we start mix earlier with language server/debugger
+  # we need to reinitialize Mix.State when env is loaded form client settings
+  def reload_mix_env_and_target() do
+    Mix.env(from_env("MIX_ENV", :dev))
+    Mix.target(from_env("MIX_TARGET", :host))
+  end
 end

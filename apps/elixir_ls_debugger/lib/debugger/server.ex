@@ -27,6 +27,7 @@ defmodule ElixirLS.Debugger.Server do
   }
 
   alias ElixirLS.Debugger.Stacktrace.Frame
+  alias ElixirLS.Utils.Launch
   use GenServer
   use Protocol
 
@@ -937,9 +938,10 @@ defmodule ElixirLS.Debugger.Server do
     # the startup sequence here is taken from
     # https://github.com/elixir-lang/elixir/blob/v1.14.4/lib/mix/lib/mix/cli.ex#L158
     # we assume that mix is already started and has archives and tasks loaded
-    ElixirLS.Utils.Launch.load_mix_exs()
-    {task, task_args} = ElixirLS.Utils.Launch.get_task(List.wrap(task) ++ task_args)
-    ElixirLS.Utils.Launch.maybe_change_env_and_target(task)
+    Launch.reload_mix_env_and_target()
+    Launch.load_mix_exs()
+    {task, task_args} = Launch.get_task(List.wrap(task) ++ task_args)
+    Launch.maybe_change_env_and_target(task)
 
     Output.debugger_console("Running with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}\n")
 

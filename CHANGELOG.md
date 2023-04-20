@@ -1,5 +1,9 @@
 ### Unreleased
 
+#### Fixes
+
+- Fixed regression in debugger not respecting `MIX_ENV` and `MIX_TARGET`
+
 ### v0.14.4: 20 April 2023
 
 #### Fixes

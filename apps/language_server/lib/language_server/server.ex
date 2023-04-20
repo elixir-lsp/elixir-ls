@@ -1146,7 +1146,7 @@ defmodule ElixirLS.LanguageServer.Server do
       state
       |> maybe_set_env_vars(env_vars)
       |> set_mix_env(mix_env)
-      |> maybe_set_mix_target(mix_target)
+      |> set_mix_target(mix_target)
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
       |> add_watched_extensions(additional_watched_extensions)
@@ -1217,10 +1217,17 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
+  defp set_mix_env(state = %__MODULE__{}, env) when env in [nil, ""] do
+    # mix defaults to :dev env but we choose :test as this results in better
+    # support for test files
+    set_mix_env(state, "test")
+  end
+
   defp set_mix_env(state = %__MODULE__{}, env) do
     prev_env = state.settings["mixEnv"]
 
     if is_nil(prev_env) or env == prev_env do
+      System.put_env("MIX_ENV", env)
       Mix.env(String.to_atom(env))
     else
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
@@ -1232,18 +1239,16 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp maybe_set_mix_target(state = %__MODULE__{}, nil), do: state
-
-  defp maybe_set_mix_target(state = %__MODULE__{}, ""), do: state
-
-  defp maybe_set_mix_target(state = %__MODULE__{}, target) do
-    set_mix_target(state, target)
+  defp set_mix_target(state = %__MODULE__{}, target) when target in [nil, ""] do
+    # mix defaults to :host target
+    set_mix_target(state, "host")
   end
 
   defp set_mix_target(state = %__MODULE__{}, target) do
     prev_target = state.settings["mixTarget"]
 
     if is_nil(prev_target) or target == prev_target do
+      System.put_env("MIX_TARGET", target)
       Mix.target(String.to_atom(target))
     else
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
