@@ -284,7 +284,7 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
       output_device: output_device
     } do
       send(output_device, {:io_request, self(), 123, :getopts})
-      assert_receive({:io_reply, 123, [binary: true, encoding: :unicode]})
+      assert_receive({:io_reply, 123, [binary: true, encoding: :latin1]})
     end
 
     test "valid can be set", %{
