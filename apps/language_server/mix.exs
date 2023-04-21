@@ -1,10 +1,10 @@
 defmodule ElixirLS.LanguageServer.Mixfile do
   use Mix.Project
 
-  @version (__DIR__
-    |> Path.join("../../VERSION")
-    |> File.read!()
-    |> String.trim())
+  @version __DIR__
+           |> Path.join("../../VERSION")
+           |> File.read!()
+           |> String.trim()
 
   def project do
     [

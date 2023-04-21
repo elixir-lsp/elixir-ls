@@ -5,10 +5,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.Restart do
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
   def execute(_args, _state) do
-    Task.start(fn ->
-      Logger.info("ElixirLS will restart")
-      Process.sleep(1000)
-      System.stop(0)
-    end)
+    {:ok, _pid} =
+      Task.start(fn ->
+        Logger.info("ElixirLS will restart")
+        Process.sleep(1000)
+        System.stop(0)
+      end)
+
+    {:ok, %{}}
   end
 end
