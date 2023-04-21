@@ -15,7 +15,7 @@ ElixirLS generally aims to support the last 3 versions of Elixir and the last 3 
 Follow those instructions when publishing a new release.
 
 1. Bump the changelog
-2. Bump the version numbers in `apps/elixir_ls_debugger/mix.exs`, `apps/elixir_ls_utils/mix.exs`, and `apps/language_server/mix.exs`
+2. Bump the version number in `VERSION`
 3. Make PR
 4. Merge PR
 5. Pull down the latest master

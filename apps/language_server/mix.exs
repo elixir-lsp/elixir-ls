@@ -1,10 +1,15 @@
 defmodule ElixirLS.LanguageServer.Mixfile do
   use Mix.Project
 
+  @version (__DIR__
+    |> Path.join("../../VERSION")
+    |> File.read!()
+    |> String.trim())
+
   def project do
     [
       app: :language_server,
-      version: "0.14.4",
+      version: @version,
       elixir: ">= 1.12.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",

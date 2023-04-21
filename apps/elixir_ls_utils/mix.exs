@@ -1,10 +1,15 @@
 defmodule ElixirLS.Utils.Mixfile do
   use Mix.Project
 
+  @version (__DIR__
+    |> Path.join("../../VERSION")
+    |> File.read!()
+    |> String.trim())
+
   def project do
     [
       app: :elixir_ls_utils,
-      version: "0.14.4",
+      version: @version,
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
