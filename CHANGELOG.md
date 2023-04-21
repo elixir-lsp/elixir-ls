@@ -3,6 +3,7 @@
 #### Fixes
 
 - Fixed regression in debugger not respecting `MIX_ENV` and `MIX_TARGET`
+- Silence output from `dialyxir` making client disconnect from the server on elixir < 1.14
 
 ### v0.14.4: 20 April 2023
 
