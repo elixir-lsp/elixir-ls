@@ -155,7 +155,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       )
 
     items =
-      ElixirSense.suggestions(text, line, character, required_alias: true)
+      build_suggestions(text, line, character, options)
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
@@ -169,6 +169,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> items_to_json(options)
 
     {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
+  end
+
+  defp build_suggestions(text, line, character, options) do
+    required_alias = Keyword.get(options, :auto_insert_required_alias, true)
+    ElixirSense.suggestions(text, line, character, required_alias: required_alias)
   end
 
   defp maybe_add_do(completion_items, context) do

@@ -443,6 +443,35 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
              ] = item["additionalTextEdits"]
     end
 
+    test "suggests nothing when auto_insert_required_alias is false" do
+      supports = Keyword.put(@supports, :auto_insert_required_alias, false)
+
+      text = """
+      defmodule MyModule do
+        @moduledoc \"\"\"
+        This
+        is a
+        long
+        moduledoc
+
+        \"\"\"
+
+        def dummy_function() do
+          ExampleS
+          #       ^
+        end
+      end
+      """
+
+      {line, char} = {10, 12}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, supports)
+
+      # nothing is suggested
+      assert [] = items
+    end
+
     test "no crash on first line" do
       text = "defmodule MyModule do"
 

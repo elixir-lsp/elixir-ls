@@ -301,6 +301,7 @@ Below is a list configuration options supported by ElixirLS language server. Ple
 <dt>elixirLS.fetchDeps</dt><dd>Automatically fetch project dependencies when compiling</dd>
 <dt>elixirLS.suggestSpecs</dt><dd>Suggest @spec annotations inline using Dialyzer's inferred success typings (Requires Dialyzer)</dd>
 <dt>elixirLS.trace.server</dt><dd>Traces the communication between VS Code and the Elixir language server.</dd>
+<dt>elixirLS.autoInsertRequiredAlias</dt><dd>Enable auto-insert required alias. By default, it's true, which means enabled.</dd>
 <dt>elixirLS.signatureAfterComplete</dt><dd>Show signature help after confirming autocomplete</dd>
 <dt>elixirLS.enableTestLenses</dt><dd>Show code lenses to run tests in terminal</dd>
 <dt>elixirLS.additionalWatchedExtensions</dt><dd>Additional file types capable of triggering a build on change</dd>
