@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.14.6: x May 2023
+
+#### Fixes
+
+- Pin elixir_sense version to ensure compatibility
+
 ### v0.14.5: 21 April 2023
 
 #### Fixes

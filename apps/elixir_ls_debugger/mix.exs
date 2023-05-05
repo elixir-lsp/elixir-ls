@@ -32,7 +32,8 @@ defmodule ElixirLS.Debugger.Mixfile do
 
   defp deps do
     [
-      {:elixir_sense, github: "elixir-lsp/elixir_sense"},
+      {:elixir_sense,
+       github: "elixir-lsp/elixir_sense", ref: "71efd1e2efbac43e6c98c525cc879ddd747ac62e"},
       {:elixir_ls_utils, in_umbrella: true},
       {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false}
     ]

@@ -32,7 +32,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   defp deps do
     [
       {:elixir_ls_utils, in_umbrella: true},
-      {:elixir_sense, github: "elixir-lsp/elixir_sense"},
+      {:elixir_sense,
+       github: "elixir-lsp/elixir_sense", ref: "71efd1e2efbac43e6c98c525cc879ddd747ac62e"},
       {:erl2ex, github: "dazuma/erl2ex"},
       {:sourceror, "0.11.2"},
       {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false},
