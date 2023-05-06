@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
   alias ElixirLS.LanguageServer.Experimental.CodeMod
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Ast
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction
+  alias LSP.Requests.CodeAction
   alias LSP.Types.CodeAction, as: CodeActionResult
   alias LSP.Types.Diagnostic
   alias LSP.Types.TextEdit

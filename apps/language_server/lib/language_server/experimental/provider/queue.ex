@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Queue do
   defmodule State do
     alias ElixirLS.LanguageServer.Experimental.Provider.Env
     alias ElixirLS.LanguageServer.Experimental
-    alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
+    alias LSP.Requests
     alias ElixirLS.LanguageServer.Experimental.Provider.Handlers
     alias ElixirLS.LanguageServer.Experimental.Provider.Queue
     alias ElixirLS.Utils.WireProtocol
@@ -141,7 +141,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Queue do
 
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
+  alias LSP.Requests
 
   use GenServer
 

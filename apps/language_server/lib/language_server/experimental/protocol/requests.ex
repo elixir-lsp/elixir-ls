@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
+defmodule LSP.Requests do
   alias ElixirLS.LanguageServer.Experimental.Protocol.LspTypes
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   alias LSP.Types

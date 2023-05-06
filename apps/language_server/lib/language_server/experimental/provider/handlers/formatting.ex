@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.Formatting do
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Format
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
+  alias LSP.Requests
   alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
   require Logger
 

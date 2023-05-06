@@ -5,8 +5,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.Configuration do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Id
   alias LSP.Notifications.DidChangeConfiguration
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes.Registration
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.RegisterCapability
+  alias LSP.Requests
+  alias LSP.Requests.RegisterCapability
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration.Support
 
   defstruct project: nil,

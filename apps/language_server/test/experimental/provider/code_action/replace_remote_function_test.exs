@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunctionTest do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction, as: CodeActionRequest
+  alias LSP.Requests
+  alias LSP.Requests.CodeAction, as: CodeActionRequest
   alias LSP.Types.CodeAction
   alias LSP.Types.CodeAction, as: CodeActionReply
   alias LSP.Types.Diagnostic

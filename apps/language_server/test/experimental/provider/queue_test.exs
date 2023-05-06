@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.QueueTest do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
+  alias LSP.Requests
   alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
   alias ElixirLS.LanguageServer.Experimental.Provider
   alias ElixirLS.LanguageServer.Experimental.Provider.Env

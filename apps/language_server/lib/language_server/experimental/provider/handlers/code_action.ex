@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.CodeAction do
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemoteFunction
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscore
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
+  alias LSP.Requests
   alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
 
   require Logger

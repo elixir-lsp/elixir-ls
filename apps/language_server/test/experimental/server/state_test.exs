@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.Initialize
+  alias LSP.Requests.Initialize
   alias LSP.Notifications
   alias LSP.Types.TextDocument
 

@@ -1,5 +1,4 @@
 defmodule ElixirLS.LanguageServer.Experimental.LanguageServer do
-  alias ElixirLS.LanguageServer.Experimental.Protocol
 
   require Logger
 
@@ -58,7 +57,7 @@ defmodule ElixirLS.LanguageServer.Experimental.LanguageServer do
   defp load_handler_states do
     access_map =
       Map.merge(
-        Protocol.Requests.__meta__(:access),
+        LSP.Requests.__meta__(:access),
         LSP.Notifications.__meta__(:access)
       )
 

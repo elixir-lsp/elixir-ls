@@ -3,7 +3,7 @@ defmodule ElixirLS.Experimental.Server.ConfigurationTest do
   alias ElixirLS.LanguageServer.Experimental.Project
   alias LSP.Notifications.DidChangeConfiguration
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes.Registration
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.RegisterCapability
+  alias LSP.Requests.RegisterCapability
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.Paths
