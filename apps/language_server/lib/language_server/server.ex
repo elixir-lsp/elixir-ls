@@ -670,6 +670,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(completion_req(_id, uri, line, character), state = %__MODULE__{}) do
+    settings = state.settings || %{}
+
     source_file = get_source_file(state, uri)
 
     snippets_supported =
@@ -710,7 +712,8 @@ defmodule ElixirLS.LanguageServer.Server do
       end
       |> MapSet.new()
 
-    signature_after_complete = Map.get(state.settings || %{}, "signatureAfterComplete", true)
+    auto_insert_required_alias = Map.get(settings, "autoInsertRequiredAlias", true)
+    signature_after_complete = Map.get(settings, "signatureAfterComplete", true)
 
     path =
       case uri do
@@ -725,6 +728,7 @@ defmodule ElixirLS.LanguageServer.Server do
         tags_supported: tags_supported,
         signature_help_supported: signature_help_supported,
         locals_without_parens: locals_without_parens,
+        auto_insert_required_alias: auto_insert_required_alias,
         signature_after_complete: signature_after_complete,
         file_path: path
       )
