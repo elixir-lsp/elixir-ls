@@ -48,20 +48,20 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Notification do
         Convert.to_elixir(request)
       end
 
-      defimpl JasonVendored.Encoder, for: unquote(__CALLER__.module) do
+      defimpl JasonV.Encoder, for: unquote(__CALLER__.module) do
         def encode(notification, opts) do
-          JasonVendored.Encoder.encode(notification.lsp, opts)
+          JasonV.Encoder.encode(notification.lsp, opts)
         end
       end
 
-      defimpl JasonVendored.Encoder, for: unquote(lsp_module_name) do
+      defimpl JasonV.Encoder, for: unquote(lsp_module_name) do
         def encode(notification, opts) do
           %{
             jsonrpc: "2.0",
             method: unquote(method),
             params: Map.take(notification, unquote(param_names))
           }
-          |> JasonVendored.Encode.map(opts)
+          |> JasonV.Encode.map(opts)
         end
       end
     end

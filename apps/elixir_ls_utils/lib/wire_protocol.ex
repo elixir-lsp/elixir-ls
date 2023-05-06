@@ -8,7 +8,7 @@ defmodule ElixirLS.Utils.WireProtocol do
 
   def send(packet) do
     pid = io_dest()
-    body = JasonVendored.encode_to_iodata!(packet)
+    body = JasonV.encode_to_iodata!(packet)
 
     IO.binwrite(pid, [
       "Content-Length: ",

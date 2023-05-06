@@ -21,7 +21,7 @@ defmodule ElixirLS.Utils.Mixfile do
       build_per_environment: false,
       consolidate_protocols: false,
       deps: deps(),
-      xref: [exclude: [JasonVendored, Logger, Hex]]
+      xref: [exclude: [JasonV, Logger, Hex]]
     ]
   end
 
@@ -32,7 +32,7 @@ defmodule ElixirLS.Utils.Mixfile do
 
   defp deps do
     [
-      {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
+      {:jason_v, github: "elixir-lsp/jason", ref: "c81537e2a5e1acacb915cf339fe400357e3c2aaa"},
       {:mix_task_archive_deps, github: "elixir-lsp/mix_task_archive_deps"},
       {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false}
     ]

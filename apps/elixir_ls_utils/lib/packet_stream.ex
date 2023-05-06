@@ -90,7 +90,7 @@ defmodule ElixirLS.Utils.PacketStream do
               ^content_length ->
                 # though jason docs suggest using `strings: :copy` when parts of binary may be stored
                 # processes/ets in our case it does not help (as of OTP 23)
-                JasonVendored.decode(body)
+                JasonV.decode(body)
 
               _other ->
                 {:error, :truncated}

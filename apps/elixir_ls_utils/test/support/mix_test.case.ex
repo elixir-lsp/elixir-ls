@@ -26,7 +26,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     dialyzer
     dialyxir_vendored
     erl2ex
-    jason_vendored
+    jason_v
     )a
 
   setup do

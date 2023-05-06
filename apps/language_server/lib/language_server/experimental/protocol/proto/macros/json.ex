@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Json do
 
   def build(dest_module) do
     quote location: :keep do
-      defimpl JasonVendored.Encoder, for: unquote(dest_module) do
+      defimpl JasonV.Encoder, for: unquote(dest_module) do
         def encode(%struct_module{} = value, opts) do
           encoded_pairs =
             for {field_name, field_type} <- unquote(dest_module).__meta__(:types),
@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Macros.Json do
             {:.., value} when is_map(value) -> Enum.to_list(value)
             {k, v} -> [{camelize(k), v}]
           end)
-          |> JasonVendored.Encode.keyword(opts)
+          |> JasonV.Encode.keyword(opts)
         end
 
         defp get_field_value(%struct_module{} = struct, :..) do

@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Lsp.Mappings do
   defmodule Mapping do
-    @derive JasonVendored.Encoder
+    @derive JasonV.Encoder
 
     defstruct [:source, :destination, :imported_version]
 
@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Lsp.Mappings do
   def write(%__MODULE__{} = mappings) do
     sorted = Enum.sort_by(mappings.mappings, fn %Mapping{} = mapping -> mapping.source end)
 
-    with {:ok, json_text} <- JasonVendored.encode(sorted, pretty: true) do
+    with {:ok, json_text} <- JasonV.encode(sorted, pretty: true) do
       json_text = [json_text, "\n"]
       File.write(file_path(), json_text)
     end
@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Lsp.Mappings do
     import_file_path = file_path()
 
     with {:ok, json_text} <- File.read(import_file_path),
-         {:ok, contents} <- JasonVendored.decode(json_text) do
+         {:ok, contents} <- JasonV.decode(json_text) do
       {:ok, from_json(contents)}
     end
   end

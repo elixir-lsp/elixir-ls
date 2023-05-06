@@ -272,7 +272,7 @@ defmodule ElixirLS.LanguageServer.Build do
          :elixir_ls_utils,
          :elixir_sense,
          :stream_data,
-         :jason_vendored,
+         :jason_v,
          :path_glob_vendored,
          :dialyxir_vendored,
          :erl2ex,

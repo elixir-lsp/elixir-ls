@@ -65,8 +65,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
   def to_map(%Range{} = range) do
     range
-    |> JasonVendored.encode!()
-    |> JasonVendored.decode!()
+    |> JasonV.encode!()
+    |> JasonV.decode!()
   end
 
   test "produces no actions if the name or variable is not found" do
