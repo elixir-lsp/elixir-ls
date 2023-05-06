@@ -451,9 +451,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     # info may not be available is when it has been stripped by the beam_lib
     # module, but that shouldn't be the case. More info:
     # http://erlang.org/doc/reference_manual/modules.html#module_info-0-and-module_info-1-functions
-    module.module_info(:compile)
-    |> Keyword.get(:source, fallback)
-    |> Path.relative_to_cwd()
+    if Code.ensure_loaded?(module) do
+      module.module_info(:compile)
+      |> Keyword.get(:source, fallback)
+      |> Path.relative_to_cwd()
+    else
+      # In case the file fails to load return fallback
+      Path.relative_to_cwd(fallback)
+    end
   end
 
   defp dependent_modules(modules, mod_deps, result \\ MapSet.new())
