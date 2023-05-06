@@ -36,7 +36,7 @@ defmodule ElixirLS.Debugger.Mixfile do
        github: "elixir-lsp/elixir_sense", ref: "71efd1e2efbac43e6c98c525cc879ddd747ac62e"},
       {:elixir_ls_utils, in_umbrella: true},
       {:jason_v, github: "elixir-lsp/jason", ref: "c81537e2a5e1acacb915cf339fe400357e3c2aaa"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false}
+      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: "896fa45817c6a1be8ec408577c88ab52c27f6851", runtime: false}
     ]
   end
 end

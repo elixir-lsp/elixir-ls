@@ -34,7 +34,7 @@ defmodule ElixirLS.Utils.Mixfile do
     [
       {:jason_v, github: "elixir-lsp/jason", ref: "c81537e2a5e1acacb915cf339fe400357e3c2aaa"},
       {:mix_task_archive_deps, github: "elixir-lsp/mix_task_archive_deps"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false}
+      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: "896fa45817c6a1be8ec408577c88ab52c27f6851", runtime: false}
     ]
   end
 
