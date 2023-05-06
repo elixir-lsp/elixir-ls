@@ -34,7 +34,10 @@ defmodule ElixirLS.Debugger.Output do
   end
 
   def debugger_important(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "important", "output" => maybe_append_newline(str)})
+    send_event(server, "output", %{
+      "category" => "important",
+      "output" => maybe_append_newline(str)
+    })
   end
 
   def debuggee_out(server \\ __MODULE__, str) when is_binary(str) do

@@ -41,6 +41,10 @@ defmodule ElixirLS.LanguageServer.CLI do
       "Running on elixir #{versions.current_elixir_version} on OTP #{versions.current_otp_version}"
     )
 
+    Logger.info(
+      "Protocols are #{unless(Protocol.consolidated?(Enumerable), do: "not ", else: "")}consolidated"
+    )
+
     check_otp_doc_chunks()
     check_elixir_sources()
     check_otp_sources()

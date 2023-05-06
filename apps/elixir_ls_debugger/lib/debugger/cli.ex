@@ -18,6 +18,10 @@ defmodule ElixirLS.Debugger.CLI do
       "Running on elixir #{versions.current_elixir_version} on OTP #{versions.current_otp_version}"
     )
 
+    Output.debugger_console(
+      "Protocols are #{unless(Protocol.consolidated?(Enumerable), do: "not ", else: "")}consolidated"
+    )
+
     Launch.limit_num_schedulers()
     warn_if_unsupported_version()
     WireProtocol.stream_packets(&Server.receive_packet/1)
