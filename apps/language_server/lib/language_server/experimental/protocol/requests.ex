@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Experimental.Protocol.Requests do
   alias ElixirLS.LanguageServer.Experimental.Protocol.LspTypes
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
 
   # Client -> Server request
   defmodule Initialize do

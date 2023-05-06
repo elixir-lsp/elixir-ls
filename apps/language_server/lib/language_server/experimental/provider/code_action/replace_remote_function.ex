@@ -6,10 +6,10 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceRemote
   alias ElixirLS.LanguageServer.Experimental.CodeMod
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Ast
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionResult
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace
+  alias LSP.Types.CodeAction, as: CodeActionResult
+  alias LSP.Types.Diagnostic
+  alias LSP.Types.TextEdit
+  alias LSP.Types.Workspace
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirSense.Core.Parser
 

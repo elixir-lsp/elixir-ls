@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Experimental.Protocol.Responses do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
 
   defmodule FindReferences do
     use Proto

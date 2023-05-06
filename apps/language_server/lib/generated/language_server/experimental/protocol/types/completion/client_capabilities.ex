@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.ClientCapabilities do
+defmodule LSP.Types.Completion.ClientCapabilities do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
 
   defmodule CompletionItem do
     use Proto

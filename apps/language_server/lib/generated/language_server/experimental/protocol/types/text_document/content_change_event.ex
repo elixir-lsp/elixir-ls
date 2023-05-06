@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent do
+defmodule LSP.Types.TextDocument.ContentChangeEvent do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
 
   defmodule TextDocumentContentChangeEvent do
     use Proto

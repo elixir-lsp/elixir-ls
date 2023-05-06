@@ -1,9 +1,9 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFileTest do
   alias ElixirLS.LanguageServer.Experimental
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
+  alias LSP.Types.Position
+  alias LSP.Types.Range
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
     as: RangedContentChangeEvent
 
   alias ElixirLS.LanguageServer.SourceFile

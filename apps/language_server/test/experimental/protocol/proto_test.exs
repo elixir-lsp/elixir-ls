@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   import ElixirLS.LanguageServer.Fixtures.LspProtocol
 

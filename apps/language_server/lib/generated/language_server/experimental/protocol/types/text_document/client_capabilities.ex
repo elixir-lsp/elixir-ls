@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ClientCapabilities do
+defmodule LSP.Types.TextDocument.ClientCapabilities do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   use Proto
 
   deftype call_hierarchy: optional(Types.CallHierarchy.ClientCapabilities),

@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.Initialize.Params do
+defmodule LSP.Types.Initialize.Params do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
 
   defmodule ClientInfo1 do
     use Proto

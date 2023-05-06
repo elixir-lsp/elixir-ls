@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.ReplaceWithUnderscore do
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Ast
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Text
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias LSP.Types.TextEdit
 
   @spec text_edits(String.t(), Ast.t(), String.t() | atom) :: {:ok, [TextEdit.t()]} | :error
   def text_edits(original_text, ast, variable_name) do

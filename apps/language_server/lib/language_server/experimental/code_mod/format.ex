@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias LSP.Types.TextEdit
 
   require Logger
   @type formatter_function :: (String.t() -> any) | nil

@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.Document.Symbol.ClientCapabilities do
+defmodule LSP.Types.Document.Symbol.ClientCapabilities do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
 
   defmodule SymbolKind do
     use Proto

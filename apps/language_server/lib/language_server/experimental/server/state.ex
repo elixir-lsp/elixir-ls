@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
   }
 
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.Initialize
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument
+  alias LSP.Types.TextDocument
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 

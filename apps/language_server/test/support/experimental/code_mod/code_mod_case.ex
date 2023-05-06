@@ -1,5 +1,5 @@
 defmodule ElixirLS.Test.CodeMod.Case do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
     as: RangedContentChangeEvent
 
   alias ElixirLS.LanguageServer.Experimental.SourceFile

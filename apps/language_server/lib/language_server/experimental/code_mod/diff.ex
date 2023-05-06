@@ -1,8 +1,8 @@
 defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Diff do
   alias ElixirLS.LanguageServer.Experimental.CodeUnit
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias LSP.Types.Position
+  alias LSP.Types.Range
+  alias LSP.Types.TextEdit
 
   @spec diff(String.t(), String.t()) :: [TextEdit.t()]
   def diff(source, dest) do

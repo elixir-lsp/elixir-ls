@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.Workspace.Edit do
+defmodule LSP.Types.Workspace.Edit do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   use Proto
 
   deftype change_annotations: optional(map_of(Types.ChangeAnnotation)),

@@ -1,12 +1,12 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.Initialize
   alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument
+  alias LSP.Types.TextDocument
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
     as: RangedContentChangeEvent
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
     as: ReplaceContentChangeEvent
 
   alias ElixirLS.LanguageServer.Experimental.SourceFile

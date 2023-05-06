@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.Window.ClientCapabilities do
+defmodule LSP.Types.Window.ClientCapabilities do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   use Proto
 
   deftype show_document: optional(Types.ShowDocument.ClientCapabilities),

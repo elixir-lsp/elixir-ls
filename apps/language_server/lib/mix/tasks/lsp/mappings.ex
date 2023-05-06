@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Lsp.Mappings do
     end
   end
 
-  @types_module ElixirLS.LanguageServer.Experimental.Protocol.Types
+  @types_module LSP.Types
   @proto_module ElixirLS.LanguageServer.Experimental.Protocol.Proto
 
   defstruct [:mappings, :imported_lsp_names, :types_module, :proto_module]

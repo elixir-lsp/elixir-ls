@@ -1,7 +1,7 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction.Context do
+defmodule LSP.Types.CodeAction.Context do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   use Proto
 
   deftype diagnostics: list_of(Types.Diagnostic),

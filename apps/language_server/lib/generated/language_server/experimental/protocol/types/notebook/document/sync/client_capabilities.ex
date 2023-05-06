@@ -1,5 +1,5 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.Notebook.Document.Sync.ClientCapabilities do
+defmodule LSP.Types.Notebook.Document.Sync.ClientCapabilities do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   use Proto
 

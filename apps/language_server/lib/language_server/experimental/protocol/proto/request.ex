@@ -33,7 +33,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
       end
 
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
-      alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+      alias LSP.Types
 
       unquote(
         Message.build({:request, :elixir}, method, access, elixir_types, param_names,

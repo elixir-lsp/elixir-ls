@@ -1,5 +1,5 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.InlayHint.ClientCapabilities do
+defmodule LSP.Types.InlayHint.ClientCapabilities do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
 
   defmodule ResolveSupport do

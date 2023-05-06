@@ -1,5 +1,5 @@
 # This file's contents are auto-generated. Do not edit.
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Types.Completion.Item.Kind do
+defmodule LSP.Types.Completion.Item.Kind do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   use Proto
 

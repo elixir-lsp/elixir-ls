@@ -2,7 +2,7 @@ defmodule ElixirLS.Experimental.Provider.Handlers.FindReferencesTest do
   alias ElixirLS.LanguageServer.Build
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.FindReferences
   alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
   alias ElixirLS.LanguageServer.Experimental.Provider.Handlers
   alias ElixirLS.LanguageServer.Experimental.SourceFile

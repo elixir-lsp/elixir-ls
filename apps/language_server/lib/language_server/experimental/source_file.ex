@@ -1,11 +1,11 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFile do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
     as: RangedTextDocumentContentChangeEvent
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
     as: ReplaceContentChangeEvent
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias LSP.Types.TextEdit
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Line
