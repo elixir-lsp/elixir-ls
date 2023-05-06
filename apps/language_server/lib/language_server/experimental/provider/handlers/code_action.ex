@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.CodeAction do
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscore
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
   alias LSP.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
+  alias LSP.Responses
 
   require Logger
 

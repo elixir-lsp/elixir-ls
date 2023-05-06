@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
   alias ElixirLS.LanguageServer.Experimental.Provider
   alias LSP.Notifications
   alias LSP.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
+  alias LSP.Responses
   alias ElixirLS.LanguageServer.Experimental.Server.State
 
   import Logger

@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.Formatting do
   alias ElixirLS.LanguageServer.Experimental.Provider.Env
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Format
   alias LSP.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
+  alias LSP.Responses
   require Logger
 
   def handle(%Requests.Formatting{} = request, %Env{} = env) do

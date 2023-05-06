@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.FindReferences 
   alias ElixirLS.LanguageServer.Tracer
 
   alias LSP.Requests.FindReferences
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
+  alias LSP.Responses
   alias LSP.Types.Location
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
