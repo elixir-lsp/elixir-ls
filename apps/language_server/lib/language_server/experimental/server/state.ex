@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server.State do
   alias ElixirLS.Utils.WireProtocol
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications.{
+  alias LSP.Notifications.{
     DidChange,
     DidChangeConfiguration,
     DidClose,

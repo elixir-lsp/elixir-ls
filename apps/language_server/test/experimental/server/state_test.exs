@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server.StateTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.Initialize
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications
+  alias LSP.Notifications
   alias LSP.Types.TextDocument
 
   alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,

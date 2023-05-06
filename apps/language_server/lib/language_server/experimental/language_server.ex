@@ -59,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Experimental.LanguageServer do
     access_map =
       Map.merge(
         Protocol.Requests.__meta__(:access),
-        Protocol.Notifications.__meta__(:access)
+        LSP.Notifications.__meta__(:access)
       )
 
     :persistent_term.put(:handler_states, access_map)

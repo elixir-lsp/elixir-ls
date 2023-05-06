@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.Notifications do
+defmodule LSP.Notifications do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   alias LSP.Types
 

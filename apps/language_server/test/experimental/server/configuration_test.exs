@@ -1,7 +1,7 @@
 defmodule ElixirLS.Experimental.Server.ConfigurationTest do
   alias ElixirLS.LanguageServer.Dialyzer
   alias ElixirLS.LanguageServer.Experimental.Project
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications.DidChangeConfiguration
+  alias LSP.Notifications.DidChangeConfiguration
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes.Registration
   alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.RegisterCapability
   alias ElixirLS.LanguageServer.Experimental.Server.Configuration
