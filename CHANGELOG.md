@@ -1,10 +1,17 @@
 ### Unreleased
 
-### v0.14.6: x May 2023
+### v0.14.6: 6 May 2023
+
+#### Improvements
+
+- added option `elixirLS.autoInsertRequiredAlias` controlling if complete provider
+will auto insert aliases [Zeke Dou](https://github.com/c4710n)
 
 #### Fixes
 
-- Pin elixir_sense version to ensure compatibility
+- Pin elixir_sense, dialyxir and jason versions to ensure compatibility
+- Reduce long file names. This should fix compilation issues on some filesystems
+- Fixed crash in dialyzer
 
 ### v0.14.5: 21 April 2023
 
