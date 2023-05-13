@@ -3,7 +3,16 @@ defmodule ElixirLS.Utils.PacketStream do
   Reads from an IO device and provides a stream of incoming packets
   """
 
-  def stream(pid \\ Process.group_leader()) do
+  def stream(pid \\ Process.group_leader(), halt_on_error? \\ false) do
+    stream_pid = self()
+    Task.start_link(fn ->
+      ref = Process.monitor(pid)
+      receive do
+        {:DOWN, ^ref, :process, _pid, reason} ->
+          send(stream_pid, {:exit_reason, reason})
+      end
+    end)
+
     if is_pid(pid) do
       :ok = :io.setopts(pid, binary: true, encoding: :latin1)
     end
@@ -31,7 +40,30 @@ defmodule ElixirLS.Utils.PacketStream do
           :ok
 
         {:error, reason} ->
-          raise "Unable to read from device: #{inspect(reason)}"
+          "Unable to read from input device: #{inspect(reason)}"
+
+          error_message = unless Process.alive?(pid) do
+            receive do
+              {:exit_reason, exit_reason} ->
+                "Input device terminated: #{inspect(exit_reason)}"
+            after
+              500 -> "Input device terminated"
+            end
+          else
+            "Unable to read from device: #{inspect(reason)}"
+          end
+
+          if halt_on_error? do
+            if ElixirLS.Utils.WireProtocol.io_intercepted? do
+              ElixirLS.Utils.WireProtocol.undo_intercept_output
+            end
+
+            IO.puts(:stderr, error_message)
+            
+            System.halt(1)
+          else
+            raise error_message
+          end
       end
     )
   end

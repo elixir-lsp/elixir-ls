@@ -26,8 +26,6 @@ defmodule ElixirLS.Utils.OutputDevice do
     }
   end
 
-  def get_opts, do: @opts
-
   ## Implementation
 
   defp loop(state) do
