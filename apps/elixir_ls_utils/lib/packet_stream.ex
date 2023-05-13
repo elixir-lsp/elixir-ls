@@ -5,8 +5,10 @@ defmodule ElixirLS.Utils.PacketStream do
 
   def stream(pid, halt_on_error? \\ false) when is_pid(pid) do
     stream_pid = self()
+
     Task.start_link(fn ->
       ref = Process.monitor(pid)
+
       receive do
         {:DOWN, ^ref, :process, _pid, reason} ->
           send(stream_pid, {:exit_reason, reason})
@@ -38,24 +40,25 @@ defmodule ElixirLS.Utils.PacketStream do
         {:error, reason} ->
           "Unable to read from input device: #{inspect(reason)}"
 
-          error_message = unless Process.alive?(pid) do
-            receive do
-              {:exit_reason, exit_reason} ->
-                "Input device terminated: #{inspect(exit_reason)}"
-            after
-              500 -> "Input device terminated"
+          error_message =
+            unless Process.alive?(pid) do
+              receive do
+                {:exit_reason, exit_reason} ->
+                  "Input device terminated: #{inspect(exit_reason)}"
+              after
+                500 -> "Input device terminated"
+              end
+            else
+              "Unable to read from device: #{inspect(reason)}"
             end
-          else
-            "Unable to read from device: #{inspect(reason)}"
-          end
 
           if halt_on_error? do
-            if ElixirLS.Utils.WireProtocol.io_intercepted? do
-              ElixirLS.Utils.WireProtocol.undo_intercept_output
+            if ElixirLS.Utils.WireProtocol.io_intercepted?() do
+              ElixirLS.Utils.WireProtocol.undo_intercept_output()
             end
 
             IO.puts(:stderr, error_message)
-            
+
             System.halt(1)
           else
             raise error_message

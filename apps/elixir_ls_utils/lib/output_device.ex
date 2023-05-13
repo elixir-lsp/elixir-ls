@@ -32,6 +32,7 @@ defmodule ElixirLS.Utils.OutputDevice do
     receive do
       {:EXIT, _from, reason} ->
         exit(reason)
+
       {:io_request, from, reply_as, request} ->
         result = io_request(request, state, reply_as)
         send(from, {:io_reply, reply_as, result})

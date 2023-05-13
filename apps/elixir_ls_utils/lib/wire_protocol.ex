@@ -43,7 +43,13 @@ defmodule ElixirLS.Utils.WireProtocol do
     Process.register(raw_standard_error, :raw_standard_error)
     Process.register(intercepted_standard_error, :standard_error)
 
-    for process <- :erlang.processes(), process not in [raw_user, raw_standard_error, intercepted_user, intercepted_standard_error] do
+    for process <- :erlang.processes(),
+        process not in [
+          raw_user,
+          raw_standard_error,
+          intercepted_user,
+          intercepted_standard_error
+        ] do
       Process.group_leader(process, intercepted_user)
     end
   end
@@ -53,32 +59,44 @@ defmodule ElixirLS.Utils.WireProtocol do
     intercepted_standard_error = Process.whereis(:standard_error)
 
     Process.unregister(:user)
-    raw_user = try do
-      raw_user = Process.whereis(:raw_user)
-      Process.unregister(:raw_user)
-      Process.register(raw_user, :user)
-      raw_user
-    rescue
-      ArgumentError -> nil
-    end
-    
+
+    raw_user =
+      try do
+        raw_user = Process.whereis(:raw_user)
+        Process.unregister(:raw_user)
+        Process.register(raw_user, :user)
+        raw_user
+      rescue
+        ArgumentError -> nil
+      end
+
     Process.unregister(:standard_error)
-    raw_standard_error = try do
-      raw_standard_error = Process.whereis(:raw_standard_error)
-      Process.unregister(:raw_standard_error)
-      Process.register(raw_standard_error, :standard_error)
-      raw_user
-    rescue
-      ArgumentError -> nil
-    end
+
+    raw_standard_error =
+      try do
+        raw_standard_error = Process.whereis(:raw_standard_error)
+        Process.unregister(:raw_standard_error)
+        Process.register(raw_standard_error, :standard_error)
+        raw_user
+      rescue
+        ArgumentError -> nil
+      end
 
     if raw_user do
-      for process <- :erlang.processes(), process not in [raw_user, raw_standard_error, intercepted_user, intercepted_standard_error] do
+      for process <- :erlang.processes(),
+          process not in [
+            raw_user,
+            raw_standard_error,
+            intercepted_user,
+            intercepted_standard_error
+          ] do
         Process.group_leader(process, raw_user)
       end
     else
       init = :erlang.processes() |> hd
-      for process <- :erlang.processes(), process not in [raw_standard_error, intercepted_user, intercepted_standard_error] do
+
+      for process <- :erlang.processes(),
+          process not in [raw_standard_error, intercepted_user, intercepted_standard_error] do
         Process.group_leader(process, init)
       end
     end
