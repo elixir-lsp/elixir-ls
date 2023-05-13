@@ -80,6 +80,18 @@ defmodule ElixirLS.Utils.PacketStreamTest do
       File.close(pid)
     end
 
+    test "valid utf failing on otp 26" do
+      {:ok, pid} = File.open("test/fixtures/protocol_messages/output", [:read, :binary])
+
+      [message] =
+        PacketStream.stream(pid)
+        |> Enum.to_list()
+
+      assert message == %{"some" => "value"}
+
+      File.close(pid)
+    end
+
     test "valid utf" do
       {:ok, pid} =
         File.open("test/fixtures/protocol_messages/valid_message_utf", [:read, :binary])
