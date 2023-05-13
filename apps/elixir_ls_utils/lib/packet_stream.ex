@@ -3,7 +3,7 @@ defmodule ElixirLS.Utils.PacketStream do
   Reads from an IO device and provides a stream of incoming packets
   """
 
-  def stream(pid \\ Process.group_leader(), halt_on_error? \\ false) do
+  def stream(pid, halt_on_error? \\ false) when is_pid(pid) do
     stream_pid = self()
     Task.start_link(fn ->
       ref = Process.monitor(pid)
@@ -12,10 +12,6 @@ defmodule ElixirLS.Utils.PacketStream do
           send(stream_pid, {:exit_reason, reason})
       end
     end)
-
-    if is_pid(pid) do
-      :ok = :io.setopts(pid, binary: true, encoding: :latin1)
-    end
 
     Stream.resource(
       fn -> :ok end,
