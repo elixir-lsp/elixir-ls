@@ -33,13 +33,15 @@ jobs:
       matrix:
         include:
           - elixir-version: '1.14'
-            otp-version: '25.1'
+            otp-version: '26.0'
+          - elixir-version: '1.14'
+            otp-version: '25.3'
           - elixir-version: '1.14'
             otp-version: '24.3'
           - elixir-version: '1.14'
             otp-version: '23.3'
           - elixir-version: '1.13'
-            otp-version: '25.1'
+            otp-version: '25.3'
           - elixir-version: '1.13'
             otp-version: '24.3'
           - elixir-version: '1.13'
