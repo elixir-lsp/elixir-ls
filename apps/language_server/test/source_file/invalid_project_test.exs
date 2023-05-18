@@ -26,7 +26,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
 
       output =
         capture_log(fn ->
-          assert :error = SourceFile.formatter_for("file:///root.ex")
+          assert :error = SourceFile.formatter_for("file:///root.ex", "")
         end)
 
       assert String.contains?(output, "Unable to get formatter options")
@@ -39,7 +39,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.InvalidProjectTest do
 
       output =
         capture_log(fn ->
-          assert :error = SourceFile.formatter_for("file:///root.ex")
+          assert :error = SourceFile.formatter_for("file:///root.ex", "")
         end)
 
       assert String.contains?(output, "Unable to get formatter options")

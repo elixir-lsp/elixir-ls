@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
     project_path = Conversions.ensure_path(project_path_or_uri)
 
     with :ok <- check_current_directory(document, project_path),
-         {:ok, formatter, options} <- formatter_for(document.path),
+         {:ok, formatter, options} <- formatter_for(document.path, project_path),
          :ok <-
            check_inputs_apply(document, project_path, Keyword.get(options, :inputs)) do
       document
@@ -44,15 +44,21 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
     |> formatter.()
   end
 
-  @spec formatter_for(String.t()) ::
+  @spec formatter_for(String.t(), String.t() | nil) ::
           {:ok, formatter_function, keyword()} | {:error, :no_formatter_available}
-  defp formatter_for(uri_or_path) do
+  defp formatter_for(uri_or_path, project_dir) do
     path = Conversions.ensure_path(uri_or_path)
 
     try do
       true = Code.ensure_loaded?(Mix.Tasks.Format)
 
-      if function_exported?(Mix.Tasks.Format, :formatter_for_file, 1) do
+      if project_dir && Version.match?(System.version(), ">= 1.15.0") do
+        {formatter_function, options} = Mix.Tasks.Format.formatter_for_file(path, root: project_dir)
+
+        wrapped_formatter_function = wrap_with_try_catch(formatter_function)
+
+        {:ok, wrapped_formatter_function, options}
+      else if Version.match?(System.version(), ">= 1.13.0") do
         {formatter_function, options} = Mix.Tasks.Format.formatter_for_file(path)
 
         wrapped_formatter_function = wrap_with_try_catch(formatter_function)
@@ -63,6 +69,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
         formatter = build_formatter(options)
         {:ok, formatter, Mix.Tasks.Format.formatter_opts_for_file(path)}
       end
+    end
     rescue
       e ->
         message = Exception.message(e)
