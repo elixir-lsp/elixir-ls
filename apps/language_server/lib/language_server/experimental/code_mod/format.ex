@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
     try do
       true = Code.ensure_loaded?(Mix.Tasks.Format)
 
-      if project_dir && Version.match?(System.version(), ">= 1.15.0") do
+      if project_dir && Version.match?(System.version(), ">= 1.15.0-dev") do
         {formatter_function, options} = Mix.Tasks.Format.formatter_for_file(path, root: project_dir)
 
         wrapped_formatter_function = wrap_with_try_catch(formatter_function)
