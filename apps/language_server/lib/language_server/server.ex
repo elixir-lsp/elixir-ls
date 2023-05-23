@@ -706,7 +706,7 @@ defmodule ElixirLS.LanguageServer.Server do
       !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
 
     locals_without_parens =
-      case SourceFile.formatter_for(uri) do
+      case SourceFile.formatter_for(uri, state.project_dir) do
         {:ok, {_, opts}} -> Keyword.get(opts, :locals_without_parens, [])
         :error -> []
       end
