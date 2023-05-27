@@ -75,7 +75,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
         message = Exception.message(e)
 
         Logger.warning(
-          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message}"
+          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message} #{Exception.format(:error, e, __STACKTRACE__)}"
         )
 
         {:error, :no_formatter_available}
