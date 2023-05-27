@@ -112,6 +112,8 @@ defmodule ElixirLS.LanguageServer.Build do
       # Override build directory to avoid interfering with other dev tools
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
+      Mix.ProjectStack.post_config(prune_code_paths: false)
+      # TODO debug_info and docs compiler options?
 
       # TODO elixir 1.15 calls
       # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})

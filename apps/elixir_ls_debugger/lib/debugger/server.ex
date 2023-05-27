@@ -940,6 +940,16 @@ defmodule ElixirLS.Debugger.Server do
     # we assume that mix is already started and has archives and tasks loaded
     Launch.reload_mix_env_and_target()
 
+    # TODO I'm not sure why setting prune_code_paths works only here (and in client project)
+    # it does not work in mixfile
+    # but at this point we are probably modifying elixir_ls_debugger project
+    Mix.ProjectStack.post_config(build_path: ".elixir_ls/debugger/build")
+    Mix.ProjectStack.post_config(test_elixirc_options: [
+      # docs: true,
+      debug_info: true
+    ])
+    Mix.ProjectStack.post_config(prune_code_paths: false)
+
     Code.put_compiler_option(:debug_info, true)
     args = List.wrap(task) ++ task_args
     Launch.load_mix_exs(args)
