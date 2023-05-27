@@ -37,7 +37,7 @@ defmodule ElixirLS.LanguageServer.Build do
                     Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
                   rescue
                     e ->
-                      Logger.warn(
+                      Logger.warning(
                         "Mix.Dep.load_on_environment([]) failed: #{inspect(e.__struct__)} #{Exception.message(e)}"
                       )
 
@@ -155,7 +155,7 @@ defmodule ElixirLS.LanguageServer.Build do
         "No mixfile found in project. " <>
           "To use a subdirectory, set `elixirLS.projectDir` in your settings"
 
-      Logger.warn(msg <> ". Looked for mixfile at #{inspect(mixfile)}")
+      Logger.warning(msg <> ". Looked for mixfile at #{inspect(mixfile)}")
 
       :no_mixfile
     end

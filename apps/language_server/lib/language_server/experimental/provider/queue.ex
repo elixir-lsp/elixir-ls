@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Queue do
     def task_finished(%__MODULE__{} = state, pid, reason) do
       case Map.pop(state.pids_to_ids, pid) do
         {nil, _} ->
-          Logger.warn("Got an exit for pid #{inspect(pid)}, but it wasn't in the queue")
+          Logger.warning("Got an exit for pid #{inspect(pid)}, but it wasn't in the queue")
           state
 
         {request_id, new_pids_to_ids} ->
@@ -103,7 +103,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Queue do
       do: maybe_log_task(reason, request_id)
 
     defp maybe_log_task(reason, request_id),
-      do: Logger.warn("Request id #{request_id} failed with reason #{inspect(reason)}")
+      do: Logger.warning("Request id #{request_id} failed with reason #{inspect(reason)}")
 
     defp as_task(%{id: _} = request, func) do
       handler = fn ->

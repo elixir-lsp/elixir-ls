@@ -69,7 +69,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
   end
 
   def handle_info(:default_config, %State{configuration: nil} = state) do
-    Logger.warn(
+    Logger.warning(
       "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
         "Using default settings."
     )

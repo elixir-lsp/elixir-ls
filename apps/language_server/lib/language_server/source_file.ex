@@ -251,7 +251,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       e ->
         message = Exception.message(e)
 
-        Logger.warn(
+        Logger.warning(
           "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message}"
         )
 

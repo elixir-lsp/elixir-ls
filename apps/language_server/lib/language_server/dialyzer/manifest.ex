@@ -35,7 +35,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
           Logger.error("Dialyzer PLT build process exited with reason: #{inspect(reason)}")
 
-          Logger.warn(
+          Logger.warning(
             "Dialyzer support disabled. Most likely there are problems with your elixir and OTP installation. Visit https://github.com/elixir-lsp/elixir-ls/issues/540 for help"
           )
 

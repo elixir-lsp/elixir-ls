@@ -46,7 +46,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
 
           # raise here?
           error ->
-            Logger.warn("Unmatched token: #{inspect(error)}")
+            Logger.warning("Unmatched token: #{inspect(error)}")
             :error
         end
 
