@@ -940,6 +940,7 @@ defmodule ElixirLS.Debugger.Server do
     # we assume that mix is already started and has archives and tasks loaded
     Launch.reload_mix_env_and_target()
 
+    Code.put_compiler_option(:debug_info, true)
     args = List.wrap(task) ++ task_args
     Launch.load_mix_exs(args)
     project = Mix.Project.get()
