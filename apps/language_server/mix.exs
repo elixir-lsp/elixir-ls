@@ -6,6 +6,11 @@ defmodule ElixirLS.LanguageServer.Mixfile do
            |> File.read!()
            |> String.trim()
 
+  @dep_versions __DIR__
+           |> Path.join("../../dep_versions.exs")
+           |> Code.eval_file
+           |> elem(0)
+
   def project do
     [
       app: :language_server,
@@ -32,12 +37,11 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   defp deps do
     [
       {:elixir_ls_utils, in_umbrella: true},
-      {:elixir_sense,
-       github: "elixir-lsp/elixir_sense", ref: "71efd1e2efbac43e6c98c525cc879ddd747ac62e"},
+      {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
       {:erl2ex, github: "dazuma/erl2ex"},
       {:sourceror, "0.11.2"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: "896fa45817c6a1be8ec408577c88ab52c27f6851", runtime: false},
-      {:jason_v, github: "elixir-lsp/jason", ref: "c81537e2a5e1acacb915cf339fe400357e3c2aaa"},
+      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false},
+      {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
       {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},
       {:patch, "~> 0.12.0", only: [:dev, :test], runtime: false},
