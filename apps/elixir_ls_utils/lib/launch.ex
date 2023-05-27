@@ -71,15 +71,14 @@ defmodule ElixirLS.Utils.Launch do
     end
   end
 
-  def load_mix_exs() do
+  def load_mix_exs(args) do
     file = ElixirLS.Utils.MixfileHelpers.mix_exs()
 
     if File.regular?(file) do
-      # TODO elixir 1.15 calls
-      # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
-      # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
-      # def cli
-      # do we need that?
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
+        Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
+      end
+
       old_undefined = Code.get_compiler_option(:no_warn_undefined)
       Code.put_compiler_option(:no_warn_undefined, :all)
       Code.compile_file(file)
@@ -87,9 +86,8 @@ defmodule ElixirLS.Utils.Launch do
     end
   end
 
-  # TODO add support for def cli
-  def get_task(["-" <> _ | _]) do
-    task = "mix #{Mix.Project.config()[:default_task]}"
+  def get_task(["-" <> _ | _], project) do
+    task = "mix #{default_task(project)}"
 
     Mix.shell().error(
       "** (Mix) Mix only recognizes the options --help and --version.\n" <>
@@ -100,36 +98,73 @@ defmodule ElixirLS.Utils.Launch do
     exit({:shutdown, 1})
   end
 
-  def get_task([h | t]) do
+  def get_task([h | t], _project) do
     {h, t}
   end
 
-  def get_task([]) do
-    case Mix.Project.get() do
-      nil ->
-        Mix.shell().error(
-          "** (Mix) \"mix\" with no arguments must be executed in a directory with a mix.exs file"
-        )
+  def get_task([], nil) do
+    Mix.shell().error(
+      "** (Mix) \"mix\" with no arguments must be executed in a directory with a mix.exs file"
+    )
 
-        display_usage()
-        exit({:shutdown, 1})
+    display_usage()
+    exit({:shutdown, 1})
+  end
 
-      _ ->
-        {Mix.Project.config()[:default_task], []}
+  def get_task([], project) do
+    {default_task(project), []}
+  end
+
+  defp default_task(project) do
+    if function_exported?(project, :cli, 0) do
+      project.cli()[:default_task] || "run"
+    else
+      # TODO: Deprecate default_task in v1.19
+      Mix.Project.config()[:default_task] || "run"
     end
   end
 
-  def maybe_change_env_and_target(task) do
+  def maybe_change_env_and_target(task, project) do
     task = String.to_atom(task)
     config = Mix.Project.config()
 
-    env = preferred_cli_env(task, config)
-    target = preferred_cli_target(task, config)
+    env = preferred_cli_env(project, task, config)
+    target = preferred_cli_target(project, task, config)
     env && Mix.env(env)
     target && Mix.target(target)
 
     if env || target do
       reload_project()
+    end
+  end
+
+  def preferred_cli_env(task) when is_atom(task) or is_binary(task) do
+    case Mix.Task.get(task) do
+      nil ->
+        nil
+
+      module ->
+        case List.keyfind(module.__info__(:attributes), :preferred_cli_env, 0) do
+          {:preferred_cli_env, [setting]} ->
+            IO.warn(
+              """
+              setting @preferred_cli_env is deprecated inside Mix tasks.
+              Please remove it from #{inspect(module)} and set your preferred environment in mix.exs instead:
+
+                  def cli do
+                    [
+                      preferred_envs: [docs: "docs"]
+                    ]
+                  end
+              """,
+              []
+            )
+
+            setting
+
+          _ ->
+            nil
+        end
     end
   end
 
@@ -140,16 +175,22 @@ defmodule ElixirLS.Utils.Launch do
     end
   end
 
-  defp preferred_cli_env(task, config) do
-    if System.get_env("MIX_ENV") do
+  # TODO: Deprecate preferred_cli_env in v1.19
+  defp preferred_cli_env(project, task, config) do
+    if function_exported?(project, :cli, 0) || System.get_env("MIX_ENV") do
       nil
     else
-      config[:preferred_cli_env][task] || Mix.Task.preferred_cli_env(task)
+      config[:preferred_cli_env][task] || preferred_cli_env(task)
     end
   end
 
-  defp preferred_cli_target(task, config) do
-    config[:preferred_cli_target][task]
+  # TODO: Deprecate preferred_cli_target in v1.19
+  defp preferred_cli_target(project, task, config) do
+    if function_exported?(project, :cli, 0) || System.get_env("MIX_TARGET") do
+      nil
+    else
+      config[:preferred_cli_target][task]
+    end
   end
 
   defp display_usage do
