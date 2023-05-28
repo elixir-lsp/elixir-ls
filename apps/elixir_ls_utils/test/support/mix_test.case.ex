@@ -27,6 +27,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     dialyxir_vendored
     erl2ex
     jason_v
+    sourceror
     )a
 
   setup do
@@ -80,7 +81,14 @@ defmodule ElixirLS.Utils.MixTest.Case do
     end)
   end
 
-  defmacro in_fixture(dir, which, block) do
+  def in_tmp(which, function) do
+    path = tmp_path(which)
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    File.cd!(path, function)
+  end
+
+  defmacro in_fixture(which, block) do
     module = inspect(__CALLER__.module)
     function = Atom.to_string(elem(__CALLER__.function, 0))
     tmp = Path.join(module, function)
@@ -109,9 +117,8 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
       for {mod, file} <- :code.all_loaded() -- previous,
           file == [] or (is_list(file) and List.starts_with?(file, flag)) do
-        mod
+        purge([mod])
       end
-      |> purge
     end
   end
 
