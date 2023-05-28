@@ -1729,8 +1729,13 @@ defmodule ElixirLS.Debugger.ServerTest do
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
 
-      assert Enum.find(threads, &(&1["id"] == thread_id))["name"] ==
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
+        assert Enum.find(threads, &(&1["id"] == thread_id))["name"] ==
+               "Task.Supervised.noreply/4 #{:erlang.pid_to_list(pid)}"
+      else
+        assert Enum.find(threads, &(&1["id"] == thread_id))["name"] ==
                ":proc_lib.init_p/5 #{:erlang.pid_to_list(pid)}"
+      end
 
       send(pid, :done)
 
