@@ -945,12 +945,14 @@ defmodule ElixirLS.Debugger.Server do
     # but at this point we are probably modifying elixir_ls_debugger project
     Mix.ProjectStack.post_config(build_path: ".elixir_ls/debugger/build")
     Mix.ProjectStack.post_config(test_elixirc_options: [
-      # docs: true,
+      docs: true,
       debug_info: true
     ])
     Mix.ProjectStack.post_config(prune_code_paths: false)
 
+    Code.put_compiler_option(:docs, true)
     Code.put_compiler_option(:debug_info, true)
+
     args = List.wrap(task) ++ task_args
     Launch.load_mix_exs(args)
     project = Mix.Project.get()

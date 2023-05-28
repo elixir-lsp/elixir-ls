@@ -113,7 +113,11 @@ defmodule ElixirLS.LanguageServer.Build do
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
       Mix.ProjectStack.post_config(prune_code_paths: false)
-      # TODO debug_info and docs compiler options?
+      
+      Mix.ProjectStack.post_config(test_elixirc_options: [
+        docs: true,
+        debug_info: true
+      ])
 
       # TODO elixir 1.15 calls
       # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
@@ -356,6 +360,8 @@ defmodule ElixirLS.LanguageServer.Build do
     options =
       Keyword.merge(options,
         tracers: [Tracer],
+        debug_info: true,
+        docs: true,
         parser_options: parser_options
       )
 
