@@ -53,7 +53,7 @@ The installation process for ElixirLS depends on your editor.
 <details>
   <summary>VSCode</summary>
 
-  Please install the extension via the following link: https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls\
+  Please install the extension via the following link: https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls
 </details>
 
 <details>
