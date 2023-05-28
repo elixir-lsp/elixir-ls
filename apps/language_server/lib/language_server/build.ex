@@ -105,7 +105,7 @@ defmodule ElixirLS.LanguageServer.Build do
       Mix.Task.clear()
 
       # we need to reset compiler options
-      # project may leave tracers after previous compilation and we don't woant them interfeering
+      # project may leave tracers after previous compilation and we don't want them interfering
       # see https://github.com/elixir-lsp/elixir-ls/issues/717
       set_compiler_options()
 
