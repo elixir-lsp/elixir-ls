@@ -88,7 +88,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     File.cd!(path, function)
   end
 
-  defmacro in_fixture(which, block) do
+  defmacro in_fixture(dir, which, block) do
     module = inspect(__CALLER__.module)
     function = Atom.to_string(elem(__CALLER__.function, 0))
     tmp = Path.join(module, function)
