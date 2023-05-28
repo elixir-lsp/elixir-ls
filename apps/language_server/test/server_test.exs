@@ -1039,17 +1039,41 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       initialize(server)
 
-      assert_receive notification("textDocument/publishDiagnostics", %{
-                       "uri" => ^error_file,
-                       "diagnostics" => [
-                         %{
-                           "message" => "(CompileError) undefined function does_not_exist" <> _,
-                           "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
-                           "severity" => 1
-                         }
-                       ]
-                     }),
-                     1000
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^error_file,
+                         "diagnostics" => [
+                           %{
+                             "message" =>
+                               "(CompileError) lib/has_error.ex: cannot compile module" <> _,
+                             "range" => %{"end" => %{"line" => 0}, "start" => %{"line" => 0}},
+                             "severity" => 1
+                           },
+                           %{
+                             "message" => "undefined function does_not_exist/0" <> _,
+                             "range" => %{
+                               "end" => %{"character" => 20, "line" => 3},
+                               "start" => %{"character" => 4, "line" => 3}
+                             },
+                             "severity" => 1,
+                             "source" => "Elixir"
+                           }
+                         ]
+                       }),
+                       1000
+      else
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^error_file,
+                         "diagnostics" => [
+                           %{
+                             "message" => "(CompileError) undefined function does_not_exist" <> _,
+                             "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
+                             "severity" => 1
+                           }
+                         ]
+                       }),
+                       1000
+      end
     end)
   end
 
