@@ -172,4 +172,11 @@ defmodule Logger.Backends.JsonRpc do
       end
     end)
   end
+
+  # Erlang/OTP log handler
+  def log(%{level: level} = event, config) do
+    %{formatter: {formatter_mod, formatter_config}} = config
+    chardata = formatter_mod.format(event, formatter_config)
+    ElixirLS.LanguageServer.JsonRpc.log_message(elixir_log_level_to_lsp(level), chardata)
+  end
 end
