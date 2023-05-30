@@ -152,7 +152,22 @@ defmodule ElixirLS.LanguageServer.Build do
         # The project may override our logger config, so we reset it after loading their config
         logger_config = Application.get_all_env(:logger)
         Mix.Task.run("loadconfig")
-        Application.put_all_env([logger: logger_config], persistent: true)
+        Application.put_all_env([logger: logger_config])
+
+        # make sure ANSI is disabled
+        Application.put_env(:elixir, :ansi_enabled, false)
+
+        if Version.match?(System.version(), ">= 1.15.0-dev") do
+          # remove log handlers
+          handler_ids = :logger.get_handler_ids()
+          for handler_id <- handler_ids, handler != Logger.Backends.JsonRpc do
+            :ok = :logger.remove_handler(handler_id) do
+          end
+          # make sure our handler is installed
+          if Logger.Backends.JsonRpc not in handler_ids do
+            :ok = :logger.add_handler(Logger.Backends.JsonRpc, Logger.Backends.JsonRpc, Logger.Backends.JsonRpc.handler_config())
+          end
+        end
       end
 
       {status, diagnostics}

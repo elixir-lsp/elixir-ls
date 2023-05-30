@@ -3,6 +3,7 @@ defmodule ElixirLS.Debugger.CLI do
   alias ElixirLS.Debugger.{Output, Server}
 
   def main do
+    Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&Output.debuggee_out/1, &Output.debuggee_err/1)
     Launch.start_mix()
     {:ok, _} = Application.ensure_all_started(:elixir_ls_debugger, :permanent)

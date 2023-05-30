@@ -5,13 +5,14 @@ defmodule ElixirLS.LanguageServer.CLI do
   require Logger
 
   def main do
+    Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
 
     # :logger application is already started
     # replace console logger with LSP
     if Version.match?(System.version(), ">= 1.15.0-dev") do
       :ok = :logger.remove_handler(:default)
-      :ok = :logger.add_handler(Logger.Backends.JsonRpc, Logger.Backends.JsonRpc, %{formatter: Logger.default_formatter(colors: [enabled: false], format: "$message\n")})
+      :ok = :logger.add_handler(Logger.Backends.JsonRpc, Logger.Backends.JsonRpc, Logger.Backends.JsonRpc.handler_config())
     else
       Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
 
