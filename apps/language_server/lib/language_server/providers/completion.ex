@@ -320,7 +320,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            position_to_insert_alias: {line_to_insert_alias, column_to_insert_alias}
          },
          options
-       ) do
+       ) when required_alias != nil do
     completion_without_additional_text_edit =
       from_completion_item(
         %{
@@ -335,14 +335,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         options
       )
 
-    alias_value = inspect(required_alias)
-
     indentation =
       if column_to_insert_alias >= 1,
         do: 1..column_to_insert_alias |> Enum.map_join(fn _ -> " " end),
         else: ""
 
-    alias_edit = indentation <> "alias " <> alias_value <> "\n"
+    alias_edit = indentation <> "alias " <> required_alias <> "\n"
 
     label_details =
       Map.update!(
@@ -356,7 +354,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
         newText: alias_edit
       },
-      documentation: alias_value <> "\n" <> summary,
+      documentation: name <> "\n" <> summary,
       label_details: label_details,
       priority: 24
     )
