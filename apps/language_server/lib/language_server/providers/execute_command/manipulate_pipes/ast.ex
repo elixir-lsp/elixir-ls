@@ -74,38 +74,4 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   def ast_to_string(ast) do
     Macro.to_string(ast)
   end
-
-  defp delimiter_pair("["), do: {"[", "]"}
-  defp delimiter_pair("{"), do: {"{", "}"}
-  defp delimiter_pair("("), do: {"(", ")"}
-  defp delimiter_pair("<"), do: {"<", ">"}
-  defp delimiter_pair("\"\"\""), do: {"\"\"\"\n", "\"\"\""}
-  defp delimiter_pair("'''"), do: {"'''\n", "'''"}
-  defp delimiter_pair(str), do: {str, str}
-
-  defp sigil_args([], _fun), do: ""
-  defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
-
-  defp interpolate({:<<>>, _, [parts]}, left, right) when left in [~s["""\n], ~s['''\n]] do
-    <<left::binary, parts::binary, right::binary>>
-  end
-
-  defp interpolate({:<<>>, _, parts}, left, right) do
-    parts =
-      Enum.map_join(parts, "", fn
-        {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
-          "\#{" <> ast_to_string(arg) <> "}"
-
-        binary when is_binary(binary) ->
-          escape_sigil(binary, left)
-      end)
-
-    <<left::binary, parts::binary, right::binary>>
-  end
-
-  defp escape_sigil(parts, "("), do: String.replace(parts, ")", ~S"\)")
-  defp escape_sigil(parts, "{"), do: String.replace(parts, "}", ~S"\}")
-  defp escape_sigil(parts, "["), do: String.replace(parts, "]", ~S"\]")
-  defp escape_sigil(parts, "<"), do: String.replace(parts, ">", ~S"\>")
-  defp escape_sigil(parts, delimiter), do: String.replace(parts, delimiter, "\\#{delimiter}")
 end
