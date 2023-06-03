@@ -11,32 +11,46 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
 
     # :logger application is already started
     # replace console logger with LSP
-    Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
+    if Version.match?(System.version(), ">= 1.15.0-dev") do
+      {:ok, config} = :logger.get_handler_config(:default)
+      :ok = :logger.remove_handler(:default)
 
-    Application.put_env(:logger, Logger.Backends.JsonRpc,
-      level: :debug,
-      format: "$message",
-      metadata: []
-    )
+      :ok =
+        :logger.add_handler(
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc.handler_config()
+        )
+      ExUnit.Callbacks.on_exit(fn ->
+        :ok = :logger.remove_handler(Logger.Backends.JsonRpc)
+        :ok = :logger.add_handler(:default, config.module, config)
+      end)
+    else
+      Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
 
-    # TODO fix those logger registrations
-    # {:ok, _logger_backend} = 
-    Logger.add_backend(Logger.Backends.JsonRpc)
-    # :ok = 
-    Logger.remove_backend(:console, flush: true)
+      Application.put_env(:logger, Logger.Backends.JsonRpc,
+        level: :debug,
+        format: "$message",
+        metadata: []
+      )
 
-    # Logger.add_backend returns Logger.Watcher pid
-    # the handler is supervised by :gen_event and the pid cannot be received via public api
-    # instead we call it to set group leader in the callback
-    :gen_event.call(Logger, Logger.Backends.JsonRpc, {:set_group_leader, packet_capture})
+      {:ok, _logger_backend} = Logger.add_backend(Logger.Backends.JsonRpc)
+      :ok = Logger.remove_backend(:console, flush: true)
 
-    ExUnit.Callbacks.on_exit(fn ->
-      Application.put_env(:logger, :backends, [:console])
+      # Logger.add_backend returns Logger.Watcher pid
+      # the handler is supervised by :gen_event and the pid cannot be received via public api
+      # instead we call it to set group leader in the callback
+      :gen_event.call(Logger, Logger.Backends.JsonRpc, {:set_group_leader, packet_capture})
 
-      # {:ok, _} = 
-      Logger.add_backend(:console)
-      :ok = Logger.remove_backend(Logger.Backends.JsonRpc, flush: false)
-    end)
+      ExUnit.Callbacks.on_exit(fn ->
+        Application.put_env(:logger, :backends, [:console])
+  
+        {:ok, _} = Logger.add_backend(:console)
+        :ok = Logger.remove_backend(Logger.Backends.JsonRpc, flush: false)
+      end)
+    end
+
+    
 
     server = start_supervised!({Server, nil})
     Process.group_leader(server, packet_capture)
