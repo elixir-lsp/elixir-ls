@@ -32,7 +32,7 @@ defmodule ElixirLS.Utils.Mixfile do
 
   def application do
     # We must NOT start ANY applications as this is taken care in code.
-    [applications: []]
+    [applications: [:jason_v]]
   end
 
   defp deps do
