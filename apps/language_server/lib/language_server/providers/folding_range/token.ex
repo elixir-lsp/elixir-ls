@@ -33,8 +33,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
           {:sigil, {b1, b2, b3}, _, _, _, _, delimiter} ->
             {:sigil, {b1 - 1, b2 - 1, b3}, delimiter}
 
-          # TODO check multichar sigils
-
           {:bin_heredoc, {b1, b2, b3}, _, _} ->
             {:bin_heredoc, {b1 - 1, b2 - 1, b3}, nil}
 
