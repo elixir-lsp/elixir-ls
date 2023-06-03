@@ -119,11 +119,9 @@ defmodule ElixirLS.LanguageServer.Build do
         debug_info: true
       ])
 
-      # TODO elixir 1.15 calls
       # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
       # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
-      # def cli
-      # do we need that?
+      # TODO refactor to use a custom state loader when we require elixir 1.15?
 
       # since elixir 1.10 mix disables undefined warnings for mix.exs
       # see discussion in https://github.com/elixir-lang/elixir/issues/9676
@@ -160,8 +158,8 @@ defmodule ElixirLS.LanguageServer.Build do
         if Version.match?(System.version(), ">= 1.15.0-dev") do
           # remove log handlers
           handler_ids = :logger.get_handler_ids()
-          for handler_id <- handler_ids, handler != Logger.Backends.JsonRpc do
-            :ok = :logger.remove_handler(handler_id) do
+          for handler_id <- handler_ids, handler_id != Logger.Backends.JsonRpc do
+            :ok = :logger.remove_handler(handler_id)
           end
           # make sure our handler is installed
           if Logger.Backends.JsonRpc not in handler_ids do
@@ -189,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Build do
       "--no-protocol-consolidation"
     ]
 
-    if Version.match?(System.version(), ">= 1.15.0-dev") do
+    opts = if Version.match?(System.version(), ">= 1.15.0-dev") do
       opts
     else
       opts ++ ["--all-warnings"]
@@ -302,7 +300,7 @@ defmodule ElixirLS.LanguageServer.Build do
          :dialyxir_vendored,
          :erl2ex,
          :patch,
-         :sourceror
+         :sourceror,
          :benchee
        ] do
       raise "Unloading #{app}"
