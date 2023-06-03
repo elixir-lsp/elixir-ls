@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.MixShell do
           true
       end
     else
-      Mix.Shell.IO.yes(message, options)
+      Mix.Shell.IO.yes?(message, options)
     end
   end
 end
