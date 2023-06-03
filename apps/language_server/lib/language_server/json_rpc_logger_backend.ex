@@ -181,6 +181,6 @@ defmodule Logger.Backends.JsonRpc do
   end
 
   def handler_config() do
-    %{formatter: Logger.default_formatter(colors: [enabled: false], format: "$message\n")}
+    %{formatter: Logger.default_formatter(colors: [enabled: false], format: "$message")}
   end
 end
