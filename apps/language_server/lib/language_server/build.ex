@@ -183,13 +183,19 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp run_mix_compile do
-    # TODO --all-warnings not needed on 1.15
-    case Mix.Task.run("compile", [
-           "--return-errors",
-           "--ignore-module-conflict",
-           "--all-warnings",
-           "--no-protocol-consolidation"
-         ]) do
+    opts = [
+      "--return-errors",
+      "--ignore-module-conflict",
+      "--no-protocol-consolidation"
+    ]
+
+    if Version.match?(System.version(), ">= 1.15.0-dev") do
+      opts
+    else
+      opts ++ ["--all-warnings"]
+    end
+
+    case Mix.Task.run("compile", opts) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
 
@@ -252,8 +258,6 @@ defmodule ElixirLS.LanguageServer.Build do
       :ok -> :ok
       {:error, error} -> Logger.error("Application.unload failed for #{app}: #{inspect(error)}")
     end
-
-    # Code.delete_path()
   end
 
   defp get_deps_by_app(deps), do: get_deps_by_app(deps, %{})
@@ -298,6 +302,7 @@ defmodule ElixirLS.LanguageServer.Build do
          :dialyxir_vendored,
          :erl2ex,
          :patch,
+         :sourceror
          :benchee
        ] do
       raise "Unloading #{app}"
