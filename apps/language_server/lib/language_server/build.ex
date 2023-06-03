@@ -158,18 +158,21 @@ defmodule ElixirLS.LanguageServer.Build do
         # The project may override our logger config, so we reset it after loading their config
         # store log config
         logger_config = Application.get_all_env(:logger)
-        logger_handler_configs = if Version.match?(System.version(), ">= 1.15.0-dev") do
-          for handler_id <- :logger.get_handler_ids() do
-            {:ok, config} = :logger.get_handler_config(handler_id)
-            :ok = :logger.remove_handler(handler_id)
-            config
+
+        logger_handler_configs =
+          if Version.match?(System.version(), ">= 1.15.0-dev") do
+            for handler_id <- :logger.get_handler_ids() do
+              {:ok, config} = :logger.get_handler_config(handler_id)
+              :ok = :logger.remove_handler(handler_id)
+              config
+            end
           end
-        end
 
         Mix.Task.run("loadconfig")
 
         # reset log config
         Application.put_all_env(logger: logger_config)
+
         if Version.match?(System.version(), ">= 1.15.0-dev") do
           for config <- logger_handler_configs do
             :ok = :logger.add_handler(config.id, config.module, config)

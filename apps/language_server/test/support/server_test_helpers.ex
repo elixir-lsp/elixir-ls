@@ -27,11 +27,12 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
     # :logger application is already started
     # replace console logger with LSP
     if Version.match?(System.version(), ">= 1.15.0-dev") do
-      configs = for handler_id <- :logger.get_handler_ids() do
-        {:ok, config} = :logger.get_handler_config(handler_id)
-        :ok = :logger.remove_handler(handler_id)
-        config
-      end
+      configs =
+        for handler_id <- :logger.get_handler_ids() do
+          {:ok, config} = :logger.get_handler_config(handler_id)
+          :ok = :logger.remove_handler(handler_id)
+          config
+        end
 
       :ok =
         :logger.add_handler(
@@ -39,8 +40,10 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
           Logger.Backends.JsonRpc,
           Logger.Backends.JsonRpc.handler_config()
         )
+
       ExUnit.Callbacks.on_exit(fn ->
         :ok = :logger.remove_handler(Logger.Backends.JsonRpc)
+
         for config <- configs do
           :ok = :logger.add_handler(config.id, config.module, config)
         end
@@ -64,7 +67,7 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
 
       ExUnit.Callbacks.on_exit(fn ->
         Application.put_env(:logger, :backends, [:console])
-  
+
         {:ok, _} = Logger.add_backend(:console)
         :ok = Logger.remove_backend(Logger.Backends.JsonRpc, flush: false)
       end)

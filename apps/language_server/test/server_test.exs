@@ -1574,7 +1574,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   defp with_new_server(packet_capture, func) do
     server = start_supervised!({Server, nil})
-    
+
     Process.group_leader(server, packet_capture)
 
     try do
