@@ -72,7 +72,43 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   end
 
   def ast_to_string(ast) do
-    Macro.to_string(ast)
+    Macro.to_string(ast, fn node, rendered ->
+      case sigil_call(node, fn _a, s -> s end) do
+        {:ok, parsed_sigil} -> parsed_sigil
+        _ -> rendered
+      end
+    end)
+  end
+
+  # TODO: remove this when only Elixir >= 1.13 is supported
+  # The code below is copied from the Elixir source-code because a
+  # fix which was introduced in
+  # https://github.com/elixir-lang/elixir/commit/88d82f059756ed1eb56a562fae7092f77d941de8
+  # is needed for proper treatment of sigils in our use-case.
+  defp sigil_call({sigil, meta, [{:<<>>, _, _} = parts, args]} = ast, fun)
+       when is_atom(sigil) and is_list(args) do
+    delimiter = Keyword.get(meta, :delimiter, "\"")
+    {left, right} = delimiter_pair(delimiter)
+
+    case Atom.to_string(sigil) do
+      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
+        args = sigil_args(args, fun)
+        {:<<>>, _, [binary]} = parts
+        formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
+        {:ok, fun.(ast, formatted)}
+
+      <<"sigil_", name>> when name >= ?a and name <= ?z ->
+        args = sigil_args(args, fun)
+        formatted = "~" <> <<name>> <> interpolate(parts, left, right) <> args
+        {:ok, fun.(ast, formatted)}
+
+      _ ->
+        :error
+    end
+  end
+
+  defp sigil_call(_other, _fun) do
+    :error
   end
 
   defp delimiter_pair("["), do: {"[", "]"}
