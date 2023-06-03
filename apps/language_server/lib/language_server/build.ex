@@ -113,11 +113,13 @@ defmodule ElixirLS.LanguageServer.Build do
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
       Mix.ProjectStack.post_config(prune_code_paths: false)
-      
-      Mix.ProjectStack.post_config(test_elixirc_options: [
-        docs: true,
-        debug_info: true
-      ])
+
+      Mix.ProjectStack.post_config(
+        test_elixirc_options: [
+          docs: true,
+          debug_info: true
+        ]
+      )
 
       # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
       # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
@@ -150,7 +152,7 @@ defmodule ElixirLS.LanguageServer.Build do
         # The project may override our logger config, so we reset it after loading their config
         logger_config = Application.get_all_env(:logger)
         Mix.Task.run("loadconfig")
-        Application.put_all_env([logger: logger_config])
+        Application.put_all_env(logger: logger_config)
 
         # make sure ANSI is disabled
         Application.put_env(:elixir, :ansi_enabled, false)
@@ -158,12 +160,19 @@ defmodule ElixirLS.LanguageServer.Build do
         if Version.match?(System.version(), ">= 1.15.0-dev") do
           # remove log handlers
           handler_ids = :logger.get_handler_ids()
+
           for handler_id <- handler_ids, handler_id != Logger.Backends.JsonRpc do
             :ok = :logger.remove_handler(handler_id)
           end
+
           # make sure our handler is installed
           if Logger.Backends.JsonRpc not in handler_ids do
-            :ok = :logger.add_handler(Logger.Backends.JsonRpc, Logger.Backends.JsonRpc, Logger.Backends.JsonRpc.handler_config())
+            :ok =
+              :logger.add_handler(
+                Logger.Backends.JsonRpc,
+                Logger.Backends.JsonRpc,
+                Logger.Backends.JsonRpc.handler_config()
+              )
           end
         end
       end
@@ -187,11 +196,12 @@ defmodule ElixirLS.LanguageServer.Build do
       "--no-protocol-consolidation"
     ]
 
-    opts = if Version.match?(System.version(), ">= 1.15.0-dev") do
-      opts
-    else
-      opts ++ ["--all-warnings"]
-    end
+    opts =
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
+        opts
+      else
+        opts ++ ["--all-warnings"]
+      end
 
     case Mix.Task.run("compile", opts) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->

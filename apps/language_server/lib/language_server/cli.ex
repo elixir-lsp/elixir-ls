@@ -12,7 +12,13 @@ defmodule ElixirLS.LanguageServer.CLI do
     # replace console logger with LSP
     if Version.match?(System.version(), ">= 1.15.0-dev") do
       :ok = :logger.remove_handler(:default)
-      :ok = :logger.add_handler(Logger.Backends.JsonRpc, Logger.Backends.JsonRpc, Logger.Backends.JsonRpc.handler_config())
+
+      :ok =
+        :logger.add_handler(
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc.handler_config()
+        )
     else
       Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
 

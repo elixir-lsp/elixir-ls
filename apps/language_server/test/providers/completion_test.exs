@@ -510,8 +510,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item["labelDetails"]["description"] ==
                "require Logger.error/2"
 
-      assert [%{newText: "  require Logger\n"}] =
-               item["additionalTextEdits"]
+      assert [%{newText: "  require Logger\n"}] = item["additionalTextEdits"]
 
       assert [
                %{

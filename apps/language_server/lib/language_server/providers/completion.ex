@@ -320,7 +320,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            position_to_insert_alias: {line_to_insert_alias, column_to_insert_alias}
          },
          options
-       ) when required_alias != nil do
+       )
+       when required_alias != nil do
     completion_without_additional_text_edit =
       from_completion_item(
         %{
@@ -349,14 +350,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         &("alias " <> &1)
       )
 
-    %__MODULE__{completion_without_additional_text_edit |
-      additional_text_edit: %TextEdit{
-        range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
-        newText: alias_edit
-      },
-      documentation: name <> "\n" <> summary,
-      label_details: label_details,
-      priority: 24
+    %__MODULE__{
+      completion_without_additional_text_edit
+      | additional_text_edit: %TextEdit{
+          range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
+          newText: alias_edit
+        },
+        documentation: name <> "\n" <> summary,
+        label_details: label_details,
+        priority: 24
     }
   end
 
@@ -676,10 +678,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   # import with only or except was used and the completion would need to change it
   # this is not trivial to implement and most likely not wanted so let's skip that
   defp from_completion_item(
-        %{needed_import: needed_import},
-        _context,
-        _options
-      ) when needed_import != nil, do: nil
+         %{needed_import: needed_import},
+         _context,
+         _options
+       )
+       when needed_import != nil,
+       do: nil
 
   defp from_completion_item(
          %{name: name, origin: origin} = item,
@@ -695,29 +699,35 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         completion
       end
 
-    completion = if item.needed_require do
-      {line_to_insert_require, column_to_insert_require} = context.position_to_insert_alias
-      indentation =
-        if column_to_insert_require >= 1,
-          do: 1..column_to_insert_require |> Enum.map_join(fn _ -> " " end),
-          else: ""
-      require_edit = indentation <> "require " <> item.needed_require <> "\n"
-      label_details =
-        Map.update!(
-          completion.label_details,
-          "description",
-          &("require " <> &1)
-        )
-      %__MODULE__{completion | 
-        additional_text_edit: %TextEdit{
-          range: range(line_to_insert_require, 0, line_to_insert_require, 0),
-          newText: require_edit
-        },
-        label_details: label_details
-      }
-    else
-      completion
-    end
+    completion =
+      if item.needed_require do
+        {line_to_insert_require, column_to_insert_require} = context.position_to_insert_alias
+
+        indentation =
+          if column_to_insert_require >= 1,
+            do: 1..column_to_insert_require |> Enum.map_join(fn _ -> " " end),
+            else: ""
+
+        require_edit = indentation <> "require " <> item.needed_require <> "\n"
+
+        label_details =
+          Map.update!(
+            completion.label_details,
+            "description",
+            &("require " <> &1)
+          )
+
+        %__MODULE__{
+          completion
+          | additional_text_edit: %TextEdit{
+              range: range(line_to_insert_require, 0, line_to_insert_require, 0),
+              newText: require_edit
+            },
+            label_details: label_details
+        }
+      else
+        completion
+      end
 
     file_path = Keyword.get(options, :file_path)
 
@@ -1017,10 +1027,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       origin: origin,
       metadata: metadata
     } = info
+
     %{
       pipe_before?: pipe_before?,
       capture_before?: capture_before?,
-      text_after_cursor: text_after_cursor,
+      text_after_cursor: text_after_cursor
     } = context
 
     locals_without_parens = Keyword.get(options, :locals_without_parens)

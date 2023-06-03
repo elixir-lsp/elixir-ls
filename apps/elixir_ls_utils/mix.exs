@@ -7,9 +7,9 @@ defmodule ElixirLS.Utils.Mixfile do
            |> String.trim()
 
   @dep_versions __DIR__
-           |> Path.join("../../dep_versions.exs")
-           |> Code.eval_file
-           |> elem(0)
+                |> Path.join("../../dep_versions.exs")
+                |> Code.eval_file()
+                |> elem(0)
 
   def project do
     [
@@ -39,7 +39,8 @@ defmodule ElixirLS.Utils.Mixfile do
     [
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:mix_task_archive_deps, github: "elixir-lsp/mix_task_archive_deps"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
+      {:dialyxir_vendored,
+       github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
     ]
   end
 

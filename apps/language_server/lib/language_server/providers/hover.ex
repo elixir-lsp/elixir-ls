@@ -28,7 +28,10 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         %{actual_subject: subject, docs: docs, range: es_range} ->
           lines = SourceFile.lines(text)
 
-          %{"contents" => contents(docs, subject, project_dir), "range" => build_range(lines, es_range)}
+          %{
+            "contents" => contents(docs, subject, project_dir),
+            "range" => build_range(lines, es_range)
+          }
       end
 
     {:ok, response}
@@ -38,11 +41,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   def build_range(lines, %{begin: {begin_line, begin_char}, end: {end_line, end_char}}) do
     range(
-          begin_line - 1,
-          SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1), begin_char),
-          end_line - 1,
-          SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1), end_char)
-        )
+      begin_line - 1,
+      SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1), begin_char),
+      end_line - 1,
+      SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1), end_char)
+    )
   end
 
   defp contents(%{docs: "No documentation available\n"}, _subject, _project_dir) do

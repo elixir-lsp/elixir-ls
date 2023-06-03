@@ -53,23 +53,25 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Format do
       true = Code.ensure_loaded?(Mix.Tasks.Format)
 
       if project_dir && Version.match?(System.version(), ">= 1.15.0-dev") do
-        {formatter_function, options} = Mix.Tasks.Format.formatter_for_file(path, root: project_dir)
-
-        wrapped_formatter_function = wrap_with_try_catch(formatter_function)
-
-        {:ok, wrapped_formatter_function, options}
-      else if Version.match?(System.version(), ">= 1.13.0") do
-        {formatter_function, options} = Mix.Tasks.Format.formatter_for_file(path)
+        {formatter_function, options} =
+          Mix.Tasks.Format.formatter_for_file(path, root: project_dir)
 
         wrapped_formatter_function = wrap_with_try_catch(formatter_function)
 
         {:ok, wrapped_formatter_function, options}
       else
-        options = Mix.Tasks.Format.formatter_opts_for_file(path)
-        formatter = build_formatter(options)
-        {:ok, formatter, Mix.Tasks.Format.formatter_opts_for_file(path)}
+        if Version.match?(System.version(), ">= 1.13.0") do
+          {formatter_function, options} = Mix.Tasks.Format.formatter_for_file(path)
+
+          wrapped_formatter_function = wrap_with_try_catch(formatter_function)
+
+          {:ok, wrapped_formatter_function, options}
+        else
+          options = Mix.Tasks.Format.formatter_opts_for_file(path)
+          formatter = build_formatter(options)
+          {:ok, formatter, Mix.Tasks.Format.formatter_opts_for_file(path)}
+        end
       end
-    end
     rescue
       e ->
         message = Exception.message(e)

@@ -1731,10 +1731,10 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       if Version.match?(System.version(), ">= 1.15.0-dev") do
         assert Enum.find(threads, &(&1["id"] == thread_id))["name"] ==
-               "Task.Supervised.noreply/4 #{:erlang.pid_to_list(pid)}"
+                 "Task.Supervised.noreply/4 #{:erlang.pid_to_list(pid)}"
       else
         assert Enum.find(threads, &(&1["id"] == thread_id))["name"] ==
-               ":proc_lib.init_p/5 #{:erlang.pid_to_list(pid)}"
+                 ":proc_lib.init_p/5 #{:erlang.pid_to_list(pid)}"
       end
 
       send(pid, :done)

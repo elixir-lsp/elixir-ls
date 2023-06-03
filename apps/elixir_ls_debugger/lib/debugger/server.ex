@@ -944,10 +944,14 @@ defmodule ElixirLS.Debugger.Server do
     # it does not work in mixfile
     # but at this point we are probably modifying elixir_ls_debugger project
     Mix.ProjectStack.post_config(build_path: ".elixir_ls/debugger/build")
-    Mix.ProjectStack.post_config(test_elixirc_options: [
-      docs: true,
-      debug_info: true
-    ])
+
+    Mix.ProjectStack.post_config(
+      test_elixirc_options: [
+        docs: true,
+        debug_info: true
+      ]
+    )
+
     Mix.ProjectStack.post_config(prune_code_paths: false)
 
     Code.put_compiler_option(:docs, true)

@@ -7,9 +7,9 @@ defmodule ElixirLS.LanguageServer.Mixfile do
            |> String.trim()
 
   @dep_versions __DIR__
-           |> Path.join("../../dep_versions.exs")
-           |> Code.eval_file
-           |> elem(0)
+                |> Path.join("../../dep_versions.exs")
+                |> Code.eval_file()
+                |> elem(0)
 
   def project do
     [
@@ -40,7 +40,8 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
       {:erl2ex, github: "dazuma/erl2ex"},
       {:sourceror, "0.11.2"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false},
+      {:dialyxir_vendored,
+       github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
       {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},

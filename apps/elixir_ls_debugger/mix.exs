@@ -7,9 +7,9 @@ defmodule ElixirLS.Debugger.Mixfile do
            |> String.trim()
 
   @dep_versions __DIR__
-           |> Path.join("../../dep_versions.exs")
-           |> Code.eval_file
-           |> elem(0)
+                |> Path.join("../../dep_versions.exs")
+                |> Code.eval_file()
+                |> elem(0)
 
   def project do
     [
@@ -42,7 +42,8 @@ defmodule ElixirLS.Debugger.Mixfile do
       {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
       {:elixir_ls_utils, in_umbrella: true},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
+      {:dialyxir_vendored,
+       github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
     ]
   end
 end
