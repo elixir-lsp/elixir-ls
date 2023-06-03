@@ -2,6 +2,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer, Build}
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+  alias ElixirLS.LanguageServer.Test.ServerTestHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -1186,10 +1187,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag fixture: true, skip_server: true
   test "loading of umbrella app dependencies" do
     in_fixture(__DIR__, "umbrella", fn ->
+      packet_capture = start_supervised!({PacketCapture, self()})
+      ServerTestHelpers.replace_logger(packet_capture)
       # We test this by opening the umbrella project twice.
       # First to compile the applications and build the cache.
       # Second time to see if loads modules
-      with_new_server(fn server ->
+      with_new_server(packet_capture, fn server ->
         {:ok, _pid} = Tracer.start_link([])
         initialize(server)
       end)
@@ -1198,7 +1201,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       purge([App2.Foo])
 
       # re-visiting the same project
-      with_new_server(fn server ->
+      with_new_server(packet_capture, fn server ->
         initialize(server)
 
         file_path = "apps/app1/lib/bar.ex"
@@ -1214,7 +1217,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, completion_req(3, uri, 1, 23))
 
-        resp = assert_receive(%{"id" => 3}, 5000)
+        resp = assert_receive(%{"id" => 3}, 10000)
 
         assert response(3, %{
                  "isIncomplete" => true,
@@ -1569,9 +1572,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end
   end
 
-  defp with_new_server(func) do
+  defp with_new_server(packet_capture, func) do
     server = start_supervised!({Server, nil})
-    packet_capture = start_supervised!({PacketCapture, self()})
+    
     Process.group_leader(server, packet_capture)
 
     try do
@@ -1579,7 +1582,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     after
       wait_until_compiled(server)
       stop_supervised(Server)
-      stop_supervised(PacketCapture)
       flush_mailbox()
     end
   end

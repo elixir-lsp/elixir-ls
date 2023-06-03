@@ -9,11 +9,29 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
   def start_server do
     packet_capture = start_supervised!({PacketCapture, self()})
 
+    replace_logger(packet_capture)
+
+    server = start_supervised!({Server, nil})
+    Process.group_leader(server, packet_capture)
+
+    json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
+    Process.group_leader(json_rpc, packet_capture)
+
+    workspace_symbols = start_supervised!({WorkspaceSymbols, []})
+    Process.group_leader(workspace_symbols, packet_capture)
+
+    server
+  end
+
+  def replace_logger(packet_capture) do
     # :logger application is already started
     # replace console logger with LSP
     if Version.match?(System.version(), ">= 1.15.0-dev") do
-      {:ok, config} = :logger.get_handler_config(:default)
-      :ok = :logger.remove_handler(:default)
+      configs = for handler_id <- :logger.get_handler_ids() do
+        {:ok, config} = :logger.get_handler_config(handler_id)
+        :ok = :logger.remove_handler(handler_id)
+        config
+      end
 
       :ok =
         :logger.add_handler(
@@ -23,7 +41,9 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
         )
       ExUnit.Callbacks.on_exit(fn ->
         :ok = :logger.remove_handler(Logger.Backends.JsonRpc)
-        :ok = :logger.add_handler(:default, config.module, config)
+        for config <- configs do
+          :ok = :logger.add_handler(config.id, config.module, config)
+        end
       end)
     else
       Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
@@ -49,18 +69,5 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
         :ok = Logger.remove_backend(Logger.Backends.JsonRpc, flush: false)
       end)
     end
-
-    
-
-    server = start_supervised!({Server, nil})
-    Process.group_leader(server, packet_capture)
-
-    json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
-    Process.group_leader(json_rpc, packet_capture)
-
-    workspace_symbols = start_supervised!({WorkspaceSymbols, []})
-    Process.group_leader(workspace_symbols, packet_capture)
-
-    server
   end
 end
