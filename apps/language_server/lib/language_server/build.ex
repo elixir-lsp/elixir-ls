@@ -104,6 +104,12 @@ defmodule ElixirLS.LanguageServer.Build do
 
       Mix.Task.clear()
 
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
+        if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
+          raise "build without intercepted logger #{inspect(:logger.get_handler_ids())}"
+        end
+      end
+
       # we need to reset compiler options
       # project may leave tracers after previous compilation and we don't want them interfering
       # see https://github.com/elixir-lsp/elixir-ls/issues/717
@@ -150,31 +156,28 @@ defmodule ElixirLS.LanguageServer.Build do
 
       if status == :ok do
         # The project may override our logger config, so we reset it after loading their config
+        # store log config
         logger_config = Application.get_all_env(:logger)
+        logger_handler_configs = if Version.match?(System.version(), ">= 1.15.0-dev") do
+          for handler_id <- :logger.get_handler_ids() do
+            {:ok, config} = :logger.get_handler_config(handler_id)
+            :ok = :logger.remove_handler(handler_id)
+            config
+          end
+        end
+
         Mix.Task.run("loadconfig")
+
+        # reset log config
         Application.put_all_env(logger: logger_config)
+        if Version.match?(System.version(), ">= 1.15.0-dev") do
+          for config <- logger_handler_configs do
+            :ok = :logger.add_handler(config.id, config.module, config)
+          end
+        end
 
         # make sure ANSI is disabled
         Application.put_env(:elixir, :ansi_enabled, false)
-
-        if Version.match?(System.version(), ">= 1.15.0-dev") do
-          # remove log handlers
-          handler_ids = :logger.get_handler_ids()
-
-          for handler_id <- handler_ids, handler_id != Logger.Backends.JsonRpc do
-            :ok = :logger.remove_handler(handler_id)
-          end
-
-          # make sure our handler is installed
-          if Logger.Backends.JsonRpc not in handler_ids do
-            :ok =
-              :logger.add_handler(
-                Logger.Backends.JsonRpc,
-                Logger.Backends.JsonRpc,
-                Logger.Backends.JsonRpc.handler_config()
-              )
-          end
-        end
       end
 
       {status, diagnostics}

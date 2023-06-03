@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
   alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc, Tracer, Build}
   import ExUnit.CaptureLog
+  alias ElixirLS.LanguageServer.Test.ServerTestHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -21,8 +22,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   end
 
   setup do
-    {:ok, _} = Tracer.start_link([])
-    server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+    server = ServerTestHelpers.start_server()
+    {:ok, _tracer} = start_supervised(Tracer)
 
     {:ok, %{server: server}}
   end
