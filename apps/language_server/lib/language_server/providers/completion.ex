@@ -116,6 +116,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         scope when scope in [Elixir, nil] -> :file
         module when is_atom(module) -> :module
         {_, _} -> :function
+        {:typespec, _, _} -> :typespec
       end
 
     def_before =
