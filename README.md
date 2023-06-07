@@ -28,21 +28,21 @@ Note: On first run Dialyzer will build a PLT cache which will take a considerabl
 
 ## IDE plugins
 
-| IDE          | Plugin                                                                        | Support                                                               |
-| ------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Emacs        | [eglot](https://github.com/joaotavora/eglot)                                  |                                                                       |
-| Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode)                             | Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
-| Kakoune      | [kak-lsp](https://github.com/kak-lsp/kak-lsp)                                 | [Limitations](https://github.com/kak-lsp/kak-lsp/#limitations)        |
-| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger                        |
-| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                              | Does not support debugger                                             |
-| Neovim       | [nvim-dap](https://github.com/mfussenegger/nvim-dap)                          | Supports debugger only                                                |
-| Neovim       | [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)                    | Does not support debugger                                             |
-| Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)              |                                                                       |
-| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                        | Does not support debugger                                             |
-| Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                            | Does not support debugger or @spec suggestions                        |
-| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)             | Does not support debugger                                             |
-| Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                          | Does not support debugger                                             |
-| VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls) | Supports all ElixirLS features                                        |
+| IDE          | Plugin                                                                                             | Support                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Emacs        | [eglot](https://github.com/joaotavora/eglot)                                                       |                                                                       |
+| Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode)                                                  | Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
+| Kakoune      | [kak-lsp](https://github.com/kak-lsp/kak-lsp)                                                      | [Limitations](https://github.com/kak-lsp/kak-lsp/#limitations)        |
+| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger                                             |
+| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                                                   | Does not support debugger                                             |
+| Neovim       | [nvim-dap](https://github.com/mfussenegger/nvim-dap)                                               | Supports debugger only                                                |
+| Neovim       | [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)                                         | Does not support debugger                                             |
+| Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)                                   |                                                                       |
+| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                                             | Does not support debugger                                             |
+| Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                                                 | Does not support debugger or @spec suggestions                        |
+| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)                                  | Does not support debugger                                             |
+| Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                                               | Does not support debugger                                             |
+| VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls)                      | Supports all ElixirLS features                                        |
 
 Please feel free to create and publish your own client packages and add them to this list!
 
@@ -53,41 +53,42 @@ The installation process for ElixirLS depends on your editor.
 <details>
   <summary>VSCode</summary>
 
-  Please install the extension via the following link: https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls
+Please install the extension via the following link: https://marketplace.visualstudio.com/items?itemName=JakeBecker.elixir-ls
+
 </details>
 
 <details>
   <summary>Emacs Installation Instructions</summary>
 
-  Download the latest release:
-  https://github.com/elixir-lsp/elixir-ls/releases/latest and unzip it into a
-  directory (this is the directory referred to as the
-  `"path-to-elixir-ls/release"` below)
+Download the latest release:
+https://github.com/elixir-lsp/elixir-ls/releases/latest and unzip it into a
+directory (this is the directory referred to as the
+`"path-to-elixir-ls/release"` below)
 
-  If using `lsp-mode` add this configuration:
+If using `lsp-mode` add this configuration:
 
-  ```elisp
-    (use-package lsp-mode
-      :commands lsp
-      :ensure t
-      :diminish lsp-mode
-      :hook
-      (elixir-mode . lsp)
-      :init
-      (add-to-list 'exec-path "path-to-elixir-ls/release"))
-  ```
+```elisp
+  (use-package lsp-mode
+    :commands lsp
+    :ensure t
+    :diminish lsp-mode
+    :hook
+    (elixir-mode . lsp)
+    :init
+    (add-to-list 'exec-path "path-to-elixir-ls/release"))
+```
 
-  For eglot use:
+For eglot use:
 
-  ```elisp
-  (require 'eglot)
+```elisp
+(require 'eglot)
 
-  ;; This is optional. It automatically runs `M-x eglot` for you whenever you are in `elixir-mode`
-  (add-hook 'elixir-mode-hook 'eglot-ensure)
+;; This is optional. It automatically runs `M-x eglot` for you whenever you are in `elixir-mode`
+(add-hook 'elixir-mode-hook 'eglot-ensure)
 
-  ;; Make sure to edit the path appropriately, use the .bat script instead for Windows
-  (add-to-list 'eglot-server-programs '(elixir-mode "path-to-elixir-ls/release/language_server.sh"))
-  ```
+;; Make sure to edit the path appropriately, use the .bat script instead for Windows
+(add-to-list 'eglot-server-programs '(elixir-mode "path-to-elixir-ls/release/language_server.sh"))
+```
 
 </details>
 
@@ -95,11 +96,17 @@ The installation process for ElixirLS depends on your editor.
 
 Elixir:
 
-- 1.12 minimum
+- 1.12 or newer
 
 Erlang:
 
-- OTP 22 minimum
+| versions | Supported | Issue(s) |
+| :------: | :-------: | :------: |
+|  OTP 22  |    Yes    |   None   |
+|  OTP 23  |    Yes    |   None   |
+|  OTP 24  |    Yes    |   None   |
+|  OTP 25  |    Yes    |   None   |
+|  OTP 26  |    No     |   #886   |
 
 It is generally recommended to install Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS can detect and use the version of Elixir and Erlang that you have configured in ASDF.
 
@@ -119,15 +126,10 @@ To debug modules in .exs files (such as tests), they must be specified under req
   "name": "mix test",
   "request": "launch",
   "task": "test",
-  "taskArgs": [
-    "--trace"
-  ],
+  "taskArgs": ["--trace"],
   "startApps": true,
   "projectDir": "${workspaceRoot}",
-  "requireFiles": [
-    "test/**/test_helper.exs",
-    "test/**/*_test.exs"
-  ]
+  "requireFiles": ["test/**/test_helper.exs", "test/**/*_test.exs"]
 }
 ```
 
@@ -142,10 +144,7 @@ Currently, to debug a single test or a single test file, it is necessary to modi
   "taskArgs": ["tests/some_test.exs:123"],
   "startApps": true,
   "projectDir": "${workspaceRoot}",
-  "requireFiles": [
-    "test/**/test_helper.exs",
-    "test/some_test.exs"
-  ]
+  "requireFiles": ["test/**/test_helper.exs", "test/some_test.exs"]
 }
 ```
 
@@ -179,14 +178,8 @@ It's important to note that NIF (Native Implemented Function) modules cannot be 
   "task": "test",
   "taskArgs": ["--trace"],
   "projectDir": "${workspaceRoot}",
-  "requireFiles": [
-    "test/**/test_helper.exs",
-    "test/**/*_test.exs"
-  ],
-  "excludeModules": [
-    ":some_nif",
-    "Some.SlowModule"
-  ]
+  "requireFiles": ["test/**/test_helper.exs", "test/**/*_test.exs"],
+  "excludeModules": [":some_nif", "Some.SlowModule"]
 }
 ```
 
