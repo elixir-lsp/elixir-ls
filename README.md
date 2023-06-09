@@ -94,19 +94,13 @@ For eglot use:
 
 ## Supported versions
 
-Elixir:
-
-- 1.12 or newer
-
-Erlang:
-
-| Versions | Supported |                          Issue(s)                          |
-| :------: | :-------: | :--------------------------------------------------------: |
-|  OTP 22  |    Yes    |                            None                            |
-|  OTP 23  |    Yes    |                            None                            |
-|  OTP 24  |    Yes    |                            None                            |
-|  OTP 25  |    Yes    |                            None                            |
-|  OTP 26  |    No     | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
+| OTP Versions | Elixir Versions | Supports ElixirLS |                          Issue(s)                          |
+| :----------: | :-------------: | :---------------: | :--------------------------------------------------------: |
+|      22      |   1.12 - 1.13   |        Yes        |         Erlang docs not working (requires EIP 48)          |
+|      23      |   1.12 - 1.14   |        Yes        |                            None                            |
+|      24      |   1.12 - 1.15   |        Yes        |                            None                            |
+|      25      |  1.13.4 - 1.15  |        Yes        |                            None                            |
+|      26      |      1.15       |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
 
 It is generally recommended to install Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS can detect and use the version of Elixir and Erlang that you have configured in ASDF.
 
