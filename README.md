@@ -98,9 +98,11 @@ For eglot use:
 | :----------: | :-------------: | :---------------: | :--------------------------------------------------------: |
 |      22      |   1.12 - 1.13   |        Yes        |         Erlang docs not working (requires EIP 48)          |
 |      23      |   1.12 - 1.14   |        Yes        |                            None                            |
-|      24      |   1.12 - 1.15   |        Yes        |                            None                            |
-|      25      |  1.13.4 - 1.15  |        Yes        |                            None                            |
-|      26      |  1.14.5 - 1.15  |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
+|      24      |       1.12      |        No         | [#907](https://github.com/elixir-lsp/elixir-ls/issues/907) |
+|      24      |   1.13 - 1.14   |        Yes        |                            None                            |
+|      25      |  1.13.4 - 1.14  |        Yes        |                            None                            |
+|      any     |       1.15      |        No         |  [#898](https://github.com/elixir-lsp/elixir-ls/pull/898)  |
+|      26      |       any       |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
 
 It is generally recommended to install Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS can detect and use the version of Elixir and Erlang that you have configured in ASDF.
 
