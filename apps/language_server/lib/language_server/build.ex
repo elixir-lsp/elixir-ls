@@ -316,7 +316,6 @@ defmodule ElixirLS.LanguageServer.Build do
          :dialyxir_vendored,
          :erl2ex,
          :patch,
-         :sourceror,
          :benchee
        ] do
       raise "Unloading #{app}"

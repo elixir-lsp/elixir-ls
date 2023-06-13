@@ -23,6 +23,6 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.Ast do
 
   @spec to_string(t()) :: String.t()
   def to_string(ast) do
-    Sourceror.to_string(ast)
+    Macro.to_string(ast)
   end
 end

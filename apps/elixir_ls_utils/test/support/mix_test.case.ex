@@ -27,7 +27,6 @@ defmodule ElixirLS.Utils.MixTest.Case do
     dialyxir_vendored
     erl2ex
     jason_v
-    sourceror
     )a
 
   setup do
