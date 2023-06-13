@@ -32,9 +32,7 @@ defmodule ElixirLS.Debugger.Mixfile do
   end
 
   def application do
-    # TODO use Mix.ensure_application!(:elixir_ls_debugger) instead?
-    # we don't want to start erlang debugger
-    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix, :debugger]]
+    [mod: {ElixirLS.Debugger, []}, extra_applications: []]
   end
 
   defp deps do
