@@ -3,9 +3,14 @@ defmodule ElixirLS.Utils.Launch do
   @compiled_otp_version System.otp_release()
 
   def start_mix do
+    if Version.match?(System.version(), "< 1.15.0-dev") do
+      # since 1.15 Mix.start() calls append_archives() and append_paths()
+      Mix.Local.append_archives()
+      Mix.Local.append_paths()
+    end
+
     Mix.start()
-    Mix.Local.append_archives()
-    Mix.Local.append_paths()
+    
     true = Mix.Hex.ensure_installed?(false)
     # when running via mix install script mix starts and stops hex
     # we need to make sure it's started
@@ -23,7 +28,7 @@ defmodule ElixirLS.Utils.Launch do
 
     load_dot_config()
 
-    # as of 1.14 mix supports two environment variables MIX_QUIET and MIX_DEBUG
+    # as of 1.15 mix supports two environment variables MIX_QUIET and MIX_DEBUG
     # that are not important for our use cases
 
     :ok
