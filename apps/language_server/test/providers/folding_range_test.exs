@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                  %{map | "key" => dt}                           # 9
 
                e ->                                             # 11
-                 Logger.warn(\"\"\"
+                 Logger.warning(\"\"\"
                  Could not use data map from #\{inspect(value)\}  # 13
                  #\{inspect(e)\}                                  # 14
                  \"\"\")
@@ -248,7 +248,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                  %{map | "key" => dt}                           # 9
 
                e ->                                             # 11
-                 Logger.warn(\"\"\"
+                 Logger.warning(\"\"\"
                  Could not use data map from #\{inspect(value)\}  # 13
                  #\{inspect(e)\}                                  # 14
                  \"\"\")
@@ -451,7 +451,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                  %{map | "key" => dt}                           # 15
 
                e ->                                             # 17
-                 Logger.warn(\"\"\"
+                 Logger.warning(\"\"\"
                  Could not use data map from #\{inspect(value)\}  # 19
                  #\{inspect(e)\}                                  # 20
                  \"\"\")

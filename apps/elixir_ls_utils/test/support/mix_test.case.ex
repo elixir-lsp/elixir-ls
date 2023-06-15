@@ -80,6 +80,13 @@ defmodule ElixirLS.Utils.MixTest.Case do
     end)
   end
 
+  def in_tmp(which, function) do
+    path = tmp_path(which)
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    File.cd!(path, function)
+  end
+
   defmacro in_fixture(dir, which, block) do
     module = inspect(__CALLER__.module)
     function = Atom.to_string(elem(__CALLER__.function, 0))
@@ -109,9 +116,8 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
       for {mod, file} <- :code.all_loaded() -- previous,
           file == [] or (is_list(file) and List.starts_with?(file, flag)) do
-        mod
+        purge([mod])
       end
-      |> purge
     end
   end
 

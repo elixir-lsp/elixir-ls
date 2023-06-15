@@ -354,7 +354,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               :ok
 
             {:error, reason} ->
-              Logger.warn(
+              Logger.warning(
                 "[ElixirLS Dialyzer] Unable to remove temporary file #{path}: #{inspect(reason)}"
               )
           end
@@ -488,7 +488,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         :crypto.hash(:md5, core_bin)
 
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "[ElixirLS Dialyzer] get_core_from_beam failed for #{file}: #{inspect(reason)}"
         )
 
@@ -530,7 +530,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp normalize_postion(position) do
-    Logger.warn(
+    Logger.warning(
       "[ElixirLS Dialyzer] dialyzer returned warning with invalid position #{inspect(position)}"
     )
 

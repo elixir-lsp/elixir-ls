@@ -73,7 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     completions =
       items
-      |> Enum.filter(&(&1["detail"] =~ "engineering_department"))
+      |> Enum.filter(&(&1["label"] =~ "engineering_department"))
       |> Enum.map(& &1["insertText"])
 
     assert completions == ["engineering_department()"]
@@ -480,6 +480,67 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert [item | _] = items
 
       assert item["label"] == "do"
+    end
+  end
+
+  describe "auto require" do
+    test "suggests require as additionalTextEdits" do
+      text = """
+      defmodule MyModule do
+        def dummy_function() do
+          Logger.err
+          #         ^
+        end
+      end
+      """
+
+      {line, char} = {2, 14}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert [item] = items
+
+      # 3 is function
+      assert item["kind"] == 3
+      assert item["label"] == "error"
+      assert item["detail"] == "macro"
+      assert item["labelDetails"]["detail"] == "(message_or_fun, metadata \\\\ [])"
+
+      assert item["labelDetails"]["description"] ==
+               "require Logger.error/2"
+
+      assert [%{newText: "  require Logger\n"}] = item["additionalTextEdits"]
+
+      assert [
+               %{
+                 range: %{
+                   "end" => %{"character" => 0, "line" => 1},
+                   "start" => %{"character" => 0, "line" => 1}
+                 }
+               }
+             ] = item["additionalTextEdits"]
+    end
+  end
+
+  describe "auto import" do
+    test "no suggestion if import excluded" do
+      text = """
+      defmodule MyModule do
+        import Enum, only: [all?: 1]
+        def dummy_function() do
+          cou
+          #  ^
+        end
+      end
+      """
+
+      {line, char} = {3, 7}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, @supports)
+
+      assert [] == items
     end
   end
 
@@ -974,11 +1035,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {:ok, %{"items" => [pub, priv]}} = Completion.completion(text, line, char, @supports)
 
       assert pub["label"] == "my_func"
-      assert pub["detail"] == "(function) my_func(text)"
+      assert pub["detail"] == "function"
       assert pub["labelDetails"]["detail"] == "(text)"
       assert pub["labelDetails"]["description"] == "MyModule.my_func/1"
       assert priv["label"] == "my_func_priv"
-      assert priv["detail"] == "(function) my_func_priv(text)"
+      assert priv["detail"] == "function"
       assert priv["labelDetails"]["detail"] == "(text)"
       assert priv["labelDetails"]["description"] == "MyModule.my_func_priv/1"
     end
@@ -1004,7 +1065,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {:ok, %{"items" => [item | _]}} = Completion.completion(text, line, char, @supports)
 
       assert item["label"] == "func"
-      assert item["detail"] == "(function) RemoteMod.func()"
+      assert item["detail"] == "function"
       assert item["labelDetails"]["detail"] == "()"
       assert item["labelDetails"]["description"] == "RemoteMod.func/0"
     end

@@ -97,7 +97,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
         {:ok, state}
 
       error ->
-        warn("Received textDocument/didClose for a file that wasn't open. URI was #{uri}")
+        warning("Received textDocument/didClose for a file that wasn't open. URI was #{uri}")
         error
     end
   end
@@ -110,7 +110,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server.State do
         {:ok, state}
 
       error ->
-        warn("Save failed for uri #{uri} error was #{inspect(error)}")
+        warning("Save failed for uri #{uri} error was #{inspect(error)}")
         error
     end
   end

@@ -16,10 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.12.x
-            otp: 22.x
-          - elixir: 1.12.x
-            otp: 23.x
           - elixir: 1.13.x
             otp: 22.x
           - elixir: 1.13.x
@@ -56,10 +52,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.12.x
-            otp: 22.x
-          - elixir: 1.12.x
-            otp: 23.x
           - elixir: 1.13.x
             otp: 22.x
           - elixir: 1.13.x

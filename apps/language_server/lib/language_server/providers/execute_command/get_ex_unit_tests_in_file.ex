@@ -4,15 +4,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFile 
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
   def execute([uri], _state) do
-    if Version.match?(System.version(), ">= 1.13.0") do
-      path = SourceFile.Path.from_uri(uri)
+    path = SourceFile.Path.from_uri(uri)
 
-      case ExUnitTestTracer.get_tests(path) do
-        {:ok, tests} -> {:ok, tests}
-        {:error, reason} -> {:error, :server_error, inspect(reason)}
-      end
-    else
-      {:error, :server_error, "This feature requires elixir >= 1.13"}
+    case ExUnitTestTracer.get_tests(path) do
+      {:ok, tests} -> {:ok, tests}
+      {:error, reason} -> {:error, :server_error, inspect(reason)}
     end
   end
 end

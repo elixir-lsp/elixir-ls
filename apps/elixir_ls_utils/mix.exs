@@ -6,6 +6,11 @@ defmodule ElixirLS.Utils.Mixfile do
            |> File.read!()
            |> String.trim()
 
+  @dep_versions __DIR__
+                |> Path.join("../../dep_versions.exs")
+                |> Code.eval_file()
+                |> elem(0)
+
   def project do
     [
       app: :elixir_ls_utils,
@@ -15,7 +20,7 @@ defmodule ElixirLS.Utils.Mixfile do
       deps_path: "../../deps",
       elixirc_paths: elixirc_paths(Mix.env()),
       lockfile: "../../mix.lock",
-      elixir: ">= 1.12.0",
+      elixir: ">= 1.13.0",
       build_embedded: false,
       start_permanent: false,
       build_per_environment: false,
@@ -27,14 +32,15 @@ defmodule ElixirLS.Utils.Mixfile do
 
   def application do
     # We must NOT start ANY applications as this is taken care in code.
-    [applications: []]
+    [applications: [:jason_v]]
   end
 
   defp deps do
     [
-      {:jason_v, github: "elixir-lsp/jason", ref: "c81537e2a5e1acacb915cf339fe400357e3c2aaa"},
+      {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:mix_task_archive_deps, github: "elixir-lsp/mix_task_archive_deps"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: "896fa45817c6a1be8ec408577c88ab52c27f6851", runtime: false}
+      {:dialyxir_vendored,
+       github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
     ]
   end
 

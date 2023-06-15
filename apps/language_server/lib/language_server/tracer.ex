@@ -230,12 +230,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
       end
 
     attributes =
-      if Version.match?(System.version(), ">= 1.13.0") do
-        for name <- apply(Module, :attributes_in, [module]) do
-          {name, Module.get_attribute(module, name)}
-        end
-      else
-        []
+      for name <- apply(Module, :attributes_in, [module]) do
+        {name, Module.get_attribute(module, name)}
       end
 
     %{
@@ -282,7 +278,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   def get_trace do
-    # TODO get by calee
+    # TODO get by callee
     :ets.tab2list(table_name(:calls))
     |> Enum.map(fn {{callee, file, line, column}, _} ->
       %{

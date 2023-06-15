@@ -80,26 +80,33 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
     end)
   end
 
-  # TODO: remove this when only Elixir >= 1.13 is supported
   # The code below is copied from the Elixir source-code because a
   # fix which was introduced in
   # https://github.com/elixir-lang/elixir/commit/88d82f059756ed1eb56a562fae7092f77d941de8
   # is needed for proper treatment of sigils in our use-case.
+  # updated for multiletter sigils on 1.15
   defp sigil_call({sigil, meta, [{:<<>>, _, _} = parts, args]} = ast, fun)
        when is_atom(sigil) and is_list(args) do
     delimiter = Keyword.get(meta, :delimiter, "\"")
     {left, right} = delimiter_pair(delimiter)
 
     case Atom.to_string(sigil) do
-      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
-        args = sigil_args(args, fun)
-        {:<<>>, _, [binary]} = parts
-        formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
-        {:ok, fun.(ast, formatted)}
+      <<"sigil_", first, rest::binary>> when first >= ?A and first <= ?Z ->
+        if upcase_letters?(rest) do
+          args = sigil_args(args, fun)
+          {:<<>>, _, [binary]} = parts
+
+          formatted =
+            <<?~, first, rest::binary, left::binary, binary::binary, right::binary, args::binary>>
+
+          {:ok, fun.(ast, formatted)}
+        else
+          :error
+        end
 
       <<"sigil_", name>> when name >= ?a and name <= ?z ->
         args = sigil_args(args, fun)
-        formatted = "~" <> <<name>> <> interpolate(parts, left, right) <> args
+        formatted = "~" <> <<name>> <> interpolate(parts, left, right, fun) <> args
         {:ok, fun.(ast, formatted)}
 
       _ ->
@@ -110,6 +117,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   defp sigil_call(_other, _fun) do
     :error
   end
+
+  defp upcase_letters?(<<letter, rest::binary>>) when letter >= ?A and letter <= ?Z,
+    do: upcase_letters?(rest)
+
+  defp upcase_letters?(<<_>>),
+    do: false
+
+  defp upcase_letters?(<<>>),
+    do: true
 
   defp delimiter_pair("["), do: {"[", "]"}
   defp delimiter_pair("{"), do: {"{", "}"}
@@ -122,15 +138,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes.AST d
   defp sigil_args([], _fun), do: ""
   defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
 
-  defp interpolate({:<<>>, _, [parts]}, left, right) when left in [~s["""\n], ~s['''\n]] do
+  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s["""\n], ~s['''\n]] do
     <<left::binary, parts::binary, right::binary>>
   end
 
-  defp interpolate({:<<>>, _, parts}, left, right) do
+  defp interpolate({:<<>>, _, parts}, left, right, fun) do
     parts =
       Enum.map_join(parts, "", fn
         {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
-          "\#{" <> ast_to_string(arg) <> "}"
+          "\#{" <> Macro.to_string(arg, fun) <> "}"
 
         binary when is_binary(binary) ->
           escape_sigil(binary, left)

@@ -1,5 +1,4 @@
 defmodule ElixirLS.LanguageServer.Experimental.LanguageServer do
-
   require Logger
 
   @type uri :: String.t()

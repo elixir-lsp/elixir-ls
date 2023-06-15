@@ -6,6 +6,11 @@ defmodule ElixirLS.Debugger.Mixfile do
            |> File.read!()
            |> String.trim()
 
+  @dep_versions __DIR__
+                |> Path.join("../../dep_versions.exs")
+                |> Code.eval_file()
+                |> elem(0)
+
   def project do
     [
       app: :elixir_ls_debugger,
@@ -14,7 +19,7 @@ defmodule ElixirLS.Debugger.Mixfile do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: ">= 1.12.0",
+      elixir: ">= 1.13.0",
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
@@ -27,16 +32,16 @@ defmodule ElixirLS.Debugger.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.Debugger, []}, extra_applications: [:mix]]
+    [mod: {ElixirLS.Debugger, []}, extra_applications: []]
   end
 
   defp deps do
     [
-      {:elixir_sense,
-       github: "elixir-lsp/elixir_sense", ref: "71efd1e2efbac43e6c98c525cc879ddd747ac62e"},
+      {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
       {:elixir_ls_utils, in_umbrella: true},
-      {:jason_v, github: "elixir-lsp/jason", ref: "c81537e2a5e1acacb915cf339fe400357e3c2aaa"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", ref: "896fa45817c6a1be8ec408577c88ab52c27f6851", runtime: false}
+      {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
+      {:dialyxir_vendored,
+       github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
     ]
   end
 end
