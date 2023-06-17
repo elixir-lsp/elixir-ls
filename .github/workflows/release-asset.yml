@@ -22,7 +22,7 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: true
-          prerelease: false
+          prerelease: ${{ contains(github.ref, '-rc.') }}
 
   build:
     name: Build and publish release asset
