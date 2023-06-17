@@ -33,8 +33,8 @@ jobs:
 
       - name: Validate version
         run: |
-          VERSION="v$(cat ./VERSION)"
-          if [[ "$TAG" != "$VERSION" ]]; then
+          VERSION="$(cat ./VERSION)"
+          if [[ "$TAG" != "refs/tags/v$VERSION" ]]; then
               echo "VERSION $VERSION does not match commit tag $TAG"
               exit 1
           fi
