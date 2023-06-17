@@ -34,12 +34,10 @@ jobs:
       - name: Validate version
         run: |
           VERSION="$(cat ./VERSION)"
-          if [[ "$TAG" != "refs/tags/v$VERSION" ]]; then
-              echo "VERSION $VERSION does not match commit tag $TAG"
+          if [[ "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
+              echo "VERSION $VERSION does not match commit tag $GITHUB_REF_NAME"
               exit 1
           fi
-        env:
-          TAG: ${{ github.ref }}
 
       - name: Set up BEAM
         uses: erlef/setup-beam@v1
@@ -62,5 +60,5 @@ jobs:
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: ./elixir-ls.zip
-          asset_name: elixir-ls-${{ github.ref }}.zip
+          asset_name: elixir-ls-${{ github.ref_name }}.zip
           asset_content_type: application/zip
