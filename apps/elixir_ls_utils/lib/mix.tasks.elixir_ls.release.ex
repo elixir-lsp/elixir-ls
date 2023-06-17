@@ -6,7 +6,7 @@ defmodule Mix.Tasks.ElixirLs.Release do
 
   @impl Mix.Task
   def run(args) do
-    version_warning()
+    IO.warn("This task is deprecated. Consider switching to release2")
     {opts, _} = OptionParser.parse!(args, aliases: @aliases, switches: @switches)
     destination = Path.expand(opts[:destination] || "release")
 
@@ -37,18 +37,5 @@ defmodule Mix.Tasks.ElixirLs.Release do
     end
 
     :ok
-  end
-
-  defp version_warning do
-    {otp_version, _} = Integer.parse(to_string(:erlang.system_info(:otp_release)))
-
-    if otp_version > 22 do
-      IO.warn(
-        "Building with Erlang/OTP #{otp_version}. Make sure to build with OTP 22 if " <>
-          "publishing the compiled packages because modules built with higher versions are not " <>
-          "backwards-compatible.",
-        []
-      )
-    end
   end
 end
