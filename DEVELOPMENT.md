@@ -1,14 +1,41 @@
 # Development
 
-## Version Support Guidelines
+It's best to disable ElixirLS when working on ElixirLS and elixir_sense. Without that modules from edited code conflict with modules from the running language server.
 
-Elixir itself supports 5 versions with security updates:
-https://hexdocs.pm/elixir/compatibility-and-deprecations.html#content
+## Building and testing
 
-OTP Supports the last 3 versions:
-http://erlang.2086793.n4.nabble.com/OTP-Versions-and-Maint-Branches-td4722416.html
+### Installing
 
-ElixirLS generally aims to support the last 3 versions of Elixir and the last 3 versions of OTP. However this is not a hard and fast rule and may change in the future.
+Clone the repo and run
+
+```shell
+mix deps.get
+```
+
+### Running tests
+
+Use normal mix commands for running tests.
+
+```shell
+mix test
+```
+
+### Testing in VSCode
+
+It's easiest to test ElixirLS with [VSCode extension](https://github.com/elixir-lsp/vscode-elixir-ls) with ElixirLS as a git submodule. Refer to that repo for detailed instructions.
+
+### Local release
+
+You can run a local release of language server and debugger with launch scripts from `scripts` directory with `ELS_LOCAL=1` environment variable. This will make the install script use source, lockfile and config from the local ElixirLS directory.
+
+```shell
+cd path/to/my_project
+ELS_LOCAL=1 /path/to/elixir-ls/scripts/language_server.sh
+```
+
+### Formatting
+
+You may need to separately run `mix format` in the ElixirLS root and in `apps/language_server` directory.
 
 ## Packaging
 
@@ -19,7 +46,7 @@ Follow those instructions when publishing a new release.
 3. Make PR
 4. Merge PR
 5. Pull down the latest master
-6. Make the tag from the new master
+6. Make the tag from the new master matching version number with `v` prefix (e.g. `v0.1.2`)
 7. Push the tag (`git push upstream --tags`)
 8. Wait for github actions to push up a draft release https://github.com/elixir-lsp/elixir-ls/releases
 9. Edit the draft release with a link to the changelog

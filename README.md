@@ -2,7 +2,7 @@
 
 The Elixir Language Server provides a server that runs in the background, providing IDEs, editors, and other tools with information about Elixir Mix projects. It adheres to the [Language Server Protocol](https://github.com/Microsoft/language-server-protocol), a standard for frontend-independent IDE support. Debugger integration is accomplished through the similar [VS Code Debug Protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging).
 
-## This is now the main elixir-ls repo
+## This is the main elixir-ls repo
 
 The [elixir-lsp](https://github.com/elixir-lsp)/[elixir-ls](https://github.com/elixir-lsp/elixir-ls) repo began as a fork when the original repo at [JakeBecker](https://github.com/JakeBecker)/[elixir-ls](https://github.com/JakeBecker/elixir-ls) became inactive for an extended period of time. So we decided to start an active fork to merge dormant PR's and fix issues where possible. We also believe in an open and shared governance model to share the work instead of relying on one person to shoulder the whole burden.
 
@@ -92,7 +92,17 @@ For eglot use:
 
 </details>
 
-## Supported versions
+## Supported elixir and OTP versions
+
+Elixir itself supports 5 versions with security updates:
+https://hexdocs.pm/elixir/compatibility-and-deprecations.html#content
+
+OTP Supports the last 3 versions:
+http://erlang.2086793.n4.nabble.com/OTP-Versions-and-Maint-Branches-td4722416.html
+
+ElixirLS generally aims to support the last 3 released versions of Elixir and the last 3 versions of OTP. However this is not a hard and fast rule and may change in the future.
+
+### Support matrix
 
 | OTP Versions | Elixir Versions | Supports ElixirLS |                          Issue(s)                          |
 | :----------: | :-------------: | :---------------: | :--------------------------------------------------------: |
@@ -102,6 +112,8 @@ For eglot use:
 |      24      |   1.13 - 1.15   |        Yes        |                            None                            |
 |      25      |  1.13.4 - 1.15  |        Yes        |                            None                            |
 |      26      |       any       |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
+
+### Version management
 
 It is generally recommended to install Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS can detect and use the version of Elixir and Erlang that you have configured in ASDF.
 
@@ -318,6 +330,9 @@ Below is a list of configuration options supported by ElixirLS Debugger. Configu
 
 Basic troubleshooting steps:
 
+- Make sure you have hex and git installed
+- Make sure github.com and hex.pm are accessible. You may need to configure proxy
+- If the extension fails to start ElixirLS you can try cleaning the `Mix.install` directory (location on your system can be obtained by calling `Mix.Utils.mix_cache()` from `iex` session)
 - Restart ElixirLS with a custom command `restart`
 - Run `mix clean` or `mix clean --deps` in ElixirLS with custom command `mixClean`
 - Restart your editor (which will restart ElixirLS)
@@ -352,7 +367,19 @@ https://github.com/elixir-lsp/elixir-ls/issues/364#issuecomment-829589139
 
 ## Building and running
 
-In order to build a release use the following commands.
+There are two ways of building the release: `Mix.install` based (recommended) and `.ez` archives (deprecated).
+
+### `Mix.install` based release
+
+```bash
+mix deps.get
+MIX_ENV=prod mix compile
+MIX_ENV=prod mix elixir_ls.release2 -o <release_dir>
+```
+
+This copies language server and debugger adapter launch scripts to the `<release_dir>` and includes `VERSION` manifest file. The launch scripts install a release specified by version manifest via `Mix.install` and launch it. This ensures that ElixirLS is built by the correct combination of elixir and OTP.
+
+### Deprecated `.ez` archives release
 
 ```bash
 mix deps.get
@@ -362,7 +389,7 @@ MIX_ENV=prod mix elixir_ls.release -o <release_dir>
 
 This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
 
-If you're packaging these archives in an IDE plugin, make sure to build using the minimum supported OTP version for the best backwards-compatibility. Alternatively, you can use a [precompiled release](https://github.com/elixir-lsp/elixir-ls/releases).
+If you're packaging these archives in an IDE plugin, make sure to build using the minimum supported OTP version for the best backwards-compatibility.
 
 ### Local setup
 
@@ -372,15 +399,33 @@ When launching ElixirLS from an IDE that is itself launched from a graphical she
 
 To ensure that the correct environment is set up, you can create a setup script at `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (for Unix-based systems) or `%APPDATA%\elixir_ls\setup.bat` (for Windows).
 
-In the setup script the environment variable `ELS_MODE` available and set to either `debugger` or `language_server` to help you decide what to do.
+In the setup script the environment variable `ELS_MODE` is available and set to either `debugger` or `language_server` to help you decide what to do.
 
 Note: The setup script must not read from `stdin` and write to `stdout`. On unix/linux/macOS
 this might be accomplished by adding `>/dev/null` at the end of any line that produces
 output, and for a windows batch script you will want `@echo off` at the top and `>nul`.
 
+### Development
+
+Please refer to [DEVELOPMENT.MD](DEVELOPMENT.MD).
+
 ## Environment variables
 
-- `ELS_INSTALL_PREFIX`: The folder where the language server got installed to. If set, it makes maintaining multiple versions/instances on the same host much easier. If not set or empty, a heuristic will be used to discover the install location.
+ElixirLS supports the following environment variables.
+
+<dl>
+
+  <dt>ELS_INSTALL_PREFIX</dt><dd>(not supported on Windows) The folder where the language server got installed to. If set, it makes maintaining multiple versions/instances on the same host much easier. If not set or empty, a heuristic will be used to discover the install location.</dd>
+
+  <dt>ELS_LOCAL</dt><dd>If set to `1` will make ElixirLS run local release. If it is not set a published release matching `VERSION` will be used (default).</dd>
+
+  <dt>ELS_ELIXIR_OPTS</dt><dd>Optional parameters to pass to elixir CLI. May be used to set a node name and cookie.</dd>
+
+  <dt>ELS_ERL_OPTS</dt><dd>Optional parameters to pass to erl CLI.</dd>
+
+  <dt>ASDF_DIR</dt><dd>(not supported on Windows) If set, ElixirLS will look for [ASDF](https://github.com/asdf-vm/asdf) script in a directory given by that variable</dd>
+
+</dl>
 
 ## Acknowledgements and related projects
 
