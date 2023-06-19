@@ -236,6 +236,18 @@ If a breakpoint is set on the line with `some_function()`, the last bound value 
 
 Additionally, while all bound variables are accessible in the expression evaluator, it doesn't support accessing module attributes since those are determined at compile-time.
 
+### Connecting to debugger
+
+It may be useful to connect to a running debugger node via OTP distribution. This enables inspecting the running application and remotely triggering debugged functions. In order to do so set `ELS_ELIXIR_OPTS` in launch configuration and pass appropriate node name/sname and cookie.
+
+```json
+{
+  "env": {
+    "ELS_ELIXIR_OPTS": "--name mynode@localhost --cookie secret"
+  }
+}
+```
+
 ## Automatic builds and error reporting
 
 The ElixirLS provides automatic builds and error reporting. By default, builds are triggered automatically when files are saved, but you can also enable "autosave" in your IDE to trigger builds as you type. If you prefer to disable automatic builds, you can set the `elixirLS.autoBuild` configuration option to `false`.
