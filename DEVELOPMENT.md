@@ -48,7 +48,7 @@ Follow those instructions when publishing a new release.
 5. Pull down the latest master
 6. Make the tag from the new master matching version number with `v` prefix (e.g. `v0.1.2`)
 7. Push the tag (`git push upstream --tags`)
-8. Wait for github actions to push up a draft release https://github.com/elixir-lsp/elixir-ls/releases
+8. Wait for github actions to push up a draft release https://github.com/elixir-lsp/elixir-ls/releases (Semver tags (e.g. `v0.1.0-rc.0`) will create a prerelease)
 9. Edit the draft release with a link to the changelog
 10. Publish the draft release
 
