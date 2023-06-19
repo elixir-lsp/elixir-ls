@@ -70,4 +70,4 @@ fi
 
 export ERL_LIBS="$SCRIPTPATH:$ERL_LIBS"
 
-exec elixir --erl "+sbwt none +sbwtdcpu none +sbwtdio none" -e "$ELS_SCRIPT"
+exec elixir $ELS_ELIXIR_OPTS --erl "+sbwt none +sbwtdcpu none +sbwtdio none $ELS_ERL_OPTS" -e "$ELS_SCRIPT"
