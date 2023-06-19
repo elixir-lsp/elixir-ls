@@ -4,11 +4,12 @@
 
 #### Improvements
 
-- This is the first release supporting Elixir 1.15. See https://github.com/elixir-lsp/elixir-ls/pull/898 for details
-- Main distribution mode switched to `Mix.install` script. This allows running ElixirLS built with a correct combination of OTP and elixir. Previously used `.ez` releases suffered from numerous problems stemming from version incompatibilities (e.g. https://github.com/elixir-lsp/elixir-ls/issues/193)
+- This is the first release supporting Elixir 1.15. See [898](https://github.com/elixir-lsp/elixir-ls/pull/898) for details
+- Main distribution mode switched to `Mix.install` script. This allows running ElixirLS built with a correct combination of OTP and elixir. Previously used `.ez` releases suffered from numerous problems stemming from version incompatibilities (e.g. [193](https://github.com/elixir-lsp/elixir-ls/issues/193))
 - elixir_sense replaced many of its custom source parsing internals with elixir 1.13+ Code.Fragment APIs
-- `require` and `import` are now understood by elixir_sense. This improves accuracy of definition, hover, references and complete providers. For example only imports matchin `only` and `except` options will now be suggested by complete provider.
+- `require` and `import` are now understood by elixir_sense. This improves accuracy of definition, hover, references and complete providers. For example only imports matching `only` and `except` options will now be suggested by complete provider.
 - When accepting a completion with a not required macro a `require` directive will be now added to module.
+- Reimplemented `use` macro expansion. This should improve accuracy.
 - Better handling of typespecs in elixir_sense. This should improve accuracy in modules with defs and types sharing the same name.
 - Added ability to pass command line options to elixir and erlang via `ELS_ELIXIR_OPTS` and `ELS_ERL_OPTS`. This allows for setting a node name and connecting remotely to language server and debugger.
 
