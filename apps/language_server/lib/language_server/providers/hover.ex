@@ -48,10 +48,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     )
   end
 
-  defp contents(%{docs: "No documentation available\n"}, _subject, _project_dir) do
-    []
-  end
-
   defp contents(%{docs: markdown}, subject, project_dir) do
     %{
       kind: "markdown",
