@@ -343,8 +343,8 @@ Below is a list of configuration options supported by ElixirLS Debugger. Configu
 Basic troubleshooting steps:
 
 - Make sure you have hex and git installed
-- Make sure github.com and hex.pm are accessible. You may need to configure proxy
-- If the extension fails to start ElixirLS you can try cleaning the `Mix.install` directory (location on your system can be obtained by calling `Mix.Utils.mix_cache()` from `iex` session)
+- Make sure github.com and hex.pm are accessible. You may need to configure HTTPS proxy. If your setup uses TLS man-in-the-middle inspection you may need to set `HEX_UNSAFE_HTTPS=1`.
+- If ElixirLS fails to start you can try cleaning the `Mix.install` directory (location on your system can be obtained by calling `Path.join(Mix.Utils.mix_cache(), "installs")` from `iex` session)
 - Restart ElixirLS with a custom command `restart`
 - Run `mix clean` or `mix clean --deps` in ElixirLS with custom command `mixClean`
 - Restart your editor (which will restart ElixirLS)
@@ -363,6 +363,28 @@ If you get an error like the following immediately on startup:
 and you installed Elixir and Erlang from the Erlang Solutions repository, you may not have a full installation of erlang. This can be solved with `sudo apt-get install esl-erlang`. Originally reported in [#208](https://github.com/elixir-lsp/elixir-ls/issues/208).
 
 On fedora if you only install the elixir package you will not have a full erlang installation, this can be fixed by running `sudo dnf install erlang` (reported in [#231](https://github.com/elixir-lsp/elixir-ls/issues/231))
+
+If you are seeing the message "Invalid beam file or no abstract code", you need to make sure that your Mix project is set to use the `elixirc` compiler option `--debug-info`, which can be done by adding the following line to your `mix.exs` `project` section:
+
+```
+elixirc_options: [debug_info: Mix.env() == :dev]
+```
+
+For example:
+
+```
+defmodule MyApp.MixProject do
+  use Mix.Project
+
+  def project do
+    [
+      app: :my_app,
+      version: "0.1.0",
+      elixir: "~> 1.11",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      elixirc_options: [debug_info: Mix.env() == :dev],
+    ...
+```
 
 If you are using Emacs with lsp-mode there's a possibility that you have set the
 wrong directory as the project root (especially if that directory does not have
