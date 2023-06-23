@@ -1030,6 +1030,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     } = info
 
     %{
+      prefix: prefix,
       pipe_before?: pipe_before?,
       capture_before?: capture_before?,
       text_after_cursor: text_after_cursor
@@ -1038,7 +1039,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     locals_without_parens = Keyword.get(options, :locals_without_parens)
     signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
     signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
-    with_parens? = function_name_with_parens?(name, arity, locals_without_parens)
+
+    remote_calls? = String.contains?(prefix, ".")
+    with_parens? = remote_calls? || function_name_with_parens?(name, arity, locals_without_parens)
 
     trigger_signature? = signature_help_supported? && ((arity == 1 && !pipe_before?) || arity > 1)
 
