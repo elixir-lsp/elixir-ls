@@ -418,7 +418,8 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{}) do
+  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{})
+       when is_binary(state.project_dir) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
     # `settings` may not always be available here, like during testing
@@ -484,6 +485,11 @@ defmodule ElixirLS.LanguageServer.Server do
     |> WorkspaceSymbols.notify_uris_modified()
 
     if needs_build, do: trigger_build(state), else: state
+  end
+
+  defp handle_notification(did_change_watched_files(_changes), state = %__MODULE__{}) do
+    # swallow notification if project_dir is not yet set
+    state
   end
 
   defp handle_notification(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
