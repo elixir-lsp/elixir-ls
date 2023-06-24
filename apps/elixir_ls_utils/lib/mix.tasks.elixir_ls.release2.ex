@@ -13,8 +13,6 @@ defmodule Mix.Tasks.ElixirLs.Release2 do
 
     File.cp_r!("./scripts", destination)
 
-    IO.inspect(opts)
-
     unless opts[:local] do
       File.cp!("./VERSION", Path.join(destination, "VERSION"))
     end
