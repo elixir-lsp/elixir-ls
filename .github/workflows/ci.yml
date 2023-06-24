@@ -98,7 +98,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - elixir: 1.14.x
+          - elixir: 1.15.x
             otp: 25.x
     steps:
       - uses: actions/checkout@v3
