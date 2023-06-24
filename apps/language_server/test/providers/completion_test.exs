@@ -969,7 +969,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item_1["labelDetails"]["detail"] == "()"
       assert item_1["labelDetails"]["description"] == "MyModule.timestamps/0"
       assert item_2["label"] == "timestamps"
-      assert item_1["labelDetails"]["detail"] == "()"
+      assert item_2["labelDetails"]["detail"] == "(a)"
       assert item_2["labelDetails"]["description"] == "MyModule.timestamps/1"
     end
 
