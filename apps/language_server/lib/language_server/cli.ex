@@ -81,14 +81,14 @@ defmodule ElixirLS.LanguageServer.CLI do
       {:ok, _} ->
         :ok
 
-      {:error, {:edoc, {'no such file or directory', 'edoc.app'}}} ->
+      {:error, {:edoc, {~c"no such file or directory", ~c"edoc.app"}}} ->
         message = incomplete_installation_message("#edoc-missing")
 
         JsonRpc.show_message(:error, message)
         Process.sleep(5000)
         raise message
 
-      {:error, {:dialyzer, {'no such file or directory', 'dialyzer.app'}}} ->
+      {:error, {:dialyzer, {~c"no such file or directory", ~c"dialyzer.app"}}} ->
         message = incomplete_installation_message("#dialyzer-missing")
 
         JsonRpc.show_message(:error, message)

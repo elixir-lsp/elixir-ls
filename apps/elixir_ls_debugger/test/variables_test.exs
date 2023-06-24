@@ -37,7 +37,7 @@ defmodule ElixirLS.Debugger.VariablesTest do
 
     assert Variables.type([]) == "list"
     assert Variables.type([1]) == "list"
-    assert Variables.type('asd') == "list"
+    assert Variables.type(~c"asd") == "list"
 
     assert Variables.type(abc: 123) == "keyword"
 
@@ -90,7 +90,7 @@ defmodule ElixirLS.Debugger.VariablesTest do
 
     assert Variables.num_children([]) == 0
     assert Variables.num_children([1]) == 1
-    assert Variables.num_children('asd') == 3
+    assert Variables.num_children(~c"asd") == 3
 
     assert Variables.num_children(abc: 123) == 1
 
@@ -108,7 +108,7 @@ defmodule ElixirLS.Debugger.VariablesTest do
       assert Variables.children([1], 0, 10) == [{"0", 1}]
       assert Variables.children([1, 2, 3, 4], 0, 2) == [{"0", 1}, {"1", 2}]
       assert Variables.children([1, 2, 3, 4], 1, 2) == [{"1", 2}, {"2", 3}]
-      assert Variables.children('asd', 0, 10) == [{"0", 97}, {"1", 115}, {"2", 100}]
+      assert Variables.children(~c"asd", 0, 10) == [{"0", 97}, {"1", 115}, {"2", 100}]
     end
 
     test "keyword" do
@@ -195,10 +195,10 @@ defmodule ElixirLS.Debugger.VariablesTest do
 
       case :os.type() do
         {:win32, _} ->
-          assert children[:name] == '2/2'
+          assert children[:name] == ~c"2/2"
 
         _ ->
-          assert children[:name] == 'forker'
+          assert children[:name] == ~c"forker"
       end
     end
   end
