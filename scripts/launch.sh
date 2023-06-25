@@ -82,4 +82,4 @@ export MIX_ENV=prod
 # we need to make sure it doesn't interfere with LSP/DAP
 echo "" | elixir "$SCRIPTPATH/quiet_install.exs" >/dev/null || exit 1
 
-exec elixir $ELS_ELIXIR_OPTS --erl "+sbwt none +sbwtdcpu none +sbwtdio none $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"
+exec elixir $ELS_ELIXIR_OPTS --erl "-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"

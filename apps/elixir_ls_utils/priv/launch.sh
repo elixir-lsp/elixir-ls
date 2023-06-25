@@ -79,4 +79,4 @@ fi
 
 export ERL_LIBS="$SCRIPTPATH:$ERL_LIBS"
 
-exec elixir $ELS_ELIXIR_OPTS --erl "+sbwt none +sbwtdcpu none +sbwtdio none $ELS_ERL_OPTS" -e "$ELS_SCRIPT"
+exec elixir $ELS_ELIXIR_OPTS --erl "-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none $ELS_ERL_OPTS" -e "$ELS_SCRIPT"

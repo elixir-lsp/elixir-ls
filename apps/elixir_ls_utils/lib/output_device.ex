@@ -9,7 +9,11 @@ defmodule ElixirLS.Utils.OutputDevice do
   ## Client API
 
   def start_link(device, output_fn) do
-    Task.start_link(fn -> loop({device, output_fn}) end)
+    Task.start_link(fn ->
+      # Trap exit to make sure the process completes :io_request handling before exiting
+      Process.flag(:trap_exit, true)
+      loop({device, output_fn})
+    end)
   end
 
   def child_spec(arguments) do
@@ -22,12 +26,13 @@ defmodule ElixirLS.Utils.OutputDevice do
     }
   end
 
-  def get_opts, do: @opts
-
   ## Implementation
 
   defp loop(state) do
     receive do
+      {:EXIT, _from, reason} ->
+        exit(reason)
+
       {:io_request, from, reply_as, request} ->
         result = io_request(request, state, reply_as)
         send(from, {:io_reply, reply_as, result})
@@ -82,6 +87,8 @@ defmodule ElixirLS.Utils.OutputDevice do
   end
 
   defp io_request({:setopts, new_opts}, _state, _reply_as) do
+    # we do not support changing opts
+    # only validate that the passed ones match defaults
     validate_otps(new_opts, {:ok, 0})
   end
 

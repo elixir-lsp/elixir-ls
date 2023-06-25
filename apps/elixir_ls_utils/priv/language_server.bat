@@ -6,4 +6,4 @@ IF EXIST "%APPDATA%\elixir_ls\setup.bat" (
 )
 
 SET ERL_LIBS=%~dp0;%ERL_LIBS%
-elixir %ELS_ELIXIR_OPTS% --erl "+sbwt none +sbwtdcpu none +sbwtdio none %ELS_ERL_OPTS%" -e "ElixirLS.LanguageServer.CLI.main()"
+elixir %ELS_ELIXIR_OPTS% --erl "-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none %ELS_ERL_OPTS%" -e "ElixirLS.LanguageServer.CLI.main()"

@@ -106,14 +106,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       exported_types_list
     } = File.read!(manifest_path) |> :erlang.binary_to_term()
 
-    # FIXME: matching against opaque type
+    active_plt = :dialyzer_plt.new()
+
     plt(
       info: info,
       types: types,
       contracts: contracts,
       callbacks: callbacks,
       exported_types: exported_types
-    ) = active_plt = apply(:dialyzer_plt, :new, [])
+    ) = active_plt
 
     for item <- info_list, do: :ets.insert(info, item)
     for item <- types_list, do: :ets.insert(types, item)
@@ -127,7 +128,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def load_elixir_plt() do
-    apply(:dialyzer_plt, :from_file, [to_charlist(elixir_plt_path())])
+    if String.to_integer(System.otp_release()) < 26 do
+      :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
+    else
+      :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
+    end
   rescue
     _ -> build_elixir_plt()
   catch
@@ -175,7 +180,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     )
 
     JsonRpc.show_message(:info, "Saved Elixir PLT to #{elixir_plt_path()}")
-    :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
+
+    if String.to_integer(System.otp_release()) < 26 do
+      :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
+    else
+      :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
+    end
   end
 
   defp otp_vsn() do
