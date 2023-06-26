@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
   use GenServer
+  alias ElixirLS.LanguageServer.Build
 
   @tables ~w(tests)a
 
@@ -38,32 +39,35 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
   @impl true
   def handle_call({:get_tests, path}, _from, state) do
     :ets.delete_all_objects(table_name(:tests))
-    tracers = Code.compiler_options()[:tracers]
-    # TODO build lock?
-    Code.put_compiler_option(:tracers, [__MODULE__])
 
     result =
-      try do
-        # TODO parallel compiler and diagnostics?
-        _ = Code.compile_file(path)
+      Build.with_build_lock(fn ->
+        tracers = Code.compiler_options()[:tracers]
 
-        result =
-          :ets.tab2list(table_name(:tests))
-          |> Enum.map(fn {{_file, module, line}, describes} ->
-            %{
-              module: inspect(module),
-              line: line,
-              describes: describes
-            }
-          end)
+        Code.put_compiler_option(:tracers, [__MODULE__])
 
-        {:ok, result}
-      rescue
-        e ->
-          {:error, e}
-      after
-        Code.put_compiler_option(:tracers, tracers)
-      end
+        try do
+          # parallel compiler and diagnostics?
+          _ = Code.compile_file(path)
+
+          result =
+            :ets.tab2list(table_name(:tests))
+            |> Enum.map(fn {{_file, module, line}, describes} ->
+              %{
+                module: inspect(module),
+                line: line,
+                describes: describes
+              }
+            end)
+
+          {:ok, result}
+        rescue
+          e ->
+            {:error, e}
+        after
+          Code.put_compiler_option(:tracers, tracers)
+        end
+      end)
 
     {:reply, result, state}
   end
