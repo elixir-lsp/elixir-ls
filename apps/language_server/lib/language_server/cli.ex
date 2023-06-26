@@ -16,7 +16,6 @@ defmodule ElixirLS.LanguageServer.CLI do
       :ok =
         :logger.add_handler(
           Logger.Backends.JsonRpc,
-          Logger.Backends.JsonRpc,
           Logger.Backends.JsonRpc.handler_config()
         )
     else
