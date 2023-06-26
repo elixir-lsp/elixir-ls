@@ -829,6 +829,25 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item["command"] == @signature_command
     end
 
+    test "complete with parens if there are remote calls" do
+      text = """
+      defmodule MyModule do
+        def dummy_function() do
+          Map.drop
+          #       ^
+        end
+      end
+      """
+
+      {line, char} = {2, 12}
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(drop: 2))
+      {:ok, %{"items" => [item]}} = Completion.completion(text, line, char, opts)
+
+      assert item["insertText"] == "drop($1)$0"
+    end
+
     test "function with arity 0 does not triggers signature" do
       text = """
       defmodule MyModule do

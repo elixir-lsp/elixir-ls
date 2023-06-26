@@ -138,6 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       text_before_cursor: text_before_cursor,
       text_after_cursor: text_after_cursor,
       prefix: prefix,
+      remote_calls?: match?({:dot, _, _}, Code.Fragment.cursor_context(prefix)),
       def_before: def_before,
       pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
       capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
@@ -1030,6 +1031,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     } = info
 
     %{
+      remote_calls?: remote_calls?,
       pipe_before?: pipe_before?,
       capture_before?: capture_before?,
       text_after_cursor: text_after_cursor
@@ -1038,7 +1040,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     locals_without_parens = Keyword.get(options, :locals_without_parens)
     signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
     signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
-    with_parens? = function_name_with_parens?(name, arity, locals_without_parens)
+    with_parens? = remote_calls? || function_name_with_parens?(name, arity, locals_without_parens)
 
     trigger_signature? = signature_help_supported? && ((arity == 1 && !pipe_before?) || arity > 1)
 
