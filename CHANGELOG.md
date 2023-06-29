@@ -1,5 +1,17 @@
 ### Unreleased
 
+### v0.15.1: 29 June 2023
+
+#### Improvements
+
+- This is the first release supporting OTP 26. Unfortunately due to bugs in OTP only 26.0.2+ is supported. See [886](https://github.com/elixir-lsp/elixir-ls/issues/886) and [923](https://github.com/elixir-lsp/elixir-ls/pull/923) for details
+
+#### Fixes
+
+- Fixed crash when handling `workspace/didChangeWatchedFiles` when `project_dir` not yet set
+- ExUnit test tracer is now under build lock. This should fix crashes due tu race conditions
+- Fixed completion of remote calls matching locals without parens (e.g. `Map.drop` when `drop` is local without parens from `ecto_sql`) [Milo Lee](https://github.com/oo6)
+
 ### v0.15.0: 20 June 2023
 
 #### Improvements

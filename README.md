@@ -111,7 +111,8 @@ ElixirLS generally aims to support the last 3 released versions of Elixir and th
 |      23      |   1.13 - 1.14   |        Yes        |                            None                            |
 |      24      |   1.13 - 1.15   |        Yes        |                            None                            |
 |      25      |  1.13.4 - 1.15  |        Yes        |                            None                            |
-|      26      |       any       |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
+| 26.0.0 - 26.0.1 |       any       |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
+|   >= 26.0.2  |  1.14.5 - 1.15  |        Yes        |                            None                            |
 
 ### Version management
 
