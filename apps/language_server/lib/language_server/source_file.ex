@@ -256,7 +256,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     end
   end
 
-  def formatter_for(_), do: :error
+  def formatter_for(_, _), do: :error
 
   defp format_code(code, opts) do
     try do
