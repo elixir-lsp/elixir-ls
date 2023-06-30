@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir)
       when is_binary(project_dir) do
     if can_format?(uri, project_dir) do
-      case SourceFile.formatter_for(uri) do
+      case SourceFile.formatter_for(uri, project_dir) do
         {:ok, {formatter, opts}} ->
           if should_format?(uri, project_dir, opts[:inputs]) do
             do_format(source_file, formatter, opts)

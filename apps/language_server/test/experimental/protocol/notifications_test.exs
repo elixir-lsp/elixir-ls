@@ -1,5 +1,5 @@
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.NotificationsTest do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications
+defmodule LSP.NotificationsTest do
+  alias LSP.Notifications
   import Notifications
   use ExUnit.Case
 

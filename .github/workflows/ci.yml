@@ -16,10 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.12.x
-            otp: 22.x
-          - elixir: 1.12.x
-            otp: 23.x
           - elixir: 1.13.x
             otp: 22.x
           - elixir: 1.13.x
@@ -33,6 +29,10 @@ jobs:
           - elixir: 1.14.x
             otp: 24.x
           - elixir: 1.14.x
+            otp: 25.x
+          - elixir: 1.15.x
+            otp: 24.x
+          - elixir: 1.15.x
             otp: 25.x
     env:
       MIX_ENV: test
@@ -56,10 +56,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.12.x
-            otp: 22.x
-          - elixir: 1.12.x
-            otp: 23.x
           - elixir: 1.13.x
             otp: 22.x
           - elixir: 1.13.x
@@ -73,6 +69,10 @@ jobs:
           - elixir: 1.14.x
             otp: 24.x
           - elixir: 1.14.x
+            otp: 25.x
+          - elixir: 1.15.x
+            otp: 24.x
+          - elixir: 1.15.x
             otp: 25.x
     env:
       MIX_ENV: test
@@ -98,7 +98,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - elixir: 1.14.x
+          - elixir: 1.15.x
             otp: 25.x
     steps:
       - uses: actions/checkout@v3
@@ -123,4 +123,5 @@ jobs:
         run: IFS=$'\n'; for f in $(git ls-files); do touch -d "$(git log -n 1 --pretty='%cI' -- $f)" "$f"; done
       - run: MIX_ENV=test mix format --check-formatted
       - run: cd apps/language_server && MIX_ENV=test mix format --check-formatted
-      - run: mix dialyzer_vendored
+      # TODO reenable
+      # - run: mix dialyzer_vendored

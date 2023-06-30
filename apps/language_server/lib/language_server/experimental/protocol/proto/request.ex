@@ -33,7 +33,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
       end
 
       alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert
-      alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+      alias LSP.Types
 
       unquote(
         Message.build({:request, :elixir}, method, access, elixir_types, param_names,
@@ -56,13 +56,13 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
         Convert.to_elixir(request)
       end
 
-      defimpl JasonVendored.Encoder, for: unquote(__CALLER__.module) do
+      defimpl JasonV.Encoder, for: unquote(__CALLER__.module) do
         def encode(request, opts) do
-          JasonVendored.Encoder.encode(request.lsp, opts)
+          JasonV.Encoder.encode(request.lsp, opts)
         end
       end
 
-      defimpl JasonVendored.Encoder, for: unquote(lsp_module_name) do
+      defimpl JasonV.Encoder, for: unquote(lsp_module_name) do
         def encode(request, opts) do
           %{
             id: request.id,
@@ -70,7 +70,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Request do
             method: unquote(method),
             params: Map.take(request, unquote(param_names))
           }
-          |> JasonVendored.Encode.map(opts)
+          |> JasonV.Encode.map(opts)
         end
       end
     end

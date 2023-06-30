@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
 
   For details see https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#location
   """
-  @derive JasonVendored.Encoder
+  @derive JasonV.Encoder
   defstruct [:uri, :range]
 
   alias ElixirLS.LanguageServer.SourceFile

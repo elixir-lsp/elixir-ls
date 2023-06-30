@@ -237,7 +237,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case state do
         %{settings: nil} ->
-          Logger.warn(
+          Logger.warning(
             "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
               "Using default settings."
           )
@@ -309,7 +309,7 @@ defmodule ElixirLS.LanguageServer.Server do
         %{state | requests: Map.delete(requests, id)}
 
       _ ->
-        Logger.warn("Received $/cancelRequest for unknown request id: #{inspect(id)}")
+        Logger.warning("Received $/cancelRequest for unknown request id: #{inspect(id)}")
 
         state
     end
@@ -349,7 +349,7 @@ defmodule ElixirLS.LanguageServer.Server do
     if Map.has_key?(state.source_files, uri) do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didOpen for file that is already open. Received uri: #{inspect(uri)}"
       )
 
@@ -370,7 +370,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(did_close(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
       # A close notification requires a previous open notification to be sent
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didClose for file that is not open. Received uri: #{inspect(uri)}"
       )
 
@@ -391,7 +391,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # The source file was not marked as open either due to a bug in the
       # client or a restart of the server. So just ignore the message and do
       # not update the state
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didChange for file that is not open. Received uri: #{inspect(uri)}"
       )
 
@@ -406,7 +406,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(did_save(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didSave for file that is not open. Received uri: #{inspect(uri)}"
       )
 
@@ -418,7 +418,8 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{}) do
+  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{})
+       when is_binary(state.project_dir) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
     # `settings` may not always be available here, like during testing
@@ -466,7 +467,7 @@ defmodule ElixirLS.LanguageServer.Server do
                   acc
 
                 {:error, reason} ->
-                  Logger.warn("Unable to read #{uri}: #{inspect(reason)}")
+                  Logger.warning("Unable to read #{uri}: #{inspect(reason)}")
                   # keep dirty if read fails
                   acc
               end
@@ -486,13 +487,18 @@ defmodule ElixirLS.LanguageServer.Server do
     if needs_build, do: trigger_build(state), else: state
   end
 
+  defp handle_notification(did_change_watched_files(_changes), state = %__MODULE__{}) do
+    # swallow notification if project_dir is not yet set
+    state
+  end
+
   defp handle_notification(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # not supported "$/" notifications may be safely ignored
     state
   end
 
   defp handle_notification(packet, state = %__MODULE__{}) do
-    Logger.warn("Received unmatched notification: #{inspect(packet)}")
+    Logger.warning("Received unmatched notification: #{inspect(packet)}")
     state
   end
 
@@ -670,6 +676,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(completion_req(_id, uri, line, character), state = %__MODULE__{}) do
+    settings = state.settings || %{}
+
     source_file = get_source_file(state, uri)
 
     snippets_supported =
@@ -704,13 +712,14 @@ defmodule ElixirLS.LanguageServer.Server do
       !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
 
     locals_without_parens =
-      case SourceFile.formatter_for(uri) do
+      case SourceFile.formatter_for(uri, state.project_dir) do
         {:ok, {_, opts}} -> Keyword.get(opts, :locals_without_parens, [])
         :error -> []
       end
       |> MapSet.new()
 
-    signature_after_complete = Map.get(state.settings || %{}, "signatureAfterComplete", true)
+    auto_insert_required_alias = Map.get(settings, "autoInsertRequiredAlias", true)
+    signature_after_complete = Map.get(settings, "signatureAfterComplete", true)
 
     path =
       case uri do
@@ -725,6 +734,7 @@ defmodule ElixirLS.LanguageServer.Server do
         tags_supported: tags_supported,
         signature_help_supported: signature_help_supported,
         locals_without_parens: locals_without_parens,
+        auto_insert_required_alias: auto_insert_required_alias,
         signature_after_complete: signature_after_complete,
         file_path: path
       )
@@ -785,7 +795,7 @@ defmodule ElixirLS.LanguageServer.Server do
      fn ->
        case ExecuteCommand.execute(command, args, state) do
          {:error, :invalid_request, _msg} = res ->
-           Logger.warn("Unmatched request: #{inspect(req)}")
+           Logger.warning("Unmatched request: #{inspect(req)}")
            res
 
          other ->
@@ -811,7 +821,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(req, state = %__MODULE__{}) do
-    Logger.warn("Unmatched request: #{inspect(req)}")
+    Logger.warning("Unmatched request: #{inspect(req)}")
     {:error, :invalid_request, nil, state}
   end
 
@@ -1094,7 +1104,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {:error, reason} ->
         if reason != :enoent do
-          Logger.warn("Couldn't read file #{file}: #{inspect(reason)}")
+          Logger.warning("Couldn't read file #{file}: #{inspect(reason)}")
         end
 
         nil

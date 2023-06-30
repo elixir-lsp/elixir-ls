@@ -3,8 +3,16 @@ defmodule ElixirLS.Debugger.CLI do
   alias ElixirLS.Debugger.{Output, Server}
 
   def main do
+    Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&Output.debuggee_out/1, &Output.debuggee_err/1)
     Launch.start_mix()
+
+    if Version.match?(System.version(), ">= 1.15.0-dev") do
+      # make sue that debugger modules are in code path
+      # without starting the app
+      Mix.ensure_application!(:debugger)
+    end
+
     {:ok, _} = Application.ensure_all_started(:elixir_ls_debugger, :permanent)
 
     Output.debugger_console("Started ElixirLS Debugger v#{Launch.debugger_version()}")
@@ -16,6 +24,10 @@ defmodule ElixirLS.Debugger.CLI do
 
     Output.debugger_console(
       "Running on elixir #{versions.current_elixir_version} on OTP #{versions.current_otp_version}"
+    )
+
+    Output.debugger_console(
+      "Protocols are #{unless(Protocol.consolidated?(Enumerable), do: "not ", else: "")}consolidated"
     )
 
     Launch.limit_num_schedulers()

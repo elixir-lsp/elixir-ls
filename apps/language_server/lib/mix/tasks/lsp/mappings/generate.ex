@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Lsp.Mappings.Generate do
 
   ## Command line options
     * `--types-module` - Controls the module in which the generated structures are placed.
-      (defaults to `ElixirLS.LanguageServer.Experimental.Protocol.Types`)
+      (defaults to `LSP.Types`)
     * `--proto-module` - Controls the module in which the generated structures are placed.
       (defaults to `ElixirLS.LanguageServer.Experimental.Protocol.Proto`)
     * `--only` - Only generate the LSP types in the comma separated list

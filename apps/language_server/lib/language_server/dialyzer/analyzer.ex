@@ -96,6 +96,26 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     solvers: :undefined
   )
 
+  Record.defrecordp(
+    :analysis_26,
+    :analysis,
+    analysis_pid: :undefined,
+    type: :succ_typings,
+    defines: [],
+    doc_plt: :undefined,
+    files: [],
+    include_dirs: [],
+    start_from: :byte_code,
+    plt: :undefined,
+    use_contracts: true,
+    behaviours_chk: false,
+    timing: false,
+    timing_server: :none,
+    callgraph_file: [],
+    mod_deps_file: [],
+    solvers: :undefined
+  )
+
   def analyze(active_plt, []) do
     {active_plt, %{}, []}
   end
@@ -110,8 +130,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
             solvers: []
           )
 
-        _ ->
+        25 ->
           analysis_25(
+            plt: active_plt,
+            files: files,
+            solvers: []
+          )
+
+        _ ->
+          analysis_26(
             plt: active_plt,
             files: files,
             solvers: []

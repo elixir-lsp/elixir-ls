@@ -1,5 +1,5 @@
-defmodule ElixirLS.LanguageServer.Experimental.Protocol.RequestsTest do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
+defmodule LSP.RequestsTest do
+  alias LSP.Requests
   import Requests
   use ExUnit.Case
 

@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
       {:error, reason} ->
         # workaround for elixir tracer returning invalid paths
         # https://github.com/elixir-lang/elixir/issues/12393
-        Logger.warn("Unable to open reference from #{inspect(ref.uri)}: #{inspect(reason)}")
+        Logger.warning("Unable to open reference from #{inspect(ref.uri)}: #{inspect(reason)}")
         nil
     end
   end

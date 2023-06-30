@@ -1,8 +1,8 @@
 defmodule ElixirLS.LanguageServer.Experimental.Format.DiffTest do
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias LSP.Types.Position
+  alias LSP.Types.Range
+  alias LSP.Types.TextEdit
 
   import Diff
 

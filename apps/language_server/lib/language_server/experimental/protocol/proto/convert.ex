@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Experimental.Protocol.Proto.Convert do
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 

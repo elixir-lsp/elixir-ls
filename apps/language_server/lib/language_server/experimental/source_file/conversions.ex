@@ -13,9 +13,9 @@ defmodule ElixirLS.LanguageServer.Experimental.SourceFile.Conversions do
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Document
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Range, as: ElixirRange
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Position, as: ElixirPosition
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position, as: LSPosition
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range, as: LSRange
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Location, as: LSLocation
+  alias LSP.Types.Position, as: LSPosition
+  alias LSP.Types.Range, as: LSRange
+  alias LSP.Types.Location, as: LSLocation
   alias ElixirLS.LanguageServer.Protocol
 
   import Line

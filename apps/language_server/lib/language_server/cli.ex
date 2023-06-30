@@ -5,20 +5,32 @@ defmodule ElixirLS.LanguageServer.CLI do
   require Logger
 
   def main do
+    Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
 
     # :logger application is already started
     # replace console logger with LSP
-    Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
+    if Version.match?(System.version(), ">= 1.15.0-dev") do
+      :ok = :logger.remove_handler(:default)
 
-    Application.put_env(:logger, Logger.Backends.JsonRpc,
-      level: :debug,
-      format: "$message",
-      metadata: []
-    )
+      :ok =
+        :logger.add_handler(
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc.handler_config()
+        )
+    else
+      Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
 
-    {:ok, _} = Logger.add_backend(Logger.Backends.JsonRpc)
-    :ok = Logger.remove_backend(:console, flush: true)
+      Application.put_env(:logger, Logger.Backends.JsonRpc,
+        level: :debug,
+        format: "$message",
+        metadata: []
+      )
+
+      {:ok, _} = Logger.add_backend(Logger.Backends.JsonRpc)
+      :ok = Logger.remove_backend(:console, flush: true)
+    end
 
     Launch.start_mix()
 
@@ -39,6 +51,10 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     Logger.info(
       "Running on elixir #{versions.current_elixir_version} on OTP #{versions.current_otp_version}"
+    )
+
+    Logger.info(
+      "Protocols are #{unless(Protocol.consolidated?(Enumerable), do: "not ", else: "")}consolidated"
     )
 
     check_otp_doc_chunks()
@@ -65,14 +81,14 @@ defmodule ElixirLS.LanguageServer.CLI do
       {:ok, _} ->
         :ok
 
-      {:error, {:edoc, {'no such file or directory', 'edoc.app'}}} ->
+      {:error, {:edoc, {~c"no such file or directory", ~c"edoc.app"}}} ->
         message = incomplete_installation_message("#edoc-missing")
 
         JsonRpc.show_message(:error, message)
         Process.sleep(5000)
         raise message
 
-      {:error, {:dialyzer, {'no such file or directory', 'dialyzer.app'}}} ->
+      {:error, {:dialyzer, {~c"no such file or directory", ~c"dialyzer.app"}}} ->
         message = incomplete_installation_message("#dialyzer-missing")
 
         JsonRpc.show_message(:error, message)
@@ -92,7 +108,7 @@ defmodule ElixirLS.LanguageServer.CLI do
     if match?({:error, _}, Code.fetch_docs(:erlang)) do
       JsonRpc.show_message(:warning, "OTP compiled without EEP48 documentation chunks")
 
-      Logger.warn(
+      Logger.warning(
         "OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with appropriate flags."
       )
     end

@@ -1,10 +1,10 @@
 defmodule ElixirLS.LanguageServer.Experimental.SourceFile.StoreTest do
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent,
     as: RangedContentChangeEvent
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
+  alias LSP.Types.TextDocument.ContentChangeEvent.TextDocumentContentChangeEvent1,
     as: ReplaceContextChangeEvent
 
   import ElixirLS.LanguageServer.Fixtures.LspProtocol

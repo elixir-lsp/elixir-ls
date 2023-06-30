@@ -66,6 +66,7 @@ defmodule ElixirLS.Debugger.Variables do
     children =
       var
       |> Map.to_list()
+      |> Enum.sort()
       |> Enum.slice(start || 0, count || map_size(var))
 
     for {key, value} <- children do

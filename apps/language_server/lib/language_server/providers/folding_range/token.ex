@@ -33,11 +33,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
           {:sigil, {b1, b2, b3}, _, _, _, _, delimiter} ->
             {:sigil, {b1 - 1, b2 - 1, b3}, delimiter}
 
-          # Older versions of Tokenizer.tokenize/1
-          # TODO check which version
-          {:sigil, {b1, b2, b3}, _, _, _, delimiter} ->
-            {:sigil, {b1 - 1, b2 - 1, b3}, delimiter}
-
           {:bin_heredoc, {b1, b2, b3}, _, _} ->
             {:bin_heredoc, {b1 - 1, b2 - 1, b3}, nil}
 
@@ -46,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
 
           # raise here?
           error ->
-            Logger.warn("Unmatched token: #{inspect(error)}")
+            Logger.warning("Unmatched token: #{inspect(error)}")
             :error
         end
 

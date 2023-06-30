@@ -1,7 +1,7 @@
 defmodule Experimental.SourceFile.ConversionsTest do
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Position, as: ExPosition
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Position, as: LSPosition
+  alias LSP.Types.Position, as: LSPosition
   alias ElixirLS.LanguageServer.Experimental.SourceFile
 
   use ExUnit.Case

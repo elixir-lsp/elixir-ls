@@ -37,7 +37,7 @@ defmodule ElixirLS.LanguageServer.Build do
                     Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
                   rescue
                     e ->
-                      Logger.warn(
+                      Logger.warning(
                         "Mix.Dep.load_on_environment([]) failed: #{inspect(e.__struct__)} #{Exception.message(e)}"
                       )
 
@@ -104,20 +104,32 @@ defmodule ElixirLS.LanguageServer.Build do
 
       Mix.Task.clear()
 
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
+        if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
+          raise "build without intercepted logger #{inspect(:logger.get_handler_ids())}"
+        end
+      end
+
       # we need to reset compiler options
-      # project may leave tracers after previous compilation and we don't woant them interfeering
+      # project may leave tracers after previous compilation and we don't want them interfering
       # see https://github.com/elixir-lsp/elixir-ls/issues/717
       set_compiler_options()
 
       # Override build directory to avoid interfering with other dev tools
       # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
+      Mix.ProjectStack.post_config(prune_code_paths: false)
 
-      # TODO elixir 1.15 calls
+      Mix.ProjectStack.post_config(
+        test_elixirc_options: [
+          docs: true,
+          debug_info: true
+        ]
+      )
+
       # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
       # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
-      # def cli
-      # do we need that?
+      # TODO refactor to use a custom state loader when we require elixir 1.15?
 
       # since elixir 1.10 mix disables undefined warnings for mix.exs
       # see discussion in https://github.com/elixir-lang/elixir/issues/9676
@@ -144,9 +156,31 @@ defmodule ElixirLS.LanguageServer.Build do
 
       if status == :ok do
         # The project may override our logger config, so we reset it after loading their config
+        # store log config
         logger_config = Application.get_all_env(:logger)
+
+        logger_handler_configs =
+          if Version.match?(System.version(), ">= 1.15.0-dev") do
+            for handler_id <- :logger.get_handler_ids() do
+              {:ok, config} = :logger.get_handler_config(handler_id)
+              :ok = :logger.remove_handler(handler_id)
+              config
+            end
+          end
+
         Mix.Task.run("loadconfig")
-        Application.put_all_env([logger: logger_config], persistent: true)
+
+        # reset log config
+        Application.put_all_env(logger: logger_config)
+
+        if Version.match?(System.version(), ">= 1.15.0-dev") do
+          for config <- logger_handler_configs do
+            :ok = :logger.add_handler(config.id, config.module, config)
+          end
+        end
+
+        # make sure ANSI is disabled
+        Application.put_env(:elixir, :ansi_enabled, false)
       end
 
       {status, diagnostics}
@@ -155,20 +189,27 @@ defmodule ElixirLS.LanguageServer.Build do
         "No mixfile found in project. " <>
           "To use a subdirectory, set `elixirLS.projectDir` in your settings"
 
-      Logger.warn(msg <> ". Looked for mixfile at #{inspect(mixfile)}")
+      Logger.warning(msg <> ". Looked for mixfile at #{inspect(mixfile)}")
 
       :no_mixfile
     end
   end
 
   defp run_mix_compile do
-    # TODO --all-warnings not needed on 1.15
-    case Mix.Task.run("compile", [
-           "--return-errors",
-           "--ignore-module-conflict",
-           "--all-warnings",
-           "--no-protocol-consolidation"
-         ]) do
+    opts = [
+      "--return-errors",
+      "--ignore-module-conflict",
+      "--no-protocol-consolidation"
+    ]
+
+    opts =
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
+        opts
+      else
+        opts ++ ["--all-warnings"]
+      end
+
+    case Mix.Task.run("compile", opts) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
 
@@ -231,8 +272,6 @@ defmodule ElixirLS.LanguageServer.Build do
       :ok -> :ok
       {:error, error} -> Logger.error("Application.unload failed for #{app}: #{inspect(error)}")
     end
-
-    # Code.delete_path()
   end
 
   defp get_deps_by_app(deps), do: get_deps_by_app(deps, %{})
@@ -272,7 +311,7 @@ defmodule ElixirLS.LanguageServer.Build do
          :elixir_ls_utils,
          :elixir_sense,
          :stream_data,
-         :jason_vendored,
+         :jason_v,
          :path_glob_vendored,
          :dialyxir_vendored,
          :erl2ex,
@@ -354,6 +393,8 @@ defmodule ElixirLS.LanguageServer.Build do
     options =
       Keyword.merge(options,
         tracers: [Tracer],
+        debug_info: true,
+        docs: true,
         parser_options: parser_options
       )
 

@@ -116,6 +116,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         scope when scope in [Elixir, nil] -> :file
         module when is_atom(module) -> :module
         {_, _} -> :function
+        {:typespec, _, _} -> :typespec
       end
 
     def_before =
@@ -137,6 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       text_before_cursor: text_before_cursor,
       text_after_cursor: text_after_cursor,
       prefix: prefix,
+      remote_calls?: match?({:dot, _, _}, Code.Fragment.cursor_context(prefix)),
       def_before: def_before,
       pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
       capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
@@ -155,7 +157,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       )
 
     items =
-      ElixirSense.suggestions(text, line, character, required_alias: true)
+      build_suggestions(text, line, character, options)
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
@@ -169,6 +171,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> items_to_json(options)
 
     {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
+  end
+
+  defp build_suggestions(text, line, character, options) do
+    required_alias = Keyword.get(options, :auto_insert_required_alias, true)
+    ElixirSense.suggestions(text, line, character, required_alias: required_alias)
   end
 
   defp maybe_add_do(completion_items, context) do
@@ -315,7 +322,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            position_to_insert_alias: {line_to_insert_alias, column_to_insert_alias}
          },
          options
-       ) do
+       )
+       when required_alias != nil do
     completion_without_additional_text_edit =
       from_completion_item(
         %{
@@ -330,14 +338,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         options
       )
 
-    alias_value = inspect(required_alias)
-
     indentation =
       if column_to_insert_alias >= 1,
         do: 1..column_to_insert_alias |> Enum.map_join(fn _ -> " " end),
         else: ""
 
-    alias_edit = indentation <> "alias " <> alias_value <> "\n"
+    alias_edit = indentation <> "alias " <> required_alias <> "\n"
 
     label_details =
       Map.update!(
@@ -346,15 +352,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         &("alias " <> &1)
       )
 
-    struct(completion_without_additional_text_edit,
-      additional_text_edit: %TextEdit{
-        range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
-        newText: alias_edit
-      },
-      documentation: alias_value <> "\n" <> summary,
-      label_details: label_details,
-      priority: 24
-    )
+    %__MODULE__{
+      completion_without_additional_text_edit
+      | additional_text_edit: %TextEdit{
+          range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
+          newText: alias_edit
+        },
+        documentation: name <> "\n" <> summary,
+        label_details: label_details,
+        priority: 24
+    }
   end
 
   defp from_completion_item(
@@ -670,6 +677,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
        ),
        do: nil
 
+  # import with only or except was used and the completion would need to change it
+  # this is not trivial to implement and most likely not wanted so let's skip that
+  defp from_completion_item(
+         %{needed_import: needed_import},
+         _context,
+         _options
+       )
+       when needed_import != nil,
+       do: nil
+
   defp from_completion_item(
          %{name: name, origin: origin} = item,
          %{def_before: nil} = context,
@@ -679,7 +696,37 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     completion =
       if origin == "Kernel" || origin == "Kernel.SpecialForms" do
-        %{completion | kind: :keyword, priority: 18}
+        %__MODULE__{completion | kind: :keyword, priority: 18}
+      else
+        completion
+      end
+
+    completion =
+      if item.needed_require do
+        {line_to_insert_require, column_to_insert_require} = context.position_to_insert_alias
+
+        indentation =
+          if column_to_insert_require >= 1,
+            do: 1..column_to_insert_require |> Enum.map_join(fn _ -> " " end),
+            else: ""
+
+        require_edit = indentation <> "require " <> item.needed_require <> "\n"
+
+        label_details =
+          Map.update!(
+            completion.label_details,
+            "description",
+            &("require " <> &1)
+          )
+
+        %__MODULE__{
+          completion
+          | additional_text_edit: %TextEdit{
+              range: range(line_to_insert_require, 0, line_to_insert_require, 0),
+              newText: require_edit
+            },
+            label_details: label_details
+        }
       else
         completion
       end
@@ -687,7 +734,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     file_path = Keyword.get(options, :file_path)
 
     if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
-      %{completion | insert_text: snippet, kind: :snippet, label: name}
+      %__MODULE__{completion | insert_text: snippet, kind: :snippet, label: name}
     else
       completion
     end
@@ -974,7 +1021,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp function_completion(info, context, options) do
     %{
       type: type,
-      args: args,
       args_list: args_list,
       name: name,
       summary: summary,
@@ -984,20 +1030,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       metadata: metadata
     } = info
 
-    # ElixirSense now returns types as an atom
-    type = to_string(type)
-
     %{
+      remote_calls?: remote_calls?,
       pipe_before?: pipe_before?,
       capture_before?: capture_before?,
-      text_after_cursor: text_after_cursor,
-      module: module
+      text_after_cursor: text_after_cursor
     } = context
 
     locals_without_parens = Keyword.get(options, :locals_without_parens)
     signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
     signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
-    with_parens? = function_name_with_parens?(name, arity, locals_without_parens)
+    with_parens? = remote_calls? || function_name_with_parens?(name, arity, locals_without_parens)
 
     trigger_signature? = signature_help_supported? && ((arity == 1 && !pipe_before?) || arity > 1)
 
@@ -1033,15 +1076,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           {label, insert_text}
       end
 
-    detail_prefix =
-      if inspect(module) == origin do
-        "(#{type}) "
-      else
-        "(#{type}) #{origin}."
-      end
-
-    detail = Enum.join([detail_prefix, name, "(", args, ")"])
-
     footer = SourceFile.format_spec(spec, line_length: 30)
 
     command =
@@ -1055,7 +1089,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     %__MODULE__{
       label: label,
       kind: :function,
-      detail: detail,
+      detail: to_string(type),
       label_details: %{
         "detail" => "(#{Enum.join(args_list, ", ")})",
         "description" => "#{origin}.#{name}/#{arity}"

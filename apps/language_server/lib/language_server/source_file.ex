@@ -232,31 +232,31 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
-  @spec formatter_for(String.t()) :: {:ok, {function | nil, keyword()}} | :error
-  def formatter_for(uri = "file:" <> _) do
+  @spec formatter_for(String.t(), String.t() | nil) :: {:ok, {function | nil, keyword()}} | :error
+  def formatter_for(uri = "file:" <> _, project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
       true = Code.ensure_loaded?(Mix.Tasks.Format)
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        {:ok, apply(Mix.Tasks.Format, :formatter_for_file, [path])}
+      if project_dir && Version.match?(System.version(), ">= 1.15.0-dev") do
+        {:ok, Mix.Tasks.Format.formatter_for_file(path, root: project_dir)}
       else
-        {:ok, {nil, apply(Mix.Tasks.Format, :formatter_opts_for_file, [path])}}
+        {:ok, Mix.Tasks.Format.formatter_for_file(path)}
       end
     rescue
       e ->
         message = Exception.message(e)
 
-        Logger.warn(
-          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message}"
+        Logger.warning(
+          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message} #{Exception.format(:error, e, __STACKTRACE__)}"
         )
 
         :error
     end
   end
 
-  def formatter_for(_), do: :error
+  def formatter_for(_, _), do: :error
 
   defp format_code(code, opts) do
     try do

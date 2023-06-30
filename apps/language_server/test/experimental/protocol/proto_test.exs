@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto
   alias ElixirLS.LanguageServer.Experimental.Protocol.Proto.LspTypes
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types
+  alias LSP.Types
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   import ElixirLS.LanguageServer.Fixtures.LspProtocol
 
@@ -295,8 +295,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
 
     test "constants should render as their values" do
       assert {:ok, proto} = UsesConstants.parse(%{"name" => "Clint", "state" => 2})
-      assert {:ok, encoded} = JasonVendored.encode(proto)
-      assert {:ok, decoded} = JasonVendored.decode(encoded)
+      assert {:ok, encoded} = JasonV.encode(proto)
+      assert {:ok, decoded} = JasonV.decode(encoded)
       assert 2 == decoded["state"]
     end
   end
@@ -648,8 +648,8 @@ defmodule ElixirLS.LanguageServer.Experimental.ProtoTest do
     end
 
     def encode_and_decode(%_struct{} = proto) do
-      with {:ok, encoded} <- JasonVendored.encode(proto) do
-        JasonVendored.decode(encoded)
+      with {:ok, encoded} <- JasonV.encode(proto) do
+        JasonV.decode(encoded)
       end
     end
 

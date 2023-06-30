@@ -354,7 +354,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               :ok
 
             {:error, reason} ->
-              Logger.warn(
+              Logger.warning(
                 "[ElixirLS Dialyzer] Unable to remove temporary file #{path}: #{inspect(reason)}"
               )
           end
@@ -451,9 +451,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     # info may not be available is when it has been stripped by the beam_lib
     # module, but that shouldn't be the case. More info:
     # http://erlang.org/doc/reference_manual/modules.html#module_info-0-and-module_info-1-functions
-    module.module_info(:compile)
-    |> Keyword.get(:source, fallback)
-    |> Path.relative_to_cwd()
+    if Code.ensure_loaded?(module) do
+      module.module_info(:compile)
+      |> Keyword.get(:source, fallback)
+      |> Path.relative_to_cwd()
+    else
+      # In case the file fails to load return fallback
+      Path.relative_to_cwd(fallback)
+    end
   end
 
   defp dependent_modules(modules, mod_deps, result \\ MapSet.new())
@@ -483,7 +488,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         :crypto.hash(:md5, core_bin)
 
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "[ElixirLS Dialyzer] get_core_from_beam failed for #{file}: #{inspect(reason)}"
         )
 
@@ -525,7 +530,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp normalize_postion(position) do
-    Logger.warn(
+    Logger.warning(
       "[ElixirLS Dialyzer] dialyzer returned warning with invalid position #{inspect(position)}"
     )
 

@@ -119,7 +119,7 @@ defmodule Mix.Tasks.Lsp.DataModel do
       |> Path.join([@meta_model_file_name])
 
     with {:ok, file_contents} <- File.read(file_name) do
-      JasonVendored.decode(file_contents)
+      JasonV.decode(file_contents)
     end
   end
 end

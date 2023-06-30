@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.GotoDefinition do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.GotoDefinition
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
+  alias LSP.Requests.GotoDefinition
+  alias LSP.Responses
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Experimental.SourceFile.Conversions
   require Logger

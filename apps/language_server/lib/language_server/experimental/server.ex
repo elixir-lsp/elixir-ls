@@ -1,8 +1,8 @@
 defmodule ElixirLS.LanguageServer.Experimental.Server do
   alias ElixirLS.LanguageServer.Experimental.Provider
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Notifications
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Responses
+  alias LSP.Notifications
+  alias LSP.Requests
+  alias LSP.Responses
   alias ElixirLS.LanguageServer.Experimental.Server.State
 
   import Logger
@@ -69,7 +69,7 @@ defmodule ElixirLS.LanguageServer.Experimental.Server do
   end
 
   def handle_info(:default_config, %State{configuration: nil} = state) do
-    Logger.warn(
+    Logger.warning(
       "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
         "Using default settings."
     )

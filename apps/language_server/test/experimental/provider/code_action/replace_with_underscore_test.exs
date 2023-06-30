@@ -1,11 +1,11 @@
 defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscoreTest do
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Requests.CodeAction, as: CodeActionRequest
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.CodeAction, as: CodeActionReply
+  alias LSP.Requests
+  alias LSP.Requests.CodeAction, as: CodeActionRequest
+  alias LSP.Types.CodeAction
+  alias LSP.Types.CodeAction, as: CodeActionReply
 
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Diagnostic
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.Range
+  alias LSP.Types.Diagnostic
+  alias LSP.Types.Range
   alias ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUnderscore
   alias ElixirLS.LanguageServer.Experimental.SourceFile
   alias ElixirLS.LanguageServer.Fixtures.LspProtocol
@@ -65,8 +65,8 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.CodeAction.ReplaceWithUn
 
   def to_map(%Range{} = range) do
     range
-    |> JasonVendored.encode!()
-    |> JasonVendored.decode!()
+    |> JasonV.encode!()
+    |> JasonV.decode!()
   end
 
   test "produces no actions if the name or variable is not found" do

@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Experimental.CodeMod.ReplaceRemoteFunction do
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Ast
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Diff
   alias ElixirLS.LanguageServer.Experimental.CodeMod.Text
-  alias ElixirLS.LanguageServer.Experimental.Protocol.Types.TextEdit
+  alias LSP.Types.TextEdit
 
   @spec text_edits(String.t(), Ast.t(), [[atom()]], atom(), atom()) ::
           {:ok, [TextEdit.t()]} | :error

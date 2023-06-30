@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Lsp.Mappings.Init do
   alias Mix.Tasks.Lsp.DataModel
 
   use Mix.Task
-  @base_module "ElixirLS.LanguageServer.Experimental.Protocol.Types"
+  @base_module "LSP.Types"
   def run(_) do
     with {:ok, data_model} <- DataModel.new(),
          {:ok, current} <- Mappings.new() do

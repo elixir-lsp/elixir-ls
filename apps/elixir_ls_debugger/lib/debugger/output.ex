@@ -30,19 +30,30 @@ defmodule ElixirLS.Debugger.Output do
   end
 
   def debugger_console(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "console", "output" => str})
+    send_event(server, "output", %{"category" => "console", "output" => maybe_append_newline(str)})
   end
 
   def debugger_important(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "important", "output" => str})
+    send_event(server, "output", %{
+      "category" => "important",
+      "output" => maybe_append_newline(str)
+    })
   end
 
   def debuggee_out(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "stdout", "output" => str})
+    send_event(server, "output", %{"category" => "stdout", "output" => maybe_append_newline(str)})
   end
 
   def debuggee_err(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "stderr", "output" => str})
+    send_event(server, "output", %{"category" => "stderr", "output" => maybe_append_newline(str)})
+  end
+
+  defp maybe_append_newline(message) do
+    unless String.ends_with?(message, "\n") do
+      message <> "\n"
+    else
+      message
+    end
   end
 
   ## Server callbacks
