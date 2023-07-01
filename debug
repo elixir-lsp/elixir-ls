@@ -1,0 +1,11 @@
+elixir --erl "-noshell -kernel standard_io_encoding latin1" d.exs
+
+elixir --erl "-noshell -kernel standard_io_encoding latin1" -e "IO.binwrite(:standard_io, "duπa")"
+
+elixir --erl "-noshell" -e "IO.binwrite(:standard_io, "duπa")"
+
+elixir --erl "-noshell -kernel standard_io_encoding latin1" -e "IO.puts(:standard_io, "duπa")"
+
+elixir --erl "-noshell" -e "IO.puts(:standard_io, "duπa")"
+
+erl -noshell -kernel standard_io_encoding latin1 -eval "io:format('duπa~n', []), erlang:halt()"
