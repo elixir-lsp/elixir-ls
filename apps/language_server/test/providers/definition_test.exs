@@ -26,8 +26,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
              Definition.definition(uri, text, line, char)
 
     assert range == %{
-             "start" => %{"line" => 1, "character" => 6},
-             "end" => %{"line" => 1, "character" => 6}
+             "start" => %{"line" => 1, "character" => 2},
+             "end" => %{"line" => 1, "character" => 2}
            }
   end
 
@@ -50,8 +50,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
              Definition.definition(uri, text, line, char)
 
     assert range == %{
-             "start" => %{"line" => 8, "character" => 11},
-             "end" => %{"line" => 8, "character" => 11}
+             "start" => %{"line" => 8, "character" => 2},
+             "end" => %{"line" => 8, "character" => 2}
            }
   end
 
@@ -74,8 +74,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
              Definition.definition(uri, text, line, char)
 
     assert range == %{
-             "start" => %{"line" => 1, "character" => 6},
-             "end" => %{"line" => 1, "character" => 6}
+             "start" => %{"line" => 1, "character" => 2},
+             "end" => %{"line" => 1, "character" => 2}
            }
   end
 
@@ -98,8 +98,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
              Definition.definition(uri, text, line, char)
 
     assert range == %{
-             "start" => %{"line" => 8, "character" => 11},
-             "end" => %{"line" => 8, "character" => 11}
+             "start" => %{"line" => 8, "character" => 2},
+             "end" => %{"line" => 8, "character" => 2}
            }
   end
 
@@ -122,8 +122,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
              Definition.definition(uri, text, line, char)
 
     assert range == %{
-             "start" => %{"line" => 1, "character" => 6},
-             "end" => %{"line" => 1, "character" => 6}
+             "start" => %{"line" => 1, "character" => 2},
+             "end" => %{"line" => 1, "character" => 2}
            }
   end
 
@@ -146,8 +146,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
              Definition.definition(uri, text, line, char)
 
     assert range == %{
-             "start" => %{"line" => 8, "character" => 11},
-             "end" => %{"line" => 8, "character" => 11}
+             "start" => %{"line" => 8, "character" => 2},
+             "end" => %{"line" => 8, "character" => 2}
            }
   end
 

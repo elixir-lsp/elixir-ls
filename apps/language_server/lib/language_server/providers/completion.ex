@@ -107,9 +107,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     # Can we use ElixirSense.Providers.Suggestion? ElixirSense.suggestions/3
     metadata = ElixirSense.Core.Parser.parse_string(text, true, true, line)
 
-    env =
-      metadata
-      |> ElixirSense.Core.Metadata.get_env(line)
+    env = ElixirSense.Core.Metadata.get_env(metadata, {line, character})
 
     scope =
       case env.scope do
@@ -147,7 +145,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
 
     position_to_insert_alias =
-      ElixirSense.Core.Metadata.get_position_to_insert_alias(metadata, line) || {line, 0}
+      ElixirSense.Core.Metadata.get_position_to_insert_alias(metadata, {line, character}) ||
+        {line, 1}
 
     context =
       Map.put(
@@ -243,7 +242,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp from_completion_item(
-         %{type: :attribute, name: name},
+         %{type: :attribute, name: name, summary: summary},
          %{
            prefix: prefix,
            def_before: nil,
@@ -253,21 +252,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          _options
        ) do
     name_only = String.trim_leading(name, "@")
-    insert_text = if String.starts_with?(prefix, "@"), do: name_only, else: name
-
-    if name == prefix do
-      nil
-    else
-      %__MODULE__{
-        label: name,
-        kind: :variable,
-        detail: "module attribute",
-        insert_text: insert_text,
-        filter_text: name_only,
-        priority: 14,
-        tags: []
-      }
+    insert_text = case String.split(prefix, "@") do
+      [_ | attribute_prefix] -> if String.starts_with?(name_only, attribute_prefix) do
+        name_only
+      else
+        name
+      end
+      _ -> name
     end
+
+    %__MODULE__{
+      label: name,
+      kind: :variable,
+      detail: "module attribute",
+      documentation: name <> "\n" <> (if summary, do: summary, else: ""),
+      insert_text: insert_text,
+      filter_text: name_only,
+      priority: 14,
+      tags: []
+    }
   end
 
   defp from_completion_item(

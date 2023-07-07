@@ -60,9 +60,9 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
       assert definition.uri == uri
       assert definition.range.start.line == 1
-      assert definition.range.start.character == 6
+      assert definition.range.start.character == 2
       assert definition.range.end.line == 1
-      assert definition.range.end.character == 6
+      assert definition.range.end.character == 2
     end
 
     test "find definition remote macro call", %{file_uri: uri} do
@@ -80,9 +80,9 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
       assert definition.uri == uri
       assert definition.range.start.line == 8
-      assert definition.range.start.character == 11
+      assert definition.range.start.character == 2
       assert definition.range.end.line == 8
-      assert definition.range.end.character == 11
+      assert definition.range.end.character == 2
     end
 
     test "find definition imported function call", %{file_uri: uri} do
@@ -100,9 +100,9 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
       assert definition.uri == uri
       assert definition.range.start.line == 1
-      assert definition.range.start.character == 6
+      assert definition.range.start.character == 2
       assert definition.range.end.line == 1
-      assert definition.range.end.character == 6
+      assert definition.range.end.character == 2
     end
 
     test "find definition imported macro call", %{file_uri: uri} do
@@ -120,9 +120,9 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
       assert definition.uri == uri
       assert definition.range.start.line == 8
-      assert definition.range.start.character == 11
+      assert definition.range.start.character == 2
       assert definition.range.end.line == 8
-      assert definition.range.end.character == 11
+      assert definition.range.end.character == 2
     end
 
     test "find definition local function call", %{file_uri: uri} do
@@ -140,9 +140,9 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
       assert definition.uri == uri
       assert definition.range.start.line == 1
-      assert definition.range.start.character == 6
+      assert definition.range.start.character == 2
       assert definition.range.end.line == 1
-      assert definition.range.end.character == 6
+      assert definition.range.end.character == 2
     end
 
     test "find definition local macro call", %{file_uri: uri} do
@@ -160,9 +160,9 @@ defmodule ElixirLS.Experimental.Provider.Handlers.GotoDefinitionTest do
 
       assert definition.uri == uri
       assert definition.range.start.line == 8
-      assert definition.range.start.character == 11
+      assert definition.range.start.character == 2
       assert definition.range.end.line == 8
-      assert definition.range.end.character == 11
+      assert definition.range.end.character == 2
     end
 
     test "find definition variable", %{file_uri: uri} do

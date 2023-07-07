@@ -1157,7 +1157,7 @@ defmodule ElixirLS.Debugger.Server do
         metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
         for line <- lines do
-          env = ElixirSense.Core.Metadata.get_env(metadata, line |> elem(0))
+          env = ElixirSense.Core.Metadata.get_env(metadata, {line |> elem(0), 1})
 
           if env.module == nil do
             {:error, "Could not determine module at line"}
