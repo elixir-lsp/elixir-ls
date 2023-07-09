@@ -1153,16 +1153,33 @@ defmodule ElixirLS.Debugger.Server do
       module = String.to_atom(Path.basename(path, ".erl"))
       for line <- lines, do: set_breakpoint([module], path, line)
     else
+      loaded_elixir_modules =
+        :code.all_loaded()
+        |> Enum.map(&elem(&1, 0))
+        |> Enum.filter(fn module -> String.starts_with?(Atom.to_string(module), "Elixir.") end)
+        |> Enum.group_by(fn module ->
+          Path.expand(to_string(module.module_info(:compile)[:source]))
+        end)
+
+      loaded_modules_from_path = Map.get(loaded_elixir_modules, path, []) |> dbg
       metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
       for line <- lines do
         env = ElixirSense.Core.Metadata.get_env(metadata, {line |> elem(0), 1})
+        metadata_modules = Enum.filter(env.module_variants, &(&1 != Elixir))
 
-        modules =
-          env.module_variants
-          |> Enum.filter(&(&1 != Elixir))
+        modules_to_break =
+          if metadata_modules != [] and
+               Enum.all?(metadata_modules, &(&1 in loaded_modules_from_path)) do
+            # prefer metadata modules if valid and loaded
+            metadata_modules
+          else
+            # fall back to all loaded modules from file
+            # this may create breakpoints outside module line range
+            loaded_modules_from_path
+          end
 
-        set_breakpoint(modules, path, line)
+        set_breakpoint(modules_to_break, path, line)
       end
     end
   end
