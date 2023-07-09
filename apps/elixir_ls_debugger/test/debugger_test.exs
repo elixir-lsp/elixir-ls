@@ -1722,6 +1722,17 @@ defmodule ElixirLS.Debugger.ServerTest do
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
       )
 
+      assert Proto.List in :int.interpreted()
+      assert Proto.BitString in :int.interpreted()
+
+      assert [{{Proto.List, 7}, [:active, :enable, :null, _]}] = :int.all_breaks(Proto.List)
+
+      assert [{{Proto.BitString, 7}, [:active, :enable, :null, _]}] =
+               :int.all_breaks(Proto.BitString)
+
+      assert %{^abs_path => [{[Proto.BitString, Proto.List], 7}]} =
+               :sys.get_state(server).breakpoints
+
       Server.receive_packet(server, request(5, "configurationDone", %{}))
       assert_receive(response(_, 5, "configurationDone", %{}))
 
@@ -1772,6 +1783,17 @@ defmodule ElixirLS.Debugger.ServerTest do
                        ]
                      })
                      when is_integer(frame_id)
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(9, %{"path" => abs_path}, [])
+      )
+
+      assert_receive(response(_, 9, "setBreakpoints", %{"breakpoints" => []}))
+
+      assert [] = :int.all_breaks(Proto.List)
+      assert [] = :int.all_breaks(Proto.BitString)
+      assert %{} == :sys.get_state(server).breakpoints
     end)
   end
 
