@@ -844,7 +844,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert :hello in :int.interpreted()
         assert [{{:hello, 5}, [:active, :enable, :null, _]}] = :int.all_breaks(:hello)
-        assert %{^abs_path => [hello: 5]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[:hello], 5}]} = :sys.get_state(server).breakpoints
 
         Server.receive_packet(
           server,
@@ -860,7 +860,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert [{{:hello, 5}, _}, {{:hello, 6}, _}] = :int.all_breaks(:hello)
 
-        assert %{^abs_path => [{:hello, 5}, {:hello, 6}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[:hello], 5}, {[:hello], 6}]} = :sys.get_state(server).breakpoints
 
         Server.receive_packet(
           server,
@@ -873,7 +873,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         )
 
         assert [{{:hello, 6}, _}] = :int.all_breaks(:hello)
-        assert %{^abs_path => [{:hello, 6}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[:hello], 6}]} = :sys.get_state(server).breakpoints
 
         Server.receive_packet(
           server,
@@ -930,7 +930,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert [{{MixProject, 3}, [:active, :enable, :null, _]}] = :int.all_breaks(MixProject)
 
-        assert %{^abs_path => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         Server.receive_packet(
           server,
@@ -953,7 +953,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         assert [{{MixProject.Some, 35}, _}] = :int.all_breaks(MixProject.Some)
 
         assert %{
-                 ^abs_path => [{MixProject, 3}, {MixProject, 7}, {MixProject.Some, 35}]
+                 ^abs_path => [{[MixProject], 3}, {[MixProject], 7}, {[MixProject.Some], 35}]
                } = :sys.get_state(server).breakpoints
 
         Server.receive_packet(
@@ -976,7 +976,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         assert [{{MixProject.Some, 35}, _}, {{MixProject.Some, 39}, _}] =
                  :int.all_breaks(MixProject.Some)
 
-        assert %{^abs_path => [{MixProject.Some, 35}, {MixProject.Some, 39}]} =
+        assert %{^abs_path => [{[MixProject.Some], 35}, {[MixProject.Some], 39}]} =
                  :sys.get_state(server).breakpoints
 
         Server.receive_packet(
@@ -1039,7 +1039,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                ] ==
                  :int.all_breaks(MixProject)
 
-        assert %{^abs_path_1 => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path_1 => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         Server.receive_packet(
           server,
@@ -1054,7 +1054,7 @@ defmodule ElixirLS.Debugger.ServerTest do
         assert :hello in :int.interpreted()
         assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
 
-        assert %{abs_path_1 => [{MixProject, 3}], abs_path_2 => [hello: 5]} ==
+        assert %{abs_path_1 => [{[MixProject], 3}], abs_path_2 => [{[:hello], 5}]} ==
                  :sys.get_state(server).breakpoints
 
         Server.receive_packet(
@@ -1069,7 +1069,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert [] = :int.all_breaks(MixProject)
         assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
-        assert %{abs_path_2 => [hello: 5]} == :sys.get_state(server).breakpoints
+        assert %{abs_path_2 => [{[:hello], 5}]} == :sys.get_state(server).breakpoints
 
         Server.receive_packet(
           server,
@@ -1130,7 +1130,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                  {{MixProject, 3}, [:active, :enable, :null, _]}
                ] = :int.all_breaks(MixProject)
 
-        assert %{^abs_path => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         assert BreakpointCondition.has_condition?(MixProject, [3])
 
@@ -1155,7 +1155,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                ] ==
                  :int.all_breaks(MixProject)
 
-        assert %{^abs_path => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         assert BreakpointCondition.has_condition?(MixProject, [3])
 
@@ -1225,7 +1225,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                  {{MixProject, 3}, [:active, :enable, :null, _]}
                ] = :int.all_breaks(MixProject)
 
-        assert %{^abs_path => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         assert BreakpointCondition.has_condition?(MixProject, [3])
 
@@ -1250,7 +1250,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                ] ==
                  :int.all_breaks(MixProject)
 
-        assert %{^abs_path => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         assert BreakpointCondition.has_condition?(MixProject, [3])
 
@@ -1320,7 +1320,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                  {{MixProject, 3}, [:active, :enable, :null, _]}
                ] = :int.all_breaks(MixProject)
 
-        assert %{^abs_path => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         assert BreakpointCondition.has_condition?(MixProject, [3])
 
@@ -1345,7 +1345,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                ] ==
                  :int.all_breaks(MixProject)
 
-        assert %{^abs_path => [{MixProject, 3}]} = :sys.get_state(server).breakpoints
+        assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
         assert BreakpointCondition.has_condition?(MixProject, [3])
 
@@ -1683,6 +1683,96 @@ defmodule ElixirLS.Debugger.ServerTest do
                        5000
       end)
     end
+  end
+
+  @tag :fixture
+  test "breakpoint in protocol implementation", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "run",
+          "taskArgs" => ["-e", "ProtocolBreakpoints.go1()"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+      abs_path = Path.absname("lib/protocol_breakpoints.ex")
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(3, %{"path" => abs_path}, [%{"line" => 7}])
+      )
+
+      assert_receive(
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+      )
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => thread_id
+                     }),
+                     5_000
+
+      Server.receive_packet(server, stacktrace_req(7, thread_id))
+
+      assert_receive response(_, 7, "stackTrace", %{
+                       "stackFrames" => [
+                         %{
+                           "column" => 0,
+                           "id" => frame_id,
+                           "line" => 7,
+                           "name" => "Proto.List.go/1",
+                           "source" => %{"path" => ^abs_path}
+                         },
+                         _
+                       ]
+                     })
+                     when is_integer(frame_id)
+
+      Server.receive_packet(server, continue_req(15, thread_id))
+      assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => ^thread_id
+                     }),
+                     5_000
+
+      Server.receive_packet(server, stacktrace_req(8, thread_id))
+
+      assert_receive response(_, 8, "stackTrace", %{
+                       "stackFrames" => [
+                         %{
+                           "column" => 0,
+                           "id" => frame_id,
+                           "line" => 7,
+                           "name" => "Proto.BitString.go/1",
+                           "source" => %{"path" => ^abs_path}
+                         }
+                       ]
+                     })
+                     when is_integer(frame_id)
+    end)
   end
 
   @tag :fixture

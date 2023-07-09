@@ -269,17 +269,17 @@ defmodule ElixirLS.Debugger.Server do
       for b <- breakpoints, do: {b["condition"], b["logMessage"], b["hitCondition"]}
 
     existing_bps = state.breakpoints[path] || []
-    existing_bp_lines = for {_module, line} <- existing_bps, do: line
+    existing_bp_lines = for {_modules, line} <- existing_bps, do: line
     removed_lines = existing_bp_lines -- new_lines
     removed_bps = Enum.filter(existing_bps, fn {_, line} -> line in removed_lines end)
 
-    for {module, line} <- removed_bps do
+    for {modules, line} <- removed_bps, module <- modules do
       :int.delete_break(module, line)
       BreakpointCondition.unregister_condition(module, [line])
     end
 
     result = set_breakpoints(path, new_lines |> Enum.zip(new_conditions))
-    new_bps = for {:ok, module, line} <- result, do: {module, line}
+    new_bps = for {:ok, modules, line} <- result, do: {modules, line}
 
     state =
       if new_bps == [] do
@@ -1151,37 +1151,49 @@ defmodule ElixirLS.Debugger.Server do
   defp set_breakpoints(path, lines) do
     if Path.extname(path) == ".erl" do
       module = String.to_atom(Path.basename(path, ".erl"))
-      for line <- lines, do: set_breakpoint(module, line)
+      for line <- lines, do: set_breakpoint([module], path, line)
     else
-      try do
-        metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
+      metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
-        for line <- lines do
-          env = ElixirSense.Core.Metadata.get_env(metadata, {line |> elem(0), 1})
+      for line <- lines do
+        env = ElixirSense.Core.Metadata.get_env(metadata, {line |> elem(0), 1})
 
-          if env.module == nil do
-            {:error, "Could not determine module at line"}
-          else
-            set_breakpoint(env.module, line)
-          end
-        end
-      rescue
-        error ->
-          for _line <- lines, do: {:error, Exception.format_exit(error)}
+        modules =
+          env.module_variants
+          |> Enum.filter(&(&1 != Elixir))
+
+        set_breakpoint(modules, path, line)
       end
     end
   end
 
-  defp set_breakpoint(module, {line, {condition, log_message, hit_count}}) do
-    case :int.ni(module) do
-      {:module, _} ->
-        :int.break(module, line)
-        update_break_condition(module, line, condition, log_message, hit_count)
+  defp set_breakpoint([], path, {line, _}) do
+    {:error, "Could not determine module at line #{line} in #{path}"}
+  end
 
-        {:ok, module, line}
+  defp set_breakpoint(modules, path, {line, {condition, log_message, hit_count}}) do
+    modules_with_breakpoints =
+      Enum.reduce(modules, [], fn module, added ->
+        case :int.ni(module) do
+          {:module, _} ->
+            Output.debugger_console("breaking in #{module}")
+            :int.break(module, line)
+            update_break_condition(module, line, condition, log_message, hit_count)
 
-      _ ->
-        {:error, "Cannot interpret module #{inspect(module)}"}
+            [module | added]
+
+          :error ->
+            Output.debugger_console("Could not interpret module #{inspect(module)} in #{path}")
+            added
+        end
+      end)
+
+    if modules_with_breakpoints == [] do
+      {:error,
+       "Could not interpret any of the modules #{Enum.map_join(modules, ", ", &inspect/1)} in #{path}"}
+    else
+      # return :ok if at least one breakpoint was set
+      {:ok, modules_with_breakpoints, line}
     end
   end
 
@@ -1342,7 +1354,9 @@ defmodule ElixirLS.Debugger.Server do
     function_breakpoints = Map.get(state.function_breakpoints, frame_mfa, [])
 
     cond do
-      {first_frame.module, first_frame.line} in file_breakpoints ->
+      Enum.any?(file_breakpoints, fn {modules, line} ->
+        line == first_frame.line and first_frame.module in modules
+      end) ->
         "breakpoint"
 
       first_frame.line in function_breakpoints ->
