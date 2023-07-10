@@ -336,6 +336,11 @@ defmodule ElixirLS.Debugger.Server do
                     case :int.ni(m) do
                       {:module, _} ->
                         breaks_before = :int.all_breaks(m)
+
+                        Output.debugger_console(
+                          "Setting function breakpoint in #{inspect(m)}.#{f}/#{a}"
+                        )
+
                         :ok = :int.break_in(m, f, a)
                         breaks_after = :int.all_breaks(m)
                         lines = for {{^m, line}, _} <- breaks_after -- breaks_before, do: line
@@ -1145,6 +1150,7 @@ defmodule ElixirLS.Debugger.Server do
   defp save_and_reload(module, beam_bin) do
     :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
     true = :code.delete(module)
+    Output.debugger_console("Interpreting module #{inspect(module)}")
     {:module, _} = :int.ni(module)
   end
 
@@ -1161,7 +1167,7 @@ defmodule ElixirLS.Debugger.Server do
           Path.expand(to_string(module.module_info(:compile)[:source]))
         end)
 
-      loaded_modules_from_path = Map.get(loaded_elixir_modules, path, []) |> dbg
+      loaded_modules_from_path = Map.get(loaded_elixir_modules, path, [])
       metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
       for line <- lines do
@@ -1193,7 +1199,7 @@ defmodule ElixirLS.Debugger.Server do
       Enum.reduce(modules, [], fn module, added ->
         case :int.ni(module) do
           {:module, _} ->
-            Output.debugger_console("breaking in #{module}")
+            Output.debugger_console("Setting breakpoint in #{inspect(module)} #{path}:#{line}")
             :int.break(module, line)
             update_break_condition(module, line, condition, log_message, hit_count)
 
@@ -1225,6 +1231,7 @@ defmodule ElixirLS.Debugger.Server do
 
   defp interpret_module(mod) do
     try do
+      Output.debugger_console("Interpreting module #{inspect(mod)}")
       {:module, _} = :int.ni(mod)
     catch
       _, _ ->
