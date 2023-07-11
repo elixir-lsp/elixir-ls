@@ -892,6 +892,54 @@ defmodule ElixirLS.Debugger.ServerTest do
     end
 
     @tag :fixture
+    test "handles invalid request", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute :hello in :int.interpreted()
+        abs_path = Path.absname("src/hello.erl1")
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(3, %{"path" => abs_path}, [%{"line" => 5}])
+        )
+
+        assert_receive(
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
+          3000
+        )
+
+        abs_path = Path.absname("lib/mix_project.ex1")
+
+        Server.receive_packet(
+          server,
+          set_breakpoints_req(4, %{"path" => abs_path}, [%{"line" => 3}])
+        )
+
+        assert_receive(
+          response(_, 4, "setBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
+          3000
+        )
+      end)
+    end
+
+    @tag :fixture
     test "sets and unsets breakpoints in elixir modules", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
@@ -1668,6 +1716,50 @@ defmodule ElixirLS.Debugger.ServerTest do
         assert [] = :int.all_breaks(:hello)
         assert [{{MixProject, 3}, _}] = :int.all_breaks(MixProject)
         assert %{{MixProject, :quadruple, 1} => [3]} = :sys.get_state(server).function_breakpoints
+      end)
+    end
+
+    test "handles invalid requests", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!(),
+            # disable auto interpret
+            "debugAutoInterpretAllModules" => false
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(event(_, "initialized", %{}), 5000)
+
+        refute :hello in :int.interpreted()
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(3, [%{"name" => ":hello1.hello_world/0"}])
+        )
+
+        assert_receive(
+          response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
+          3000
+        )
+
+        Server.receive_packet(
+          server,
+          set_function_breakpoints_req(4, [%{"name" => ":hello.hello_world1/0"}])
+        )
+
+        assert_receive(
+          response(_, 4, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
+          3000
+        )
       end)
     end
 

@@ -335,7 +335,7 @@ defmodule ElixirLS.Debugger.Server do
               result =
                 case current[{m, f, a}] do
                   nil ->
-                    case :int.ni(m) do
+                    case interpret(m, false) do
                       {:module, _} ->
                         ModuleInfoCache.store(m)
                         breaks_before = :int.all_breaks(m)
@@ -344,16 +344,21 @@ defmodule ElixirLS.Debugger.Server do
                           "Setting function breakpoint in #{inspect(m)}.#{f}/#{a}"
                         )
 
-                        :ok = :int.break_in(m, f, a)
-                        breaks_after = :int.all_breaks(m)
-                        lines = for {{^m, line}, _} <- breaks_after -- breaks_before, do: line
+                        case :int.break_in(m, f, a) do
+                          :ok ->
+                            breaks_after = :int.all_breaks(m)
+                            lines = for {{^m, line}, _} <- breaks_after -- breaks_before, do: line
 
-                        # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
-                        update_break_condition(m, lines, condition, nil, hit_count)
+                            # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
+                            update_break_condition(m, lines, condition, nil, hit_count)
 
-                        {:ok, lines}
+                            {:ok, lines}
 
-                      _ ->
+                          {:error, :function_not_found} ->
+                            {:error, "Function #{inspect(m)}.#{f}/#{a} not found"}
+                        end
+
+                      :error ->
                         {:error, "Cannot interpret module #{inspect(m)}"}
                     end
 
@@ -1153,8 +1158,7 @@ defmodule ElixirLS.Debugger.Server do
   defp save_and_reload(module, beam_bin) do
     :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
     true = :code.delete(module)
-    Output.debugger_console("Interpreting module #{inspect(module)}")
-    {:module, _} = :int.ni(module)
+    {:module, _} = interpret(module)
     ModuleInfoCache.store(module)
   end
 
@@ -1193,6 +1197,9 @@ defmodule ElixirLS.Debugger.Server do
         set_breakpoint(modules_to_break, path, line)
       end
     end
+  rescue
+    error ->
+      for _line <- lines, do: {:error, Exception.format_exit(error)}
   end
 
   defp set_breakpoint([], path, {line, _}) do
@@ -1202,10 +1209,11 @@ defmodule ElixirLS.Debugger.Server do
   defp set_breakpoint(modules, path, {line, {condition, log_message, hit_count}}) do
     modules_with_breakpoints =
       Enum.reduce(modules, [], fn module, added ->
-        case :int.ni(module) do
+        case interpret(module, false) do
           {:module, _} ->
             ModuleInfoCache.store(module)
             Output.debugger_console("Setting breakpoint in #{inspect(module)} #{path}:#{line}")
+            # no need to handle errors here, it can fail only with {:error, :break_exists}
             :int.break(module, line)
             update_break_condition(module, line, condition, log_message, hit_count)
 
@@ -1237,8 +1245,7 @@ defmodule ElixirLS.Debugger.Server do
 
   defp interpret_module(mod) do
     try do
-      Output.debugger_console("Interpreting module #{inspect(mod)}")
-      {:module, _} = :int.ni(mod)
+      {:module, _} = interpret(mod)
       ModuleInfoCache.store(mod)
     catch
       _, _ ->
@@ -1395,6 +1402,45 @@ defmodule ElixirLS.Debugger.Server do
 
       true ->
         "step"
+    end
+  end
+
+  @exclude_protocols_from_interpreting [
+    Enumerable,
+    Collectable,
+    List.Chars,
+    String.Chars,
+    Inspect,
+    IEx.Info,
+    JasonV.Encoder
+  ]
+
+  @exclude_implementations_from_interpreting [Inspect]
+
+  defp interpret(module, print_message? \\ true)
+
+  defp interpret(module, _print_message?) when module in @exclude_protocols_from_interpreting do
+    :error
+  end
+
+  defp interpret(module, print_message?) do
+    if Code.ensure_loaded?(module) do
+      module_behaviours =
+        module.module_info(:attributes) |> Keyword.get_values(:behaviour) |> Enum.concat()
+
+      if Enum.any?(@exclude_implementations_from_interpreting, &(&1 in module_behaviours)) do
+        # debugger uses Inspect protocol and setting breakpoints in implementations leads to deadlocks
+        # https://github.com/elixir-lsp/elixir-ls/issues/903
+        :error
+      else
+        if print_message? do
+          Output.debugger_console("Interpreting module #{inspect(module)}")
+        end
+
+        :int.ni(module)
+      end
+    else
+      :error
     end
   end
 end
