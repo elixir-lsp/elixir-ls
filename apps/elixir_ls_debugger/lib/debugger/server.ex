@@ -23,7 +23,8 @@ defmodule ElixirLS.Debugger.Server do
     Variables,
     Utils,
     BreakpointCondition,
-    Binding
+    Binding,
+    ModuleInfoCache
   }
 
   alias ElixirLS.Debugger.Stacktrace.Frame
@@ -84,6 +85,7 @@ defmodule ElixirLS.Debugger.Server do
   @impl GenServer
   def init(opts) do
     BreakpointCondition.start_link([])
+    ModuleInfoCache.start_link(%{})
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
@@ -335,6 +337,7 @@ defmodule ElixirLS.Debugger.Server do
                   nil ->
                     case :int.ni(m) do
                       {:module, _} ->
+                        ModuleInfoCache.store(m)
                         breaks_before = :int.all_breaks(m)
 
                         Output.debugger_console(
@@ -1152,6 +1155,7 @@ defmodule ElixirLS.Debugger.Server do
     true = :code.delete(module)
     Output.debugger_console("Interpreting module #{inspect(module)}")
     {:module, _} = :int.ni(module)
+    ModuleInfoCache.store(module)
   end
 
   defp set_breakpoints(path, lines) do
@@ -1164,7 +1168,8 @@ defmodule ElixirLS.Debugger.Server do
         |> Enum.map(&elem(&1, 0))
         |> Enum.filter(fn module -> String.starts_with?(Atom.to_string(module), "Elixir.") end)
         |> Enum.group_by(fn module ->
-          Path.expand(to_string(module.module_info(:compile)[:source]))
+          module_info = ModuleInfoCache.get(module) || module.module_info()
+          Path.expand(to_string(module_info[:compile][:source]))
         end)
 
       loaded_modules_from_path = Map.get(loaded_elixir_modules, path, [])
@@ -1199,6 +1204,7 @@ defmodule ElixirLS.Debugger.Server do
       Enum.reduce(modules, [], fn module, added ->
         case :int.ni(module) do
           {:module, _} ->
+            ModuleInfoCache.store(module)
             Output.debugger_console("Setting breakpoint in #{inspect(module)} #{path}:#{line}")
             :int.break(module, line)
             update_break_condition(module, line, condition, log_message, hit_count)
@@ -1233,6 +1239,7 @@ defmodule ElixirLS.Debugger.Server do
     try do
       Output.debugger_console("Interpreting module #{inspect(mod)}")
       {:module, _} = :int.ni(mod)
+      ModuleInfoCache.store(mod)
     catch
       _, _ ->
         Output.debugger_important(

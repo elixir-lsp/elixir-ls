@@ -3,6 +3,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
   Retrieves the stack trace for a process that's paused at a breakpoint
   """
   alias ElixirLS.Debugger.Output
+  alias ElixirLS.Debugger.ModuleInfoCache
 
   defmodule Frame do
     defstruct [:level, :file, :module, :function, :args, :line, :bindings, :messages]
@@ -86,8 +87,6 @@ defmodule ElixirLS.Debugger.Stacktrace do
   end
 
   defp get_file(module) do
-    if Code.ensure_loaded?(module) do
-      to_string(module.module_info[:compile][:source])
-    end
+    Path.expand(to_string(ModuleInfoCache.get(module)[:compile][:source]))
   end
 end
