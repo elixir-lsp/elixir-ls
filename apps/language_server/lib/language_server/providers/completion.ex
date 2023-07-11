@@ -252,20 +252,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          _options
        ) do
     name_only = String.trim_leading(name, "@")
-    insert_text = case String.split(prefix, "@") do
-      [_ | attribute_prefix] -> if String.starts_with?(name_only, attribute_prefix) do
-        name_only
-      else
-        name
+
+    insert_text =
+      case String.split(prefix, "@") do
+        [_ | attribute_prefix] ->
+          if String.starts_with?(name_only, attribute_prefix) do
+            name_only
+          else
+            name
+          end
+
+        _ ->
+          name
       end
-      _ -> name
-    end
 
     %__MODULE__{
       label: name,
       kind: :variable,
       detail: "module attribute",
-      documentation: name <> "\n" <> (if summary, do: summary, else: ""),
+      documentation: name <> "\n" <> if(summary, do: summary, else: ""),
       insert_text: insert_text,
       filter_text: name_only,
       priority: 14,
