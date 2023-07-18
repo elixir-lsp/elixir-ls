@@ -132,7 +132,7 @@ defmodule ElixirLS.LanguageServer.CLI do
     erlang_erl_path =
       beam_filename
       |> to_string
-      |> String.replace(Regex.recompile!(~r/(.+)\/ebin\/([^\s]+)\.beam$/), "\\1/src/\\2.erl")
+      |> String.replace(~r/(.+)\/ebin\/([^\s]+)\.beam$/, "\\1/src/\\2.erl")
 
     unless File.exists?(erlang_erl_path, [:raw]) do
       dir = Path.join(erlang_erl_path, "../../../..") |> Path.expand()

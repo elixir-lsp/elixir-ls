@@ -119,11 +119,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     def_before =
       cond do
-        Regex.match?(Regex.recompile!(~r/(defdelegate|defp?)\s*#{prefix}$/), text_before_cursor) ->
+        Regex.match?(~r/(defdelegate|defp?)\s*#{prefix}$/, text_before_cursor) ->
           :def
 
         Regex.match?(
-          Regex.recompile!(~r/(defguardp?|defmacrop?)\s*#{prefix}$/),
+          ~r/(defguardp?|defmacrop?)\s*#{prefix}$/,
           text_before_cursor
         ) ->
           :defmacro
@@ -138,8 +138,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       prefix: prefix,
       remote_calls?: match?({:dot, _, _}, Code.Fragment.cursor_context(prefix)),
       def_before: def_before,
-      pipe_before?: Regex.match?(Regex.recompile!(~r/\|>\s*#{prefix}$/), text_before_cursor),
-      capture_before?: Regex.match?(Regex.recompile!(~r/&#{prefix}$/), text_before_cursor),
+      pipe_before?: Regex.match?(~r/\|>\s*#{prefix}$/, text_before_cursor),
+      capture_before?: Regex.match?(~r/&#{prefix}$/, text_before_cursor),
       scope: scope,
       module: env.module
     }
@@ -302,7 +302,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          %{def_before: nil, capture_before?: false, pipe_before?: false},
          _options
        ) do
-    snippet = Regex.replace(Regex.recompile!(~r/"\$\{(.*)\}\$"/U), snippet, "${\\1}")
+    snippet = Regex.replace(~r/"\$\{(.*)\}\$"/U, snippet, "${\\1}")
 
     %__MODULE__{
       label: description,
@@ -991,7 +991,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp get_prefix(text_before_cursor) do
-    regex = Regex.recompile!(~r/[\w0-9\._!\?\:@\->]+$/)
+    regex = ~r/[\w0-9\._!\?\:@\->]+$/
 
     case Regex.run(regex, text_before_cursor) do
       [prefix] -> prefix
@@ -1113,7 +1113,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp use_name_only?(module_name, function_name) do
     module_name in @use_name_only or {module_name, function_name} in @use_name_only or
       String.starts_with?(function_name, "__") or
-      function_name =~ Regex.recompile!(~r/^[^a-zA-Z0-9]+$/)
+      function_name =~ ~r/^[^a-zA-Z0-9]+$/
   end
 
   defp sort_items(items) do
@@ -1126,7 +1126,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           priority
         end
 
-      {priority, label =~ Regex.recompile!(~r/^[^a-zA-Z0-9]/), label}
+      {priority, label =~ ~r/^[^a-zA-Z0-9]/, label}
     end)
   end
 

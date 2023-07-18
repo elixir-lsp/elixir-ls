@@ -14,13 +14,13 @@ defmodule ElixirLS.LanguageServer.ErlangSourceFile do
     beam_file
     |> to_string
     |> String.replace(
-      Regex.recompile!(~r/(.+)\/ebin\/([^\s]+)\.beam$/),
+      ~r/(.+)\/ebin\/([^\s]+)\.beam$/,
       "\\1/src/\\2.erl"
     )
   end
 
   def module_line(file) do
-    find_line_by_regex(file, Regex.recompile!(~r/^-module/))
+    find_line_by_regex(file, ~r/^-module/)
   end
 
   def function_line(file, function) do
@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.ErlangSourceFile do
       |> Atom.to_string()
       |> Regex.escape()
 
-    find_line_by_regex(file, Regex.recompile!(~r/^#{escaped}\b/))
+    find_line_by_regex(file, ~r/^#{escaped}\b/)
   end
 
   defp find_line_by_regex(file, regex) do

@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
       end
 
     cur_line = Enum.at(SourceFile.lines(cur_text), line - 1)
-    [indentation] = Regex.run(Regex.recompile!(~r/^\s*/), cur_line)
+    [indentation] = Regex.run(~r/^\s*/, cur_line)
 
     # Attempt to format to fit within the preferred line length, fallback to having it all on one
     # line if anything fails

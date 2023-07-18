@@ -570,7 +570,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp dialyzer_raw_warning_message(raw_warning) do
     message = String.trim(to_string(:dialyzer.format_warning(raw_warning)))
-    Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
+    Regex.replace(~r/^.*:\d+: /, message, "")
   end
 
   # Because mtime-based stale-checking has 1-second granularity, we err on the side of
