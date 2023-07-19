@@ -442,7 +442,7 @@ output, and for a windows batch script you will want `@echo off` at the top and 
 
 ### Development
 
-Please refer to [DEVELOPMENT.MD](DEVELOPMENT.MD).
+Please refer to [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Environment variables
 
