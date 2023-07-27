@@ -165,7 +165,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     items_json =
       items
       |> Enum.reject(&is_nil/1)
-      |> Enum.uniq_by(&{&1.detail, &1.documentation, &1.insert_text})
       |> sort_items()
       |> items_to_json(options)
 
@@ -1118,7 +1117,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp sort_items(items) do
     Enum.sort_by(items, fn %__MODULE__{priority: priority, label: label} = item ->
-      # deprioretize deprecated
+      # deprioritize deprecated
       priority =
         if item.tags |> Enum.any?(&(&1 == :deprecated)) do
           priority + 30
