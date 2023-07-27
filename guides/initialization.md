@@ -15,9 +15,9 @@ When launching the elixir_ls server using the scripts, the initialization steps 
 
 The Language Server Protocol and Debugger Adapter Protocol mandate that all communication between the client and the server is made using UTF-8 encoded JSON-RPC based protocol. See [LSP Base Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#baseProtocol) and [DAP Base Protocol](https://microsoft.github.io/debug-adapter-protocol/overview/#base-protocol). BEAM character IO is UTF-8 as default currently (was latin1 in the past which is a type of UTF-16). So, in order to have this kind of encoding/decoding out of the way, it first overrides two processes started by all BEAM instances: `:user` and `:stderr` with `ElixirLS.Utils.OutputDevice` in `ElixirLS.Utils.WireProtocol` module.
 
-The first process is the name for standard IO while the second is the the standard error. They are both IO servers, that means, `:gen_server` implementations that follows the [IO protocol](http://erlang.org/doc/apps/stdlib/io_protocol.html).
+The first process is the name for standard IO while the second is the standard error. They are both IO servers, that means, `:gen_server` implementations that follow the [IO protocol](http://erlang.org/doc/apps/stdlib/io_protocol.html).
 
-The servers reads and decodes protocol messages in `ElixirLS.Utils.PacketStream`. Output messages are sent via `ElixirLS.LanguageServer.JsonRpc` or `ElixirLS.Debugger.Output`.
+The servers read and decode protocol messages in `ElixirLS.Utils.PacketStream`. Output messages are sent via `ElixirLS.LanguageServer.JsonRpc` or `ElixirLS.Debugger.Output`.
 
 ## Starts Mix
 
@@ -37,9 +37,9 @@ The first one is the server itself `ElixirLS.LanguageServer.Server`. This is a n
 - map of requests to match with responses;
 - current open files in the client;
 
-Upon start the server initializes its state with defaults (mostly empty values) and then waits for messages. It is important to know that up to now the server does not have a project directory set (nor its root uri).
+Upon start, the server initializes its state with defaults (mostly empty values) and then waits for messages. It is important to know that up to now the server does not have a project directory set (nor its root uri).
 
-After this `GenServer` is started, the next in line is the `ElixirLS.LanguageServer.JsonRpc` server. This is the one responsible for handling JSON RPC requests and responses. It is another `GenServer` that receives and sends packets through standard IO and standard error set on the first step of initialization.
+After this `GenServer` is started, the next in line is the `ElixirLS.LanguageServer.JsonRpc` server. This is the one responsible for handling JSON-RPC requests and responses. It is another `GenServer` that receives and sends packets through standard IO and standard error set on the first step of initialization.
 
 ## Overrides default Mix.Shell
 
@@ -64,7 +64,7 @@ Any requests coming from a LSP client will now follow this path:
 - The `ElixirLS.Utils.PacketStream` will read input from standard IO in the already mentioned `Stream.resource/3` call;
 - Each request has a header and a body. Both will be parsed to maps;
 - The request will be handled by `ElixirLS.LanguageServer.JsonRpc.receive_packet/1`;
-- A match is made with the request body content to check if its a:
+- A match is made with the request body content to check if it's a:
   - [notification](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#notificationMessage)
   - [request](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#requestMessage)
   - [response with/without response_errors](https://microsoft.github.io/language-server-protocol/specifications/specification-current/#responseMessage)
@@ -126,6 +126,6 @@ Here is the point in time where it will build the [PLT (a Persistent Lookup Tabl
 
 There are many things done in this module. It tries to be smart about analyzing only the modules that have changed. It does that by first checking the integrity of the PLT and then loading all modules from the PLT using `:dialyzer_plt.all_modules/1`.
 
-If it finds that there is a difference, than it calculates this difference (using `MapSet`) to separate stale modules from non-stale. Then it delegates do the `ElixirLS.LanguageServer.Dialyzer.Analyzer` module for the proper analysis run.
+If it finds that there is a difference, than it calculates this difference (using `MapSet`) to separate stale modules from non-stale. Then it delegates to the `ElixirLS.LanguageServer.Dialyzer.Analyzer` module for the proper analysis run.
 
 In the end it will publish a message that the analysis has finished, which will be delegated all the way back to the server module. There it handles the results accordingly and finally it will be ready to introspect code.
