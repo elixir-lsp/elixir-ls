@@ -166,7 +166,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     # add trigger signatures to arity 0 if there are higher arity completions that would trigger
     commands = items
-    |> Enum.filter(& &1.kind in [:function])
+    |> Enum.filter(& &1.kind in [:function, :class])
     |> Enum.group_by(&{&1.kind, &1.label})
     |> Map.new(fn {key, values} ->
       command = Enum.find_value(values, & &1.command)
@@ -175,8 +175,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     items = items
     |> Enum.map(fn
-      %{command: nil} = item ->
-        command = commands[{item.kind, item.label}]
+      %{command: nil, kind: kind} = item when kind in [:function, :class] ->
+        command = commands[{kind, item.label}]
         if command do
           %{item |
             command: command,
@@ -630,7 +630,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp from_completion_item(
          %{type: :type_spec, metadata: metadata} = suggestion,
          _context,
-         _options
+         options
        ) do
     %{
       name: name,
@@ -656,6 +656,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         "#{name}()"
       end
 
+    signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
+    signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
+  
+    trigger_signature? = signature_help_supported? && arity > 1
+
+    command =
+      if trigger_signature? && signature_after_complete? do
+        %{
+          "title" => "Trigger Parameter Hint",
+          "command" => "editor.action.triggerParameterHints"
+        }
+      end
+
     %__MODULE__{
       label: name,
       detail: "typespec #{signature}",
@@ -667,7 +680,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       insert_text: snippet,
       priority: 10,
       kind: :class,
-      tags: metadata_to_tags(metadata)
+      tags: metadata_to_tags(metadata),
+      command: command
     }
   end
 
