@@ -165,28 +165,30 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> sort_items()
 
     # add trigger signatures to arity 0 if there are higher arity completions that would trigger
-    commands = items
-    |> Enum.filter(& &1.kind in [:function, :class])
-    |> Enum.group_by(&{&1.kind, &1.label})
-    |> Map.new(fn {key, values} ->
-      command = Enum.find_value(values, & &1.command)
-      {key, command}
-    end)
+    commands =
+      items
+      |> Enum.filter(&(&1.kind in [:function, :class]))
+      |> Enum.group_by(&{&1.kind, &1.label})
+      |> Map.new(fn {key, values} ->
+        command = Enum.find_value(values, & &1.command)
+        {key, command}
+      end)
 
-    items = items
-    |> Enum.map(fn
-      %{command: nil, kind: kind} = item when kind in [:function, :class] ->
-        command = commands[{kind, item.label}]
-        if command do
-          %{item |
-            command: command,
-            insert_text: "#{item.label}($1)$0"
-          }
-        else
+    items =
+      items
+      |> Enum.map(fn
+        %{command: nil, kind: kind} = item when kind in [:function, :class] ->
+          command = commands[{kind, item.label}]
+
+          if command do
+            %{item | command: command, insert_text: "#{item.label}($1)$0"}
+          else
+            item
+          end
+
+        item ->
           item
-        end
-      item -> item
-    end)
+      end)
 
     items_json =
       items
@@ -658,7 +660,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
     signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
-  
+
     trigger_signature? = signature_help_supported? && arity > 1
 
     command =
