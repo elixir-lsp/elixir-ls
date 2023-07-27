@@ -161,11 +161,35 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
       |> maybe_add_end(context)
+      |> Enum.reject(&is_nil/1)
+      |> sort_items()
+
+    # add trigger signatures to arity 0 if there are higher arity completions that would trigger
+    commands = items
+    |> Enum.filter(& &1.kind in [:function])
+    |> Enum.group_by(&{&1.kind, &1.label})
+    |> Map.new(fn {key, values} ->
+      command = Enum.find_value(values, & &1.command)
+      {key, command}
+    end)
+
+    items = items
+    |> Enum.map(fn
+      %{command: nil} = item ->
+        command = commands[{item.kind, item.label}]
+        if command do
+          %{item |
+            command: command,
+            insert_text: "#{item.label}($1)$0"
+          }
+        else
+          item
+        end
+      item -> item
+    end)
 
     items_json =
       items
-      |> Enum.reject(&is_nil/1)
-      |> sort_items()
       |> items_to_json(options)
 
     {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
