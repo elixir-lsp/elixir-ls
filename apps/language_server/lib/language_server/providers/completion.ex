@@ -661,7 +661,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     signature_help_supported? = Keyword.get(options, :signature_help_supported, false)
     signature_after_complete? = Keyword.get(options, :signature_after_complete, true)
 
-    trigger_signature? = signature_help_supported? && arity > 1
+    trigger_signature? = signature_help_supported? && arity >= 1
 
     command =
       if trigger_signature? && signature_after_complete? do
