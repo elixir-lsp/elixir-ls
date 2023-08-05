@@ -1015,8 +1015,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
                    ```
                    @spec inspect(device, item, keyword) ::
-                     item
-                   when item: var
+                           item
+                         when item: var
                    ```
                    """
                  },

@@ -1111,9 +1111,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                The summary
                ```
                @spec add(
-                 a_big_name :: integer,
-                 b_big_name :: integer
-               ) :: integer
+                       a_big_name :: integer,
+                       b_big_name :: integer
+                     ) :: integer
                ```
                """
              }

@@ -30,9 +30,9 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
            ```
            @spec format_spec(
-             String.t(),
-             keyword()
-           ) :: String.t()
+                   String.t(),
+                   keyword()
+                 ) :: String.t()
            ```
            """
   end

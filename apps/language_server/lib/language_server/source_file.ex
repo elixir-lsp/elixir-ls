@@ -216,9 +216,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         {:ok, code} ->
           code
           |> to_string()
-          |> lines()
-          |> remove_indentation(String.length("@spec "))
-          |> Enum.join("\n")
 
         {:error, _} ->
           spec
@@ -266,12 +263,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         {:error, e}
     end
   end
-
-  defp remove_indentation([line | rest], length) do
-    [line | Enum.map(rest, &String.slice(&1, length..-1))]
-  end
-
-  defp remove_indentation(lines, _), do: lines
 
   def lsp_character_to_elixir(_utf8_line, lsp_character) when lsp_character <= 0, do: 1
 
