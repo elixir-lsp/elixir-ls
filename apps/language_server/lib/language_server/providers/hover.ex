@@ -48,7 +48,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     )
   end
 
-  defp contents(%{docs: markdown}, subject, project_dir) do
+  defp contents(markdown, subject, project_dir) do
     %{
       kind: "markdown",
       value: add_hexdocs_link(markdown, subject, project_dir)

@@ -681,10 +681,11 @@ defmodule ElixirLS.Debugger.Server do
         }
       end)
 
-    env = %ElixirSense.Providers.Suggestion.Complete.Env{vars: vars}
+    env = %ElixirSense.Core.State.Env{vars: vars}
+    metadata = %ElixirSense.Core.Metadata{}
 
     results =
-      ElixirSense.Providers.Suggestion.Complete.complete(prefix, env)
+      ElixirSense.Providers.Suggestion.Complete.complete(prefix, env, metadata)
       |> Enum.map(&ElixirLS.Debugger.Completions.map/1)
 
     {%{"targets" => results}, state}

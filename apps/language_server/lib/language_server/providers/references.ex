@@ -26,6 +26,9 @@ defmodule ElixirLS.LanguageServer.Providers.References do
         |> build_reference(uri, text)
       end)
       |> Enum.filter(&(not is_nil(&1)))
+      # ElixirSense returns references from both compile tracer and current buffer
+      # There may be duplicates
+      |> Enum.uniq()
     end)
   end
 

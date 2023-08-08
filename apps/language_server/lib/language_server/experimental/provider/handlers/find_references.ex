@@ -32,6 +32,9 @@ defmodule ElixirLS.LanguageServer.Experimental.Provider.Handlers.FindReferences 
           end
         end)
         |> Enum.reverse()
+        # ElixirSense returns references from both compile tracer and current buffer
+        # There may be duplicates
+        |> Enum.uniq()
 
       response = Responses.FindReferences.new(request.id, references)
       Logger.info("found #{length(references)} refs")
