@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     # :logger application is already started
     # replace console logger with LSP
-    if Version.match?(System.version(), ">= 1.15.0-dev") do
+    if Version.match?(System.version(), ">= 1.15.0") do
       :ok = :logger.remove_handler(:default)
 
       :ok =

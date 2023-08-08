@@ -113,9 +113,20 @@ defmodule ElixirLS.LanguageServer.Build do
 
       Mix.Task.clear()
 
-      if Version.match?(System.version(), ">= 1.15.0-dev") do
+      if Version.match?(System.version(), ">= 1.15.0") do
         if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
-          raise "build without intercepted logger #{inspect(:logger.get_handler_ids())}"
+          Logger.error("Build without intercepted logger #{inspect(:logger.get_handler_ids())}")
+
+          for handler_id <- :logger.get_handler_ids() do
+            :ok = :logger.remove_handler(handler_id)
+          end
+
+          :ok =
+            :logger.add_handler(
+              Logger.Backends.JsonRpc,
+              Logger.Backends.JsonRpc,
+              Logger.Backends.JsonRpc.handler_config()
+            )
         end
       end
 
@@ -168,28 +179,31 @@ defmodule ElixirLS.LanguageServer.Build do
         # store log config
         logger_config = Application.get_all_env(:logger)
 
-        logger_handler_configs =
-          if Version.match?(System.version(), ">= 1.15.0-dev") do
-            for handler_id <- :logger.get_handler_ids() do
-              {:ok, config} = :logger.get_handler_config(handler_id)
+        try do
+          Mix.Task.run("loadconfig")
+        after
+          # reset log config
+          Application.put_all_env(logger: logger_config)
+
+          if Version.match?(System.version(), ">= 1.15.0") do
+            # remove all log handlers and restore our
+            for handler_id <- :logger.get_handler_ids(), handler_id != Logger.Backends.JsonRpc do
               :ok = :logger.remove_handler(handler_id)
-              config
+            end
+
+            if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
+              :ok =
+                :logger.add_handler(
+                  Logger.Backends.JsonRpc,
+                  Logger.Backends.JsonRpc,
+                  Logger.Backends.JsonRpc.handler_config()
+                )
             end
           end
 
-        Mix.Task.run("loadconfig")
-
-        # reset log config
-        Application.put_all_env(logger: logger_config)
-
-        if Version.match?(System.version(), ">= 1.15.0-dev") do
-          for config <- logger_handler_configs do
-            :ok = :logger.add_handler(config.id, config.module, config)
-          end
+          # make sure ANSI is disabled
+          Application.put_env(:elixir, :ansi_enabled, false)
         end
-
-        # make sure ANSI is disabled
-        Application.put_env(:elixir, :ansi_enabled, false)
       end
 
       {status, diagnostics}
@@ -212,7 +226,7 @@ defmodule ElixirLS.LanguageServer.Build do
     ]
 
     opts =
-      if Version.match?(System.version(), ">= 1.15.0-dev") do
+      if Version.match?(System.version(), ">= 1.15.0") do
         opts
       else
         opts ++ ["--all-warnings"]

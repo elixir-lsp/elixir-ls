@@ -236,7 +236,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     try do
       true = Code.ensure_loaded?(Mix.Tasks.Format)
 
-      if project_dir && Version.match?(System.version(), ">= 1.15.0-dev") do
+      if project_dir && Version.match?(System.version(), ">= 1.15.0") do
         {:ok, Mix.Tasks.Format.formatter_for_file(path, root: project_dir)}
       else
         {:ok, Mix.Tasks.Format.formatter_for_file(path)}

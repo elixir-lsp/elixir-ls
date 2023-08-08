@@ -1038,7 +1038,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       initialize(server)
 
-      if Version.match?(System.version(), ">= 1.15.0-dev") do
+      if Version.match?(System.version(), ">= 1.15.0") do
         assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^error_file,
                          "diagnostics" => [
