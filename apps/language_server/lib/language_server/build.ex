@@ -80,9 +80,18 @@ defmodule ElixirLS.LanguageServer.Build do
 
         for {app, path} <- Mix.Project.deps_paths() do
           child_module =
-            Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
-              mix_project
-            end)
+            try do
+              Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
+                mix_project
+              end)
+            rescue
+              e ->
+                message = Exception.message(e)
+
+                Logger.warning(
+                  "Unable to prune mix project module for #{app}: #{inspect(e.__struct__)} #{message} #{Exception.format(:error, e, __STACKTRACE__)}"
+                )
+            end
 
           if child_module do
             purge_module(child_module)
