@@ -1,7 +1,7 @@
 Application.put_env(:elixir, :ansi_enabled, false)
 Code.eval_file("#{__DIR__}/installer.exs")
 
-Mix.start
+Mix.start()
 
 # Put mix into quiet mode so it does not print anything to standard out
 # especially it makes it surface git command errors such as reported in

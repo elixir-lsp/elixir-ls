@@ -65,7 +65,7 @@ defmodule ElixirLS.Mix do
   # with added option to disable stopping apps after install
   # we don't want hex app stopped
   # The original code is licensed under
-  
+
   # Apache License
   # Version 2.0, January 2004
   # http://www.apache.org/licenses/
@@ -242,7 +242,6 @@ defmodule ElixirLS.Mix do
   # of your accepting any such warranty or additional liability.
 
   # END OF TERMS AND CONDITIONS
-
 
   def install(deps, opts \\ [])
 
@@ -476,7 +475,7 @@ defmodule ElixirLS.Installer do
   defp run_mix_install({:local, dir}, force?) do
     Mix.install(
       [
-        {:elixir_ls, path: dir},
+        {:elixir_ls, path: dir}
       ],
       force: force?,
       start_applications: false,
@@ -488,7 +487,8 @@ defmodule ElixirLS.Installer do
   end
 
   defp run_mix_install({:tag, tag}, force?) do
-    Mix.install([
+    Mix.install(
+      [
         {:elixir_ls, github: "elixir-lsp/elixir-ls", tag: tag}
       ],
       force: force?,
@@ -503,9 +503,11 @@ defmodule ElixirLS.Installer do
   end
 
   defp get_release do
-    version = Path.expand("#{__DIR__}/VERSION")
-    |> File.read!()
-    |> String.trim()
+    version =
+      Path.expand("#{__DIR__}/VERSION")
+      |> File.read!()
+      |> String.trim()
+
     {:tag, "v#{version}"}
   end
 
@@ -513,16 +515,17 @@ defmodule ElixirLS.Installer do
     if local?() do
       dir = local_dir()
       IO.puts(:stderr, "Installing local ElixirLS from #{dir}")
-      IO.puts(:stderr, "Running in #{File.cwd!}")
-      
+      IO.puts(:stderr, "Running in #{File.cwd!()}")
+
       run_mix_install({:local, dir}, force?)
     else
       {:tag, tag} = get_release()
       IO.puts(:stderr, "Installing ElixirLS release #{tag}")
-      IO.puts(:stderr, "Running in #{File.cwd!}")
-      
+      IO.puts(:stderr, "Running in #{File.cwd!()}")
+
       run_mix_install({:tag, tag}, force?)
     end
+
     IO.puts(:stderr, "Install complete")
   end
 
@@ -540,7 +543,11 @@ defmodule ElixirLS.Installer do
       install(false)
     catch
       kind, error ->
-        IO.puts(:stderr, "Mix.install failed with #{Exception.format(kind, error, __STACKTRACE__)}")
+        IO.puts(
+          :stderr,
+          "Mix.install failed with #{Exception.format(kind, error, __STACKTRACE__)}"
+        )
+
         IO.puts(:stderr, "Retrying Mix.install with force: true")
         install(true)
     end

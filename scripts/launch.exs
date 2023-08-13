@@ -1,7 +1,7 @@
 Application.put_env(:elixir, :ansi_enabled, false)
 Code.eval_file("#{__DIR__}/installer.exs")
 
-Mix.start
+Mix.start()
 
 # Put mix into quiet mode so it does not print anything to standard out
 # especially it makes it surface git command errors such as reported in
@@ -16,6 +16,7 @@ ElixirLS.Installer.install_for_launch()
 case System.get_env("ELS_MODE") do
   "language_server" ->
     ElixirLS.LanguageServer.CLI.main()
+
   "debugger" ->
     ElixirLS.Debugger.CLI.main()
 end
