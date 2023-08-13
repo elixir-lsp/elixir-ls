@@ -7,9 +7,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.Restart do
   def execute(_args, _state) do
     {:ok, _pid} =
       Task.start(fn ->
-        Logger.info("ElixirLS will restart")
+        Logger.info("ElixirLS restart requested")
         Process.sleep(1000)
-        System.stop(0)
+        ElixirLS.LanguageServer.restart()
       end)
 
     {:ok, %{}}

@@ -63,6 +63,8 @@ defmodule ElixirLS.LanguageServer.Server do
     awaiting_contracts: [],
     supports_dynamic: false,
     mix_project?: false,
+    mix_env: nil,
+    mix_target: nil,
     no_mixfile_warned?: false
   ]
 
@@ -1147,7 +1149,7 @@ defmodule ElixirLS.LanguageServer.Server do
       Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
 
     env_vars = Map.get(settings, "envVariables")
-    mix_env = Map.get(settings, "mixEnv", "test")
+    mix_env = Map.get(settings, "mixEnv")
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
     additional_watched_extensions = Map.get(settings, "additionalWatchedExtensions", [])
@@ -1217,11 +1219,11 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       JsonRpc.show_message(
         :warning,
-        "Environment variables have changed. ElixirLS needs to restart"
+        "Environment variables change detected. ElixirLS will restart"
       )
-
+      # sleep so the client has time to show the message
       Process.sleep(5000)
-      System.stop(1)
+      ElixirLS.LanguageServer.restart()
     end
 
     state
@@ -1234,19 +1236,20 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp set_mix_env(state = %__MODULE__{}, env) do
-    prev_env = state.settings["mixEnv"]
+    prev_env = state.mix_env
 
     if is_nil(prev_env) or env == prev_env do
       System.put_env("MIX_ENV", env)
       Mix.env(String.to_atom(env))
+      %{state | mix_env: env}
     else
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
 
+      # sleep so the client has time to show the message
       Process.sleep(5000)
-      System.stop(0)
+      ElixirLS.LanguageServer.restart()
+      state
     end
-
-    state
   end
 
   defp set_mix_target(state = %__MODULE__{}, target) when target in [nil, ""] do
@@ -1255,19 +1258,20 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp set_mix_target(state = %__MODULE__{}, target) do
-    prev_target = state.settings["mixTarget"]
+    prev_target = state.mix_target
 
     if is_nil(prev_target) or target == prev_target do
       System.put_env("MIX_TARGET", target)
       Mix.target(String.to_atom(target))
+      %{state | mix_target: target}
     else
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
 
+      # sleep so the client has time to show the message
       Process.sleep(5000)
-      System.stop(0)
+      ElixirLS.LanguageServer.restart()
+      state
     end
-
-    state
   end
 
   defp set_project_dir(
@@ -1299,8 +1303,9 @@ defmodule ElixirLS.LanguageServer.Server do
           "Project directory change detected. ElixirLS will restart"
         )
 
+        # sleep so the client has time to show the message
         Process.sleep(5000)
-        System.stop(0)
+        ElixirLS.LanguageServer.restart()
 
       true ->
         state

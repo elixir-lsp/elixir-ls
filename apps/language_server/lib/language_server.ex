@@ -29,7 +29,7 @@ defmodule ElixirLS.LanguageServer do
 
   @impl Application
   def stop(_state) do
-    if ElixirLS.Utils.WireProtocol.io_intercepted?() do
+    if not Application.get_env(:language_server, :restart, false) and ElixirLS.Utils.WireProtocol.io_intercepted?() do
       LanguageServer.JsonRpc.show_message(
         :error,
         "ElixirLS has crashed. See Output panel."
@@ -60,5 +60,10 @@ defmodule ElixirLS.LanguageServer do
     else
       {ElixirLS.LanguageServer.JsonRpc, name: ElixirLS.LanguageServer.JsonRpc}
     end
+  end
+
+  def restart() do
+    Application.put_env(:language_server, :restart, true)
+    System.stop(0)
   end
 end
