@@ -685,7 +685,7 @@ defmodule ElixirLS.Debugger.Server do
     metadata = %ElixirSense.Core.Metadata{}
 
     results =
-      ElixirSense.Providers.Suggestion.Complete.complete(prefix, env, metadata)
+      ElixirSense.Providers.Suggestion.Complete.complete(prefix, env, metadata, {1, 1})
       |> Enum.map(&ElixirLS.Debugger.Completions.map/1)
 
     {%{"targets" => results}, state}
