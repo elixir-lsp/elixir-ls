@@ -61,7 +61,6 @@ defmodule ElixirLS.LanguageServer.Server do
     # Tracks source files that are currently open in the editor
     source_files: %{},
     awaiting_contracts: [],
-    supports_dynamic: false,
     mix_project?: false,
     mix_env: nil,
     mix_target: nil,
@@ -90,6 +89,8 @@ defmodule ElixirLS.LanguageServer.Server do
     ".heex",
     ".sface"
   ]
+
+  @default_config_timeout 3
 
   ## Client API
 
@@ -235,21 +236,18 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
+  def handle_info(:default_config, state = %__MODULE__{settings: nil}) do
+    Logger.warning(
+      "Did not receive workspace/didChangeConfiguration notification after #{@default_config_timeout} seconds. " <>
+        "The server will use default config."
+    )
+
+    state = set_settings(state, %{})
+    {:noreply, state}
+  end
+
   def handle_info(:default_config, state = %__MODULE__{}) do
-    state =
-      case state do
-        %{settings: nil} ->
-          Logger.warning(
-            "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
-              "Using default settings."
-          )
-
-          set_settings(state, %{})
-
-        _ ->
-          state
-      end
-
+    # we got workspace/didChangeConfiguration in time, nothing to do here
     {:noreply, state}
   end
 
@@ -293,11 +291,67 @@ defmodule ElixirLS.LanguageServer.Server do
   ## Helpers
 
   defp handle_notification(notification("initialized"), state = %__MODULE__{}) do
-    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
-    Process.send_after(self(), :default_config, 5000)
+    # according to https://github.com/microsoft/language-server-protocol/issues/567#issuecomment-1060605611
+    # this is the best point to pull configuration
 
-    if state.supports_dynamic do
-      add_watched_extensions(state, @default_watched_extensions)
+    supports_get_configuration =
+      get_in(state.client_capabilities, [
+        "workspace",
+        "configuration"
+      ])
+
+    state =
+      if supports_get_configuration do
+        response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")
+
+        case response do
+          {:ok, [result]} when is_map(result) ->
+            Logger.info(
+              "Received client configuration via workspace/configuration\n#{inspect(result)}"
+            )
+
+            set_settings(state, result)
+
+          other ->
+            Logger.error("Cannot get client configuration: #{inspect(other)}")
+            state
+        end
+      else
+        Logger.info("Client does not support workspace/configuration request")
+        state
+      end
+
+    unless state.settings do
+      # We still don't have the configuration. Let's wait for workspace/didChangeConfiguration
+      Process.send_after(self(), :default_config, @default_config_timeout * 1000)
+    end
+
+    supports_dynamic_configuration_change_registration =
+      get_in(state.client_capabilities, [
+        "workspace",
+        "didChangeConfiguration",
+        "dynamicRegistration"
+      ])
+
+    if supports_dynamic_configuration_change_registration do
+      Logger.info("Registering for workspace/didChangeConfiguration notifications")
+      listen_for_configuration_changes(state.server_instance_id)
+    else
+      Logger.info("Client does not support workspace/didChangeConfiguration dynamic registration")
+    end
+
+    supports_dynamic_file_watcher_registration =
+      get_in(state.client_capabilities, [
+        "workspace",
+        "didChangeWatchedFiles",
+        "dynamicRegistration"
+      ])
+
+    if supports_dynamic_file_watcher_registration do
+      Logger.info("Registering for workspace/didChangeWatchedFiles notifications")
+      add_watched_extensions(state.server_instance_id, @default_watched_extensions)
+    else
+      Logger.info("Client does not support workspace/didChangeWatchedFiles dynamic registration")
     end
 
     state
@@ -321,6 +375,10 @@ defmodule ElixirLS.LanguageServer.Server do
   # the `projectDir` or `mixEnv` settings. If the settings don't match the format expected, leave
   # settings unchanged or set default settings if this is the first request.
   defp handle_notification(did_change_configuration(changed_settings), state = %__MODULE__{}) do
+    Logger.info(
+      "Received client configuration via workspace/didChangeConfiguration:\n#{inspect(changed_settings)}"
+    )
+
     prev_settings = state.settings || %{}
 
     new_settings =
@@ -569,19 +627,10 @@ defmodule ElixirLS.LanguageServer.Server do
           state
       end
 
-    # Explicitly request file watchers from the client if supported
-    supports_dynamic =
-      get_in(client_capabilities, [
-        "textDocument",
-        "codeAction",
-        "dynamicRegistration"
-      ])
-
     state = %{
       state
       | client_capabilities: client_capabilities,
-        server_instance_id: server_instance_id,
-        supports_dynamic: supports_dynamic
+        server_instance_id: server_instance_id
     }
 
     {:ok,
@@ -1161,7 +1210,8 @@ defmodule ElixirLS.LanguageServer.Server do
       |> set_mix_target(mix_target)
       |> set_project_dir(project_dir)
       |> set_dialyzer_enabled(enable_dialyzer)
-      |> add_watched_extensions(additional_watched_extensions)
+
+    add_watched_extensions(state.server_instance_id, additional_watched_extensions)
 
     maybe_rebuild(state)
     state = create_gitignore(state)
@@ -1173,25 +1223,42 @@ defmodule ElixirLS.LanguageServer.Server do
     trigger_build(%{state | settings: settings})
   end
 
-  defp add_watched_extensions(state = %__MODULE__{}, []) do
-    state
+  defp add_watched_extensions(_server_instance_id, []) do
+    :ok
   end
 
-  defp add_watched_extensions(state = %__MODULE__{}, exts) when is_list(exts) do
+  defp add_watched_extensions(server_instance_id, exts) when is_list(exts) do
     case JsonRpc.register_capability_request(
+           server_instance_id,
            "workspace/didChangeWatchedFiles",
            %{
              "watchers" => Enum.map(exts, &%{"globPattern" => "**/*" <> &1})
            }
          ) do
       {:ok, nil} ->
-        :ok
+        Logger.info("client/registerCapability succeeded")
 
       other ->
         Logger.error("client/registerCapability returned: #{inspect(other)}")
     end
+  end
 
-    state
+  defp listen_for_configuration_changes(server_instance_id) do
+    # the schema is not documented in official LSP docs
+    # using https://github.com/microsoft/vscode-languageserver-node/blob/7792b0b21c994cc9bebc3117eeb652a22e2d9e1f/protocol/src/common/protocol.ts#L1504C18-L1504C59
+    case JsonRpc.register_capability_request(
+           server_instance_id,
+           "workspace/didChangeConfiguration",
+           %{
+             "section" => "elixirLS"
+           }
+         ) do
+      {:ok, nil} ->
+        Logger.info("client/registerCapability succeeded")
+
+      other ->
+        Logger.error("client/registerCapability returned: #{inspect(other)}")
+    end
   end
 
   defp set_dialyzer_enabled(state = %__MODULE__{}, enable_dialyzer) do
@@ -1221,6 +1288,7 @@ defmodule ElixirLS.LanguageServer.Server do
         :warning,
         "Environment variables change detected. ElixirLS will restart"
       )
+
       # sleep so the client has time to show the message
       Process.sleep(5000)
       ElixirLS.LanguageServer.restart()

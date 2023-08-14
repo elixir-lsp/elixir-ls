@@ -81,7 +81,7 @@ Upon receiving the [initialize request](https://microsoft.github.io/language-ser
 
 The delayed message is important because some clients might send a message `workspace/didChangeConfiguration`. If that happens, it will start the build with a different configuration (for example, a different MIX_ENV).
 
-If a notification `workspace/didChangeConfiguration` or the delayed message is handled, it updates the server settings and triggers builders/analyzers and so on.
+If a notification `workspace/didChangeConfiguration` is not received in 3s the server will try to get configuration via `workspace/configuration` request. If that request is not supported a default configuration is used. Finally, the server triggers builders/analyzers.
 
 ## Starts building/analyzing the project
 

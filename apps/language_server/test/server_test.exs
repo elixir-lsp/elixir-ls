@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer, Build}
+  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer, Build, JsonRpc}
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   alias ElixirLS.LanguageServer.Test.ServerTestHelpers
@@ -57,6 +57,43 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     test "initializes", %{server: server} do
       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+    end
+
+    test "gets configuration after initialized notification if client supports it", %{
+      server: server
+    } do
+      Server.receive_packet(
+        server,
+        initialize_req(1, root_uri(), %{
+          "workspace" => %{
+            "configuration" => true
+          }
+        })
+      )
+
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+      Server.receive_packet(server, notification("initialized"))
+      uri = root_uri()
+
+      assert_receive(
+        %{
+          "id" => 1,
+          "method" => "workspace/configuration",
+          "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
+        },
+        1000
+      )
+
+      JsonRpc.receive_packet(
+        response(1, [
+          %{
+            "mixEnv" => "dev",
+            "autoBuild" => false
+          }
+        ])
+      )
+
+      assert :sys.get_state(server).mix_env == "dev"
     end
 
     test "Execute commands should include the server instance id", %{server: server} do
