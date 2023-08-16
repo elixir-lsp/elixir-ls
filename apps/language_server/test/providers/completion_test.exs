@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   require Logger
 
