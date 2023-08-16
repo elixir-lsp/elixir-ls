@@ -19,16 +19,6 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     "command" => "editor.action.triggerParameterHints"
   }
 
-  setup context do
-    unless context[:skip_server] do
-      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
-
-      {:ok, %{server: server}}
-    else
-      :ok
-    end
-  end
-
   test "do is returned" do
     text = """
     defmodule MyModule do

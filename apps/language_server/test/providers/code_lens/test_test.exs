@@ -6,16 +6,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
   @project_dir "/project"
 
-  setup context do
-    unless context[:skip_server] do
-      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
-
-      {:ok, %{server: server}}
-    else
-      :ok
-    end
-  end
-
   test "returns all module code lenses" do
     uri = "file:///project/file.ex"
 
