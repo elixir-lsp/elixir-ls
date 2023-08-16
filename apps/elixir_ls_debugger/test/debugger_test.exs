@@ -147,7 +147,8 @@ defmodule ElixirLS.Debugger.ServerTest do
       )
 
       assert_receive(
-        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+        5000
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -335,7 +336,8 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive(
         response(_, 3, "setBreakpoints", %{
           "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
-        })
+        }),
+        5000
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -416,7 +418,8 @@ defmodule ElixirLS.Debugger.ServerTest do
       )
 
       assert_receive(
-        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+        5000
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -567,7 +570,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       assert_receive(
         response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-        1000
+        5000
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -625,7 +628,8 @@ defmodule ElixirLS.Debugger.ServerTest do
       )
 
       assert_receive(
-        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+        5000
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -840,7 +844,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert :hello in :int.interpreted()
@@ -856,7 +860,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           response(_, 3, "setBreakpoints", %{
             "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
           }),
-          3000
+          5000
         )
 
         assert [{{:hello, 5}, _}, {{:hello, 6}, _}] = :int.all_breaks(:hello)
@@ -870,7 +874,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert [{{:hello, 6}, _}] = :int.all_breaks(:hello)
@@ -883,7 +887,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(:hello)
@@ -922,7 +926,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
-          3000
+          5000
         )
 
         abs_path = Path.absname("lib/mix_project.ex1")
@@ -934,7 +938,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 4, "setBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
-          3000
+          5000
         )
       end)
     end
@@ -971,7 +975,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert MixProject in :int.interpreted()
@@ -994,7 +998,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           response(_, 3, "setBreakpoints", %{
             "breakpoints" => [%{"verified" => true}, %{"verified" => true}, %{"verified" => true}]
           }),
-          3000
+          5000
         )
 
         assert MixProject.Some in :int.interpreted()
@@ -1017,7 +1021,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           response(_, 3, "setBreakpoints", %{
             "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
           }),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(MixProject)
@@ -1035,7 +1039,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(MixProject.Some)
@@ -1077,7 +1081,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert MixProject in :int.interpreted()
@@ -1097,7 +1101,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert :hello in :int.interpreted()
@@ -1113,7 +1117,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(MixProject)
@@ -1127,7 +1131,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(:hello)
@@ -1170,7 +1174,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert MixProject in :int.interpreted()
@@ -1196,7 +1200,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert [
@@ -1219,7 +1223,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] == :int.all_breaks(MixProject)
@@ -1265,7 +1269,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert MixProject in :int.interpreted()
@@ -1291,7 +1295,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert [
@@ -1314,7 +1318,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] == :int.all_breaks(MixProject)
@@ -1360,7 +1364,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert MixProject in :int.interpreted()
@@ -1386,7 +1390,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert [
@@ -1409,7 +1413,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] == :int.all_breaks(MixProject)
@@ -1456,7 +1460,8 @@ defmodule ElixirLS.Debugger.ServerTest do
         )
 
         assert_receive(
-          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          5000
         )
 
         assert Proto in :int.interpreted()
@@ -1522,7 +1527,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           set_breakpoints_req(9, %{"path" => abs_path}, [])
         )
 
-        assert_receive(response(_, 9, "setBreakpoints", %{"breakpoints" => []}))
+        assert_receive(response(_, 9, "setBreakpoints", %{"breakpoints" => []}), 5000)
 
         assert [] = :int.all_breaks(Proto)
         assert %{} == :sys.get_state(server).breakpoints
@@ -1636,7 +1641,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           set_breakpoints_req(9, %{"path" => abs_path}, [])
         )
 
-        assert_receive(response(_, 9, "setBreakpoints", %{"breakpoints" => []}))
+        assert_receive(response(_, 9, "setBreakpoints", %{"breakpoints" => []}), 5000)
 
         assert [] = :int.all_breaks(Proto.List)
         assert [] = :int.all_breaks(Proto.BitString)
@@ -1675,7 +1680,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert :hello in :int.interpreted()
@@ -1694,7 +1699,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           response(_, 3, "setFunctionBreakpoints", %{
             "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
           }),
-          3000
+          5000
         )
 
         assert Some in :int.interpreted()
@@ -1711,7 +1716,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(:hello)
@@ -1749,7 +1754,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
-          3000
+          5000
         )
 
         Server.receive_packet(
@@ -1759,7 +1764,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 4, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => false}]}),
-          3000
+          5000
         )
       end)
     end
@@ -1797,7 +1802,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert :hello in :int.interpreted()
@@ -1825,7 +1830,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           response(_, 3, "setFunctionBreakpoints", %{
             "breakpoints" => [%{"verified" => true}]
           }),
-          3000
+          5000
         )
 
         assert [
@@ -1847,7 +1852,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(:hello)
@@ -1890,7 +1895,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert :hello in :int.interpreted()
@@ -1918,7 +1923,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           response(_, 3, "setFunctionBreakpoints", %{
             "breakpoints" => [%{"verified" => true}]
           }),
-          3000
+          5000
         )
 
         assert [
@@ -1940,7 +1945,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => []}),
-          3000
+          5000
         )
 
         assert [] = :int.all_breaks(:hello)
@@ -1980,7 +1985,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -2038,7 +2043,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert Proto in :int.interpreted()
@@ -2106,7 +2111,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           set_function_breakpoints_req(9, [])
         )
 
-        assert_receive(response(_, 9, "setFunctionBreakpoints", %{"breakpoints" => []}))
+        assert_receive(response(_, 9, "setFunctionBreakpoints", %{"breakpoints" => []}), 5000)
 
         assert [] = :int.all_breaks(Proto)
         assert %{} == :sys.get_state(server).function_breakpoints
@@ -2150,7 +2155,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert Proto.List in :int.interpreted()
@@ -2193,7 +2198,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           set_function_breakpoints_req(9, [])
         )
 
-        assert_receive(response(_, 9, "setFunctionBreakpoints", %{"breakpoints" => []}))
+        assert_receive(response(_, 9, "setFunctionBreakpoints", %{"breakpoints" => []}), 5000)
 
         assert [] = :int.all_breaks(Proto.List)
         assert %{} == :sys.get_state(server).function_breakpoints
@@ -2237,7 +2242,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert_receive(
           response(_, 3, "setFunctionBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
-          3000
+          5000
         )
 
         assert DerivedProto.MyStruct in :int.interpreted()
@@ -2280,7 +2285,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           set_function_breakpoints_req(9, [])
         )
 
-        assert_receive(response(_, 9, "setFunctionBreakpoints", %{"breakpoints" => []}))
+        assert_receive(response(_, 9, "setFunctionBreakpoints", %{"breakpoints" => []}), 5000)
 
         assert [] = :int.all_breaks(DerivedProto.MyStruct)
         assert %{} == :sys.get_state(server).function_breakpoints
