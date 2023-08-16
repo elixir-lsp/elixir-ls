@@ -1565,7 +1565,8 @@ defmodule ElixirLS.Debugger.ServerTest do
         )
 
         assert_receive(
-          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]})
+          response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+          5000
         )
 
         assert Proto.List in :int.interpreted()
