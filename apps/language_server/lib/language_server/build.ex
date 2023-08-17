@@ -158,7 +158,7 @@ defmodule ElixirLS.LanguageServer.Build do
       Code.put_compiler_option(:no_warn_undefined, :all)
 
       # We can get diagnostics if Mixfile fails to load
-      {status, diagnostics} =
+      {mixfile_status, mixfile_diagnostics} =
         case Kernel.ParallelCompiler.compile([mixfile]) do
           {:ok, _, warnings} ->
             {:ok, Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning))}
@@ -174,39 +174,65 @@ defmodule ElixirLS.LanguageServer.Build do
       # restore warnings
       Code.put_compiler_option(:no_warn_undefined, old_undefined)
 
-      if status == :ok do
+      if mixfile_status == :ok do
         # The project may override our logger config, so we reset it after loading their config
         # store log config
         logger_config = Application.get_all_env(:logger)
 
-        try do
-          Mix.Task.run("loadconfig")
-        after
-          # reset log config
-          Application.put_all_env(logger: logger_config)
+        {config_result, config_raw_diagnostics} =
+          with_diagnostics([log: true], fn ->
+            try do
+              Mix.Task.run("loadconfig")
+              :ok
+            catch
+              kind, err ->
+                {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+                {:error, kind, payload, stacktrace}
+            after
+              # reset log config
+              Application.put_all_env(logger: logger_config)
 
-          if Version.match?(System.version(), ">= 1.15.0") do
-            # remove all log handlers and restore our
-            for handler_id <- :logger.get_handler_ids(), handler_id != Logger.Backends.JsonRpc do
-              :ok = :logger.remove_handler(handler_id)
+              if Version.match?(System.version(), ">= 1.15.0") do
+                # remove all log handlers and restore our
+                for handler_id <- :logger.get_handler_ids(),
+                    handler_id != Logger.Backends.JsonRpc do
+                  :ok = :logger.remove_handler(handler_id)
+                end
+
+                if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
+                  :ok =
+                    :logger.add_handler(
+                      Logger.Backends.JsonRpc,
+                      Logger.Backends.JsonRpc,
+                      Logger.Backends.JsonRpc.handler_config()
+                    )
+                end
+              end
+
+              # make sure ANSI is disabled
+              Application.put_env(:elixir, :ansi_enabled, false)
             end
+          end)
 
-            if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
-              :ok =
-                :logger.add_handler(
-                  Logger.Backends.JsonRpc,
-                  Logger.Backends.JsonRpc,
-                  Logger.Backends.JsonRpc.handler_config()
-                )
-            end
-          end
+        config_diagnostics =
+          config_raw_diagnostics
+          |> Enum.map(&Diagnostics.code_diagnostic/1)
 
-          # make sure ANSI is disabled
-          Application.put_env(:elixir, :ansi_enabled, false)
+        case config_result do
+          {:error, kind, err, stacktrace} ->
+            config_path = Mix.Project.config()[:config_path]
+
+            {:error,
+             mixfile_diagnostics ++
+               config_diagnostics ++
+               [Diagnostics.error_to_diagnostic(kind, err, stacktrace, config_path)]}
+
+          :ok ->
+            {:ok, mixfile_diagnostics ++ config_diagnostics}
         end
+      else
+        {mixfile_status, mixfile_diagnostics}
       end
-
-      {status, diagnostics}
     else
       msg =
         "No mixfile found in project. " <>
@@ -448,6 +474,15 @@ defmodule ElixirLS.LanguageServer.Build do
         {^env_target, deps} -> deps
         _ -> nil
       end
+    end
+  end
+
+  def with_diagnostics(opts \\ [], fun) do
+    # Code.with_diagnostics is broken on elixir < 1.15.3
+    if Version.match?(System.version(), ">= 1.15.3") do
+      Code.with_diagnostics(opts, fun)
+    else
+      {fun.(), []}
     end
   end
 end

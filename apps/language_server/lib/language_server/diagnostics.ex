@@ -228,7 +228,44 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def exception_to_diagnostic(error) do
+  def code_diagnostic(%{
+        file: file,
+        severity: severity,
+        message: message,
+        position: position
+      }) do
+    %Mix.Task.Compiler.Diagnostic{
+      compiler_name: "ElixirLS",
+      file: file,
+      position: position,
+      message: message,
+      severity: severity
+    }
+  end
+
+  def error_to_diagnostic(kind, payload, stacktrace, path) do
+    path = Path.absname(path)
+    message = Exception.format(kind, payload, stacktrace)
+
+    line =
+      stacktrace
+      |> Enum.find_value(fn {_m, _f, _a, opts} ->
+        if opts |> Keyword.get(:file) |> Path.absname() == path do
+          opts |> Keyword.get(:line)
+        end
+      end)
+
+    %Mix.Task.Compiler.Diagnostic{
+      compiler_name: "ElixirLS",
+      file: Path.absname(path),
+      position: line || 0,
+      message: message,
+      severity: :error,
+      details: payload
+    }
+  end
+
+  def exception_to_diagnostic(error, path \\ MixfileHelpers.mix_exs()) do
     msg =
       case error do
         {:shutdown, 1} ->
@@ -240,7 +277,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
-      file: Path.absname(MixfileHelpers.mix_exs()),
+      file: Path.absname(path),
       # 0 means unknown
       position: 0,
       message: msg,
