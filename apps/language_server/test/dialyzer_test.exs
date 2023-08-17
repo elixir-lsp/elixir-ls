@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
   alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc, Tracer, Build}
   import ExUnit.CaptureLog
-  alias ElixirLS.LanguageServer.Test.ServerTestHelpers
+  import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -22,7 +22,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   end
 
   setup do
-    server = ServerTestHelpers.start_server()
+    server = start_server()
     {:ok, _tracer} = start_supervised(Tracer)
 
     {:ok, %{server: server}}
@@ -34,15 +34,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
-          })
-        )
+        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -107,15 +99,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
-          })
-        )
+        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
         assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20_000
 
@@ -168,15 +152,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
-          })
-        )
+        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -222,15 +198,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"}
-          })
-        )
+        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -262,20 +230,12 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   end
 
   @tag slow: true, fixture: true
-  test "reports dialyzer_formatted error", %{server: server} do
+  test "reports dialyzer formatted error", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"}
-          })
-        )
+        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"})
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -313,15 +273,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_a = SourceFile.Path.to_uri(Path.absname("apps/app1/lib/app1.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"}
-          })
-        )
+        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -357,13 +309,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => true}})
-        )
+        initialize(server, %{"dialyzerEnabled" => true})
 
         assert_receive publish_diagnostics_notif(^file_a, [_, _]), 20000
 
@@ -381,16 +327,9 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "protocol rebuild does not trigger consolidation warnings", %{server: server} do
     in_fixture(__DIR__, "protocols", fn ->
-      root_uri = SourceFile.Path.to_uri(File.cwd!())
       uri = SourceFile.Path.to_uri(Path.absname("lib/implementations.ex"))
 
-      Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-      Server.receive_packet(server, notification("initialized"))
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{"elixirLS" => %{"dialyzerEnabled" => true}})
-      )
+      initialize(server, %{"dialyzerEnabled" => true})
 
       assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
 
@@ -458,15 +397,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"}
-          })
-        )
+        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -495,19 +426,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
       capture_log(fn ->
-        root_uri = SourceFile.Path.to_uri(File.cwd!())
-        Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-        Server.receive_packet(
-          server,
-          did_change_configuration(%{
-            "elixirLS" => %{
-              "dialyzerEnabled" => true,
-              "dialyzerFormat" => "dialyxir_long",
-              "suggestSpecs" => true
-            }
-          })
-        )
+        initialize(server, %{
+          "dialyzerEnabled" => true,
+          "dialyzerFormat" => "dialyxir_long",
+          "suggestSpecs" => true
+        })
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -555,7 +478,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         )
 
         assert_receive(%{
-          "id" => 1,
+          "id" => id,
           "method" => "workspace/applyEdit",
           "params" => %{
             "edit" => %{
@@ -575,19 +498,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
           }
         })
 
-        # TODO something is broken in packet capture
-        # using JsonRpc.receive_packet causes the packet to be delivered to LanguageServer
-        # which crashes with no match error
-        # JsonRpc.receive_packet(
-        #   server,
-        #   response(1, %{"applied" => true})
-        # )
-        # instead we fake a callback in JsonRpc server that forwards the response as needed
-        JsonRpc.handle_call(
-          {:packet, response(1, %{"applied" => true})},
-          nil,
-          :sys.get_state(JsonRpc)
-        )
+        JsonRpc.receive_packet(response(id, %{"applied" => true}))
 
         assert_receive(%{"id" => 4, "result" => nil}, 5000)
       end)

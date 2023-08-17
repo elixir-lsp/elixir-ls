@@ -294,32 +294,7 @@ defmodule ElixirLS.LanguageServer.Server do
     # according to https://github.com/microsoft/language-server-protocol/issues/567#issuecomment-1060605611
     # this is the best point to pull configuration
 
-    supports_get_configuration =
-      get_in(state.client_capabilities, [
-        "workspace",
-        "configuration"
-      ])
-
-    state =
-      if supports_get_configuration do
-        response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")
-
-        case response do
-          {:ok, [result]} when is_map(result) ->
-            Logger.info(
-              "Received client configuration via workspace/configuration\n#{inspect(result)}"
-            )
-
-            set_settings(state, result)
-
-          other ->
-            Logger.error("Cannot get client configuration: #{inspect(other)}")
-            state
-        end
-      else
-        Logger.info("Client does not support workspace/configuration request")
-        state
-      end
+    state = pull_configuration(state)
 
     unless state.settings do
       # We still don't have the configuration. Let's wait for workspace/didChangeConfiguration
@@ -372,25 +347,32 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   # We don't start performing builds until we receive settings from the client in case they've set
-  # the `projectDir` or `mixEnv` settings. If the settings don't match the format expected, leave
-  # settings unchanged or set default settings if this is the first request.
+  # the `projectDir` or `mixEnv` settings.
+  # note that clients supporting `workspace/configuration` will send nil and we need to pull
   defp handle_notification(did_change_configuration(changed_settings), state = %__MODULE__{}) do
-    Logger.info(
-      "Received client configuration via workspace/didChangeConfiguration:\n#{inspect(changed_settings)}"
-    )
-
+    Logger.info("Received workspace/didChangeConfiguration")
     prev_settings = state.settings || %{}
 
-    new_settings =
-      case changed_settings do
-        %{"elixirLS" => settings} when is_map(settings) ->
-          Map.merge(prev_settings, settings)
+    case changed_settings do
+      %{"elixirLS" => settings} when is_map(settings) ->
+        Logger.info(
+          "Received client configuration via workspace/didChangeConfiguration\n#{inspect(settings)}"
+        )
 
-        _ ->
-          prev_settings
-      end
+        # deprecated push based configuration - interesting config updated
+        new_settings = Map.merge(prev_settings, settings)
+        set_settings(state, new_settings)
 
-    set_settings(state, new_settings)
+      nil ->
+        # pull based configuration
+        # on notification the server should pull current configuration
+        # see https://github.com/microsoft/language-server-protocol/issues/1792
+        pull_configuration(state)
+
+      _ ->
+        # deprecated push based configuration - some other config updated
+        set_settings(state, prev_settings)
+    end
   end
 
   defp handle_notification(notification("exit"), state = %__MODULE__{}) do
@@ -1244,14 +1226,14 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp listen_for_configuration_changes(server_instance_id) do
-    # the schema is not documented in official LSP docs
-    # using https://github.com/microsoft/vscode-languageserver-node/blob/7792b0b21c994cc9bebc3117eeb652a22e2d9e1f/protocol/src/common/protocol.ts#L1504C18-L1504C59
+    # the schema is not documented but uses https://github.com/microsoft/vscode-languageserver-node/blob/7792b0b21c994cc9bebc3117eeb652a22e2d9e1f/protocol/src/common/protocol.ts#L1504C18-L1504C59
+    # passing empty map without `section` results in notification with `{"settings": null}` config but the server should
+    # simply pull for configuration instead of depending on data sent in notification
+    # see https://github.com/microsoft/language-server-protocol/issues/1792
     case JsonRpc.register_capability_request(
            server_instance_id,
            "workspace/didChangeConfiguration",
-           %{
-             "section" => "elixirLS"
-           }
+           %{}
          ) do
       {:ok, nil} ->
         Logger.info("client/registerCapability succeeded")
@@ -1438,6 +1420,34 @@ defmodule ElixirLS.LanguageServer.Server do
         _ ->
           :ok
       end
+    end
+  end
+
+  defp pull_configuration(state) do
+    supports_get_configuration =
+      get_in(state.client_capabilities, [
+        "workspace",
+        "configuration"
+      ])
+
+    if supports_get_configuration do
+      response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")
+
+      case response do
+        {:ok, [result]} when is_map(result) ->
+          Logger.info(
+            "Received client configuration via workspace/configuration\n#{inspect(result)}"
+          )
+
+          set_settings(state, result)
+
+        other ->
+          Logger.error("Cannot get client configuration: #{inspect(other)}")
+          state
+      end
+    else
+      Logger.info("Client does not support workspace/configuration request")
+      state
     end
   end
 end

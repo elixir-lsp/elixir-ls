@@ -1,11 +1,12 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
   alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer}
   use ElixirLS.Utils.MixTest.Case, async: false
+  import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use Protocol
 
   setup do
     {:ok, _} = start_supervised(Tracer)
-    server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+    server = start_server()
 
     {:ok, %{server: server}}
   end
@@ -13,15 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
   @tag fixture: true
   test "mix clean", %{server: server} do
     in_fixture(Path.join(__DIR__, "../.."), "clean", fn ->
-      root_uri = SourceFile.Path.to_uri(File.cwd!())
-      Server.receive_packet(server, initialize_req(1, root_uri, %{}))
-
-      Server.receive_packet(
-        server,
-        did_change_configuration(%{
-          "elixirLS" => %{"dialyzerEnabled" => false}
-        })
-      )
+      initialize(server)
 
       assert_receive %{
                        "method" => "window/logMessage",

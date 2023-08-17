@@ -3,8 +3,10 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
 
   alias ElixirLS.LanguageServer.Server
   alias ElixirLS.LanguageServer.JsonRpc
+  alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
   alias ElixirLS.Utils.PacketCapture
+  use ElixirLS.LanguageServer.Protocol
 
   def start_server do
     packet_capture = start_supervised!({PacketCapture, self()})
@@ -72,5 +74,54 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
         :ok = Logger.remove_backend(Logger.Backends.JsonRpc, flush: false)
       end)
     end
+  end
+
+  def initialize(server, config \\ nil) do
+    Server.receive_packet(
+      server,
+      initialize_req(1, root_uri(), %{
+        "workspace" => %{
+          "configuration" => true
+        }
+      })
+    )
+
+    Server.receive_packet(server, notification("initialized"))
+
+    config = config || %{"dialyzerEnabled" => false}
+
+    id =
+      receive do
+        %{
+          "id" => id,
+          "method" => "workspace/configuration"
+        } ->
+          id
+      after
+        1000 -> raise "timeout"
+      end
+
+    JsonRpc.receive_packet(response(id, [config]))
+
+    wait_until_compiled(server)
+  end
+
+  def fake_initialize(server) do
+    :sys.replace_state(server, fn state ->
+      %{state | server_instance_id: "123", project_dir: "/fake_dir"}
+    end)
+  end
+
+  def wait_until_compiled(pid) do
+    state = :sys.get_state(pid)
+
+    if state.build_running? do
+      Process.sleep(500)
+      wait_until_compiled(pid)
+    end
+  end
+
+  def root_uri do
+    SourceFile.Path.to_uri(File.cwd!())
   end
 end

@@ -1,10 +1,10 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer, Build, JsonRpc}
+  alias ElixirLS.LanguageServer.{Server, SourceFile, Tracer, Build, JsonRpc}
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
-  alias ElixirLS.LanguageServer.Test.ServerTestHelpers
+  import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
-  use Protocol
+  use ElixirLS.LanguageServer.Protocol
 
   doctest(Server)
 
@@ -12,30 +12,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     on_exit(fn ->
       Code.put_compiler_option(:tracers, [])
     end)
-  end
-
-  defp initialize(server, config \\ nil) do
-    Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-    Server.receive_packet(server, notification("initialized"))
-
-    config = (config || %{}) |> Map.merge(%{"dialyzerEnabled" => false})
-
-    Server.receive_packet(
-      server,
-      did_change_configuration(%{"elixirLS" => config})
-    )
-
-    wait_until_compiled(server)
-  end
-
-  defp fake_initialize(server) do
-    :sys.replace_state(server, fn state ->
-      %{state | server_instance_id: "123", project_dir: "/fake_dir"}
-    end)
-  end
-
-  defp root_uri do
-    SourceFile.Path.to_uri(File.cwd!())
   end
 
   describe "initialize" do
@@ -94,6 +70,124 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       )
 
       assert :sys.get_state(server).mix_env == "dev"
+    end
+
+    test "gets configuration after workspace/didChangeConfiguration notification if client supports it",
+         %{
+           server: server
+         } do
+      Server.receive_packet(
+        server,
+        initialize_req(1, root_uri(), %{
+          "workspace" => %{
+            "configuration" => true
+          }
+        })
+      )
+
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+      Server.receive_packet(server, notification("initialized"))
+      uri = root_uri()
+
+      assert_receive(
+        %{
+          "id" => id,
+          "method" => "workspace/configuration",
+          "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
+        },
+        1000
+      )
+
+      config = %{
+        "mixEnv" => "dev",
+        "autoBuild" => false
+      }
+
+      JsonRpc.receive_packet(response(id, [config]))
+
+      Server.receive_packet(
+        server,
+        did_change_configuration(nil)
+      )
+
+      assert_receive(
+        %{
+          "id" => id,
+          "method" => "workspace/configuration"
+        },
+        1000
+      )
+
+      JsonRpc.receive_packet(response(id, [config]))
+    end
+
+    test "handles deprecated push based configuration", %{
+      server: server
+    } do
+      Server.receive_packet(
+        server,
+        initialize_req(1, root_uri(), %{
+          "workspace" => %{
+            "configuration" => false
+          }
+        })
+      )
+
+      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+      Server.receive_packet(server, notification("initialized"))
+      uri = root_uri()
+
+      refute_receive(
+        %{
+          "id" => 1,
+          "method" => "workspace/configuration",
+          "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
+        },
+        1000
+      )
+
+      config = %{
+        "mixEnv" => "dev",
+        "autoBuild" => false
+      }
+
+      Server.receive_packet(
+        server,
+        did_change_configuration(%{"elixirLS" => config})
+      )
+
+      assert :sys.get_state(server).mix_env == "dev"
+    end
+
+    test "falls back do default configuration", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "formatter", fn ->
+        Server.receive_packet(
+          server,
+          initialize_req(1, root_uri(), %{
+            "workspace" => %{
+              "configuration" => false
+            }
+          })
+        )
+
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        Server.receive_packet(server, notification("initialized"))
+
+        assert_receive(
+          %{
+            "method" => "window/logMessage",
+            "params" => %{
+              "message" =>
+                "Did not receive workspace/didChangeConfiguration notification after 3 seconds. The server will use default config."
+            }
+          },
+          4000
+        )
+
+        assert :sys.get_state(server).mix_env == "test"
+      end)
     end
 
     test "Execute commands should include the server instance id", %{server: server} do
@@ -280,7 +374,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     if context[:skip_server] do
       :ok
     else
-      server = ServerTestHelpers.start_server()
+      server = start_server()
       {:ok, tracer} = start_supervised(Tracer)
 
       {:ok, %{server: server, tracer: tracer}}
@@ -1223,7 +1317,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "loading of umbrella app dependencies" do
     in_fixture(__DIR__, "umbrella", fn ->
       packet_capture = start_supervised!({PacketCapture, self()})
-      ServerTestHelpers.replace_logger(packet_capture)
+      replace_logger(packet_capture)
       # We test this by opening the umbrella project twice.
       # First to compile the applications and build the cache.
       # Second time to see if loads modules
@@ -1612,11 +1706,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     Process.group_leader(server, packet_capture)
 
+    json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
+    Process.group_leader(json_rpc, packet_capture)
+
     try do
       func.(server)
     after
       wait_until_compiled(server)
       stop_supervised(Server)
+      stop_supervised(JsonRpc)
       flush_mailbox()
     end
   end
@@ -1626,15 +1724,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       _ -> flush_mailbox()
     after
       0 -> :ok
-    end
-  end
-
-  defp wait_until_compiled(pid) do
-    state = :sys.get_state(pid)
-
-    if state.build_running? do
-      Process.sleep(500)
-      wait_until_compiled(pid)
     end
   end
 end
