@@ -243,19 +243,28 @@ defmodule ElixirLS.Debugger.Server do
       Output.debugger_important("launch with no debug is not supported")
     end
 
-    {_, ref} = spawn_monitor(fn -> initialize(config) end)
+    server = self()
 
-    receive do
-      {:DOWN, ^ref, :process, _pid, reason} ->
-        if reason != :normal do
-          Output.debugger_important("Initialization failed: " <> Exception.format_exit(reason))
+    {_, ref} = spawn_monitor(fn -> initialize(config, server) end)
 
-          Output.send_event("exited", %{"exitCode" => 1})
-          Output.send_event("terminated", %{"restart" => false})
-        end
-    end
+    config =
+      receive do
+        {:ok, config} ->
+          Output.send_event("initialized", %{})
+          send(self(), :update_threads)
+          config
 
-    send(self(), :update_threads)
+        {:DOWN, ^ref, :process, _pid, reason} ->
+          if reason != :normal do
+            Output.debugger_important("Initialization failed: " <> Exception.format_exit(reason))
+
+            Output.send_event("exited", %{"exitCode" => 1})
+            Output.send_event("terminated", %{"restart" => false})
+            config
+          else
+            raise "exit reason #{inspect(reason)} was not expected"
+          end
+      end
 
     {%{}, %{state | config: config}}
   end
@@ -397,8 +406,8 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(configuration_done_req(_), state = %__MODULE__{}) do
     :int.auto_attach([:break], build_attach_mfa(:breakpoint_reached))
 
-    task = state.config["task"] || Mix.Project.config()[:default_task]
-    args = state.config["taskArgs"] || []
+    task = state.config["task"]
+    args = state.config["taskArgs"]
     {_pid, task_ref} = spawn_monitor(fn -> launch_task(task, args) end)
 
     {%{}, %{state | task_ref: task_ref}}
@@ -939,7 +948,7 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp initialize(%{"projectDir" => project_dir} = config) do
+  defp initialize(%{"projectDir" => project_dir} = config, server) do
     task = config["task"]
     task_args = config["taskArgs"] || []
     auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
@@ -983,9 +992,8 @@ defmodule ElixirLS.Debugger.Server do
 
     unless is_list(task_args) and "--no-compile" in task_args do
       case Mix.Task.run("compile", ["--ignore-module-conflict"]) do
-        {:error, _} ->
-          Output.debugger_important("Aborting debugger due to compile errors")
-          System.stop(1)
+        {:error, reason} ->
+          raise reason
 
         _ ->
           :ok
@@ -1016,7 +1024,8 @@ defmodule ElixirLS.Debugger.Server do
       interpret_specified_modules(interpret_modules_patterns, exclude_module_pattern)
     end
 
-    ElixirLS.Debugger.Output.send_event("initialized", %{})
+    updated_config = Map.merge(config, %{"task" => task, "taskArgs" => task_args})
+    send(server, {:ok, updated_config})
   end
 
   defp set_env_vars(env) when is_map(env) do
@@ -1104,7 +1113,17 @@ defmodule ElixirLS.Debugger.Server do
     # debugger as well.
     Process.sleep(100)
 
+    if args != [] do
+      Output.debugger_console("Running mix #{task} #{Enum.join(args, " ")}\n")
+    else
+      Output.debugger_console("Running mix #{task}\n")
+    end
+
     Mix.Task.run(task, args)
+
+    Output.debugger_console(
+      "Mix.Task.run returned, sleeping.\nNote that debugger needs to be stopped manually.\n"
+    )
 
     # Starting from Elixir 1.9 Mix.Task.run will return so we need to sleep our
     # process so that the code keeps running (Note: process is expected to be
