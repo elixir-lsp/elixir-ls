@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer}
+  alias ElixirLS.LanguageServer.{Server, Protocol, Tracer}
   use ElixirLS.Utils.MixTest.Case, async: false
   import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use Protocol
