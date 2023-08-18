@@ -105,6 +105,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       JsonRpc.receive_packet(response(id, [config]))
 
+      assert_receive(
+        %{
+          "method" => "window/logMessage",
+          "params" => %{
+            "message" => "Received client configuration via workspace/configuration" <> _
+          }
+        },
+        1000
+      )
+
       Server.receive_packet(
         server,
         did_change_configuration(nil)
@@ -115,7 +125,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           "id" => id,
           "method" => "workspace/configuration"
         },
-        1000
+        3000
       )
 
       JsonRpc.receive_packet(response(id, [config]))
