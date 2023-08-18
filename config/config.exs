@@ -24,6 +24,3 @@ env_bool = fn name ->
 
   enabled_str == "true"
 end
-
-config :language_server,
-  enable_experimental_server: env_bool.("ENABLE_EXPERIMENTAL_SERVER")

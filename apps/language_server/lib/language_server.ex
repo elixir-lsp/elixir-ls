@@ -5,18 +5,13 @@ defmodule ElixirLS.LanguageServer do
   use Application
 
   alias ElixirLS.LanguageServer
-  alias ElixirLS.LanguageServer.Experimental
 
   @impl Application
   def start(_type, _args) do
-    Experimental.LanguageServer.persist_enabled_state()
-
     children =
       [
-        maybe_experimental_supervisor(),
         {ElixirLS.LanguageServer.Server, ElixirLS.LanguageServer.Server},
-        maybe_packet_router(),
-        jsonrpc(),
+        {ElixirLS.LanguageServer.JsonRpc, name: ElixirLS.LanguageServer.JsonRpc},
         {ElixirLS.LanguageServer.Providers.WorkspaceSymbols, []},
         {ElixirLS.LanguageServer.Tracer, []},
         {ElixirLS.LanguageServer.ExUnitTestTracer, []}
@@ -40,27 +35,6 @@ defmodule ElixirLS.LanguageServer do
     end
 
     :ok
-  end
-
-  defp maybe_experimental_supervisor do
-    if Experimental.LanguageServer.enabled?() do
-      Experimental.Supervisor
-    end
-  end
-
-  defp maybe_packet_router do
-    if Experimental.LanguageServer.enabled?() do
-      {ElixirLS.LanguageServer.PacketRouter, [LanguageServer.Server, Experimental.Server]}
-    end
-  end
-
-  defp jsonrpc do
-    if Experimental.LanguageServer.enabled?() do
-      {ElixirLS.LanguageServer.JsonRpc,
-       name: ElixirLS.LanguageServer.JsonRpc, language_server: LanguageServer.PacketRouter}
-    else
-      {ElixirLS.LanguageServer.JsonRpc, name: ElixirLS.LanguageServer.JsonRpc}
-    end
   end
 
   def restart() do

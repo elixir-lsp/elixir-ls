@@ -17,8 +17,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use GenServer
   require Logger
-  alias ElixirLS.LanguageServer.Experimental
-  alias ElixirLS.LanguageServer.Server.Decider
   alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics}
 
   alias ElixirLS.LanguageServer.Providers.{
@@ -173,41 +171,26 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, request(id, method, _) = packet}, state = %__MODULE__{}) do
-    new_state =
-      if Decider.handles?(:standard, method) do
-        handle_request_packet(id, packet, state)
-      else
-        state
-      end
+  def handle_cast({:receive_packet, request(id, _method, _) = packet}, state = %__MODULE__{}) do
+    new_state = handle_request_packet(id, packet, state)
 
     {:noreply, new_state}
   end
 
   @impl GenServer
   def handle_cast({:receive_packet, request(id, method)}, state = %__MODULE__{}) do
-    new_state =
-      if Decider.handles?(:standard, method) do
-        handle_request_packet(id, request(id, method, nil), state)
-      else
-        state
-      end
+    new_state = handle_request_packet(id, request(id, method, nil), state)
 
     {:noreply, new_state}
   end
 
   @impl GenServer
   def handle_cast(
-        {:receive_packet, notification(method) = packet},
+        {:receive_packet, notification(_method) = packet},
         state = %__MODULE__{received_shutdown?: false, server_instance_id: server_instance_id}
       )
       when is_initialized(server_instance_id) do
-    new_state =
-      if Decider.handles?(:standard, method) do
-        handle_notification(packet, state)
-      else
-        state
-      end
+    new_state = handle_notification(packet, state)
 
     {:noreply, new_state}
   end
@@ -216,12 +199,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_cast({:receive_packet, notification(_) = packet}, state = %__MODULE__{}) do
     case packet do
       notification("exit") ->
-        new_state =
-          if Decider.handles?(:standard, "exit") do
-            handle_notification(packet, state)
-          else
-            state
-          end
+        new_state = handle_notification(packet, state)
 
         {:noreply, new_state}
 
@@ -900,7 +878,7 @@ defmodule ElixirLS.LanguageServer.Server do
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       },
       "foldingRangeProvider" => true,
-      "codeActionProvider" => Experimental.LanguageServer.enabled?()
+      "codeActionProvider" => false
     }
   end
 
