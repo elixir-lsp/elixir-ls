@@ -10,10 +10,11 @@
 
 did_relaunch=$1
 
+# Get the user's preferred shell
+preferred_shell=$(basename "$SHELL")
+
 case "${did_relaunch}" in
   "")
-    # Get the user's preferred shell
-    preferred_shell=$(basename "$SHELL")
     if [ "$preferred_shell" = "bash" ]; then
       >&2 echo "Preffered shell is bash, relaunching"
       exec "$(which bash)" "$0" relaunch
@@ -46,7 +47,6 @@ else
   if which rtx >/dev/null
   then
     >&2 echo "rtx executable found in $(which rtx), activating"
-    preferred_shell=$(basename "$SHELL")
     eval "$($(which rtx) activate "$preferred_shell")"
   else
     >&2 echo "rtx not found"
@@ -92,5 +92,31 @@ export MIX_ENV=prod
 # we need to make sure it doesn't interfere with LSP/DAP
 echo "" | elixir "$SCRIPTPATH/quiet_install.exs" >/dev/null || exit 1
 
-# shellcheck disable=SC2086
-exec elixir $ELS_ELIXIR_OPTS --erl "-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"
+default_erl_opts="-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none"
+
+if [ "$preferred_shell" = "bash" ]; then
+  # we need to make sure ELS_ELIXIR_OPTS gets splitted by word
+  # parse it as bash array
+  # shellcheck disable=SC3045
+  # shellcheck disable=SC3011
+  IFS=' ' read -ra elixir_opts <<< "$ELS_ELIXIR_OPTS"
+  # shellcheck disable=SC3054
+  # shellcheck disable=SC2068
+  exec elixir ${elixir_opts[@]} --erl "$default_erl_opts $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"
+elif [ "$preferred_shell" = "zsh" ]; then
+  # we need to make sure ELS_ELIXIR_OPTS gets splitted by word
+  # parse it as zsh array
+  # shellcheck disable=SC3030
+  # shellcheck disable=SC2296
+  elixir_opts=("${(z)ELS_ELIXIR_OPTS}")
+  # shellcheck disable=SC2128
+  # shellcheck disable=SC2086
+  exec elixir $elixir_opts --erl "$default_erl_opts $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"
+else
+  if [ -z "$ELS_ELIXIR_OPTS" ]
+  then
+    # in posix shell does not support arrays
+    >&2 echo "ELS_ELIXIR_OPTS is not supported in current shell"
+  fi
+  exec elixir --erl "$default_erl_opts $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"
+fi
