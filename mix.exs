@@ -31,7 +31,7 @@ defmodule ElixirLS.Mixfile do
 
   defp aliases do
     [
-      test: "cmd mix test"
+      test: "cmd mix test --trace"
     ]
   end
 end
