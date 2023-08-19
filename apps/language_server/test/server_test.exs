@@ -64,7 +64,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         response(1, [
           %{
             "mixEnv" => "dev",
-            "autoBuild" => false
+            "autoBuild" => false,
+            "dialyzerEnabled" => false
           }
         ])
       )
@@ -100,7 +101,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       config = %{
         "mixEnv" => "dev",
-        "autoBuild" => false
+        "autoBuild" => false,
+        "dialyzerEnabled" => false
       }
 
       JsonRpc.receive_packet(response(id, [config]))
@@ -158,7 +160,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       config = %{
         "mixEnv" => "dev",
-        "autoBuild" => false
+        "autoBuild" => false,
+        "dialyzerEnabled" => false
       }
 
       Server.receive_packet(
@@ -173,6 +176,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       server: server
     } do
       in_fixture(__DIR__, "formatter", fn ->
+        :sys.replace_state(server, fn state ->
+          %{
+            state
+            | default_settings: %{
+                "dialyzerEnabled" => false
+              }
+          }
+        end)
+
         Server.receive_packet(
           server,
           initialize_req(1, root_uri(), %{
@@ -1386,7 +1398,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
-      initialize(server, %{"enableTestLenses" => true})
+      initialize(server, %{"enableTestLenses" => true, "dialyzerEnabled" => false})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
@@ -1448,7 +1460,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       project_dir = SourceFile.Path.absolute_from_uri("#{root_uri()}/apps/app1")
 
-      initialize(server, %{"enableTestLenses" => true})
+      initialize(server, %{"enableTestLenses" => true, "dialyzerEnabled" => false})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
@@ -1533,7 +1545,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
-      initialize(server, %{"enableTestLenses" => true})
+      initialize(server, %{"enableTestLenses" => true, "dialyzerEnabled" => false})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
@@ -1598,7 +1610,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       initialize(server, %{
         "enableTestLenses" => true,
         "testPaths" => %{"app1" => ["custom_path"]},
-        "testPattern" => %{"app1" => "*_custom_test.exs"}
+        "testPattern" => %{"app1" => "*_custom_test.exs"},
+        "dialyzerEnabled" => false
       })
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))

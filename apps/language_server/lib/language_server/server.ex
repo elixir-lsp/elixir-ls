@@ -62,7 +62,8 @@ defmodule ElixirLS.LanguageServer.Server do
     mix_project?: false,
     mix_env: nil,
     mix_target: nil,
-    no_mixfile_warned?: false
+    no_mixfile_warned?: false,
+    default_settings: %{}
   ]
 
   defmodule InvalidParamError do
@@ -220,7 +221,7 @@ defmodule ElixirLS.LanguageServer.Server do
         "The server will use default config."
     )
 
-    state = set_settings(state, %{})
+    state = set_settings(state, state.default_settings)
     {:noreply, state}
   end
 
