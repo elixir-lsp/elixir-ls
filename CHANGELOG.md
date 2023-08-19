@@ -1,5 +1,78 @@
 ### Unreleased
 
+### v0.16.0: 19 August 2023
+
+#### Highlights
+
+- Added support for [rtx](https://github.com/jdxcode/rtx) version manager.
+- Language server now returns diagnostics in config files for current configuration. Previously when there were compilation errors in config files an error with stacktrace would be returned on `mix.exs` instead of the config file.
+- Configuration management has been refactored and migrated to pull based approach. This addresses recent problem on VSCode when the server would start with default settings after a restart. Pull based `workspace/configuration` request has been added in LSP 3.6 and the pull based `workspace/didChangeConfiguration` with params is deprecated.
+- Language server now uses call arity in definition, implementation, references and hover providers. This means that if there are multiple arity variants, the documentation for correct ones will be presented. In case of incomplete code all variants with arity greater or equal to the number of arguments are considered.
+
+#### Improvements
+
+- Debugger is now able to set breakpoints in multiple modules in case one line maps to many modules
+- Completions provider will now trigger signature help when accepting a completion with 0-arity function when there higher arity versions available.
+- Completions provider will now trigger signature help when accepting a completion with a typespec of arity greater than 0.
+- Mix project modules pruning is more robust. This should address some rare crashes e.g. when `deps` directory is removed during a build.
+- Logger interception is more robust. This should address some rare crashes observed on elixir 1.15.
+- Install script no longer unnecessarily starts and stops applications. This should improve launch time.
+- On Unix systems launch script now uses `SHELL` environment variable to decide if it should prefer bash or zsh. Previously, bash was preferred.
+- Providers now rely on parser `token_metadata` when determining module and functions scopes. This allows for more accurate suggestions. Previous implementation was not able to provide module attribute completions inside module body when there were defs after the cursor.
+- Language server now provides documentation for builtin module attributes in hover and completions providers [Nguyễn Văn Đức](https://github.com/Goose97).
+- Hover provider returns documentation on reserved words and variables.
+- References provider is now able to find references to functions and module in current file. Previously only compiled modules were scanned for references.
+- Hover provider returns simple documentation for functions, typespecs and modules from the current file. Previously nothing was returned and a crash was logged.
+- Completions provider returns signatures for typespecs defined in current file.
+- Improved handling of defs with default params in signature help. Now only head signature is returned.
+- Language server is now able to provide signatures from behaviour or protocol in many cases.
+- Definition and references provider are now able to return result on variable remote calls when variable is known to be a module.
+- References provider is now able to track variable references outside of modules.
+- Improved type inference when variable is reassigned.
+- Providers consider local macros only after definition. This should improve correctness and reduce number of invalid completions.
+- Improved handling of `alias` and `require` with `warn:` option.
+
+#### Fixes
+
+- Fixed crash in debugger when setting a function breakpoint on not existing function
+- Setting breakpoints in `Inspect` protocol implementations is now forbidden. This protocol is used internally and hitting a breakpoint resulted in deadlock.
+- Debugger no longer interprets `JsonV.Encoder` protocol (a vendored version of `Json.Encoder`) used internally.
+- Fixed a case when completions provider would return only 1 variant of a function with multiple arities.
+- Completion and signature providers correctly return multiple `@spec` clauses. Previously only the first one was formatted properly.
+- Changing settings no longer results in notification about changed mix target.
+- `ELS_ELIXIR_OPTS` environment variable was not correctly word split when passed to elixir command.
+- Fixed a crash when launching debugger with default mix task (equivalent of running `mix`).
+- Completions provider suggests aliased structs after `%` [Nguyễn Văn Đức](https://github.com/Goose97)
+- Completions provider no longer returns `@@`.
+- Fixed a crash in completion provider when type in callback matched local without parens.
+- Improved `Mix.Task` module subtype detection. Previously are submodules of `Mix.Tasks` were considered. Now only ones exporting `run/1`. This error resulted in unnecessary completions.
+- Fixed a case when completions provider would suggest additional edit with `alias Elixir`.
+- Fixed a case when completions provider would suggest `Elixir.Elixir` [Nguyễn Văn Đức](https://github.com/Goose97)
+- Correctly return `alias` subtype in completions provider when suggesting an alias. Previously module was returned even if such module does not exist.
+- Completions provider suggests alias for all matched module parts. Previously only first match was considered.
+- Completions provider no longer suggests alias when the hint has more than one part. This means that additional edits with aliases will not be returned after `Some.Module.`.
+- Type of pinned variables is now correctly inferred [Nguyễn Văn Đức](https://github.com/Goose97)
+- Fixed AST parsing of protocol implementations without `for:`.
+- Fixed a case when definition provider was unable to locate variables inside multiline struct.
+- Implementation provider works with macrocallback implementations.
+- Fixed endless recursion when expanding `use` macro. This caused definition provider to hang when navigating to `Kernel` functions/macros.
+- Fixed rendering of docs for builtin typespecs.
+- Fixed a crash with definition provider over `__MODULE__`.
+- Fixed a case in AST parser when `@spec` or `@callback` would get overwritten. Now all definitions are collected.
+- Fixed rare crashes on elixir 1.15 with cursor over submodule of an attribute or variable.
+- Signature provider no longer reveals details of `@opaque` typespecs.
+- Fixed order of signatures in completions provider.
+- Fix signature render of erlang functions with multiple EIP48 documentation entries (e.g. `:erlang.system_info/1`).
+- Fixed render of callback signatures. Previously they were marked as `@spec`, now `@callback` or `@macrocallback`.
+- No parens locals are no longer treated as calls on elixir 1.15+.
+- Fixed cases when crash in AST parser would produce invalid metadata.
+- Fixed crash in completions with nested dot expression on elixir 1.15.
+- Fixed AST parsing when `quote` was used as variable.
+
+#### Potential incompatibilities
+
+- The language server will get configuration `workspace/configuration` if the client supports it. Previously it relied on `workspace/didChangeConfiguration` notification.
+
 ### v0.15.1: 29 June 2023
 
 #### Improvements
