@@ -21,6 +21,9 @@ case "${did_relaunch}" in
     elif [ "$preferred_shell" = "zsh" ]; then
       >&2 echo "Preffered shell is zsh, relaunching"
       exec "$(which zsh)" "$0" relaunch
+    elif [ "$preferred_shell" = "fish" ]; then
+      >&2 echo "Preferred shell is fish, launching launch.fish"
+      exec "$(which fish)" "$(dirname "$0")/launch.fish"
     else
       >&2 echo "Preffered shell $preferred_shell is not supported, continuing in POSIX shell"
     fi
