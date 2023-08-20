@@ -72,8 +72,18 @@ set -x MIX_ENV prod
 # we need to make sure it doesn't interfere with LSP/DAP
 echo "" | elixir "$scriptpath/quiet_install.exs" >/dev/null || exit 1
 
-set default_erl_opts "-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none"
+set erl_opts -kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none
 
-set elixir_opts "$ELS_ELIXIR_OPTS"
+if test -n "$ELS_ELIXIR_OPTS"
+  set elixir_opts (string join ' ' -- $ELS_ELIXIR_OPTS)
+else
+  set elixir_opts
+end
 
-exec elixir $elixir_opts --erl "$default_erl_opts $ELS_ERL_OPTS" "$scriptpath/launch.exs"
+if test -n "$ELS_ERL_OPTS"
+  set erl_opts -a $ELS_ERL_OPTS
+end
+
+set erl_opts (string join ' ' -- $erl_opts)
+
+eval elixir $elixir_opts --erl \"$erl_opts \" "$scriptpath/launch.exs"
