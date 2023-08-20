@@ -12,13 +12,13 @@ set asdf_dir $ASDF_DIR
 
 test -z "$asdf_dir"; and set asdf_dir "$HOME/.asdf"
 
-set asdf_vm "$ASDF_DIR/asdf.fish"
+set asdf_vm "$asdf_dir/asdf.fish"
 
 echo "Looking for ASDF install" >&2
 
 if test -f "$asdf_vm"
   echo "ASDF install found in $asdf_vm, sourcing" >&2
-  . "$asdf_vm"
+  source "$asdf_vm"
 else
   echo "ASDF not found" >&2
   echo "Looking for rtx executable" >&2
