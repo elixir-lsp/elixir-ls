@@ -74,10 +74,6 @@ echo "" | elixir "$scriptpath/quiet_install.exs" >/dev/null || exit 1
 
 set default_erl_opts "-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none"
 
-if test -n $ELS_ELIXIR_OPTS
-  set elixir_opts (string join ' ' (string split ' ' \"$ELS_ELIXIR_OPTS\"))
-else
-  set elixir_opts ""
-end
+set elixir_opts "$ELS_ELIXIR_OPTS"
 
 exec elixir $elixir_opts --erl "$default_erl_opts $ELS_ERL_OPTS" "$scriptpath/launch.exs"
