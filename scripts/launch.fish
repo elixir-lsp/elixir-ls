@@ -10,23 +10,23 @@
 
 set asdf_dir $ASDF_DIR
 
-test -z $asdf_dir; and set asdf_dir "$HOME/.asdf"
+test -z "$asdf_dir"; and set asdf_dir "$HOME/.asdf"
 
 set asdf_vm "$ASDF_DIR/asdf.fish"
 
 echo "Looking for ASDF install" >&2
 
-if test -f $asdf_vm
+if test -f "$asdf_vm"
   echo "ASDF install found in $asdf_vm, sourcing" >&2
-  . $asdf_vm
+  . "$asdf_vm"
 else
   echo "ASDF not found" >&2
   echo "Looking for rtx executable" >&2
 
   set rtx (which rtx)
-  if test -n $rtx
+  if test -n "$rtx"
     echo "rtx executable found in $rtx, activating" >&2
-    $rtx activate fish | source
+    "$rtx" activate fish | source
   else
     echo "rtx not found" >&2
   end
@@ -37,14 +37,14 @@ end
 # give them the chance here. ELS_MODE will be set for
 # the really complex stuff. Use an XDG compliant path.
 
-set els_dir $XDG_CONFIG_HOME
-test -z $els_dir; and set els_dir "$HOME/.config"
+set els_dir "$XDG_CONFIG_HOME"
+test -z "$els_dir"; and set els_dir "$HOME/.config"
 
 set els_setup "$els_dir/elixir_ls/setup.fish"
 
-if test -f $els_setup
+if test -f "$els_setup"
   echo "Running setup script $els_setup" >&2
-  . $els_setup
+  . "$els_setup"
 end
 
 # Setup done. Make sure that we have the proper actual path to this
@@ -61,7 +61,7 @@ function readlink_f
   end
 end
 
-if test -z $ELS_INSTALL_PREFIX
+if test -z "$ELS_INSTALL_PREFIX"
   set scriptpath (dirname (readlink_f (status -f)))
 else
   set scriptpath $ELS_INSTALL_PREFIX
