@@ -44,7 +44,7 @@ set els_setup "$els_dir/elixir_ls/setup.fish"
 
 if test -f "$els_setup"
   echo "Running setup script $els_setup" >&2
-  . "$els_setup"
+  source "$els_setup"
 end
 
 # Setup done. Make sure that we have the proper actual path to this
