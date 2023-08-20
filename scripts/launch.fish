@@ -37,7 +37,7 @@ end
 # give them the chance here. ELS_MODE will be set for
 # the really complex stuff. Use an XDG compliant path.
 
-set els_dir "$XDG_CONFIG_HOME"
+set els_dir $XDG_CONFIG_HOME
 test -z "$els_dir"; and set els_dir "$HOME/.config"
 
 set els_setup "$els_dir/elixir_ls/setup.fish"
