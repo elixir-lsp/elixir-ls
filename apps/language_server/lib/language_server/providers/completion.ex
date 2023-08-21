@@ -962,7 +962,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       # Don't add the closing parenthesis to the snippet if the cursor is
       # immediately before a valid argument. This usually happens when we
       # want to wrap an existing variable or literal, e.g. using IO.inspect/2.
-      !snippets_supported? || Regex.match?(~r/^[a-zA-Z0-9_:"'%<@\[\{]/, text_after_cursor) ->
+      !snippets_supported? || Regex.match?(~r/^[\p{L}0-9_:"'%<@\[\{]/, text_after_cursor) ->
         "#{name}("
 
       true ->
@@ -1152,7 +1152,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp use_name_only?(module_name, function_name) do
     module_name in @use_name_only or {module_name, function_name} in @use_name_only or
       String.starts_with?(function_name, "__") or
-      function_name =~ ~r/^[^a-zA-Z0-9]+$/
+      function_name =~ ~r/^[^\p{L}]+$/
   end
 
   defp sort_items(items) do
@@ -1165,7 +1165,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           priority
         end
 
-      {priority, label =~ ~r/^[^a-zA-Z0-9]/, label}
+      # this regex matches
+      # :erlang_module
+      # @module_attribute
+      # __struct__
+      # _underscored_function
+      # __MODULE__
+      # operators
+      {priority, label =~ ~r/^[^\p{L}]/, label}
     end)
   end
 

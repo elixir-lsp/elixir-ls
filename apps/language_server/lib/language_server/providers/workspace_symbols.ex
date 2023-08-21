@@ -276,6 +276,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         0.0
 
       # searching for an Elixir module but item is an erlang module
+      # elixir alias name must be ASCII, no need to support unicode here
       Regex.match?(~r/^[A-Z]/, query) and String.starts_with?(item, ":") ->
         0.0
 
