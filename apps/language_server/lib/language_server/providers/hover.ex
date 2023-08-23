@@ -124,8 +124,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
       cond do
         third_dep?(s, project_dir) ->
-          %ElixirSense.Location{file: source} = ElixirSense.definition(subject, 1, 1)
-          third_dep_name(source, project_dir)
+          case ElixirSense.definition(subject, 1, 1) do
+            %ElixirSense.Location{file: source} when not is_nil(source) ->
+              third_dep_name(source, project_dir)
+
+            _ ->
+              third_dep_name(s, project_dir)
+          end
 
         builtin?(s) ->
           builtin_dep_name(s)
