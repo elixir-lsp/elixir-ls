@@ -73,7 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         ""
 
       true ->
-        dep = subject |> root_module_name() |> dep_name(project_dir) |> URI.encode()
+        dep = subject |> dep_name(project_dir) |> URI.encode()
 
         cond do
           func?(title) ->
@@ -114,16 +114,29 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end
   end
 
-  defp dep_name(root_mod_name, project_dir) do
+  defp dep_name(subject, project_dir) do
+    root_mod_name = root_module_name(subject)
+
     if not elixir_mod_exported?(root_mod_name) do
       ""
     else
       s = root_mod_name |> source()
 
       cond do
-        third_dep?(s, project_dir) -> third_dep_name(s, project_dir)
-        builtin?(s) -> builtin_dep_name(s)
-        true -> ""
+        third_dep?(s, project_dir) ->
+          case ElixirSense.definition(subject, 1, 1) do
+            %ElixirSense.Location{file: source} when not is_nil(source) ->
+              third_dep_name(source, project_dir)
+
+            _ ->
+              third_dep_name(s, project_dir)
+          end
+
+        builtin?(s) ->
+          builtin_dep_name(s)
+
+        true ->
+          ""
       end
     end
   end
