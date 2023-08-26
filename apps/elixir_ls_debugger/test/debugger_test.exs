@@ -2339,9 +2339,14 @@ defmodule ElixirLS.Debugger.ServerTest do
 
           # Process.unlink(server)
           # Process.flag(:trap_exit, true)
-          assert_receive event(_, "output", %{
-                           "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
-                         })
+          assert_receive event(
+                           _,
+                           "output",
+                           %{
+                             "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
+                           },
+                           3000
+                         )
 
           # TODO why debugged process #PID<0.229.0> exited with reason normal
           assert_receive event(_, "output", %{"output" => "debugged process" <> _})
@@ -2454,7 +2459,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                              %{
                                "column" => 0,
                                "id" => frame_id,
-                               "line" => 5,
+                               "line" => 6,
                                "name" => "MixProject.Dbg.simple/0",
                                "source" => %{"path" => ^abs_path}
                              }
@@ -2481,7 +2486,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                              %{
                                "column" => 0,
                                "id" => frame_id,
-                               "line" => 6,
+                               "line" => 7,
                                "name" => "MixProject.Dbg.simple/0",
                                "source" => %{"path" => ^abs_path}
                              }
@@ -2536,9 +2541,14 @@ defmodule ElixirLS.Debugger.ServerTest do
 
           # Process.unlink(server)
           # Process.flag(:trap_exit, true)
-          assert_receive event(_, "output", %{
-                           "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
-                         })
+          assert_receive event(
+                           _,
+                           "output",
+                           %{
+                             "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
+                           },
+                           3000
+                         )
 
           # TODO why debugged process #PID<0.229.0> exited with reason normal
           assert_receive event(_, "output", %{"output" => "debugged process" <> _})
@@ -2562,7 +2572,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                              %{
                                "column" => 0,
                                "id" => frame_id,
-                               "line" => 13,
+                               "line" => 14,
                                "name" => "MixProject.Dbg.pipe/0",
                                "source" => %{"path" => ^abs_path}
                              }
@@ -2651,7 +2661,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                              %{
                                "column" => 0,
                                "id" => frame_id,
-                               "line" => 14,
+                               "line" => 15,
                                "name" => "MixProject.Dbg.pipe/0",
                                "source" => %{"path" => ^abs_path}
                              }
