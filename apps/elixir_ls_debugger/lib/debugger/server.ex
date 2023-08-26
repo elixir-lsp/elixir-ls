@@ -726,15 +726,14 @@ defmodule ElixirLS.Debugger.Server do
           state
       end
 
-    # safe_int_action(pid, :continue)
+    state =
+      state
+      |> remove_paused_process(pid)
+      |> maybe_continue_other_processes(args)
 
-    paused_processes = remove_paused_process(state, pid)
-    paused_processes = maybe_continue_other_processes(args, paused_processes, pid)
+    processes_paused? = state.paused_processes |> Map.keys() |> Enum.any?(&is_pid/1)
 
-    processes_paused? = paused_processes |> Map.keys() |> Enum.any?(&is_pid/1)
-
-    {%{"allThreadsContinued" => not processes_paused?},
-     %{state | paused_processes: paused_processes}}
+    {%{"allThreadsContinued" => not processes_paused?}, state}
   end
 
   defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
@@ -749,10 +748,12 @@ defmodule ElixirLS.Debugger.Server do
         state
       end
 
-    paused_processes = remove_paused_process(state, pid)
+    state =
+      state
+      |> remove_paused_process(pid)
+      |> maybe_continue_other_processes(args)
 
-    {%{},
-     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
+    {%{}, state}
   end
 
   defp handle_request(step_in_req(_, thread_id) = args, state = %__MODULE__{}) do
@@ -762,10 +763,12 @@ defmodule ElixirLS.Debugger.Server do
 
     safe_int_action(pid, :step)
 
-    paused_processes = remove_paused_process(state, pid)
+    state =
+      state
+      |> remove_paused_process(pid)
+      |> maybe_continue_other_processes(args)
 
-    {%{},
-     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
+    {%{}, state}
   end
 
   defp handle_request(step_out_req(_, thread_id) = args, state = %__MODULE__{}) do
@@ -775,10 +778,12 @@ defmodule ElixirLS.Debugger.Server do
 
     safe_int_action(pid, :finish)
 
-    paused_processes = remove_paused_process(state, pid)
+    state =
+      state
+      |> remove_paused_process(pid)
+      |> maybe_continue_other_processes(args)
 
-    {%{},
-     %{state | paused_processes: maybe_continue_other_processes(args, paused_processes, pid)}}
+    {%{}, state}
   end
 
   defp handle_request(completions_req(_, text) = args, state = %__MODULE__{}) do
@@ -828,20 +833,32 @@ defmodule ElixirLS.Debugger.Server do
       }
   end
 
-  defp maybe_continue_other_processes(%{"singleThread" => true}, paused_processes, requested_pid) do
-    resumed_pids =
-      for {paused_pid, %PausedProcess{ref: ref}} when paused_pid != requested_pid <-
-            paused_processes do
-        # TODO
-        safe_int_action(paused_pid, :continue)
-        true = Process.demonitor(ref, [:flush])
-        paused_pid
+  defp maybe_continue_other_processes(state, %{"singleThread" => true}) do
+    # continue dbg debug session
+    state =
+      case state.dbg_session do
+        {pid, _ref} = from ->
+          GenServer.reply(from, {:ok, false})
+          {%PausedProcess{ref: ref}, paused_processes} = Map.pop!(state.paused_processes, pid)
+          true = Process.demonitor(ref, [:flush])
+          %{state | dbg_session: nil, paused_processes: paused_processes}
+
+        _ ->
+          state
       end
 
-    paused_processes |> Map.drop(resumed_pids)
+    # continue erlang debugger paused processes
+    for {paused_pid, %PausedProcess{ref: ref}} <- state.paused_processes do
+      safe_int_action(paused_pid, :continue)
+      true = Process.demonitor(ref, [:flush])
+      paused_pid
+    end
+
+    %{state | paused_processes: %{}}
   end
 
-  defp maybe_continue_other_processes(_, paused_processes, _requested_pid), do: paused_processes
+  defp maybe_continue_other_processes(state, _), do: state
+
   # TODO consider removing this workaround as the problem seems to no longer affect OTP 24
   defp safe_int_action(pid, action) do
     apply(:int, action, [pid])
@@ -882,7 +899,7 @@ defmodule ElixirLS.Debugger.Server do
       true = Process.demonitor(process.ref, [:flush])
     end
 
-    paused_processes
+    %{state | paused_processes: paused_processes}
   end
 
   defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
@@ -1505,12 +1522,11 @@ defmodule ElixirLS.Debugger.Server do
 
   defp handle_process_exit(state = %__MODULE__{}, pid) when is_pid(pid) do
     {thread_id, pids_to_thread_ids} = Map.pop(state.pids_to_thread_ids, pid)
-    paused_processes = remove_paused_process(state, pid)
+    state = remove_paused_process(state, pid)
 
     state = %__MODULE__{
       state
       | thread_ids_to_pids: Map.delete(state.thread_ids_to_pids, thread_id),
-        paused_processes: paused_processes,
         pids_to_thread_ids: pids_to_thread_ids
     }
 
