@@ -6,7 +6,18 @@ defmodule ElixirLS.Debugger.Stacktrace do
   alias ElixirLS.Debugger.ModuleInfoCache
 
   defmodule Frame do
-    defstruct [:level, :file, :module, :function, :args, :line, :bindings, :messages, {:dbg_frame?, false}, :dbg_env]
+    defstruct [
+      :level,
+      :file,
+      :module,
+      :function,
+      :args,
+      :line,
+      :bindings,
+      :messages,
+      {:dbg_frame?, false},
+      :dbg_env
+    ]
 
     def name(%__MODULE__{} = frame) do
       "#{inspect(frame.module)}.#{frame.function}/#{Enum.count(frame.args)}"
@@ -58,7 +69,8 @@ defmodule ElixirLS.Debugger.Stacktrace do
           end
 
         [first_frame | other_frames]
-        # TODO add process stack?
+
+      # TODO add process stack?
 
       error ->
         Output.debugger_important(
@@ -92,9 +104,9 @@ defmodule ElixirLS.Debugger.Stacktrace do
   defp get_file(module) do
     Path.expand(to_string(ModuleInfoCache.get(module)[:compile][:source]))
     # TODO why beam to source location hack needed here?
-#    case ElixirSense.Location.find_mod_file(module) do
-#      {module, file} -> file
-#      _ -> nil
-#    end
+    #    case ElixirSense.Location.find_mod_file(module) do
+    #      {module, file} -> file
+    #      _ -> nil
+    #    end
   end
 end

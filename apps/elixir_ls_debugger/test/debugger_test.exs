@@ -13,10 +13,18 @@ defmodule ElixirLS.Debugger.ServerTest do
   setup do
     {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start_link(self())
     Process.group_leader(Process.whereis(ElixirLS.Debugger.Output), packet_capture)
+    original_server = Process.whereis(ElixirLS.Debugger.Server)
 
     {:ok, server} = Server.start_link()
+    Process.unregister(ElixirLS.Debugger.Server)
+    Process.register(server, ElixirLS.Debugger.Server)
 
     on_exit(fn ->
+      if is_pid(Process.whereis(ElixirLS.Debugger.Server)) do
+        Process.unregister(ElixirLS.Debugger.Server)
+      end
+
+      Process.register(original_server, ElixirLS.Debugger.Server)
       for mod <- :int.interpreted(), do: :int.nn(mod)
       :int.auto_attach(false)
       :int.no_break()
@@ -2290,6 +2298,384 @@ defmodule ElixirLS.Debugger.ServerTest do
         assert [] = :int.all_breaks(DerivedProto.MyStruct)
         assert %{} == :sys.get_state(server).function_breakpoints
       end)
+    end
+  end
+
+  if Version.match?(System.version(), ">= 1.14.0") do
+    describe "Kernel.dbg breakpoints" do
+      test "breaks on dbg", %{server: server} do
+        in_fixture(__DIR__, "mix_project", fn ->
+          abs_path = Path.absname("lib/dbg.ex")
+          Server.receive_packet(server, initialize_req(1, %{}))
+          assert_receive(response(_, 1, "initialize", _))
+
+          Server.receive_packet(
+            server,
+            launch_req(2, %{
+              "request" => "launch",
+              "type" => "mix_task",
+              "task" => "run",
+              "taskArgs" => ["-e", "MixProject.Dbg.simple()"],
+              "projectDir" => File.cwd!()
+              # disable auto interpret
+              # "debugAutoInterpretAllModules" => false
+            })
+          )
+
+          assert_receive(response(_, 2, "launch", _), 3000)
+          assert_receive(event(_, "initialized", %{}), 5000)
+
+          # refute MixProject.Dbg in :int.interpreted()
+
+          Server.receive_packet(server, request(5, "configurationDone", %{}))
+          assert_receive(response(_, 5, "configurationDone", %{}))
+
+          Server.receive_packet(server, request(6, "threads", %{}))
+          assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+
+          # ensure thread ids are unique
+          thread_ids = Enum.map(threads, & &1["id"])
+          assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+          # Process.unlink(server)
+          # Process.flag(:trap_exit, true)
+          assert_receive event(_, "output", %{
+                           "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
+                         })
+
+          # TODO why debugged process #PID<0.229.0> exited with reason normal
+          assert_receive event(_, "output", %{"output" => "debugged process" <> _})
+
+          assert_receive event(_, "output", %{
+                           "output" => "Running mix run -e MixProject.Dbg.simple()\n"
+                         })
+
+          assert_receive event(_, "stopped", %{
+                           "allThreadsStopped" => false,
+                           "reason" => "breakpoint",
+                           "threadId" => thread_id
+                         }),
+                         5_000
+
+          Server.receive_packet(server, stacktrace_req(7, thread_id))
+
+          assert_receive response(_, 7, "stackTrace", %{
+                           "totalFrames" => 1,
+                           "stackFrames" => [
+                             %{
+                               "column" => 0,
+                               "id" => frame_id,
+                               "line" => 4,
+                               "name" => "MixProject.Dbg.simple/0",
+                               "source" => %{"path" => ^abs_path}
+                             }
+                           ]
+                         })
+                         when is_integer(frame_id)
+
+          Server.receive_packet(server, scopes_req(8, frame_id))
+
+          assert_receive response(_, 8, "scopes", %{
+                           "scopes" => [
+                             %{
+                               "expensive" => false,
+                               "indexedVariables" => 0,
+                               "name" => "variables",
+                               "namedVariables" => 1,
+                               "variablesReference" => vars_id
+                             },
+                             %{
+                               "expensive" => false,
+                               "indexedVariables" => 0,
+                               "name" => "process info",
+                               "namedVariables" => _,
+                               "variablesReference" => _
+                             }
+                           ]
+                         })
+
+          Server.receive_packet(server, vars_req(9, vars_id))
+
+          assert_receive response(_, 9, "variables", %{
+                           "variables" => [
+                             %{
+                               "name" => "a",
+                               "value" => "5",
+                               "variablesReference" => 0
+                             }
+                           ]
+                         }),
+                         1000
+
+          # stepIn is not supported
+          Server.receive_packet(server, step_in_req(12, thread_id))
+
+          assert_receive(
+            error_response(
+              _,
+              12,
+              "stepIn",
+              "notSupported",
+              "Kernel.dbg breakpoints do not support {command} command",
+              %{"command" => "stepIn"}
+            )
+          )
+
+          # stepOut is not supported
+          Server.receive_packet(server, step_out_req(13, thread_id))
+
+          assert_receive(
+            error_response(
+              _,
+              13,
+              "stepOut",
+              "notSupported",
+              "Kernel.dbg breakpoints do not support {command} command",
+              %{"command" => "stepOut"}
+            )
+          )
+
+          # next results in continue
+          Server.receive_packet(server, next_req(14, thread_id))
+          assert_receive response(_, 14, "next", %{})
+
+          assert_receive event(_, "stopped", %{
+                           "allThreadsStopped" => false,
+                           "reason" => "breakpoint",
+                           "threadId" => ^thread_id
+                         }),
+                         5_000
+
+          Server.receive_packet(server, stacktrace_req(141, thread_id))
+
+          assert_receive response(_, 141, "stackTrace", %{
+                           "totalFrames" => 1,
+                           "stackFrames" => [
+                             %{
+                               "column" => 0,
+                               "id" => frame_id,
+                               "line" => 5,
+                               "name" => "MixProject.Dbg.simple/0",
+                               "source" => %{"path" => ^abs_path}
+                             }
+                           ]
+                         })
+                         when is_integer(frame_id)
+
+          # continue
+          Server.receive_packet(server, continue_req(15, thread_id))
+          assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
+
+          assert_receive event(_, "stopped", %{
+                           "allThreadsStopped" => false,
+                           "reason" => "breakpoint",
+                           "threadId" => ^thread_id
+                         }),
+                         5_000
+
+          Server.receive_packet(server, stacktrace_req(151, thread_id))
+
+          assert_receive response(_, 151, "stackTrace", %{
+                           "totalFrames" => 1,
+                           "stackFrames" => [
+                             %{
+                               "column" => 0,
+                               "id" => frame_id,
+                               "line" => 6,
+                               "name" => "MixProject.Dbg.simple/0",
+                               "source" => %{"path" => ^abs_path}
+                             }
+                           ]
+                         })
+                         when is_integer(frame_id)
+
+          Server.receive_packet(server, continue_req(16, thread_id))
+          assert_receive response(_, 16, "continue", %{"allThreadsContinued" => true})
+
+          refute_receive event(_, "thread", %{
+                           "reason" => "exited",
+                           "threadId" => ^thread_id
+                         }),
+                         1_000
+        end)
+      end
+
+      test "stepping through pipe", %{server: server} do
+        in_fixture(__DIR__, "mix_project", fn ->
+          abs_path = Path.absname("lib/dbg.ex")
+          Server.receive_packet(server, initialize_req(1, %{}))
+          assert_receive(response(_, 1, "initialize", _))
+
+          Server.receive_packet(
+            server,
+            launch_req(2, %{
+              "request" => "launch",
+              "type" => "mix_task",
+              "task" => "run",
+              "taskArgs" => ["-e", "MixProject.Dbg.pipe()"],
+              "projectDir" => File.cwd!()
+              # disable auto interpret
+              # "debugAutoInterpretAllModules" => false
+            })
+          )
+
+          assert_receive(response(_, 2, "launch", _), 3000)
+          assert_receive(event(_, "initialized", %{}), 5000)
+
+          # refute MixProject.Dbg in :int.interpreted()
+
+          Server.receive_packet(server, request(5, "configurationDone", %{}))
+          assert_receive(response(_, 5, "configurationDone", %{}))
+
+          Server.receive_packet(server, request(6, "threads", %{}))
+          assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+
+          # ensure thread ids are unique
+          thread_ids = Enum.map(threads, & &1["id"])
+          assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+          # Process.unlink(server)
+          # Process.flag(:trap_exit, true)
+          assert_receive event(_, "output", %{
+                           "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
+                         })
+
+          # TODO why debugged process #PID<0.229.0> exited with reason normal
+          assert_receive event(_, "output", %{"output" => "debugged process" <> _})
+
+          assert_receive event(_, "output", %{
+                           "output" => "Running mix run -e MixProject.Dbg.pipe()\n"
+                         })
+
+          assert_receive event(_, "stopped", %{
+                           "allThreadsStopped" => false,
+                           "reason" => "breakpoint",
+                           "threadId" => thread_id
+                         }),
+                         5_000
+
+          Server.receive_packet(server, stacktrace_req(7, thread_id))
+
+          assert_receive response(_, 7, "stackTrace", %{
+                           "totalFrames" => 1,
+                           "stackFrames" => [
+                             %{
+                               "column" => 0,
+                               "id" => frame_id,
+                               "line" => 13,
+                               "name" => "MixProject.Dbg.pipe/0",
+                               "source" => %{"path" => ^abs_path}
+                             }
+                           ]
+                         })
+                         when is_integer(frame_id)
+
+          Server.receive_packet(server, scopes_req(8, frame_id))
+
+          assert_receive response(_, 8, "scopes", %{
+                           "scopes" => [
+                             %{
+                               "expensive" => false,
+                               "indexedVariables" => 0,
+                               "name" => "variables",
+                               "namedVariables" => 1,
+                               "variablesReference" => vars_id
+                             },
+                             %{
+                               "expensive" => false,
+                               "indexedVariables" => 0,
+                               "name" => "process info",
+                               "namedVariables" => _,
+                               "variablesReference" => _
+                             }
+                           ]
+                         })
+
+          Server.receive_packet(server, vars_req(9, vars_id))
+
+          assert_receive response(_, 9, "variables", %{
+                           "variables" => [
+                             %{
+                               "name" => "a",
+                               "value" => "5",
+                               "variablesReference" => 0
+                             }
+                           ]
+                         }),
+                         1000
+
+          # stepIn is not supported
+          Server.receive_packet(server, step_in_req(12, thread_id))
+
+          assert_receive(
+            error_response(
+              _,
+              12,
+              "stepIn",
+              "notSupported",
+              "Kernel.dbg breakpoints do not support {command} command",
+              %{"command" => "stepIn"}
+            )
+          )
+
+          # stepOut is not supported
+          Server.receive_packet(server, step_out_req(13, thread_id))
+
+          assert_receive(
+            error_response(
+              _,
+              13,
+              "stepOut",
+              "notSupported",
+              "Kernel.dbg breakpoints do not support {command} command",
+              %{"command" => "stepOut"}
+            )
+          )
+
+          # next steps through pipe
+          Server.receive_packet(server, next_req(14, thread_id))
+          assert_receive response(_, 14, "next", %{})
+
+          assert_receive event(_, "stopped", %{
+                           "allThreadsStopped" => false,
+                           "reason" => "breakpoint",
+                           "threadId" => ^thread_id
+                         }),
+                         5_000
+
+          Server.receive_packet(server, stacktrace_req(141, thread_id))
+
+          assert_receive response(_, 141, "stackTrace", %{
+                           "totalFrames" => 1,
+                           "stackFrames" => [
+                             %{
+                               "column" => 0,
+                               "id" => frame_id,
+                               "line" => 14,
+                               "name" => "MixProject.Dbg.pipe/0",
+                               "source" => %{"path" => ^abs_path}
+                             }
+                           ]
+                         })
+                         when is_integer(frame_id)
+
+          # continue skips pipe steps
+          Server.receive_packet(server, continue_req(15, thread_id))
+          assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
+
+          refute_receive event(_, "stopped", %{
+                           "allThreadsStopped" => false,
+                           "reason" => "breakpoint",
+                           "threadId" => ^thread_id
+                         }),
+                         1_000
+
+          refute_receive event(_, "thread", %{
+                           "reason" => "exited",
+                           "threadId" => ^thread_id
+                         })
+        end)
+      end
     end
   end
 
