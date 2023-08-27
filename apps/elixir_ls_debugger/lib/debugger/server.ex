@@ -159,19 +159,46 @@ defmodule ElixirLS.Debugger.Server do
 
     {state, thread_id, _new_ids} = ensure_thread_id(state, pid, [])
 
-    # drop GenServer call to Debugger.Server from dbg callback
-    [_, first_frame | stacktrace] = Stacktrace.get(pid)
+    stacktrace =
+      case Stacktrace.get(pid) do
+        [_gen_server_frame, first_frame | stacktrace] ->
+          IO.puts("level #{first_frame.level}")
+          # drop GenServer call to Debugger.Server from dbg callback
+          # overwrite erlang debugger bindings with exact elixir ones
+          first_frame = %{
+            first_frame
+            | bindings: Map.new(binding),
+              dbg_frame?: true,
+              dbg_env: Code.env_for_eval(env),
+              module: env.module,
+              function: env.function,
+              file: env.file,
+              line: env.line
+          }
 
-    # overwrite erlang debugger bindings with exact elixir ones
-    first_frame = %{
-      first_frame
-      | bindings: Map.new(binding),
-        dbg_frame?: true,
-        dbg_env: Code.env_for_eval(env),
-        line: env.line
-    }
+          [first_frame | stacktrace]
 
-    paused_process = %PausedProcess{stack: [first_frame | stacktrace], ref: ref}
+        [] ->
+          # no stacktrace if we are running in non interpreted mode
+          # build one frame stacktrace
+          # TODO look for ways of getting better stacktrace
+          first_frame = %Frame{
+            level: 1,
+            module: env.module,
+            function: env.function,
+            file: env.file,
+            args: [],
+            messages: [],
+            bindings: Map.new(binding),
+            dbg_frame?: true,
+            dbg_env: Code.env_for_eval(env),
+            line: env.line
+          }
+
+          [first_frame]
+      end
+
+    paused_process = %PausedProcess{stack: stacktrace, ref: ref}
     state = put_in(state.paused_processes[pid], paused_process)
 
     body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}

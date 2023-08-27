@@ -19,8 +19,13 @@ defmodule ElixirLS.Debugger.Stacktrace do
       :dbg_env
     ]
 
+    def name(%__MODULE__{function: function} = frame) when not is_nil(function) do
+      {f, a} = frame.function
+      "#{inspect(frame.module)}.#{f}/#{a}"
+    end
+
     def name(%__MODULE__{} = frame) do
-      "#{inspect(frame.module)}.#{frame.function}/#{Enum.count(frame.args)}"
+      "#{inspect(frame.module)}"
     end
   end
 
@@ -35,7 +40,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
         first_frame = %Frame{
           level: level,
           module: module,
-          function: function,
+          function: {function, Enum.count(args)},
           args: args,
           file: get_file(module),
           # vscode raises invalid request when line is nil
@@ -57,7 +62,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
                 %Frame{
                   level: level,
                   module: mod,
-                  function: function,
+                  function: {function, Enum.count(args)},
                   args: args,
                   file: get_file(mod),
                   # vscode raises invalid request when line is nil
