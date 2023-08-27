@@ -17,9 +17,14 @@ defmodule ElixirLS.Debugger do
       Application.put_env(:elixir, :dbg_callback, {Server, :dbg, []})
     end
 
-    children = [
-      {Server, name: Server}
-    ]
+    children =
+      if Mix.env() != :test do
+        [
+          {Server, name: Server}
+        ]
+      else
+        []
+      end
 
     opts = [strategy: :one_for_one, name: ElixirLS.Debugger.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)

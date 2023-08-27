@@ -4,33 +4,23 @@ defmodule ElixirLS.Debugger.ServerTest do
   # between the debugger's tests and the fixture project's tests. Expect to see output printed
   # from both.
 
-  alias ElixirLS.Debugger.{Server, Protocol, BreakpointCondition, ModuleInfoCache}
+  alias ElixirLS.Debugger.{Server, Protocol, BreakpointCondition}
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
-  doctest ElixirLS.Debugger.Server
+  doctest Server
 
   setup do
     {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start_link(self())
     Process.group_leader(Process.whereis(ElixirLS.Debugger.Output), packet_capture)
-    original_server = Process.whereis(ElixirLS.Debugger.Server)
 
-    {:ok, server} = Server.start_link()
-    Process.unregister(ElixirLS.Debugger.Server)
-    Process.register(server, ElixirLS.Debugger.Server)
+    {:ok, server} = Server.start_link(name: Server)
 
     on_exit(fn ->
-      if is_pid(Process.whereis(ElixirLS.Debugger.Server)) do
-        Process.unregister(ElixirLS.Debugger.Server)
-      end
-
-      Process.register(original_server, ElixirLS.Debugger.Server)
       for mod <- :int.interpreted(), do: :int.nn(mod)
       :int.auto_attach(false)
       :int.no_break()
       :int.clear()
-      BreakpointCondition.clear()
-      ModuleInfoCache.clear()
     end)
 
     {:ok, %{server: server}}
@@ -2344,9 +2334,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                            "output",
                            %{
                              "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
-                           },
-                           3000
-                         )
+                           }
+                         ),
+                         3000
 
           # TODO why debugged process #PID<0.229.0> exited with reason normal
           assert_receive event(_, "output", %{"output" => "debugged process" <> _})
@@ -2370,7 +2360,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                              %{
                                "column" => 0,
                                "id" => frame_id,
-                               "line" => 4,
+                               "line" => 5,
                                "name" => "MixProject.Dbg.simple/0",
                                "source" => %{"path" => ^abs_path}
                              }
@@ -2546,9 +2536,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                            "output",
                            %{
                              "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
-                           },
-                           3000
-                         )
+                           }
+                         ),
+                         3000
 
           # TODO why debugged process #PID<0.229.0> exited with reason normal
           assert_receive event(_, "output", %{"output" => "debugged process" <> _})
