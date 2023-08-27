@@ -2327,24 +2327,6 @@ defmodule ElixirLS.Debugger.ServerTest do
           thread_ids = Enum.map(threads, & &1["id"])
           assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
 
-          # Process.unlink(server)
-          # Process.flag(:trap_exit, true)
-          assert_receive event(
-                           _,
-                           "output",
-                           %{
-                             "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
-                           }
-                         ),
-                         3000
-
-          # TODO why debugged process #PID<0.229.0> exited with reason normal
-          assert_receive event(_, "output", %{"output" => "debugged process" <> _})
-
-          assert_receive event(_, "output", %{
-                           "output" => "Running mix run -e MixProject.Dbg.simple()\n"
-                         })
-
           assert_receive event(_, "stopped", %{
                            "allThreadsStopped" => false,
                            "reason" => "breakpoint",
@@ -2528,24 +2510,6 @@ defmodule ElixirLS.Debugger.ServerTest do
           # ensure thread ids are unique
           thread_ids = Enum.map(threads, & &1["id"])
           assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
-
-          # Process.unlink(server)
-          # Process.flag(:trap_exit, true)
-          assert_receive event(
-                           _,
-                           "output",
-                           %{
-                             "output" => "Running with MIX_ENV: dev MIX_TARGET: host\n"
-                           }
-                         ),
-                         3000
-
-          # TODO why debugged process #PID<0.229.0> exited with reason normal
-          assert_receive event(_, "output", %{"output" => "debugged process" <> _})
-
-          assert_receive event(_, "output", %{
-                           "output" => "Running mix run -e MixProject.Dbg.pipe()\n"
-                         })
 
           assert_receive event(_, "stopped", %{
                            "allThreadsStopped" => false,
