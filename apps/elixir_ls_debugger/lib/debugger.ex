@@ -5,6 +5,7 @@ defmodule ElixirLS.Debugger do
 
   use Application
   alias ElixirLS.Debugger.Output
+  alias ElixirLS.Debugger.Server
 
   @impl Application
   def start(_type, _args) do
@@ -12,9 +13,18 @@ defmodule ElixirLS.Debugger do
     # this process to remain alive to print errors
     {:ok, _pid} = Output.start(Output)
 
-    children = [
-      {ElixirLS.Debugger.Server, name: ElixirLS.Debugger.Server}
-    ]
+    if Version.match?(System.version(), ">= 1.14.0") do
+      Application.put_env(:elixir, :dbg_callback, {Server, :dbg, []})
+    end
+
+    children =
+      if Mix.env() != :test do
+        [
+          {Server, name: Server}
+        ]
+      else
+        []
+      end
 
     opts = [strategy: :one_for_one, name: ElixirLS.Debugger.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)

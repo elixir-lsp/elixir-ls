@@ -6,10 +6,26 @@ defmodule ElixirLS.Debugger.Stacktrace do
   alias ElixirLS.Debugger.ModuleInfoCache
 
   defmodule Frame do
-    defstruct [:level, :file, :module, :function, :args, :line, :bindings, :messages]
+    defstruct [
+      :level,
+      :file,
+      :module,
+      :function,
+      :args,
+      :line,
+      :bindings,
+      :messages,
+      {:dbg_frame?, false},
+      :dbg_env
+    ]
+
+    def name(%__MODULE__{function: function} = frame) when not is_nil(function) do
+      {f, a} = frame.function
+      "#{inspect(frame.module)}.#{f}/#{a}"
+    end
 
     def name(%__MODULE__{} = frame) do
-      "#{inspect(frame.module)}.#{frame.function}/#{Enum.count(frame.args)}"
+      "#{inspect(frame.module)}"
     end
   end
 
@@ -24,10 +40,11 @@ defmodule ElixirLS.Debugger.Stacktrace do
         first_frame = %Frame{
           level: level,
           module: module,
-          function: function,
+          function: {function, Enum.count(args)},
           args: args,
           file: get_file(module),
-          line: break_line(pid),
+          # vscode raises invalid request when line is nil
+          line: break_line(pid) || 1,
           bindings: get_bindings(meta_pid, level),
           messages: messages
         }
@@ -45,10 +62,11 @@ defmodule ElixirLS.Debugger.Stacktrace do
                 %Frame{
                   level: level,
                   module: mod,
-                  function: function,
+                  function: {function, Enum.count(args)},
                   args: args,
                   file: get_file(mod),
-                  line: line,
+                  # vscode raises invalid request when line is nil
+                  line: line || 1,
                   bindings: Enum.into(bindings, %{}),
                   messages: messages
                 }
@@ -86,7 +104,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
     Enum.into(:int.meta(meta_pid, :bindings, stack_level), %{})
   end
 
-  defp get_file(module) do
+  def get_file(module) do
     Path.expand(to_string(ModuleInfoCache.get(module)[:compile][:source]))
   end
 end
