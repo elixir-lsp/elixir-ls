@@ -200,7 +200,7 @@ defmodule ElixirLS.Debugger.Server do
               module: env.module,
               function: env.function,
               file: env.file,
-              line: env.line
+              line: env.line || 1
           }
 
           [first_frame | stacktrace]
@@ -223,13 +223,13 @@ defmodule ElixirLS.Debugger.Server do
             bindings: Map.new(binding),
             dbg_frame?: true,
             dbg_env: Code.env_for_eval(env),
-            line: env.line
+            line: env.line || 1
           }
 
           frames_rest =
             for {{m, f, a, keyword}, index} <- Enum.with_index(stacktrace_rest, 1) do
               file = Stacktrace.get_file(m)
-              line = Keyword.get(keyword, :line, 0)
+              line = Keyword.get(keyword, :line, 1)
 
               %Frame{
                 level: total_frames - index,
@@ -1651,7 +1651,12 @@ defmodule ElixirLS.Debugger.Server do
   defp get_stop_reason(state = %__MODULE__{}, :breakpoint_reached, [first_frame = %Frame{} | _]) do
     file_breakpoints = Map.get(state.breakpoints, first_frame.file, [])
 
-    frame_mfa = {first_frame.module, first_frame.function, length(first_frame.args)}
+    frame_mfa =
+      case first_frame.function do
+        {f, a} -> {first_frame.module, f, a}
+        _ -> nil
+      end
+
     function_breakpoints = Map.get(state.function_breakpoints, frame_mfa, [])
 
     cond do
