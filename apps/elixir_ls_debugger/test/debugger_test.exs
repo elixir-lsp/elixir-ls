@@ -2681,7 +2681,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           Server.receive_packet(server, stacktrace_req(7, thread_id))
 
           assert_receive response(_, 7, "stackTrace", %{
-                           "totalFrames" => 1,
+                           "totalFrames" => 7,
                            "stackFrames" => [
                              %{
                                "column" => 0,
@@ -2690,6 +2690,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                                "name" => "MixProject.Dbg.simple/0",
                                "source" => %{"path" => ^abs_path}
                              }
+                             | _
                            ]
                          })
                          when is_integer(frame_id)
@@ -2770,7 +2771,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           Server.receive_packet(server, stacktrace_req(141, thread_id))
 
           assert_receive response(_, 141, "stackTrace", %{
-                           "totalFrames" => 1,
+                           "totalFrames" => 7,
                            "stackFrames" => [
                              %{
                                "column" => 0,
@@ -2779,6 +2780,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                                "name" => "MixProject.Dbg.simple/0",
                                "source" => %{"path" => ^abs_path}
                              }
+                             | _
                            ]
                          })
                          when is_integer(frame_id)
@@ -2797,7 +2799,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           Server.receive_packet(server, stacktrace_req(151, thread_id))
 
           assert_receive response(_, 151, "stackTrace", %{
-                           "totalFrames" => 1,
+                           "totalFrames" => 7,
                            "stackFrames" => [
                              %{
                                "column" => 0,
@@ -2806,6 +2808,7 @@ defmodule ElixirLS.Debugger.ServerTest do
                                "name" => "MixProject.Dbg.simple/0",
                                "source" => %{"path" => ^abs_path}
                              }
+                             | _
                            ]
                          })
                          when is_integer(frame_id)

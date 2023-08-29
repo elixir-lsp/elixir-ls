@@ -106,7 +106,7 @@ defmodule ElixirLS.Debugger.Stacktrace do
     Enum.into(:int.meta(meta_pid, :bindings, stack_level), %{})
   end
 
-  defp get_file(module) do
+  def get_file(module) do
     Path.expand(to_string(ModuleInfoCache.get(module)[:compile][:source]))
     # TODO why beam to source location hack needed here?
     #    case ElixirSense.Location.find_mod_file(module) do

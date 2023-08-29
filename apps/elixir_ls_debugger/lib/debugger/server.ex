@@ -133,13 +133,41 @@ defmodule ElixirLS.Debugger.Server do
 
   def dbg(code, options, %Macro.Env{} = caller) do
     quote do
-      GenServer.call(unquote(__MODULE__), {:dbg, binding(), __ENV__}, :infinity)
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+      GenServer.call(unquote(__MODULE__), {:dbg, binding(), __ENV__, stacktrace}, :infinity)
       unquote(Macro.dbg(code, options, caller))
     end
   end
 
   def pry_with_next(next?, binding, opts_or_env) when is_boolean(next?) do
-    next? and GenServer.call(__MODULE__, {:dbg, binding, opts_or_env}, :infinity) == {:ok, true}
+    if next? do
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+
+      GenServer.call(__MODULE__, {:dbg, binding, opts_or_env, stacktrace}, :infinity) ==
+        {:ok, true}
+    else
+      false
+    end
+  end
+
+  @elixir_internals [:elixir, :erl_eval]
+  @elixir_ls_internals [__MODULE__]
+  @debugger_internals @elixir_internals ++ @elixir_ls_internals
+
+  defp prune_stacktrace([{mod, _, _, _} | t]) when mod in @debugger_internals do
+    prune_stacktrace(t)
+  end
+
+  defp prune_stacktrace([{Process, :info, 2, _} | t]) do
+    prune_stacktrace(t)
+  end
+
+  defp prune_stacktrace([h | t]) do
+    [h | prune_stacktrace(t)]
+  end
+
+  defp prune_stacktrace([]) do
+    []
   end
 
   ## Server Callbacks
@@ -153,7 +181,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
-  def handle_call({:dbg, binding, %Macro.Env{} = env}, from, state = %__MODULE__{}) do
+  def handle_call({:dbg, binding, %Macro.Env{} = env, stacktrace}, from, state = %__MODULE__{}) do
     {pid, _ref} = from
     ref = Process.monitor(pid)
 
@@ -162,7 +190,6 @@ defmodule ElixirLS.Debugger.Server do
     stacktrace =
       case Stacktrace.get(pid) do
         [_gen_server_frame, first_frame | stacktrace] ->
-          IO.puts("level #{first_frame.level}")
           # drop GenServer call to Debugger.Server from dbg callback
           # overwrite erlang debugger bindings with exact elixir ones
           first_frame = %{
@@ -180,10 +207,14 @@ defmodule ElixirLS.Debugger.Server do
 
         [] ->
           # no stacktrace if we are running in non interpreted mode
-          # build one frame stacktrace
-          # TODO look for ways of getting better stacktrace
+          # build frames from Process.info stacktrace
+          # drop first entry as we get it from env
+          [_ | stacktrace_rest] = prune_stacktrace(stacktrace)
+
+          total_frames = length(stacktrace_rest) + 1
+
           first_frame = %Frame{
-            level: 1,
+            level: total_frames,
             module: env.module,
             function: env.function,
             file: env.file,
@@ -195,7 +226,30 @@ defmodule ElixirLS.Debugger.Server do
             line: env.line
           }
 
-          [first_frame]
+          frames_rest =
+            for {{m, f, a, keyword}, index} <- Enum.with_index(stacktrace_rest, 1) do
+              file = Stacktrace.get_file(m)
+              line = Keyword.get(keyword, :line, 0)
+
+              %Frame{
+                level: total_frames - index,
+                module: m,
+                function: {f, a},
+                file: file,
+                args: [],
+                messages: [],
+                bindings: %{},
+                dbg_frame?: true,
+                dbg_env:
+                  Code.env_for_eval(
+                    file: file,
+                    line: line
+                  ),
+                line: line
+              }
+            end
+
+          [first_frame | frames_rest]
       end
 
     paused_process = %PausedProcess{stack: stacktrace, ref: ref}
