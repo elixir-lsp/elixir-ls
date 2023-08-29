@@ -75,8 +75,6 @@ defmodule ElixirLS.Debugger.Stacktrace do
 
         [first_frame | other_frames]
 
-      # TODO add process stack?
-
       error ->
         Output.debugger_important(
           "Failed to obtain meta for pid #{inspect(pid)}: #{inspect(error)}"
@@ -108,10 +106,5 @@ defmodule ElixirLS.Debugger.Stacktrace do
 
   def get_file(module) do
     Path.expand(to_string(ModuleInfoCache.get(module)[:compile][:source]))
-    # TODO why beam to source location hack needed here?
-    #    case ElixirSense.Location.find_mod_file(module) do
-    #      {module, file} -> file
-    #      _ -> nil
-    #    end
   end
 end
