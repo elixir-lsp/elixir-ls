@@ -21,6 +21,16 @@ defmodule ElixirLS.Debugger.ServerTest do
       :int.auto_attach(false)
       :int.no_break()
       :int.clear()
+
+      if Process.alive?(server) do
+        Process.monitor(server)
+        Process.exit(server, :normal)
+
+        receive do
+          {:DOWN, _, _, ^server, _} ->
+            :ok
+        end
+      end
     end)
 
     {:ok, %{server: server}}
