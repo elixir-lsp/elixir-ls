@@ -458,12 +458,12 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                            "fun" => "myfun",
                            "line" => 2,
                            "mod" => "Elixir.C",
-                           "spec" => "myfun :: 1",
+                           "spec" => "myfun() :: 1",
                            "uri" => ^file_c
                          }
                        ],
                      "command" => command = "spec:" <> _,
-                     "title" => "@spec myfun :: 1"
+                     "title" => "@spec myfun() :: 1"
                    },
                    "range" => %{
                      "end" => %{"character" => 0, "line" => 1},
@@ -485,7 +485,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
               "changes" => %{
                 ^file_c => [
                   %{
-                    "newText" => "  @spec myfun :: 1\n",
+                    "newText" => "  @spec myfun() :: 1\n",
                     "range" => %{
                       "end" => %{"character" => 0, "line" => 1},
                       "start" => %{"character" => 0, "line" => 1}
