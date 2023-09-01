@@ -2930,7 +2930,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "evaluate expression with OK result", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req(1, %{}))
+        Server.receive_packet(server, initialize_req(1, %{"supportsProgressReporting" => true}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -2951,6 +2951,34 @@ defmodule ElixirLS.Debugger.ServerTest do
         assert_receive(%{"body" => %{"result" => "10"}}, 1000)
 
         assert_receive(event(_, "progressEnd", %{"progressId" => 1}))
+
+        assert Process.alive?(server)
+      end)
+    end
+
+    test "evaluate expression with OK result - progress reporting not supported", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          gen_watch_expression_packet(1, "1 + 2 + 3 + 4")
+        )
+
+        refute_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => "1 + 2 + 3 + 4",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
+
+        assert_receive(%{"body" => %{"result" => "10"}}, 1000)
+
+        refute_receive(event(_, "progressEnd", %{"progressId" => 1}))
 
         assert Process.alive?(server)
       end)

@@ -912,15 +912,20 @@ defmodule ElixirLS.Debugger.Server do
          request(seq, "evaluate", %{"expression" => expr} = args),
          state = %__MODULE__{}
        ) do
-    Output.send_event("progressStart", %{
-      "progressId" => seq,
-      "title" => "Evaluating expression",
-      "message" => expr,
-      "requestId" => seq,
-      "cancellable" => true
-    })
+    state =
+      if state.client_info["supportsProgressReporting"] do
+        Output.send_event("progressStart", %{
+          "progressId" => seq,
+          "title" => "Evaluating expression",
+          "message" => expr,
+          "requestId" => seq,
+          "cancellable" => true
+        })
 
-    state = %{state | progresses: MapSet.put(state.progresses, seq)}
+        %{state | progresses: MapSet.put(state.progresses, seq)}
+      else
+        state
+      end
 
     async_fn = fn ->
       {binding, env_for_eval} = binding_and_env(state.paused_processes, args["frameId"])
