@@ -205,6 +205,13 @@ defmodule ElixirLS.Debugger.ServerTest do
                          %{
                            "expensive" => false,
                            "indexedVariables" => 0,
+                           "name" => "versioned variables",
+                           "namedVariables" => 1,
+                           "variablesReference" => _vars_id
+                         },
+                         %{
+                           "expensive" => false,
+                           "indexedVariables" => 0,
                            "name" => "process info",
                            "namedVariables" => _,
                            "variablesReference" => _
@@ -224,7 +231,7 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive response(_, 9, "variables", %{
                        "variables" => [
                          %{
-                           "name" => _,
+                           "name" => "x",
                            "type" => "integer",
                            "value" => "2",
                            "variablesReference" => 0

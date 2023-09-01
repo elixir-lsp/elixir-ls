@@ -801,16 +801,52 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(request(_, "scopes", %{"frameId" => frame_id}), state = %__MODULE__{}) do
     {state, scopes} =
       case find_frame(state.paused_processes, frame_id) do
-        {pid, %Frame{} = frame} ->
-          {state, args_id} = ensure_var_id(state, pid, frame.args)
+        {pid, %Frame{dbg_frame?: true} = frame} ->
           {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
-          {state, messages_id} = ensure_var_id(state, pid, frame.messages)
           process_info = Process.info(pid)
           {state, process_info_id} = ensure_var_id(state, pid, process_info)
 
           vars_scope = %{
             "name" => "variables",
             "variablesReference" => bindings_id,
+            "namedVariables" => Enum.count(frame.bindings),
+            "indexedVariables" => 0,
+            "expensive" => false
+          }
+
+          process_info_scope = %{
+            "name" => "process info",
+            "variablesReference" => process_info_id,
+            "namedVariables" => length(process_info),
+            "indexedVariables" => 0,
+            "expensive" => false
+          }
+
+          scopes =
+            [vars_scope, process_info_scope]
+
+          {state, scopes}
+
+        {pid, %Frame{} = frame} ->
+          {state, args_id} = ensure_var_id(state, pid, frame.args)
+          variables = Binding.to_elixir_variable_names(frame.bindings) |> Map.new()
+          {state, vars_id} = ensure_var_id(state, pid, variables)
+          {state, versioned_vars_id} = ensure_var_id(state, pid, frame.bindings)
+          {state, messages_id} = ensure_var_id(state, pid, frame.messages)
+          process_info = Process.info(pid)
+          {state, process_info_id} = ensure_var_id(state, pid, process_info)
+
+          vars_scope = %{
+            "name" => "variables",
+            "variablesReference" => vars_id,
+            "namedVariables" => map_size(variables),
+            "indexedVariables" => 0,
+            "expensive" => false
+          }
+
+          versioned_vars_scope = %{
+            "name" => "versioned variables",
+            "variablesReference" => versioned_vars_id,
             "namedVariables" => Enum.count(frame.bindings),
             "indexedVariables" => 0,
             "expensive" => false
@@ -841,7 +877,7 @@ defmodule ElixirLS.Debugger.Server do
           }
 
           scopes =
-            [vars_scope, process_info_scope]
+            [vars_scope, versioned_vars_scope, process_info_scope]
             |> Kernel.++(if Enum.count(frame.args) > 0, do: [args_scope], else: [])
             |> Kernel.++(if Enum.count(frame.messages) > 0, do: [messages_scope], else: [])
 

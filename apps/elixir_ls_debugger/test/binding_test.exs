@@ -35,6 +35,10 @@ defmodule ElixirLS.Debugger.BindingTest do
       assert [] == Binding.to_elixir_variable_names([{:_, "a"}])
     end
 
+    test "filter _ versioned" do
+      assert [] == Binding.to_elixir_variable_names([{:_@123, "a"}])
+    end
+
     test "filter underscored variables" do
       assert [] == Binding.to_elixir_variable_names([{:__asd@123, "a"}])
     end

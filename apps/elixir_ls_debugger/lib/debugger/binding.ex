@@ -3,8 +3,12 @@ defmodule ElixirLS.Debugger.Binding do
     bindings
     |> Enum.group_by(fn {key, _} -> get_elixir_variable(key) end)
     # filter out underscore binding as those are invalid in elixir
-    |> Enum.reject(fn {classic_key, _} ->
-      classic_key |> Atom.to_string() |> String.starts_with?("_")
+    |> Enum.reject(fn
+      {:"", _} ->
+        true
+
+      {classic_key, _} ->
+        classic_key |> Atom.to_string() |> String.starts_with?("_")
     end)
     |> Enum.map(fn {classic_key, list} ->
       # assume binding with highest number is the current one
