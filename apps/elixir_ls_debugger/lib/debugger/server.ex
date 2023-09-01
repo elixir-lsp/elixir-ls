@@ -288,11 +288,11 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   def handle_call(
-        {:get_variable_reference_for_evaluator, child_type, value},
+        {:get_variable_reference, child_type, pid, value},
         _from,
         state = %__MODULE__{}
       ) do
-    {state, var_id} = get_variable_reference(child_type, state, :evaluator, value)
+    {state, var_id} = get_variable_reference(child_type, state, pid, value)
 
     {:reply, var_id, state}
   end
@@ -863,21 +863,13 @@ defmodule ElixirLS.Debugger.Server do
          request(_, "variables", %{"variablesReference" => var_id} = args),
          state = %__MODULE__{}
        ) do
-    {state, vars_json} =
-      case find_var(state.paused_processes, var_id) do
-        {pid, var} ->
-          variables(state, pid, var, args["start"], args["count"], args["filter"])
+    async_fn = fn ->
+      {pid, var} = find_var!(state.paused_processes, var_id)
+      vars_json = variables(state, pid, var, args["start"], args["count"], args["filter"])
+      %{"variables" => vars_json}
+    end
 
-        nil ->
-          raise ServerError,
-            message: "invalidArgument",
-            format: "variablesReference not found: {variablesReference}",
-            variables: %{
-              "variablesReference" => inspect(var_id)
-            }
-      end
-
-    {%{"variables" => vars_json}, state}
+    {:async, async_fn, state}
   end
 
   defp handle_request(
@@ -901,7 +893,7 @@ defmodule ElixirLS.Debugger.Server do
       child_type = Variables.child_type(value)
       # we need to call here as get_variable_reference modifies the state
       var_id =
-        GenServer.call(__MODULE__, {:get_variable_reference_for_evaluator, child_type, value})
+        GenServer.call(__MODULE__, {:get_variable_reference, child_type, :evaluator, value})
 
       %{
         "result" => inspect(value),
@@ -1111,16 +1103,16 @@ defmodule ElixirLS.Debugger.Server do
   defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
     var_child_type = Variables.child_type(var)
 
-    children =
-      if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
-        []
-      else
-        Variables.children(var, start, count)
-      end
-
-    Enum.reduce(children, {state, []}, fn {name, value}, {state = %__MODULE__{}, result} ->
+    if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
+      []
+    else
+      Variables.children(var, start, count)
+    end
+    |> Enum.reduce([], fn {name, value}, acc ->
       child_type = Variables.child_type(value)
-      {state, var_id} = get_variable_reference(child_type, state, pid, value)
+
+      var_id =
+        GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value})
 
       json =
         %{
@@ -1131,8 +1123,9 @@ defmodule ElixirLS.Debugger.Server do
         |> maybe_append_children_number(state.client_info, child_type, value)
         |> maybe_append_variable_type(state.client_info, value)
 
-      {state, result ++ [json]}
+      [json | acc]
     end)
+    |> Enum.reverse()
   end
 
   defp get_variable_reference(nil, state, _pid, _value), do: {state, 0}
@@ -1218,14 +1211,28 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp find_var(paused_processes, var_id) do
-    Enum.find_value(paused_processes, fn
-      {pid, %{var_ids_to_vars: %{^var_id => var}}} ->
-        {pid, var}
+  defp find_var!(paused_processes, var_id) do
+    result =
+      Enum.find_value(paused_processes, fn
+        {pid, %{var_ids_to_vars: %{^var_id => var}}} ->
+          {pid, var}
 
-      _ ->
-        nil
-    end)
+        _ ->
+          nil
+      end)
+
+    case result do
+      nil ->
+        raise ServerError,
+          message: "invalidArgument",
+          format: "variablesReference not found: {variablesReference}",
+          variables: %{
+            "variablesReference" => inspect(var_id)
+          }
+
+      other ->
+        other
+    end
   end
 
   defp find_frame(paused_processes, frame_id) do
