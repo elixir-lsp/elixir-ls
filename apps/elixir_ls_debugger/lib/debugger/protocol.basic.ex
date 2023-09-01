@@ -51,7 +51,7 @@ defmodule ElixirLS.Debugger.Protocol.Basic do
             "format" => unquote(format),
             "variables" => unquote(variables),
             "showUser" => false,
-            "sendTelemetry" => true
+            "sendTelemetry" => false
           }
         }
       }
