@@ -538,11 +538,13 @@ defmodule ElixirLS.Debugger.Server do
 
     server = self()
 
-    {_, ref} = spawn_monitor(fn -> initialize(config, server) end)
+    {_, ref} = spawn_monitor(fn -> launch(config, server) end)
 
     config =
       receive do
         {:ok, config} ->
+          # sending `initialized` signals that we are ready to receive configuration requests
+          # setBreakpoints, setFunctionBreakpoints and configurationDone
           Output.send_event("initialized", %{})
           send(self(), :update_threads)
           config
@@ -1351,7 +1353,7 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp initialize(%{"projectDir" => project_dir} = config, server) do
+  defp launch(%{"projectDir" => project_dir} = config, server) do
     task = config["task"]
     task_args = config["taskArgs"] || []
     auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
