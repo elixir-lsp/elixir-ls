@@ -334,7 +334,6 @@ Below is a list of configuration options supported by the ElixirLS Debugger. Con
   <dt>stackTraceMode</dt><dd>Debugger stacktrace mode - Allowed values are `all`, `no_tail`, and `false`.</dd>
   <dt>requireFiles</dt><dd>A list of additional files that should be required and interpreted - This is especially useful for debugging tests.</dd>
   <dt>debugInterpretModulesPatterns</dt><dd>A list of globs specifying modules that should be interpreted</dd>
-  <dt>debugExpressionTimeoutMs</dt><dd>Expression evaluator timeout in milliseconds - This defaults to 10 000.</dd>
   <dt>projectDir</dt><dd>An absolute path to the directory where `mix.exs` is located - In VSCode, `${workspaceRoot}` can be used.</dd>
   <dt>excludeModules</dt><dd>A list of modules that should not be interpreted</dd>
 </dl>

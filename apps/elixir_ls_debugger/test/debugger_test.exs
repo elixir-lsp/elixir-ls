@@ -2908,91 +2908,203 @@ defmodule ElixirLS.Debugger.ServerTest do
   end
 
   describe "Watch section" do
-    defp gen_watch_expression_packet(expr) do
+    defp gen_watch_expression_packet(seq, expr) do
       %{
         "arguments" => %{
           "context" => "watch",
           "expression" => expr,
-          "frameId" => 123
+          "frameId" => nil
         },
         "command" => "evaluate",
-        "seq" => 1,
+        "seq" => seq,
         "type" => "request"
       }
     end
 
-    test "Evaluate expression with OK result", %{server: server} do
+    test "evaluate expression with OK result", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
           server,
-          gen_watch_expression_packet("1 + 2 + 3 + 4")
+          gen_watch_expression_packet(1, "1 + 2 + 3 + 4")
+        )
+
+        assert_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => "1 + 2 + 3 + 4",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
         )
 
         assert_receive(%{"body" => %{"result" => "10"}}, 1000)
+
+        assert_receive(event(_, "progressEnd", %{"progressId" => 1}))
 
         assert Process.alive?(server)
       end)
     end
 
     @tag :capture_log
-    test "Evaluate expression with ERROR result", %{server: server} do
+    test "evaluate expression with exception result", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
           server,
-          gen_watch_expression_packet("1 = 2")
+          gen_watch_expression_packet(1, "1 = 2")
         )
 
-        assert_receive(%{"body" => %{"result" => result}}, 1000)
+        assert_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => "1 = 2",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
 
-        assert result =~ ~r/badmatch/
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "evaluate",
+            "evaluateError",
+            "** (MatchError) no match of right hand side value: 2" <> _,
+            %{}
+          )
+        )
+
+        assert_receive(event(_, "progressEnd", %{"progressId" => 1}))
 
         assert Process.alive?(server)
       end)
     end
 
-    test "Evaluate expression with attempt to exit debugger process", %{server: server} do
+    test "evaluate expression which calls exit process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
           server,
-          gen_watch_expression_packet("Process.exit(self(), :normal)")
+          gen_watch_expression_packet(1, "exit(:normal)")
         )
 
-        assert_receive(%{"body" => %{"result" => result}}, 1000)
+        assert_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => "exit(:normal)",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
 
-        assert result =~ ~r/:exit/
+        # evaluator process exits so we should not get a response
+        refute_receive(%{"body" => %{"result" => _result}}, 1000)
+
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "evaluate",
+            "evaluateError",
+            "** (exit) normal" <> _,
+            %{}
+          )
+        )
+
+        assert_receive(event(_, "progressEnd", %{"progressId" => 1}))
 
         assert Process.alive?(server)
       end)
     end
 
-    test "Evaluate expression with attempt to throw debugger process", %{server: server} do
+    test "evaluate expression with attempt to exit debugger process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
           server,
-          gen_watch_expression_packet("throw(:goodmorning_bug)")
+          gen_watch_expression_packet(1, "Process.exit(self(), :normal)")
         )
 
-        assert_receive(%{"body" => %{"result" => result}}, 1000)
+        assert_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => "Process.exit(self(), :normal)",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
 
-        assert result =~ ~r/:goodmorning_bug/
+        # evaluator process exits so we should not get a response
+        refute_receive(%{"body" => %{"result" => _result}}, 1000)
+
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "evaluate",
+            "internalServerError",
+            "Request handler exited with reason normal",
+            %{}
+          )
+        )
+
+        assert_receive(event(_, "progressEnd", %{"progressId" => 1}))
 
         assert Process.alive?(server)
       end)
     end
 
-    test "Evaluate expression which has long execution", %{server: server} do
+    test "evaluate expression with attempt to throw debugger process", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          gen_watch_expression_packet(1, "throw(:goodmorning_bug)")
+        )
+
+        assert_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => "throw(:goodmorning_bug)",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
+
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "evaluate",
+            "evaluateError",
+            "** (throw) :goodmorning_bug" <> _,
+            %{}
+          )
+        )
+
+        assert_receive(event(_, "progressEnd", %{"progressId" => 1}))
+
+        assert Process.alive?(server)
+      end)
+    end
+
+    test "evaluate expression which has long execution", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
         assert_receive(response(_, 1, "initialize", _))
@@ -3003,8 +3115,7 @@ defmodule ElixirLS.Debugger.ServerTest do
             "request" => "launch",
             "type" => "mix_task",
             "task" => "test",
-            "projectDir" => File.cwd!(),
-            "debugExpressionTimeoutMs" => 500
+            "projectDir" => File.cwd!()
           })
         )
 
@@ -3012,19 +3123,33 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         Server.receive_packet(
           server,
-          gen_watch_expression_packet(":timer.sleep(10_000)")
+          gen_watch_expression_packet(1, ":timer.sleep(10_000)")
         )
 
-        assert_receive(%{"body" => %{"result" => result}}, 1100)
+        Server.receive_packet(
+          server,
+          cancel_req(2, %{"progressId" => 1})
+        )
 
-        assert result =~ ~r/:elixir_ls_expression_timeout/
+        assert_receive(response(_, 2, "cancel", _))
+
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "evaluate",
+            "cancelled",
+            "cancelled",
+            %{}
+          )
+        )
 
         assert Process.alive?(server)
       end)
     end
   end
 
-  test "Completions", %{server: server} do
+  test "completions", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(server, initialize_req(1, %{}))
       assert_receive(response(_, 1, "initialize", _))
@@ -3043,6 +3168,62 @@ defmodule ElixirLS.Debugger.ServerTest do
       )
 
       assert_receive(%{"body" => %{"targets" => _targets}}, 10000)
+
+      assert Process.alive?(server)
+    end)
+  end
+
+  test "completions cancel", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
+
+      Server.receive_packet(
+        server,
+        %{
+          "arguments" => %{
+            "text" => "DateTi",
+            "column" => 7
+          },
+          "command" => "completions",
+          "seq" => 1,
+          "type" => "request"
+        }
+      )
+
+      Server.receive_packet(
+        server,
+        cancel_req(2, %{"requestId" => 1})
+      )
+
+      assert_receive(response(_, 2, "cancel", _))
+
+      assert_receive(
+        error_response(
+          _,
+          1,
+          "completions",
+          "cancelled",
+          "cancelled",
+          %{}
+        )
+      )
+
+      assert Process.alive?(server)
+    end)
+  end
+
+  test "cancel not existing request", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
+
+      Server.receive_packet(
+        server,
+        cancel_req(2, %{"requestId" => 1})
+      )
+
+      assert_receive(response(_, 2, "cancel", _))
 
       assert Process.alive?(server)
     end)

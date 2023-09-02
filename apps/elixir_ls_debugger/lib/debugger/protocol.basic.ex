@@ -2,7 +2,7 @@ defmodule ElixirLS.Debugger.Protocol.Basic do
   @moduledoc """
   Macros for VS Code debug protocol messages
 
-  These macros can be used for pattern matching or for creating messages corresponding to the 
+  These macros can be used for pattern matching or for creating messages corresponding to the
   request, response, and event types as specified in VS Code debug protocol.
   """
 
@@ -49,7 +49,9 @@ defmodule ElixirLS.Debugger.Protocol.Basic do
           "error" => %{
             "id" => unquote(seq),
             "format" => unquote(format),
-            "variables" => unquote(variables)
+            "variables" => unquote(variables),
+            "showUser" => false,
+            "sendTelemetry" => false
           }
         }
       }

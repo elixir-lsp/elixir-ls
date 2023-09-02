@@ -20,6 +20,12 @@ defmodule ElixirLS.Debugger.Protocol do
     end
   end
 
+  defmacro cancel_req(seq, args) do
+    quote do
+      request(unquote(seq), "cancel", unquote(args))
+    end
+  end
+
   defmacro launch_req(seq, config) do
     quote do
       request(unquote(seq), "launch", unquote(config))

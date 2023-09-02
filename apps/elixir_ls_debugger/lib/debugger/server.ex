@@ -47,6 +47,8 @@ defmodule ElixirLS.Debugger.Server do
                 vars_to_var_ids: %{}
               }
             },
+            requests: %{},
+            progresses: MapSet.new(),
             next_id: 1,
             output: Output,
             breakpoints: %{},
@@ -261,13 +263,47 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | dbg_session: from}}
   end
 
+  def handle_call({:request_finished, packet, result}, _from, state = %__MODULE__{}) do
+    if MapSet.member?(state.progresses, packet["seq"]) do
+      Output.send_event("progressEnd", %{
+        "progressId" => packet["seq"]
+      })
+    end
+
+    case result do
+      {:error, e = %ServerError{}} ->
+        Output.send_error_response(packet, e.message, e.format, e.variables)
+
+      {:ok, response_body} ->
+        Output.send_response(packet, response_body)
+    end
+
+    state = %{
+      state
+      | requests: Map.delete(state.requests, packet["seq"]),
+        progresses: MapSet.delete(state.progresses, packet["seq"])
+    }
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call(
+        {:get_variable_reference, child_type, pid, value},
+        _from,
+        state = %__MODULE__{}
+      ) do
+    {state, var_id} = get_variable_reference(child_type, state, pid, value)
+
+    {:reply, var_id, state}
+  end
+
   @impl GenServer
   def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state = %__MODULE__{}) do
     Output.send_response(packet, %{})
     {:noreply, state, {:continue, :disconnect}}
   end
 
-  def handle_cast({:receive_packet, request(_, _) = packet}, state = %__MODULE__{}) do
+  def handle_cast({:receive_packet, request(seq, _) = packet}, state = %__MODULE__{}) do
     try do
       if state.client_info == nil do
         case packet do
@@ -285,13 +321,29 @@ defmodule ElixirLS.Debugger.Server do
               }
         end
       else
-        {response_body, state} = handle_request(packet, state)
-        Output.send_response(packet, response_body)
+        state =
+          case handle_request(packet, state) do
+            {response_body, state} ->
+              Output.send_response(packet, response_body)
+              state
+
+            {:async, fun, state} ->
+              {pid, _ref} = handle_request_async(packet, fun)
+              %{state | requests: Map.put(state.requests, seq, {pid, packet})}
+          end
+
         {:noreply, state}
       end
     rescue
       e in ServerError ->
         Output.send_error_response(packet, e.message, e.format, e.variables)
+        {:noreply, state}
+    catch
+      kind, error ->
+        {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+        message = Exception.format(kind, payload, stacktrace)
+        Output.debugger_console(message)
+        Output.send_error_response(packet, "internalServerError", message, %{})
         {:noreply, state}
     end
   end
@@ -343,11 +395,47 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   def handle_info({:DOWN, _ref, :process, pid, reason}, state = %__MODULE__{}) do
-    Output.debugger_important(
-      "debugged process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
-    )
-
+    paused_processes_count_before = map_size(state.paused_processes)
     state = handle_process_exit(state, pid)
+    paused_processes_count_after = map_size(state.paused_processes)
+
+    if paused_processes_count_after < paused_processes_count_before do
+      Output.debugger_important(
+        "Paused process #{inspect(pid)} exited with reason #{Exception.format_exit(reason)}"
+      )
+    end
+
+    # if the exited process was a request handler respond with error
+    # and optionally end progress
+    request =
+      state.requests
+      |> Enum.find(fn {_request_id, {request_pid, _packet}} -> request_pid == pid end)
+
+    state =
+      case request do
+        {request_id, {_pid, packet}} ->
+          Output.send_error_response(
+            packet,
+            "internalServerError",
+            "Request handler exited with reason #{Exception.format_exit(reason)}",
+            %{}
+          )
+
+          if MapSet.member?(state.progresses, request_id) do
+            Output.send_event("progressEnd", %{
+              "progressId" => request_id
+            })
+          end
+
+          %{
+            state
+            | requests: Map.delete(state.requests, request_id),
+              progresses: MapSet.delete(state.progresses, request_id)
+          }
+
+        nil ->
+          state
+      end
 
     {:noreply, state}
   end
@@ -407,6 +495,40 @@ defmodule ElixirLS.Debugger.Server do
       variables: %{
         "command" => "initialize"
       }
+  end
+
+  defp handle_request(cancel_req(_, args), %__MODULE__{requests: requests} = state) do
+    # in or case progressId is requestId so choose first not null
+    request_or_progress_id = args["requestId"] || args["progressId"]
+
+    state =
+      case requests do
+        %{^request_or_progress_id => {pid, packet}} ->
+          Process.exit(pid, :cancelled)
+          Output.send_error_response(packet, "cancelled", "cancelled", %{})
+
+          # send progressEnd if cancelling a progress
+          if MapSet.member?(state.progresses, request_or_progress_id) do
+            Output.send_event("progressEnd", %{
+              "progressId" => request_or_progress_id
+            })
+          end
+
+          %{
+            state
+            | requests: Map.delete(requests, request_or_progress_id),
+              progresses: MapSet.delete(state.progresses, request_or_progress_id)
+          }
+
+        _ ->
+          Output.debugger_console(
+            "Received cancel request for unknown requestId: #{inspect(request_or_progress_id)}\n"
+          )
+
+          state
+      end
+
+    {%{}, state}
   end
 
   defp handle_request(launch_req(_, config) = args, state = %__MODULE__{}) do
@@ -616,6 +738,13 @@ defmodule ElixirLS.Debugger.Server do
 
     if pid do
       :int.attach(pid, build_attach_mfa(:paused))
+    else
+      raise ServerError,
+        message: "invalidArgument",
+        format: "threadId not found: {threadId}",
+        variables: %{
+          "threadId" => inspect(thread_id)
+        }
     end
 
     {%{}, state}
@@ -734,63 +863,47 @@ defmodule ElixirLS.Debugger.Server do
          request(_, "variables", %{"variablesReference" => var_id} = args),
          state = %__MODULE__{}
        ) do
-    {state, vars_json} =
-      case find_var(state.paused_processes, var_id) do
-        {pid, var} ->
-          variables(state, pid, var, args["start"], args["count"], args["filter"])
+    async_fn = fn ->
+      {pid, var} = find_var!(state.paused_processes, var_id)
+      vars_json = variables(state, pid, var, args["start"], args["count"], args["filter"])
+      %{"variables" => vars_json}
+    end
 
-        nil ->
-          raise ServerError,
-            message: "invalidArgument",
-            format: "variablesReference not found: {variablesReference}",
-            variables: %{
-              "variablesReference" => inspect(var_id)
-            }
-      end
-
-    {%{"variables" => vars_json}, state}
+    {:async, async_fn, state}
   end
 
   defp handle_request(
-         request(_cmd, "evaluate", %{"expression" => expr} = args),
+         request(seq, "evaluate", %{"expression" => expr} = args),
          state = %__MODULE__{}
        ) do
-    timeout = Map.get(state.config, "debugExpressionTimeoutMs", 10_000)
-    {binding, env_for_eval} = binding_and_env(state.paused_processes, args["frameId"])
+    Output.send_event("progressStart", %{
+      "progressId" => seq,
+      "title" => "Evaluating expression",
+      "message" => expr,
+      "requestId" => seq,
+      "cancellable" => true
+    })
 
-    result = evaluate_code_expression(expr, binding, env_for_eval, timeout)
+    state = %{state | progresses: MapSet.put(state.progresses, seq)}
 
-    case result do
-      {:ok, value} ->
-        child_type = Variables.child_type(value)
-        {state, var_id} = get_variable_reference(child_type, state, :evaluator, value)
+    async_fn = fn ->
+      {binding, env_for_eval} = binding_and_env(state.paused_processes, args["frameId"])
+      value = evaluate_code_expression(expr, binding, env_for_eval)
 
-        json =
-          %{
-            "result" => inspect(value),
-            "variablesReference" => var_id
-          }
-          |> maybe_append_children_number(state.client_info, child_type, value)
-          |> maybe_append_variable_type(state.client_info, value)
+      child_type = Variables.child_type(value)
+      # we need to call here as get_variable_reference modifies the state
+      var_id =
+        GenServer.call(__MODULE__, {:get_variable_reference, child_type, :evaluator, value})
 
-        {json, state}
-
-      other ->
-        result_string =
-          if args["context"] == "hover" do
-            # avoid displaying hover info when evaluation crashed
-            ""
-          else
-            inspect(other)
-          end
-
-        json = %{
-          "result" => result_string,
-          "variablesReference" => 0
-        }
-
-        {json, state}
+      %{
+        "result" => inspect(value),
+        "variablesReference" => var_id
+      }
+      |> maybe_append_children_number(state.client_info, child_type, value)
+      |> maybe_append_variable_type(state.client_info, value)
     end
+
+    {:async, async_fn, state}
   end
 
   defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
@@ -868,44 +981,48 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(completions_req(_, text) = args, state = %__MODULE__{}) do
-    # assume that the position is 1-based
-    line = (args["arguments"]["line"] || 1) - 1
-    column = (args["arguments"]["column"] || 1) - 1
+    async_fn = fn ->
+      # assume that the position is 1-based
+      line = (args["arguments"]["line"] || 1) - 1
+      column = (args["arguments"]["column"] || 1) - 1
 
-    # for simplicity take only text from the given line up to column
-    line =
-      text
-      |> String.split(["\r\n", "\n", "\r"])
-      |> Enum.at(line)
+      # for simplicity take only text from the given line up to column
+      line =
+        text
+        |> String.split(["\r\n", "\n", "\r"])
+        |> Enum.at(line)
 
-    # It is measured in UTF-16 code units and the client capability
-    # `columnsStartAt1` determines whether it is 0- or 1-based.
-    column = Utils.dap_character_to_elixir(line, column)
-    prefix = String.slice(line, 0, column)
+      # It is measured in UTF-16 code units and the client capability
+      # `columnsStartAt1` determines whether it is 0- or 1-based.
+      column = Utils.dap_character_to_elixir(line, column)
+      prefix = String.slice(line, 0, column)
 
-    {binding, _env_for_eval} =
-      binding_and_env(state.paused_processes, args["arguments"]["frameId"])
+      {binding, _env_for_eval} =
+        binding_and_env(state.paused_processes, args["arguments"]["frameId"])
 
-    vars =
-      binding
-      |> Enum.map(fn {name, value} ->
-        %ElixirSense.Core.State.VarInfo{
-          name: name,
-          type: ElixirSense.Core.Binding.from_var(value)
-        }
-      end)
+      vars =
+        binding
+        |> Enum.map(fn {name, value} ->
+          %ElixirSense.Core.State.VarInfo{
+            name: name,
+            type: ElixirSense.Core.Binding.from_var(value)
+          }
+        end)
 
-    env = %ElixirSense.Core.State.Env{vars: vars}
-    metadata = %ElixirSense.Core.Metadata{}
+      env = %ElixirSense.Core.State.Env{vars: vars}
+      metadata = %ElixirSense.Core.Metadata{}
 
-    results =
-      ElixirSense.Providers.Suggestion.Complete.complete(prefix, env, metadata, {1, 1})
-      |> Enum.map(&ElixirLS.Debugger.Completions.map/1)
+      results =
+        ElixirSense.Providers.Suggestion.Complete.complete(prefix, env, metadata, {1, 1})
+        |> Enum.map(&ElixirLS.Debugger.Completions.map/1)
 
-    {%{"targets" => results}, state}
+      %{"targets" => results}
+    end
+
+    {:async, async_fn, state}
   end
 
-  defp handle_request(request(_, command), _state = %__MODULE__{}) when is_binary(command) do
+  defp handle_request(request(_, command), %__MODULE__{}) when is_binary(command) do
     raise ServerError,
       message: "notSupported",
       format: "Debugger request {command} is currently not supported",
@@ -986,16 +1103,16 @@ defmodule ElixirLS.Debugger.Server do
   defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
     var_child_type = Variables.child_type(var)
 
-    children =
-      if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
-        []
-      else
-        Variables.children(var, start, count)
-      end
-
-    Enum.reduce(children, {state, []}, fn {name, value}, {state = %__MODULE__{}, result} ->
+    if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
+      []
+    else
+      Variables.children(var, start, count)
+    end
+    |> Enum.reduce([], fn {name, value}, acc ->
       child_type = Variables.child_type(value)
-      {state, var_id} = get_variable_reference(child_type, state, pid, value)
+
+      var_id =
+        GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value})
 
       json =
         %{
@@ -1006,8 +1123,9 @@ defmodule ElixirLS.Debugger.Server do
         |> maybe_append_children_number(state.client_info, child_type, value)
         |> maybe_append_variable_type(state.client_info, value)
 
-      {state, result ++ [json]}
+      [json | acc]
     end)
+    |> Enum.reverse()
   end
 
   defp get_variable_reference(nil, state, _pid, _value), do: {state, 0}
@@ -1027,30 +1145,19 @@ defmodule ElixirLS.Debugger.Server do
 
   defp maybe_append_variable_type(map, _, _value), do: map
 
-  defp evaluate_code_expression(expr, binding, env_or_opts, timeout) do
-    task =
-      Task.async(fn ->
-        receive do
-          :continue -> :ok
-        end
+  defp evaluate_code_expression(expr, binding, env_or_opts) do
+    try do
+      {term, _bindings} = Code.eval_string(expr, binding, env_or_opts)
+      term
+    catch
+      kind, error ->
+        {payload, stacktrace} = Exception.blame(kind, error, prune_stacktrace(__STACKTRACE__))
+        message = Exception.format(kind, payload, stacktrace)
 
-        try do
-          {term, _bindings} = Code.eval_string(expr, binding, env_or_opts)
-          term
-        catch
-          error -> error
-        end
-      end)
-
-    Process.unlink(task.pid)
-    send(task.pid, :continue)
-
-    result = Task.yield(task, timeout) || Task.shutdown(task)
-
-    case result do
-      {:ok, data} -> {:ok, data}
-      nil -> :elixir_ls_expression_timeout
-      _otherwise -> result
+        reraise(
+          %ServerError{message: "evaluateError", format: message, variables: %{}},
+          stacktrace
+        )
     end
   end
 
@@ -1097,19 +1204,35 @@ defmodule ElixirLS.Debugger.Server do
          ]}
 
       _ ->
-        Output.debugger_console("Unable to find frame #{inspect(frame_id)}")
-        {[], []}
+        raise ServerError,
+          message: "argumentError",
+          format: "Unable to find frame {frameId}",
+          variables: %{"frameId" => frame_id}
     end
   end
 
-  defp find_var(paused_processes, var_id) do
-    Enum.find_value(paused_processes, fn
-      {pid, %{var_ids_to_vars: %{^var_id => var}}} ->
-        {pid, var}
+  defp find_var!(paused_processes, var_id) do
+    result =
+      Enum.find_value(paused_processes, fn
+        {pid, %{var_ids_to_vars: %{^var_id => var}}} ->
+          {pid, var}
 
-      _ ->
-        nil
-    end)
+        _ ->
+          nil
+      end)
+
+    case result do
+      nil ->
+        raise ServerError,
+          message: "invalidArgument",
+          format: "variablesReference not found: {variablesReference}",
+          variables: %{
+            "variablesReference" => inspect(var_id)
+          }
+
+      other ->
+        other
+    end
   end
 
   defp find_frame(paused_processes, frame_id) do
@@ -1309,7 +1432,8 @@ defmodule ElixirLS.Debugger.Server do
       "supportsSingleThreadExecutionRequests" => true,
       "supportsEvaluateForHovers" => true,
       "supportsClipboardContext" => true,
-      "supportTerminateDebuggee" => false
+      "supportTerminateDebuggee" => false,
+      "supportsCancelRequest" => true
     }
   end
 
@@ -1557,6 +1681,7 @@ defmodule ElixirLS.Debugger.Server do
 
   defp eval_hit_count(hit_count) do
     try do
+      # TODO binding?
       {term, _bindings} = Code.eval_string(hit_count, [])
 
       if is_integer(term) do
@@ -1771,5 +1896,29 @@ defmodule ElixirLS.Debugger.Server do
     else
       quote do: env
     end
+  end
+
+  defp handle_request_async(packet, func) do
+    parent = self()
+
+    spawn_monitor(fn ->
+      result =
+        try do
+          {:ok, func.()}
+        rescue
+          e in ServerError ->
+            {:error, e}
+        catch
+          kind, error ->
+            {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+            message = Exception.format(kind, payload, stacktrace)
+            Output.debugger_console(message)
+
+            {:error,
+             %ServerError{message: "internalServerError", format: message, variables: %{}}}
+        end
+
+      GenServer.call(parent, {:request_finished, packet, result}, :infinity)
+    end)
   end
 end
