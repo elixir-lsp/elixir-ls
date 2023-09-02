@@ -641,8 +641,7 @@ defmodule ElixirLS.Debugger.Server do
                 case current[{m, f, a}] do
                   nil ->
                     case interpret(m, false) do
-                      {:module, _} ->
-                        ModuleInfoCache.store(m)
+                      :ok ->
                         breaks_before = :int.all_breaks(m)
 
                         Output.debugger_console(
@@ -663,8 +662,15 @@ defmodule ElixirLS.Debugger.Server do
                             {:error, "Function #{inspect(m)}.#{f}/#{a} not found"}
                         end
 
-                      :error ->
+                      {:error, :cannot_interpret} ->
                         {:error, "Cannot interpret module #{inspect(m)}"}
+
+                      {:error, :cannot_load} ->
+                        {:error, "Module #{inspect(m)} cannot be loaded"}
+
+                      {:error, :excluded} ->
+                        {:error,
+                         "Module #{inspect(m)} is used internally by the debugger and cannot be interpreted"}
                     end
 
                   lines ->
@@ -1585,8 +1591,7 @@ defmodule ElixirLS.Debugger.Server do
   defp save_and_reload(module, beam_bin) do
     :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
     true = :code.delete(module)
-    {:module, _} = interpret(module)
-    ModuleInfoCache.store(module)
+    :ok = interpret(module)
   end
 
   defp set_breakpoints(path, lines) do
@@ -1637,8 +1642,7 @@ defmodule ElixirLS.Debugger.Server do
     modules_with_breakpoints =
       Enum.reduce(modules, [], fn module, added ->
         case interpret(module, false) do
-          {:module, _} ->
-            ModuleInfoCache.store(module)
+          :ok ->
             Output.debugger_console("Setting breakpoint in #{inspect(module)} #{path}:#{line}")
             # no need to handle errors here, it can fail only with {:error, :break_exists}
             :int.break(module, line)
@@ -1646,8 +1650,19 @@ defmodule ElixirLS.Debugger.Server do
 
             [module | added]
 
-          :error ->
+          {:error, :cannot_interpret} ->
             Output.debugger_console("Could not interpret module #{inspect(module)} in #{path}")
+            added
+
+          {:error, :cannot_load} ->
+            Output.debugger_console("Module #{inspect(module)} in #{path} cannot be loaded")
+            added
+
+          {:error, :excluded} ->
+            Output.debugger_console(
+              "Module #{inspect(module)} in #{path} is used internally by the debugger and cannot be interpreted"
+            )
+
             added
         end
       end)
@@ -1671,18 +1686,26 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp interpret_module(mod) do
-    try do
-      case interpret(mod) do
-        {:module, _} -> :ok
-        {:error, :excluded} -> :ok
-      end
-    catch
-      _kind, _error ->
+    case interpret(mod) do
+      :ok ->
+        :ok
+
+      {:error, :cannot_interpret} ->
         Output.debugger_important(
           "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
         )
-    after
-      ModuleInfoCache.store(mod)
+
+        :ok
+
+      {:error, :excluded} ->
+        :ok
+
+      {:error, :cannot_load} ->
+        Output.debugger_important(
+          "Module #{inspect(mod)} cannot be loaded. Consider adding it to `excludeModules`."
+        )
+
+        :ok
     end
   end
 
@@ -1878,7 +1901,16 @@ defmodule ElixirLS.Debugger.Server do
           Output.debugger_console("Interpreting module #{inspect(module)}")
         end
 
-        :int.ni(module)
+        case :int.ni(module) do
+          :error ->
+            {:error, :cannot_interpret}
+
+          {:module, _} ->
+            # calling module_info when paused on a breakpoint can deadlock the debugger
+            # cache it for each interpreted module
+            ModuleInfoCache.store(module)
+            :ok
+        end
       end
     else
       {:error, :cannot_load}
