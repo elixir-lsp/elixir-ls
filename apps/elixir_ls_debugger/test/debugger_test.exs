@@ -2956,7 +2956,9 @@ defmodule ElixirLS.Debugger.ServerTest do
       end)
     end
 
-    test "evaluate expression with OK result - progress reporting not supported", %{server: server} do
+    test "evaluate expression with OK result - progress reporting not supported", %{
+      server: server
+    } do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
         assert_receive(response(_, 1, "initialize", _))

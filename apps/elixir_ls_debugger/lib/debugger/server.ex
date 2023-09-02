@@ -1671,13 +1671,17 @@ defmodule ElixirLS.Debugger.Server do
 
   defp interpret_module(mod) do
     try do
-      {:module, _} = interpret(mod)
-      ModuleInfoCache.store(mod)
+      case interpret(mod) do
+        {:module, _} -> :ok
+        {:error, :excluded} -> :ok
+      end
     catch
-      _, _ ->
+      _kind, _error ->
         Output.debugger_important(
           "Module #{inspect(mod)} cannot be interpreted. Consider adding it to `excludeModules`."
         )
+    after
+      ModuleInfoCache.store(mod)
     end
   end
 
@@ -1856,7 +1860,7 @@ defmodule ElixirLS.Debugger.Server do
   defp interpret(module, print_message? \\ true)
 
   defp interpret(module, _print_message?) when module in @exclude_protocols_from_interpreting do
-    :error
+    {:error, :excluded}
   end
 
   defp interpret(module, print_message?) do
@@ -1867,7 +1871,7 @@ defmodule ElixirLS.Debugger.Server do
       if Enum.any?(@exclude_implementations_from_interpreting, &(&1 in module_behaviours)) do
         # debugger uses Inspect protocol and setting breakpoints in implementations leads to deadlocks
         # https://github.com/elixir-lsp/elixir-ls/issues/903
-        :error
+        {:error, :excluded}
       else
         if print_message? do
           Output.debugger_console("Interpreting module #{inspect(module)}")
@@ -1876,7 +1880,7 @@ defmodule ElixirLS.Debugger.Server do
         :int.ni(module)
       end
     else
-      :error
+      {:error, :cannot_load}
     end
   end
 
