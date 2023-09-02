@@ -2989,7 +2989,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     @tag :capture_log
     test "evaluate expression with exception result", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req(1, %{}))
+        Server.receive_packet(server, initialize_req(1, %{"supportsProgressReporting" => true}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3026,7 +3026,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "evaluate expression which calls exit process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req(1, %{}))
+        Server.receive_packet(server, initialize_req(1, %{"supportsProgressReporting" => true}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3066,7 +3066,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "evaluate expression with attempt to exit debugger process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req(1, %{}))
+        Server.receive_packet(server, initialize_req(1, %{"supportsProgressReporting" => true}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3104,9 +3104,51 @@ defmodule ElixirLS.Debugger.ServerTest do
       end)
     end
 
-    test "evaluate expression with attempt to throw debugger process", %{server: server} do
+    test "evaluate expression with attempt to exit debugger process - progress not supported", %{
+      server: server
+    } do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          gen_watch_expression_packet(1, "Process.exit(self(), :normal)")
+        )
+
+        refute_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => "Process.exit(self(), :normal)",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
+
+        # evaluator process exits so we should not get a response
+        refute_receive(%{"body" => %{"result" => _result}}, 1000)
+
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "evaluate",
+            "internalServerError",
+            "Request handler exited with reason normal",
+            %{}
+          )
+        )
+
+        refute_receive(event(_, "progressEnd", %{"progressId" => 1}))
+
+        assert Process.alive?(server)
+      end)
+    end
+
+    test "evaluate expression with attempt to throw debugger process", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{"supportsProgressReporting" => true}))
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3143,6 +3185,64 @@ defmodule ElixirLS.Debugger.ServerTest do
 
     test "evaluate expression which has long execution", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req(1, %{"supportsProgressReporting" => true}))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "test",
+            "projectDir" => File.cwd!()
+          })
+        )
+
+        assert_receive(response(_, 2, "launch", %{}), 5000)
+
+        Server.receive_packet(
+          server,
+          gen_watch_expression_packet(1, ":timer.sleep(10_000)")
+        )
+
+        assert_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => ":timer.sleep(10_000)",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
+
+        Server.receive_packet(
+          server,
+          cancel_req(2, %{"progressId" => 1})
+        )
+
+        assert_receive(response(_, 2, "cancel", _))
+
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "evaluate",
+            "cancelled",
+            "cancelled",
+            %{}
+          )
+        )
+
+        assert_receive(event(_, "progressEnd", %{"progressId" => 1}))
+
+        assert Process.alive?(server)
+      end)
+    end
+
+    test "evaluate expression which has long execution - progress not supported", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(server, initialize_req(1, %{}))
         assert_receive(response(_, 1, "initialize", _))
 
@@ -3163,9 +3263,19 @@ defmodule ElixirLS.Debugger.ServerTest do
           gen_watch_expression_packet(1, ":timer.sleep(10_000)")
         )
 
+        refute_receive(
+          event(_, "progressStart", %{
+            "cancellable" => true,
+            "message" => ":timer.sleep(10_000)",
+            "progressId" => 1,
+            "requestId" => 1,
+            "title" => "Evaluating expression"
+          })
+        )
+
         Server.receive_packet(
           server,
-          cancel_req(2, %{"progressId" => 1})
+          cancel_req(2, %{"requestId" => 1})
         )
 
         assert_receive(response(_, 2, "cancel", _))
@@ -3180,6 +3290,8 @@ defmodule ElixirLS.Debugger.ServerTest do
             %{}
           )
         )
+
+        refute_receive(event(_, "progressEnd", %{"progressId" => 1}))
 
         assert Process.alive?(server)
       end)
