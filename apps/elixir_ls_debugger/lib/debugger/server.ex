@@ -521,11 +521,12 @@ defmodule ElixirLS.Debugger.Server do
           }
 
         _ ->
-          Output.debugger_console(
-            "Received cancel request for unknown requestId: #{inspect(request_or_progress_id)}\n"
-          )
-
-          state
+          raise ServerError,
+            message: "invalidRequest",
+            format: "Request or progress {reguestOrProgressId} cannot be cancelled",
+            variables: %{
+              "reguestOrProgressId" => inspect(request_or_progress_id)
+            }
       end
 
     {%{}, state}

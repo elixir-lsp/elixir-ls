@@ -2914,7 +2914,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     end)
   end
 
-  describe "Watch section" do
+  describe "evaluate" do
     defp gen_watch_expression_packet(seq, expr) do
       %{
         "arguments" => %{
@@ -3372,7 +3372,16 @@ defmodule ElixirLS.Debugger.ServerTest do
         cancel_req(2, %{"requestId" => 1})
       )
 
-      assert_receive(response(_, 2, "cancel", _))
+      assert_receive(
+        error_response(
+          _,
+          2,
+          "cancel",
+          "invalidRequest",
+          "Request or progress {reguestOrProgressId} cannot be cancelled",
+          %{"reguestOrProgressId" => "1"}
+        )
+      )
 
       assert Process.alive?(server)
     end)
