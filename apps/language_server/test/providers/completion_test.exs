@@ -685,6 +685,42 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     end
   end
 
+  describe "keyword completion" do
+    setup do
+      text = """
+      defmodule MyModule do
+        def dummy_function() do
+          t
+          #^
+        end
+      end
+      """
+
+      %{text: text, location: {2, 5}}
+    end
+
+    test "first", context do
+      %{text: text, location: {line, char}} = context
+
+      TestUtils.assert_has_cursor_char(text, line, char)
+
+      opts = Keyword.merge(@supports, signature_after_complete: true)
+      {:ok, %{"items" => items}} = Completion.completion(text, line, char, opts)
+
+      [item] = items |> Enum.filter(&(&1["insertText"] == "true"))
+
+      assert %{
+               "detail" => "keyword",
+               "documentation" => %{:kind => "markdown", "value" => ""},
+               "insertText" => "true",
+               "insertTextFormat" => 2,
+               "kind" => 14,
+               "label" => "true",
+               "sortText" => "00000000"
+             } = item
+    end
+  end
+
   describe "function completion" do
     setup do
       text = """
