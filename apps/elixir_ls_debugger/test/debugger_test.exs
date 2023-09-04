@@ -100,8 +100,9 @@ defmodule ElixirLS.Debugger.ServerTest do
         Server.receive_packet(server, request(1, "disconnect"))
         assert_receive(response(_, 1, "disconnect", %{}))
         assert_receive({:EXIT, ^server, {:exit_code, 0}})
-        Process.flag(:trap_exit, false)
       end)
+    after
+      Process.flag(:trap_exit, false)
     end
 
     test "succeeds when initialized", %{server: server} do
@@ -116,8 +117,9 @@ defmodule ElixirLS.Debugger.ServerTest do
         Server.receive_packet(server, request(2, "disconnect"))
         assert_receive(response(_, 2, "disconnect", %{}))
         assert_receive({:EXIT, ^server, {:exit_code, 0}})
-        Process.flag(:trap_exit, false)
       end)
+    after
+      Process.flag(:trap_exit, false)
     end
   end
 
@@ -312,6 +314,64 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       Server.receive_packet(server, continue_req(15, thread_id))
       assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
+
+      assert_receive(
+        event(_, "exited", %{
+          "exitCode" => 0
+        })
+      )
+
+      assert_receive(event(_, "terminated", %{"restart" => false}))
+    end)
+  end
+
+  @tag :fixture
+  test "launch with no debug", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "noDebug" => true,
+          "task" => "run",
+          "taskArgs" => ["-e", "Some.fun_1(2)"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+      # ensure thread ids are unique
+      thread_ids = Enum.map(threads, & &1["id"])
+      assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+      assert_receive(
+        event(_, "exited", %{
+          "exitCode" => 0
+        }),
+        3000
+      )
+
+      assert_receive(event(_, "terminated", %{"restart" => false}))
+    end)
+  end
     end)
   end
 

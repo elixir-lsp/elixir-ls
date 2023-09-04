@@ -183,6 +183,15 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
+  def handle_call(
+        {:dbg, _binding, %Macro.Env{}, _stacktrace},
+        _from,
+        state = %__MODULE__{config: %{"noDebug" => true}}
+      ) do
+    # auto continue
+    {:reply, {:ok, false}, state}
+  end
+
   def handle_call({:dbg, binding, %Macro.Env{} = env, stacktrace}, from, state = %__MODULE__{}) do
     {pid, _ref} = from
     ref = Process.monitor(pid)
@@ -532,11 +541,7 @@ defmodule ElixirLS.Debugger.Server do
     {%{}, state}
   end
 
-  defp handle_request(launch_req(_, config) = args, state = %__MODULE__{}) do
-    if args["arguments"]["noDebug"] == true do
-      Output.debugger_important("launch with no debug is not supported")
-    end
-
+  defp handle_request(launch_req(_, config), state = %__MODULE__{}) do
     server = self()
 
     {_, ref} = spawn_monitor(fn -> launch(config, server) end)
@@ -563,6 +568,16 @@ defmodule ElixirLS.Debugger.Server do
       end
 
     {%{}, %{state | config: config}}
+  end
+
+  defp handle_request(
+         set_breakpoints_req(_, %{"path" => _path}, _breakpoints),
+         %__MODULE__{config: %{"noDebug" => true}}
+       ) do
+    raise ServerError,
+      message: "invalidRequest",
+      format: "Cannot set breakpoints when running with no debug",
+      variables: %{}
   end
 
   defp handle_request(
@@ -602,6 +617,16 @@ defmodule ElixirLS.Debugger.Server do
       end)
 
     {%{"breakpoints" => breakpoints_json}, state}
+  end
+
+  defp handle_request(
+         set_function_breakpoints_req(_, _breakpoints),
+         %__MODULE__{config: %{"noDebug" => true}}
+       ) do
+    raise ServerError,
+      message: "invalidRequest",
+      format: "Cannot set function breakpoints when running with no debug",
+      variables: %{}
   end
 
   defp handle_request(
@@ -653,7 +678,7 @@ defmodule ElixirLS.Debugger.Server do
                             breaks_after = :int.all_breaks(m)
                             lines = for {{^m, line}, _} <- breaks_after -- breaks_before, do: line
 
-                            # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
+                            # pass nil as log_message - not supported on function breakpoints as of DAP 1.63
                             update_break_condition(m, lines, condition, nil, hit_count)
 
                             {:ok, lines}
@@ -706,7 +731,9 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(configuration_done_req(_), state = %__MODULE__{}) do
-    :int.auto_attach([:break], build_attach_mfa(:breakpoint_reached))
+    unless state.config["noDebug"] do
+      :int.auto_attach([:break], build_attach_mfa(:breakpoint_reached))
+    end
 
     task = state.config["task"]
     args = state.config["taskArgs"]
@@ -740,6 +767,16 @@ defmodule ElixirLS.Debugger.Server do
     end
 
     {%{}, state}
+  end
+
+  defp handle_request(
+         pause_req(_, _thread_id),
+         %__MODULE__{config: %{"noDebug" => true}}
+       ) do
+    raise ServerError,
+      message: "invalidRequest",
+      format: "Cannot pause process when running with no debug",
+      variables: %{}
   end
 
   defp handle_request(pause_req(_, thread_id), state = %__MODULE__{}) do
@@ -1365,7 +1402,6 @@ defmodule ElixirLS.Debugger.Server do
     task_args = config["taskArgs"] || []
     auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
 
-    set_stack_trace_mode(config["stackTraceMode"])
     set_env_vars(config["env"])
 
     File.cd!(project_dir)
@@ -1427,14 +1463,20 @@ defmodule ElixirLS.Debugger.Server do
       exclude_module_names
       |> Enum.map(&wildcard_module_name_to_pattern/1)
 
-    if auto_interpret_files? do
-      auto_interpret_modules(Mix.Project.build_path(), exclude_module_pattern)
-    end
+    unless config["noDebug"] do
+      set_stack_trace_mode(config["stackTraceMode"])
 
-    if required_files = config["requireFiles"], do: require_files(required_files)
+      if auto_interpret_files? do
+        auto_interpret_modules(Mix.Project.build_path(), exclude_module_pattern)
+      end
 
-    if interpret_modules_patterns = config["debugInterpretModulesPatterns"] do
-      interpret_specified_modules(interpret_modules_patterns, exclude_module_pattern)
+      if required_files = config["requireFiles"], do: require_files(required_files)
+
+      if interpret_modules_patterns = config["debugInterpretModulesPatterns"] do
+        interpret_specified_modules(interpret_modules_patterns, exclude_module_pattern)
+      end
+    else
+      Output.debugger_console("Running without debugging")
     end
 
     updated_config = Map.merge(config, %{"task" => task, "taskArgs" => task_args})
