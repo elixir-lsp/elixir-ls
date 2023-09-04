@@ -1,5 +1,5 @@
 defmodule ElixirLS.Debugger.VariablesTest do
-  use ElixirLS.Utils.MixTest.Case, async: true
+  use ExUnit.Case, async: true
   alias ElixirLS.Debugger.Variables
 
   test "type" do

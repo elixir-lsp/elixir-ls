@@ -1,5 +1,5 @@
 defmodule ElixirLS.Debugger.UtilsTest do
-  use ElixirLS.Utils.MixTest.Case, async: true
+  use ExUnit.Case, async: true
   alias ElixirLS.Debugger.Utils
 
   describe "parse_mfa" do

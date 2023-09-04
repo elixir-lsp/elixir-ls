@@ -1,5 +1,5 @@
 defmodule ElixirLS.Debugger.BindingTest do
-  use ElixirLS.Utils.MixTest.Case, async: true
+  use ExUnit.Case, async: true
   alias ElixirLS.Debugger.Binding
 
   test "get_elixir_variable" do

@@ -1,5 +1,5 @@
 defmodule ElixirLS.Debugger.BreakpointConditionTest do
-  use ElixirLS.Utils.MixTest.Case, async: false
+  use ExUnit.Case, async: false
   alias ElixirLS.Debugger.BreakpointCondition
   import ExUnit.CaptureIO
 
