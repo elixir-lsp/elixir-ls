@@ -1397,6 +1397,7 @@ defmodule ElixirLS.Debugger.Server do
 
     Output.debugger_console("Running with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}\n")
 
+    Launch.ensure_no_slashes(task)
     Mix.Task.run("loadconfig")
 
     # make sure ANSI is disabled

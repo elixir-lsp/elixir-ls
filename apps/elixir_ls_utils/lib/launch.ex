@@ -225,4 +225,10 @@ defmodule ElixirLS.Utils.Launch do
     Mix.env(from_env("MIX_ENV", :dev))
     Mix.target(from_env("MIX_TARGET", :host))
   end
+
+  def ensure_no_slashes(task) do
+    if String.contains?(task, "/") do
+      raise Mix.NoTaskError, task: task
+    end
+  end
 end
