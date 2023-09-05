@@ -481,17 +481,26 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(initialize_req(_, client_info), %__MODULE__{client_info: nil} = state) do
     # linesStartAt1 is true by default and we only support 1-based indexing
     if client_info["linesStartAt1"] == false do
-      Output.debugger_important("0-based lines are not supported")
+      raise ServerError,
+        message: "invalidRequest",
+        format: "0-based lines are not supported",
+        variables: %{}
     end
 
     # columnsStartAt1 is true by default and we only support 1-based indexing
     if client_info["columnsStartAt1"] == false do
-      Output.debugger_important("0-based columns are not supported")
+      raise ServerError,
+        message: "invalidRequest",
+        format: "0-based columns are not supported",
+        variables: %{}
     end
 
     # pathFormat is `path` by default and we do not support other, e.g. `uri`
     if client_info["pathFormat"] not in [nil, "path"] do
-      Output.debugger_important("pathFormat #{client_info["pathFormat"]} not supported")
+      raise ServerError,
+        message: "invalidRequest",
+        format: "pathFormat {pathFormat} is not supported",
+        variables: %{"pathFormat" => client_info["pathFormat"]}
     end
 
     {capabilities(), %{state | client_info: client_info}}
@@ -1493,10 +1502,14 @@ defmodule ElixirLS.Debugger.Server do
   defp set_stack_trace_mode("all"), do: :int.stack_trace(:all)
   defp set_stack_trace_mode("no_tail"), do: :int.stack_trace(:no_tail)
   defp set_stack_trace_mode("false"), do: :int.stack_trace(false)
+  defp set_stack_trace_mode(false), do: :int.stack_trace(false)
   defp set_stack_trace_mode(nil), do: nil
 
   defp set_stack_trace_mode(_) do
-    Output.debugger_important(~S(stackTraceMode must be "all", "no_tail", or "false"))
+    raise ServerError,
+      message: "argumentError",
+      format: "stackTraceMode must be `all`, `no_tail`, or `false`",
+      variables: %{}
   end
 
   defp capabilities do
@@ -1607,17 +1620,16 @@ defmodule ElixirLS.Debugger.Server do
 
   defp interpret_specified_modules(file_patterns, exclude_module_pattern) do
     regexes =
-      Enum.flat_map(file_patterns, fn pattern ->
+      Enum.map(file_patterns, fn pattern ->
         case Regex.compile(pattern) do
           {:ok, regex} ->
-            [regex]
+            regex
 
           {:error, error} ->
-            Output.debugger_important(
-              "Unable to compile file pattern (#{inspect(pattern)}) into a regex. Received error: #{inspect(error)}"
-            )
-
-            []
+            raise ServerError,
+              message: "argumentError",
+              format: "Unable to compile file pattern {pattern} into a regex: {error}",
+              variables: %{"pattern" => inspect(pattern), "error" => inspect(error)}
         end
       end)
 
