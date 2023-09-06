@@ -326,17 +326,18 @@ Below is a list of configuration options supported by the ElixirLS language serv
 Below is a list of configuration options supported by the ElixirLS Debugger. Configuration options can be supplied via the debugger launch configuration. Please refer to your editor's documentation on how to configure debugger adapters.
 
 <dl>
-  <dt>startApps</dt><dd>Run `mix app.start` before launching the debugger. Some tasks (such as Phoenix tests) expect apps to already be running before the test files are required.</dd>
+  <dt>startApps</dt><dd>Run `mix app.start` before launching the debugger. Some tasks (such as Phoenix tests) expect apps to already be running before the test files are required. Defaults to `false`.</dd>
   <dt>task</dt><dd>Mix task to run with debugger - Defaults to task set under `:default_task` key in mixfile.</dd>
   <dt>taskArgs</dt><dd>A list of arguments to mix task</dd>
   <dt>debugAutoInterpretAllModules</dt><dd>Auto interpret all modules from project build path. Defaults to `true`.</dd>
   <dt>env</dt><dd>An object with environment variables - To set Object keys, specify environment variables; values should be strings.</dd>
-  <dt>stackTraceMode</dt><dd>Debugger stacktrace mode - Allowed values are `all`, `no_tail`, and `false`.</dd>
+  <dt>stackTraceMode</dt><dd>Option passed to :int.stack_trace/1. See https://www.erlang.org/doc/man/int#stack_trace-1 for details. Allowed values are `all`, `no_tail`, and `false`.</dd>
   <dt>requireFiles</dt><dd>A list of additional files that should be required and interpreted - This is especially useful for debugging tests.</dd>
   <dt>debugInterpretModulesPatterns</dt><dd>A list of globs specifying modules that should be interpreted</dd>
   <dt>projectDir</dt><dd>An absolute path to the directory where `mix.exs` is located - In VSCode, `${workspaceRoot}` can be used.</dd>
   <dt>excludeModules</dt><dd>A list of modules that should not be interpreted</dd>
   <dt>exitAfterTaskReturns</dt><dd>Should the debug session stop when mix task returns. Tasks that return early while the code continues running asynchronously require `false` setting. Defaults to `true`.</dd>
+  <dt>noDebug</dt><dd>Run mix task without debugging. Defaults to `false`.</dd>
   <dt>breakOnDbg</dt><dd>Should the debugger break on Kernel.dbg/2 macro. Defaults to `true`.</dd>
 </dl>
 
