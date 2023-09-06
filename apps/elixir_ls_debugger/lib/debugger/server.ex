@@ -744,9 +744,7 @@ defmodule ElixirLS.Debugger.Server do
       :int.auto_attach([:break], build_attach_mfa(:breakpoint_reached))
     end
 
-    task = state.config["task"]
-    args = state.config["taskArgs"]
-    {_pid, task_ref} = spawn_monitor(fn -> launch_task(task, args) end)
+    {_pid, task_ref} = spawn_monitor(fn -> launch_task(state.config) end)
 
     {%{}, %{state | task_ref: task_ref}}
   end
@@ -1577,10 +1575,13 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp launch_task(task, args) do
+  defp launch_task(config) do
     # This fixes a race condition in the tests and likely improves reliability when using the
     # debugger as well.
     Process.sleep(100)
+
+    task = config["task"]
+    args = config["taskArgs"]
 
     if args != [] do
       Output.debugger_console("Running mix #{task} #{Enum.join(args, " ")}\n")
@@ -1588,16 +1589,21 @@ defmodule ElixirLS.Debugger.Server do
       Output.debugger_console("Running mix #{task}\n")
     end
 
-    Mix.Task.run(task, args)
+    res = Mix.Task.run(task, args)
 
-    Output.debugger_console(
-      "Mix.Task.run returned, sleeping.\nNote that debugger needs to be stopped manually.\n"
-    )
+    Output.debugger_console("Mix.Task.run returned:\n#{inspect(res)}\n")
 
-    # Starting from Elixir 1.9 Mix.Task.run will return so we need to sleep our
-    # process so that the code keeps running (Note: process is expected to be
-    # killed by stopping the debugger)
-    Process.sleep(:infinity)
+    if Map.get(config, "exitAfterTaskReturns", true) do
+      Output.debugger_console(
+        "Exiting.\nIf this behavior is undesired consider setting `sleepAfterTaskReturns` in launch config.\n"
+      )
+    else
+      # Starting from Elixir 1.9 Mix.Task.run will return so some task require sleeping
+      # process so that the code can keep running (Note: process is expected to be
+      # killed by stopping the debugger)
+      Output.debugger_console("Sleeping. The debugger will need to be stopped manually.\n")
+      Process.sleep(:infinity)
+    end
   end
 
   # Interpreting modules defined in .exs files requires that we first load the file and save any
