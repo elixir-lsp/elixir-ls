@@ -72,6 +72,26 @@ defmodule ElixirLS.Debugger.ServerTest do
       end)
     end
 
+    test "fails when not supported arguments passed", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(
+          server,
+          initialize_req(1, %{"clientID" => "some_id", "linesStartAt1" => false})
+        )
+
+        assert_receive(
+          error_response(
+            _,
+            1,
+            "initialize",
+            "invalidRequest",
+            "0-based lines are not supported",
+            %{}
+          )
+        )
+      end)
+    end
+
     test "rejects requests when not initialized", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(
@@ -372,6 +392,151 @@ defmodule ElixirLS.Debugger.ServerTest do
       assert_receive(event(_, "terminated", %{"restart" => false}))
     end)
   end
+
+  @tag :fixture
+  test "launch mix task that raises", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "noDebug" => true,
+          "task" => "run",
+          "taskArgs" => ["-e", "MixProject.Crash.fun_that_raises()"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      assert_receive event(_, "output", %{
+                       "category" => "console",
+                       "output" =>
+                         "Mix task exited with reason\nan exception was raised:\n    ** (RuntimeError) foo" <>
+                           _
+                     }),
+                     3000
+
+      assert_receive(
+        event(_, "exited", %{
+          "exitCode" => 1
+        }),
+        3000
+      )
+
+      assert_receive(event(_, "terminated", %{"restart" => false}))
+    end)
+  end
+
+  @tag :fixture
+  test "launch mix task that fails to initialze", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "noDebug" => true,
+          "task" => "ru/n",
+          "taskArgs" => [],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      refute_receive(event(_, "initialized", %{}))
+
+      assert_receive event(_, "output", %{
+                       "category" => "console",
+                       "output" =>
+                         "Launch request failed with reason\nan exception was raised:\n    ** (Mix.NoTaskError)" <>
+                           _
+                     }),
+                     3000
+
+      assert_receive(
+        event(_, "exited", %{
+          "exitCode" => 1
+        }),
+        3000
+      )
+
+      assert_receive(event(_, "terminated", %{"restart" => false}))
+    end)
+  end
+
+  @tag :fixture
+  test "launch invalid mix task", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "noDebug" => true,
+          "task" => "nonexisting",
+          "taskArgs" => [],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      assert_receive event(_, "output", %{
+                       "category" => "console",
+                       "output" =>
+                         "Mix task exited with reason\nan exception was raised:\n    ** (Mix.NoTaskError) The task \"nonexisting\" could not be found" <>
+                           _
+                     }),
+                     3000
+
+      assert_receive(
+        event(_, "exited", %{
+          "exitCode" => 1
+        }),
+        3000
+      )
+
+      assert_receive(event(_, "terminated", %{"restart" => false}))
     end)
   end
 

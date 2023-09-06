@@ -401,10 +401,18 @@ defmodule ElixirLS.Debugger.Server do
           0
 
         _ ->
-          Output.debugger_important("Task failed: " <> Exception.format_exit(reason))
+          Output.debugger_important("Mix task failed")
 
           1
       end
+
+    IO.puts(
+      "Mix task exited with reason\n#{Exception.format_exit(reason)}\nreturning code #{exit_code}"
+    )
+
+    Output.debugger_console(
+      "Mix task exited with reason\n#{Exception.format_exit(reason)}\nreturning code #{exit_code}"
+    )
 
     Output.send_event("exited", %{"exitCode" => exit_code})
     Output.send_event("terminated", %{"restart" => false})
@@ -577,9 +585,14 @@ defmodule ElixirLS.Debugger.Server do
 
         {:DOWN, ^ref, :process, _pid, reason} ->
           if reason != :normal do
-            Output.debugger_important("Initialization failed: " <> Exception.format_exit(reason))
+            Output.debugger_important("Launch request failed")
 
-            Output.send_event("exited", %{"exitCode" => 1})
+            Output.debugger_console(
+              "Launch request failed with reason\n" <> Exception.format_exit(reason)
+            )
+
+            exit_code = 1
+            Output.send_event("exited", %{"exitCode" => exit_code})
             Output.send_event("terminated", %{"restart" => false})
             config
           else
