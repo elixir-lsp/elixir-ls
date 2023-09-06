@@ -1604,7 +1604,7 @@ defmodule ElixirLS.Debugger.Server do
 
     if Map.get(config, "exitAfterTaskReturns", true) do
       Output.debugger_console(
-        "Exiting.\nIf this behavior is undesired consider setting `sleepAfterTaskReturns` in launch config.\n"
+        "Exiting debugger.\nIf this behavior is undesired consider setting `exitAfterTaskReturns` to `false` in launch config.\n"
       )
     else
       # Starting from Elixir 1.9 Mix.Task.run will return so some task require sleeping
