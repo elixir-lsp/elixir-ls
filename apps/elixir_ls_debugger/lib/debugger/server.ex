@@ -469,6 +469,8 @@ defmodule ElixirLS.Debugger.Server do
   @impl GenServer
   def handle_continue(:disconnect, state = %__MODULE__{}) do
     unless Application.get_env(:elixir_ls_debugger, :test_mode) do
+      Output.debugger_console("Received disconnect request")
+      Process.sleep(200)
       System.stop(0)
     else
       Process.exit(self(), {:exit_code, 0})
