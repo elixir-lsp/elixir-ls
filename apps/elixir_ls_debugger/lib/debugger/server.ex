@@ -192,6 +192,15 @@ defmodule ElixirLS.Debugger.Server do
     {:reply, {:ok, false}, state}
   end
 
+  def handle_call(
+        {:dbg, _binding, %Macro.Env{}, _stacktrace},
+        _from,
+        state = %__MODULE__{config: %{"breakOnDbg" => false}}
+      ) do
+    # auto continue
+    {:reply, {:ok, false}, state}
+  end
+
   def handle_call({:dbg, binding, %Macro.Env{} = env, stacktrace}, from, state = %__MODULE__{}) do
     {pid, _ref} = from
     ref = Process.monitor(pid)

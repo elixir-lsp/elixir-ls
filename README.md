@@ -337,6 +337,7 @@ Below is a list of configuration options supported by the ElixirLS Debugger. Con
   <dt>projectDir</dt><dd>An absolute path to the directory where `mix.exs` is located - In VSCode, `${workspaceRoot}` can be used.</dd>
   <dt>excludeModules</dt><dd>A list of modules that should not be interpreted</dd>
   <dt>exitAfterTaskReturns</dt><dd>Should the debug session stop when mix task returns. Tasks that return early while the code continues running asynchronously require `false` setting. Defaults to `true`.</dd>
+  <dt>breakOnDbg</dt><dd>Should the debugger break on Kernel.dbg/2 macro. Defaults to `true`.</dd>
 </dl>
 
 ## Troubleshooting
