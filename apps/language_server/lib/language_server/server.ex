@@ -243,6 +243,9 @@ defmodule ElixirLS.LanguageServer.Server do
         _ -> handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason)], state)
       end
 
+    # in case the build was interrupted make sure that cwd is reset to project dir
+    File.cd!(state.project_dir)
+
     if reason == :normal do
       WorkspaceSymbols.notify_build_complete()
     end
