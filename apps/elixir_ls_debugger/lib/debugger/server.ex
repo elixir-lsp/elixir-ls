@@ -176,8 +176,8 @@ defmodule ElixirLS.Debugger.Server do
 
   @impl GenServer
   def init(opts) do
-    BreakpointCondition.start_link([])
-    ModuleInfoCache.start_link(%{})
+    {:ok, _} = BreakpointCondition.start_link([])
+    {:ok, _} = ModuleInfoCache.start_link(%{})
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
     {:ok, state}
   end
