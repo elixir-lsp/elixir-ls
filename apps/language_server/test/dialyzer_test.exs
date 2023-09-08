@@ -22,8 +22,25 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   end
 
   setup do
-    server = start_server()
+    {:ok, server} = Server.start_link()
+    start_server(server)
+    Process.unlink(server)
     {:ok, _tracer} = start_supervised(Tracer)
+
+    on_exit(fn ->
+      if Process.alive?(server) do
+        state = :sys.get_state(server)
+        refute state.build_running?
+
+        Process.monitor(server)
+        Process.exit(server, :terminate)
+
+        receive do
+          {:DOWN, _, _, ^server, _} ->
+            :ok
+        end
+      end
+    end)
 
     {:ok, %{server: server}}
   end
@@ -87,8 +104,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                        }),
                        40000
 
-        # Stop while we're still capturing logs to avoid log leakage
-        GenServer.stop(server)
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -140,8 +156,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                        }),
                        3_000
 
-        # Stop while we're still capturing logs to avoid log leakage
-        GenServer.stop(server)
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -188,6 +203,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                Type:
                :error
                """
+
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -225,6 +242,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         assert error_message1 == "Function fun/0 has no local return."
         assert error_message2 == "The pattern can never match the type :error."
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -263,6 +281,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         assert error_message1 == "Function 'fun'/0 has no local return"
 
         # Note: Don't assert on error_messaage 2 because the message is not stable across OTP versions
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -300,6 +319,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
         assert error_message1 == "Function check_error/0 has no local return."
         assert error_message2 == "The pattern can never match the type :error."
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -317,9 +337,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         File.rm("lib/a.ex")
         Server.receive_packet(server, did_change_watched_files([%{"uri" => file_a, "type" => 3}]))
         assert_receive publish_diagnostics_notif(^file_a, []), 20000
-
-        # Stop while we're still capturing logs to avoid log leakage
-        GenServer.stop(server)
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -388,6 +406,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
       # we should not receive Protocol has already been consolidated warnings here
       refute_receive notification("textDocument/publishDiagnostics", _), 3000
+      wait_until_compiled(server)
     end)
   end
 
@@ -416,6 +435,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         resp = assert_receive(%{"id" => 3}, 5000)
 
         assert response(3, []) == resp
+        wait_until_compiled(server)
       end)
     end)
   end
@@ -501,6 +521,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         JsonRpc.receive_packet(response(id, %{"applied" => true}))
 
         assert_receive(%{"id" => 4, "result" => nil}, 5000)
+        wait_until_compiled(server)
       end)
     end)
   end

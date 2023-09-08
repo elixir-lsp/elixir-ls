@@ -6,7 +6,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
 
   setup do
     {:ok, _} = start_supervised(Tracer)
-    server = start_server()
+    {:ok, server} = Server.start_link()
+    start_server(server)
+    Process.unlink(server)
+
+    on_exit(fn ->
+      if Process.alive?(server) do
+        state = :sys.get_state(server)
+        refute state.build_running?
+
+        Process.monitor(server)
+        Process.exit(server, :terminate)
+
+        receive do
+          {:DOWN, _, _, ^server, _} ->
+            :ok
+        end
+      end
+    end)
 
     {:ok, %{server: server}}
   end

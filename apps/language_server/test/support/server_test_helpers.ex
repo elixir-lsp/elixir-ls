@@ -8,12 +8,11 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
   alias ElixirLS.Utils.PacketCapture
   use ElixirLS.LanguageServer.Protocol
 
-  def start_server do
+  def start_server(server) do
     packet_capture = start_supervised!({PacketCapture, self()})
 
     replace_logger(packet_capture)
 
-    server = start_supervised!({Server, nil})
     Process.group_leader(server, packet_capture)
 
     json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
@@ -108,7 +107,7 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
 
   def fake_initialize(server) do
     :sys.replace_state(server, fn state ->
-      %{state | server_instance_id: "123", project_dir: "/fake_dir"}
+      %{state | server_instance_id: "123", project_dir: File.cwd!()}
     end)
   end
 
