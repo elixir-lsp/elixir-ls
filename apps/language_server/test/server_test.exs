@@ -20,7 +20,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     else
       {:ok, server} = Server.start_link()
       start_server(server)
-      Process.monitor(server)
       Process.unlink(server)
       {:ok, tracer} = start_supervised(Tracer)
 
