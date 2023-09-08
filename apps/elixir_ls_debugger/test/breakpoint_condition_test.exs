@@ -5,7 +5,7 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
 
   @name BreakpointConditionTestServer
   setup do
-    {:ok, pid} = BreakpointCondition.start_link(name: @name)
+    pid = start_link_supervised!({BreakpointCondition, name: @name})
 
     {:ok,
      %{
