@@ -49,6 +49,8 @@ defmodule ElixirLS.LanguageServer.Server do
     :root_uri,
     :project_dir,
     :settings,
+    parse_file_refs: %{},
+    parser_diagnostics: %{},
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
@@ -270,6 +272,71 @@ defmodule ElixirLS.LanguageServer.Server do
     {:noreply, state}
   end
 
+  @impl GenServer
+  def handle_info(
+        {:parse_file, uri},
+        %__MODULE__{source_files: source_files} = state
+      ) do
+    old_diagnostics =
+      state.build_diagnostics ++
+        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics)
+
+    parser_diagnostics =
+      case source_files[uri] do
+        %SourceFile{} = source_file ->
+          file = SourceFile.Path.from_uri(uri)
+          # TODO tests
+          # TODO with_diagnostics
+          # TODO emit on open
+          # TODO remove on close
+          # TODO only check ex|exs?
+          # TODO consider refactoring build diagnostics
+          # TODO eex?
+          case Code.string_to_quoted(source_file.text, columns: true, file: file) do
+            {:ok, _} ->
+              Map.delete(state.parser_diagnostics, uri)
+
+            {:error, {meta, message_info, token}} ->
+              IO.inspect({message_info, token})
+              line = meta |> Keyword.get(:line, 1)
+              column = meta |> Keyword.get(:column, 1)
+
+              message =
+                case message_info do
+                  {part_1, part_2} ->
+                    part_1 <> token <> part_2
+
+                  part_1 ->
+                    part_1 <> token
+                end
+
+              diagnostic = %Mix.Task.Compiler.Diagnostic{
+                compiler_name: "ElixirLS",
+                file: file,
+                position: {line, column},
+                message: message,
+                severity: :error
+              }
+
+              Map.put(state.parser_diagnostics, uri, diagnostic)
+          end
+
+        nil ->
+          Map.delete(state.parser_diagnostics, uri)
+      end
+
+    state = %{state | parser_diagnostics: parser_diagnostics}
+
+    publish_diagnostics(
+      state.build_diagnostics ++
+        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics),
+      old_diagnostics,
+      state.source_files
+    )
+
+    {:noreply, state}
+  end
+
   ## Helpers
 
   defp handle_notification(notification("initialized"), state = %__MODULE__{}) do
@@ -421,9 +488,18 @@ defmodule ElixirLS.LanguageServer.Server do
 
       state
     else
-      update_in(state.source_files[uri], fn source_file ->
-        %SourceFile{source_file | version: version, dirty?: true}
-        |> SourceFile.apply_content_changes(content_changes)
+      state =
+        update_in(state.source_files[uri], fn source_file ->
+          %SourceFile{source_file | version: version, dirty?: true}
+          |> SourceFile.apply_content_changes(content_changes)
+        end)
+
+      update_in(state.parse_file_refs[uri], fn old_ref ->
+        if old_ref do
+          Process.cancel_timer(old_ref, info: false)
+        end
+
+        Process.send_after(self(), {:parse_file, uri}, 300)
       end)
     end
   end
@@ -1039,7 +1115,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
-    old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
+    old_diagnostics =
+      state.build_diagnostics ++
+        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics)
+
     state = put_in(state.build_diagnostics, diagnostics)
 
     state =
@@ -1055,7 +1134,8 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
     publish_diagnostics(
-      state.build_diagnostics ++ state.dialyzer_diagnostics,
+      state.build_diagnostics ++
+        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics),
       old_diagnostics,
       state.source_files
     )
