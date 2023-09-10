@@ -287,8 +287,6 @@ defmodule ElixirLS.LanguageServer.Server do
           file = SourceFile.Path.from_uri(uri)
           # TODO tests
           # TODO with_diagnostics
-          # TODO emit on open
-          # TODO remove on close
           # TODO only check ex|exs?
           # TODO consider refactoring build diagnostics
           # TODO eex?
@@ -297,7 +295,7 @@ defmodule ElixirLS.LanguageServer.Server do
               Map.delete(state.parser_diagnostics, uri)
 
             {:error, {meta, message_info, token}} ->
-              IO.inspect({message_info, token})
+              # IO.inspect({message_info, token})
               line = meta |> Keyword.get(:line, 1)
               column = meta |> Keyword.get(:column, 1)
 
@@ -325,7 +323,11 @@ defmodule ElixirLS.LanguageServer.Server do
           Map.delete(state.parser_diagnostics, uri)
       end
 
-    state = %{state | parser_diagnostics: parser_diagnostics}
+    state = %{
+      state
+      | parser_diagnostics: parser_diagnostics,
+        parse_file_refs: Map.delete(state.parse_file_refs, uri)
+    }
 
     publish_diagnostics(
       state.build_diagnostics ++
@@ -448,13 +450,9 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       source_file = %SourceFile{text: text, version: version}
 
-      Diagnostics.publish_file_diagnostics(
-        uri,
-        state.build_diagnostics ++ state.dialyzer_diagnostics,
-        source_file
-      )
-
-      put_in(state.source_files[uri], source_file)
+      state = put_in(state.source_files[uri], source_file)
+      # parse handler will emit diagnostics for opened file
+      trigger_parse(state, uri, 0)
     end
   end
 
@@ -468,6 +466,9 @@ defmodule ElixirLS.LanguageServer.Server do
       state
     else
       awaiting_contracts = reject_awaiting_contracts(state.awaiting_contracts, uri)
+
+      # parse handler will clean up diagnostics and refs for closed file
+      state = trigger_parse(state, uri, 0)
 
       %{
         state
@@ -494,13 +495,8 @@ defmodule ElixirLS.LanguageServer.Server do
           |> SourceFile.apply_content_changes(content_changes)
         end)
 
-      update_in(state.parse_file_refs[uri], fn old_ref ->
-        if old_ref do
-          Process.cancel_timer(old_ref, info: false)
-        end
-
-        Process.send_after(self(), {:parse_file, uri}, 300)
-      end)
+      # trigger parse with debounce
+      trigger_parse(state, uri, 300)
     end
   end
 
@@ -1511,5 +1507,15 @@ defmodule ElixirLS.LanguageServer.Server do
       Logger.info("Client does not support workspace/configuration request")
       state
     end
+  end
+
+  defp trigger_parse(state, uri, debounce_timeout) do
+    update_in(state.parse_file_refs[uri], fn old_ref ->
+      if old_ref do
+        Process.cancel_timer(old_ref, info: false)
+      end
+
+      Process.send_after(self(), {:parse_file, uri}, debounce_timeout)
+    end)
   end
 end
