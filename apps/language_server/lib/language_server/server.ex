@@ -287,7 +287,6 @@ defmodule ElixirLS.LanguageServer.Server do
           file = SourceFile.Path.from_uri(uri)
           # TODO tests
           # TODO with_diagnostics
-          # TODO only check ex|exs?
           # TODO consider refactoring build diagnostics
           # TODO eex?
           case Code.string_to_quoted(source_file.text, columns: true, file: file) do
@@ -1510,12 +1509,16 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp trigger_parse(state, uri, debounce_timeout) do
-    update_in(state.parse_file_refs[uri], fn old_ref ->
-      if old_ref do
-        Process.cancel_timer(old_ref, info: false)
-      end
+    if String.ends_with?(uri, [".ex", ".exs"]) do
+      update_in(state.parse_file_refs[uri], fn old_ref ->
+        if old_ref do
+          Process.cancel_timer(old_ref, info: false)
+        end
 
-      Process.send_after(self(), {:parse_file, uri}, debounce_timeout)
-    end)
+        Process.send_after(self(), {:parse_file, uri}, debounce_timeout)
+      end)
+    else
+      state
+    end
   end
 end
