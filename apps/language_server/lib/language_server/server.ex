@@ -288,33 +288,11 @@ defmodule ElixirLS.LanguageServer.Server do
           # TODO tests
           # TODO with_diagnostics
           # TODO consider refactoring build diagnostics
-          # TODO eex?
-          case Code.string_to_quoted(source_file.text, columns: true, file: file) do
-            {:ok, _} ->
+          case parse_file(source_file.text, file) do
+            :ok ->
               Map.delete(state.parser_diagnostics, uri)
 
-            {:error, {meta, message_info, token}} ->
-              # IO.inspect({message_info, token})
-              line = meta |> Keyword.get(:line, 1)
-              column = meta |> Keyword.get(:column, 1)
-
-              message =
-                case message_info do
-                  {part_1, part_2} ->
-                    part_1 <> token <> part_2
-
-                  part_1 ->
-                    part_1 <> token
-                end
-
-              diagnostic = %Mix.Task.Compiler.Diagnostic{
-                compiler_name: "ElixirLS",
-                file: file,
-                position: {line, column},
-                message: message,
-                severity: :error
-              }
-
+            {:error, diagnostic} ->
               Map.put(state.parser_diagnostics, uri, diagnostic)
           end
 
@@ -447,6 +425,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       state
     else
+      IO.inspect(uri)
       source_file = %SourceFile{text: text, version: version}
 
       state = put_in(state.source_files[uri], source_file)
@@ -1509,7 +1488,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp trigger_parse(state, uri, debounce_timeout) do
-    if String.ends_with?(uri, [".ex", ".exs"]) do
+    if String.ends_with?(uri, [".ex", ".exs", ".eex"]) do
       update_in(state.parse_file_refs[uri], fn old_ref ->
         if old_ref do
           Process.cancel_timer(old_ref, info: false)
@@ -1519,6 +1498,63 @@ defmodule ElixirLS.LanguageServer.Server do
       end)
     else
       state
+    end
+  end
+
+  defp parse_file(text, file) do
+    if String.ends_with?(file, ".eex") do
+      try do
+        EEx.compile_string(text,
+          file: file,
+          parser_options: [
+            columns: true
+          ]
+        )
+
+        :ok
+      rescue
+        e in [EEx.SyntaxError, SyntaxError, TokenMissingError] ->
+          message = Exception.message(e)
+
+          diagnostic = %Mix.Task.Compiler.Diagnostic{
+            compiler_name: "ElixirLS",
+            file: file,
+            position: {e.line, e.column},
+            message: message,
+            severity: :error
+          }
+
+          {:error, diagnostic}
+      end
+    else
+      case Code.string_to_quoted(text, columns: true, file: file) do
+        {:ok, _} ->
+          :ok
+
+        {:error, {meta, message_info, token}} ->
+          # IO.inspect({message_info, token})
+          line = meta |> Keyword.get(:line, 1)
+          column = meta |> Keyword.get(:column, 1)
+
+          message =
+            case message_info do
+              {part_1, part_2} ->
+                part_1 <> token <> part_2
+
+              part_1 ->
+                part_1 <> token
+            end
+
+          diagnostic = %Mix.Task.Compiler.Diagnostic{
+            compiler_name: "ElixirLS",
+            file: file,
+            position: {line, column},
+            message: message,
+            severity: :error
+          }
+
+          {:error, diagnostic}
+      end
     end
   end
 end
