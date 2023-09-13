@@ -279,21 +279,20 @@ defmodule ElixirLS.LanguageServer.Server do
       ) do
     old_diagnostics =
       state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics)
+        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics))
 
     parser_diagnostics =
       case source_files[uri] do
         %SourceFile{} = source_file ->
           file = SourceFile.Path.from_uri(uri)
           # TODO tests
-          # TODO with_diagnostics
           # TODO consider refactoring build diagnostics
           case parse_file(source_file.text, file) do
-            :ok ->
+            [] ->
               Map.delete(state.parser_diagnostics, uri)
 
-            {:error, diagnostic} ->
-              Map.put(state.parser_diagnostics, uri, diagnostic)
+            diagnostics ->
+              Map.put(state.parser_diagnostics, uri, diagnostics)
           end
 
         nil ->
@@ -308,7 +307,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     publish_diagnostics(
       state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics),
+        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics)),
       old_diagnostics,
       state.source_files
     )
@@ -1091,7 +1090,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
     old_diagnostics =
       state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics)
+        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics))
 
     state = put_in(state.build_diagnostics, diagnostics)
 
@@ -1109,7 +1108,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     publish_diagnostics(
       state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ Map.values(state.parser_diagnostics),
+        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics)),
       old_diagnostics,
       state.source_files
     )
@@ -1502,59 +1501,71 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp parse_file(text, file) do
-    if String.ends_with?(file, ".eex") do
-      try do
-        EEx.compile_string(text,
-          file: file,
-          parser_options: [
-            columns: true
-          ]
-        )
+    {result, raw_diagnostics} =
+      Build.with_diagnostics([log: false], fn ->
+        if String.ends_with?(file, ".eex") do
+          try do
+            EEx.compile_string(text,
+              file: file,
+              parser_options: [
+                columns: true
+              ]
+            )
 
-        :ok
-      rescue
-        e in [EEx.SyntaxError, SyntaxError, TokenMissingError] ->
-          message = Exception.message(e)
+            :ok
+          rescue
+            e in [EEx.SyntaxError, SyntaxError, TokenMissingError] ->
+              message = Exception.message(e)
 
-          diagnostic = %Mix.Task.Compiler.Diagnostic{
-            compiler_name: "ElixirLS",
-            file: file,
-            position: {e.line, e.column},
-            message: message,
-            severity: :error
-          }
+              diagnostic = %Mix.Task.Compiler.Diagnostic{
+                compiler_name: "ElixirLS",
+                file: file,
+                position: {e.line, e.column},
+                message: message,
+                severity: :error
+              }
 
-          {:error, diagnostic}
-      end
-    else
-      case Code.string_to_quoted(text, columns: true, file: file) do
-        {:ok, _} ->
-          :ok
+              {:error, diagnostic}
+          end
+        else
+          case Code.string_to_quoted(text, columns: true, file: file) do
+            {:ok, _} ->
+              :ok
 
-        {:error, {meta, message_info, token}} ->
-          # IO.inspect({message_info, token})
-          line = meta |> Keyword.get(:line, 1)
-          column = meta |> Keyword.get(:column, 1)
+            {:error, {meta, message_info, token}} ->
+              # IO.inspect({message_info, token})
+              line = meta |> Keyword.get(:line, 1)
+              column = meta |> Keyword.get(:column, 1)
 
-          message =
-            case message_info do
-              {part_1, part_2} ->
-                part_1 <> token <> part_2
+              message =
+                case message_info do
+                  {part_1, part_2} ->
+                    part_1 <> token <> part_2
 
-              part_1 ->
-                part_1 <> token
-            end
+                  part_1 ->
+                    part_1 <> token
+                end
 
-          diagnostic = %Mix.Task.Compiler.Diagnostic{
-            compiler_name: "ElixirLS",
-            file: file,
-            position: {line, column},
-            message: message,
-            severity: :error
-          }
+              diagnostic = %Mix.Task.Compiler.Diagnostic{
+                compiler_name: "ElixirLS",
+                file: file,
+                position: {line, column},
+                message: message,
+                severity: :error
+              }
 
-          {:error, diagnostic}
-      end
+              {:error, diagnostic}
+          end
+        end
+      end)
+
+    warning_diagnostics =
+      raw_diagnostics
+      |> Enum.map(&Diagnostics.code_diagnostic/1)
+
+    case result do
+      :ok -> warning_diagnostics
+      {:error, diagnostic} -> [diagnostic | warning_diagnostics]
     end
   end
 end
