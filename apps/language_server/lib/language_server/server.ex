@@ -1503,59 +1503,54 @@ defmodule ElixirLS.LanguageServer.Server do
   defp parse_file(text, file) do
     {result, raw_diagnostics} =
       Build.with_diagnostics([log: false], fn ->
-        if String.ends_with?(file, ".eex") do
-          try do
+        try do
+          parser_options = [
+            file: file,
+            columns: true
+          ]
+
+          if String.ends_with?(file, ".eex") do
             EEx.compile_string(text,
               file: file,
-              parser_options: [
-                columns: true
-              ]
+              parser_options: parser_options
+            )
+          else
+            Code.string_to_quoted!(text, parser_options)
+          end
+
+          :ok
+        rescue
+          e in [EEx.SyntaxError, SyntaxError, TokenMissingError] ->
+            message = Exception.message(e)
+
+            diagnostic = %Mix.Task.Compiler.Diagnostic{
+              compiler_name: "ElixirLS",
+              file: file,
+              position: {e.line, e.column},
+              message: message,
+              severity: :error
+            }
+
+            {:error, diagnostic}
+
+          e ->
+            message = Exception.message(e)
+
+            diagnostic = %Mix.Task.Compiler.Diagnostic{
+              compiler_name: "ElixirLS",
+              file: file,
+              position: {1, 1},
+              message: message,
+              severity: :error
+            }
+
+            # e.g. https://github.com/elixir-lang/elixir/issues/12926
+            Logger.warning(
+              "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
+                Exception.format(:error, e, __STACKTRACE__)
             )
 
-            :ok
-          rescue
-            e in [EEx.SyntaxError, SyntaxError, TokenMissingError] ->
-              message = Exception.message(e)
-
-              diagnostic = %Mix.Task.Compiler.Diagnostic{
-                compiler_name: "ElixirLS",
-                file: file,
-                position: {e.line, e.column},
-                message: message,
-                severity: :error
-              }
-
-              {:error, diagnostic}
-          end
-        else
-          case Code.string_to_quoted(text, columns: true, file: file) do
-            {:ok, _} ->
-              :ok
-
-            {:error, {meta, message_info, token}} ->
-              # IO.inspect({message_info, token})
-              line = meta |> Keyword.get(:line, 1)
-              column = meta |> Keyword.get(:column, 1)
-
-              message =
-                case message_info do
-                  {part_1, part_2} ->
-                    part_1 <> token <> part_2
-
-                  part_1 ->
-                    part_1 <> token
-                end
-
-              diagnostic = %Mix.Task.Compiler.Diagnostic{
-                compiler_name: "ElixirLS",
-                file: file,
-                position: {line, column},
-                message: message,
-                severity: :error
-              }
-
-              {:error, diagnostic}
-          end
+            {:error, diagnostic}
         end
       end)
 
