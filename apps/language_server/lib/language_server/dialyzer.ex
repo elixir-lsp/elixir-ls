@@ -607,7 +607,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       %Diagnostics{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
-        position: normalize_postion(position),
+        position: normalize_position(position),
         message: warning_message(data, warning_format),
         severity: :warning,
         details: data
@@ -617,16 +617,16 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   # up until OTP 23 position was line :: non_negative_integer
   # starting from OTP 24 it is erl_anno:location() :: line | {line, column}
-  defp normalize_postion({line, column}) when line > 0 do
+  defp normalize_position({line, column}) when line > 0 do
     {line, column}
   end
 
   # 0 means unknown line
-  defp normalize_postion(line) when line >= 0 do
+  defp normalize_position(line) when line >= 0 do
     line
   end
 
-  defp normalize_postion(position) do
+  defp normalize_position(position) do
     Logger.warning(
       "[ElixirLS Dialyzer] dialyzer returned warning with invalid position #{inspect(position)}"
     )
