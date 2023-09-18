@@ -201,7 +201,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     end
   end
 
-  defp otp_vsn() do
+  def otp_vsn() do
     major = :erlang.system_info(:otp_release) |> List.to_string()
     vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
 

@@ -51,6 +51,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Utils do
   defp module_references(mod) do
     try do
       for form <- read_forms(mod),
+          # TODO does import create remote call?
           {:call, _, {:remote, _, {:atom, _, module}, _}, _} <- form,
           uniq: true,
           do: module

@@ -617,16 +617,16 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   # up until OTP 23 position was line :: non_negative_integer
   # starting from OTP 24 it is erl_anno:location() :: line | {line, column}
-  defp normalize_position({line, column}) when line > 0 do
+  def normalize_position({line, column}) when line > 0 do
     {line, column}
   end
 
   # 0 means unknown line
-  defp normalize_position(line) when line >= 0 do
+  def normalize_position(line) when line >= 0 do
     line
   end
 
-  defp normalize_position(position) do
+  def normalize_position(position) do
     Logger.warning(
       "[ElixirLS Dialyzer] dialyzer returned warning with invalid position #{inspect(position)}"
     )
@@ -634,8 +634,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     0
   end
 
-  defp warning_message({_, _, {warning_name, args}} = raw_warning, warning_format)
-       when warning_format in ["dialyxir_long", "dialyxir_short"] do
+  def warning_message({_, _, {warning_name, args}} = raw_warning, warning_format)
+      when warning_format in ["dialyxir_long", "dialyxir_short"] do
     format_function =
       case warning_format do
         "dialyxir_long" -> :format_long
@@ -652,11 +652,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  defp warning_message(raw_warning, "dialyzer") do
+  def warning_message(raw_warning, "dialyzer") do
     dialyzer_raw_warning_message(raw_warning)
   end
 
-  defp warning_message(raw_warning, warning_format) do
+  def warning_message(raw_warning, warning_format) do
     Logger.info(
       "[ElixirLS Dialyzer] Unrecognized dialyzerFormat setting: #{inspect(warning_format)}" <>
         ", falling back to \"dialyzer\""
