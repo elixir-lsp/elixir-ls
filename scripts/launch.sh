@@ -13,6 +13,9 @@ did_relaunch=$1
 # Get the user's preferred shell
 preferred_shell=$(basename "$SHELL")
 
+# Get current dirname
+dirname=$(dirname "$0")
+
 case "${did_relaunch}" in
   "")
     if [ "$preferred_shell" = "bash" ]; then
@@ -23,7 +26,7 @@ case "${did_relaunch}" in
       exec "$(which zsh)" "$0" relaunch
     elif [ "$preferred_shell" = "fish" ]; then
       >&2 echo "Preferred shell is fish, launching launch.fish"
-      exec "$(which fish)" "$(dirname "$0")/launch.fish"
+      exec "$(which fish)" "$dirname/launch.fish"
     else
       >&2 echo "Preffered shell $preferred_shell is not supported, continuing in POSIX shell"
     fi
@@ -98,23 +101,9 @@ echo "" | elixir "$SCRIPTPATH/quiet_install.exs" >/dev/null || exit 1
 default_erl_opts="-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none"
 
 if [ "$preferred_shell" = "bash" ]; then
-  # we need to make sure ELS_ELIXIR_OPTS gets splitted by word
-  # parse it as bash array
-  # shellcheck disable=SC3045
-  # shellcheck disable=SC3011
-  IFS=' ' read -ra elixir_opts <<< "$ELS_ELIXIR_OPTS"
-  # shellcheck disable=SC3054
-  # shellcheck disable=SC2068
-  exec elixir ${elixir_opts[@]} --erl "$default_erl_opts $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"
+  source "$dirname/exec.bash"
 elif [ "$preferred_shell" = "zsh" ]; then
-  # we need to make sure ELS_ELIXIR_OPTS gets splitted by word
-  # parse it as zsh array
-  # shellcheck disable=SC3030
-  # shellcheck disable=SC2296
-  elixir_opts=("${(z)ELS_ELIXIR_OPTS}")
-  # shellcheck disable=SC2128
-  # shellcheck disable=SC2086
-  exec elixir $elixir_opts --erl "$default_erl_opts $ELS_ERL_OPTS" "$SCRIPTPATH/launch.exs"
+  source "$dirname/exec.zsh"
 else
   if [ -z "$ELS_ELIXIR_OPTS" ]
   then
