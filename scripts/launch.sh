@@ -16,16 +16,16 @@ preferred_shell=$(basename "$SHELL")
 case "${did_relaunch}" in
   "")
     if [ "$preferred_shell" = "bash" ]; then
-      >&2 echo "Preffered shell is bash, relaunching"
+      >&2 echo "Preferred shell is bash, relaunching"
       exec "$(which bash)" "$0" relaunch
     elif [ "$preferred_shell" = "zsh" ]; then
-      >&2 echo "Preffered shell is zsh, relaunching"
+      >&2 echo "Preferred shell is zsh, relaunching"
       exec "$(which zsh)" "$0" relaunch
     elif [ "$preferred_shell" = "fish" ]; then
       >&2 echo "Preferred shell is fish, launching launch.fish"
       exec "$(which fish)" "$(dirname "$0")/launch.fish"
     else
-      >&2 echo "Preffered shell $preferred_shell is not supported, continuing in POSIX shell"
+      >&2 echo "Preferred shell $preferred_shell is not supported, continuing in POSIX shell"
     fi
     ;;
   *)
