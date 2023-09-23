@@ -200,7 +200,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               deps_path: deps_path
           }
 
-          trigger_analyze(state)
+          maybe_trigger_analyze(state)
         else
           state
         end
@@ -268,8 +268,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     }
   end
 
-  defp trigger_analyze(%{analysis_pid: nil} = state), do: do_analyze(state)
-  defp trigger_analyze(state), do: state
+  defp maybe_trigger_analyze(%{analysis_pid: nil} = state), do: do_analyze(state)
+  defp maybe_trigger_analyze(state), do: state
 
   defp update_stale(md5, removed_files, file_changes, timestamp, project_dir, build_path) do
     prev_paths = Map.keys(md5) |> MapSet.new()
