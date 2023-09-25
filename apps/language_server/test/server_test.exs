@@ -562,7 +562,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = SourceFile.Path.to_uri("file.ex")
+        uri = SourceFile.Path.to_uri("file.eex")
         code = ~S(
         <%= :asd
         )
@@ -588,7 +588,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse tokenizer error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = SourceFile.Path.to_uri("file.ex")
+        uri = SourceFile.Path.to_uri("file.eex")
         code = ~S(
         <%= as{ %>
         )
@@ -614,7 +614,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse warning", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = SourceFile.Path.to_uri("file.ex")
+        uri = SourceFile.Path.to_uri("file.eex")
         code = ~S(
         foo <%= if true do %>true<%= else %>false<% end %>
         )
@@ -640,7 +640,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse tokenizer warning", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = SourceFile.Path.to_uri("file.ex")
+        uri = SourceFile.Path.to_uri("file.eex")
         code = ~S(
         <% :'bar' %>
         )
