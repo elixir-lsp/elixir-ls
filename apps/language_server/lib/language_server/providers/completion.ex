@@ -161,6 +161,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
       |> maybe_add_end(context)
+      |> maybe_add_keywords(context)
       |> Enum.reject(&is_nil/1)
       |> sort_items()
 
@@ -238,7 +239,39 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
+  defp maybe_add_keywords(completion_items, %{text_after_cursor: ""} = context) do
+    kw = Map.get(context, :text_before_cursor) |> String.trim_leading() |> get_keyword()
+
+    if kw != "" do
+      item = %__MODULE__{
+        label: kw,
+        kind: :keyword,
+        detail: "keyword",
+        insert_text: kw,
+        tags: [],
+        priority: 0
+      }
+
+      [item | completion_items]
+    else
+      completion_items
+    end
+  end
+
+  defp maybe_add_keywords(completion_items, _context) do
+    completion_items
+  end
+
   ## Helpers
+
+  defp get_keyword(t) do
+    cond do
+      Enum.member?(["t", "tr", "tru", "true"], t) -> "true"
+      Enum.member?(["f", "fa", "fal", "fals", "false"], t) -> "false"
+      Enum.member?(["n", "ni", "nil"], t) -> "nil"
+      true -> ""
+    end
+  end
 
   defp is_incomplete(items) do
     if Enum.empty?(items) do
