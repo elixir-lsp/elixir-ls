@@ -548,13 +548,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert %SourceFile{dirty?: false, text: ^code, version: 1} =
                  Server.get_source_file(state, uri)
 
-        assert_receive notification("textDocument/publishDiagnostics", %{
-                         "uri" => ^uri,
-                         "diagnostics" => [diagnostic]
-                       }),
-                       1000
+        # Code.with_diagnostics is broken on elixir < 1.15.3
+        if Version.match?(System.version(), ">= 1.15.3") do
+          assert_receive notification("textDocument/publishDiagnostics", %{
+                           "uri" => ^uri,
+                           "diagnostics" => [diagnostic]
+                         }),
+                         1000
 
-        assert diagnostic["severity"] == 2
+          assert diagnostic["severity"] == 2
+        end
 
         wait_until_compiled(server)
       end)
@@ -626,13 +629,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert %SourceFile{dirty?: false, text: ^code, version: 1} =
                  Server.get_source_file(state, uri)
 
-        assert_receive notification("textDocument/publishDiagnostics", %{
-                         "uri" => ^uri,
-                         "diagnostics" => [diagnostic]
-                       }),
-                       1000
+        # Code.with_diagnostics is broken on elixir < 1.15.3
+        if Version.match?(System.version(), ">= 1.15.3") do
+          assert_receive notification("textDocument/publishDiagnostics", %{
+                           "uri" => ^uri,
+                           "diagnostics" => [diagnostic]
+                         }),
+                         1000
 
-        assert diagnostic["severity"] == 2
+          assert diagnostic["severity"] == 2
+        end
 
         wait_until_compiled(server)
       end)
@@ -652,15 +658,18 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert %SourceFile{dirty?: false, text: ^code, version: 1} =
                  Server.get_source_file(state, uri)
 
-        # elixir 1.15.5 emits duplicated warnings
-        # https://github.com/elixir-lang/elixir/issues/12961
-        assert_receive notification("textDocument/publishDiagnostics", %{
-                         "uri" => ^uri,
-                         "diagnostics" => [diagnostic | _]
-                       }),
-                       1000
+        # Code.with_diagnostics is broken on elixir < 1.15.3
+        if Version.match?(System.version(), ">= 1.15.3") do
+          # elixir 1.15.5 emits duplicated warnings
+          # https://github.com/elixir-lang/elixir/issues/12961
+          assert_receive notification("textDocument/publishDiagnostics", %{
+                           "uri" => ^uri,
+                           "diagnostics" => [diagnostic | _]
+                         }),
+                         1000
 
-        assert diagnostic["severity"] == 2
+          assert diagnostic["severity"] == 2
+        end
 
         wait_until_compiled(server)
       end)
