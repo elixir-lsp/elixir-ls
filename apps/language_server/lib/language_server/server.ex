@@ -285,8 +285,6 @@ defmodule ElixirLS.LanguageServer.Server do
       case source_files[uri] do
         %SourceFile{} = source_file ->
           file = SourceFile.Path.from_uri(uri)
-          # TODO tests
-          # TODO consider refactoring build diagnostics
           case parse_file(source_file.text, file) do
             [] ->
               Map.delete(state.parser_diagnostics, uri)
