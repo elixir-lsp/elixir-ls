@@ -478,7 +478,33 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   describe "text synchronization" do
-    test "textDocument/didOpen", %{server: server} do
+    test "textDocument/didOpen no parse errors", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        refute_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => _
+                       }),
+                       1000
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen with parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
         uri = "file:///file.ex"
         code = ~S(
@@ -496,9 +522,151 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => _
+                         "diagnostics" => [diagnostic]
                        }),
-                       5000
+                       1000
+
+        assert diagnostic["message"] =~ "unexpected reserved word"
+        assert diagnostic["severity"] == 1
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen with parse warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        code = ~S(
+        defmodule MyModule do
+          :"asd"
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic]
+                       }),
+                       1000
+
+        assert diagnostic["message"] =~ "found quoted atom"
+        assert diagnostic["severity"] == 2
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.eex"
+        code = ~S(
+        <%= :asd
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic]
+                       }),
+                       1000
+
+        assert diagnostic["message"] =~ "expected closing"
+        assert diagnostic["severity"] == 1
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse tokenizer error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.eex"
+        code = ~S(
+        <%= as{ %>
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic]
+                       }),
+                       1000
+
+        assert diagnostic["message"] =~ "missing terminator"
+        assert diagnostic["severity"] == 1
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.eex"
+        code = ~S(
+        foo <%= if true do %>true<%= else %>false<% end %>
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic]
+                       }),
+                       1000
+
+        assert diagnostic["message"] =~ "unexpected beginning"
+        assert diagnostic["severity"] == 2
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse tokenizer warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.eex"
+        code = ~S(
+        <% :'bar' %>
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        # elixir 1.15.5 emits duplicated warnings
+        # https://github.com/elixir-lang/elixir/issues/12961
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic | _]
+                       }),
+                       1000
+
+        assert diagnostic["message"] =~ "found quoted atom"
+        assert diagnostic["severity"] == 2
 
         wait_until_compiled(server)
       end)
@@ -511,7 +679,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         defmodule MyModule do
           use GenServer
         end
-      )
+        )
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
@@ -530,17 +698,54 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       end)
     end
 
-    test "textDocument/didClose", %{server: server} do
+    test "textDocument/didClose no parse errors", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
         uri = "file:///file.ex"
         code = ~S(
         defmodule MyModule do
           use GenServer
         end
-      )
+        )
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_close(uri))
+
+        refute_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => _
+                       }),
+                       1000
+
+        state = :sys.get_state(server)
+        assert_raise Server.InvalidParamError, fn -> Server.get_source_file(state, uri) end
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didClose parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        code = ~S(
+        defmodule MyModule do
+          use GenServer{
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [_diagnostic]
+                       }),
+                       1000
+
+        Server.receive_packet(server, did_close(uri))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => []
+                       }),
+                       1000
 
         state = :sys.get_state(server)
         assert_raise Server.InvalidParamError, fn -> Server.get_source_file(state, uri) end
@@ -568,7 +773,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       end)
     end
 
-    test "textDocument/didChange", %{server: server} do
+    test "textDocument/didChange no parse error to parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
         uri = "file:///file.ex"
 
@@ -587,13 +792,71 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         defmodule MyModule do
           use GenServer
         end
-      )
+        )
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        refute_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => _
+                       }),
+                       1000
+
         Server.receive_packet(server, did_change(uri, 1, content_changes))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [_]
+                       }),
+                       1000
 
         state = :sys.get_state(server)
         assert %SourceFile{dirty?: true, version: 2} = Server.get_source_file(state, uri)
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didChange parse error to no parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+
+        content_changes = [
+          %{
+            "range" => %{
+              "end" => %{"character" => 24, "line" => 2},
+              "start" => %{"character" => 23, "line" => 2}
+            },
+            "rangeLength" => 1,
+            "text" => ""
+          }
+        ]
+
+        code = ~S(
+        defmodule MyModule do
+          use GenServer{
+        end
+        )
+
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [_]
+                       }),
+                       1000
+
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => []
+                       }),
+                       1000
+
+        state = :sys.get_state(server)
+        assert %SourceFile{dirty?: true, version: 2} = Server.get_source_file(state, uri)
+
         wait_until_compiled(server)
       end)
     end
@@ -651,7 +914,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         defmodule MyModule do
           use GenServer
         end
-      )
+        )
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_change(uri, 1, content_changes))
