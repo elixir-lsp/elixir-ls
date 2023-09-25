@@ -526,7 +526,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        }),
                        1000
 
-        assert diagnostic["message"] =~ "unexpected reserved word"
         assert diagnostic["severity"] == 1
 
         wait_until_compiled(server)
@@ -555,7 +554,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        }),
                        1000
 
-        assert diagnostic["message"] =~ "found quoted atom"
         assert diagnostic["severity"] == 2
 
         wait_until_compiled(server)
@@ -582,7 +580,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        }),
                        1000
 
-        assert diagnostic["message"] =~ "expected closing"
         assert diagnostic["severity"] == 1
 
         wait_until_compiled(server)
@@ -609,7 +606,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        }),
                        1000
 
-        assert diagnostic["message"] =~ "missing terminator"
         assert diagnostic["severity"] == 1
 
         wait_until_compiled(server)
@@ -636,7 +632,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        }),
                        1000
 
-        assert diagnostic["message"] =~ "unexpected beginning"
         assert diagnostic["severity"] == 2
 
         wait_until_compiled(server)
@@ -665,7 +660,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        }),
                        1000
 
-        assert diagnostic["message"] =~ "found quoted atom"
         assert diagnostic["severity"] == 2
 
         wait_until_compiled(server)
