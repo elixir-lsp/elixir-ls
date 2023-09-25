@@ -31,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:logger]]
+    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:logger, :eex]]
   end
 
   defp deps do
