@@ -33,6 +33,36 @@ cd path/to/my_project
 ELS_LOCAL=1 /path/to/elixir-ls/scripts/language_server.sh
 ```
 
+#### Docker based test environment
+
+You are able to run the project in a container (based on Elixir Alpine) to quickly try different platforms or shells.
+
+To build and run the container (tagged `els` to make docker operations easier) run:
+
+```shell
+docker build -t els .
+docker run -it els
+```
+Please keep in mind that in this will take the current project contents and copy it into the container once when the
+container is being built.
+
+Since the container contains its own little Linux os the project content is copied into the `/app` directory to avoid
+interference with the surrounding system, when you enter the container using the interactive terminal (with the command
+above) you will start in that `/app` directory. The following examples expect you being in that project directory.
+
+The following example runs the language server in the default shell of Alpine Linux, which is the Almquist shell (`ash`):
+
+```shell
+ELS_LOCAL=1 SHELL=ash scripts/language_server.sh
+```
+Since `ash` is already the default shell for Alpine Linux we don't need to explicitly call a shell to run the script with.
+
+To run the same command with the `bash` you need to actually pass the shell as well:
+
+```shell
+ELS_LOCAL=1 SHELL=bash bash scripts/language_server.sh
+```
+
 ### Formatting
 
 You may need to separately run `mix format` in the ElixirLS root and in `apps/language_server` directory.
