@@ -480,7 +480,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   describe "text synchronization" do
     test "textDocument/didOpen no parse errors", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         defmodule MyModule do
           use GenServer
@@ -506,7 +506,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen with parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         defmodule MyModule do
           use GenServer{
@@ -535,7 +535,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen with parse warning", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         defmodule MyModule do
           :"asd"
@@ -564,7 +564,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.eex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         <%= :asd
         )
@@ -591,7 +591,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse tokenizer error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.eex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         <%= as{ %>
         )
@@ -618,7 +618,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse warning", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.eex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         foo <%= if true do %>true<%= else %>false<% end %>
         )
@@ -645,7 +645,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen eex with parse tokenizer warning", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.eex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         <% :'bar' %>
         )
@@ -674,7 +674,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didOpen already open", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         defmodule MyModule do
           use GenServer
@@ -700,7 +700,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didClose no parse errors", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         defmodule MyModule do
           use GenServer
@@ -724,7 +724,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didClose parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         code = ~S(
         defmodule MyModule do
           use GenServer{
@@ -755,7 +755,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didClose not open", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         fake_initialize(server)
         Server.receive_packet(server, did_close(uri))
 
@@ -775,7 +775,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didChange no parse error to parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
 
         content_changes = [
           %{
@@ -818,7 +818,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didChange parse error to no parse error", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
 
         content_changes = [
           %{
@@ -863,7 +863,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didChange not open", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
 
         content_changes = [
           %{
@@ -897,7 +897,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didSave", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
 
         content_changes = [
           %{
@@ -929,7 +929,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
     test "textDocument/didSave not open", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
-        uri = "file:///file.ex"
+        uri = SourceFile.Path.to_uri("file.ex")
         fake_initialize(server)
         Server.receive_packet(server, did_save(uri))
 
