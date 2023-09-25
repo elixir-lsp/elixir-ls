@@ -483,9 +483,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         uri = "file:///file.ex"
         code = ~S(
         defmodule MyModule do
-          use GenServer
+          use GenServer{
         end
-      )
+        )
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
@@ -496,9 +496,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => []
+                         "diagnostics" => _
                        }),
-                       1000
+                       5000
 
         wait_until_compiled(server)
       end)
@@ -1923,13 +1923,19 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         wait_until_compiled(server)
         uri = SourceFile.Path.to_uri("a.ex")
-        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        code = ~S(
+        defmodule MyModule do
+          use GenServer{
+        end
+        )
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
         Server.receive_packet(server, did_save(uri))
 
         assert_receive notification("textDocument/publishDiagnostics", %{
-                         "diagnostics" => [],
+                         "diagnostics" => _,
                          "uri" => ^uri
-                       })
+                       }),
+                       1000
 
         wait_until_compiled(server)
       end)

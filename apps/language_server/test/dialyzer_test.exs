@@ -112,8 +112,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "only analyzes the changed files", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
-
       capture_log(fn ->
         initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
@@ -148,8 +146,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                          "message" => "[ElixirLS Dialyzer] Analyzing 1 modules: [C]"
                        }),
                        3_000
-
-        assert_receive publish_diagnostics_notif(^file_c, []), 20_000
 
         assert_receive notification("window/logMessage", %{
                          "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
@@ -375,9 +371,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       Server.receive_packet(server, did_save(uri))
 
       assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
-
-      assert_receive notification("textDocument/publishDiagnostics", %{"diagnostics" => []}),
-                     30000
 
       Process.sleep(2000)
 

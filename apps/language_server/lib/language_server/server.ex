@@ -424,7 +424,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
       state
     else
-      IO.inspect(uri)
       source_file = %SourceFile{text: text, version: version}
 
       state = put_in(state.source_files[uri], source_file)
