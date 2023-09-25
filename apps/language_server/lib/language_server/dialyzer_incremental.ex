@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   alias ElixirLS.LanguageServer.Server
   require Logger
   require Record
-  alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer}
+  alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, SuccessTypings}
   alias ElixirLS.LanguageServer.Dialyzer
 
   defstruct [
@@ -34,11 +34,45 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     )
   end
 
+  def suggest_contracts(server \\ {:global, {self(), __MODULE__}}, files) do
+    GenServer.call(server, {:suggest_contracts, files}, :infinity)
+  end
+
   @impl GenServer
   def init({parent, root_path}) do
     state = %__MODULE__{parent: parent, root_path: root_path}
 
     {:ok, state}
+  end
+
+  @impl GenServer
+  def handle_call({:suggest_contracts, files}, _from, state) do
+    specs =
+      try do
+        # TODO maybe store plt in state?
+        plt = :dialyzer_iplt.from_file(elixir_incremental_plt_path())
+        SuccessTypings.suggest_contracts(plt, files)
+      catch
+        :throw = kind, {:dialyzer_error, message} = payload ->
+          {_payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+
+          Logger.warning(
+            "Unable to load incremental PLT: #{message}\n#{Exception.format_stacktrace(stacktrace)}"
+          )
+
+          []
+
+        kind, payload ->
+          {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+
+          Logger.error(
+            "Unexpected error during incremental PLT load: #{Exception.format(kind, payload, stacktrace)}"
+          )
+
+          []
+      end
+
+    {:reply, specs, state}
   end
 
   @impl GenServer
@@ -168,6 +202,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     {opts, warning_modules_to_apps}
   end
 
+  # TODO add env
   defp elixir_incremental_plt_path() do
     [
       File.cwd!(),
