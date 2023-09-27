@@ -38,12 +38,12 @@ defmodule ElixirLS.LanguageServer.Mixfile do
     [
       {:elixir_ls_utils, in_umbrella: true},
       {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
-      {:erl2ex, github: "dazuma/erl2ex"},
+      {:erl2ex_vendored, github: "elixir-lsp/erl2ex", ref: @dep_versions[:erl2ex_vendored]},
       {:dialyxir_vendored,
        github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
-      {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},
+      {:path_glob_vendored, github: "elixir-lsp/path_glob", ref: @dep_versions[:path_glob_vendored]},
       {:patch, "~> 0.12.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, runtime: false}
     ]

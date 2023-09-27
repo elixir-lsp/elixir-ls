@@ -231,4 +231,26 @@ defmodule ElixirLS.Utils.Launch do
       raise Mix.NoTaskError, task: task
     end
   end
+
+  def unload_not_needed_apps(apps) do
+    for app <- apps do
+      modules =
+        case :application.get_key(app, :modules) do
+          {:ok, modules} -> modules
+          _ -> []
+        end
+
+      for module <- modules do
+        :code.purge(module)
+        :code.delete(module)
+      end
+
+      lib_dir = :code.lib_dir(app)
+      Application.unload(app)
+
+      if is_list(lib_dir) do
+        :code.del_path(:filename.join(lib_dir, ~c"ebin"))
+      end
+    end
+  end
 end

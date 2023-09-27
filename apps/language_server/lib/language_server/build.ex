@@ -297,7 +297,6 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp purge_app(app) do
-    # TODO use hack with ets
     modules =
       case :application.get_key(app, :modules) do
         {:ok, modules} -> modules
@@ -314,12 +313,27 @@ defmodule ElixirLS.LanguageServer.Build do
     case Application.stop(app) do
       :ok -> :ok
       {:error, :not_started} -> :ok
-      {:error, error} -> Logger.error("Application.stop failed for #{app}: #{inspect(error)}")
+      {:error, error} -> Logger.warning("Application.stop failed for #{app}: #{inspect(error)}")
     end
+
+    lib_dir = :code.lib_dir(app)
 
     case Application.unload(app) do
       :ok -> :ok
-      {:error, error} -> Logger.error("Application.unload failed for #{app}: #{inspect(error)}")
+      {:error, error} -> Logger.warning("Application.unload failed for #{app}: #{inspect(error)}")
+    end
+
+    if is_list(lib_dir) do
+      case :code.del_path(:filename.join(lib_dir, ~c"ebin")) do
+        true ->
+          :ok
+
+        false ->
+          :ok
+
+        {:error, reason} ->
+          Logger.warning("Unable to clean code path for #{app}: #{inspect(reason)}")
+      end
     end
   end
 
@@ -359,15 +373,13 @@ defmodule ElixirLS.LanguageServer.Build do
          :language_server,
          :elixir_ls_utils,
          :elixir_sense,
-         :stream_data,
          :jason_v,
          :path_glob_vendored,
          :dialyxir_vendored,
-         :erl2ex,
-         :patch,
-         :benchee
+         :erlex_vendored,
+         :erl2ex_vendored
        ] do
-      raise "Unloading #{app}"
+      raise "Unloading required #{app}"
     end
 
     for path <- Mix.Dep.load_paths(dep) do
