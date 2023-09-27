@@ -20,7 +20,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     statistex
     patch
     deep_merge
-    erlex
+    erlex_vendored
     benchee
     path_glob_vendored
     dialyzer

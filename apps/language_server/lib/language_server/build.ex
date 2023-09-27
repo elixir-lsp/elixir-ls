@@ -359,15 +359,13 @@ defmodule ElixirLS.LanguageServer.Build do
          :language_server,
          :elixir_ls_utils,
          :elixir_sense,
-         :stream_data,
          :jason_v,
          :path_glob_vendored,
          :dialyxir_vendored,
-         :erl2ex,
-         :patch,
-         :benchee
+         :erlex_vendored,
+         :erl2ex
        ] do
-      raise "Unloading #{app}"
+      raise "Unloading required #{app}"
     end
 
     for path <- Mix.Dep.load_paths(dep) do
