@@ -25,7 +25,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
     path_glob_vendored
     dialyzer
     dialyxir_vendored
-    erl2ex
+    erl2ex_vendored
     jason_v
     )a
 

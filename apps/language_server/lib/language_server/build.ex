@@ -363,7 +363,7 @@ defmodule ElixirLS.LanguageServer.Build do
          :path_glob_vendored,
          :dialyxir_vendored,
          :erlex_vendored,
-         :erl2ex
+         :erl2ex_vendored
        ] do
       raise "Unloading required #{app}"
     end

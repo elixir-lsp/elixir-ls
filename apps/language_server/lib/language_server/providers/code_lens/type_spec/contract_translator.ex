@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator do
   @moduledoc false
-  alias Erl2ex.Convert.{Context, ErlForms}
-  alias Erl2ex.Pipeline.{Parse, ModuleData, ExSpec}
+  alias Erl2exVendored.Convert.{Context, ErlForms}
+  alias Erl2exVendored.Pipeline.{Parse, ModuleData, ExSpec}
 
   def translate_contract(fun, contract, is_macro, mod) do
     # FIXME: Private module
