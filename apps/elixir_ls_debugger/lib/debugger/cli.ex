@@ -1,4 +1,5 @@
 defmodule ElixirLS.Debugger.CLI do
+  alias ElixirLS.Utils
   alias ElixirLS.Utils.{WireProtocol, Launch}
   alias ElixirLS.Debugger.{Output, Server}
 
@@ -32,15 +33,26 @@ defmodule ElixirLS.Debugger.CLI do
 
     Launch.limit_num_schedulers()
     warn_if_unsupported_version()
+
+    Launch.unload_not_needed_apps([
+      :nimble_parsec,
+      :mix_task_archive_deps,
+      :language_server,
+      :dialyxir_vendored,
+      :path_glob_vendored,
+      :erlex_vendored,
+      :erl2ex_vendored
+    ])
+
     WireProtocol.stream_packets(&Server.receive_packet/1)
   end
 
   defp warn_if_unsupported_version do
-    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_elixir_version() do
+    with {:error, message} <- Utils.MinimumVersion.check_elixir_version() do
       Output.debugger_important("WARNING: " <> message)
     end
 
-    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_otp_version() do
+    with {:error, message} <- Utils.MinimumVersion.check_otp_version() do
       Output.debugger_important("WARNING: " <> message)
     end
   end

@@ -65,6 +65,8 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
 
+    Launch.unload_not_needed_apps([:nimble_parsec, :mix_task_archive_deps, :elixir_ls_debugger])
+
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
   end
 
