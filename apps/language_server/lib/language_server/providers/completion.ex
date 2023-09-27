@@ -102,7 +102,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     character = SourceFile.lsp_character_to_elixir(line_text, character)
 
     text_before_cursor = String.slice(line_text, 0, character - 1)
-    text_after_cursor = String.slice(line_text, (character - 1)..-1)
+    text_after_cursor = String.slice(line_text, (character - 1)..-1//1)
 
     prefix = get_prefix(text_before_cursor)
 
