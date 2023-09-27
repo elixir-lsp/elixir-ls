@@ -11,7 +11,7 @@ defmodule ElixirLS.Mixfile do
       deps: deps(),
       elixir: ">= 1.13.0",
       dialyzer: [
-        plt_add_apps: [:dialyxir_vendored, :debugger, :dialyzer, :ex_unit, :hex],
+        plt_add_apps: [:dialyxir_vendored, :debugger, :dialyzer, :ex_unit, :hex, :mix],
         flags: [
           # enable only to verify error handling
           # :unmatched_returns,
