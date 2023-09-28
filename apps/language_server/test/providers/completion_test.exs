@@ -605,7 +605,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
         defstruct [some: nil, other: 1]
 
         def dummy_function(var = %MyModule{}) do
-          %{var | 
+          %{var |   }
           #       ^
         end
       end
@@ -625,7 +625,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       text = """
       defmodule MyModule do
         def dummy_function(var = %{some: nil, other: 1}) do
-          %{var | 
+          %{var |   }
           #       ^
         end
       end
@@ -1137,9 +1137,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                The summary
                ```
                @spec add(
-                       a_big_name :: integer,
-                       b_big_name :: integer
-                     ) :: integer
+                       a_big_name ::
+                         integer(),
+                       b_big_name ::
+                         integer()
+                     ) :: integer()
                ```
                """
              }
@@ -1350,7 +1352,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       text = """
       defmodule MyModule do
         def hello do
-          Date.today() |> 
+          Date.today() |>
           #               ^
         end
       end

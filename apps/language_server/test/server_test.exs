@@ -1623,7 +1623,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                      Inspects `item` according to the given options using the IO `device`.
 
                      ```
-                     @spec inspect(device, item, keyword) ::
+                     @spec inspect(device(), item, keyword()) ::
                              item
                            when item: var
                      ```
