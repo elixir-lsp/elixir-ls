@@ -234,12 +234,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
-      true = Code.ensure_loaded?(Mix.Tasks.Format)
+      true = Code.ensure_loaded?(Mix.Tasks.ElixirLSFormat)
 
       if project_dir && Version.match?(System.version(), ">= 1.15.0") do
-        {:ok, Mix.Tasks.Format.formatter_for_file(path, root: project_dir)}
+        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, root: project_dir)}
       else
-        {:ok, Mix.Tasks.Format.formatter_for_file(path)}
+        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path)}
       end
     rescue
       e ->
