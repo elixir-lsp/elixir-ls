@@ -710,7 +710,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       [item] = items |> Enum.filter(&(&1["insertText"] == "true"))
 
       assert %{
-               "detail" => "keyword",
+               "detail" => "reserved word",
                "documentation" => %{:kind => "markdown", "value" => ""},
                "insertText" => "true",
                "insertTextFormat" => 2,

@@ -10,6 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
+  alias ElixirSense.Providers.Suggestion.Matcher
 
   @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
   defstruct [
@@ -18,6 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     :detail,
     :documentation,
     :insert_text,
+    :insert_text_mode,
     :filter_text,
     # Lower priority is shown higher in the result list
     :priority,
@@ -25,7 +27,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     :tags,
     :command,
     {:preselect, false},
-    :additional_text_edit
+    :additional_text_edit,
+    :text_edit
   ]
 
   @func_snippets %{
@@ -90,10 +93,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   def completion(text, line, character, options) do
-    line_text =
-      text
-      |> SourceFile.lines()
-      |> Enum.at(line)
+    lines = SourceFile.lines(text)
+    line_text = Enum.at(lines, line)
 
     # convert to 1 based utf8 position
     line = line + 1
@@ -132,6 +133,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           nil
       end
 
+    do_block_indent =
+      lines
+      |> Enum.slice(0..(line - 1))
+      |> Enum.reverse()
+      |> Enum.find_value(0, fn line_text ->
+        if Regex.match?(~r/(?<=\s|^)do\s*(#.*)?$/, line_text) do
+          String.length(line_text) - String.length(String.trim_leading(line_text))
+        end
+      end)
+
+    line_indent = String.length(line_text) - String.length(String.trim_leading(line_text))
+
     context = %{
       text_before_cursor: text_before_cursor,
       text_after_cursor: text_after_cursor,
@@ -141,7 +154,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       pipe_before?: Regex.match?(~r/\|>\s*#{prefix}$/, text_before_cursor),
       capture_before?: Regex.match?(~r/&#{prefix}$/, text_before_cursor),
       scope: scope,
-      module: env.module
+      module: env.module,
+      line: line,
+      character: character,
+      do_block_indent: do_block_indent,
+      line_indent: line_indent
     }
 
     position_to_insert_alias =
@@ -160,7 +177,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
-      |> maybe_add_end(context)
       |> maybe_add_keywords(context)
       |> Enum.reject(&is_nil/1)
       |> sort_items()
@@ -204,16 +220,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp maybe_add_do(completion_items, context) do
-    if String.ends_with?(context.text_before_cursor, " do") && context.text_after_cursor == "" do
+    hint =
+      case Regex.scan(~r/(?<=\s|^)[a-z]+$/, context.text_before_cursor) do
+        [] -> ""
+        [[match]] -> match
+      end
+
+    if hint in ["d", "do"] do
       item = %__MODULE__{
         label: "do",
         kind: :keyword,
-        detail: "keyword",
-        insert_text: "do\n  $0\nend",
+        detail: "reserved word",
+        insert_text:
+          if(String.trim(context.text_after_cursor) == "", do: "do\n  $0\nend", else: "do: "),
         tags: [],
         priority: 0,
         # force selection over other longer not exact completions
-        preselect: true
+        preselect: hint == "do"
       }
 
       [item | completion_items]
@@ -222,56 +245,83 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end
   end
 
-  defp maybe_add_end(completion_items, context) do
-    if String.ends_with?(context.text_before_cursor, "end") && context.text_after_cursor == "" do
-      item = %__MODULE__{
-        label: "end",
-        kind: :keyword,
-        detail: "keyword",
-        insert_text: "end",
-        tags: [],
-        priority: 0
-      }
+  defp maybe_add_keywords(completion_items, context) do
+    hint =
+      case Regex.scan(~r/(?<=\s|^)[a-z]+$/, context.text_before_cursor) do
+        [] -> ""
+        [[match]] -> match
+      end
 
-      [item | completion_items]
+    if hint != "" do
+      keyword_items =
+        for keyword <- ~w(true false nil when end rescue catch else after),
+            Matcher.match?(keyword, hint) do
+          {insert_text, text_edit} =
+            cond do
+              keyword in ~w(rescue catch else after) ->
+                if String.trim(context.text_after_cursor) == "" do
+                  {nil,
+                   %{
+                     "range" => %{
+                       "start" => %{
+                         "line" => context.line - 1,
+                         "character" =>
+                           context.character - String.length(hint) - 1 -
+                             (context.line_indent - context.do_block_indent)
+                       },
+                       "end" => %{
+                         "line" => context.line - 1,
+                         "character" => context.character - 1
+                       }
+                     },
+                     "newText" => "#{keyword}\n  "
+                   }}
+                else
+                  {"#{keyword}: ", nil}
+                end
+
+              keyword == "when" ->
+                {"when ", nil}
+
+              keyword == "end" ->
+                {nil,
+                 %{
+                   "range" => %{
+                     "start" => %{
+                       "line" => context.line - 1,
+                       "character" =>
+                         context.character - String.length(hint) - 1 -
+                           (context.line_indent - context.do_block_indent)
+                     },
+                     "end" => %{"line" => context.line - 1, "character" => context.character - 1}
+                   },
+                   "newText" => "end\n"
+                 }}
+
+              true ->
+                {keyword, nil}
+            end
+
+          %__MODULE__{
+            label: keyword,
+            kind: :keyword,
+            detail: "reserved word",
+            insert_text: insert_text,
+            text_edit: text_edit,
+            tags: [],
+            priority: 0,
+            insert_text_mode: 2,
+            preselect: hint == keyword
+          }
+        end
+
+      keyword_items ++ completion_items
     else
       completion_items
     end
-  end
-
-  defp maybe_add_keywords(completion_items, %{text_after_cursor: ""} = context) do
-    kw = Map.get(context, :text_before_cursor) |> String.trim_leading() |> get_keyword()
-
-    if kw != "" do
-      item = %__MODULE__{
-        label: kw,
-        kind: :keyword,
-        detail: "keyword",
-        insert_text: kw,
-        tags: [],
-        priority: 0
-      }
-
-      [item | completion_items]
-    else
-      completion_items
-    end
-  end
-
-  defp maybe_add_keywords(completion_items, _context) do
-    completion_items
   end
 
   ## Helpers
-
-  defp get_keyword(t) do
-    cond do
-      Enum.member?(["t", "tr", "tru", "true"], t) -> "true"
-      Enum.member?(["f", "fa", "fal", "fals", "false"], t) -> "false"
-      Enum.member?(["n", "ni", "nil"], t) -> "nil"
-      true -> ""
-    end
-  end
 
   defp is_incomplete(items) do
     if Enum.empty?(items) do
@@ -1250,6 +1300,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     json =
       if item.preselect do
         Map.put(json, "preselect", true)
+      else
+        json
+      end
+
+    json =
+      if item.insert_text_mode do
+        Map.put(json, "insertTextMode", item.insert_text_mode)
+      else
+        json
+      end
+
+    json =
+      if item.text_edit do
+        Map.put(json, "textEdit", item.text_edit)
       else
         json
       end
