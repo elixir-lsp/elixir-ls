@@ -340,8 +340,15 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     do: Enum.map(info, &build_symbol_information_hierarchical(uri, text, &1))
 
   defp build_symbol_information_hierarchical(uri, text, %Info{} = info) do
+    selection_location =
+      if info.selection_location && Keyword.has_key?(info.selection_location, :column) do
+        info.selection_location
+      else
+        info.location
+      end
+
     selection_range =
-      location_to_range(info.selection_location || info.location, text, info.symbol)
+      location_to_range(selection_location, text, info.symbol)
 
     # range must contain selection range
     range =
