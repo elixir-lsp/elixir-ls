@@ -22,11 +22,22 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
     {:ok, response}
   end
 
-  defp signature_response(%{documentation: documentation, name: name, params: params, spec: spec}) do
+  defp signature_response(
+         %{documentation: documentation, name: name, params: params, spec: spec} = signature
+       ) do
     params_info = for param <- params, do: %{"label" => param}
 
     label = "#{name}(#{Enum.join(params, ", ")})"
     response = %{"label" => label, "parameters" => params_info}
+
+    response =
+      case signature do
+        %{active_param: active_param} ->
+          Map.put(response, "activeParameter", active_param)
+
+        _ ->
+          response
+      end
 
     case {spec, documentation} do
       {"", ""} ->
