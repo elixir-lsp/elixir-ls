@@ -1609,7 +1609,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        """
                        Inspects and writes the given `item` to the device.
 
-                       ```
+                       ```elixir
                        @spec inspect\
                        """ <> _
                    },
@@ -1622,7 +1622,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                      "value" => """
                      Inspects `item` according to the given options using the IO `device`.
 
-                     ```
+                     ```elixir
                      @spec inspect(device(), item, keyword()) ::
                              item
                            when item: var

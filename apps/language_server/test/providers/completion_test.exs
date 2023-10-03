@@ -1135,7 +1135,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                :kind => "markdown",
                "value" => """
                The summary
-               ```
+               ```elixir
                @spec add(
                        a_big_name ::
                          integer(),
