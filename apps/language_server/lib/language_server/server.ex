@@ -1467,7 +1467,11 @@ defmodule ElixirLS.LanguageServer.Server do
       response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")
 
       case response do
-        {:ok, [result]} when is_map(result) ->
+        {:ok, [result]} when is_map(result) or is_nil(result) ->
+          # result type is LSPAny, we need to handle at least map and nil
+          # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspace_configuration
+          result = result || %{}
+
           Logger.info(
             "Received client configuration via workspace/configuration\n#{inspect(result)}"
           )
