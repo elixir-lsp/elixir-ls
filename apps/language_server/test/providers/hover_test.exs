@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     assert nil == resp
   end
 
-  test "Elixir builtin module hover" do
+  test "elixir module hover" do
     text = """
     defmodule MyModule do
       def hello() do
@@ -38,10 +38,13 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(text, line, char, fake_dir())
 
-    assert String.starts_with?(v, "> IO  [view on hexdocs](https://hexdocs.pm/elixir/IO.html)")
+    assert String.starts_with?(
+             v,
+             "```elixir\nIO\n```\n\n*module* [View on hexdocs](https://hexdocs.pm/elixir/#{System.version()}/IO.html)"
+           )
   end
 
-  test "Elixir builtin function hover" do
+  test "function hover" do
     text = """
     defmodule MyModule do
       def hello() do
@@ -57,95 +60,47 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     assert String.starts_with?(
              v,
-             "> IO.inspect(item, opts \\\\\\\\ [])  [view on hexdocs](https://hexdocs.pm/elixir/IO.html#inspect/2)"
+             "```elixir\nIO.inspect(item, opts \\\\ [])\n```\n\n*function* [View on hexdocs](https://hexdocs.pm/elixir/#{System.version()}/IO.html#inspect/2)"
            )
   end
 
-  test "Umbrella projects: Third deps module hover" do
+  test "macro hover" do
     text = """
     defmodule MyModule do
-      def hello() do
-        StreamData.integer() |> Stream.map(&abs/1) |> Enum.take(3) |> IO.inspect()
-      end
+      import Abc
     end
     """
 
-    {line, char} = {2, 10}
+    {line, char} = {1, 3}
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(text, line, char, fake_dir())
 
     assert String.starts_with?(
              v,
-             "> StreamData  [view on hexdocs](https://hexdocs.pm/stream_data/StreamData.html)"
+             "```elixir\nKernel.SpecialForms.import(module, opts)\n```\n\n*macro* [View on hexdocs](https://hexdocs.pm/elixir/#{System.version()}/Kernel.SpecialForms.html#import/2)"
            )
   end
 
-  test "Umbrella projects: Third deps function hover" do
+  test "elixir type hover" do
     text = """
     defmodule MyModule do
-      def hello() do
-        StreamData.integer() |> Stream.map(&abs/1) |> Enum.take(3) |> IO.inspect()
-      end
+      @type d :: Date.t()
     end
     """
 
-    {line, char} = {2, 18}
+    {line, char} = {1, 18}
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(text, line, char, fake_dir())
 
     assert String.starts_with?(
              v,
-             "> StreamData.integer()  [view on hexdocs](https://hexdocs.pm/stream_data/StreamData.html#integer/0)"
+             "```elixir\nDate.t()\n```\n\n*type* [View on hexdocs](https://hexdocs.pm/elixir/#{System.version()}/Date.html#t:t/0)"
            )
   end
 
-  test "Import function hover" do
-    text = """
-    defmodule MyModule do
-      import Task.Supervisor
-
-      def hello() do
-        start_link()
-      end
-    end
-    """
-
-    {line, char} = {4, 5}
-
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
-
-    assert String.starts_with?(
-             v,
-             "> Task.Supervisor.start_link(options \\\\\\\\ [])  [view on hexdocs](https://hexdocs.pm/elixir/Task.Supervisor.html#start_link/1)"
-           )
-  end
-
-  test "Alias module function hover" do
-    text = """
-    defmodule MyModule do
-      alias Task.Supervisor
-
-      def hello() do
-        Supervisor.start_link()
-      end
-    end
-    """
-
-    {line, char} = {4, 15}
-
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
-
-    assert String.starts_with?(
-             v,
-             "> Task.Supervisor.start_link(options \\\\\\\\ [])  [view on hexdocs](https://hexdocs.pm/elixir/Task.Supervisor.html#start_link/1)"
-           )
-  end
-
-  test "Erlang module hover is not support now" do
+  test "erlang function" do
     text = """
     defmodule MyModule do
       def hello() do
@@ -159,9 +114,65 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(text, line, char, fake_dir())
 
+    assert String.starts_with?(v, "```elixir\n:timer.sleep(time)\n```\n\n*function*")
+    # TODO hexdocs and standard lib docs
     assert not String.contains?(
              v,
-             "[view on hexdocs]"
+             "[View on hexdocs]"
+           )
+  end
+
+  test "keyword" do
+    text = """
+    defmodule MyModule do
+      @type d :: Date.t()
+    end
+    """
+
+    {line, char} = {0, 19}
+
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(text, line, char, fake_dir())
+
+    assert String.starts_with?(
+             v,
+             "```elixir\ndo\n```\n\n*reserved word*"
+           )
+  end
+
+  test "variable" do
+    text = """
+    defmodule MyModule do
+      asdf = 1
+    end
+    """
+
+    {line, char} = {1, 3}
+
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(text, line, char, fake_dir())
+
+    assert String.starts_with?(
+             v,
+             "```elixir\nasdf\n```\n\n*variable*"
+           )
+  end
+
+  test "attribute" do
+    text = """
+    defmodule MyModule do
+      @behaviour :some
+    end
+    """
+
+    {line, char} = {1, 4}
+
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(text, line, char, fake_dir())
+
+    assert String.starts_with?(
+             v,
+             "```elixir\n@behaviour\n```\n\n*module attribute*"
            )
   end
 end

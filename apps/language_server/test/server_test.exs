@@ -1274,7 +1274,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       assert response(1, %{
                "contents" => %{
                  "kind" => "markdown",
-                 "value" => "> GenServer" <> _
+                 "value" => "```elixir\nGenServer" <> _
                },
                "range" => %{
                  "start" => %{"line" => 2, "character" => 12},
