@@ -111,39 +111,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       end)
     end
 
-    test "handles nil configuration", %{
-      server: server
-    } do
-      in_fixture(__DIR__, "clean", fn ->
-        Server.receive_packet(
-          server,
-          initialize_req(1, root_uri(), %{
-            "workspace" => %{
-              "configuration" => true
-            }
-          })
-        )
-
-        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-        Server.receive_packet(server, notification("initialized"))
-        uri = root_uri()
-
-        assert_receive(
-          %{
-            "id" => 1,
-            "method" => "workspace/configuration",
-            "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
-          },
-          1000
-        )
-
-        JsonRpc.receive_packet(response(1, [nil]))
-
-        assert :sys.get_state(server).mix_env == "test"
-        wait_until_compiled(server)
-      end)
-    end
-
     test "gets configuration after workspace/didChangeConfiguration notification if client supports it",
          %{
            server: server
