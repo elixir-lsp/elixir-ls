@@ -131,13 +131,18 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {0, 19}
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+    if Version.match?(System.version(), ">= 1.14.0") do
+      assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+               Hover.hover(text, line, char, fake_dir())
 
-    assert String.starts_with?(
-             v,
-             "```elixir\ndo\n```\n\n*reserved word*"
-           )
+      assert String.starts_with?(
+               v,
+               "```elixir\ndo\n```\n\n*reserved word*"
+             )
+    else
+      assert {:ok, nil} =
+               Hover.hover(text, line, char, fake_dir())
+    end
   end
 
   test "variable" do
