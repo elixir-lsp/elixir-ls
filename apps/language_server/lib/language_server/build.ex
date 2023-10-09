@@ -297,6 +297,14 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp purge_app(app) do
+    Logger.debug("Stopping #{app}")
+
+    case Application.stop(app) do
+      :ok -> :ok
+      {:error, {:not_started, _}} -> :ok
+      {:error, error} -> Logger.warning("Application.stop failed for #{app}: #{inspect(error)}")
+    end
+
     modules =
       case :application.get_key(app, :modules) do
         {:ok, modules} -> modules
@@ -310,30 +318,10 @@ defmodule ElixirLS.LanguageServer.Build do
 
     Logger.debug("Unloading #{app}")
 
-    case Application.stop(app) do
-      :ok -> :ok
-      {:error, :not_started} -> :ok
-      {:error, error} -> Logger.warning("Application.stop failed for #{app}: #{inspect(error)}")
-    end
-
-    lib_dir = :code.lib_dir(app)
-
     case Application.unload(app) do
       :ok -> :ok
+      {:error, {:not_loaded, _}} -> :ok
       {:error, error} -> Logger.warning("Application.unload failed for #{app}: #{inspect(error)}")
-    end
-
-    if is_list(lib_dir) do
-      case :code.del_path(:filename.join(lib_dir, ~c"ebin")) do
-        true ->
-          :ok
-
-        false ->
-          :ok
-
-        {:error, reason} ->
-          Logger.warning("Unable to clean code path for #{app}: #{inspect(reason)}")
-      end
     end
   end
 
@@ -396,15 +384,45 @@ defmodule ElixirLS.LanguageServer.Build do
     cached_deps_by_app = get_deps_by_app(cached_deps)
     removed_apps = Map.keys(cached_deps_by_app) -- Map.keys(current_deps_by_app)
 
-    removed_deps = cached_deps_by_app |> Map.take(removed_apps)
+    removed_deps =
+      cached_deps_by_app
+      |> Map.take(removed_apps)
+      |> Enum.flat_map(&elem(&1, 1))
+      |> Enum.uniq()
 
-    for {_app, deps} <- removed_deps,
-        dep <- deps do
+    # purge removed dependencies
+    for dep <- removed_deps do
       purge_dep(dep)
     end
 
+    # purge current dependencies in invalid state
     for dep <- current_deps do
       maybe_purge_dep(dep)
+    end
+
+    mix_project_apps =
+      if Mix.Project.umbrella?() do
+        Mix.Project.apps_paths() |> Enum.map(&elem(&1, 0))
+      else
+        # in umbrella Mix.Project.apps_paths() returns nil
+        # get app from config instead
+        [Mix.Project.config()[:app]]
+      end
+
+    mix_project_apps_deps =
+      current_deps_by_app
+      |> Map.take(mix_project_apps)
+      |> Enum.flat_map(&elem(&1, 1))
+      |> Enum.uniq()
+
+    # purge mix project apps
+    # elixir compiler loads apps only on initial compilation
+    # on subsequent ones it does not update application controller state
+    # if we don't purge the apps we end up with invalid state
+    # e.g. :application.get_key(app, :modules) returns outdated module list
+    # see https://github.com/elixir-lang/elixir/issues/13001
+    for dep <- mix_project_apps_deps do
+      purge_dep(dep)
     end
   end
 
@@ -462,7 +480,6 @@ defmodule ElixirLS.LanguageServer.Build do
     options =
       if Version.match?(System.version(), ">= 1.14.0") do
         Keyword.merge(options,
-          # we are running the server with consolidated protocols
           # this disables warnings `X has already been consolidated`
           # when running `compile` task
           ignore_already_consolidated: true

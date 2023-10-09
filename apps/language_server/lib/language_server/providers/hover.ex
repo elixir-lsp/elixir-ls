@@ -53,6 +53,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp build_module_link(module) do
     if ElixirSense.Core.Introspection.elixir_module?(module) do
       url = DocLinks.hex_docs_module_link(module)
+
       if url do
         "[View on hexdocs](#{url})\n\n"
       else
@@ -66,6 +67,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp build_function_link(module, function, arity) do
     if ElixirSense.Core.Introspection.elixir_module?(module) do
       url = DocLinks.hex_docs_function_link(module, function, arity)
+
       if url do
         "[View on hexdocs](#{url})\n\n"
       else
@@ -79,6 +81,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp build_type_link(module, type, arity) do
     if module != nil and ElixirSense.Core.Introspection.elixir_module?(module) do
       url = DocLinks.hex_docs_type_link(module, type, arity)
+
       if url do
         "[View on hexdocs](#{url})\n\n"
       else

@@ -32,7 +32,9 @@ defmodule ElixirLS.LanguageServer.DocLinks do
     case get_app(module) do
       {app, vsn} ->
         "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html"
-      nil -> nil
+
+      nil ->
+        nil
     end
   end
 
@@ -40,7 +42,9 @@ defmodule ElixirLS.LanguageServer.DocLinks do
     case get_app(module) do
       {app, vsn} ->
         "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html##{function}/#{arity}"
-      nil -> nil
+
+      nil ->
+        nil
     end
   end
 
@@ -48,7 +52,9 @@ defmodule ElixirLS.LanguageServer.DocLinks do
     case get_app(module) do
       {app, vsn} ->
         "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html#t:#{type}/#{arity}"
-      nil -> nil
+
+      nil ->
+        nil
     end
   end
 end
