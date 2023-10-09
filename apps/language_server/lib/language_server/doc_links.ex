@@ -29,17 +29,26 @@ defmodule ElixirLS.LanguageServer.DocLinks do
   end
 
   def hex_docs_module_link(module) do
-    {app, vsn} = get_app(module)
-    "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html"
+    case get_app(module) do
+      {app, vsn} ->
+        "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html"
+      nil -> nil
+    end
   end
 
   def hex_docs_function_link(module, function, arity) do
-    {app, vsn} = get_app(module)
-    "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html##{function}/#{arity}"
+    case get_app(module) do
+      {app, vsn} ->
+        "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html##{function}/#{arity}"
+      nil -> nil
+    end
   end
 
   def hex_docs_type_link(module, type, arity) do
-    {app, vsn} = get_app(module)
-    "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html#t:#{type}/#{arity}"
+    case get_app(module) do
+      {app, vsn} ->
+        "#{@hex_base_url}/#{app}/#{vsn}/#{inspect(module)}.html#t:#{type}/#{arity}"
+      nil -> nil
+    end
   end
 end

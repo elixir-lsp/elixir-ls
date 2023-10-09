@@ -52,7 +52,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   defp build_module_link(module) do
     if ElixirSense.Core.Introspection.elixir_module?(module) do
-      "[View on hexdocs](#{DocLinks.hex_docs_module_link(module)})"
+      url = DocLinks.hex_docs_module_link(module)
+      if url do
+        "[View on hexdocs](#{url})\n\n"
+      else
+        ""
+      end
     else
       ""
     end
@@ -60,7 +65,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   defp build_function_link(module, function, arity) do
     if ElixirSense.Core.Introspection.elixir_module?(module) do
-      "[View on hexdocs](#{DocLinks.hex_docs_function_link(module, function, arity)})"
+      url = DocLinks.hex_docs_function_link(module, function, arity)
+      if url do
+        "[View on hexdocs](#{url})\n\n"
+      else
+        ""
+      end
     else
       ""
     end
@@ -68,7 +78,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   defp build_type_link(module, type, arity) do
     if module != nil and ElixirSense.Core.Introspection.elixir_module?(module) do
-      "[View on hexdocs](#{DocLinks.hex_docs_type_link(module, type, arity)})\n\n"
+      url = DocLinks.hex_docs_type_link(module, type, arity)
+      if url do
+        "[View on hexdocs](#{url})\n\n"
+      else
+        ""
+      end
     else
       ""
     end
