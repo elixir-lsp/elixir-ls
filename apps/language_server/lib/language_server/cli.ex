@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.CLI do
   require Logger
 
   def main do
+    Application.load(:erts)
     Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
 
