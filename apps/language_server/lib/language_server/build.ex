@@ -296,7 +296,7 @@ defmodule ElixirLS.LanguageServer.Build do
     :code.delete(module)
   end
 
-  defp purge_app(app) do
+  defp purge_app(app, purge_modules? \\ true) do
     Logger.debug("Stopping #{app}")
 
     case Application.stop(app) do
@@ -305,15 +305,17 @@ defmodule ElixirLS.LanguageServer.Build do
       {:error, error} -> Logger.warning("Application.stop failed for #{app}: #{inspect(error)}")
     end
 
-    modules =
-      case :application.get_key(app, :modules) do
-        {:ok, modules} -> modules
-        _ -> []
-      end
+    if purge_modules? do
+      modules =
+        case :application.get_key(app, :modules) do
+          {:ok, modules} -> modules
+          _ -> []
+        end
 
-    if modules != [] do
-      Logger.debug("Purging #{length(modules)} modules from #{app}")
-      for module <- modules, do: purge_module(module)
+      if modules != [] do
+        Logger.debug("Purging #{length(modules)} modules from #{app}")
+        for module <- modules, do: purge_module(module)
+      end
     end
 
     Logger.debug("Unloading #{app}")
@@ -409,20 +411,14 @@ defmodule ElixirLS.LanguageServer.Build do
         [Mix.Project.config()[:app]]
       end
 
-    mix_project_apps_deps =
-      current_deps_by_app
-      |> Map.take(mix_project_apps)
-      |> Enum.flat_map(&elem(&1, 1))
-      |> Enum.uniq()
-
     # purge mix project apps
     # elixir compiler loads apps only on initial compilation
     # on subsequent ones it does not update application controller state
-    # if we don't purge the apps we end up with invalid state
+    # if we don't unload the apps we end up with invalid state
     # e.g. :application.get_key(app, :modules) returns outdated module list
     # see https://github.com/elixir-lang/elixir/issues/13001
-    for dep <- mix_project_apps_deps do
-      purge_dep(dep)
+    for app <- mix_project_apps do
+      purge_app(app, false)
     end
   end
 
