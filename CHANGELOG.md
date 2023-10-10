@@ -1,5 +1,53 @@
 ### Unreleased
 
+### v0.17.0: x October 2023
+
+#### Highlights
+
+- Language Server now emit parser errors and warnings on type in .ex, .exs and .eex files
+- Language Server provides better completions for elixir reserved words. Thanks [Kevin Kalb](https://github.com/kkalb) for initial work
+- Debugger now automatically breaks on `Kernel.dbg` macro. This allows inspecting variables, evaluating expressions and stepping through piped function calls. A setting `breakOnDbg` defaulting to `true` can be used to turn off that behaviour
+- Progress reports and cancel support added in debugger. This can be used to terminate long running evaluate requests.
+- Improved rendering of documentation in hover provider
+- Improved support for Unicode identifiers and atoms. Elixir supports Unicode identifiers since v1.5 and now all ElixirLS features should work with them
+
+#### Improvements
+
+- Added support for fish shell [Sergey Kislyakov](https://github.com/Defman21)
+- Consistently render parens for basic types in Suggest Contracts Code Lense and markdown
+- Debugger should now be better at handling some common crashes
+- Debugger now optimistically translates erlang versioned variable names to elixir names
+- Debugger emits better warnings when modules cannot be interpreted
+- Debugger can be launched with `"noDebug": true`. This allows `Run Without Debugging` in VSCode
+- Debugger will now emit exit code via `exited` DAP event. This allows tracking mix task result in debug session e.g. when running tests
+- New setting added to debugger `exitAfterTaskReturns`, defaulting to `true` - controls wether to end debug session when mix task returns
+- Language server will now reset cwd to project root after interrupted build
+- All ElixirLS dependencies are now vendored and should not conflict with client project dependencies
+- ElixirLS unloads deps used during startup and compilation
+- *nix launch scripts has been refactored and split into dedicated bash, fish, zsh [Florian Neumann](https://github.com/florianb)
+- A workaround for elixir formatter accidentally compiling the project has been implemented
+- Language fences added in complete/signature/hover provided markdown fragments
+- Language server stability should be improved by unloading project's applications. This works around elixir not updating application controller state after recompilation
+- Completions provider is now able to suggest keyword params on macros. Previously only functions was supported
+- Added `float` to list of bitstring modifiers in completions provider
+
+#### Fixes
+
+- Debugger will not allow mix task with a `/`
+- A bug preventing `do` completion when there's a whitespace after cursor has been fixed
+- Document symbol provider will not crash when unable to get selection location for AST node
+- Signature provider now highlights the correct parameter in calls with default arguments when default arguments are not after required ones
+- Completions now work correctly after Unicode characters
+- Do not error if client returns `null` to `workspace/configuration` reverse request
+- Fixed a crash when getting a parameter name from complex parameter type. This bug made completions on `:pg` module fail.
+- Fixed invalid aliases in scope inference when a submodule `__MODULE__.Some` is used
+
+#### Potential incompatibilities
+
+- Debugger will terminate the debug session and return result code when mix task returns. Previously, debugger would continue running. If the new behavior is not wanted, please set `exitAfterTaskReturns` to `false` in your launch configuration
+- `debugExpressionTimeoutMs` debugger launch configuration setting no longer has any effect. DAP `cancel` request can now be used to terminate long running debugger evaluate requests.
+- Debugger will now auto break on `Kernel.dbg` macro. If this is not intended consider setting `breakOnDbg` to `false` in your launch configuration
+
 ### v0.16.0: 19 August 2023
 
 #### Highlights
