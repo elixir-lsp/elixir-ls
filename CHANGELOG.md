@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.17.1: 13 October 2023
+
+#### Fixes
+
+- Fixed a crash when emitting a diagnostic during file edit
+
 ### v0.17.0: 11 October 2023
 
 #### Highlights
