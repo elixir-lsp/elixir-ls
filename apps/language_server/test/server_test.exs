@@ -1663,7 +1663,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                            %{
                              "message" => "undefined function does_not_exist/0" <> _,
                              "range" => %{
-                               "end" => %{"character" => 20, "line" => 3},
+                               "end" => %{"character" => 4, "line" => 3},
                                "start" => %{"character" => 4, "line" => 3}
                              },
                              "severity" => 1,

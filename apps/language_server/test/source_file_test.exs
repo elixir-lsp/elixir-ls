@@ -655,6 +655,14 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert {1, 2} == SourceFile.lsp_position_to_elixir("abcde", {0, 1})
     end
 
+    test "lsp_position_to_elixir single line utf8" do
+      assert {1, 2} == SourceFile.lsp_position_to_elixir("🏳️‍🌈abcde", {0, 6})
+    end
+
+    test "lsp_position_to_elixir multi line" do
+      assert {2, 2} == SourceFile.lsp_position_to_elixir("abcde\n1234", {1, 1})
+    end
+
     # This is not specified in LSP but some clients fail to synchronize text properly
     test "lsp_position_to_elixir single line before line start" do
       assert {1, 1} == SourceFile.lsp_position_to_elixir("abcde", {0, -1})
@@ -665,14 +673,6 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "lsp_position_to_elixir single line after line end" do
       assert {1, 6} == SourceFile.lsp_position_to_elixir("abcde", {0, 15})
       assert {1, 1} == SourceFile.lsp_position_to_elixir("", {0, 15})
-    end
-
-    test "lsp_position_to_elixir single line utf8" do
-      assert {1, 2} == SourceFile.lsp_position_to_elixir("🏳️‍🌈abcde", {0, 6})
-    end
-
-    test "lsp_position_to_elixir multi line" do
-      assert {2, 2} == SourceFile.lsp_position_to_elixir("abcde\n1234", {1, 1})
     end
 
     # This is not specified in LSP but some clients fail to synchronize text properly
@@ -703,6 +703,30 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
     test "elixir_position_to_lsp multi line" do
       assert {1, 1} == SourceFile.elixir_position_to_lsp("abcde\n1234", {2, 2})
+    end
+
+    # This is not specified in LSP but some clients fail to synchronize text properly
+    test "elixir_position_to_lsp single line before line start" do
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("abcde", {1, -1})
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("abcde", {1, 0})
+    end
+
+    # LSP spec 3.17 https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#position
+    # position character If the character value is greater than the line length it defaults back to the line length
+    test "elixir_position_to_lsp single line after line end" do
+      assert {0, 5} == SourceFile.elixir_position_to_lsp("abcde", {1, 15})
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("", {1, 15})
+    end
+
+    # This is not specified in LSP but some clients fail to synchronize text properly
+    test "elixir_position_to_lsp multi line before first line" do
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("abcde\n1234", {-1, 2})
+      assert {0, 0} == SourceFile.elixir_position_to_lsp("abcde\n1234", {0, 2})
+    end
+
+    # This is not specified in LSP but some clients fail to synchronize text properly
+    test "elixir_position_to_lsp multi line after last line" do
+      assert {1, 4} == SourceFile.elixir_position_to_lsp("abcde\n1234", {8, 2})
     end
 
     test "sanity check" do

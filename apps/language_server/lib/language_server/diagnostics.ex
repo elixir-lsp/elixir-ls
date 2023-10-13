@@ -291,24 +291,37 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#diagnostic
 
   # position is a 1 based line number
-  # we return a range of trimmed text in that line
-  defp range(position, source_file)
-       when is_integer(position) and position >= 1 and not is_nil(source_file) do
+  # we return a 0 length range at first non whitespace character in line
+  defp range(line_start, source_file)
+       when is_integer(line_start) and not is_nil(source_file) do
     # line is 1 based
-    line = position - 1
-    text = Enum.at(SourceFile.lines(source_file), line) || ""
+    lines = SourceFile.lines(source_file)
 
-    start_idx = String.length(text) - String.length(String.trim_leading(text)) + 1
-    length = max(String.length(String.trim(text)), 1)
+    {line_start_lsp, char_start_lsp} =
+      if line_start > 0 do
+        case Enum.at(lines, line_start - 1) do
+          nil ->
+            # position is outside file range - this will return end of the file
+            SourceFile.elixir_position_to_lsp(lines, {line_start, 1})
+
+          line ->
+            # find first non whitespace character in line
+            start_idx = String.length(line) - String.length(String.trim_leading(line)) + 1
+            {line_start - 1, SourceFile.elixir_character_to_lsp(line, start_idx)}
+        end
+      else
+        # return begin of the file
+        {0, 0}
+      end
 
     %{
       "start" => %{
-        "line" => line,
-        "character" => SourceFile.elixir_character_to_lsp(text, start_idx)
+        "line" => line_start_lsp,
+        "character" => char_start_lsp
       },
       "end" => %{
-        "line" => line,
-        "character" => SourceFile.elixir_character_to_lsp(text, start_idx + length)
+        "line" => line_start_lsp,
+        "character" => char_start_lsp
       }
     }
   end
@@ -316,21 +329,20 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # position is a 1 based line number and 0 based character cursor (UTF8)
   # we return a 0 length range exactly at that location
   defp range({line_start, char_start}, source_file)
-       when line_start >= 1 and not is_nil(source_file) do
+       when not is_nil(source_file) do
     lines = SourceFile.lines(source_file)
-    # line is 1 based
-    start_line = Enum.at(lines, line_start - 1)
-    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based here
-    character = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
+    # elixir_position_to_lsp will handle positions outside file range
+    {line_start_lsp, char_start_lsp} =
+      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start - 1})
 
     %{
       "start" => %{
-        "line" => line_start - 1,
-        "character" => character
+        "line" => line_start_lsp,
+        "character" => char_start_lsp
       },
       "end" => %{
-        "line" => line_start - 1,
-        "character" => character
+        "line" => line_start_lsp,
+        "character" => char_start_lsp
       }
     }
   end
@@ -338,29 +350,28 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # position is a range defined by 1 based line numbers and 0 based character cursors (UTF8)
   # we return exactly that range
   defp range({line_start, char_start, line_end, char_end}, source_file)
-       when line_start >= 1 and line_end >= 1 and not is_nil(source_file) do
+       when not is_nil(source_file) do
     lines = SourceFile.lines(source_file)
-    # line is 1 based
-    start_line = Enum.at(lines, line_start - 1)
-    end_line = Enum.at(lines, line_end - 1)
+    # elixir_position_to_lsp will handle positions outside file range
+    {line_start_lsp, char_start_lsp} =
+      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start - 1})
 
-    # SourceFile.elixir_character_to_lsp assumes char to be 1 based but it's 0 based here
-    start_char = SourceFile.elixir_character_to_lsp(start_line, char_start + 1)
-    end_char = SourceFile.elixir_character_to_lsp(end_line, char_end + 1)
+    {line_end_lsp, char_end_lsp} =
+      SourceFile.elixir_position_to_lsp(lines, {line_end, char_end - 1})
 
     %{
       "start" => %{
-        "line" => line_start - 1,
-        "character" => start_char
+        "line" => line_start_lsp,
+        "character" => char_start_lsp
       },
       "end" => %{
-        "line" => line_end - 1,
-        "character" => end_char
+        "line" => line_end_lsp,
+        "character" => char_end_lsp
       }
     }
   end
 
-  # source file is unknown, position is 0 or invalid
+  # source file is unknown
   # we discard any position information as it is meaningless
   # unfortunately LSP does not allow `null` range so we need to return something
   defp range(_, _) do

@@ -286,24 +286,29 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     utf8_character + 1
   end
 
-  def lsp_position_to_elixir(_urf8_text, {lsp_line, _lsp_character}) when lsp_line < 0,
+  def lsp_position_to_elixir(_urf8_text_or_lines, {lsp_line, _lsp_character}) when lsp_line < 0,
     do: {1, 1}
 
-  def lsp_position_to_elixir(_urf8_text, {lsp_line, lsp_character}) when lsp_character <= 0,
-    do: {max(lsp_line + 1, 1), 1}
+  def lsp_position_to_elixir(_urf8_text_or_lines, {lsp_line, lsp_character})
+      when lsp_character <= 0,
+      do: {max(lsp_line + 1, 1), 1}
 
-  def lsp_position_to_elixir(urf8_text, {lsp_line, lsp_character}) do
-    source_file_lines = lines(urf8_text)
-    total_lines = length(source_file_lines)
+  def lsp_position_to_elixir(urf8_text, {lsp_line, lsp_character}) when is_binary(urf8_text) do
+    lsp_position_to_elixir(lines(urf8_text), {lsp_line, lsp_character})
+  end
+
+  def lsp_position_to_elixir([_ | _] = urf8_lines, {lsp_line, lsp_character})
+      when lsp_line >= 0 do
+    total_lines = length(urf8_lines)
 
     if lsp_line > total_lines - 1 do
       # sanitize to position after last char in last line
-      {total_lines, String.length(source_file_lines |> Enum.at(total_lines - 1)) + 1}
+      last_line = Enum.at(urf8_lines, total_lines - 1)
+      elixir_last_character = String.length(last_line) + 1
+      {total_lines, elixir_last_character}
     else
-      utf8_character =
-        source_file_lines
-        |> Enum.at(lsp_line)
-        |> lsp_character_to_elixir(lsp_character)
+      line = Enum.at(urf8_lines, lsp_line)
+      utf8_character = lsp_character_to_elixir(line, lsp_character)
 
       {lsp_line + 1, utf8_character}
     end
@@ -319,17 +324,35 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     |> div(2)
   end
 
-  def elixir_position_to_lsp(_urf8_text, {elixir_line, elixir_character})
+  def elixir_position_to_lsp(_urf8_text_or_lines, {elixir_line, _elixir_character})
+      when elixir_line < 1,
+      do: {0, 0}
+
+  def elixir_position_to_lsp(_urf8_text_or_lines, {elixir_line, elixir_character})
       when elixir_character <= 1,
       do: {max(elixir_line - 1, 0), 0}
 
-  def elixir_position_to_lsp(urf8_text, {elixir_line, elixir_character}) do
-    line =
-      lines(urf8_text)
-      |> Enum.at(max(elixir_line - 1, 0))
+  def elixir_position_to_lsp(urf8_text, {elixir_line, elixir_character})
+      when is_binary(urf8_text) do
+    elixir_position_to_lsp(lines(urf8_text), {elixir_line, elixir_character})
+  end
 
-    utf16_character = elixir_character_to_lsp(line || "", elixir_character)
+  def elixir_position_to_lsp([_ | _] = urf8_lines, {elixir_line, elixir_character})
+      when elixir_line >= 1 do
+    total_lines = length(urf8_lines)
 
-    {elixir_line - 1, utf16_character}
+    if elixir_line > total_lines do
+      # sanitize to position after last char in last line
+      last_line = Enum.at(urf8_lines, total_lines - 1)
+      elixir_last_character = String.length(last_line) + 1
+
+      utf16_character = elixir_character_to_lsp(last_line, elixir_last_character)
+      {total_lines - 1, utf16_character}
+    else
+      line = Enum.at(urf8_lines, max(elixir_line - 1, 0))
+      utf16_character = elixir_character_to_lsp(line, elixir_character)
+
+      {elixir_line - 1, utf16_character}
+    end
   end
 end
