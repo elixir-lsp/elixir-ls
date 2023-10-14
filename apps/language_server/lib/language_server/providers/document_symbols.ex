@@ -113,6 +113,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       mod_defns
       |> Enum.map(&extract_symbol(module_name, &1))
       |> Enum.reject(&is_nil/1)
+      |> Enum.map(fn info ->
+        %{info | location: Keyword.put(info.location, :parent_location, location)}
+      end)
 
     type =
       case defname do
@@ -154,8 +157,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         []
       end
 
-    # TODO there is no end/closing metadata in the AST - use literal encoder
-
     %Info{
       type: :struct,
       name: "#{defname} #{module_name}",
@@ -164,7 +165,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
-  # We skip attributes only supplementoing the symbol
+  # We skip attributes only supplementing the symbol
   defp extract_symbol(_, {:@, _, [{kind, _, _}]}) when kind in @supplementing_attributes, do: nil
 
   # Types
@@ -440,30 +441,68 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp location_to_range(location, text, symbol) do
+    lines = SourceFile.lines(text)
+
     {start_line, start_character} =
-      SourceFile.elixir_position_to_lsp(text, {location[:line], location[:column]})
+      SourceFile.elixir_position_to_lsp(lines, {location[:line], location[:column]})
 
     {end_line, end_character} =
       cond do
         end_location = location[:end_of_expression] ->
-          SourceFile.elixir_position_to_lsp(text, {end_location[:line], end_location[:column]})
+          SourceFile.elixir_position_to_lsp(lines, {end_location[:line], end_location[:column]})
 
         end_location = location[:end] ->
           SourceFile.elixir_position_to_lsp(
-            text,
+            lines,
             {end_location[:line], end_location[:column] + 3}
           )
 
         end_location = location[:closing] ->
           # all closing tags we expect here are 1 char width
           SourceFile.elixir_position_to_lsp(
-            text,
+            lines,
             {end_location[:line], end_location[:column] + 1}
           )
 
         symbol != nil ->
           end_char = SourceFile.elixir_character_to_lsp(symbol, String.length(symbol))
           {start_line, start_character + end_char + 1}
+
+        parent_end_line =
+            location
+            |> Keyword.get(:parent_location, [])
+            |> Keyword.get(:end, [])
+            |> Keyword.get(:line) ->
+          # last expression in block does not have end_of_expression
+          parent_do_line = location[:parent_location][:do][:line]
+
+          if parent_end_line > parent_do_line do
+            # take end location from parent and assume end_of_expression is last char in previous line
+            end_of_expression =
+              Enum.at(lines, parent_end_line - 2)
+              |> String.length()
+
+            SourceFile.elixir_position_to_lsp(
+              lines,
+              {parent_end_line - 1, end_of_expression + 1}
+            )
+          else
+            # take end location from parent and assume end_of_expression is last char before final ; trimmed
+            line = Enum.at(lines, parent_end_line - 1)
+            parent_end_column = location[:parent_location][:end][:column]
+
+            end_of_expression =
+              line
+              |> String.slice(0..(parent_end_column - 2))
+              |> String.trim_trailing()
+              |> String.replace_trailing(";", "")
+              |> String.length()
+
+            SourceFile.elixir_position_to_lsp(
+              lines,
+              {parent_end_line, end_of_expression + 1}
+            )
+          end
 
         true ->
           {start_line, start_character}
