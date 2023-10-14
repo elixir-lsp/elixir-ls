@@ -128,9 +128,14 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         ""
       end
 
+    function_name =
+      "#{mod_str}.#{fun_str}(#{Enum.join(info.args, ", ")})"
+      |> Code.format_string!(line_length: 40)
+      |> to_string
+
     """
     ```elixir
-    #{mod_str}.#{fun_str}(#{Enum.join(info.args, ", ")})
+    #{function_name}
     ```
 
     *#{kind}* #{build_function_link(info.module, info.function, info.arity)}
@@ -152,9 +157,14 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         atom -> inspect(atom) <> "."
       end
 
+    type_name =
+      "#{mod_formatted}#{info.type}(#{Enum.join(info.args, ", ")})"
+      |> Code.format_string!(line_length: 40)
+      |> to_string
+
     """
     ```elixir
-    #{mod_formatted}#{info.type}(#{Enum.join(info.args, ", ")})
+    #{type_name}
     ```
 
     *type* #{build_type_link(info.module, info.type, info.arity)}
