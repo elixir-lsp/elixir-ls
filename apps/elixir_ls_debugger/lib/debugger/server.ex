@@ -13,7 +13,7 @@ defmodule ElixirLS.Debugger.Server do
   """
 
   defmodule ServerError do
-    defexception [:message, :format, :variables]
+    defexception [:message, :format, :variables, {:send_telemetry, true}, {:show_user, false}]
   end
 
   alias ElixirLS.Debugger.{
@@ -290,7 +290,14 @@ defmodule ElixirLS.Debugger.Server do
 
     case result do
       {:error, e = %ServerError{}} ->
-        Output.send_error_response(packet, e.message, e.format, e.variables)
+        Output.send_error_response(
+          packet,
+          e.message,
+          e.format,
+          e.variables,
+          e.send_telemetry,
+          e.show_user
+        )
 
       {:ok, response_body} ->
         Output.send_response(packet, response_body)
@@ -354,14 +361,22 @@ defmodule ElixirLS.Debugger.Server do
       end
     rescue
       e in ServerError ->
-        Output.send_error_response(packet, e.message, e.format, e.variables)
+        Output.send_error_response(
+          packet,
+          e.message,
+          e.format,
+          e.variables,
+          e.send_telemetry,
+          e.show_user
+        )
+
         {:noreply, state}
     catch
       kind, error ->
         {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
         message = Exception.format(kind, payload, stacktrace)
         Output.debugger_console(message)
-        Output.send_error_response(packet, "internalServerError", message, %{})
+        Output.send_error_response(packet, "internalServerError", message, %{}, true, false)
         {:noreply, state}
     end
   end
@@ -444,7 +459,9 @@ defmodule ElixirLS.Debugger.Server do
             packet,
             "internalServerError",
             "Request handler exited with reason #{Exception.format_exit(reason)}",
-            %{}
+            %{},
+            true,
+            false
           )
 
           if MapSet.member?(state.progresses, request_id) do
@@ -503,7 +520,8 @@ defmodule ElixirLS.Debugger.Server do
       raise ServerError,
         message: "invalidRequest",
         format: "0-based lines are not supported",
-        variables: %{}
+        variables: %{},
+        show_user: true
     end
 
     # columnsStartAt1 is true by default and we only support 1-based indexing
@@ -511,7 +529,8 @@ defmodule ElixirLS.Debugger.Server do
       raise ServerError,
         message: "invalidRequest",
         format: "0-based columns are not supported",
-        variables: %{}
+        variables: %{},
+        show_user: true
     end
 
     # pathFormat is `path` by default and we do not support other, e.g. `uri`
@@ -519,7 +538,8 @@ defmodule ElixirLS.Debugger.Server do
       raise ServerError,
         message: "invalidRequest",
         format: "pathFormat {pathFormat} is not supported",
-        variables: %{"pathFormat" => client_info["pathFormat"]}
+        variables: %{"pathFormat" => client_info["pathFormat"]},
+        show_user: true
     end
 
     {capabilities(), %{state | client_info: client_info}}
@@ -542,7 +562,7 @@ defmodule ElixirLS.Debugger.Server do
       case requests do
         %{^request_or_progress_id => {pid, packet}} ->
           Process.exit(pid, :cancelled)
-          Output.send_error_response(packet, "cancelled", "cancelled", %{})
+          Output.send_error_response(packet, "cancelled", "cancelled", %{}, false, false)
 
           # send progressEnd if cancelling a progress
           if MapSet.member?(state.progresses, request_or_progress_id) do
@@ -610,7 +630,8 @@ defmodule ElixirLS.Debugger.Server do
     raise ServerError,
       message: "invalidRequest",
       format: "Cannot set breakpoints when running with no debug",
-      variables: %{}
+      variables: %{},
+      show_user: true
   end
 
   defp handle_request(
@@ -659,7 +680,8 @@ defmodule ElixirLS.Debugger.Server do
     raise ServerError,
       message: "invalidRequest",
       format: "Cannot set function breakpoints when running with no debug",
-      variables: %{}
+      variables: %{},
+      show_user: true
   end
 
   defp handle_request(
@@ -807,7 +829,8 @@ defmodule ElixirLS.Debugger.Server do
     raise ServerError,
       message: "invalidRequest",
       format: "Cannot pause process when running with no debug",
-      variables: %{}
+      variables: %{},
+      show_user: true
   end
 
   defp handle_request(pause_req(_, thread_id), state = %__MODULE__{}) do
@@ -821,7 +844,8 @@ defmodule ElixirLS.Debugger.Server do
         format: "threadId not found: {threadId}",
         variables: %{
           "threadId" => inspect(thread_id)
-        }
+        },
+        show_user: true
     end
 
     {%{}, state}
@@ -1273,7 +1297,12 @@ defmodule ElixirLS.Debugger.Server do
         message = Exception.format(kind, payload, stacktrace)
 
         reraise(
-          %ServerError{message: "evaluateError", format: message, variables: %{}},
+          %ServerError{
+            message: "evaluateError",
+            format: message,
+            variables: %{},
+            send_telemetry: false
+          },
           stacktrace
         )
     end
@@ -1531,7 +1560,8 @@ defmodule ElixirLS.Debugger.Server do
     raise ServerError,
       message: "argumentError",
       format: "stackTraceMode must be `all`, `no_tail`, or `false`",
-      variables: %{}
+      variables: %{},
+      show_user: true
   end
 
   defp capabilities do
@@ -1659,7 +1689,8 @@ defmodule ElixirLS.Debugger.Server do
             raise ServerError,
               message: "argumentError",
               format: "Unable to compile file pattern {pattern} into a regex: {error}",
-              variables: %{"pattern" => inspect(pattern), "error" => inspect(error)}
+              variables: %{"pattern" => inspect(pattern), "error" => inspect(error)},
+              show_user: true
         end
       end)
 
@@ -2009,7 +2040,9 @@ defmodule ElixirLS.Debugger.Server do
         format: "Kernel.dbg breakpoints do not support {command} command",
         variables: %{
           "command" => command
-        }
+        },
+        show_user: true,
+        send_telemetry: false
     end
   end
 

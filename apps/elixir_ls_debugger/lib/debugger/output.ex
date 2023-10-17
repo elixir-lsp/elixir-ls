@@ -21,8 +21,20 @@ defmodule ElixirLS.Debugger.Output do
     GenServer.call(server, {:send_response, request_packet, response_body})
   end
 
-  def send_error_response(server \\ __MODULE__, request_packet, message, format, variables) do
-    GenServer.call(server, {:send_error_response, request_packet, message, format, variables})
+  def send_error_response(
+        server \\ __MODULE__,
+        request_packet,
+        message,
+        format,
+        variables,
+        send_telemetry,
+        show_user
+      ) do
+    GenServer.call(
+      server,
+      {:send_error_response, request_packet, message, format, variables, send_telemetry,
+       show_user}
+    )
   end
 
   def send_event(server \\ __MODULE__, event, body) do
@@ -69,7 +81,12 @@ defmodule ElixirLS.Debugger.Output do
     {:reply, res, seq + 1}
   end
 
-  def handle_call({:send_error_response, request_packet, message, format, variables}, _from, seq) do
+  def handle_call(
+        {:send_error_response, request_packet, message, format, variables, send_telemetry,
+         show_user},
+        _from,
+        seq
+      ) do
     res =
       WireProtocol.send(
         error_response(
@@ -78,7 +95,9 @@ defmodule ElixirLS.Debugger.Output do
           request_packet["command"],
           message,
           format,
-          variables
+          variables,
+          send_telemetry,
+          show_user
         )
       )
 
