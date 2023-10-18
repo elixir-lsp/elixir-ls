@@ -90,6 +90,22 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     notify("window/logMessage", %{type: message_type_code(type), message: to_string(message)})
   end
 
+  def telemetry(name, properties, measurements) do
+    common_properties = %{
+      "elixir_ls.elixir_version" => System.version(),
+      "elixir_ls.otp_release" => System.otp_release(),
+      "elixir_ls.erts_version" => Application.spec(:erts, :vsn),
+      "elixir_ls.mix_env" => Mix.env(),
+      "elixir_ls.mix_target" => Mix.target()
+    }
+
+    notify("telemetry/event", %{
+      name: name,
+      properties: Map.merge(common_properties, properties),
+      measurements: measurements
+    })
+  end
+
   def register_capability_request(server \\ __MODULE__, server_instance_id, method, options) do
     id = server_instance_id <> method <> JasonV.encode!(options)
 

@@ -60,6 +60,27 @@ defmodule ElixirLS.Debugger.Output do
     send_event(server, "output", %{"category" => "stderr", "output" => maybe_append_newline(str)})
   end
 
+  def telemetry(server \\ __MODULE__, event, properties, measurements)
+      when is_binary(event) and is_map(properties) and is_map(measurements) do
+    common_properties = %{
+      "elixir_ls.elixir_version" => System.version(),
+      "elixir_ls.otp_release" => System.otp_release(),
+      "elixir_ls.erts_version" => Application.spec(:erts, :vsn),
+      "elixir_ls.mix_env" => Mix.env(),
+      "elixir_ls.mix_target" => Mix.target()
+    }
+
+    send_event(server, "output", %{
+      "category" => "telemetry",
+      "output" => event,
+      "data" => %{
+        "name" => event,
+        "properties" => Map.merge(common_properties, properties),
+        "measurements" => measurements
+      }
+    })
+  end
+
   defp maybe_append_newline(message) do
     unless String.ends_with?(message, "\n") do
       message <> "\n"

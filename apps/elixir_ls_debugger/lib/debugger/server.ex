@@ -281,7 +281,11 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | dbg_session: from}}
   end
 
-  def handle_call({:request_finished, packet, result}, _from, state = %__MODULE__{}) do
+  def handle_call(
+        {:request_finished, request(_, command) = packet, start_time, result},
+        _from,
+        state = %__MODULE__{}
+      ) do
     if MapSet.member?(state.progresses, packet["seq"]) do
       Output.send_event("progressEnd", %{
         "progressId" => packet["seq"]
@@ -300,7 +304,12 @@ defmodule ElixirLS.Debugger.Server do
         )
 
       {:ok, response_body} ->
+        elapsed = System.monotonic_time(:millisecond) - start_time
         Output.send_response(packet, response_body)
+
+        Output.telemetry("elixir_ls.dap_request", %{"elixir_ls.dap_command" => command}, %{
+          "elixir_ls.dap_request_time" => elapsed
+        })
     end
 
     state = %{
@@ -325,16 +334,33 @@ defmodule ElixirLS.Debugger.Server do
   @impl GenServer
   def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state = %__MODULE__{}) do
     Output.send_response(packet, %{})
+
+    Output.telemetry("elixir_ls.dap_request", %{"elixir_ls.dap_command" => "disconnect"}, %{
+      "elixir_ls.dap_request_time" => 0
+    })
+
     {:noreply, state, {:continue, :disconnect}}
   end
 
-  def handle_cast({:receive_packet, request(seq, _) = packet}, state = %__MODULE__{}) do
+  def handle_cast({:receive_packet, request(seq, command) = packet}, state = %__MODULE__{}) do
+    start_time = System.monotonic_time(:millisecond)
+
     try do
       if state.client_info == nil do
         case packet do
           request(_, "initialize") ->
             {response_body, state} = handle_request(packet, state)
+            elapsed = System.monotonic_time(:millisecond) - start_time
             Output.send_response(packet, response_body)
+
+            Output.telemetry(
+              "elixir_ls.dap_request",
+              %{"elixir_ls.dap_command" => "initialize"},
+              %{
+                "elixir_ls.dap_request_time" => elapsed
+              }
+            )
+
             {:noreply, state}
 
           request(_, command) ->
@@ -349,11 +375,17 @@ defmodule ElixirLS.Debugger.Server do
         state =
           case handle_request(packet, state) do
             {response_body, state} ->
+              elapsed = System.monotonic_time(:millisecond) - start_time
               Output.send_response(packet, response_body)
+
+              Output.telemetry("elixir_ls.dap_request", %{"elixir_ls.dap_command" => command}, %{
+                "elixir_ls.dap_request_time" => elapsed
+              })
+
               state
 
             {:async, fun, state} ->
-              {pid, _ref} = handle_request_async(packet, fun)
+              {pid, _ref} = handle_request_async(packet, start_time, fun)
               %{state | requests: Map.put(state.requests, seq, {pid, packet})}
           end
 
@@ -2096,7 +2128,7 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp handle_request_async(packet, func) do
+  defp handle_request_async(packet, start_time, func) do
     parent = self()
 
     spawn_monitor(fn ->
@@ -2116,7 +2148,7 @@ defmodule ElixirLS.Debugger.Server do
              %ServerError{message: "internalServerError", format: message, variables: %{}}}
         end
 
-      GenServer.call(parent, {:request_finished, packet, result}, :infinity)
+      GenServer.call(parent, {:request_finished, packet, start_time, result}, :infinity)
     end)
   end
 end
