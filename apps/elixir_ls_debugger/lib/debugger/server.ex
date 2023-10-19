@@ -183,6 +183,34 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   @impl GenServer
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        Output.telemetry(
+          "elixir_ls.dap_server_error",
+          %{
+            "elixir_ls.dap_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Output.debugger_important("Terminating: #{Exception.format_exit(reason)}")
+        System.stop(1)
+    end
+
+    :ok
+  end
+
+  @impl GenServer
   def handle_call(
         {:dbg, _binding, %Macro.Env{}, _stacktrace},
         _from,
@@ -534,14 +562,6 @@ defmodule ElixirLS.Debugger.Server do
     end
 
     {:noreply, state}
-  end
-
-  @impl GenServer
-  def terminate(reason, _state = %__MODULE__{}) do
-    if reason != :normal do
-      Output.debugger_important("Terminating: #{Exception.format_exit(reason)}")
-      System.stop(1)
-    end
   end
 
   ## Helpers

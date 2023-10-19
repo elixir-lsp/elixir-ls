@@ -129,6 +129,34 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        JsonRpc.telemetry(
+          "elixir_ls.lsp_server_error",
+          %{
+            "elixir_ls.lsp_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Logger.info("Terminating: #{Exception.format_exit(reason)}")
+        System.stop(1)
+    end
+
+    :ok
+  end
+
+  @impl GenServer
   def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
     {{_pid, command, start_time}, requests} = Map.pop!(state.requests, id)
 
@@ -1379,6 +1407,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
       other ->
         Logger.error("client/registerCapability returned: #{inspect(other)}")
+
+        JsonRpc.telemetry(
+          "elixir_ls.reverse_request_error",
+          %{
+            "elixir_ls.reverse_request_error" => inspect(other),
+            "elixir_ls.reverse_request" => "client/registerCapability"
+          },
+          %{}
+        )
     end
   end
 
@@ -1397,6 +1434,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
       other ->
         Logger.error("client/registerCapability returned: #{inspect(other)}")
+
+        JsonRpc.telemetry(
+          "elixir_ls.reverse_request_error",
+          %{
+            "elixir_ls.reverse_request_error" => inspect(other),
+            "elixir_ls.reverse_request" => "client/registerCapability"
+          },
+          %{}
+        )
     end
   end
 
@@ -1604,6 +1650,16 @@ defmodule ElixirLS.LanguageServer.Server do
 
         other ->
           Logger.error("Cannot get client configuration: #{inspect(other)}")
+
+          JsonRpc.telemetry(
+            "elixir_ls.reverse_request_error",
+            %{
+              "elixir_ls.reverse_request_error" => inspect(other),
+              "elixir_ls.reverse_request" => "workspace/configuration"
+            },
+            %{}
+          )
+
           state
       end
     else
@@ -1674,6 +1730,12 @@ defmodule ElixirLS.LanguageServer.Server do
             Logger.warning(
               "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
                 Exception.format(:error, e, __STACKTRACE__)
+            )
+
+            JsonRpc.telemetry(
+              "elixir_ls.parser_error",
+              %{"elixir_ls.parser_error" => Exception.format(:error, e, __STACKTRACE__)},
+              %{}
             )
 
             {:error, diagnostic}
