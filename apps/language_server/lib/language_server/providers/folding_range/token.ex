@@ -44,7 +44,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
             Logger.warning("Unmatched token: #{inspect(error)}")
 
             JsonRpc.telemetry(
-              "elixir_ls.folding_ranges_error",
+              "folding_ranges_error",
               %{"elixir_ls.folding_ranges_error" => inspect(error)},
               %{}
             )

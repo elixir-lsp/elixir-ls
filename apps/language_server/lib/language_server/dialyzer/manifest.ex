@@ -42,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
           )
 
           JsonRpc.telemetry(
-            "elixir_ls.dialyzer_error",
+            "dialyzer_error",
             %{
               "elixir_ls.dialyzer_error" =>
                 "Dialyzer PLT build process exited with reason: #{error_msg}"

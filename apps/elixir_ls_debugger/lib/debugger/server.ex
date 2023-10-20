@@ -196,7 +196,7 @@ defmodule ElixirLS.Debugger.Server do
 
       other ->
         Output.telemetry(
-          "elixir_ls.dap_server_error",
+          "dap_server_error",
           %{
             "elixir_ls.dap_server_error" => inspect(other)
           },
@@ -335,9 +335,13 @@ defmodule ElixirLS.Debugger.Server do
         elapsed = System.monotonic_time(:millisecond) - start_time
         Output.send_response(packet, response_body)
 
-        Output.telemetry("elixir_ls.dap_request", %{"elixir_ls.dap_command" => command}, %{
-          "elixir_ls.dap_request_time" => elapsed
-        })
+        Output.telemetry(
+          "dap_request",
+          %{"elixir_ls.dap_command" => String.replace(command, "/", "_")},
+          %{
+            "elixir_ls.dap_request_time" => elapsed
+          }
+        )
     end
 
     state = %{
@@ -363,7 +367,7 @@ defmodule ElixirLS.Debugger.Server do
   def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state = %__MODULE__{}) do
     Output.send_response(packet, %{})
 
-    Output.telemetry("elixir_ls.dap_request", %{"elixir_ls.dap_command" => "disconnect"}, %{
+    Output.telemetry("dap_request", %{"elixir_ls.dap_command" => "disconnect"}, %{
       "elixir_ls.dap_request_time" => 0
     })
 
@@ -382,7 +386,7 @@ defmodule ElixirLS.Debugger.Server do
             Output.send_response(packet, response_body)
 
             Output.telemetry(
-              "elixir_ls.dap_request",
+              "dap_request",
               %{"elixir_ls.dap_command" => "initialize"},
               %{
                 "elixir_ls.dap_request_time" => elapsed
@@ -406,9 +410,13 @@ defmodule ElixirLS.Debugger.Server do
               elapsed = System.monotonic_time(:millisecond) - start_time
               Output.send_response(packet, response_body)
 
-              Output.telemetry("elixir_ls.dap_request", %{"elixir_ls.dap_command" => command}, %{
-                "elixir_ls.dap_request_time" => elapsed
-              })
+              Output.telemetry(
+                "dap_request",
+                %{"elixir_ls.dap_command" => String.replace(command, "/", "_")},
+                %{
+                  "elixir_ls.dap_request_time" => elapsed
+                }
+              )
 
               state
 

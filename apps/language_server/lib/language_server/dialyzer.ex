@@ -263,7 +263,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           Logger.error(message)
 
           JsonRpc.telemetry(
-            "elixir_ls.dialyzer_error",
+            "dialyzer_error",
             %{"elixir_ls.dialyzer_error" => message},
             %{}
           )
@@ -420,7 +420,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     Logger.info("[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds")
 
-    JsonRpc.telemetry("elixir_ls.dialyzer", %{}, %{"elixir_ls.dialyzer_time" => div(us, 1000)})
+    JsonRpc.telemetry("dialyzer", %{}, %{"elixir_ls.dialyzer_time" => div(us, 1000)})
 
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
   end
@@ -500,7 +500,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         )
 
         JsonRpc.telemetry(
-          "elixir_ls.dialyzer_error",
+          "dialyzer_error",
           %{"elixir_ls.dialyzer_error" => inspect(reason)},
           %{}
         )

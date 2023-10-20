@@ -43,7 +43,7 @@ defmodule ElixirLS.LanguageServer.Build do
                       Logger.warning("Mix.Dep.load_on_environment([]) failed: #{message}")
 
                       JsonRpc.telemetry(
-                        "elixir_ls.build_error",
+                        "build_error",
                         %{"elixir_ls.build_error" => message},
                         %{}
                       )
@@ -66,7 +66,7 @@ defmodule ElixirLS.LanguageServer.Build do
           Tracer.save()
           Logger.info("Compile took #{div(us, 1000)} milliseconds")
 
-          JsonRpc.telemetry("elixir_ls.build", %{"elixir_ls.result" => result}, %{
+          JsonRpc.telemetry("build", %{"elixir_ls.result" => result}, %{
             "elixir_ls.build_time" => div(us, 1000)
           })
         end)
@@ -303,7 +303,7 @@ defmodule ElixirLS.LanguageServer.Build do
       Logger.error("mix clean returned #{inspect(results)}")
 
       JsonRpc.telemetry(
-        "elixir_ls.mix_clean_error",
+        "mix_clean_error",
         %{"elixir_ls.mix_clean_error" => inspect(results)},
         %{}
       )

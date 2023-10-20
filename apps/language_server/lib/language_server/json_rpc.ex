@@ -94,7 +94,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     common_properties = %{
       "elixir_ls.elixir_version" => System.version(),
       "elixir_ls.otp_release" => System.otp_release(),
-      "elixir_ls.erts_version" => Application.spec(:erts, :vsn),
+      "elixir_ls.erts_version" => to_string(Application.spec(:erts, :vsn)),
       "elixir_ls.mix_env" => Mix.env(),
       "elixir_ls.mix_target" => Mix.target()
     }

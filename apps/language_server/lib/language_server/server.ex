@@ -142,7 +142,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       other ->
         JsonRpc.telemetry(
-          "elixir_ls.lsp_server_error",
+          "lsp_server_error",
           %{
             "elixir_ls.lsp_server_error" => inspect(other)
           },
@@ -165,9 +165,9 @@ defmodule ElixirLS.LanguageServer.Server do
         JsonRpc.respond_with_error(id, type, msg)
 
         JsonRpc.telemetry(
-          "elixir_ls.lsp_request_error",
+          "lsp_request_error",
           %{
-            "elixir_ls.lsp_command" => command,
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
             "elixir_ls.lsp_error" => type,
             "elixir_ls.lsp_error_message" => msg
           },
@@ -178,9 +178,13 @@ defmodule ElixirLS.LanguageServer.Server do
         elapsed = System.monotonic_time(:millisecond) - start_time
         JsonRpc.respond(id, result)
 
-        JsonRpc.telemetry("elixir_ls.lsp_request", %{"elixir_ls.lsp_command" => command}, %{
-          "elixir_ls.lsp_request_time" => elapsed
-        })
+        JsonRpc.telemetry(
+          "lsp_request",
+          %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
+          %{
+            "elixir_ls.lsp_request_time" => elapsed
+          }
+        )
     end
 
     state = %{state | requests: requests}
@@ -313,9 +317,9 @@ defmodule ElixirLS.LanguageServer.Server do
           JsonRpc.respond_with_error(id, :server_error, error_msg)
 
           JsonRpc.telemetry(
-            "elixir_ls.lsp_request_error",
+            "lsp_request_error",
             %{
-              "elixir_ls.lsp_command" => command,
+              "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
               "elixir_ls.lsp_error" => :server_error,
               "elixir_ls.lsp_error_message" => error_msg
             },
@@ -647,7 +651,7 @@ defmodule ElixirLS.LanguageServer.Server do
         elapsed = System.monotonic_time(:millisecond) - start_time
         JsonRpc.respond(id, result)
 
-        JsonRpc.telemetry("elixir_ls.lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
+        JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
           "elixir_ls.lsp_request_time" => elapsed
         })
 
@@ -657,7 +661,7 @@ defmodule ElixirLS.LanguageServer.Server do
         JsonRpc.respond_with_error(id, :server_not_initialized)
 
         JsonRpc.telemetry(
-          "elixir_ls.lsp_request_error",
+          "lsp_request_error",
           %{
             "elixir_ls.lsp_command" => "initialize",
             "elixir_ls.lsp_error" => :server_not_initialized,
@@ -692,9 +696,13 @@ defmodule ElixirLS.LanguageServer.Server do
           elapsed = System.monotonic_time(:millisecond) - start_time
           JsonRpc.respond(id, result)
 
-          JsonRpc.telemetry("elixir_ls.lsp_request", %{"elixir_ls.lsp_command" => command}, %{
-            "elixir_ls.lsp_request_time" => elapsed
-          })
+          JsonRpc.telemetry(
+            "lsp_request",
+            %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
+            %{
+              "elixir_ls.lsp_request_time" => elapsed
+            }
+          )
 
           state
 
@@ -702,9 +710,9 @@ defmodule ElixirLS.LanguageServer.Server do
           JsonRpc.respond_with_error(id, type, msg)
 
           JsonRpc.telemetry(
-            "elixir_ls.lsp_request_error",
+            "lsp_request_error",
             %{
-              "elixir_ls.lsp_command" => command,
+              "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
               "elixir_ls.lsp_error" => type,
               "elixir_ls.lsp_error_message" => msg
             },
@@ -722,9 +730,9 @@ defmodule ElixirLS.LanguageServer.Server do
         JsonRpc.respond_with_error(id, :invalid_params, e.message)
 
         JsonRpc.telemetry(
-          "elixir_ls.lsp_request_error",
+          "lsp_request_error",
           %{
-            "elixir_ls.lsp_command" => command,
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
             "elixir_ls.lsp_error" => :invalid_params,
             "elixir_ls.lsp_error_message" => e.message
           },
@@ -739,9 +747,9 @@ defmodule ElixirLS.LanguageServer.Server do
         JsonRpc.respond_with_error(id, :server_error, error_msg)
 
         JsonRpc.telemetry(
-          "elixir_ls.lsp_request_error",
+          "lsp_request_error",
           %{
-            "elixir_ls.lsp_command" => command,
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
             "elixir_ls.lsp_error" => :server_error,
             "elixir_ls.lsp_error_message" => error_msg
           },
@@ -756,9 +764,9 @@ defmodule ElixirLS.LanguageServer.Server do
     JsonRpc.respond_with_error(id, :invalid_request)
 
     JsonRpc.telemetry(
-      "elixir_ls.lsp_request_error",
+      "lsp_request_error",
       %{
-        "elixir_ls.lsp_command" => command,
+        "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
         "elixir_ls.lsp_error" => :invalid_request,
         "elixir_ls.lsp_error_message" => "Invalid Request"
       },
@@ -1433,7 +1441,7 @@ defmodule ElixirLS.LanguageServer.Server do
         Logger.error("client/registerCapability returned: #{inspect(other)}")
 
         JsonRpc.telemetry(
-          "elixir_ls.reverse_request_error",
+          "reverse_request_error",
           %{
             "elixir_ls.reverse_request_error" => inspect(other),
             "elixir_ls.reverse_request" => "client/registerCapability"
@@ -1460,7 +1468,7 @@ defmodule ElixirLS.LanguageServer.Server do
         Logger.error("client/registerCapability returned: #{inspect(other)}")
 
         JsonRpc.telemetry(
-          "elixir_ls.reverse_request_error",
+          "reverse_request_error",
           %{
             "elixir_ls.reverse_request_error" => inspect(other),
             "elixir_ls.reverse_request" => "client/registerCapability"
@@ -1676,7 +1684,7 @@ defmodule ElixirLS.LanguageServer.Server do
           Logger.error("Cannot get client configuration: #{inspect(other)}")
 
           JsonRpc.telemetry(
-            "elixir_ls.reverse_request_error",
+            "reverse_request_error",
             %{
               "elixir_ls.reverse_request_error" => inspect(other),
               "elixir_ls.reverse_request" => "workspace/configuration"
@@ -1757,7 +1765,7 @@ defmodule ElixirLS.LanguageServer.Server do
             )
 
             JsonRpc.telemetry(
-              "elixir_ls.parser_error",
+              "parser_error",
               %{"elixir_ls.parser_error" => Exception.format(:error, e, __STACKTRACE__)},
               %{}
             )
