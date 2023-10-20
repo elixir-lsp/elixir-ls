@@ -46,6 +46,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
       {:path_glob_vendored,
        github: "elixir-lsp/path_glob", ref: @dep_versions[:path_glob_vendored]},
+      {:diff, "~> 1.1"},
       {:patch, "~> 0.12.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, runtime: false}
     ]
