@@ -10,6 +10,8 @@
   "nimble_parsec": {:hex, :nimble_parsec, "1.1.0", "3a6fca1550363552e54c216debb6a9e95bd8d32348938e13de5eda962c0d7f89", [:mix], [], "hexpm", "08eb32d66b706e913ff748f11694b17981c0b04a33ef470e33e11b3d3ac8f54b"},
   "patch": {:hex, :patch, "0.12.0", "2da8967d382bade20344a3e89d618bfba563b12d4ac93955468e830777f816b0", [:mix], [], "hexpm", "ffd0e9a7f2ad5054f37af84067ee88b1ad337308a1cb227e181e3967127b0235"},
   "path_glob_vendored": {:git, "https://github.com/elixir-lsp/path_glob.git", "965350dc41def7be4a70a23904195c733a2ecc84", [ref: "965350dc41def7be4a70a23904195c733a2ecc84"]},
+  "sourceror": {:git, "https://github.com/robmckinnon/sourceror.git", "756bd90e9bf6e885e9a3809781e76d9fff9056cf", [tag: "vendored_v0.14.0"]},
+  "sourceror_vendored": {:git, "https://github.com/robmckinnon/sourceror.git", "756bd90e9bf6e885e9a3809781e76d9fff9056cf", [tag: "vendored_v0.14.0"]},
   "statistex": {:hex, :statistex, "1.0.0", "f3dc93f3c0c6c92e5f291704cf62b99b553253d7969e9a5fa713e5481cd858a5", [:mix], [], "hexpm", "ff9d8bee7035028ab4742ff52fc80a2aa35cece833cf5319009b52f1b5a86c27"},
   "stream_data": {:hex, :stream_data, "0.5.0", "b27641e58941685c75b353577dc602c9d2c12292dd84babf506c2033cd97893e", [:mix], [], "hexpm", "012bd2eec069ada4db3411f9115ccafa38540a3c78c4c0349f151fc761b9e271"},
 }
