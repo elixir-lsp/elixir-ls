@@ -398,7 +398,9 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
 
       # we should not receive Protocol has already been consolidated warnings here
-      refute_receive notification("textDocument/publishDiagnostics", _), 3000
+      refute_receive notification("textDocument/publishDiagnostics", %{"diagnostics" => [_ | _]}),
+                     3000
+
       wait_until_compiled(server)
     end)
   end

@@ -1178,17 +1178,41 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
-    files =
-      Enum.uniq(Enum.map(new_diagnostics, & &1.file) ++ Enum.map(old_diagnostics, & &1.file))
+    # we need to publish diagnostics for all files in new_diagnostics
+    # to clear diagnostics we need to push empty sets for old_diagnostics
+    # in case we missed something or restarted and don't have old_diagnostics
+    # we also push for all open files
+    uris_from_old_diagnostics = Enum.map(old_diagnostics, &(&1.file |> SourceFile.Path.to_uri()))
 
-    for file <- files,
-        uri = SourceFile.Path.to_uri(file),
-        do:
-          Diagnostics.publish_file_diagnostics(
-            uri,
-            new_diagnostics,
-            Map.get_lazy(source_files, uri, fn -> safely_read_file(file) end)
-          )
+    new_diagnostics_by_uri =
+      new_diagnostics
+      |> Enum.group_by(&(&1.file |> SourceFile.Path.to_uri()))
+
+    uris_from_new_diagnostics = Map.keys(new_diagnostics_by_uri)
+
+    uris_from_open_files = Map.keys(source_files)
+
+    uris_to_publish_diagnostics =
+      Enum.uniq(uris_from_old_diagnostics ++ uris_from_new_diagnostics ++ uris_from_open_files)
+
+    for uri <- uris_to_publish_diagnostics do
+      uri_diagnostics = Map.get(new_diagnostics_by_uri, uri, [])
+      # TODO store versions on compile/parse/dialyze?
+      version =
+        case source_files[uri] do
+          nil -> nil
+          file -> file.version
+        end
+
+      Diagnostics.publish_file_diagnostics(
+        uri,
+        uri_diagnostics,
+        Map.get_lazy(source_files, uri, fn -> safely_read_file(SourceFile.Path.from_uri(uri)) end),
+        version
+      )
+
+      # TODO dump diagnostics to file
+    end
   end
 
   defp show_version_warnings do

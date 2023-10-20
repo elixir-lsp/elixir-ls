@@ -494,9 +494,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert %SourceFile{dirty?: false, text: ^code, version: 1} =
                  Server.get_source_file(state, uri)
 
-        refute_receive notification("textDocument/publishDiagnostics", %{
+        assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => _
+                         "diagnostics" => []
                        }),
                        1000
 
@@ -799,9 +799,9 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         fake_initialize(server)
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
-        refute_receive notification("textDocument/publishDiagnostics", %{
+        assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => _
+                         "diagnostics" => []
                        }),
                        1000
 

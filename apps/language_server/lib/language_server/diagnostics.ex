@@ -182,14 +182,9 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end)
   end
 
-  def publish_file_diagnostics(uri, all_diagnostics, source_file) do
-    diagnostics =
-      all_diagnostics
-      |> Enum.filter(&(SourceFile.Path.to_uri(&1.file) == uri))
-      |> Enum.sort_by(fn %{position: position} -> position end)
-
+  def publish_file_diagnostics(uri, uri_diagnostics, source_file, version) do
     diagnostics_json =
-      for diagnostic <- diagnostics do
+      for diagnostic <- uri_diagnostics do
         severity =
           case diagnostic.severity do
             :error -> 1
@@ -211,11 +206,21 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           "source" => diagnostic.compiler_name
         }
       end
+      |> Enum.sort_by(& &1["range"]["start"])
 
-    JsonRpc.notify("textDocument/publishDiagnostics", %{
+    message = %{
       "uri" => uri,
       "diagnostics" => diagnostics_json
-    })
+    }
+
+    message =
+      if is_integer(version) do
+        Map.put(message, "version", version)
+      else
+        message
+      end
+
+    JsonRpc.notify("textDocument/publishDiagnostics", message)
   end
 
   def mixfile_diagnostic({file, line, message}, severity) do
