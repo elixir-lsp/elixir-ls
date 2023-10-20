@@ -98,6 +98,8 @@ defmodule ElixirLS.LanguageServer.Build do
           end
         end
 
+        unload_mix_project_apps()
+
         # FIXME: Private API
         Mix.Project.pop()
         purge_module(module)
@@ -401,7 +403,10 @@ defmodule ElixirLS.LanguageServer.Build do
     for dep <- current_deps do
       maybe_purge_dep(dep)
     end
+  end
 
+  defp unload_mix_project_apps() do
+    # note that this will unload config so we need to call loadconfig afterwards
     mix_project_apps =
       if Mix.Project.umbrella?() do
         Mix.Project.apps_paths() |> Enum.map(&elem(&1, 0))
