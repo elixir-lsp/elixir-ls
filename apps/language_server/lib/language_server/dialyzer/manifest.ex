@@ -28,15 +28,26 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
           :ok
 
         {:DOWN, ^ref, :process, ^pid, reason} ->
+          error_msg = Exception.format_exit(reason)
+
           JsonRpc.show_message(
             :error,
             "Unable to build dialyzer PLT. Most likely there are problems with your OTP and elixir installation."
           )
 
-          Logger.error("Dialyzer PLT build process exited with reason: #{inspect(reason)}")
+          Logger.error("Dialyzer PLT build process exited with reason: #{error_msg}")
 
           Logger.warning(
             "Dialyzer support disabled. Most likely there are problems with your elixir and OTP installation. Visit https://github.com/elixir-lsp/elixir-ls/issues/540 for help"
+          )
+
+          JsonRpc.telemetry(
+            "elixir_ls.dialyzer_error",
+            %{
+              "elixir_ls.dialyzer_error" =>
+                "Dialyzer PLT build process exited with reason: #{error_msg}"
+            },
+            %{}
           )
 
           # NOTE We do not call Dialyzer.analysis_finished. LS keeps working and building normally

@@ -259,8 +259,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {:exit, reason}, file_changes ->
           # on elixir >= 1.14 reason will actually be {beam_path, reason} but
           # it's not easy to pattern match on that
-          Logger.error(
-            "[ElixirLS Dialyzer] Unable to process one of the beams: #{inspect(reason)}"
+          message = "Unable to process one of the beams: #{Exception.format_exit(reason)}"
+          Logger.error(message)
+
+          JsonRpc.telemetry(
+            "elixir_ls.dialyzer_error",
+            %{"elixir_ls.dialyzer_error" => message},
+            %{}
           )
 
           file_changes
@@ -415,6 +420,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     Logger.info("[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds")
 
+    JsonRpc.telemetry("elixir_ls.dialyzer", %{}, %{"elixir_ls.dialyzer_time" => div(us, 1000)})
+
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
   end
 
@@ -490,6 +497,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       {:error, reason} ->
         Logger.warning(
           "[ElixirLS Dialyzer] get_core_from_beam failed for #{file}: #{inspect(reason)}"
+        )
+
+        JsonRpc.telemetry(
+          "elixir_ls.dialyzer_error",
+          %{"elixir_ls.dialyzer_error" => inspect(reason)},
+          %{}
         )
 
         nil

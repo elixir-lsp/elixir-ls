@@ -210,5 +210,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
       "Analysis failed: " <> Exception.format_exit(reason) <> "\n" <> Enum.join(log_cache, "\n")
 
     Logger.error(message)
+    JsonRpc.telemetry("elixir_ls.dialyzer_error", %{"elixir_ls.dialyzer_error" => message}, %{})
   end
 end

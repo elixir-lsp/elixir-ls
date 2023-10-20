@@ -66,7 +66,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "initialize",
             "invalidRequest",
             "Debugger request {command} was not expected",
-            %{"command" => "initialize"}
+            %{"command" => "initialize"},
+            _,
+            _
           )
         )
       end)
@@ -86,7 +88,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "initialize",
             "invalidRequest",
             "0-based lines are not supported",
-            %{}
+            %{},
+            _,
+            _
           )
         )
       end)
@@ -106,7 +110,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "setBreakpoints",
             "invalidRequest",
             "Debugger request {command} was not expected",
-            %{"command" => "setBreakpoints"}
+            %{"command" => "setBreakpoints"},
+            _,
+            _
           )
         )
       end)
@@ -686,7 +692,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "stackTrace",
                        "invalidArgument",
                        "threadId not found: {threadId}",
-                       %{"threadId" => "\"not existing\""}
+                       %{"threadId" => "\"not existing\""},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, scopes_req(8, "not existing"))
@@ -697,7 +705,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "scopes",
                        "invalidArgument",
                        "frameId not found: {frameId}",
-                       %{"frameId" => "\"not existing\""}
+                       %{"frameId" => "\"not existing\""},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, vars_req(9, "not existing"))
@@ -708,7 +718,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "variables",
                        "invalidArgument",
                        "variablesReference not found: {variablesReference}",
-                       %{"variablesReference" => "\"not existing\""}
+                       %{"variablesReference" => "\"not existing\""},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, next_req(10, "not existing"))
@@ -719,7 +731,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "next",
                        "invalidArgument",
                        "threadId not found: {threadId}",
-                       %{"threadId" => "\"not existing\""}
+                       %{"threadId" => "\"not existing\""},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, step_in_req(11, "not existing"))
@@ -730,7 +744,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "stepIn",
                        "invalidArgument",
                        "threadId not found: {threadId}",
-                       %{"threadId" => "\"not existing\""}
+                       %{"threadId" => "\"not existing\""},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, step_out_req(12, "not existing"))
@@ -741,7 +757,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "stepOut",
                        "invalidArgument",
                        "threadId not found: {threadId}",
-                       %{"threadId" => "\"not existing\""}
+                       %{"threadId" => "\"not existing\""},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, continue_req(13, "not existing"))
@@ -752,7 +770,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "continue",
                        "invalidArgument",
                        "threadId not found: {threadId}",
-                       %{"threadId" => "\"not existing\""}
+                       %{"threadId" => "\"not existing\""},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, request(14, "someRequest", %{"threadId" => 123}))
@@ -763,7 +783,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "someRequest",
                        "notSupported",
                        "Debugger request {command} is currently not supported",
-                       %{"command" => "someRequest"}
+                       %{"command" => "someRequest"},
+                       _,
+                       _
                      )
 
       Server.receive_packet(server, continue_req(15, thread_id))
@@ -778,7 +800,9 @@ defmodule ElixirLS.Debugger.ServerTest do
                        "stackTrace",
                        "invalidArgument",
                        "process not paused: {threadId}",
-                       %{"threadId" => ^thread_id_str}
+                       %{"threadId" => ^thread_id_str},
+                       _,
+                       _
                      )
     end)
   end
@@ -2634,7 +2658,9 @@ defmodule ElixirLS.Debugger.ServerTest do
               "stepIn",
               "notSupported",
               "Kernel.dbg breakpoints do not support {command} command",
-              %{"command" => "stepIn"}
+              %{"command" => "stepIn"},
+              _,
+              _
             )
           )
 
@@ -2648,7 +2674,9 @@ defmodule ElixirLS.Debugger.ServerTest do
               "stepOut",
               "notSupported",
               "Kernel.dbg breakpoints do not support {command} command",
-              %{"command" => "stepOut"}
+              %{"command" => "stepOut"},
+              _,
+              _
             )
           )
 
@@ -2816,7 +2844,9 @@ defmodule ElixirLS.Debugger.ServerTest do
               "stepIn",
               "notSupported",
               "Kernel.dbg breakpoints do not support {command} command",
-              %{"command" => "stepIn"}
+              %{"command" => "stepIn"},
+              _,
+              _
             )
           )
 
@@ -2830,7 +2860,9 @@ defmodule ElixirLS.Debugger.ServerTest do
               "stepOut",
               "notSupported",
               "Kernel.dbg breakpoints do not support {command} command",
-              %{"command" => "stepOut"}
+              %{"command" => "stepOut"},
+              _,
+              _
             )
           )
 
@@ -2981,7 +3013,9 @@ defmodule ElixirLS.Debugger.ServerTest do
               "stepIn",
               "notSupported",
               "Kernel.dbg breakpoints do not support {command} command",
-              %{"command" => "stepIn"}
+              %{"command" => "stepIn"},
+              _,
+              _
             )
           )
 
@@ -2995,7 +3029,9 @@ defmodule ElixirLS.Debugger.ServerTest do
               "stepOut",
               "notSupported",
               "Kernel.dbg breakpoints do not support {command} command",
-              %{"command" => "stepOut"}
+              %{"command" => "stepOut"},
+              _,
+              _
             )
           )
 
@@ -3239,7 +3275,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "evaluate",
             "evaluateError",
             "** (MatchError) no match of right hand side value: 2" <> _,
-            %{}
+            %{},
+            _,
+            _
           )
         )
 
@@ -3279,7 +3317,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "evaluate",
             "evaluateError",
             "** (exit) normal" <> _,
-            %{}
+            %{},
+            _,
+            _
           )
         )
 
@@ -3319,7 +3359,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "evaluate",
             "internalServerError",
             "Request handler exited with reason normal",
-            %{}
+            %{},
+            _,
+            _
           )
         )
 
@@ -3361,7 +3403,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "evaluate",
             "internalServerError",
             "Request handler exited with reason normal",
-            %{}
+            %{},
+            _,
+            _
           )
         )
 
@@ -3398,7 +3442,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "evaluate",
             "evaluateError",
             "** (throw) :goodmorning_bug" <> _,
-            %{}
+            %{},
+            _,
+            _
           )
         )
 
@@ -3454,7 +3500,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "evaluate",
             "cancelled",
             "cancelled",
-            %{}
+            %{},
+            _,
+            _
           )
         )
 
@@ -3512,7 +3560,9 @@ defmodule ElixirLS.Debugger.ServerTest do
             "evaluate",
             "cancelled",
             "cancelled",
-            %{}
+            %{},
+            _,
+            _
           )
         )
 
@@ -3579,7 +3629,9 @@ defmodule ElixirLS.Debugger.ServerTest do
           "completions",
           "cancelled",
           "cancelled",
-          %{}
+          %{},
+          _,
+          _
         )
       )
 
@@ -3604,7 +3656,9 @@ defmodule ElixirLS.Debugger.ServerTest do
           "cancel",
           "invalidRequest",
           "Request or progress {reguestOrProgressId} cannot be cancelled",
-          %{"reguestOrProgressId" => "1"}
+          %{"reguestOrProgressId" => "1"},
+          _,
+          _
         )
       )
 

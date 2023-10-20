@@ -18,7 +18,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
               {:ok, any} | {:error, atom, String.t()}
 
   def execute(command_with_server_id, args, state) do
-    with [command, _server_id] <- String.split(command_with_server_id, ":"),
+    with command when not is_nil(command) <- get_command(command_with_server_id),
          handler when not is_nil(handler) <- Map.get(@handlers, command) do
       handler.execute(args, state)
     else
@@ -30,6 +30,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
   def get_commands(server_instance_id) do
     for {k, _v} <- @handlers do
       "#{k}:#{server_instance_id}"
+    end
+  end
+
+  def get_command(command_with_server_id) do
+    case String.split(command_with_server_id, ":") do
+      [command, _server_id] -> command
+      _ -> nil
     end
   end
 end

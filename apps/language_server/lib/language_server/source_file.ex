@@ -241,13 +241,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       else
         {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path)}
       end
-    rescue
-      e ->
-        message = Exception.message(e)
+    catch
+      kind, payload ->
+        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        message = Exception.format(kind, payload, stacktrace)
 
-        Logger.warning(
-          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message} #{Exception.format(:error, e, __STACKTRACE__)}"
-        )
+        Logger.warning("Unable to get formatter options for #{path}: #{message}")
 
         :error
     end

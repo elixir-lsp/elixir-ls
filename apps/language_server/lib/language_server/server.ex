@@ -129,13 +129,61 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
-    case result do
-      {:error, type, msg} -> JsonRpc.respond_with_error(id, type, msg)
-      {:ok, result} -> JsonRpc.respond(id, result)
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        JsonRpc.telemetry(
+          "elixir_ls.lsp_server_error",
+          %{
+            "elixir_ls.lsp_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Logger.info("Terminating: #{Exception.format_exit(reason)}")
+        System.stop(1)
     end
 
-    state = %{state | requests: Map.delete(state.requests, id)}
+    :ok
+  end
+
+  @impl GenServer
+  def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
+    {{_pid, command, start_time}, requests} = Map.pop!(state.requests, id)
+
+    case result do
+      {:error, type, msg} ->
+        JsonRpc.respond_with_error(id, type, msg)
+
+        JsonRpc.telemetry(
+          "elixir_ls.lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => command,
+            "elixir_ls.lsp_error" => type,
+            "elixir_ls.lsp_error_message" => msg
+          },
+          %{}
+        )
+
+      {:ok, result} ->
+        elapsed = System.monotonic_time(:millisecond) - start_time
+        JsonRpc.respond(id, result)
+
+        JsonRpc.telemetry("elixir_ls.lsp_request", %{"elixir_ls.lsp_command" => command}, %{
+          "elixir_ls.lsp_request_time" => elapsed
+        })
+    end
+
+    state = %{state | requests: requests}
     {:reply, :ok, state}
   end
 
@@ -259,10 +307,21 @@ defmodule ElixirLS.LanguageServer.Server do
   @impl GenServer
   def handle_info({:DOWN, _ref, :process, pid, reason}, %__MODULE__{requests: requests} = state) do
     state =
-      case Enum.find(requests, &match?({_, ^pid}, &1)) do
-        {id, _} ->
+      case Enum.find(requests, &match?({_, {^pid, _, _}}, &1)) do
+        {id, {^pid, command, _start_time}} ->
           error_msg = Exception.format_exit(reason)
           JsonRpc.respond_with_error(id, :server_error, error_msg)
+
+          JsonRpc.telemetry(
+            "elixir_ls.lsp_request_error",
+            %{
+              "elixir_ls.lsp_command" => command,
+              "elixir_ls.lsp_error" => :server_error,
+              "elixir_ls.lsp_error_message" => error_msg
+            },
+            %{}
+          )
+
           %{state | requests: Map.delete(requests, id)}
 
         nil ->
@@ -360,9 +419,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(cancel_request(id), %__MODULE__{requests: requests} = state) do
     case requests do
-      %{^id => pid} ->
+      %{^id => {pid, _command, _start_time}} ->
         Process.exit(pid, :cancelled)
         JsonRpc.respond_with_error(id, :request_cancelled, "Request cancelled")
+
         %{state | requests: Map.delete(requests, id)}
 
       _ ->
@@ -579,40 +639,132 @@ defmodule ElixirLS.LanguageServer.Server do
          state = %__MODULE__{server_instance_id: server_instance_id}
        )
        when not is_initialized(server_instance_id) do
+    start_time = System.monotonic_time(:millisecond)
+
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
         {:ok, result, state} = handle_request(packet, state)
+        elapsed = System.monotonic_time(:millisecond) - start_time
         JsonRpc.respond(id, result)
+
+        JsonRpc.telemetry("elixir_ls.lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
+          "elixir_ls.lsp_request_time" => elapsed
+        })
+
         state
 
       _ ->
         JsonRpc.respond_with_error(id, :server_not_initialized)
+
+        JsonRpc.telemetry(
+          "elixir_ls.lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => "initialize",
+            "elixir_ls.lsp_error" => :server_not_initialized,
+            "elixir_ls.lsp_error_message" => "Server not initialized"
+          },
+          %{}
+        )
+
         state
     end
   end
 
-  defp handle_request_packet(id, packet, state = %__MODULE__{received_shutdown?: false}) do
-    case handle_request(packet, state) do
-      {:ok, result, state} ->
-        JsonRpc.respond(id, result)
-        state
+  defp handle_request_packet(
+         id,
+         packet = %{"method" => command},
+         state = %__MODULE__{received_shutdown?: false}
+       ) do
+    command =
+      case packet do
+        execute_command_req(_id, custom_command_with_server_id, _args) ->
+          command <> ":" <> (ExecuteCommand.get_command(custom_command_with_server_id) || "")
 
-      {:error, type, msg, state} ->
-        JsonRpc.respond_with_error(id, type, msg)
-        state
+        _ ->
+          command
+      end
 
-      {:async, fun, state} ->
-        {pid, _ref} = handle_request_async(id, fun)
-        %{state | requests: Map.put(state.requests, id, pid)}
+    start_time = System.monotonic_time(:millisecond)
+
+    try do
+      case handle_request(packet, state) do
+        {:ok, result, state} ->
+          elapsed = System.monotonic_time(:millisecond) - start_time
+          JsonRpc.respond(id, result)
+
+          JsonRpc.telemetry("elixir_ls.lsp_request", %{"elixir_ls.lsp_command" => command}, %{
+            "elixir_ls.lsp_request_time" => elapsed
+          })
+
+          state
+
+        {:error, type, msg, state} ->
+          JsonRpc.respond_with_error(id, type, msg)
+
+          JsonRpc.telemetry(
+            "elixir_ls.lsp_request_error",
+            %{
+              "elixir_ls.lsp_command" => command,
+              "elixir_ls.lsp_error" => type,
+              "elixir_ls.lsp_error_message" => msg
+            },
+            %{}
+          )
+
+          state
+
+        {:async, fun, state} ->
+          {pid, _ref} = handle_request_async(id, fun)
+          %{state | requests: Map.put(state.requests, id, {pid, command, start_time})}
+      end
+    rescue
+      e in InvalidParamError ->
+        JsonRpc.respond_with_error(id, :invalid_params, e.message)
+
+        JsonRpc.telemetry(
+          "elixir_ls.lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => command,
+            "elixir_ls.lsp_error" => :invalid_params,
+            "elixir_ls.lsp_error_message" => e.message
+          },
+          %{}
+        )
+
+        state
+    catch
+      kind, payload ->
+        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        error_msg = Exception.format(kind, payload, stacktrace)
+        JsonRpc.respond_with_error(id, :server_error, error_msg)
+
+        JsonRpc.telemetry(
+          "elixir_ls.lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => command,
+            "elixir_ls.lsp_error" => :server_error,
+            "elixir_ls.lsp_error_message" => error_msg
+          },
+          %{}
+        )
+
+        state
     end
-  rescue
-    e in InvalidParamError ->
-      JsonRpc.respond_with_error(id, :invalid_params, e.message)
-      state
   end
 
-  defp handle_request_packet(id, _packet, state = %__MODULE__{}) do
+  defp handle_request_packet(id, _packet = %{"method" => command}, state = %__MODULE__{}) do
     JsonRpc.respond_with_error(id, :invalid_request)
+
+    JsonRpc.telemetry(
+      "elixir_ls.lsp_request_error",
+      %{
+        "elixir_ls.lsp_command" => command,
+        "elixir_ls.lsp_error" => :invalid_request,
+        "elixir_ls.lsp_error_message" => "Invalid Request"
+      },
+      %{}
+    )
+
     state
   end
 
@@ -1279,6 +1431,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
       other ->
         Logger.error("client/registerCapability returned: #{inspect(other)}")
+
+        JsonRpc.telemetry(
+          "elixir_ls.reverse_request_error",
+          %{
+            "elixir_ls.reverse_request_error" => inspect(other),
+            "elixir_ls.reverse_request" => "client/registerCapability"
+          },
+          %{}
+        )
     end
   end
 
@@ -1297,6 +1458,15 @@ defmodule ElixirLS.LanguageServer.Server do
 
       other ->
         Logger.error("client/registerCapability returned: #{inspect(other)}")
+
+        JsonRpc.telemetry(
+          "elixir_ls.reverse_request_error",
+          %{
+            "elixir_ls.reverse_request_error" => inspect(other),
+            "elixir_ls.reverse_request" => "client/registerCapability"
+          },
+          %{}
+        )
     end
   end
 
@@ -1504,6 +1674,16 @@ defmodule ElixirLS.LanguageServer.Server do
 
         other ->
           Logger.error("Cannot get client configuration: #{inspect(other)}")
+
+          JsonRpc.telemetry(
+            "elixir_ls.reverse_request_error",
+            %{
+              "elixir_ls.reverse_request_error" => inspect(other),
+              "elixir_ls.reverse_request" => "workspace/configuration"
+            },
+            %{}
+          )
+
           state
       end
     else
@@ -1574,6 +1754,12 @@ defmodule ElixirLS.LanguageServer.Server do
             Logger.warning(
               "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
                 Exception.format(:error, e, __STACKTRACE__)
+            )
+
+            JsonRpc.telemetry(
+              "elixir_ls.parser_error",
+              %{"elixir_ls.parser_error" => Exception.format(:error, e, __STACKTRACE__)},
+              %{}
             )
 
             {:error, diagnostic}

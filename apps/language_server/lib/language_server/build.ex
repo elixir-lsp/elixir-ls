@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Build do
     else
       spawn_monitor(fn ->
         with_build_lock(fn ->
-          {us, _} =
+          {us, result} =
             :timer.tc(fn ->
               Logger.info("Starting build with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}")
 
@@ -35,26 +35,40 @@ defmodule ElixirLS.LanguageServer.Build do
 
                     diagnostics = Diagnostics.normalize(diagnostics, root_path)
                     Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
-                  rescue
-                    e ->
-                      Logger.warning(
-                        "Mix.Dep.load_on_environment([]) failed: #{inspect(e.__struct__)} #{Exception.message(e)}"
+                    :"mix_compile_#{status}"
+                  catch
+                    kind, payload ->
+                      {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+                      message = Exception.format(kind, payload, stacktrace)
+                      Logger.warning("Mix.Dep.load_on_environment([]) failed: #{message}")
+
+                      JsonRpc.telemetry(
+                        "elixir_ls.build_error",
+                        %{"elixir_ls.build_error" => message},
+                        %{}
                       )
 
                       # TODO pass diagnostic
                       Server.build_finished(parent, {:error, []})
+                      :deps_error
                   end
 
                 {:error, mixfile_diagnostics} ->
                   Server.build_finished(parent, {:error, mixfile_diagnostics})
+                  :mixfile_error
 
                 :no_mixfile ->
                   Server.build_finished(parent, {:no_mixfile, []})
+                  :no_mixfile
               end
             end)
 
           Tracer.save()
           Logger.info("Compile took #{div(us, 1000)} milliseconds")
+
+          JsonRpc.telemetry("elixir_ls.build", %{"elixir_ls.result" => result}, %{
+            "elixir_ls.build_time" => div(us, 1000)
+          })
         end)
       end)
     end
@@ -84,13 +98,11 @@ defmodule ElixirLS.LanguageServer.Build do
               Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
                 mix_project
               end)
-            rescue
-              e ->
-                message = Exception.message(e)
-
-                Logger.warning(
-                  "Unable to prune mix project module for #{app}: #{inspect(e.__struct__)} #{message} #{Exception.format(:error, e, __STACKTRACE__)}"
-                )
+            catch
+              kind, payload ->
+                {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+                message = Exception.format(kind, payload, stacktrace)
+                Logger.warning("Unable to prune mix project module for #{app}: #{message}")
             end
 
           if child_module do
@@ -289,6 +301,13 @@ defmodule ElixirLS.LanguageServer.Build do
       :ok
     else
       Logger.error("mix clean returned #{inspect(results)}")
+
+      JsonRpc.telemetry(
+        "elixir_ls.mix_clean_error",
+        %{"elixir_ls.mix_clean_error" => inspect(results)},
+        %{}
+      )
+
       {:error, :clean_failed}
     end
   end

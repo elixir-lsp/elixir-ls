@@ -21,8 +21,20 @@ defmodule ElixirLS.Debugger.Output do
     GenServer.call(server, {:send_response, request_packet, response_body})
   end
 
-  def send_error_response(server \\ __MODULE__, request_packet, message, format, variables) do
-    GenServer.call(server, {:send_error_response, request_packet, message, format, variables})
+  def send_error_response(
+        server \\ __MODULE__,
+        request_packet,
+        message,
+        format,
+        variables,
+        send_telemetry,
+        show_user
+      ) do
+    GenServer.call(
+      server,
+      {:send_error_response, request_packet, message, format, variables, send_telemetry,
+       show_user}
+    )
   end
 
   def send_event(server \\ __MODULE__, event, body) do
@@ -48,6 +60,27 @@ defmodule ElixirLS.Debugger.Output do
     send_event(server, "output", %{"category" => "stderr", "output" => maybe_append_newline(str)})
   end
 
+  def telemetry(server \\ __MODULE__, event, properties, measurements)
+      when is_binary(event) and is_map(properties) and is_map(measurements) do
+    common_properties = %{
+      "elixir_ls.elixir_version" => System.version(),
+      "elixir_ls.otp_release" => System.otp_release(),
+      "elixir_ls.erts_version" => Application.spec(:erts, :vsn),
+      "elixir_ls.mix_env" => Mix.env(),
+      "elixir_ls.mix_target" => Mix.target()
+    }
+
+    send_event(server, "output", %{
+      "category" => "telemetry",
+      "output" => event,
+      "data" => %{
+        "name" => event,
+        "properties" => Map.merge(common_properties, properties),
+        "measurements" => measurements
+      }
+    })
+  end
+
   defp maybe_append_newline(message) do
     unless String.ends_with?(message, "\n") do
       message <> "\n"
@@ -69,7 +102,12 @@ defmodule ElixirLS.Debugger.Output do
     {:reply, res, seq + 1}
   end
 
-  def handle_call({:send_error_response, request_packet, message, format, variables}, _from, seq) do
+  def handle_call(
+        {:send_error_response, request_packet, message, format, variables, send_telemetry,
+         show_user},
+        _from,
+        seq
+      ) do
     res =
       WireProtocol.send(
         error_response(
@@ -78,7 +116,9 @@ defmodule ElixirLS.Debugger.Output do
           request_packet["command"],
           message,
           format,
-          variables
+          variables,
+          send_telemetry,
+          show_user
         )
       )
 
