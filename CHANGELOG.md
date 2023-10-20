@@ -1,5 +1,18 @@
 ### Unreleased
 
+### v0.17.2: 20 October 2023
+
+#### Improvements
+
+- Better rendering of functions with many arguments in hover
+- Document symbols correctly annotate ranges of last element in do-block
+- ElixirLS will emit LSP and DAP telemetry events that clients can subscribe to
+
+#### Fixes
+
+- Fixed compilation error on modules using `Application.compile_env`. This problem was introduced in v0.17.0
+- Fixed a problem when old diagnostics would not be cleared after server restart
+
 ### v0.17.1: 13 October 2023
 
 #### Fixes
