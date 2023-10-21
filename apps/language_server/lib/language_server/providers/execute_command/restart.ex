@@ -8,6 +8,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.Restart do
     {:ok, _pid} =
       Task.start(fn ->
         Logger.info("ElixirLS restart requested")
+
+        JsonRpc.telemetry(
+          "lsp_reload",
+          %{
+            "elixir_ls.lsp_reload_reason" => "client_request"
+          },
+          %{}
+        )
+
         Process.sleep(1000)
         ElixirLS.LanguageServer.restart()
       end)

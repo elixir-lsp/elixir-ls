@@ -1505,6 +1505,14 @@ defmodule ElixirLS.LanguageServer.Server do
         "Environment variables change detected. ElixirLS will restart"
       )
 
+      JsonRpc.telemetry(
+        "lsp_reload",
+        %{
+          "elixir_ls.lsp_reload_reason" => "env_variables_changed"
+        },
+        %{}
+      )
+
       # sleep so the client has time to show the message
       Process.sleep(5000)
       ElixirLS.LanguageServer.restart()
@@ -1529,6 +1537,14 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
 
+      JsonRpc.telemetry(
+        "lsp_reload",
+        %{
+          "elixir_ls.lsp_reload_reason" => "mix_env_changed"
+        },
+        %{}
+      )
+
       # sleep so the client has time to show the message
       Process.sleep(5000)
       ElixirLS.LanguageServer.restart()
@@ -1550,6 +1566,14 @@ defmodule ElixirLS.LanguageServer.Server do
       %{state | mix_target: target}
     else
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
+
+      JsonRpc.telemetry(
+        "lsp_reload",
+        %{
+          "elixir_ls.lsp_reload_reason" => "mix_target_changed"
+        },
+        %{}
+      )
 
       # sleep so the client has time to show the message
       Process.sleep(5000)
@@ -1585,6 +1609,14 @@ defmodule ElixirLS.LanguageServer.Server do
         JsonRpc.show_message(
           :warning,
           "Project directory change detected. ElixirLS will restart"
+        )
+
+        JsonRpc.telemetry(
+          "lsp_reload",
+          %{
+            "elixir_ls.lsp_reload_reason" => "project_dir_changed"
+          },
+          %{}
         )
 
         # sleep so the client has time to show the message
