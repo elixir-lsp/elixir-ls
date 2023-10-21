@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixClean do
   def execute([clean_deps?], _state) do
     case ElixirLS.LanguageServer.Build.clean(clean_deps?) do
       :ok -> {:ok, %{}}
-      {:error, reason} -> {:error, :server_error, inspect(reason)}
+      {:error, reason} -> {:error, :server_error, "Mix clean failed: #{inspect(reason)}", true}
     end
   end
 end

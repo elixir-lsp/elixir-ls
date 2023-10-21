@@ -32,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         {:ok, build_symbols(symbols, uri, text, hierarchical)}
 
       {:error, :compilation_error} ->
-        {:error, :server_error, "[DocumentSymbols] Compilation error while parsing source file"}
+        {:error, :server_error, "Cannot parse source file", false}
     end
   end
 

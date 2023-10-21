@@ -269,7 +269,9 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       project_dir = maybe_convert_path_separators(FixtureHelpers.get_path("formatter"))
 
-      assert {:error, :internal_error, msg} = Formatting.format(source_file, uri, project_dir)
+      assert {:error, :internal_error, msg, false} =
+               Formatting.format(source_file, uri, project_dir)
+
       assert String.contains?(msg, "Unable to format")
     end)
   end
@@ -353,7 +355,9 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       project_dir = maybe_convert_path_separators(FixtureHelpers.get_path("formatter"))
 
-      assert {:error, :internal_error, msg} = Formatting.format(source_file, uri, project_dir)
+      assert {:error, :internal_error, msg, false} =
+               Formatting.format(source_file, uri, project_dir)
+
       assert String.contains?(msg, "Unable to format")
     end)
   end

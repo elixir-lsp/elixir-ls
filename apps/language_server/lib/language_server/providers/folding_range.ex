@@ -84,13 +84,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
       ]}
 
   """
-  @spec provide(%{text: String.t()}) :: {:ok, [t()]} | {:error, String.t()}
+  @spec provide(%{text: String.t()}) :: {:ok, [t()]}
   def provide(%{text: text}) do
     do_provide(text)
-  end
-
-  def provide(not_a_source_file) do
-    {:error, "Expected a source file, found: #{inspect(not_a_source_file)}"}
   end
 
   defp do_provide(text) do

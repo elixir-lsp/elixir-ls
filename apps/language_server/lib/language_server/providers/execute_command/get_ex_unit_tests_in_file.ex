@@ -7,8 +7,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFile 
     path = SourceFile.Path.from_uri(uri)
 
     case ExUnitTestTracer.get_tests(path) do
-      {:ok, tests} -> {:ok, tests}
-      {:error, reason} -> {:error, :server_error, inspect(reason)}
+      {:ok, tests} ->
+        {:ok, tests}
+
+      {:error, reason} ->
+        {:error, :server_error, "Cannot get tests in file: #{inspect(reason)}", true}
     end
   end
 end

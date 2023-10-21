@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
   """
 
   alias ElixirSense.Core.Normalized.Tokenizer
+  alias ElixirLS.LanguageServer.JsonRpc
   require Logger
 
   @type t :: {atom(), {non_neg_integer(), non_neg_integer(), any()}, any()}

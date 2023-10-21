@@ -51,7 +51,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFileT
       in_fixture(Path.join(__DIR__, "../../../test_fixtures"), "project_with_tests", fn ->
         uri = SourceFile.Path.to_uri(Path.join(File.cwd!(), "test/error_test.exs"))
 
-        assert {:error, :server_error, "%TokenMissingError" <> _} =
+        assert {:error, :server_error, "Cannot get tests in file: %TokenMissingError" <> _, true} =
                  GetExUnitTestsInFile.execute([uri], nil)
       end)
     end

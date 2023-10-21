@@ -23,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
       handler.execute(args, state)
     else
       _ ->
-        {:error, :invalid_request, nil}
+        {:error, :invalid_request, nil, true}
     end
   end
 

@@ -2465,8 +2465,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
-    assert {:error, :server_error, message} = DocumentSymbols.symbols(uri, text, true)
-    assert String.contains?(message, "Compilation error")
+    assert {:error, :server_error, message, false} = DocumentSymbols.symbols(uri, text, true)
+    assert String.contains?(message, "Cannot parse source file")
   end
 
   test "returns def and defp as a prefix" do

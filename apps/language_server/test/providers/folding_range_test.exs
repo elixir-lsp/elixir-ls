@@ -5,10 +5,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
   doctest(FoldingRange)
 
-  test "returns an :error tuple if input is not a source file" do
-    assert {:error, _} = %{} |> FoldingRange.provide()
-  end
-
   describe "indentation" do
     setup [:fold_via_indentation]
 

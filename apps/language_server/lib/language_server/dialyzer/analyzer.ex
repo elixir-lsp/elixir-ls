@@ -1,6 +1,7 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   require Record
   require Logger
+  alias ElixirLS.LanguageServer.JsonRpc
 
   # warn_race_condition is unsupported because it greatly increases analysis time
   # OTP 25 dropped support for warn_race_condition

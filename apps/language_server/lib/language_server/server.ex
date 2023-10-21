@@ -161,18 +161,20 @@ defmodule ElixirLS.LanguageServer.Server do
     {{_pid, command, start_time}, requests} = Map.pop!(state.requests, id)
 
     case result do
-      {:error, type, msg} ->
+      {:error, type, msg, send_telemetry} ->
         JsonRpc.respond_with_error(id, type, msg)
 
-        JsonRpc.telemetry(
-          "lsp_request_error",
-          %{
-            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-            "elixir_ls.lsp_error" => type,
-            "elixir_ls.lsp_error_message" => msg
-          },
-          %{}
-        )
+        if send_telemetry do
+          JsonRpc.telemetry(
+            "lsp_request_error",
+            %{
+              "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+              "elixir_ls.lsp_error" => type,
+              "elixir_ls.lsp_error_message" => msg
+            },
+            %{}
+          )
+        end
 
       {:ok, result} ->
         elapsed = System.monotonic_time(:millisecond) - start_time
@@ -706,18 +708,20 @@ defmodule ElixirLS.LanguageServer.Server do
 
           state
 
-        {:error, type, msg, state} ->
+        {:error, type, msg, send_telemetry, state} ->
           JsonRpc.respond_with_error(id, type, msg)
 
-          JsonRpc.telemetry(
-            "lsp_request_error",
-            %{
-              "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-              "elixir_ls.lsp_error" => type,
-              "elixir_ls.lsp_error_message" => msg
-            },
-            %{}
-          )
+          if send_telemetry do
+            JsonRpc.telemetry(
+              "lsp_request_error",
+              %{
+                "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                "elixir_ls.lsp_error" => type,
+                "elixir_ls.lsp_error_message" => msg
+              },
+              %{}
+            )
+          end
 
           state
 
@@ -999,10 +1003,10 @@ defmodule ElixirLS.LanguageServer.Server do
         {:ok, spec_code_lenses ++ test_code_lenses}
       else
         {:error, %ElixirSense.Core.Metadata{error: {line, error_msg}}} ->
-          {:error, :code_lens_error, "#{line}: #{error_msg}"}
+          {:error, :code_lens_error, "#{line}: #{error_msg}", true}
 
         {:error, error} ->
-          {:error, :code_lens_error, "Error while building code lenses: #{inspect(error)}"}
+          {:error, :code_lens_error, "Error while building code lenses: #{inspect(error)}", true}
 
         error ->
           error
@@ -1016,7 +1020,7 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async,
      fn ->
        case ExecuteCommand.execute(command, args, state) do
-         {:error, :invalid_request, _msg} = res ->
+         {:error, :invalid_request, _msg, _} = res ->
            Logger.warning("Unmatched request: #{inspect(req)}")
            res
 
@@ -1027,24 +1031,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(folding_range_req(_id, uri), state = %__MODULE__{}) do
-    case get_source_file(state, uri) do
-      nil ->
-        {:error, :server_error, "Missing source file", state}
-
-      source_file ->
-        fun = fn -> FoldingRange.provide(source_file) end
-        {:async, fun, state}
-    end
+    source_file = get_source_file(state, uri)
+    fun = fn -> FoldingRange.provide(source_file) end
+    {:async, fun, state}
   end
 
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
-    {:error, :method_not_found, nil, state}
+    {:error, :method_not_found, nil, false, state}
   end
 
   defp handle_request(req, state = %__MODULE__{}) do
     Logger.warning("Unmatched request: #{inspect(req)}")
-    {:error, :invalid_request, nil, state}
+    {:error, :invalid_request, nil, false, state}
   end
 
   defp handle_request_async(id, func) do
@@ -1056,7 +1055,7 @@ defmodule ElixirLS.LanguageServer.Server do
           func.()
         rescue
           e in InvalidParamError ->
-            {:error, :invalid_params, e.message}
+            {:error, :invalid_params, e.message, true}
         end
 
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
@@ -1330,7 +1329,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {:error, reason} ->
         if reason != :enoent do
-          Logger.warning("Couldn't read file #{file}: #{inspect(reason)}")
+          Logger.warning("Cannot read file #{file}: #{inspect(reason)}")
         end
 
         nil
@@ -1614,6 +1613,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {:error, err} ->
         Logger.warning("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
+
+        JsonRpc.show_message(
+          :warning,
+          "Cannot create .elixir_ls/.gitignore"
+        )
 
         state
     end

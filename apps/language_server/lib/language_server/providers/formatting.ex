@@ -15,14 +15,14 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
           end
 
         :error ->
-          {:error, :internal_error, "Unable to fetch formatter options"}
+          {:error, :internal_error, "Unable to fetch formatter options", true}
       end
     else
       msg =
         "Cannot format file from current directory " <>
           "(Currently in #{Path.relative_to(File.cwd!(), project_dir)})"
 
-      {:error, :internal_error, msg}
+      {:error, :internal_error, msg, true}
     end
   end
 
@@ -42,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     {:ok, response}
   rescue
     _e in [TokenMissingError, SyntaxError] ->
-      {:error, :internal_error, "Unable to format due to syntax error"}
+      {:error, :internal_error, "Unable to format due to syntax error", false}
   end
 
   defp get_formatted(text, formatter, _) when is_function(formatter) do

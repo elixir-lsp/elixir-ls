@@ -90,7 +90,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
 
       other ->
         {:error, :server_error,
-         "cannot insert spec, workspace/applyEdit returned #{inspect(other)}"}
+         "cannot insert spec, workspace/applyEdit returned #{inspect(other)}", true}
     end
   end
 end
