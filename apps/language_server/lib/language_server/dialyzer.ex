@@ -31,12 +31,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     cond do
       not Code.ensure_loaded?(:dialyzer) ->
-        {:error,
+        # TODO is this check relevant? We check for dialyzer app in CLI
+        {:error, :no_dialyzer,
          "The current Erlang installation does not include Dialyzer. It may be available as a " <>
            "separate package."}
 
       not dialyzable?(System) ->
-        {:error,
+        # TODO is this relevant anymore? We require OTP 22+ (minimum for elixir 1.13)
+        {:error, :no_debug_info,
          "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
            "You may need to recompile Elixir with Erlang >= OTP 20"}
 

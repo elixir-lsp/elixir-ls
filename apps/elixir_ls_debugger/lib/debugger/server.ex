@@ -489,13 +489,22 @@ defmodule ElixirLS.Debugger.Server do
           1
       end
 
-    IO.puts(
+    message =
       "Mix task exited with reason\n#{Exception.format_exit(reason)}\nreturning code #{exit_code}"
-    )
 
-    Output.debugger_console(
-      "Mix task exited with reason\n#{Exception.format_exit(reason)}\nreturning code #{exit_code}"
-    )
+    IO.puts(message)
+
+    Output.debugger_console(message)
+
+    if reason != :normal do
+      Output.telemetry(
+        "debuggee_mix_task_error",
+        %{
+          "elixir_ls.debuggee_mix_task_error" => message
+        },
+        %{}
+      )
+    end
 
     Output.send_event("exited", %{"exitCode" => exit_code})
     Output.send_event("terminated", %{"restart" => false})
@@ -661,6 +670,29 @@ defmodule ElixirLS.Debugger.Server do
           # setBreakpoints, setFunctionBreakpoints and configurationDone
           Output.send_event("initialized", %{})
           send(self(), :update_threads)
+
+          Output.telemetry(
+            "dap_launch_config",
+            %{
+              "elixir_ls.startApps" => to_string(Map.get(config, "startApps", false)),
+              "elixir_ls.debugAutoInterpretAllModules" =>
+                to_string(Map.get(config, "debugAutoInterpretAllModules", true)),
+              "elixir_ls.stackTraceMode" =>
+                to_string(Map.get(config, "stackTraceMode", "no_tail")),
+              "elixir_ls.exitAfterTaskReturns" =>
+                to_string(Map.get(config, "exitAfterTaskReturns", true)),
+              "elixir_ls.noDebug" => to_string(Map.get(config, "noDebug", false)),
+              "elixir_ls.breakOnDbg" => to_string(Map.get(config, "breakOnDbg", true)),
+              "elixir_ls.env" => to_string(Map.has_key?(config, "env")),
+              "elixir_ls.requireFiles" => to_string(Map.has_key?(config, "requireFiles")),
+              "elixir_ls.debugInterpretModulesPatterns" =>
+                to_string(Map.has_key?(config, "debugInterpretModulesPatterns")),
+              "elixir_ls.excludeModules" => to_string(Map.has_key?(config, "excludeModules")),
+              "elixir_ls.task" => to_string(Map.get(config, "task", ":default_task"))
+            },
+            %{}
+          )
+
           config
 
         {:DOWN, ^ref, :process, _pid, reason} ->

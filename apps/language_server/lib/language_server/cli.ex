@@ -108,33 +108,43 @@ defmodule ElixirLS.LanguageServer.CLI do
   end
 
   def check_otp_doc_chunks() do
-    supported = if match?({:error, _}, Code.fetch_docs(:erlang)) do
-      JsonRpc.show_message(:warning, "OTP compiled without EEP48 documentation chunks")
+    supported =
+      if match?({:error, _}, Code.fetch_docs(:erlang)) do
+        JsonRpc.show_message(:warning, "OTP compiled without EEP48 documentation chunks")
 
-      Logger.warning(
-        "OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with appropriate flags."
-      )
-      false
-    else
-      true
-    end
+        Logger.warning(
+          "OTP compiled without EEP48 documentation chunks. Language features for erlang modules will run in limited mode. Please reinstall or rebuild OTP with appropriate flags."
+        )
+
+        false
+      else
+        true
+      end
+
     JsonRpc.telemetry("eep48", %{"elixir_ls.eep48" => to_string(supported)}, %{})
   end
 
   def check_elixir_sources() do
     enum_ex_path = Enum.module_info()[:compile][:source]
 
-    elixir_sources_available = unless File.exists?(enum_ex_path, [:raw]) do
-      dir = Path.join(enum_ex_path, "../../../..") |> Path.expand()
+    elixir_sources_available =
+      unless File.exists?(enum_ex_path, [:raw]) do
+        dir = Path.join(enum_ex_path, "../../../..") |> Path.expand()
 
-      Logger.notice(
-        "Elixir sources not found (checking in #{dir}). Code navigation to Elixir modules disabled."
-      )
-      false
-    else
-      true
-    end
-    JsonRpc.telemetry("elixir_sources", %{"elixir_ls.elixir_sources" => to_string(elixir_sources_available)}, %{})
+        Logger.notice(
+          "Elixir sources not found (checking in #{dir}). Code navigation to Elixir modules disabled."
+        )
+
+        false
+      else
+        true
+      end
+
+    JsonRpc.telemetry(
+      "elixir_sources",
+      %{"elixir_ls.elixir_sources" => to_string(elixir_sources_available)},
+      %{}
+    )
   end
 
   def check_otp_sources() do
@@ -145,16 +155,23 @@ defmodule ElixirLS.LanguageServer.CLI do
       |> to_string
       |> String.replace(~r/(.+)\/ebin\/([^\s]+)\.beam$/, "\\1/src/\\2.erl")
 
-    otp_sources_available = unless File.exists?(erlang_erl_path, [:raw]) do
-      dir = Path.join(erlang_erl_path, "../../../..") |> Path.expand()
+    otp_sources_available =
+      unless File.exists?(erlang_erl_path, [:raw]) do
+        dir = Path.join(erlang_erl_path, "../../../..") |> Path.expand()
 
-      Logger.notice(
-        "OTP sources not found (checking in #{dir}). Code navigation to OTP modules disabled."
-      )
-      false
-    else
-      true
-    end
-    JsonRpc.telemetry("otp_sources", %{"elixir_ls.otp_sources" => to_string(otp_sources_available)}, %{})
+        Logger.notice(
+          "OTP sources not found (checking in #{dir}). Code navigation to OTP modules disabled."
+        )
+
+        false
+      else
+        true
+      end
+
+    JsonRpc.telemetry(
+      "otp_sources",
+      %{"elixir_ls.otp_sources" => to_string(otp_sources_available)},
+      %{}
+    )
   end
 end

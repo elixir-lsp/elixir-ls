@@ -1319,7 +1319,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp dialyzer_enabled?(state = %__MODULE__{}) do
-    Dialyzer.check_support() == :ok and build_enabled?(state) and state.dialyzer_sup != nil
+    state.dialyzer_sup != nil
   end
 
   defp safely_read_file(file) do
@@ -1384,8 +1384,27 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     case Dialyzer.check_support() do
-      :ok -> :ok
-      {:error, msg} -> JsonRpc.show_message(:warning, msg)
+      :ok ->
+        JsonRpc.telemetry(
+          "dialyzer_support",
+          %{
+            "elixir_ls.dialyzer_support" => to_string(true),
+            "elixir_ls.dialyzer_support_reason" => ""
+          },
+          %{}
+        )
+
+      {:error, reason, msg} ->
+        JsonRpc.show_message(:warning, msg)
+
+        JsonRpc.telemetry(
+          "dialyzer_support",
+          %{
+            "elixir_ls.dialyzer_support" => to_string(false),
+            "elixir_ls.dialyzer_support_reason" => to_string(reason)
+          },
+          %{}
+        )
     end
 
     :ok
@@ -1417,6 +1436,33 @@ defmodule ElixirLS.LanguageServer.Server do
     if state.mix_project? do
       Tracer.set_project_dir(state.project_dir)
     end
+
+    JsonRpc.telemetry(
+      "lsp_config",
+      %{
+        "elixir_ls.projectDir" => to_string(Map.has_key?(settings, "projectDir")),
+        "elixir_ls.autoBuild" => to_string(Map.get(settings, "autoBuild", true)),
+        "elixir_ls.dialyzerEnabled" => to_string(Map.get(settings, "dialyzerEnabled", true)),
+        "elixir_ls.fetchDeps" => to_string(Map.get(settings, "fetchDeps", false)),
+        "elixir_ls.suggestSpecs" => to_string(Map.get(settings, "suggestSpecs", true)),
+        "elixir_ls.autoInsertRequiredAlias" =>
+          to_string(Map.get(settings, "autoInsertRequiredAlias", true)),
+        "elixir_ls.signatureAfterComplete" =>
+          to_string(Map.get(settings, "signatureAfterComplete", true)),
+        "elixir_ls.enableTestLenses" => to_string(Map.get(settings, "enableTestLenses", false)),
+        "elixir_ls.languageServerOverridePath" =>
+          to_string(Map.has_key?(settings, "languageServerOverridePath")),
+        "elixir_ls.envVariables" => to_string(Map.has_key?(settings, "envVariables")),
+        "elixir_ls.mixEnv" => to_string(Map.get(settings, "mixEnv", "test")),
+        "elixir_ls.mixTarget" => to_string(Map.get(settings, "mixTarget", "host")),
+        "elixir_ls.dialyzerFormat" =>
+          if(Map.get(settings, "dialyzerEnabled", true),
+            do: Map.get(settings, "dialyzerFormat", "dialyxir_long"),
+            else: ""
+          )
+      },
+      %{}
+    )
 
     trigger_build(%{state | settings: settings})
   end
