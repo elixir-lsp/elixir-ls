@@ -450,7 +450,7 @@ defmodule ElixirLS.Debugger.ServerTest do
   end
 
   @tag :fixture
-  test "launch mix task that fails to initialze", %{server: server} do
+  test "launch mix task that fails to initialize", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
         server,
@@ -474,7 +474,20 @@ defmodule ElixirLS.Debugger.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(
+        error_response(
+          _,
+          2,
+          "launch",
+          "launchError",
+          "Launch request failed with reason" <> _,
+          %{},
+          _,
+          _
+        ),
+        5000
+      )
+
       refute_receive(event(_, "initialized", %{}))
 
       assert_receive event(_, "output", %{

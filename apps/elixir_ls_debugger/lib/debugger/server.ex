@@ -665,16 +665,19 @@ defmodule ElixirLS.Debugger.Server do
 
         {:DOWN, ^ref, :process, _pid, reason} ->
           if reason != :normal do
-            Output.debugger_important("Launch request failed")
+            message = "Launch request failed with reason\n" <> Exception.format_exit(reason)
 
-            Output.debugger_console(
-              "Launch request failed with reason\n" <> Exception.format_exit(reason)
-            )
+            Output.debugger_console(message)
 
             exit_code = 1
             Output.send_event("exited", %{"exitCode" => exit_code})
             Output.send_event("terminated", %{"restart" => false})
-            config
+
+            raise ServerError,
+              message: "launchError",
+              format: message,
+              variables: %{},
+              show_user: true
           else
             raise "exit reason #{inspect(reason)} was not expected"
           end
