@@ -66,7 +66,7 @@ defmodule ElixirLS.LanguageServer.Build do
           Tracer.save()
           Logger.info("Compile took #{div(us, 1000)} milliseconds")
 
-          JsonRpc.telemetry("build", %{"elixir_ls.result" => result}, %{
+          JsonRpc.telemetry("build", %{"elixir_ls.build_result" => result}, %{
             "elixir_ls.build_time" => div(us, 1000)
           })
         end)

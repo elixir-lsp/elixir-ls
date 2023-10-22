@@ -1440,10 +1440,10 @@ defmodule ElixirLS.LanguageServer.Server do
         Logger.error("client/registerCapability returned: #{inspect(other)}")
 
         JsonRpc.telemetry(
-          "reverse_request_error",
+          "lsp_reverse_request_error",
           %{
-            "elixir_ls.reverse_request_error" => inspect(other),
-            "elixir_ls.reverse_request" => "client/registerCapability"
+            "elixir_ls.lsp_reverse_request_error" => inspect(other),
+            "elixir_ls.lsp_reverse_request" => "client/registerCapability"
           },
           %{}
         )
@@ -1467,10 +1467,10 @@ defmodule ElixirLS.LanguageServer.Server do
         Logger.error("client/registerCapability returned: #{inspect(other)}")
 
         JsonRpc.telemetry(
-          "reverse_request_error",
+          "lsp_reverse_request_error",
           %{
-            "elixir_ls.reverse_request_error" => inspect(other),
-            "elixir_ls.reverse_request" => "client/registerCapability"
+            "elixir_ls.lsp_reverse_request_error" => inspect(other),
+            "elixir_ls.lsp_reverse_request" => "client/registerCapability"
           },
           %{}
         )
@@ -1720,10 +1720,10 @@ defmodule ElixirLS.LanguageServer.Server do
           Logger.error("Cannot get client configuration: #{inspect(other)}")
 
           JsonRpc.telemetry(
-            "reverse_request_error",
+            "lsp_reverse_request_error",
             %{
-              "elixir_ls.reverse_request_error" => inspect(other),
-              "elixir_ls.reverse_request" => "workspace/configuration"
+              "elixir_ls.lsp_reverse_request_error" => inspect(other),
+              "elixir_ls.lsp_reverse_request" => "workspace/configuration"
             },
             %{}
           )
