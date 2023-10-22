@@ -469,6 +469,10 @@ ElixirLS supports the following environment variables.
 
 </dl>
 
+## Telemetry
+
+ElixirLS language server sends telemetry information to the client via [LSP Telemetry notification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#telemetry_event), [DAP Output event](https://microsoft.github.io/debug-adapter-protocol/specification#Events_Output) and [DAP ErrorResponse](https://microsoft.github.io/debug-adapter-protocol/specification#Base_Protocol_ErrorResponse). Telemetry data include usage, performance, environment info and error reports. Please refer to your client and/or extension documentation on telemetry.
+
 ## Acknowledgements and related projects
 
 ElixirLS isn't the first frontend-independent server for Elixir language support. The original was [Alchemist Server](https://github.com/tonini/alchemist-server/), which powers the [Alchemist](https://github.com/tonini/alchemist.el) plugin for Emacs. Another project, [Elixir Sense](https://github.com/elixir-lsp/elixir_sense), builds upon Alchemist and powers the [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir) as well as another VS Code plugin, [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). ElixirLS uses Elixir Sense for several code insight features. Credit for those projects goes to their respective authors.
