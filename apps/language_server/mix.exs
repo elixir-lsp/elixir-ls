@@ -42,9 +42,11 @@ defmodule ElixirLS.LanguageServer.Mixfile do
       {:dialyxir_vendored,
        github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
+      {:sourceror, github: "robmckinnon/sourceror", tag: "vendored_v0.14.0"},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
       {:path_glob_vendored,
        github: "elixir-lsp/path_glob", ref: @dep_versions[:path_glob_vendored]},
+      {:diff, "~> 1.1"},
       {:patch, "~> 0.12.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, runtime: false}
     ]
