@@ -1562,6 +1562,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # sleep so the client has time to show the message
       Process.sleep(5000)
       ElixirLS.LanguageServer.restart()
+      Process.sleep(:infinity)
     end
 
     state
@@ -1594,7 +1595,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # sleep so the client has time to show the message
       Process.sleep(5000)
       ElixirLS.LanguageServer.restart()
-      state
+      Process.sleep(:infinity)
     end
   end
 
@@ -1624,7 +1625,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # sleep so the client has time to show the message
       Process.sleep(5000)
       ElixirLS.LanguageServer.restart()
-      state
+      Process.sleep(:infinity)
     end
   end
 
@@ -1668,6 +1669,7 @@ defmodule ElixirLS.LanguageServer.Server do
         # sleep so the client has time to show the message
         Process.sleep(5000)
         ElixirLS.LanguageServer.restart()
+        Process.sleep(:infinity)
 
       true ->
         state
