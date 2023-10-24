@@ -130,8 +130,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     function_name =
       "#{mod_str}.#{fun_str}(#{Enum.join(info.args, ", ")})"
-      |> Code.format_string!(line_length: 40)
-      |> to_string
+      |> format_header
 
     """
     ```elixir
@@ -159,8 +158,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     type_name =
       "#{mod_formatted}#{info.type}(#{Enum.join(info.args, ", ")})"
-      |> Code.format_string!(line_length: 40)
-      |> to_string
+      |> format_header
 
     """
     ```elixir
@@ -306,5 +304,16 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   defp get_metadata_entry_md({key, value}) do
     "**#{key}** #{value}"
+  end
+
+  defp format_header(text) do
+    text
+    |> Code.format_string!(line_length: 40)
+    |> to_string
+  rescue
+    _ ->
+      # Code.format_string! can raise SyntaxError e.g.
+      # for Kernel...(first, last)
+      text
   end
 end
