@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.Restart do
   require Logger
+  alias ElixirLS.LanguageServer.JsonRpc
 
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
