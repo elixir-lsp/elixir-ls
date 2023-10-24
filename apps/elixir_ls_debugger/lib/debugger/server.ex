@@ -48,6 +48,7 @@ defmodule ElixirLS.Debugger.Server do
               }
             },
             requests: %{},
+            requests_seqs_by_pid: %{},
             progresses: MapSet.new(),
             next_id: 1,
             output: Output,
@@ -314,40 +315,61 @@ defmodule ElixirLS.Debugger.Server do
         _from,
         state = %__MODULE__{}
       ) do
-    if MapSet.member?(state.progresses, packet["seq"]) do
-      Output.send_event("progressEnd", %{
-        "progressId" => packet["seq"]
-      })
-    end
+    seq = packet["seq"]
+    {request, updated_requests} = Map.pop(state.requests, seq)
 
-    case result do
-      {:error, e = %ServerError{}} ->
-        Output.send_error_response(
-          packet,
-          e.message,
-          e.format,
-          e.variables,
-          e.send_telemetry,
-          e.show_user
-        )
+    {updated_requests_seqs_by_pid, updated_progresses} =
+      if request do
+        {pid, ref, _packet} = request
 
-      {:ok, response_body} ->
-        elapsed = System.monotonic_time(:millisecond) - start_time
-        Output.send_response(packet, response_body)
+        # we are not interested in :DOWN message anymore
+        Process.demonitor(ref, [:flush])
 
-        Output.telemetry(
-          "dap_request",
-          %{"elixir_ls.dap_command" => String.replace(command, "/", "_")},
-          %{
-            "elixir_ls.dap_request_time" => elapsed
-          }
-        )
-    end
+        updated_progresses =
+          if MapSet.member?(state.progresses, seq) do
+            Output.send_event("progressEnd", %{
+              "progressId" => seq
+            })
+
+            MapSet.delete(state.progresses, seq)
+          else
+            state.progresses
+          end
+
+        case result do
+          {:error, e = %ServerError{}} ->
+            Output.send_error_response(
+              packet,
+              e.message,
+              e.format,
+              e.variables,
+              e.send_telemetry,
+              e.show_user
+            )
+
+          {:ok, response_body} ->
+            elapsed = System.monotonic_time(:millisecond) - start_time
+            Output.send_response(packet, response_body)
+
+            Output.telemetry(
+              "dap_request",
+              %{"elixir_ls.dap_command" => String.replace(command, "/", "_")},
+              %{
+                "elixir_ls.dap_request_time" => elapsed
+              }
+            )
+        end
+
+        {Map.delete(state.requests_seqs_by_pid, pid), updated_progresses}
+      else
+        {state.requests_seqs_by_pid, state.progresses}
+      end
 
     state = %{
       state
-      | requests: Map.delete(state.requests, packet["seq"]),
-        progresses: MapSet.delete(state.progresses, packet["seq"])
+      | requests: updated_requests,
+        requests_seqs_by_pid: updated_requests_seqs_by_pid,
+        progresses: updated_progresses
     }
 
     {:reply, :ok, state}
@@ -421,8 +443,13 @@ defmodule ElixirLS.Debugger.Server do
               state
 
             {:async, fun, state} ->
-              {pid, _ref} = handle_request_async(packet, start_time, fun)
-              %{state | requests: Map.put(state.requests, seq, {pid, packet})}
+              {pid, ref} = handle_request_async(packet, start_time, fun)
+
+              %{
+                state
+                | requests: Map.put(state.requests, seq, {pid, ref, packet}),
+                  requests_seqs_by_pid: Map.put(state.requests_seqs_by_pid, pid, seq)
+              }
           end
 
         {:noreply, state}
@@ -525,37 +552,44 @@ defmodule ElixirLS.Debugger.Server do
 
     # if the exited process was a request handler respond with error
     # and optionally end progress
-    request =
-      state.requests
-      |> Enum.find(fn {_request_id, {request_pid, _packet}} -> request_pid == pid end)
+    {seq, updated_requests_seqs_by_pid} = Map.pop(state.requests_seqs_by_pid, pid)
 
-    state =
-      case request do
-        {request_id, {_pid, packet}} ->
-          Output.send_error_response(
-            packet,
-            "internalServerError",
-            "Request handler exited with reason #{Exception.format_exit(reason)}",
-            %{},
-            true,
-            false
-          )
+    {updated_requests, updated_progresses} =
+      if seq do
+        {{_pid, _ref, packet}, updated_requests} = Map.pop!(state.requests, seq)
 
-          if MapSet.member?(state.progresses, request_id) do
+        Output.send_error_response(
+          packet,
+          "internalServerError",
+          "Request handler exited with reason #{Exception.format_exit(reason)}",
+          %{},
+          true,
+          false
+        )
+
+        # no MapSet.pop...
+        updated_progresses =
+          if MapSet.member?(state.progresses, seq) do
             Output.send_event("progressEnd", %{
-              "progressId" => request_id
+              "progressId" => seq
             })
+
+            MapSet.delete(state.progresses, seq)
+          else
+            state.progresses
           end
 
-          %{
-            state
-            | requests: Map.delete(state.requests, request_id),
-              progresses: MapSet.delete(state.progresses, request_id)
-          }
-
-        nil ->
-          state
+        {updated_requests, updated_progresses}
+      else
+        {state.requests, state.progresses}
       end
+
+    state = %{
+      state
+      | requests: updated_requests,
+        requests_seqs_by_pid: updated_requests_seqs_by_pid,
+        progresses: updated_progresses
+    }
 
     {:noreply, state}
   end
@@ -627,33 +661,44 @@ defmodule ElixirLS.Debugger.Server do
     # in or case progressId is requestId so choose first not null
     request_or_progress_id = args["requestId"] || args["progressId"]
 
-    state =
-      case requests do
-        %{^request_or_progress_id => {pid, packet}} ->
-          Process.exit(pid, :cancelled)
-          Output.send_error_response(packet, "cancelled", "cancelled", %{}, false, false)
+    {request, updated_requests} = Map.pop(requests, request_or_progress_id)
 
-          # send progressEnd if cancelling a progress
+    {updated_requests_seqs_by_pid, updated_progresses} =
+      if request do
+        {pid, ref, packet} = request
+        # flush as we are not interested in :DOWN message anymore
+        Process.demonitor(ref, [:flush])
+        Process.exit(pid, :cancelled)
+        Output.send_error_response(packet, "cancelled", "cancelled", %{}, false, false)
+
+        # send progressEnd if cancelling a progress
+        updated_progresses =
           if MapSet.member?(state.progresses, request_or_progress_id) do
             Output.send_event("progressEnd", %{
               "progressId" => request_or_progress_id
             })
+
+            MapSet.delete(state.progresses, request_or_progress_id)
+          else
+            state.progresses
           end
 
-          %{
-            state
-            | requests: Map.delete(requests, request_or_progress_id),
-              progresses: MapSet.delete(state.progresses, request_or_progress_id)
+        {Map.delete(state.requests_seqs_by_pid, pid), updated_progresses}
+      else
+        raise ServerError,
+          message: "invalidRequest",
+          format: "Request or progress {reguestOrProgressId} cannot be cancelled",
+          variables: %{
+            "reguestOrProgressId" => inspect(request_or_progress_id)
           }
-
-        _ ->
-          raise ServerError,
-            message: "invalidRequest",
-            format: "Request or progress {reguestOrProgressId} cannot be cancelled",
-            variables: %{
-              "reguestOrProgressId" => inspect(request_or_progress_id)
-            }
       end
+
+    state = %{
+      state
+      | requests: updated_requests,
+        requests_seqs_by_pid: updated_requests_seqs_by_pid,
+        progresses: updated_progresses
+    }
 
     {%{}, state}
   end
