@@ -58,6 +58,7 @@ defmodule ElixirLS.LanguageServer.Server do
     analysis_ready?: false,
     received_shutdown?: false,
     requests: %{},
+    requests_ids_by_pid: %{},
     # Tracks source files that are currently open in the editor
     source_files: %{},
     awaiting_contracts: [],
@@ -160,39 +161,48 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
     # in case the request has been cancelled we silently ignore
     {popped_request, updated_requests} = Map.pop(state.requests, id)
-    if popped_request do
-      {{_pid, command, start_time}, requests} = popped_request
-      case result do
-        {:error, type, msg, send_telemetry} ->
-          JsonRpc.respond_with_error(id, type, msg)
 
-          if send_telemetry do
+    requests_ids_by_pid =
+      if popped_request do
+        {pid, ref, command, start_time} = popped_request
+        # we are no longer interested in :DOWN message
+        Process.demonitor(ref, [:flush])
+
+        case result do
+          {:error, type, msg, send_telemetry} ->
+            JsonRpc.respond_with_error(id, type, msg)
+
+            if send_telemetry do
+              JsonRpc.telemetry(
+                "lsp_request_error",
+                %{
+                  "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                  "elixir_ls.lsp_error" => to_string(type),
+                  "elixir_ls.lsp_error_message" => msg || to_string(type)
+                },
+                %{}
+              )
+            end
+
+          {:ok, result} ->
+            elapsed = System.monotonic_time(:millisecond) - start_time
+            JsonRpc.respond(id, result)
+
             JsonRpc.telemetry(
-              "lsp_request_error",
+              "lsp_request",
+              %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
               %{
-                "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-                "elixir_ls.lsp_error" => type,
-                "elixir_ls.lsp_error_message" => msg
-              },
-              %{}
+                "elixir_ls.lsp_request_time" => elapsed
+              }
             )
-          end
+        end
 
-        {:ok, result} ->
-          elapsed = System.monotonic_time(:millisecond) - start_time
-          JsonRpc.respond(id, result)
-
-          JsonRpc.telemetry(
-            "lsp_request",
-            %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
-            %{
-              "elixir_ls.lsp_request_time" => elapsed
-            }
-          )
+        Map.delete(state.requests_ids_by_pid, pid)
+      else
+        state.requests_ids_by_pid
       end
-    end
 
-    state = %{state | requests: updated_requests}
+    state = %{state | requests: updated_requests, requests_ids_by_pid: requests_ids_by_pid}
     {:reply, :ok, state}
   end
 
@@ -314,30 +324,35 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_info({:DOWN, _ref, :process, pid, reason}, %__MODULE__{requests: requests} = state) do
-    state =
-      case Enum.find(requests, &match?({_, {^pid, _, _}}, &1)) do
-        {id, {^pid, command, _start_time}} ->
-          error_msg = Exception.format_exit(reason)
-          JsonRpc.respond_with_error(id, :server_error, error_msg)
+  def handle_info(
+        {:DOWN, ref, :process, pid, reason},
+        %__MODULE__{requests: requests, requests_ids_by_pid: requests_ids_by_pid} = state
+      ) do
+    {id, updated_requests_ids_by_pid} = Map.pop(requests_ids_by_pid, pid)
 
-          JsonRpc.telemetry(
-            "lsp_request_error",
-            %{
-              "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-              "elixir_ls.lsp_error" => :server_error,
-              "elixir_ls.lsp_error_message" => error_msg
-            },
-            %{}
-          )
+    updated_requests =
+      if id do
+        {{^pid, ^ref, command, _start_time}, updated_requests} = Map.pop!(requests, id)
+        error_msg = Exception.format_exit(reason)
+        JsonRpc.respond_with_error(id, :server_error, error_msg)
 
-          %{state | requests: Map.delete(requests, id)}
+        JsonRpc.telemetry(
+          "lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+            "elixir_ls.lsp_error" => :server_error,
+            "elixir_ls.lsp_error_message" => error_msg
+          },
+          %{}
+        )
 
-        nil ->
-          state
+        updated_requests
+      else
+        requests
       end
 
-    {:noreply, state}
+    {:noreply,
+     %{state | requests: updated_requests, requests_ids_by_pid: updated_requests_ids_by_pid}}
   end
 
   @impl GenServer
@@ -426,19 +441,26 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_notification(cancel_request(id), %__MODULE__{requests: requests} = state) do
-    case requests do
-      %{^id => {pid, _command, _start_time}} ->
+  defp handle_notification(
+         cancel_request(id),
+         %__MODULE__{requests: requests, requests_ids_by_pid: requests_ids_by_pid} = state
+       ) do
+    {request, updated_requests} = Map.pop(requests, id)
+
+    updated_requests_ids_by_pid =
+      if request do
+        {pid, ref, _command, _start_time} = request
+        # we are no longer interested in :DOWN message
+        Process.demonitor(ref, [:flush])
         Process.exit(pid, :cancelled)
         JsonRpc.respond_with_error(id, :request_cancelled, "Request cancelled")
+        Map.delete(requests_ids_by_pid, pid)
+      else
+        Logger.debug("Received $/cancelRequest for unknown request id: #{inspect(id)}")
+        requests_ids_by_pid
+      end
 
-        %{state | requests: Map.delete(requests, id)}
-
-      _ ->
-        Logger.warning("Received $/cancelRequest for unknown request id: #{inspect(id)}")
-
-        state
-    end
+    %{state | requests: updated_requests, requests_ids_by_pid: updated_requests_ids_by_pid}
   end
 
   # We don't start performing builds until we receive settings from the client in case they've set
@@ -729,8 +751,13 @@ defmodule ElixirLS.LanguageServer.Server do
           state
 
         {:async, fun, state} ->
-          {pid, _ref} = handle_request_async(id, fun)
-          %{state | requests: Map.put(state.requests, id, {pid, command, start_time})}
+          {pid, ref} = handle_request_async(id, fun)
+
+          %{
+            state
+            | requests: Map.put(state.requests, id, {pid, ref, command, start_time}),
+              requests_ids_by_pid: Map.put(state.requests_ids_by_pid, pid, id)
+          }
       end
     rescue
       e in InvalidParamError ->

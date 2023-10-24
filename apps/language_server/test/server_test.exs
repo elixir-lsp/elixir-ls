@@ -1448,7 +1448,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          "method" => "window/logMessage",
                          "params" => %{
                            "message" => "Received $/cancelRequest for unknown request" <> _,
-                           "type" => 2
+                           "type" => 4
                          }
                        },
                        1000

@@ -539,7 +539,7 @@ defmodule ElixirLS.Debugger.Server do
     {:noreply, %{state | task_ref: nil}}
   end
 
-  def handle_info({:DOWN, _ref, :process, pid, reason}, state = %__MODULE__{}) do
+  def handle_info({:DOWN, ref, :process, pid, reason}, state = %__MODULE__{}) do
     paused_processes_count_before = map_size(state.paused_processes)
     state = handle_process_exit(state, pid)
     paused_processes_count_after = map_size(state.paused_processes)
@@ -556,7 +556,7 @@ defmodule ElixirLS.Debugger.Server do
 
     {updated_requests, updated_progresses} =
       if seq do
-        {{_pid, _ref, packet}, updated_requests} = Map.pop!(state.requests, seq)
+        {{^pid, ^ref, packet}, updated_requests} = Map.pop!(state.requests, seq)
 
         Output.send_error_response(
           packet,
