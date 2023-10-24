@@ -158,38 +158,41 @@ defmodule ElixirLS.LanguageServer.Server do
 
   @impl GenServer
   def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
-    {{_pid, command, start_time}, requests} = Map.pop!(state.requests, id)
+    # in case the request has been cancelled we silently ignore
+    {popped_request, updated_requests} = Map.pop(state.requests, id)
+    if popped_request do
+      {{_pid, command, start_time}, requests} = popped_request
+      case result do
+        {:error, type, msg, send_telemetry} ->
+          JsonRpc.respond_with_error(id, type, msg)
 
-    case result do
-      {:error, type, msg, send_telemetry} ->
-        JsonRpc.respond_with_error(id, type, msg)
+          if send_telemetry do
+            JsonRpc.telemetry(
+              "lsp_request_error",
+              %{
+                "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                "elixir_ls.lsp_error" => type,
+                "elixir_ls.lsp_error_message" => msg
+              },
+              %{}
+            )
+          end
 
-        if send_telemetry do
+        {:ok, result} ->
+          elapsed = System.monotonic_time(:millisecond) - start_time
+          JsonRpc.respond(id, result)
+
           JsonRpc.telemetry(
-            "lsp_request_error",
+            "lsp_request",
+            %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
             %{
-              "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-              "elixir_ls.lsp_error" => type,
-              "elixir_ls.lsp_error_message" => msg
-            },
-            %{}
+              "elixir_ls.lsp_request_time" => elapsed
+            }
           )
-        end
-
-      {:ok, result} ->
-        elapsed = System.monotonic_time(:millisecond) - start_time
-        JsonRpc.respond(id, result)
-
-        JsonRpc.telemetry(
-          "lsp_request",
-          %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
-          %{
-            "elixir_ls.lsp_request_time" => elapsed
-          }
-        )
+      end
     end
 
-    state = %{state | requests: requests}
+    state = %{state | requests: updated_requests}
     {:reply, :ok, state}
   end
 
