@@ -62,7 +62,14 @@ defmodule ElixirLS.Debugger.Output do
 
   def telemetry(server \\ __MODULE__, event, properties, measurements)
       when is_binary(event) and is_map(properties) and is_map(measurements) do
+    elixir_release =
+      case Regex.run(~r/^(\d+\.\d+)/, System.version()) do
+        [_, version] -> version
+        nil -> "unknown"
+      end
+
     common_properties = %{
+      "elixir_ls.elixir_release" => elixir_release,
       "elixir_ls.elixir_version" => System.version(),
       "elixir_ls.otp_release" => System.otp_release(),
       "elixir_ls.erts_version" => to_string(Application.spec(:erts, :vsn)),

@@ -91,7 +91,14 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def telemetry(name, properties, measurements) do
+    elixir_release =
+      case Regex.run(~r/^(\d+\.\d+)/, System.version()) do
+        [_, version] -> version
+        nil -> "unknown"
+      end
+
     common_properties = %{
+      "elixir_ls.elixir_release" => elixir_release,
       "elixir_ls.elixir_version" => System.version(),
       "elixir_ls.otp_release" => System.otp_release(),
       "elixir_ls.erts_version" => to_string(Application.spec(:erts, :vsn)),
