@@ -728,11 +728,12 @@ defmodule ElixirLS.Debugger.Server do
                 to_string(Map.get(config, "exitAfterTaskReturns", true)),
               "elixir_ls.noDebug" => to_string(Map.get(config, "noDebug", false)),
               "elixir_ls.breakOnDbg" => to_string(Map.get(config, "breakOnDbg", true)),
-              "elixir_ls.env" => to_string(Map.has_key?(config, "env")),
-              "elixir_ls.requireFiles" => to_string(Map.has_key?(config, "requireFiles")),
+              "elixir_ls.env" => to_string(Map.get(config, "env", %{}) != %{}),
+              "elixir_ls.requireFiles" => to_string(Map.get(config, "requireFiles", []) != []),
               "elixir_ls.debugInterpretModulesPatterns" =>
-                to_string(Map.has_key?(config, "debugInterpretModulesPatterns")),
-              "elixir_ls.excludeModules" => to_string(Map.has_key?(config, "excludeModules")),
+                to_string(Map.get(config, "debugInterpretModulesPatterns", []) != []),
+              "elixir_ls.excludeModules" =>
+                to_string(Map.get(config, "excludeModules", []) != []),
               "elixir_ls.task" => to_string(Map.get(config, "task", ":default_task"))
             },
             %{}

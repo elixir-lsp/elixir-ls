@@ -1470,7 +1470,7 @@ defmodule ElixirLS.LanguageServer.Server do
     JsonRpc.telemetry(
       "lsp_config",
       %{
-        "elixir_ls.projectDir" => to_string(Map.has_key?(settings, "projectDir")),
+        "elixir_ls.projectDir" => to_string(Map.get(settings, "projectDir", "") != ""),
         "elixir_ls.autoBuild" => to_string(Map.get(settings, "autoBuild", true)),
         "elixir_ls.dialyzerEnabled" => to_string(Map.get(settings, "dialyzerEnabled", true)),
         "elixir_ls.fetchDeps" => to_string(Map.get(settings, "fetchDeps", false)),
@@ -1481,8 +1481,8 @@ defmodule ElixirLS.LanguageServer.Server do
           to_string(Map.get(settings, "signatureAfterComplete", true)),
         "elixir_ls.enableTestLenses" => to_string(Map.get(settings, "enableTestLenses", false)),
         "elixir_ls.languageServerOverridePath" =>
-          to_string(Map.has_key?(settings, "languageServerOverridePath")),
-        "elixir_ls.envVariables" => to_string(Map.has_key?(settings, "envVariables")),
+          to_string(Map.get(settings, "languageServerOverridePath", "") != ""),
+        "elixir_ls.envVariables" => to_string(Map.get(settings, "envVariables", %{}) != %{}),
         "elixir_ls.mixEnv" => to_string(Map.get(settings, "mixEnv", "test")),
         "elixir_ls.mixTarget" => to_string(Map.get(settings, "mixTarget", "host")),
         "elixir_ls.dialyzerFormat" =>
