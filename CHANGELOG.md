@@ -1,5 +1,16 @@
 ### Unreleased
 
+### v0.17.3: 24 October 2023
+
+#### Fixes
+
+- Fixed crash when language server tried to respond to cancelled requests. The bug was longstanding but changes from v0.17.2 exposed it
+- Fixed crash in hover provider when markdown header cannot be formatted
+- Fixed language server crash when reloading due to configuration change. The bug was longstanding but changes from v0.17.2 exposed it
+- Fixed a crash when hovering over struct field access
+- Fixed a dot call inference crash affecting various providers
+- Workaround AST parsing crash affecting various providers
+
 ### v0.17.2: 23 October 2023
 
 #### Improvements
