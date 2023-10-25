@@ -501,12 +501,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           "[ElixirLS Dialyzer] get_core_from_beam failed for #{file}: #{inspect(reason)}"
         )
 
-        JsonRpc.telemetry(
-          "dialyzer_error",
-          %{"elixir_ls.dialyzer_error" => inspect(reason)},
-          %{}
-        )
-
         nil
     end
   end
