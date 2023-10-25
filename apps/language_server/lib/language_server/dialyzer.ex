@@ -319,7 +319,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp temp_file_path(root_path, file) do
-    Path.join([root_path, ".elixir_ls/dialyzer_tmp", file])
+    Path.join([root_path, ".elixir_ls/dialyzer_#{System.otp_release()}_#{System.version()}_tmp", file])
   end
 
   defp write_temp_file(root_path, file_path, content) do
