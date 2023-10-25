@@ -92,7 +92,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp split_type_and_message(message) do
-    case Regex.run(~r/^\*\* \(([\w\.]+?)?\) (.*)/s, message) do
+    case Regex.run(~r/^\*\* \(([\w\.]+?)?\) (.*)/su, message) do
       [_, type, rest] ->
         {type, rest}
 
@@ -121,7 +121,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp get_message_parts(message) do
-    case Regex.run(~r/^(.*?):(\d+)(:(\d+))?: (.*)/s, message) do
+    case Regex.run(~r/^(.*?):(\d+)(:(\d+))?: (.*)/su, message) do
       [_, file, line, _, column, description] -> {file, line, column, description}
       _ -> nil
     end
@@ -151,8 +151,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp is_stack?("    " <> str) do
-    Regex.match?(~r/.*\.(ex|erl):\d+: /, str) ||
-      Regex.match?(~r/.*expanding macro: /, str)
+    Regex.match?(~r/.*\.(ex|erl):\d+: /u, str) ||
+      Regex.match?(~r/.*expanding macro: /u, str)
   end
 
   defp is_stack?(_) do
@@ -161,7 +161,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   defp extract_line_from_missing_hint(message) do
     case Regex.run(
-           ~r/HINT: it looks like the .+ on line (\d+) does not have a matching /,
+           ~r/HINT: it looks like the .+ on line (\d+) does not have a matching /u,
            message
          ) do
       [_, line] -> String.to_integer(line)
@@ -172,7 +172,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp extract_line_from_stacktrace(file, stacktrace) do
     Enum.find_value(stacktrace, fn stack_item ->
       with [_, _, file_relative, line] <-
-             Regex.run(~r/(\(.+?\)\s+)?(.*\.ex):(\d+): /, stack_item),
+             Regex.run(~r/(\(.+?\)\s+)?(.*\.ex):(\d+): /u, stack_item),
            true <- String.ends_with?(file, file_relative) do
         String.to_integer(line)
       else

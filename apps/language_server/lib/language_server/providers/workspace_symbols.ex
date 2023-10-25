@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
   require Logger
 
-  @arity_suffix_regex ~r/\/\d+$/
+  @arity_suffix_regex ~r/\/\d+$/u
 
   @type position_t :: %{
           line: non_neg_integer,
@@ -277,7 +277,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
       # searching for an Elixir module but item is an erlang module
       # elixir alias name must be ASCII, no need to support unicode here
-      Regex.match?(~r/^[A-Z]/, query) and String.starts_with?(item, ":") ->
+      Regex.match?(~r/^[A-Z]/u, query) and String.starts_with?(item, ":") ->
         0.0
 
       # searching for an Elixir module or erlang/Elixir function but item has no `.`

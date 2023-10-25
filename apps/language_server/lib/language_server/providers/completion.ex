@@ -120,11 +120,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     def_before =
       cond do
-        Regex.match?(~r/(defdelegate|defp?)\s*#{prefix}$/, text_before_cursor) ->
+        Regex.match?(~r/(defdelegate|defp?)\s*#{prefix}$/u, text_before_cursor) ->
           :def
 
         Regex.match?(
-          ~r/(defguardp?|defmacrop?)\s*#{prefix}$/,
+          ~r/(defguardp?|defmacrop?)\s*#{prefix}$/u,
           text_before_cursor
         ) ->
           :defmacro
@@ -138,7 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> Enum.slice(0..(line - 1))
       |> Enum.reverse()
       |> Enum.find_value(0, fn line_text ->
-        if Regex.match?(~r/(?<=\s|^)do\s*(#.*)?$/, line_text) do
+        if Regex.match?(~r/(?<=\s|^)do\s*(#.*)?$/u, line_text) do
           String.length(line_text) - String.length(String.trim_leading(line_text))
         end
       end)
@@ -151,8 +151,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       prefix: prefix,
       remote_calls?: match?({:dot, _, _}, Code.Fragment.cursor_context(prefix)),
       def_before: def_before,
-      pipe_before?: Regex.match?(~r/\|>\s*#{prefix}$/, text_before_cursor),
-      capture_before?: Regex.match?(~r/&#{prefix}$/, text_before_cursor),
+      pipe_before?: Regex.match?(~r/\|>\s*#{prefix}$/u, text_before_cursor),
+      capture_before?: Regex.match?(~r/&#{prefix}$/u, text_before_cursor),
       scope: scope,
       module: env.module,
       line: line,
@@ -221,7 +221,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp maybe_add_do(completion_items, context) do
     hint =
-      case Regex.scan(~r/(?<=\s|^)[a-z]+$/, context.text_before_cursor) do
+      case Regex.scan(~r/(?<=\s|^)[a-z]+$/u, context.text_before_cursor) do
         [] -> ""
         [[match]] -> match
       end
@@ -247,7 +247,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp maybe_add_keywords(completion_items, context) do
     hint =
-      case Regex.scan(~r/(?<=\s|^)[a-z]+$/, context.text_before_cursor) do
+      case Regex.scan(~r/(?<=\s|^)[a-z]+$/u, context.text_before_cursor) do
         [] -> ""
         [[match]] -> match
       end
@@ -1113,7 +1113,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp get_prefix(text_before_cursor) do
-    regex = ~r/[\w0-9\._!\?\:@\->]+$/
+    regex = ~r/[\w0-9\._!\?\:@\->]+$/u
 
     case Regex.run(regex, text_before_cursor) do
       [prefix] -> prefix
@@ -1343,7 +1343,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp snippet?(item) do
-    item.kind == :snippet || String.match?(item.insert_text, ~r/\${?\d/)
+    item.kind == :snippet || String.match?(item.insert_text, ~r/\${?\d/u)
   end
 
   # As defined by CompletionItemTag in https://microsoft.github.io/language-server-protocol/specifications/specification-current/

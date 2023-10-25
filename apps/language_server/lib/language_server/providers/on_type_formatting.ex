@@ -57,11 +57,11 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   end
 
   defp tokens(line) do
-    Regex.scan(~r/(?:->)|(?:[\w\:]+)/, line) |> List.flatten()
+    Regex.scan(~r/(?:->)|(?:[\w\:]+)/u, line) |> List.flatten()
   end
 
   defp indentation(line) do
-    [indentation] = Regex.run(~r/^\s*/, line)
+    [indentation] = Regex.run(~r/^\s*/u, line)
     indentation
   end
 

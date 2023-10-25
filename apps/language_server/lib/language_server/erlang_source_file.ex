@@ -20,7 +20,7 @@ defmodule ElixirLS.LanguageServer.ErlangSourceFile do
   end
 
   def module_line(file) do
-    find_line_by_regex(file, ~r/^-module/)
+    find_line_by_regex(file, ~r/^-module/u)
   end
 
   def function_line(file, function) do
@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.ErlangSourceFile do
       |> Atom.to_string()
       |> Regex.escape()
 
-    find_line_by_regex(file, ~r/^#{escaped}\b/)
+    find_line_by_regex(file, ~r/^#{escaped}\b/u)
   end
 
   defp find_line_by_regex(file, regex) do

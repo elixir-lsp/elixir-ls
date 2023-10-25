@@ -337,7 +337,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     |> String.reverse()
     |> String.graphemes()
     |> Enum.reduce_while([], fn c, acc ->
-      if String.match?(c, ~r/[\s\(\[\{]/) do
+      if String.match?(c, ~r/[\s\(\[\{]/u) do
         {:halt, acc}
       else
         {:cont, [c | acc]}

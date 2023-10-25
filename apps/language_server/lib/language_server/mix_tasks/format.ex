@@ -920,7 +920,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
 
       if space? do
         str
-        |> String.split(~r/[\t\s]+/, include_captures: true)
+        |> String.split(~r/[\t\s]+/u, include_captures: true)
         |> Enum.map(fn
           <<start::binary-size(1), _::binary>> = str when start in ["\t", "\s"] ->
             IO.ANSI.format([color[:space], str])
