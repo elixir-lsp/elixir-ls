@@ -313,7 +313,14 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
     # in case the build was interrupted make sure that cwd is reset to project dir
-    File.cd!(state.project_dir)
+    case File.cd(state.project_dir) do
+      :ok ->
+        :ok
+      {:error, reason} ->
+        message = "Cannot change directory to project dir #{state.project_dir}: #{inspect(reason)}"
+        Logger.error(message)
+        JsonRpc.show_message(:error, message)
+    end
 
     if reason == :normal do
       WorkspaceSymbols.notify_build_complete()
