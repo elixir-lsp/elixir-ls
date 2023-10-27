@@ -1278,7 +1278,7 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state))
+    Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state), state.project_dir)
 
     state
   end
