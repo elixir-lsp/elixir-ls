@@ -229,14 +229,14 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
-  @spec formatter_for(String.t(), String.t() | nil) :: {:ok, {function | nil, keyword()}} | :error
+  @spec formatter_for(String.t(), String.t() | nil) :: {:ok, {function | nil, keyword(), String.t}} | :error
   def formatter_for(uri = "file:" <> _, project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
       true = Code.ensure_loaded?(Mix.Tasks.ElixirLSFormat)
 
-      if project_dir && Version.match?(System.version(), ">= 1.15.0") do
+      if project_dir do
         {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, root: project_dir)}
       else
         {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path)}
@@ -248,11 +248,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
         Logger.warning("Unable to get formatter options for #{path}: #{message}")
 
-        :error
+        {:error, message}
     end
   end
 
-  def formatter_for(_, _), do: :error
+  def formatter_for(_, _), do: {:error, :project_dir_not_set}
 
   defp format_code(code, opts) do
     try do

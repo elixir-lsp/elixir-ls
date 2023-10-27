@@ -116,4 +116,19 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
   defp os_type do
     :os.type()
   end
+
+  def path_in_dir?(file, dir) do
+    case String.starts_with?(file, dir) do
+      true ->
+        # Get the grapheme after the directory in the file path
+        next_char_index = String.length(dir)
+        next_char = String.slice(file, next_char_index, 1)
+
+        # If the next character is either "" (end of string) or a "/", it's a valid match
+        next_char in ["", "/"]
+
+      false ->
+        false
+    end
+  end
 end

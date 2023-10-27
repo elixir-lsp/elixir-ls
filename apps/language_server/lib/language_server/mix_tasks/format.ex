@@ -333,7 +333,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
 
     formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
 
-    find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
+    find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs, cwd)
   end
 
   @doc """
@@ -530,12 +530,12 @@ defmodule Mix.Tasks.ElixirLSFormat do
       if file == :stdin do
         stdin_filename = Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
 
-        {formatter, _opts} =
-          find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs})
+        {formatter, _opts, _dir} =
+          find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs}, cwd)
 
         {file, formatter}
       else
-        {formatter, _opts} = find_formatter_and_opts_for_file(file, {formatter_opts, subs})
+        {formatter, _opts, _dir} = find_formatter_and_opts_for_file(file, {formatter_opts, subs}, cwd)
         {file, formatter}
       end
     end
@@ -601,19 +601,22 @@ defmodule Mix.Tasks.ElixirLSFormat do
     if plugins != [], do: plugins, else: nil
   end
 
-  defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
-    formatter_opts = recur_formatter_opts_for_file(file, formatter_opts_and_subs)
-    {find_formatter_for_file(file, formatter_opts), formatter_opts}
+  defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs, cwd) do
+    {formatter_opts, dir} = recur_formatter_opts_for_file(file, formatter_opts_and_subs) |> dbg
+    {find_formatter_for_file(file, formatter_opts), formatter_opts, dir || cwd}
   end
 
   defp recur_formatter_opts_for_file(file, {formatter_opts, subs}) do
-    Enum.find_value(subs, formatter_opts, fn {sub, formatter_opts_and_subs} ->
+    Enum.find_value(subs, {formatter_opts, nil}, fn {sub, formatter_opts_and_subs} ->
       size = byte_size(sub)
 
       case file do
         <<prefix::binary-size(size), dir_separator, _::binary>>
         when prefix == sub and dir_separator in [?\\, ?/] ->
-          recur_formatter_opts_for_file(file, formatter_opts_and_subs)
+          case recur_formatter_opts_for_file(file, formatter_opts_and_subs) do
+            {nested_formatter_opts, nil} -> {nested_formatter_opts, sub}
+            {nested_formatter_opts, nested_sub} -> {nested_formatter_opts, nested_sub}
+          end
 
         _ ->
           nil
