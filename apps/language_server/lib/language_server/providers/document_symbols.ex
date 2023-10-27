@@ -526,12 +526,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     "[" <> list_stringified <> "]"
   end
 
-  defp extract_module_name({:__aliases__, location, [{:__MODULE__, _, nil} = head | tail]}) do
+  defp extract_module_name({:__aliases__, location, [head | tail]}) when not is_atom(head) do
     extract_module_name(head) <> "." <> extract_module_name({:__aliases__, location, tail})
   end
 
   defp extract_module_name({:__aliases__, _location, module_names}) do
-    Enum.join(module_names, ".")
+    if Enum.all?(module_names, &is_atom/1) do
+      Enum.join(module_names, ".")
+    else
+      "# unknown"
+    end
   end
 
   defp extract_module_name({:__MODULE__, _location, nil}) do
