@@ -50,7 +50,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp list_symbols(src) do
     case ElixirSense.string_to_quoted(src, 1, @max_parser_errors, line: 1, token_metadata: true) do
-      {:ok, quoted_form} -> {:ok, extract_modules(quoted_form)}
+      {:ok, quoted_form} -> {:ok, extract_modules(quoted_form) |> Enum.reject(&is_nil/1)}
       {:error, _error} -> {:error, :compilation_error}
     end
   end
@@ -81,7 +81,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   defp extract_symbol(_module_name, {defname, location, arguments})
        when defname in [:defmodule, :defprotocol] do
-    {module_name, module_name_location, module_body} =
+    module_info =
       case arguments do
         # Handles `defmodule do\nend` type compile errors
         [[do: module_body]] ->
@@ -101,36 +101,41 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           # TODO extract module name location from Code.Fragment.surround_context?
           # TODO better selection ranges for defimpl?
           {extract_module_name(module_expression), module_name_location, module_body}
+        _ -> nil
       end
 
-    mod_defns =
-      case module_body do
-        {:__block__, [], mod_defns} -> mod_defns
-        stmt -> [stmt]
-      end
+    if module_info do
+      {module_name, module_name_location, module_body} = module_info
 
-    module_symbols =
-      mod_defns
-      |> Enum.map(&extract_symbol(module_name, &1))
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(fn info ->
-        %{info | location: Keyword.put(info.location, :parent_location, location)}
-      end)
+      mod_defns =
+        case module_body do
+          {:__block__, [], mod_defns} -> mod_defns
+          stmt -> [stmt]
+        end
 
-    type =
-      case defname do
-        :defmodule -> :module
-        :defprotocol -> :interface
-      end
+      module_symbols =
+        mod_defns
+        |> Enum.map(&extract_symbol(module_name, &1))
+        |> Enum.reject(&is_nil/1)
+        |> Enum.map(fn info ->
+          %{info | location: Keyword.put(info.location, :parent_location, location)}
+        end)
 
-    %Info{
-      type: type,
-      name: module_name,
-      location: location,
-      selection_location: module_name_location,
-      children: module_symbols,
-      symbol: module_name
-    }
+      type =
+        case defname do
+          :defmodule -> :module
+          :defprotocol -> :interface
+        end
+
+      %Info{
+        type: type,
+        name: module_name,
+        location: location,
+        selection_location: module_name_location,
+        children: module_symbols,
+        symbol: module_name
+      }
+    end
   end
 
   # Protocol implementations
