@@ -830,10 +830,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case root_uri do
         "file://" <> _ ->
-          root_path = SourceFile.Path.absolute_from_uri(root_uri)
-          File.cd!(root_path)
-          cwd_uri = SourceFile.Path.to_uri(File.cwd!())
-          %{state | root_uri: cwd_uri}
+          %{state | root_uri: root_uri}
 
         nil ->
           state

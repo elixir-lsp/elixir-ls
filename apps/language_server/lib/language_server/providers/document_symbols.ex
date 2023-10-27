@@ -324,7 +324,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         list when is_list(list) ->
           string_list =
             list
-            |> Enum.filter(& match?({key, _}, &1))
+            |> Enum.filter(& match?({_key, _}, &1))
             |> Enum.map_join(", ", fn {key, _} -> Macro.to_string(key) end)
 
           "[#{string_list}]"
