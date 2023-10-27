@@ -1598,7 +1598,18 @@ defmodule ElixirLS.Debugger.Server do
     end
   end
 
-  defp launch(%{"projectDir" => project_dir} = config, server) do
+  defp launch(config, server) do
+    project_dir = config["projectDir"]
+
+    project_dir = if project_dir not in [nil, ""] do
+      Output.debugger_console("Starting debugger in directory: #{project_dir}\n")
+      project_dir
+    else
+      cwd = File.cwd!()
+      Output.debugger_console("projectDir is not set, starting debugger in current directory: #{cwd}\n")
+      cwd
+    end
+
     task = config["task"]
     task_args = config["taskArgs"] || []
     auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
