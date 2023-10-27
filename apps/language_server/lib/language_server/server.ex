@@ -1679,8 +1679,15 @@ defmodule ElixirLS.LanguageServer.Server do
         state
 
       is_nil(prev_project_dir) ->
-        File.cd!(project_dir)
-        %{state | project_dir: File.cwd!(), mix_project?: File.exists?(MixfileHelpers.mix_exs())}
+        with :ok <- File.cd(project_dir),
+          {:ok, resolved_project_dir} <- File.cwd() do
+            %{state | project_dir: resolved_project_dir, mix_project?: File.exists?(MixfileHelpers.mix_exs())}
+        else
+          {:error, reason} ->
+            JsonRpc.show_message(:error, "Unable to change directory into #{project_dir}: #{inspect(reason)}. " <>
+            "Please make sure the directory exists and you have necessary permissions")
+            state
+        end
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
