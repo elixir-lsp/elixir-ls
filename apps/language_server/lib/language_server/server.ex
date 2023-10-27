@@ -1240,7 +1240,28 @@ defmodule ElixirLS.LanguageServer.Server do
       not state.build_running? and build_automatically ->
         fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", false)
 
-        {_pid, build_ref} = Build.build(self(), project_dir, fetch_deps?: fetch_deps?)
+        {_pid, build_ref} = case File.cwd() do
+          {:ok, cwd} ->
+            if Path.absname(cwd) == Path.absname(project_dir) do
+              Build.build(self(), project_dir, fetch_deps?: fetch_deps?)
+            else
+              Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
+              {nil, nil}
+            end
+          {:error, reason} ->
+            Logger.warning("cwd is not accessible: #{inspect(reason)}, trying to change directory back to #{project_dir}")
+            # cwd is not accessible
+            # try to change back to project dir
+            case File.cd(project_dir) do
+              :ok ->
+                Build.build(self(), project_dir, fetch_deps?: fetch_deps?)
+              {:error, reason} ->
+                message = "Cannot change directory to project dir #{project_dir}: #{inspect(reason)}"
+                Logger.error(message)
+                JsonRpc.show_message(:error, message)
+                {nil, nil}
+            end
+        end
 
         %__MODULE__{
           state

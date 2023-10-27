@@ -4,10 +4,6 @@ defmodule ElixirLS.LanguageServer.Build do
   require Logger
 
   def build(parent, root_path, opts) when is_binary(root_path) do
-    if Path.absname(File.cwd!()) != Path.absname(root_path) do
-      Logger.info("Skipping build because cwd changed from #{root_path} to #{File.cwd!()}")
-      {nil, nil}
-    else
       spawn_monitor(fn ->
         with_build_lock(fn ->
           {us, result} =
@@ -71,7 +67,6 @@ defmodule ElixirLS.LanguageServer.Build do
           })
         end)
       end)
-    end
   end
 
   def clean(clean_deps? \\ false) do
