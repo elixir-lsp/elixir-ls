@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Dialyzer do
-  alias ElixirLS.LanguageServer.{JsonRpc, Server}
+  alias ElixirLS.LanguageServer.{JsonRpc, Server, SourceFile}
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, Utils, SuccessTypings}
   import Utils
   use GenServer
@@ -490,7 +490,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp in_project?(path, project_dir) do
-    File.exists?(path) and String.starts_with?(Path.absname(path), project_dir)
+    # TODO return false for deps Mix.Project.config()[:deps_path]
+    File.exists?(path) and SourceFile.Path.path_in_dir?(Path.absname(path), project_dir)
   end
 
   defp module_md5(file) do
