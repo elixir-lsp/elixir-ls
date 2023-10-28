@@ -491,6 +491,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp in_project?(path, project_dir) do
     # TODO return false for deps Mix.Project.config()[:deps_path]
+    # project_dir is absolute path with universal separators
+    # Path.absname result likewise
     File.exists?(path) and SourceFile.Path.path_in_dir?(Path.absname(path), project_dir)
   end
 

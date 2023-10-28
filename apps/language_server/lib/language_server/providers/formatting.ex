@@ -7,7 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir)
       when is_binary(project_dir) do
     file_path = SourceFile.Path.absolute_from_uri(uri)
-
+    # file_path and project_dir are absolute paths with universal separators
     if SourceFile.Path.path_in_dir?(file_path, project_dir) do
       # file in project_dir we find formatter and options for file
       case SourceFile.formatter_for(uri, project_dir) do

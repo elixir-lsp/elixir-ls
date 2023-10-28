@@ -117,6 +117,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     :os.type()
   end
 
+  # This function expects absolute paths with universal separators
   def path_in_dir?(file, dir) do
     case String.starts_with?(file, dir) do
       true ->
