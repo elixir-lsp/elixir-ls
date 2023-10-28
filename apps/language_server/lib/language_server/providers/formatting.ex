@@ -7,28 +7,29 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir)
       when is_binary(project_dir) do
     file_path = SourceFile.Path.absolute_from_uri(uri)
+
     if SourceFile.Path.path_in_dir?(file_path, project_dir) do
+      # file in project_dir we find formatter and options for file
       case SourceFile.formatter_for(uri, project_dir) do
         {:ok, {formatter, opts, formatter_exs_dir}} ->
           if should_format?(uri, formatter_exs_dir, opts[:inputs]) do
             do_format(source_file, formatter, opts)
           else
-            JsonRpc.show_message(:info, "formatter.exs not found for #{file_path}")
+            JsonRpc.show_message(:info, "File #{file_path} not included in #{Path.join(formatter_exs_dir, ".formatter.exs")}")
             {:ok, []}
           end
 
         {:error, message} ->
-          JsonRpc.show_message(:error, "Unable to fetch formatter options for #{file_path}")
+          JsonRpc.show_message(:error, "Unable to find formatter for #{file_path}")
           {:error, :internal_error, message, true}
       end
     else
-      JsonRpc.show_message(:warning, "Cannot format file #{file_path} outside of project dir #{project_dir}")
-
-      {:ok, []}
+      # if file is outside project_dir we format with default options
+      do_format(source_file, nil, [])
     end
   end
 
-  # if project_dir is not set or schema is not file: we format with default options
+  # if project_dir is not set or schema is not file we format with default options
   def format(%SourceFile{} = source_file, _uri, _project_dir) do
     do_format(source_file, nil, [])
   end
@@ -43,8 +44,9 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
     {:ok, response}
   rescue
-    _e in [TokenMissingError, SyntaxError] ->
-      {:error, :internal_error, "Unable to format due to syntax error", false}
+    e ->
+      JsonRpc.show_message(:error, "Unable to format:\n#{Exception.message(e)}")
+      {:ok, []}
   end
 
   defp get_formatted(text, formatter, _) when is_function(formatter) do
