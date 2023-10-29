@@ -65,6 +65,34 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
   end
 
   @impl GenServer
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        Output.telemetry(
+          "dap_server_error",
+          %{
+            "elixir_ls.dap_process" => inspect(__MODULE__),
+            "elixir_ls.dap_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Output.debugger_important("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
+    end
+
+    :ok
+  end
+
+  @impl GenServer
   def handle_call(
         {:register_condition, key, condition, log_message, hit_count},
         _from,

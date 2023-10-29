@@ -190,8 +190,29 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   @impl GenServer
   def terminate(reason, _state) do
-    if reason != :normal do
-      JsonRpc.show_message(
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Logger.info("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
+
+        JsonRpc.show_message(
         :error,
         "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
           "\"elixirLS.dialyzerEnabled\" to false in settings.json to disable it"

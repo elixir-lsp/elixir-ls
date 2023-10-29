@@ -2,6 +2,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   @moduledoc """
   """
   use GenServer
+  alias ElixirLS.LanguageServer.JsonRpc
   require Logger
 
   @version 3
@@ -104,8 +105,31 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   @impl true
-  def terminate(_reason, state) do
+  def terminate(reason, state) do
     maybe_close_tables(state)
+
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Logger.info("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
+    end
   end
 
   defp maybe_close_tables(%{project_dir: nil}), do: :ok

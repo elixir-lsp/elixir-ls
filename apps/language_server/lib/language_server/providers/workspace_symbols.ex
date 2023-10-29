@@ -9,6 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   alias ElixirLS.LanguageServer.ErlangSourceFile
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
+  alias ElixirLS.LanguageServer.JsonRpc
   require Logger
 
   @arity_suffix_regex ~r/\/\d+$/u
@@ -97,6 +98,34 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
        indexing: false,
        modified_uris: []
      }}
+  end
+
+  @impl GenServer
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Logger.info("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
+    end
+
+    :ok
   end
 
   @impl GenServer

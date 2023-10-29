@@ -145,12 +145,13 @@ defmodule ElixirLS.LanguageServer.Server do
         JsonRpc.telemetry(
           "lsp_server_error",
           %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
             "elixir_ls.lsp_server_error" => inspect(other)
           },
           %{}
         )
 
-        Logger.info("Terminating: #{Exception.format_exit(reason)}")
+        Logger.info("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
         System.stop(1)
     end
 

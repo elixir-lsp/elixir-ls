@@ -199,12 +199,13 @@ defmodule ElixirLS.Debugger.Server do
         Output.telemetry(
           "dap_server_error",
           %{
+            "elixir_ls.dap_process" => inspect(__MODULE__),
             "elixir_ls.dap_server_error" => inspect(other)
           },
           %{}
         )
 
-        Output.debugger_important("Terminating: #{Exception.format_exit(reason)}")
+        Output.debugger_important("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
         System.stop(1)
     end
 

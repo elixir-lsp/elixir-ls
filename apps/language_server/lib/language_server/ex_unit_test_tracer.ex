@@ -1,6 +1,8 @@
 defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
   use GenServer
   alias ElixirLS.LanguageServer.Build
+  alias ElixirLS.LanguageServer.JsonRpc
+  require Logger
 
   @tables ~w(tests)a
 
@@ -34,6 +36,34 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
     ExUnit.start(autorun: false)
 
     {:ok, %{}}
+  end
+
+  @impl GenServer
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      other ->
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => inspect(other)
+          },
+          %{}
+        )
+
+        Logger.info("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
+    end
+
+    :ok
   end
 
   @impl true
