@@ -28,11 +28,16 @@ defmodule ElixirLS.LanguageServer.Build do
                       fetch_deps(current_deps)
                     end
 
-                    {status, diagnostics} = run_mix_compile()
+                    if Keyword.get(opts, :compile?) do
+                      {status, diagnostics} = run_mix_compile()
 
-                    diagnostics = Diagnostics.normalize(diagnostics, root_path)
-                    Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
-                    :"mix_compile_#{status}"
+                      diagnostics = Diagnostics.normalize(diagnostics, root_path)
+                      Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
+                      :"mix_compile_#{status}"
+                    else
+                      Server.build_finished(parent, {:ok, mixfile_diagnostics})
+                      :mix_compile_disabled
+                    end
                   catch
                     kind, payload ->
                       {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
@@ -60,8 +65,12 @@ defmodule ElixirLS.LanguageServer.Build do
               end
             end)
 
-          Tracer.save()
-          Logger.info("Compile took #{div(us, 1000)} milliseconds")
+          if Keyword.get(opts, :compile?) do
+            Tracer.save()
+            Logger.info("Compile took #{div(us, 1000)} milliseconds")
+          else
+            Logger.info("Mix project load took #{div(us, 1000)} milliseconds")
+          end
 
           JsonRpc.telemetry("build", %{"elixir_ls.build_result" => result}, %{
             "elixir_ls.build_time" => div(us, 1000)

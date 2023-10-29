@@ -587,8 +587,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{})
-       when is_binary(state.project_dir) do
+  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{mix_project?: true}) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
     # `settings` may not always be available here, like during testing
@@ -657,7 +656,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(did_change_watched_files(_changes), state = %__MODULE__{}) do
-    # swallow notification if project_dir is not yet set
+    # swallow notification if we are not in mix_project
     state
   end
 
@@ -1127,7 +1126,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_spec_code_lenses(state = %__MODULE__{}, uri, source_file) do
-    if is_binary(state.project_dir) and dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
+    enabled? = Map.get(state.settings || {}, "suggestSpecs", true)
+    if state.mix_project? and dialyzer_enabled?(state) and enabled? do
       CodeLens.spec_code_lens(state.server_instance_id, uri, source_file.text)
     else
       {:ok, []}
@@ -1135,9 +1135,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file) do
-    enabled = state.settings["enableTestLenses"] || false
+    # TODO check why test run from lense fails when autoBuild is disabled
+    enabled? = Map.get(state.settings || {}, "autoBuild", true) and Map.get(state.settings || {}, "enableTestLenses", false)
 
-    if is_binary(state.project_dir) and enabled do
+    if state.mix_project? and enabled? and ElixirLS.LanguageServer.MixProject.loaded? do
       get_test_code_lenses(
         state,
         uri,
@@ -1232,19 +1233,20 @@ defmodule ElixirLS.LanguageServer.Server do
   # Build
 
   defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
-    build_automatically = Map.get(state.settings || %{}, "autoBuild", true)
-
     cond do
-      not build_enabled?(state) ->
+      not state.mix_project? ->
         state
 
-      not state.build_running? and build_automatically ->
-        fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", false)
+      not state.build_running? ->
+        opts = [
+        fetch_deps?: Map.get(state.settings || %{}, "fetchDeps", false),
+        compile?: Map.get(state.settings || %{}, "autoBuild", true)
+        ]
 
         {_pid, build_ref} = case File.cwd() do
           {:ok, cwd} ->
             if Path.absname(cwd) == Path.absname(project_dir) do
-              Build.build(self(), project_dir, fetch_deps?: fetch_deps?)
+              Build.build(self(), project_dir, opts)
             else
               Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
               {nil, nil}
@@ -1255,7 +1257,7 @@ defmodule ElixirLS.LanguageServer.Server do
             # try to change back to project dir
             case File.cd(project_dir) do
               :ok ->
-                Build.build(self(), project_dir, fetch_deps?: fetch_deps?)
+                Build.build(self(), project_dir, opts)
               {:error, reason} ->
                 message = "Cannot change directory to project dir #{project_dir}: #{inspect(reason)}"
                 Logger.error(message)
@@ -1273,6 +1275,7 @@ defmodule ElixirLS.LanguageServer.Server do
         }
 
       true ->
+        # build already running, schedule another one
         %__MODULE__{state | needs_build?: true, analysis_ready?: false}
     end
   end
@@ -1373,10 +1376,6 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp build_enabled?(state = %__MODULE__{}) do
-    is_binary(state.project_dir)
-  end
-
   defp dialyzer_enabled?(state = %__MODULE__{}) do
     state.dialyzer_sup != nil
   end
@@ -1471,7 +1470,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_settings(state = %__MODULE__{}, settings) do
     enable_dialyzer =
-      Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
+      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) and Map.get(settings, "dialyzerEnabled", true)
 
     env_vars = Map.get(settings, "envVariables")
     mix_env = Map.get(settings, "mixEnv")
@@ -1584,11 +1583,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_dialyzer_enabled(state = %__MODULE__{}, enable_dialyzer) do
     cond do
-      enable_dialyzer and state.dialyzer_sup == nil and is_binary(state.project_dir) ->
+      enable_dialyzer and state.mix_project? and state.dialyzer_sup == nil  ->
         {:ok, pid} = Dialyzer.Supervisor.start_link(state.project_dir)
-        %{state | dialyzer_sup: pid}
+        %{state | dialyzer_sup: pid, analysis_ready?: false}
 
-      not enable_dialyzer and state.dialyzer_sup != nil ->
+      not (enable_dialyzer and state.mix_project?) and state.dialyzer_sup != nil ->
         Process.exit(state.dialyzer_sup, :normal)
         %{state | dialyzer_sup: nil, analysis_ready?: false}
 

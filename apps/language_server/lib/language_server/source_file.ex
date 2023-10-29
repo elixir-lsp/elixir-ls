@@ -235,14 +235,18 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
     try do
       alias ElixirLS.LanguageServer.MixProject
-      opts = [
-      deps_paths: MixProject.deps_paths(),
-      manifest_path: MixProject.manifest_path(),
-      config_mtime: MixProject.config_mtime(),
-      mix_project: MixProject.get(),
-      root: project_dir
-      ]
-      {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
+      if ElixirLS.LanguageServer.MixProject.loaded? do
+        opts = [
+        deps_paths: MixProject.deps_paths(),
+        manifest_path: MixProject.manifest_path(),
+        config_mtime: MixProject.config_mtime(),
+        mix_project: MixProject.get(),
+        root: project_dir
+        ]
+        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
+      else
+        {:error, :project_not_loaded}
+      end
     catch
       kind, payload ->
         {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)

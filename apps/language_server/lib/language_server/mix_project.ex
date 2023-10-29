@@ -14,6 +14,10 @@ defmodule ElixirLS.LanguageServer.MixProject do
     GenServer.call(__MODULE__, :store)
   end
 
+  def loaded? do
+    GenServer.call(__MODULE__, :loaded?)
+  end
+
   @spec get() :: module | nil
   def get do
     GenServer.call(__MODULE__, {:get, :get})
@@ -153,5 +157,9 @@ defmodule ElixirLS.LanguageServer.MixProject do
     }
 
     {:reply, :ok, state}
+  end
+
+  def handle_call(:loaded?, _from, state) do
+    {:reply, is_map(state), state}
   end
 end
