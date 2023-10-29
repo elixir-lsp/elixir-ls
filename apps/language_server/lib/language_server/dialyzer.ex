@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defstruct [
     :project_dir,
+    :deps_path,
     :parent,
     :timestamp,
     :plt,
@@ -112,7 +113,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         _from,
         state
       ) do
-    diagnostics = to_diagnostics(warnings, state.warn_opts, state.warning_format, state.project_dir)
+    diagnostics = to_diagnostics(warnings, state.warn_opts, state.warning_format, state.project_dir, state.deps_path)
 
     Server.dialyzer_finished(state.parent, diagnostics, build_ref)
 
@@ -150,12 +151,16 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   def handle_cast({:analyze, build_ref, warn_opts, warning_format, project_dir}, state) do
     state =
       ElixirLS.LanguageServer.Build.with_build_lock(fn ->
+        # we can safely access Mix.Project under build lock
         if Mix.Project.get() do
           Logger.info("[ElixirLS Dialyzer] Checking for stale beam files")
+          deps_path = Mix.Project.deps_path()
+          build_path = Mix.Project.build_path()
+
           new_timestamp = adjusted_timestamp()
 
           {removed_files, file_changes} =
-            update_stale(state.md5, state.removed_files, state.file_changes, state.timestamp, project_dir)
+            update_stale(state.md5, state.removed_files, state.file_changes, state.timestamp, project_dir, build_path)
 
           state = %{
             state
@@ -165,7 +170,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               file_changes: file_changes,
               build_ref: build_ref,
               warning_format: warning_format,
-              project_dir: project_dir
+              project_dir: project_dir,
+              deps_path: deps_path
           }
 
           trigger_analyze(state)
@@ -215,12 +221,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   defp trigger_analyze(%{analysis_pid: nil} = state), do: do_analyze(state)
   defp trigger_analyze(state), do: state
 
-  defp update_stale(md5, removed_files, file_changes, timestamp, project_dir) do
+  defp update_stale(md5, removed_files, file_changes, timestamp, project_dir, build_path) do
     prev_paths = Map.keys(md5) |> MapSet.new()
 
     # FIXME: Private API
     all_paths =
-      for path <- Mix.Utils.extract_files([Mix.Project.build_path()], [:beam]),
+      for path <- Mix.Utils.extract_files([build_path], [:beam]),
           into: MapSet.new(),
           do: Path.relative_to(path, project_dir)
 
@@ -446,7 +452,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           # in, which breaks umbrella apps. We have to manually resolve the file
           # from the module instead.
           file = resolve_module_file(module, file, project_dir),
-          in_project?(file, project_dir) do
+          in_project?(Path.absname(file), project_dir) do
         {module, {file, line, warning}}
       end
 
@@ -490,10 +496,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp in_project?(path, project_dir) do
-    # TODO return false for deps Mix.Project.config()[:deps_path]
-    # project_dir is absolute path with universal separators
-    # Path.absname result likewise
-    File.exists?(path) and SourceFile.Path.path_in_dir?(Path.absname(path), project_dir)
+    # path and project_dir is absolute path with universal separators
+    File.exists?(path) and SourceFile.Path.path_in_dir?(path, project_dir)
   end
 
   defp module_md5(file) do
@@ -511,9 +515,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  defp to_diagnostics(warnings_map, warn_opts, warning_format, project_dir) do
+  defp to_diagnostics(warnings_map, warn_opts, warning_format, project_dir, deps_path) do
+    dbg(deps_path)
+    dbg(project_dir)
     tags_enabled = Analyzer.matching_tags(warn_opts)
-    deps_path = Mix.Project.deps_path()
 
     for {_beam_file, warnings} <- warnings_map,
         {source_file, position, data} <- warnings,
@@ -521,7 +526,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         tag in tags_enabled,
         source_file = Path.absname(to_string(source_file)),
         in_project?(source_file, project_dir),
-        not String.starts_with?(source_file, deps_path) do
+        not SourceFile.Path.path_in_dir?(source_file, deps_path) do
       %Mix.Task.Compiler.Diagnostic{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
