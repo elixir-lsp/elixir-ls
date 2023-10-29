@@ -267,6 +267,14 @@ defmodule Mix.Tasks.ElixirLSFormat do
       Mix.raise("--no-exit can only be used together with --check-formatted")
     end
 
+    opts =
+      Keyword.merge(opts,
+        deps_paths: Mix.Project.deps_paths(),
+        manifest_path: Mix.Project.manifest_path(),
+        config_mtime: Mix.Project.config_mtime(),
+        mix_project: Mix.Project.get()
+      )
+
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter], opts)
 
@@ -411,6 +419,15 @@ defmodule Mix.Tasks.ElixirLSFormat do
   @doc since: "1.13.0"
   def formatter_for_file(file, opts \\ []) do
     cwd = Keyword.get_lazy(opts, :root, &File.cwd!/0)
+
+    opts =
+      Keyword.merge(opts,
+        deps_paths: Keyword.get_lazy(opts, :deps_paths, &Mix.Project.deps_paths/0),
+        manifest_path: Keyword.get_lazy(opts, :manifest_path, &Mix.Project.manifest_path/0),
+        config_mtime: Keyword.get_lazy(opts, :config_mtime, &Mix.Project.config_mtime/0),
+        mix_project: Keyword.get_lazy(opts, :mix_project, &Mix.Project.get/0)
+      )
+
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
 
     {formatter_opts_and_subs, _sources} =
@@ -464,13 +481,19 @@ defmodule Mix.Tasks.ElixirLSFormat do
     if deps == [] and subs == [] do
       {{formatter_opts, []}, sources}
     else
-      manifest = Path.join(Mix.Project.manifest_path(), @manifest_dot_formatter)
+      manifest = Path.join(opts[:manifest_path], @manifest_dot_formatter)
 
       {{locals_without_parens, subdirectories}, sources} =
-        maybe_cache_in_manifest(dot_formatter, manifest, fn ->
-          {subdirectories, sources} = eval_subs_opts(subs, cwd, sources, opts)
-          {{eval_deps_opts(deps, opts), subdirectories}, sources}
-        end)
+        maybe_cache_in_manifest(
+          dot_formatter,
+          opts[:mix_project],
+          manifest,
+          opts[:config_mtime],
+          fn ->
+            {subdirectories, sources} = eval_subs_opts(subs, cwd, sources, opts)
+            {{eval_deps_opts(deps, opts), subdirectories}, sources}
+          end
+        )
 
       formatter_opts =
         Keyword.update(
@@ -484,19 +507,19 @@ defmodule Mix.Tasks.ElixirLSFormat do
     end
   end
 
-  defp maybe_cache_in_manifest(dot_formatter, manifest, fun) do
+  defp maybe_cache_in_manifest(dot_formatter, mix_project, manifest, config_mtime, fun) do
     cond do
-      is_nil(Mix.Project.get()) or dot_formatter != ".formatter.exs" -> fun.()
-      entry = read_manifest(manifest) -> entry
+      is_nil(mix_project) or dot_formatter != ".formatter.exs" -> fun.()
+      entry = read_manifest(manifest, config_mtime) -> entry
       true -> write_manifest!(manifest, fun.())
     end
   end
 
-  defp read_manifest(manifest) do
+  defp read_manifest(manifest, config_mtime) do
     with {:ok, binary} <- File.read(manifest),
          {:ok, {@manifest_vsn, entry, sources}} <- safe_binary_to_term(binary),
          expanded_sources = Enum.flat_map(sources, &Path.wildcard(&1, match_dot: true)),
-         false <- Mix.Utils.stale?([Mix.Project.config_mtime() | expanded_sources], [manifest]) do
+         false <- Mix.Utils.stale?([config_mtime | expanded_sources], [manifest]) do
       {entry, sources}
     else
       _ -> nil
@@ -1069,4 +1092,3 @@ defmodule Mix.Tasks.ElixirLSFormat do
     end
   end
 end
-
