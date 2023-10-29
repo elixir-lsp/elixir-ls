@@ -1127,7 +1127,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_spec_code_lenses(state = %__MODULE__{}, uri, source_file) do
-    if dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
+    if is_binary(state.project_dir) and dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
       CodeLens.spec_code_lens(state.server_instance_id, uri, source_file.text)
     else
       {:ok, []}
@@ -1135,26 +1135,30 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file) do
-    get_test_code_lenses(
-      state,
-      uri,
-      source_file,
-      state.settings["enableTestLenses"] || false,
-      Mix.Project.umbrella?()
-    )
+    enabled = state.settings["enableTestLenses"] || false
+
+    if is_binary(state.project_dir) and enabled do
+      get_test_code_lenses(
+        state,
+        uri,
+        source_file,
+        ElixirLS.LanguageServer.MixProject.umbrella?()
+      )
+    else
+      {:ok, []}
+    end
   end
 
   defp get_test_code_lenses(
          state = %__MODULE__{project_dir: project_dir},
          "file:" <> _ = uri,
          source_file,
-         true = _enabled,
          true = _umbrella
        )
        when is_binary(project_dir) do
     file_path = SourceFile.Path.from_uri(uri)
 
-    Mix.Project.apps_paths()
+    ElixirLS.LanguageServer.MixProject.apps_paths()
     |> Enum.find(fn {_app, app_path} -> under_app?(file_path, project_dir, app_path) end)
     |> case do
       nil ->
@@ -1173,7 +1177,6 @@ defmodule ElixirLS.LanguageServer.Server do
          %__MODULE__{project_dir: project_dir},
          "file:" <> _ = uri,
          source_file,
-         true = _enabled,
          false = _umbrella
        )
        when is_binary(project_dir) do
@@ -1190,7 +1193,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, _, _), do: {:ok, []}
+  defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, _), do: {:ok, []}
 
   defp is_test_file?(file_path, state = %__MODULE__{project_dir: project_dir}, app, app_path)
        when is_binary(project_dir) do
@@ -1209,8 +1212,9 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp is_test_file?(file_path) do
-    test_paths = Mix.Project.config()[:test_paths] || ["test"]
-    test_pattern = Mix.Project.config()[:test_pattern] || "*_test.exs"
+    config = ElixirLS.LanguageServer.MixProject.config()
+    test_paths = config[:test_paths] || ["test"]
+    test_pattern = config[:test_pattern] || "*_test.exs"
     file_path = Path.expand(file_path)
 
     Mix.Utils.extract_files(test_paths, test_pattern)

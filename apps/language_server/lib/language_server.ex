@@ -14,6 +14,7 @@ defmodule ElixirLS.LanguageServer do
         {ElixirLS.LanguageServer.JsonRpc, name: ElixirLS.LanguageServer.JsonRpc},
         {ElixirLS.LanguageServer.Providers.WorkspaceSymbols, []},
         {ElixirLS.LanguageServer.Tracer, []},
+        {ElixirLS.LanguageServer.MixProject, []},
         {ElixirLS.LanguageServer.ExUnitTestTracer, []}
       ]
       |> Enum.reject(&is_nil/1)

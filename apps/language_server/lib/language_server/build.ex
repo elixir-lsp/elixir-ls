@@ -15,6 +15,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
               case reload_project() do
                 {:ok, mixfile_diagnostics} ->
+                  ElixirLS.LanguageServer.MixProject.store()
                   # FIXME: Private API
 
                   try do

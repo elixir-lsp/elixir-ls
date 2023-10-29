@@ -230,17 +230,19 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   @spec formatter_for(String.t(), String.t() | nil) :: {:ok, {function | nil, keyword(), String.t}} | :error
-  def formatter_for(uri = "file:" <> _, project_dir) do
+  def formatter_for(uri = "file:" <> _, project_dir) when is_binary(project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
-      true = Code.ensure_loaded?(Mix.Tasks.ElixirLSFormat)
-
-      if project_dir do
-        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, root: project_dir)}
-      else
-        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path)}
-      end
+      alias ElixirLS.LanguageServer.MixProject
+      opts = [
+      deps_paths: MixProject.deps_paths(),
+      manifest_path: MixProject.manifest_path(),
+      config_mtime: MixProject.config_mtime(),
+      mix_project: MixProject.get(),
+      root: project_dir
+      ]
+      {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
     catch
       kind, payload ->
         {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
