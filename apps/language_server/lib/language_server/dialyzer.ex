@@ -557,8 +557,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp to_diagnostics(warnings_map, warn_opts, warning_format, project_dir, deps_path) do
-    dbg(deps_path)
-    dbg(project_dir)
     tags_enabled = Analyzer.matching_tags(warn_opts)
 
     for {_beam_file, warnings} <- warnings_map,
