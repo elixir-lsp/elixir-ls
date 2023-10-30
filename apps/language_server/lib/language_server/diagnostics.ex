@@ -270,7 +270,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def exception_to_diagnostic(error, path \\ MixfileHelpers.mix_exs()) do
+  def exception_to_diagnostic(error, path) do
     msg =
       case error do
         {:shutdown, 1} ->
@@ -282,7 +282,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
-      file: Path.absname(path),
+      file: path,
       # 0 means unknown
       position: 0,
       message: msg,

@@ -311,12 +311,6 @@ defmodule ElixirLS.LanguageServer.Server do
       ) do
     state = %{state | build_running?: false}
 
-    state =
-      case reason do
-        :normal -> state
-        _ -> handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason)], state)
-      end
-
     # in case the build was interrupted make sure that cwd is reset to project dir
     case File.cd(state.project_dir) do
       :ok ->
@@ -329,6 +323,16 @@ defmodule ElixirLS.LanguageServer.Server do
         Logger.error(message)
         JsonRpc.show_message(:error, message)
     end
+
+    state =
+      case reason do
+        :normal ->
+          state
+
+        _ ->
+          path = Path.join(state.project_dir, MixfileHelpers.mix_exs())
+          handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason, path)], state)
+      end
 
     if reason == :normal do
       WorkspaceSymbols.notify_build_complete()
