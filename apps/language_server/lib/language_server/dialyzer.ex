@@ -77,7 +77,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     )
   end
 
-  def suggest_contracts(server \\ {:global, {self(), __MODULE__}}, files) do
+  def suggest_contracts(server \\ {:global, {self(), __MODULE__}}, files)
+
+  def suggest_contracts(_server, []), do: []
+
+  def suggest_contracts(server, files) do
     GenServer.call(server, {:suggest_contracts, files}, :infinity)
   end
 
