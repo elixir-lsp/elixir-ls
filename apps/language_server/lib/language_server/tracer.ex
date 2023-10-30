@@ -368,7 +368,16 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def write_manifest(project_dir) do
     path = manifest_path(project_dir)
     File.rm_rf!(path)
-    File.write!(path, "#{@version}")
+
+    with :ok <- path |> Path.dirname() |> File.mkdir_p(),
+         :ok <- File.write(path, "#{@version}", [:write]) do
+      :ok
+    else
+      {:error, err} ->
+        Logger.warning(
+          "Cannot create manifest .elixir_ls/tracer_db.manifest, cause: #{Atom.to_string(err)}"
+        )
+    end
   end
 
   def read_manifest(project_dir) do
