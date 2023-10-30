@@ -152,19 +152,19 @@ defmodule ElixirLS.LanguageServer.Tracer do
     table_name = table_name(table)
     path = dets_path(project_dir, table)
 
-    {:ok, _} =
-      :dets.open_file(table_name,
-        file: path |> String.to_charlist(),
-        auto_save: 60_000
-      )
+    opts = [file: path |> String.to_charlist(), auto_save: 60_000]
 
-    case :dets.to_ets(table_name, table_name) do
-      ^table_name ->
-        :ok
+    open_result =
+      case :dets.open_file(table_name, opts) do
+        {:ok, _} ->
+          :ok
 
-      {:error, reason} ->
-        Logger.error("Unable to load DETS #{path}, #{inspect(reason)}")
-    end
+        {:error, {:not_a_dets_file, _}} ->
+          File.rm_rf!(path)
+          {:ok, _} = :dets.open_file(table_name, opts)
+      end
+
+    ^table_name = :dets.to_ets(table_name, table_name)
   end
 
   def close_table(table, project_dir) do
