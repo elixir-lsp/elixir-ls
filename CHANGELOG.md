@@ -1,5 +1,29 @@
 ### Unreleased
 
+### v0.17.4: 30 October 2023
+
+#### Improvements
+
+- Dialyzer will now store beams in separate directories for each elixir/OTP combo. This should limit number of errors due to beam errors
+- Debugger will now use current directory if `projectDir` is not set. This makes it easier to setup in folderless configuration
+
+#### Fixes
+
+- Fixed complete crash with non Unicode characters
+- Fixed hover crash with functions with no args
+- Fixed complete crash when one of the apps gets unloaded
+- Fixed complete crash when struct/map has non atom keys
+- Fixed complete crash on non keyword import options
+- Fixed crash when type was incorrectly recognized
+- Fixed hover crash due to system limit
+- Fixed fish shell init script to work with paths containing whitespace [Julia](https://github.com/ForLoveOfCats)
+- Document symbols handle some more cases of invalid AST
+- Language server is now more careful with current directory. It should make it more stable when project dir cannot be changed into
+- Various cases of current directory usage fixed. This should improve stability during build when cwd changes
+- All references to `Mix.Project` moved under a build lock or made go through cache. This should improve stability during build when Mix.Project stack changes
+- Fix error prone usages of `String.starts_with?` as a way of checking if file is in directory
+- Language server made more stable with `autoBuild` disabled
+
 ### v0.17.3: 24 October 2023
 
 #### Fixes
