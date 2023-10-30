@@ -154,6 +154,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     opts = [file: path |> String.to_charlist(), auto_save: 60_000]
 
+    :ok = path |> Path.dirname() |> File.mkdir_p()
+
     open_result =
       case :dets.open_file(table_name, opts) do
         {:ok, _} ->
