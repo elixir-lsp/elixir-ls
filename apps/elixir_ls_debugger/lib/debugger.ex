@@ -5,7 +5,7 @@ defmodule ElixirLS.Debugger do
 
   use Application
   alias ElixirLS.Debugger.Output
-  alias ElixirLS.Debugger.Server
+  alias ElixirLS.Debugger.{Server, BreakpointCondition, ModuleInfoCache}
 
   @impl Application
   def start(_type, _args) do
