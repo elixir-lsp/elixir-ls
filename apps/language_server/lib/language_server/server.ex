@@ -1640,7 +1640,19 @@ defmodule ElixirLS.LanguageServer.Server do
     prev_env = state.settings["envVariables"]
 
     if is_nil(prev_env) or env == prev_env do
-      System.put_env(env)
+      try do
+        System.put_env(env)
+      rescue
+        e ->
+          Logger.error(
+            "Cannot set environment variables to #{inspect(env)}: #{Exception.message(e)}"
+          )
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `envVariables` in configuration. Expected a map with string key value pairs, got #{inspect(env)}."
+          )
+      end
     else
       JsonRpc.show_message(
         :warning,

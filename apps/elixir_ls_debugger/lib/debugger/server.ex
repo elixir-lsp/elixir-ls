@@ -1702,7 +1702,19 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp set_env_vars(env) when is_map(env) do
-    for {k, v} <- env, do: System.put_env(k, v)
+    try do
+      System.put_env(env)
+    rescue
+      e ->
+        Output.debugger_console(
+          "Cannot set environment variables to #{inspect(env)}: #{Exception.message(e)}"
+        )
+
+        Output.debugger_important(
+          "Invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}."
+        )
+    end
+
     :ok
   end
 
