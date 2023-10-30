@@ -4,7 +4,7 @@ defmodule ElixirLS.Debugger.ServerTest do
   # between the debugger's tests and the fixture project's tests. Expect to see output printed
   # from both.
 
-  alias ElixirLS.Debugger.{Server, Protocol, BreakpointCondition}
+  alias ElixirLS.Debugger.{Server, Protocol, BreakpointCondition, ModuleInfoCache}
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -14,6 +14,8 @@ defmodule ElixirLS.Debugger.ServerTest do
     {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start_link(self())
     Process.group_leader(Process.whereis(ElixirLS.Debugger.Output), packet_capture)
 
+    {:ok, _} = start_supervised(BreakpointCondition)
+    {:ok, _} = start_supervised({ModuleInfoCache, %{}})
     {:ok, server} = Server.start_link(name: Server)
 
     on_exit(fn ->

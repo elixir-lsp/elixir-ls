@@ -20,6 +20,8 @@ defmodule ElixirLS.Debugger do
     children =
       if Mix.env() != :test do
         [
+          BreakpointCondition,
+          {ModuleInfoCache, %{}},
           {Server, name: Server}
         ]
       else
