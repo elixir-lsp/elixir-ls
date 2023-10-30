@@ -657,7 +657,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
   end
 
   defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs, cwd) do
-    {formatter_opts, dir} = recur_formatter_opts_for_file(file, formatter_opts_and_subs) |> dbg
+    {formatter_opts, dir} = recur_formatter_opts_for_file(file, formatter_opts_and_subs)
     {find_formatter_for_file(file, formatter_opts), formatter_opts, dir || cwd}
   end
 
