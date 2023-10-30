@@ -382,7 +382,16 @@ defmodule ElixirLS.LanguageServer.Server do
     parser_diagnostics =
       case source_files[uri] do
         %SourceFile{} = source_file ->
-          file = SourceFile.Path.from_uri(uri)
+          file =
+            case uri do
+              "file:" <> _ ->
+                SourceFile.Path.from_uri(uri)
+
+              _ ->
+                # we don't know extension of untitled files so it's not clear which parser to use
+                # it's better to skip that file
+                nil
+            end
 
           case parse_file(source_file.text, file) do
             [] ->
@@ -1899,6 +1908,8 @@ defmodule ElixirLS.LanguageServer.Server do
       state
     end
   end
+
+  defp parse_file(_text, nil), do: []
 
   defp parse_file(text, file) do
     {result, raw_diagnostics} =
