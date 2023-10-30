@@ -105,9 +105,9 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
     wait_until_compiled(server)
   end
 
-  def fake_initialize(server) do
+  def fake_initialize(server, mix_project? \\ true) do
     :sys.replace_state(server, fn state ->
-      %{state | server_instance_id: "123", project_dir: File.cwd!()}
+      %{state | server_instance_id: "123", project_dir: File.cwd!(), mix_project?: mix_project?}
     end)
   end
 

@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     on_exit(fn ->
       Code.compiler_options(compiler_options)
       Process.monitor(pid)
-      Process.unlink(pid)
+
       GenServer.stop(pid)
 
       receive do

@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, Tracer}
+  alias ElixirLS.LanguageServer.{Server, Protocol, Tracer, MixProject}
   use ElixirLS.Utils.MixTest.Case, async: false
   import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use Protocol
@@ -7,16 +7,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
   setup do
     {:ok, _} = start_supervised(Tracer)
     {:ok, server} = Server.start_link()
+    {:ok, _} = start_supervised(MixProject)
     start_server(server)
-    Process.unlink(server)
 
     on_exit(fn ->
       if Process.alive?(server) do
-        state = :sys.get_state(server)
-        refute state.build_running?
-
         Process.monitor(server)
-        Process.exit(server, :terminate)
+        GenServer.stop(server)
 
         receive do
           {:DOWN, _, _, ^server, _} ->

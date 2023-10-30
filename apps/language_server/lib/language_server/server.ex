@@ -131,6 +131,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
   @impl GenServer
   def terminate(reason, _state) do
+    IO.puts(:stderr, "terminate(#{inspect(reason)})")
+
     case reason do
       :normal ->
         :ok
@@ -595,8 +597,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(
          did_change_watched_files(changes),
-         state = %__MODULE__{mix_project?: true}
-       ) do
+         state = %__MODULE__{project_dir: project_dir}
+       )
+       when is_binary(project_dir) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
     # `settings` may not always be available here, like during testing
@@ -1135,7 +1138,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_spec_code_lenses(state = %__MODULE__{}, uri, source_file) do
-    enabled? = Map.get(state.settings || {}, "suggestSpecs", true)
+    enabled? = Map.get(state.settings || %{}, "suggestSpecs", true)
 
     if state.mix_project? and dialyzer_enabled?(state) and enabled? do
       CodeLens.spec_code_lens(state.server_instance_id, uri, source_file.text)
@@ -1147,8 +1150,8 @@ defmodule ElixirLS.LanguageServer.Server do
   defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file) do
     # TODO check why test run from lense fails when autoBuild is disabled
     enabled? =
-      Map.get(state.settings || {}, "autoBuild", true) and
-        Map.get(state.settings || {}, "enableTestLenses", false)
+      Map.get(state.settings || %{}, "autoBuild", true) and
+        Map.get(state.settings || %{}, "enableTestLenses", false)
 
     if state.mix_project? and enabled? and ElixirLS.LanguageServer.MixProject.loaded?() do
       get_test_code_lenses(
@@ -1246,7 +1249,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
     cond do
-      not state.mix_project? ->
+      not is_binary(project_dir) ->
         state
 
       not state.build_running? ->

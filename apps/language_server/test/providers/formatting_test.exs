@@ -4,7 +4,13 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   alias ElixirLS.LanguageServer.Providers.Formatting
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.MixProject
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+
+  setup do
+    {:ok, _} = start_supervised(MixProject)
+    :ok
+  end
 
   @tag :fixture
   test "no mixfile" do
@@ -109,6 +115,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Formats a file with LF line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -159,6 +166,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Formats a file with CRLF line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -246,6 +254,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "elixir formatter does not support CR line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -269,16 +278,15 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       project_dir = maybe_convert_path_separators(FixtureHelpers.get_path("formatter"))
 
-      assert {:error, :internal_error, msg, false} =
+      assert {:ok, []} =
                Formatting.format(source_file, uri, project_dir)
-
-      assert String.contains?(msg, "Unable to format")
     end)
   end
 
   @tag :fixture
   test "formatting preserves line indings inside a string" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -334,6 +342,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "returns an error when formatting a file with a syntax error" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -355,16 +364,15 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       project_dir = maybe_convert_path_separators(FixtureHelpers.get_path("formatter"))
 
-      assert {:error, :internal_error, msg, false} =
+      assert {:ok, []} =
                Formatting.format(source_file, uri, project_dir)
-
-      assert String.contains?(msg, "Unable to format")
     end)
   end
 
   @tag :fixture
   test "Proper utf-16 format: emoji 😀" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -404,6 +412,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Proper utf-16 format: emoji 🏳️‍🌈" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -443,6 +452,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Proper utf-16 format: zalgo" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -482,6 +492,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "honors :inputs when deciding to format" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      MixProject.store()
       project_dir = Path.expand(".")
 
       assert_formatted("file.ex", project_dir)

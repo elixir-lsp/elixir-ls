@@ -126,10 +126,10 @@ defmodule ElixirLS.LanguageServer.MixProject do
     Path.join(app_path(), "ebin")
   end
 
-  @spec consolidation_path() :: Path.t()
-  def consolidation_path() do
-    GenServer.call(__MODULE__, {:get, :consolidation_path})
-  end
+  # @spec consolidation_path() :: Path.t()
+  # def consolidation_path() do
+  #   GenServer.call(__MODULE__, {:get, :consolidation_path})
+  # end
 
   @impl GenServer
   def init(_) do
@@ -185,8 +185,7 @@ defmodule ElixirLS.LanguageServer.MixProject do
       deps_scms: Mix.Project.deps_scms(),
       deps_paths: Mix.Project.deps_paths(),
       build_path: Mix.Project.build_path(),
-      manifest_path: Mix.Project.manifest_path(),
-      consolidation_path: Mix.Project.consolidation_path()
+      manifest_path: Mix.Project.manifest_path()
     }
 
     {:reply, :ok, state}

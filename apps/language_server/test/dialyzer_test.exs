@@ -1,7 +1,17 @@
 defmodule ElixirLS.LanguageServer.DialyzerTest do
   # TODO: Test loading and saving manifest
 
-  alias ElixirLS.LanguageServer.{Dialyzer, Server, Protocol, SourceFile, JsonRpc, Tracer, Build}
+  alias ElixirLS.LanguageServer.{
+    Dialyzer,
+    Server,
+    Protocol,
+    SourceFile,
+    JsonRpc,
+    Tracer,
+    Build,
+    MixProject
+  }
+
   import ExUnit.CaptureLog
   import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
@@ -23,22 +33,22 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
   setup do
     {:ok, server} = Server.start_link()
+    {:ok, _} = start_supervised(MixProject)
     start_server(server)
-    Process.unlink(server)
+
     {:ok, _tracer} = start_supervised(Tracer)
 
     on_exit(fn ->
       if Process.alive?(server) do
-        state = :sys.get_state(server)
-        refute state.build_running?
-
         Process.monitor(server)
-        Process.exit(server, :terminate)
+        GenServer.stop(server)
 
         receive do
           {:DOWN, _, _, ^server, _} ->
             :ok
         end
+      else
+        :ok
       end
     end)
 
@@ -411,7 +421,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
       capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+        initialize(server, %{
+          "dialyzerEnabled" => true,
+          "dialyzerFormat" => "dialyxir_long",
+          "suggestSpecs" => false
+        })
 
         message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 

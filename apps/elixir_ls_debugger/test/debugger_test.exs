@@ -24,7 +24,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
       if Process.alive?(server) do
         Process.monitor(server)
-        Process.exit(server, :normal)
+        GenServer.stop(server)
 
         receive do
           {:DOWN, _, _, ^server, _} ->
