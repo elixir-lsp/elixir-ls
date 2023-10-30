@@ -529,8 +529,10 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   end
 
   defp format(path, project_dir) do
-    project_dir = maybe_convert_path_separators(project_dir)
-    |> Path.absname()
+    project_dir =
+      maybe_convert_path_separators(project_dir)
+      |> Path.absname()
+
     path = maybe_convert_path_separators("#{project_dir}/#{path}")
 
     source_file = %SourceFile{
