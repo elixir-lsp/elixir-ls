@@ -103,6 +103,7 @@ defmodule ElixirLS.LanguageServer.MixProject do
   @spec app_path() :: Path.t()
   def app_path() do
     config = config()
+
     config[:deps_app_path] ||
       cond do
         app = config[:app] ->
@@ -149,6 +150,7 @@ defmodule ElixirLS.LanguageServer.MixProject do
 
       _other ->
         message = Exception.format_exit(reason)
+
         JsonRpc.telemetry(
           "lsp_server_error",
           %{
@@ -171,20 +173,20 @@ defmodule ElixirLS.LanguageServer.MixProject do
 
   def handle_call(:store, _from, _state) do
     state = %{
-    get: Mix.Project.get(),
-    project_file: Mix.Project.project_file(),
-    config: Mix.Project.config(),
-    config_files: Mix.Project.config_files(),
-    config_mtime: Mix.Project.config_mtime(),
-    umbrella?: Mix.Project.umbrella?(),
-    apps_paths: Mix.Project.apps_paths(),
-    deps_path: Mix.Project.deps_path(),
-    deps_apps: Mix.Project.deps_apps(),
-    deps_scms: Mix.Project.deps_scms(),
-    deps_paths: Mix.Project.deps_paths(),
-    build_path: Mix.Project.build_path(),
-    manifest_path: Mix.Project.manifest_path(),
-    consolidation_path: Mix.Project.consolidation_path()
+      get: Mix.Project.get(),
+      project_file: Mix.Project.project_file(),
+      config: Mix.Project.config(),
+      config_files: Mix.Project.config_files(),
+      config_mtime: Mix.Project.config_mtime(),
+      umbrella?: Mix.Project.umbrella?(),
+      apps_paths: Mix.Project.apps_paths(),
+      deps_path: Mix.Project.deps_path(),
+      deps_apps: Mix.Project.deps_apps(),
+      deps_scms: Mix.Project.deps_scms(),
+      deps_paths: Mix.Project.deps_paths(),
+      build_path: Mix.Project.build_path(),
+      manifest_path: Mix.Project.manifest_path(),
+      consolidation_path: Mix.Project.consolidation_path()
     }
 
     {:reply, :ok, state}

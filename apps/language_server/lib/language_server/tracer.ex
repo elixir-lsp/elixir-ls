@@ -120,6 +120,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
       _other ->
         message = Exception.format_exit(reason)
+
         JsonRpc.telemetry(
           "lsp_server_error",
           %{

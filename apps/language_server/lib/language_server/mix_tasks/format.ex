@@ -259,7 +259,16 @@ defmodule Mix.Tasks.ElixirLSFormat do
     mix_project = Mix.Project.get()
 
     {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(cwd, mix_project, deps_paths, manifest_path, config_mtime, dot_formatter, formatter_opts, [dot_formatter])
+      eval_deps_and_subdirectories(
+        cwd,
+        mix_project,
+        deps_paths,
+        manifest_path,
+        config_mtime,
+        dot_formatter,
+        formatter_opts,
+        [dot_formatter]
+      )
 
     formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
 
@@ -338,7 +347,16 @@ defmodule Mix.Tasks.ElixirLSFormat do
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
 
     {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(cwd, mix_project, deps_paths, manifest_path, config_mtime, dot_formatter, formatter_opts, [dot_formatter])
+      eval_deps_and_subdirectories(
+        cwd,
+        mix_project,
+        deps_paths,
+        manifest_path,
+        config_mtime,
+        dot_formatter,
+        formatter_opts,
+        [dot_formatter]
+      )
 
     formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
 
@@ -372,7 +390,16 @@ defmodule Mix.Tasks.ElixirLSFormat do
   # This function reads exported configuration from the imported
   # dependencies and subdirectories and deals with caching the result
   # of reading such configuration in a manifest file.
-  defp eval_deps_and_subdirectories(cwd, mix_project, deps_paths, manifest_path, config_mtime, dot_formatter, formatter_opts, sources) do
+  defp eval_deps_and_subdirectories(
+         cwd,
+         mix_project,
+         deps_paths,
+         manifest_path,
+         config_mtime,
+         dot_formatter,
+         formatter_opts,
+         sources
+       ) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
 
@@ -391,7 +418,17 @@ defmodule Mix.Tasks.ElixirLSFormat do
 
       {{locals_without_parens, subdirectories}, sources} =
         maybe_cache_in_manifest(dot_formatter, mix_project, manifest, config_mtime, fn ->
-          {subdirectories, sources} = eval_subs_opts(subs, cwd, mix_project, deps_paths, manifest_path, config_mtime, sources)
+          {subdirectories, sources} =
+            eval_subs_opts(
+              subs,
+              cwd,
+              mix_project,
+              deps_paths,
+              manifest_path,
+              config_mtime,
+              sources
+            )
+
           {{eval_deps_opts(deps, deps_paths), subdirectories}, sources}
         end)
 
@@ -467,7 +504,16 @@ defmodule Mix.Tasks.ElixirLSFormat do
         formatter_opts = eval_file_with_keyword_list(sub_formatter)
 
         {formatter_opts_and_subs, sources} =
-          eval_deps_and_subdirectories(sub, mix_project, deps_paths, manifest_path, config_mtime, :in_memory, formatter_opts, sources)
+          eval_deps_and_subdirectories(
+            sub,
+            mix_project,
+            deps_paths,
+            manifest_path,
+            config_mtime,
+            :in_memory,
+            formatter_opts,
+            sources
+          )
 
         {[{sub, formatter_opts_and_subs}], sources}
       else
@@ -542,7 +588,9 @@ defmodule Mix.Tasks.ElixirLSFormat do
 
         {file, formatter}
       else
-        {formatter, _opts, _dir} = find_formatter_and_opts_for_file(file, {formatter_opts, subs}, cwd)
+        {formatter, _opts, _dir} =
+          find_formatter_and_opts_for_file(file, {formatter_opts, subs}, cwd)
+
         {file, formatter}
       end
     end

@@ -114,6 +114,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
       _other ->
         message = Exception.format_exit(reason)
+
         JsonRpc.telemetry(
           "lsp_server_error",
           %{

@@ -15,7 +15,11 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
           if should_format?(uri, formatter_exs_dir, opts[:inputs]) do
             do_format(source_file, formatter, opts)
           else
-            JsonRpc.show_message(:info, "File #{file_path} not included in #{Path.join(formatter_exs_dir, ".formatter.exs")}")
+            JsonRpc.show_message(
+              :info,
+              "File #{file_path} not included in #{Path.join(formatter_exs_dir, ".formatter.exs")}"
+            )
+
             {:ok, []}
           end
 

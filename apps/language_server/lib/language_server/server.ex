@@ -143,6 +143,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       _other ->
         message = Exception.format_exit(reason)
+
         JsonRpc.telemetry(
           "lsp_server_error",
           %{
@@ -318,8 +319,11 @@ defmodule ElixirLS.LanguageServer.Server do
     case File.cd(state.project_dir) do
       :ok ->
         :ok
+
       {:error, reason} ->
-        message = "Cannot change directory to project dir #{state.project_dir}: #{inspect(reason)}"
+        message =
+          "Cannot change directory to project dir #{state.project_dir}: #{inspect(reason)}"
+
         Logger.error(message)
         JsonRpc.show_message(:error, message)
     end
@@ -589,7 +593,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{mix_project?: true}) do
+  defp handle_notification(
+         did_change_watched_files(changes),
+         state = %__MODULE__{mix_project?: true}
+       ) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
     # `settings` may not always be available here, like during testing
@@ -1129,6 +1136,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_spec_code_lenses(state = %__MODULE__{}, uri, source_file) do
     enabled? = Map.get(state.settings || {}, "suggestSpecs", true)
+
     if state.mix_project? and dialyzer_enabled?(state) and enabled? do
       CodeLens.spec_code_lens(state.server_instance_id, uri, source_file.text)
     else
@@ -1138,9 +1146,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file) do
     # TODO check why test run from lense fails when autoBuild is disabled
-    enabled? = Map.get(state.settings || {}, "autoBuild", true) and Map.get(state.settings || {}, "enableTestLenses", false)
+    enabled? =
+      Map.get(state.settings || {}, "autoBuild", true) and
+        Map.get(state.settings || {}, "enableTestLenses", false)
 
-    if state.mix_project? and enabled? and ElixirLS.LanguageServer.MixProject.loaded? do
+    if state.mix_project? and enabled? and ElixirLS.LanguageServer.MixProject.loaded?() do
       get_test_code_lenses(
         state,
         uri,
@@ -1241,32 +1251,40 @@ defmodule ElixirLS.LanguageServer.Server do
 
       not state.build_running? ->
         opts = [
-        fetch_deps?: Map.get(state.settings || %{}, "fetchDeps", false),
-        compile?: Map.get(state.settings || %{}, "autoBuild", true)
+          fetch_deps?: Map.get(state.settings || %{}, "fetchDeps", false),
+          compile?: Map.get(state.settings || %{}, "autoBuild", true)
         ]
 
-        {_pid, build_ref} = case File.cwd() do
-          {:ok, cwd} ->
-            if Path.absname(cwd) == Path.absname(project_dir) do
-              Build.build(self(), project_dir, opts)
-            else
-              Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
-              {nil, nil}
-            end
-          {:error, reason} ->
-            Logger.warning("cwd is not accessible: #{inspect(reason)}, trying to change directory back to #{project_dir}")
-            # cwd is not accessible
-            # try to change back to project dir
-            case File.cd(project_dir) do
-              :ok ->
+        {_pid, build_ref} =
+          case File.cwd() do
+            {:ok, cwd} ->
+              if Path.absname(cwd) == Path.absname(project_dir) do
                 Build.build(self(), project_dir, opts)
-              {:error, reason} ->
-                message = "Cannot change directory to project dir #{project_dir}: #{inspect(reason)}"
-                Logger.error(message)
-                JsonRpc.show_message(:error, message)
+              else
+                Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
                 {nil, nil}
-            end
-        end
+              end
+
+            {:error, reason} ->
+              Logger.warning(
+                "cwd is not accessible: #{inspect(reason)}, trying to change directory back to #{project_dir}"
+              )
+
+              # cwd is not accessible
+              # try to change back to project dir
+              case File.cd(project_dir) do
+                :ok ->
+                  Build.build(self(), project_dir, opts)
+
+                {:error, reason} ->
+                  message =
+                    "Cannot change directory to project dir #{project_dir}: #{inspect(reason)}"
+
+                  Logger.error(message)
+                  JsonRpc.show_message(:error, message)
+                  {nil, nil}
+              end
+          end
 
         %__MODULE__{
           state
@@ -1287,7 +1305,12 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state), state.project_dir)
+    Dialyzer.analyze(
+      state.build_ref,
+      warn_opts,
+      dialyzer_default_format(state),
+      state.project_dir
+    )
 
     state
   end
@@ -1472,7 +1495,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_settings(state = %__MODULE__{}, settings) do
     enable_dialyzer =
-      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) and Map.get(settings, "dialyzerEnabled", true)
+      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) and
+        Map.get(settings, "dialyzerEnabled", true)
 
     env_vars = Map.get(settings, "envVariables")
     mix_env = Map.get(settings, "mixEnv")
@@ -1585,7 +1609,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_dialyzer_enabled(state = %__MODULE__{}, enable_dialyzer) do
     cond do
-      enable_dialyzer and state.mix_project? and state.dialyzer_sup == nil  ->
+      enable_dialyzer and state.mix_project? and state.dialyzer_sup == nil ->
         {:ok, pid} = Dialyzer.Supervisor.start_link(state.project_dir)
         %{state | dialyzer_sup: pid, analysis_ready?: false}
 
@@ -1710,12 +1734,20 @@ defmodule ElixirLS.LanguageServer.Server do
 
       is_nil(prev_project_dir) ->
         with :ok <- File.cd(project_dir),
-          {:ok, resolved_project_dir} <- File.cwd() do
-            %{state | project_dir: resolved_project_dir, mix_project?: File.exists?(MixfileHelpers.mix_exs())}
+             {:ok, resolved_project_dir} <- File.cwd() do
+          %{
+            state
+            | project_dir: resolved_project_dir,
+              mix_project?: File.exists?(MixfileHelpers.mix_exs())
+          }
         else
           {:error, reason} ->
-            JsonRpc.show_message(:error, "Unable to change directory into #{project_dir}: #{inspect(reason)}. " <>
-            "Please make sure the directory exists and you have necessary permissions")
+            JsonRpc.show_message(
+              :error,
+              "Unable to change directory into #{project_dir}: #{inspect(reason)}. " <>
+                "Please make sure the directory exists and you have necessary permissions"
+            )
+
             state
         end
 

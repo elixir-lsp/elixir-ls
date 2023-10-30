@@ -4,79 +4,79 @@ defmodule ElixirLS.LanguageServer.Build do
   require Logger
 
   def build(parent, root_path, opts) when is_binary(root_path) do
-      spawn_monitor(fn ->
-        with_build_lock(fn ->
-          {us, result} =
-            :timer.tc(fn ->
-              Logger.info("Starting build with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}")
+    spawn_monitor(fn ->
+      with_build_lock(fn ->
+        {us, result} =
+          :timer.tc(fn ->
+            Logger.info("Starting build with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}")
 
-              # read cache before cleaning up mix state in reload_project
-              cached_deps = read_cached_deps()
+            # read cache before cleaning up mix state in reload_project
+            cached_deps = read_cached_deps()
 
-              case reload_project() do
-                {:ok, mixfile_diagnostics} ->
-                  ElixirLS.LanguageServer.MixProject.store()
-                  # FIXME: Private API
+            case reload_project() do
+              {:ok, mixfile_diagnostics} ->
+                ElixirLS.LanguageServer.MixProject.store()
+                # FIXME: Private API
 
-                  try do
-                    # this call can raise
-                    current_deps = Mix.Dep.load_on_environment([])
+                try do
+                  # this call can raise
+                  current_deps = Mix.Dep.load_on_environment([])
 
-                    purge_changed_deps(current_deps, cached_deps)
+                  purge_changed_deps(current_deps, cached_deps)
 
-                    if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
-                      fetch_deps(current_deps)
-                    end
-
-                    if Keyword.get(opts, :compile?) do
-                      {status, diagnostics} = run_mix_compile()
-
-                      diagnostics = Diagnostics.normalize(diagnostics, root_path)
-                      Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
-                      :"mix_compile_#{status}"
-                    else
-                      Server.build_finished(parent, {:ok, mixfile_diagnostics})
-                      :mix_compile_disabled
-                    end
-                  catch
-                    kind, payload ->
-                      {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
-                      message = Exception.format(kind, payload, stacktrace)
-                      Logger.warning("Mix.Dep.load_on_environment([]) failed: #{message}")
-
-                      JsonRpc.telemetry(
-                        "build_error",
-                        %{"elixir_ls.build_error" => message},
-                        %{}
-                      )
-
-                      # TODO pass diagnostic
-                      Server.build_finished(parent, {:error, []})
-                      :deps_error
+                  if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
+                    fetch_deps(current_deps)
                   end
 
-                {:error, mixfile_diagnostics} ->
-                  Server.build_finished(parent, {:error, mixfile_diagnostics})
-                  :mixfile_error
+                  if Keyword.get(opts, :compile?) do
+                    {status, diagnostics} = run_mix_compile()
 
-                :no_mixfile ->
-                  Server.build_finished(parent, {:no_mixfile, []})
-                  :no_mixfile
-              end
-            end)
+                    diagnostics = Diagnostics.normalize(diagnostics, root_path)
+                    Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
+                    :"mix_compile_#{status}"
+                  else
+                    Server.build_finished(parent, {:ok, mixfile_diagnostics})
+                    :mix_compile_disabled
+                  end
+                catch
+                  kind, payload ->
+                    {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+                    message = Exception.format(kind, payload, stacktrace)
+                    Logger.warning("Mix.Dep.load_on_environment([]) failed: #{message}")
 
-          if Keyword.get(opts, :compile?) do
-            Tracer.save()
-            Logger.info("Compile took #{div(us, 1000)} milliseconds")
-          else
-            Logger.info("Mix project load took #{div(us, 1000)} milliseconds")
-          end
+                    JsonRpc.telemetry(
+                      "build_error",
+                      %{"elixir_ls.build_error" => message},
+                      %{}
+                    )
 
-          JsonRpc.telemetry("build", %{"elixir_ls.build_result" => result}, %{
-            "elixir_ls.build_time" => div(us, 1000)
-          })
-        end)
+                    # TODO pass diagnostic
+                    Server.build_finished(parent, {:error, []})
+                    :deps_error
+                end
+
+              {:error, mixfile_diagnostics} ->
+                Server.build_finished(parent, {:error, mixfile_diagnostics})
+                :mixfile_error
+
+              :no_mixfile ->
+                Server.build_finished(parent, {:no_mixfile, []})
+                :no_mixfile
+            end
+          end)
+
+        if Keyword.get(opts, :compile?) do
+          Tracer.save()
+          Logger.info("Compile took #{div(us, 1000)} milliseconds")
+        else
+          Logger.info("Mix project load took #{div(us, 1000)} milliseconds")
+        end
+
+        JsonRpc.telemetry("build", %{"elixir_ls.build_result" => result}, %{
+          "elixir_ls.build_time" => div(us, 1000)
+        })
       end)
+    end)
   end
 
   def clean(clean_deps? \\ false) do

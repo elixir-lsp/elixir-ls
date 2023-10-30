@@ -197,6 +197,7 @@ defmodule ElixirLS.Debugger.Server do
 
       _other ->
         message = Exception.format_exit(reason)
+
         Output.telemetry(
           "dap_server_error",
           %{
@@ -1603,14 +1604,19 @@ defmodule ElixirLS.Debugger.Server do
   defp launch(config, server) do
     project_dir = config["projectDir"]
 
-    project_dir = if project_dir not in [nil, ""] do
-      Output.debugger_console("Starting debugger in directory: #{project_dir}\n")
-      project_dir
-    else
-      cwd = File.cwd!()
-      Output.debugger_console("projectDir is not set, starting debugger in current directory: #{cwd}\n")
-      cwd
-    end
+    project_dir =
+      if project_dir not in [nil, ""] do
+        Output.debugger_console("Starting debugger in directory: #{project_dir}\n")
+        project_dir
+      else
+        cwd = File.cwd!()
+
+        Output.debugger_console(
+          "projectDir is not set, starting debugger in current directory: #{cwd}\n"
+        )
+
+        cwd
+      end
 
     task = config["task"]
     task_args = config["taskArgs"] || []

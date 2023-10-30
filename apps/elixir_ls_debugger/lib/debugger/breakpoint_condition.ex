@@ -78,6 +78,7 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
 
       _other ->
         message = Exception.format_exit(reason)
+
         Output.telemetry(
           "dap_server_error",
           %{

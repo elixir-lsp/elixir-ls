@@ -101,7 +101,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           # TODO extract module name location from Code.Fragment.surround_context?
           # TODO better selection ranges for defimpl?
           {extract_module_name(module_expression), module_name_location, module_body}
-        _ -> nil
+
+        _ ->
+          nil
       end
 
     if module_info do
@@ -324,7 +326,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
         list when is_list(list) ->
           string_list =
             list
-            |> Enum.filter(& match?({_key, _}, &1))
+            |> Enum.filter(&match?({_key, _}, &1))
             |> Enum.map_join(", ", fn {key, _} -> Macro.to_string(key) end)
 
           "[#{string_list}]"

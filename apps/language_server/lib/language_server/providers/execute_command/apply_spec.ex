@@ -57,8 +57,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
       try do
         target_line_length =
           case SourceFile.formatter_for(uri, state.project_dir) do
-            {:ok, {_, opts, _formatter_exs_dir}} -> Keyword.get(opts, :line_length, @default_target_line_length)
-            {:error, _} -> @default_target_line_length
+            {:ok, {_, opts, _formatter_exs_dir}} ->
+              Keyword.get(opts, :line_length, @default_target_line_length)
+
+            {:error, _} ->
+              @default_target_line_length
           end
 
         target_line_length = target_line_length - String.length(indentation)

@@ -113,7 +113,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         _from,
         state
       ) do
-    diagnostics = to_diagnostics(warnings, state.warn_opts, state.warning_format, state.project_dir, state.deps_path)
+    diagnostics =
+      to_diagnostics(
+        warnings,
+        state.warn_opts,
+        state.warning_format,
+        state.project_dir,
+        state.deps_path
+      )
 
     Server.dialyzer_finished(state.parent, diagnostics, build_ref)
 
@@ -160,7 +167,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           new_timestamp = adjusted_timestamp()
 
           {removed_files, file_changes} =
-            update_stale(state.md5, state.removed_files, state.file_changes, state.timestamp, project_dir, build_path)
+            update_stale(
+              state.md5,
+              state.removed_files,
+              state.file_changes,
+              state.timestamp,
+              project_dir,
+              build_path
+            )
 
           state = %{
             state
@@ -202,6 +216,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
       _other ->
         message = Exception.format_exit(reason)
+
         JsonRpc.telemetry(
           "lsp_server_error",
           %{
@@ -214,10 +229,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         Logger.info("Terminating #{__MODULE__}: #{message}")
 
         JsonRpc.show_message(
-        :error,
-        "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
-          "\"elixirLS.dialyzerEnabled\" to false in settings.json to disable it"
-      )
+          :error,
+          "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
+            "\"elixirLS.dialyzerEnabled\" to false in settings.json to disable it"
+        )
     end
   end
 
@@ -349,7 +364,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp temp_file_path(root_path, file) do
-    Path.join([root_path, ".elixir_ls/dialyzer_#{System.otp_release()}_#{System.version()}_tmp", file])
+    Path.join([
+      root_path,
+      ".elixir_ls/dialyzer_#{System.otp_release()}_#{System.version()}_tmp",
+      file
+    ])
   end
 
   defp write_temp_file(root_path, file_path, content) do
