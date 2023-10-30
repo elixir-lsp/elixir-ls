@@ -76,17 +76,18 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
       {:shutdown, _} ->
         :ok
 
-      other ->
+      _other ->
+        message = Exception.format_exit(reason)
         Output.telemetry(
           "dap_server_error",
           %{
             "elixir_ls.dap_process" => inspect(__MODULE__),
-            "elixir_ls.dap_server_error" => inspect(other)
+            "elixir_ls.dap_server_error" => message
           },
           %{}
         )
 
-        Output.debugger_important("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
+        Output.debugger_important("Terminating #{__MODULE__}: #{message}")
     end
 
     :ok

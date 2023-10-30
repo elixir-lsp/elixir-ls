@@ -200,17 +200,18 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       {:shutdown, _} ->
         :ok
 
-      other ->
+      _other ->
+        message = Exception.format_exit(reason)
         JsonRpc.telemetry(
           "lsp_server_error",
           %{
             "elixir_ls.lsp_process" => inspect(__MODULE__),
-            "elixir_ls.lsp_server_error" => inspect(other)
+            "elixir_ls.lsp_server_error" => message
           },
           %{}
         )
 
-        Logger.info("Terminating #{__MODULE__}: #{Exception.format_exit(reason)}")
+        Logger.info("Terminating #{__MODULE__}: #{message}")
 
         JsonRpc.show_message(
         :error,
