@@ -26,7 +26,8 @@ else
   set rtx (which rtx)
   if test -n "$rtx"
     echo "rtx executable found in $rtx, activating" >&2
-    "$rtx" activate fish | source
+
+    "$rtx" env -s fish | source
   else
     echo "rtx not found" >&2
   end
