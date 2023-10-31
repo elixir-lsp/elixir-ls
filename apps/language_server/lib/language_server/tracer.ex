@@ -20,7 +20,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   def set_project_dir(project_dir) do
-    GenServer.call(__MODULE__, {:set_project_dir, project_dir})
+    GenServer.call(__MODULE__, {:set_project_dir, project_dir}, 15_000)
   end
 
   def save() do
@@ -156,15 +156,14 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     :ok = path |> Path.dirname() |> File.mkdir_p()
 
-    open_result =
-      case :dets.open_file(table_name, opts) do
-        {:ok, _} ->
-          :ok
+    case :dets.open_file(table_name, opts) do
+      {:ok, _} ->
+        :ok
 
-        {:error, {:not_a_dets_file, _}} ->
-          File.rm_rf!(path)
-          {:ok, _} = :dets.open_file(table_name, opts)
-      end
+      {:error, {:not_a_dets_file, _}} ->
+        File.rm_rf!(path)
+        {:ok, _} = :dets.open_file(table_name, opts)
+    end
 
     ^table_name = :dets.to_ets(table_name, table_name)
   end
