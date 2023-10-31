@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFile 
         {:ok, tests}
 
       {:error, reason} ->
-        {:error, :server_error, "Cannot get tests in file: #{inspect(reason)}", true}
+        {:ok, []}
     end
   end
 end
