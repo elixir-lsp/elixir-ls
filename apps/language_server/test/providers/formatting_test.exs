@@ -115,7 +115,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Formats a file with LF line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -166,7 +166,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Formats a file with CRLF line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -254,7 +254,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "elixir formatter does not support CR line endings" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -286,7 +286,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "formatting preserves line indings inside a string" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -342,7 +342,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "returns an error when formatting a file with a syntax error" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -372,7 +372,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Proper utf-16 format: emoji 😀" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -412,7 +412,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Proper utf-16 format: emoji 🏳️‍🌈" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -452,7 +452,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "Proper utf-16 format: zalgo" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       path = "lib/file.ex"
       uri = SourceFile.Path.to_uri(path)
 
@@ -492,7 +492,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   @tag :fixture
   test "honors :inputs when deciding to format" do
     in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
-      MixProject.store()
+      store_mix_cache()
       project_dir = Path.expand(".")
 
       assert_formatted("file.ex", project_dir)
@@ -543,5 +543,24 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
     File.write!(path, " asd  = 1")
     Formatting.format(source_file, SourceFile.Path.to_uri(path), project_dir)
+  end
+
+  defp store_mix_cache() do
+    state = %{
+      get: Mix.Project.get(),
+      # project_file: Mix.Project.project_file(),
+      config: Mix.Project.config(),
+      # config_files: Mix.Project.config_files(),
+      config_mtime: Mix.Project.config_mtime(),
+      umbrella?: Mix.Project.umbrella?(),
+      apps_paths: Mix.Project.apps_paths(),
+      # deps_path: Mix.Project.deps_path(),
+      # deps_apps: Mix.Project.deps_apps(),
+      # deps_scms: Mix.Project.deps_scms(),
+      deps_paths: Mix.Project.deps_paths(),
+      # build_path: Mix.Project.build_path(),
+      manifest_path: Mix.Project.manifest_path()
+    }
+    MixProject.store(state)
   end
 end

@@ -10,7 +10,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFile 
       {:ok, tests} ->
         {:ok, tests}
 
-      {:error, reason} ->
+      {:error, _reason} ->
+        # TODO catch only Compile and Syntax errors?
         {:ok, []}
     end
   end

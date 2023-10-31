@@ -47,11 +47,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetExUnitTestsInFileT
     end
 
     @tag fixture: true
-    test "return error when file fails to compile" do
+    test "return empty when file fails to compile" do
       in_fixture(Path.join(__DIR__, "../../../test_fixtures"), "project_with_tests", fn ->
         uri = SourceFile.Path.to_uri(Path.join(File.cwd!(), "test/error_test.exs"))
 
-        assert {:error, :server_error, "Cannot get tests in file: %TokenMissingError" <> _, true} =
+        assert {:ok, []} =
                  GetExUnitTestsInFile.execute([uri], nil)
       end)
     end
