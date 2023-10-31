@@ -308,16 +308,29 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           end
 
         {:exit, reason}, file_changes ->
-          # on elixir >= 1.14 reason will actually be {beam_path, reason} but
-          # it's not easy to pattern match on that
+          # on elixir >= 1.14 reason will actually be {beam_path, reason}
+
           message = "Unable to process one of the beams: #{Exception.format_exit(reason)}"
           Logger.error(message)
 
-          JsonRpc.telemetry(
-            "dialyzer_error",
-            %{"elixir_ls.dialyzer_error" => message},
-            %{}
-          )
+          case reason do
+            {beam_path, _inner_reason} when is_binary(beam_path) or is_list(beam_path) ->
+              case File.rm_rf(beam_path) do
+                {:ok, _} ->
+                  Logger.info("Beam file #{inspect(beam_path)} removed")
+                  :ok
+                rm_error ->
+                  Logger.warning("Unable to remove beam file #{inspect(beam_path)}: #{inspect(rm_error)}")
+                  JsonRpc.show_message(
+                    :error,
+                    "ElixirLS Dialyzer is unable to process #{inspect(beam_path)}. Please remove it manually")
+              end
+            _ ->
+              JsonRpc.show_message(
+                    :error,
+                    "ElixirLS Dialyzer is unable to process one of the beam files. Please remove .elixir_ls/dialyzer* directory manually")
+              :ok
+          end
 
           file_changes
       end)
