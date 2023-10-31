@@ -214,7 +214,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
       # We can get diagnostics if Mixfile fails to load
       {mixfile_status, mixfile_diagnostics} =
-        case Kernel.ParallelCompiler.compile([mixfile]) |> dbg do
+        case Kernel.ParallelCompiler.compile([mixfile]) do
           {:ok, _, warnings} ->
             {:ok, Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning))}
 
