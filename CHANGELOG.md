@@ -1,5 +1,20 @@
 ### Unreleased
 
+### v0.17.5: 31 October 2023
+
+#### Improvements
+
+- Invalid environment variables config is now raised as message. Previously it would crash the server
+- Compile tracer is more error tolerant. It should now handle invalid DETS files and missing directories
+- Dialyzer is more error tolerant - it should now be able to recover from broken beam files on elixir 1.14+
+
+#### Fixes
+
+- Fixed crash when mix is unable to load deps. Loading of deps should now emit diagnostics
+- Fixed crash in complete when editing a map/struct
+- Fixed a crash in parser on `untitled:` schema files
+- Fixed a crash when emitting diagnostics and cwd is not present
+
 ### v0.17.4: 30 October 2023
 
 #### Improvements
