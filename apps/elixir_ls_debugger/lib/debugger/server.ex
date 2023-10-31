@@ -2187,15 +2187,31 @@ defmodule ElixirLS.Debugger.Server do
           Output.debugger_console("Interpreting module #{inspect(module)}")
         end
 
-        case :int.ni(module) do
-          :error ->
-            {:error, :cannot_interpret}
+        try do
+          case :int.ni(module) do
+            :error ->
+              {:error, :cannot_interpret}
 
-          {:module, _} ->
-            # calling module_info when paused on a breakpoint can deadlock the debugger
-            # cache it for each interpreted module
-            ModuleInfoCache.store(module)
-            :ok
+            {:module, _} ->
+              # calling module_info when paused on a breakpoint can deadlock the debugger
+              # cache it for each interpreted module
+              ModuleInfoCache.store(module)
+              :ok
+          end
+        catch
+          kind, error ->
+            # :int.ni can raise
+            #     ** (MatchError) no match of right hand side value: {:error, :on_load_failure}
+            # (debugger 5.3) int.erl:531: anonymous fn_3 in :int.load_2
+            # (debugger 5.3) int.erl:527: :int.load_2
+            {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+            message = Exception.format(kind, payload, stacktrace)
+
+            Output.debugger_console(
+              "Error during interpreting module #{inspect(module)}: #{message}"
+            )
+
+            {:error, :cannot_interpret}
         end
       end
     else
