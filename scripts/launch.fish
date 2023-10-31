@@ -62,7 +62,12 @@ function readlink_f
 end
 
 if test -z "$ELS_INSTALL_PREFIX"
+  set -l current_dir (pwd)
   set scriptpath (dirname (readlink_f (status -f)))
+
+  # readlink_f changes the current directory (since fish doesn't have
+  # subshells), so it needs to be restored.
+  cd $current_dir
 else
   set scriptpath $ELS_INSTALL_PREFIX
 end
