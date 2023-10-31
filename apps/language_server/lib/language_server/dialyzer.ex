@@ -319,16 +319,24 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
                 {:ok, _} ->
                   Logger.info("Beam file #{inspect(beam_path)} removed")
                   :ok
+
                 rm_error ->
-                  Logger.warning("Unable to remove beam file #{inspect(beam_path)}: #{inspect(rm_error)}")
+                  Logger.warning(
+                    "Unable to remove beam file #{inspect(beam_path)}: #{inspect(rm_error)}"
+                  )
+
                   JsonRpc.show_message(
                     :error,
-                    "ElixirLS Dialyzer is unable to process #{inspect(beam_path)}. Please remove it manually")
+                    "ElixirLS Dialyzer is unable to process #{inspect(beam_path)}. Please remove it manually"
+                  )
               end
+
             _ ->
               JsonRpc.show_message(
-                    :error,
-                    "ElixirLS Dialyzer is unable to process one of the beam files. Please remove .elixir_ls/dialyzer* directory manually")
+                :error,
+                "ElixirLS Dialyzer is unable to process one of the beam files. Please remove .elixir_ls/dialyzer* directory manually"
+              )
+
               :ok
           end
 

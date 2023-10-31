@@ -561,6 +561,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       # build_path: Mix.Project.build_path(),
       manifest_path: Mix.Project.manifest_path()
     }
+
     MixProject.store(state)
   end
 end

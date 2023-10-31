@@ -1863,6 +1863,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {:ok, cwd} ->
           if Path.absname(cwd) == Path.absname(project_dir) do
             mixfile = Path.absname(MixfileHelpers.mix_exs())
+
             case Build.reload_project(mixfile) do
               {:ok, _} ->
                 Build.clean(true)
@@ -1872,9 +1873,12 @@ defmodule ElixirLS.LanguageServer.Server do
                 :ok
             end
           else
-            message = "Unable to reload project: cwd #{inspect(cwd)} is not project dir #{project_dir}"
+            message =
+              "Unable to reload project: cwd #{inspect(cwd)} is not project dir #{project_dir}"
+
             Logger.error(message)
-              JsonRpc.telemetry(
+
+            JsonRpc.telemetry(
               "lsp_server_error",
               %{
                 "elixir_ls.lsp_process" => inspect(__MODULE__),
@@ -1883,17 +1887,19 @@ defmodule ElixirLS.LanguageServer.Server do
               %{}
             )
           end
+
         {:error, reason} ->
           message = "Unable to reload project: #{inspect(reason)}"
           Logger.error(message)
+
           JsonRpc.telemetry(
-          "lsp_server_error",
-          %{
-            "elixir_ls.lsp_process" => inspect(__MODULE__),
-            "elixir_ls.lsp_server_error" => message
-          },
-          %{}
-        )
+            "lsp_server_error",
+            %{
+              "elixir_ls.lsp_process" => inspect(__MODULE__),
+              "elixir_ls.lsp_server_error" => message
+            },
+            %{}
+          )
       end
     end
   end

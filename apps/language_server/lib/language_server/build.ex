@@ -16,41 +16,43 @@ defmodule ElixirLS.LanguageServer.Build do
 
             case reload_project(mixfile) do
               {:ok, mixfile_diagnostics} ->
-                {deps_result, deps_raw_diagnostics} = with_diagnostics([log: true], fn ->
-                  try do
-                    # this call can raise
-                    current_deps = Mix.Dep.load_on_environment([])
+                {deps_result, deps_raw_diagnostics} =
+                  with_diagnostics([log: true], fn ->
+                    try do
+                      # this call can raise
+                      current_deps = Mix.Dep.load_on_environment([])
 
-                    purge_changed_deps(current_deps, cached_deps)
+                      purge_changed_deps(current_deps, cached_deps)
 
-                    if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
-                      fetch_deps(current_deps)
+                      if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
+                        fetch_deps(current_deps)
+                      end
+
+                      state = %{
+                        get: Mix.Project.get(),
+                        # project_file: Mix.Project.project_file(),
+                        config: Mix.Project.config(),
+                        # config_files: Mix.Project.config_files(),
+                        config_mtime: Mix.Project.config_mtime(),
+                        umbrella?: Mix.Project.umbrella?(),
+                        apps_paths: Mix.Project.apps_paths(),
+                        # deps_path: Mix.Project.deps_path(),
+                        # deps_apps: Mix.Project.deps_apps(),
+                        # deps_scms: Mix.Project.deps_scms(),
+                        deps_paths: Mix.Project.deps_paths(),
+                        # build_path: Mix.Project.build_path(),
+                        manifest_path: Mix.Project.manifest_path()
+                      }
+
+                      ElixirLS.LanguageServer.MixProject.store(state)
+
+                      :ok
+                    catch
+                      kind, err ->
+                        {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+                        {:error, kind, payload, stacktrace}
                     end
-
-                    state = %{
-                      get: Mix.Project.get(),
-                      # project_file: Mix.Project.project_file(),
-                      config: Mix.Project.config(),
-                      # config_files: Mix.Project.config_files(),
-                      config_mtime: Mix.Project.config_mtime(),
-                      umbrella?: Mix.Project.umbrella?(),
-                      apps_paths: Mix.Project.apps_paths(),
-                      # deps_path: Mix.Project.deps_path(),
-                      # deps_apps: Mix.Project.deps_apps(),
-                      # deps_scms: Mix.Project.deps_scms(),
-                      deps_paths: Mix.Project.deps_paths(),
-                      # build_path: Mix.Project.build_path(),
-                      manifest_path: Mix.Project.manifest_path()
-                    }
-                    ElixirLS.LanguageServer.MixProject.store(state)
-
-                    :ok
-                  catch
-                    kind, err ->
-                      {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
-                      {:error, kind, payload, stacktrace}
-                  end
-                end)
+                  end)
 
                 deps_diagnostics =
                   deps_raw_diagnostics
@@ -62,15 +64,32 @@ defmodule ElixirLS.LanguageServer.Build do
                       {status, compile_diagnostics} = run_mix_compile()
 
                       compile_diagnostics = Diagnostics.normalize(compile_diagnostics, root_path)
-                      Server.build_finished(parent, {status, mixfile_diagnostics ++ deps_diagnostics ++ compile_diagnostics})
+
+                      Server.build_finished(
+                        parent,
+                        {status, mixfile_diagnostics ++ deps_diagnostics ++ compile_diagnostics}
+                      )
+
                       :"mix_compile_#{status}"
                     else
-                      Server.build_finished(parent, {:ok, mixfile_diagnostics ++ deps_diagnostics})
+                      Server.build_finished(
+                        parent,
+                        {:ok, mixfile_diagnostics ++ deps_diagnostics}
+                      )
+
                       :mix_compile_disabled
                     end
+
                   {:error, kind, err, stacktrace} ->
                     # TODO get path from exception message
-                    Server.build_finished(parent, {:error, mixfile_diagnostics ++ deps_diagnostics ++ [Diagnostics.error_to_diagnostic(kind, err, stacktrace, mixfile)]})
+                    Server.build_finished(
+                      parent,
+                      {:error,
+                       mixfile_diagnostics ++
+                         deps_diagnostics ++
+                         [Diagnostics.error_to_diagnostic(kind, err, stacktrace, mixfile)]}
+                    )
+
                     :deps_error
                 end
 
