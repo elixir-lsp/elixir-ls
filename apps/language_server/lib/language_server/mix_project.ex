@@ -12,8 +12,8 @@ defmodule ElixirLS.LanguageServer.MixProject do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def store do
-    GenServer.call(__MODULE__, :store)
+  def store(state) do
+    GenServer.call(__MODULE__, {:store, state})
   end
 
   def loaded? do
@@ -171,23 +171,7 @@ defmodule ElixirLS.LanguageServer.MixProject do
     {:reply, Map.fetch!(state, key), state}
   end
 
-  def handle_call(:store, _from, _state) do
-    state = %{
-      get: Mix.Project.get(),
-      project_file: Mix.Project.project_file(),
-      config: Mix.Project.config(),
-      config_files: Mix.Project.config_files(),
-      config_mtime: Mix.Project.config_mtime(),
-      umbrella?: Mix.Project.umbrella?(),
-      apps_paths: Mix.Project.apps_paths(),
-      deps_path: Mix.Project.deps_path(),
-      deps_apps: Mix.Project.deps_apps(),
-      deps_scms: Mix.Project.deps_scms(),
-      deps_paths: Mix.Project.deps_paths(),
-      build_path: Mix.Project.build_path(),
-      manifest_path: Mix.Project.manifest_path()
-    }
-
+  def handle_call({:store, state}, _from, _state) do
     {:reply, :ok, state}
   end
 

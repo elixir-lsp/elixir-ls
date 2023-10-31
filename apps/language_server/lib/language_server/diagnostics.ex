@@ -1,6 +1,5 @@
 defmodule ElixirLS.LanguageServer.Diagnostics do
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
-  alias ElixirLS.Utils.MixfileHelpers
 
   def normalize(diagnostics, root_path) do
     for diagnostic <- diagnostics do

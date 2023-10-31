@@ -1859,12 +1859,41 @@ defmodule ElixirLS.LanguageServer.Server do
       Logger.info("DETS databases will be rebuilt")
       Tracer.clean_dets(project_dir)
 
-      case Build.reload_project() do
-        {:ok, _} ->
-          Build.clean(true)
+      case File.cwd() do
+        {:ok, cwd} ->
+          if Path.absname(cwd) == Path.absname(project_dir) do
+            mixfile = Path.absname(MixfileHelpers.mix_exs())
+            case Build.reload_project(mixfile) do
+              {:ok, _} ->
+                Build.clean(true)
 
-        _ ->
-          :ok
+              _ ->
+                # TODO emit diagnostics here?
+                :ok
+            end
+          else
+            message = "Unable to reload project: cwd #{inspect(cwd)} is not project dir #{project_dir}"
+            Logger.error(message)
+              JsonRpc.telemetry(
+              "lsp_server_error",
+              %{
+                "elixir_ls.lsp_process" => inspect(__MODULE__),
+                "elixir_ls.lsp_server_error" => message
+              },
+              %{}
+            )
+          end
+        {:error, reason} ->
+          message = "Unable to reload project: #{inspect(reason)}"
+          Logger.error(message)
+          JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => message
+          },
+          %{}
+        )
       end
     end
   end

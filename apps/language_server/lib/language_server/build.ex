@@ -12,46 +12,65 @@ defmodule ElixirLS.LanguageServer.Build do
 
             # read cache before cleaning up mix state in reload_project
             cached_deps = read_cached_deps()
+            mixfile = Path.absname(MixfileHelpers.mix_exs())
 
-            case reload_project() do
+            case reload_project(mixfile) do
               {:ok, mixfile_diagnostics} ->
-                ElixirLS.LanguageServer.MixProject.store()
-                # FIXME: Private API
+                {deps_result, deps_raw_diagnostics} = with_diagnostics([log: true], fn ->
+                  try do
+                    # this call can raise
+                    current_deps = Mix.Dep.load_on_environment([])
 
-                try do
-                  # this call can raise
-                  current_deps = Mix.Dep.load_on_environment([])
+                    purge_changed_deps(current_deps, cached_deps)
 
-                  purge_changed_deps(current_deps, cached_deps)
+                    if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
+                      fetch_deps(current_deps)
+                    end
 
-                  if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
-                    fetch_deps(current_deps)
+                    state = %{
+                      get: Mix.Project.get(),
+                      # project_file: Mix.Project.project_file(),
+                      config: Mix.Project.config(),
+                      # config_files: Mix.Project.config_files(),
+                      config_mtime: Mix.Project.config_mtime(),
+                      umbrella?: Mix.Project.umbrella?(),
+                      apps_paths: Mix.Project.apps_paths(),
+                      # deps_path: Mix.Project.deps_path(),
+                      # deps_apps: Mix.Project.deps_apps(),
+                      # deps_scms: Mix.Project.deps_scms(),
+                      deps_paths: Mix.Project.deps_paths(),
+                      # build_path: Mix.Project.build_path(),
+                      manifest_path: Mix.Project.manifest_path()
+                    }
+                    ElixirLS.LanguageServer.MixProject.store(state)
+
+                    :ok
+                  catch
+                    kind, err ->
+                      {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+                      {:error, kind, payload, stacktrace}
                   end
+                end)
 
-                  if Keyword.get(opts, :compile?) do
-                    {status, diagnostics} = run_mix_compile()
+                deps_diagnostics =
+                  deps_raw_diagnostics
+                  |> Enum.map(&Diagnostics.code_diagnostic/1)
 
-                    diagnostics = Diagnostics.normalize(diagnostics, root_path)
-                    Server.build_finished(parent, {status, mixfile_diagnostics ++ diagnostics})
-                    :"mix_compile_#{status}"
-                  else
-                    Server.build_finished(parent, {:ok, mixfile_diagnostics})
-                    :mix_compile_disabled
-                  end
-                catch
-                  kind, payload ->
-                    {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
-                    message = Exception.format(kind, payload, stacktrace)
-                    Logger.warning("Mix.Dep.load_on_environment([]) failed: #{message}")
+                case deps_result do
+                  :ok ->
+                    if Keyword.get(opts, :compile?) do
+                      {status, compile_diagnostics} = run_mix_compile()
 
-                    JsonRpc.telemetry(
-                      "build_error",
-                      %{"elixir_ls.build_error" => message},
-                      %{}
-                    )
-
-                    # TODO pass diagnostic
-                    Server.build_finished(parent, {:error, []})
+                      compile_diagnostics = Diagnostics.normalize(compile_diagnostics, root_path)
+                      Server.build_finished(parent, {status, mixfile_diagnostics ++ deps_diagnostics ++ compile_diagnostics})
+                      :"mix_compile_#{status}"
+                    else
+                      Server.build_finished(parent, {:ok, mixfile_diagnostics ++ deps_diagnostics})
+                      :mix_compile_disabled
+                    end
+                  {:error, kind, err, stacktrace} ->
+                    # TODO get path from exception message
+                    Server.build_finished(parent, {:error, mixfile_diagnostics ++ deps_diagnostics ++ [Diagnostics.error_to_diagnostic(kind, err, stacktrace, mixfile)]})
                     :deps_error
                 end
 
@@ -90,9 +109,7 @@ defmodule ElixirLS.LanguageServer.Build do
     :global.trans({__MODULE__, self()}, func)
   end
 
-  def reload_project do
-    mixfile = Path.absname(MixfileHelpers.mix_exs())
-
+  def reload_project(mixfile) do
     if File.exists?(mixfile) do
       if module = Mix.Project.get() do
         build_path = Mix.Project.config()[:build_path]
@@ -178,7 +195,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
       # We can get diagnostics if Mixfile fails to load
       {mixfile_status, mixfile_diagnostics} =
-        case Kernel.ParallelCompiler.compile([mixfile]) do
+        case Kernel.ParallelCompiler.compile([mixfile]) |> dbg do
           {:ok, _, warnings} ->
             {:ok, Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning))}
 
