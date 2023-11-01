@@ -179,7 +179,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_symbol(_current_module, {:@, location, [{type_kind, _, type_expression}]})
        when type_kind in [:type, :typep, :opaque, :callback, :macrocallback] and
               not is_nil(type_expression) do
-    {type_name, type_head_location} =
+    type_name_location =
       case type_expression do
         [{:"::", _, [{_, type_head_location, _} = type_head | _]}] ->
           {Macro.to_string(type_head), type_head_location}
@@ -189,22 +189,29 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
         [{_, type_head_location, _} = type_head | _] ->
           {Macro.to_string(type_head), type_head_location}
+
+        _ ->
+          nil
       end
 
-    type_name =
-      type_name
-      |> String.replace("\n", "")
+    if type_name_location do
+      {type_name, type_head_location} = type_name_location
 
-    type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
+      type_name =
+        type_name
+        |> String.replace("\n", "")
 
-    %Info{
-      type: type,
-      name: "@#{type_kind} #{type_name}",
-      location: location,
-      selection_location: type_head_location,
-      symbol: "#{type_name}",
-      children: []
-    }
+      type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
+
+      %Info{
+        type: type,
+        name: "@#{type_kind} #{type_name}",
+        location: location,
+        selection_location: type_head_location,
+        symbol: "#{type_name}",
+        children: []
+      }
+    end
   end
 
   # @behaviour BehaviourModule
