@@ -120,11 +120,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     def_before =
       cond do
-        Regex.match?(~r/(defdelegate|defp?)\s*#{prefix}$/u, text_before_cursor) ->
+        Regex.match?(~r/(defdelegate|defp?)\s*#{Regex.escape(prefix)}$/u, text_before_cursor) ->
           :def
 
         Regex.match?(
-          ~r/(defguardp?|defmacrop?)\s*#{prefix}$/u,
+          ~r/(defguardp?|defmacrop?)\s*#{Regex.escape(prefix)}$/u,
           text_before_cursor
         ) ->
           :defmacro
@@ -151,8 +151,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       prefix: prefix,
       remote_calls?: match?({:dot, _, _}, Code.Fragment.cursor_context(prefix)),
       def_before: def_before,
-      pipe_before?: Regex.match?(~r/\|>\s*#{prefix}$/u, text_before_cursor),
-      capture_before?: Regex.match?(~r/&#{prefix}$/u, text_before_cursor),
+      pipe_before?: Regex.match?(~r/\|>\s*#{Regex.escape(prefix)}$/u, text_before_cursor),
+      capture_before?: Regex.match?(~r/&#{Regex.escape(prefix)}$/u, text_before_cursor),
       scope: scope,
       module: env.module,
       line: line,
