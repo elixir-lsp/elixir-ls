@@ -105,10 +105,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
             line
             |> String.split(~s(,))
             |> Enum.at(0)
+
+          _ ->
+            nil
         end
 
-      %TestBlock{name: test_name, describe: describe, line: line, module: module}
+      if test_name do
+        %TestBlock{name: test_name, describe: describe, line: line, module: module}
+      end
     end
+    |> Enum.reject(&is_nil/1)
   end
 
   defp find_describe_blocks(lines_to_env_list, calls_list, source_lines) do
