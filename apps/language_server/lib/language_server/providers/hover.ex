@@ -18,10 +18,20 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         %{docs: docs, range: es_range} ->
           lines = SourceFile.lines(text)
 
-          %{
-            "contents" => contents(docs),
-            "range" => build_range(lines, es_range)
-          }
+          try do
+            %{
+              "contents" => contents(docs),
+              "range" => build_range(lines, es_range)
+            }
+          rescue
+            e ->
+              stripped_docs =
+                Enum.map(docs, fn info ->
+                  Map.delete(info, :docs)
+                end)
+
+              raise "line:\n#{Enum.at(lines, line - 1)}\nchar: #{character}\n#{inspect(stripped_docs)}#{Exception.message(e)}"
+          end
       end
 
     {:ok, response}
