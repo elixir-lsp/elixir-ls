@@ -11,7 +11,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   setup_all context do
     File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
     {:ok, pid} = Tracer.start_link([])
-    Tracer.set_project_dir(FixtureHelpers.get_path(""))
+    project_path = FixtureHelpers.get_path("")
+    :persistent_term.put(:language_server_project_dir, project_path)
+    Tracer.notify_settings_stored()
 
     compiler_options = Code.compiler_options()
     Build.set_compiler_options(ignore_module_conflict: true)
