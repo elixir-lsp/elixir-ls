@@ -218,7 +218,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state = %__MODULE__{}) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
-        abs_path = SourceFile.Path.absolute_from_uri(uri)
+        abs_path = SourceFile.Path.absolute_from_uri(uri, state.project_dir)
         {:reply, Dialyzer.suggest_contracts([abs_path]), state}
 
       %{source_files: %{^uri => _}} ->
@@ -422,7 +422,8 @@ defmodule ElixirLS.LanguageServer.Server do
       state.build_diagnostics ++
         state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics)),
       old_diagnostics,
-      state.source_files
+      state.source_files,
+      state.project_dir
     )
 
     {:noreply, state}
@@ -887,7 +888,7 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Definition.definition(uri, source_file.text, line, character)
+      Definition.definition(uri, source_file.text, line, character, state.project_dir)
     end
 
     {:async, fun, state}
@@ -897,7 +898,7 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Implementation.implementation(uri, source_file.text, line, character)
+      Implementation.implementation(uri, source_file.text, line, character, state.project_dir)
     end
 
     {:async, fun, state}
@@ -916,7 +917,8 @@ defmodule ElixirLS.LanguageServer.Server do
          uri,
          line,
          character,
-         include_declaration
+         include_declaration,
+         state.project_dir
        )}
     end
 
@@ -1215,7 +1217,7 @@ defmodule ElixirLS.LanguageServer.Server do
     try do
       file_path = SourceFile.Path.from_uri(uri)
 
-      if is_test_file?(file_path) do
+      if is_test_file?(file_path, project_dir) do
         CodeLens.test_code_lens(uri, source_file.text, project_dir)
       else
         {:ok, []}
@@ -1237,20 +1239,21 @@ defmodule ElixirLS.LanguageServer.Server do
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
-    file_path = Path.expand(file_path)
+    file_path = SourceFile.Path.expand(file_path, project_dir)
 
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.any?(fn path -> String.ends_with?(file_path, path) end)
   end
 
-  defp is_test_file?(file_path) do
+  defp is_test_file?(file_path, project_dir) do
     config = ElixirLS.LanguageServer.MixProject.config()
     test_paths = config[:test_paths] || ["test"]
     test_pattern = config[:test_pattern] || "*_test.exs"
-    file_path = Path.expand(file_path)
+
+    file_path = SourceFile.Path.expand(file_path, project_dir)
 
     Mix.Utils.extract_files(test_paths, test_pattern)
-    |> Enum.map(&Path.absname/1)
+    |> Enum.map(&SourceFile.Path.absname(&1, project_dir))
     |> Enum.any?(&(&1 == file_path))
   end
 
@@ -1277,7 +1280,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {_pid, build_ref} =
           case File.cwd() do
             {:ok, cwd} ->
-              if Path.absname(cwd) == Path.absname(project_dir) do
+              if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
                 Build.build(self(), project_dir, opts)
               else
                 Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
@@ -1373,7 +1376,8 @@ defmodule ElixirLS.LanguageServer.Server do
       state.build_diagnostics ++
         state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics)),
       old_diagnostics,
-      state.source_files
+      state.source_files,
+      state.project_dir
     )
 
     state
@@ -1386,7 +1390,8 @@ defmodule ElixirLS.LanguageServer.Server do
     publish_diagnostics(
       state.build_diagnostics ++ state.dialyzer_diagnostics,
       old_diagnostics,
-      state.source_files
+      state.source_files,
+      state.project_dir
     )
 
     # If these results were triggered by the most recent build and files are not dirty, then we know
@@ -1438,16 +1443,17 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
+  defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files, project_dir) do
     # we need to publish diagnostics for all files in new_diagnostics
     # to clear diagnostics we need to push empty sets for old_diagnostics
     # in case we missed something or restarted and don't have old_diagnostics
     # we also push for all open files
-    uris_from_old_diagnostics = Enum.map(old_diagnostics, &(&1.file |> SourceFile.Path.to_uri()))
+    uris_from_old_diagnostics =
+      Enum.map(old_diagnostics, &(&1.file |> SourceFile.Path.to_uri(project_dir)))
 
     new_diagnostics_by_uri =
       new_diagnostics
-      |> Enum.group_by(&(&1.file |> SourceFile.Path.to_uri()))
+      |> Enum.group_by(&(&1.file |> SourceFile.Path.to_uri(project_dir)))
 
     uris_from_new_diagnostics = Map.keys(new_diagnostics_by_uri)
 
@@ -1537,7 +1543,9 @@ defmodule ElixirLS.LanguageServer.Server do
     state = create_gitignore(state)
 
     if state.mix_project? do
-      Tracer.set_project_dir(state.project_dir)
+      :persistent_term.put(:language_server_project_dir, state.project_dir)
+      WorkspaceSymbols.notify_settings_stored()
+      Tracer.notify_settings_stored()
     end
 
     JsonRpc.telemetry(
@@ -1753,7 +1761,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     project_dir =
       if is_binary(project_dir) do
-        Path.absname(Path.join(root_dir, project_dir))
+        SourceFile.Path.absname(Path.join(root_dir, project_dir))
       else
         root_dir
       end
@@ -1864,10 +1872,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
       case File.cwd() do
         {:ok, cwd} ->
-          if Path.absname(cwd) == Path.absname(project_dir) do
-            mixfile = Path.absname(MixfileHelpers.mix_exs())
+          if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
+            mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs())
 
-            case Build.reload_project(mixfile) do
+            case Build.reload_project(mixfile, project_dir) do
               {:ok, _} ->
                 Build.clean(true)
 

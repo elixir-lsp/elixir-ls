@@ -68,6 +68,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     GenServer.start_link(__MODULE__, :ok, opts |> Keyword.put_new(:name, __MODULE__))
   end
 
+  def notify_settings_stored() do
+    GenServer.cast(__MODULE__, :notify_settings_stored)
+  end
+
   def notify_build_complete(server \\ __MODULE__, override_test_mode \\ false) do
     unless Application.get_env(:language_server, :test_mode) && not override_test_mode do
       GenServer.cast(server, :build_complete)
@@ -96,7 +100,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
        functions: [],
        functions_indexed: false,
        indexing: false,
-       modified_uris: []
+       modified_uris: [],
+       project_dir: nil
      }}
   end
 
@@ -142,6 +147,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   @impl GenServer
+  def handle_cast(:notify_settings_stored, state) do
+    project_dir = :persistent_term.get(:language_server_project_dir)
+    {:noreply, %{state | project_dir: project_dir}}
+  end
+
   # not yet indexed
   def handle_cast(
         :build_complete,
@@ -150,7 +160,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           modules_indexed: false,
           functions_indexed: false,
           types_indexed: false,
-          callbacks_indexed: false
+          callbacks_indexed: false,
+          project_dir: project_dir
         }
       ) do
     Logger.info("[ElixirLS WorkspaceSymbols] Indexing...")
@@ -166,7 +177,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
     Logger.info("[ElixirLS WorkspaceSymbols] Module discovery complete")
 
-    index(module_paths)
+    index(module_paths, project_dir)
 
     {:noreply, %{state | indexing: true}}
   end
@@ -177,7 +188,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         :build_complete,
         %{
           indexing: false,
-          modified_uris: modified_uris = [_ | _]
+          modified_uris: modified_uris = [_ | _],
+          project_dir: project_dir
         } = state
       ) do
     Logger.info("[ElixirLS WorkspaceSymbols] Updating index...")
@@ -187,13 +199,13 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> process_chunked(fn chunk ->
         for {module, beam_file} <- chunk,
             path = find_module_path(module, beam_file),
-            SourceFile.Path.to_uri(path) in modified_uris,
+            SourceFile.Path.to_uri(path, project_dir) in modified_uris,
             do: {module, path}
       end)
 
     Logger.info("[ElixirLS WorkspaceSymbols] #{length(module_paths)} modules need reindexing")
 
-    index(module_paths)
+    index(module_paths, project_dir)
 
     modules =
       state.modules
@@ -386,7 +398,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end
   end
 
-  defp index(module_paths) do
+  defp index(module_paths, project_dir) do
     chunked_module_paths = chunk_by_schedulers(module_paths)
 
     index_async(:modules, fn ->
@@ -394,7 +406,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk do
           location = find_module_location(module, path)
-          build_result(:modules, module, path, location)
+          build_result(:modules, module, path, location, project_dir)
         end
       end)
     end)
@@ -408,7 +420,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           {function, arity} = SourceFile.strip_macro_prefix({function, arity})
           location = find_function_location(module, function, arity, path)
 
-          build_result(:functions, {module, function, arity}, path, location)
+          build_result(:functions, {module, function, arity}, path, location, project_dir)
         end
       end)
     end)
@@ -426,7 +438,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
               {_, location, _} -> location
             end
 
-          build_result(:types, {module, type, length(args)}, path, location)
+          build_result(:types, {module, type, length(args)}, path, location, project_dir)
         end
       end)
     end)
@@ -440,7 +452,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
               ElixirSense.Core.Normalized.Typespec.get_callbacks(module) do
           {callback, arity} = SourceFile.strip_macro_prefix({callback, arity})
 
-          build_result(:callbacks, {module, callback, arity}, path, location)
+          build_result(:callbacks, {module, callback, arity}, path, location, project_dir)
         end
       end)
     end)
@@ -505,13 +517,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end)
   end
 
-  @spec build_result(key_t, symbol_t, String.t(), nil | erl_location_t) :: symbol_information_t
-  defp build_result(key, symbol, path, location) do
+  @spec build_result(key_t, symbol_t, String.t(), nil | erl_location_t, String.t()) ::
+          symbol_information_t
+  defp build_result(key, symbol, path, location, project_dir) do
     %{
       kind: @symbol_codes |> Map.fetch!(key),
       name: symbol_name(key, symbol),
       location: %{
-        uri: SourceFile.Path.to_uri(path),
+        uri: SourceFile.Path.to_uri(path, project_dir),
         range: build_range(location)
       }
     }

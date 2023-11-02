@@ -23,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 1, "character" => 2},
@@ -47,7 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 8, "character" => 2},
@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 1, "character" => 2},
@@ -95,7 +95,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 8, "character" => 2},
@@ -119,7 +119,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 1, "character" => 2},
@@ -143,7 +143,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 8, "character" => 2},
@@ -167,7 +167,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 2, "character" => 4},
@@ -191,7 +191,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     """)
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, text, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 24, "character" => 2},

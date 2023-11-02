@@ -6,13 +6,13 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
   def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir)
       when is_binary(project_dir) do
-    file_path = SourceFile.Path.absolute_from_uri(uri)
+    file_path = SourceFile.Path.absolute_from_uri(uri, project_dir)
     # file_path and project_dir are absolute paths with universal separators
     if SourceFile.Path.path_in_dir?(file_path, project_dir) do
       # file in project_dir we find formatter and options for file
       case SourceFile.formatter_for(uri, project_dir) do
         {:ok, {formatter, opts, formatter_exs_dir}} ->
-          if should_format?(uri, formatter_exs_dir, opts[:inputs]) do
+          if should_format?(uri, formatter_exs_dir, opts[:inputs], project_dir) do
             do_format(source_file, formatter, opts)
           else
             JsonRpc.show_message(
@@ -61,8 +61,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     IO.iodata_to_binary([Code.format_string!(text, opts), ?\n])
   end
 
-  defp should_format?(file_uri, formatter_exs_dir, inputs) when is_list(inputs) do
-    file_path = SourceFile.Path.absolute_from_uri(file_uri)
+  defp should_format?(file_uri, formatter_exs_dir, inputs, project_dir) when is_list(inputs) do
+    file_path = SourceFile.Path.absolute_from_uri(file_uri, project_dir)
 
     Enum.any?(inputs, fn input_glob ->
       glob = Path.join(formatter_exs_dir, input_glob)
@@ -70,7 +70,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     end)
   end
 
-  defp should_format?(_file_uri, _formatter_exs_dir, _inputs), do: true
+  defp should_format?(_file_uri, _formatter_exs_dir, _inputs, _project_dir), do: true
 
   defp myers_diff_to_text_edits(myers_diff) do
     myers_diff_to_text_edits(myers_diff, {0, 0}, [])

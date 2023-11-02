@@ -518,7 +518,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           # in, which breaks umbrella apps. We have to manually resolve the file
           # from the module instead.
           file = resolve_module_file(module, file, project_dir),
-          in_project?(Path.absname(file), project_dir) do
+          in_project?(SourceFile.Path.absname(file, project_dir), project_dir) do
         {module, {file, line, warning}}
       end
 
@@ -588,7 +588,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {source_file, position, data} <- warnings,
         {tag, _, _} = data,
         tag in tags_enabled,
-        source_file = Path.absname(to_string(source_file)),
+        source_file = SourceFile.Path.absname(to_string(source_file), project_dir),
         in_project?(source_file, project_dir),
         not SourceFile.Path.path_in_dir?(source_file, deps_path) do
       %Mix.Task.Compiler.Diagnostic{

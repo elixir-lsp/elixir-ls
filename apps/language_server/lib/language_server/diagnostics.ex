@@ -247,21 +247,21 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def error_to_diagnostic(kind, payload, stacktrace, path) do
-    path = Path.absname(path)
+  def error_to_diagnostic(kind, payload, stacktrace, path, project_dir) do
+    path = SourceFile.Path.absname(path, project_dir)
     message = Exception.format(kind, payload, stacktrace)
 
     line =
       stacktrace
       |> Enum.find_value(fn {_m, _f, _a, opts} ->
-        if opts |> Keyword.get(:file) |> Path.absname() == path do
+        if opts |> Keyword.get(:file) |> SourceFile.Path.absname(project_dir) == path do
           opts |> Keyword.get(:line)
         end
       end)
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
-      file: Path.absname(path),
+      file: SourceFile.Path.absname(path, project_dir),
       position: line || 0,
       message: message,
       severity: :error,

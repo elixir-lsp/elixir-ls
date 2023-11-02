@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
 
   alias ElixirLS.LanguageServer.{Protocol, SourceFile}
 
-  def definition(uri, text, line, character) do
+  def definition(uri, text, line, character, project_dir) do
     {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
 
     result =
@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
           nil
 
         %ElixirSense.Location{} = location ->
-          Protocol.Location.new(location, uri, text)
+          Protocol.Location.new(location, uri, text, project_dir)
       end
 
     {:ok, result}

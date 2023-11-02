@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   import ElixirLS.LanguageServer.Protocol
   require Logger
 
-  def references(text, uri, line, character, _include_declaration) do
+  def references(text, uri, line, character, _include_declaration, project_dir) do
     {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
 
     Build.with_build_lock(fn ->
@@ -23,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
       ElixirSense.references(text, line, character, trace)
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
-        |> build_reference(uri, text)
+        |> build_reference(uri, text, project_dir)
       end)
       |> Enum.filter(&(not is_nil(&1)))
       # ElixirSense returns references from both compile tracer and current buffer
@@ -32,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     end)
   end
 
-  defp build_reference(ref, current_file_uri, current_file_text) do
+  defp build_reference(ref, current_file_uri, current_file_text, project_dir) do
     case get_text(ref, current_file_text) do
       {:ok, text} ->
         {start_line, start_column} =
@@ -45,7 +45,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
 
         %{
           "range" => range,
-          "uri" => build_uri(ref, current_file_uri)
+          "uri" => build_uri(ref, current_file_uri, project_dir)
         }
 
       {:error, :nofile} ->
@@ -60,14 +60,14 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     end
   end
 
-  def build_uri(elixir_sense_ref, current_file_uri) do
+  def build_uri(elixir_sense_ref, current_file_uri, project_dir) do
     case elixir_sense_ref.uri do
       # A `nil` uri indicates that the reference was in the passed in text
       # https://github.com/elixir-lsp/elixir-ls/pull/82#discussion_r351922803
       nil -> current_file_uri
       # ElixirSense returns a plain path (e.g. "/home/bob/my_app/lib/a.ex") as
       # the "uri" so we convert it to an actual uri
-      path when is_binary(path) -> SourceFile.Path.to_uri(path)
+      path when is_binary(path) -> SourceFile.Path.to_uri(path, project_dir)
     end
   end
 

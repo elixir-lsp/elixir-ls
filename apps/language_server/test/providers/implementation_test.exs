@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
     """)
 
     assert {:ok, [%Location{uri: ^uri, range: range}]} =
-             Implementation.implementation(uri, text, line, char)
+             Implementation.implementation(uri, text, line, char, File.cwd!())
 
     assert range ==
              %{

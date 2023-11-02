@@ -19,8 +19,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def set_project_dir(project_dir) do
-    GenServer.call(__MODULE__, {:set_project_dir, project_dir}, 15_000)
+  def notify_settings_stored() do
+    GenServer.cast(__MODULE__, :notify_settings_stored)
   end
 
   def save() do
@@ -61,7 +61,13 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   @impl true
-  def handle_call({:set_project_dir, project_dir}, _from, state) do
+  def handle_call(:get_project_dir, _from, %{project_dir: project_dir} = state) do
+    {:reply, project_dir, state}
+  end
+
+  @impl true
+  def handle_cast(:notify_settings_stored, state) do
+    project_dir = :persistent_term.get(:language_server_project_dir)
     maybe_close_tables(state)
 
     for table <- @tables do
@@ -80,14 +86,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
       Logger.info("Loaded DETS databases in #{div(us, 1000)}ms")
     end
 
-    {:reply, :ok, %{state | project_dir: project_dir}}
+    {:noreply, %{state | project_dir: project_dir}}
   end
 
-  def handle_call(:get_project_dir, _from, %{project_dir: project_dir} = state) do
-    {:reply, project_dir, state}
-  end
-
-  @impl true
   def handle_cast(:save, %{project_dir: nil} = state) do
     {:noreply, state}
   end

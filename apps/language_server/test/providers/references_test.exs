@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
             ^
     """)
 
-    list = References.references(text, uri, line, char, true)
+    list = References.references(text, uri, line, char, true, File.cwd!())
 
     assert length(list) == 3
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
@@ -69,7 +69,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                 ^
     """)
 
-    list = References.references(text, uri, line, char, true)
+    list = References.references(text, uri, line, char, true, File.cwd!())
 
     assert length(list) == 3
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
@@ -88,7 +88,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                  ^
     """)
 
-    assert References.references(text, uri, line, char, true) == [
+    assert References.references(text, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "end" => %{"character" => 16, "line" => 6},
@@ -110,7 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
         ^
     """)
 
-    assert References.references(text, uri, line, char, true) == [
+    assert References.references(text, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "start" => %{"line" => 10, "character" => 4},
@@ -132,7 +132,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                   ^
     """)
 
-    assert References.references(text, uri, line, char, true) == [
+    assert References.references(text, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "end" => %{"character" => 23, "line" => 2},
@@ -161,7 +161,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
          ^
     """)
 
-    assert References.references(text, uri, line, char, true) == [
+    assert References.references(text, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "end" => %{"character" => 23, "line" => 24},
@@ -191,7 +191,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
               ^
     """)
 
-    list = References.references(text, uri, line, char, true)
+    list = References.references(text, uri, line, char, true, File.cwd!())
 
     assert length(list) == 2
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
@@ -210,7 +210,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
           ^
     """)
 
-    list = References.references(text, uri, line, char, true)
+    list = References.references(text, uri, line, char, true, File.cwd!())
 
     assert length(list) == 2
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
@@ -230,7 +230,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     """)
 
     list =
-      References.references(text, uri, line, char, true)
+      References.references(text, uri, line, char, true, File.cwd!())
       |> Enum.filter(&String.ends_with?(&1["uri"], "references_alias.ex"))
 
     references_lines = Enum.map(list, & &1["range"]["start"]["line"])

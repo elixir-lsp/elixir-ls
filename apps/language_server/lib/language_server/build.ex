@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, Tracer}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, Tracer, SourceFile}
   alias ElixirLS.Utils.MixfileHelpers
   require Logger
 
@@ -12,9 +12,9 @@ defmodule ElixirLS.LanguageServer.Build do
 
             # read cache before cleaning up mix state in reload_project
             cached_deps = read_cached_deps()
-            mixfile = Path.absname(MixfileHelpers.mix_exs())
+            mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs(), root_path)
 
-            case reload_project(mixfile) do
+            case reload_project(mixfile, root_path) do
               {:ok, mixfile_diagnostics} ->
                 {deps_result, deps_raw_diagnostics} =
                   with_diagnostics([log: true], fn ->
@@ -87,7 +87,15 @@ defmodule ElixirLS.LanguageServer.Build do
                       {:error,
                        mixfile_diagnostics ++
                          deps_diagnostics ++
-                         [Diagnostics.error_to_diagnostic(kind, err, stacktrace, mixfile)]}
+                         [
+                           Diagnostics.error_to_diagnostic(
+                             kind,
+                             err,
+                             stacktrace,
+                             mixfile,
+                             root_path
+                           )
+                         ]}
                     )
 
                     :deps_error
@@ -128,7 +136,7 @@ defmodule ElixirLS.LanguageServer.Build do
     :global.trans({__MODULE__, self()}, func)
   end
 
-  def reload_project(mixfile) do
+  def reload_project(mixfile, root_path) do
     if File.exists?(mixfile) do
       if module = Mix.Project.get() do
         build_path = Mix.Project.config()[:build_path]
@@ -280,7 +288,7 @@ defmodule ElixirLS.LanguageServer.Build do
             {:error,
              mixfile_diagnostics ++
                config_diagnostics ++
-               [Diagnostics.error_to_diagnostic(kind, err, stacktrace, config_path)]}
+               [Diagnostics.error_to_diagnostic(kind, err, stacktrace, config_path, root_path)]}
 
           :ok ->
             {:ok, mixfile_diagnostics ++ config_diagnostics}
