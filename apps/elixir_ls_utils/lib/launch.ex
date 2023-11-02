@@ -80,7 +80,7 @@ defmodule ElixirLS.Utils.Launch do
     file = ElixirLS.Utils.MixfileHelpers.mix_exs()
 
     if File.regular?(file) do
-      if Version.match?(System.version(), ">= 1.15.0") do
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
         Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
       end
 

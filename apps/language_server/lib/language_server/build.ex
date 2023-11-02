@@ -176,7 +176,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
       Mix.Task.clear()
 
-      if Version.match?(System.version(), ">= 1.15.0") do
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
         if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
           Logger.error("Build without intercepted logger #{inspect(:logger.get_handler_ids())}")
 
@@ -255,7 +255,7 @@ defmodule ElixirLS.LanguageServer.Build do
               # reset log config
               Application.put_all_env(logger: logger_config)
 
-              if Version.match?(System.version(), ">= 1.15.0") do
+              if Version.match?(System.version(), ">= 1.15.0-dev") do
                 # remove all log handlers and restore our
                 for handler_id <- :logger.get_handler_ids(),
                     handler_id != Logger.Backends.JsonRpc do
@@ -315,7 +315,7 @@ defmodule ElixirLS.LanguageServer.Build do
     ]
 
     opts =
-      if Version.match?(System.version(), ">= 1.15.0") do
+      if Version.match?(System.version(), ">= 1.15.0-dev") do
         opts
       else
         opts ++ ["--all-warnings"]
@@ -547,7 +547,7 @@ defmodule ElixirLS.LanguageServer.Build do
       )
 
     options =
-      if Version.match?(System.version(), ">= 1.14.0") do
+      if Version.match?(System.version(), ">= 1.14.0-dev") do
         Keyword.merge(options,
           # this disables warnings `X has already been consolidated`
           # when running `compile` task

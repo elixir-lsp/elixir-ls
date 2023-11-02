@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
   def replace_logger(packet_capture) do
     # :logger application is already started
     # replace console logger with LSP
-    if Version.match?(System.version(), ">= 1.15.0") do
+    if Version.match?(System.version(), ">= 1.15.0-dev") do
       configs =
         for handler_id <- :logger.get_handler_ids() do
           {:ok, config} = :logger.get_handler_config(handler_id)

@@ -1,4 +1,4 @@
-if Version.match?(System.version(), ">= 1.14.0") do
+if Version.match?(System.version(), ">= 1.14.0-dev") do
   defmodule MixProject.Dbg do
     def simple() do
       a = 5

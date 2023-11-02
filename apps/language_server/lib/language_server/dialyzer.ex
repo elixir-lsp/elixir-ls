@@ -352,7 +352,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     with_trapping_exits(fn ->
       # TODO remove if when we require elixir 1.14
       task_options =
-        if Version.match?(System.version(), ">= 1.14.0") do
+        if Version.match?(System.version(), ">= 1.14.0-dev") do
           [zip_input_on_exit: true]
         else
           []
