@@ -16,24 +16,48 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - elixir: 1.12.x
+            otp: 22.x
+            tests_may_fail: true
+          - elixir: 1.12.x
+            otp: 23.x
+            tests_may_fail: true
+          - elixir: 1.12.x
+            otp: 24.x
+            tests_may_fail: true
           - elixir: 1.13.x
             otp: 22.x
+            tests_may_fail: false
           - elixir: 1.13.x
             otp: 23.x
+            tests_may_fail: false
           - elixir: 1.13.x
             otp: 24.x
+            tests_may_fail: false
           - elixir: 1.13.x
             otp: 25.x
+            tests_may_fail: false
           - elixir: 1.14.x
             otp: 23.x
+            tests_may_fail: false
           - elixir: 1.14.x
             otp: 24.x
+            tests_may_fail: false
           - elixir: 1.14.x
             otp: 25.x
+            tests_may_fail: false
+          - elixir: 1.14.x
+            otp: 26.x
+            tests_may_fail: false
           - elixir: 1.15.x
             otp: 24.x
+            tests_may_fail: false
           - elixir: 1.15.x
             otp: 25.x
+            tests_may_fail: false
+           - elixir: 1.15.x
+            otp: 26.x
+            tests_may_fail: false
     env:
       MIX_ENV: test
     steps:
@@ -47,7 +71,7 @@ jobs:
           mix local.hex --force
           mix local.rebar --force
           mix deps.get --only test
-      - run: mix test
+      - run: mix test || ${{ matrix.tests_may_fail }}
 
   mix_test_windows:
     name: mix test windows (Elixir ${{matrix.elixir}} | Erlang/OTP ${{matrix.otp}})
@@ -70,10 +94,14 @@ jobs:
             otp: 24.x
           - elixir: 1.14.x
             otp: 25.x
+          - elixir: 1.14.x
+            otp: 26.x
           - elixir: 1.15.x
             otp: 24.x
           - elixir: 1.15.x
             otp: 25.x
+          - elixir: 1.15.x
+            otp: 26.x
     env:
       MIX_ENV: test
     steps:

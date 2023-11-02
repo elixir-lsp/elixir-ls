@@ -11,6 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   alias ElixirLS.LanguageServer.SourceFile
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirSense.Providers.Suggestion.Matcher
+  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
   defstruct [
@@ -149,7 +150,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       text_before_cursor: text_before_cursor,
       text_after_cursor: text_after_cursor,
       prefix: prefix,
-      remote_calls?: match?({:dot, _, _}, Code.Fragment.cursor_context(prefix)),
+      remote_calls?: match?({:dot, _, _}, NormalizedCode.Fragment.cursor_context(prefix)),
       def_before: def_before,
       pipe_before?: Regex.match?(~r/\|>\s*#{Regex.escape(prefix)}$/u, text_before_cursor),
       capture_before?: Regex.match?(~r/&#{Regex.escape(prefix)}$/u, text_before_cursor),
