@@ -206,6 +206,7 @@ defmodule ElixirLS.Debugger.Server do
         )
 
         Output.debugger_important("Terminating #{__MODULE__}: #{message}")
+
         unless Application.get_env(:elixir_ls_debugger, :test_mode) do
           System.stop(1)
         end

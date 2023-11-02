@@ -55,7 +55,12 @@ defmodule ElixirLS.LanguageServer.MixShell do
           true
       end
     else
-      Mix.Shell.IO.yes?(message, options)
+      # TODO convert to to normal call when we require elixir 1.13
+      if Version.match?(System.version(), "< 1.13.0-dev") do
+        apply(Mix.Shell.IO, :yes?, [message])
+      else
+        apply(Mix.Shell.IO, :yes?, [message, options])
+      end
     end
   end
 end

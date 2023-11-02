@@ -268,8 +268,12 @@ defmodule ElixirLS.LanguageServer.Tracer do
       end
 
     attributes =
-      for name <- apply(Module, :attributes_in, [module]) do
-        {name, Module.get_attribute(module, name)}
+      if Version.match?(System.version(), ">= 1.13.0-dev") do
+        for name <- apply(Module, :attributes_in, [module]) do
+          {name, Module.get_attribute(module, name)}
+        end
+      else
+        []
       end
 
     %{
