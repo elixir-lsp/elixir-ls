@@ -473,7 +473,7 @@ defmodule ElixirLS.Installer do
   defp local_dir, do: Path.expand("#{__DIR__}/..")
 
   defp run_mix_install({:local, dir}, force?) do
-    Mix.install(
+    ElixirLS.Mix.install(
       [
         {:elixir_ls, path: dir}
       ],
@@ -487,7 +487,7 @@ defmodule ElixirLS.Installer do
   end
 
   defp run_mix_install({:tag, tag}, force?) do
-    Mix.install(
+    ElixirLS.Mix.install(
       [
         {:elixir_ls, github: "elixir-lsp/elixir-ls", tag: tag}
       ],
