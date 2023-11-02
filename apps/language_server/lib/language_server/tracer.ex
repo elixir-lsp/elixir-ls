@@ -161,12 +161,22 @@ defmodule ElixirLS.LanguageServer.Tracer do
       {:ok, _} ->
         :ok
 
-      {:error, {:not_a_dets_file, _}} ->
+      {:error, {:not_a_dets_file, _} = reason} ->
+        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
         File.rm_rf!(path)
         {:ok, _} = :dets.open_file(table_name, opts)
     end
 
-    ^table_name = :dets.to_ets(table_name, table_name)
+    case :dets.to_ets(table_name, table_name) do
+      ^table_name ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Unable to read DETS #{path}: #{inspect(reason)}")
+        File.rm_rf!(path)
+        {:ok, _} = :dets.open_file(table_name, opts)
+        ^table_name = :dets.to_ets(table_name, table_name)
+    end
   end
 
   def close_table(table, project_dir) do
