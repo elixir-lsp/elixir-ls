@@ -55,7 +55,7 @@ jobs:
           - elixir: 1.15.x
             otp: 25.x
             tests_may_fail: false
-           - elixir: 1.15.x
+          - elixir: 1.15.x
             otp: 26.x
             tests_may_fail: false
     env:
