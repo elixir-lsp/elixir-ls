@@ -23,9 +23,21 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
             {:ok, []}
           end
 
+        {:error, :project_not_loaded} ->
+          JsonRpc.show_message(
+            :error,
+            "Unable to find formatter for #{file_path}: Mix project is not loaded"
+          )
+
+          {:ok, []}
+
         {:error, message} ->
-          JsonRpc.show_message(:error, "Unable to find formatter for #{file_path}")
-          {:error, :internal_error, message, true}
+          JsonRpc.show_message(
+            :error,
+            "Unable to find formatter for #{file_path}: #{inspect(message)}"
+          )
+
+          {:ok, []}
       end
     else
       # if file is outside project_dir we format with default options
