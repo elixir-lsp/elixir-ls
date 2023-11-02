@@ -156,7 +156,10 @@ defmodule ElixirLS.LanguageServer.Server do
         )
 
         Logger.info("Terminating #{__MODULE__}: #{message}")
-        System.stop(1)
+
+        unless Application.get_env(:language_server, :test_mode) do
+          System.stop(1)
+        end
     end
 
     :ok
