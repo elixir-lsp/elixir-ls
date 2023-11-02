@@ -7,7 +7,7 @@
 - Bring back partial support for elixir 1.12. Note that it's best effort and not all features will work
 - Directory issues with fish launch script fixed [Jamin Thornsberry](https://github.com/jaminthorns)
 - RTX activation in launch script now uses `env -s` instead of `activate` [Walton Hoops](https://github.com/Whoops)
-- Language server is now more resilient when cwd changes. Workaround added for elixir issue https://github.com/elixir-lang/elixir/pull/13061
+- Language server is now more resilient when cwd changes. Workaround added for elixir issue when Path.expand would unnecessarily evaluate File.cwd!
 - Tracer should now be able to recover when DETS files are corrupted
 - elixir_sense plugin crash is now handled and should not prevent completions
 
