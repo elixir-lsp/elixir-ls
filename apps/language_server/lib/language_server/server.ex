@@ -1061,19 +1061,19 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      with {:ok, spec_code_lenses} <- get_spec_code_lenses(state, uri, source_file),
-           {:ok, test_code_lenses} <- get_test_code_lenses(state, uri, source_file) do
-        {:ok, spec_code_lenses ++ test_code_lenses}
-      else
-        {:error, %ElixirSense.Core.Metadata{error: {line, error_msg}}} ->
-          {:error, :code_lens_error, "#{line}: #{error_msg}", true}
+      {:ok, spec_code_lenses} = get_spec_code_lenses(state, uri, source_file)
 
-        {:error, error} ->
-          {:error, :code_lens_error, "Error while building code lenses: #{inspect(error)}", true}
+      test_code_lenses =
+        case get_test_code_lenses(state, uri, source_file) do
+          {:ok, test_code_lenses} ->
+            test_code_lenses
 
-        error ->
-          error
-      end
+          {:error, %ElixirSense.Core.Metadata{error: reason}} ->
+            Logger.info("Error while building test code lenses: #{inspect(reason)}")
+            []
+        end
+
+      {:ok, spec_code_lenses ++ test_code_lenses}
     end
 
     {:async, fun, state}
