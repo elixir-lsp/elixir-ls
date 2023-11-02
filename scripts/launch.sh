@@ -53,7 +53,7 @@ else
   if which rtx >/dev/null
   then
     >&2 echo "rtx executable found in $(which rtx), activating"
-    eval "$($(which rtx) activate "$preferred_shell")"
+    eval "$($(which rtx) env -s "$preferred_shell")"
   else
     >&2 echo "rtx not found"
   fi
