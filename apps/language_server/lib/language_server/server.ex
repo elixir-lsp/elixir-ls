@@ -1875,13 +1875,26 @@ defmodule ElixirLS.LanguageServer.Server do
           if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
             mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs())
 
-            case Build.reload_project(mixfile, project_dir) do
-              {:ok, _} ->
-                Build.clean(true)
+            try do
+              case Build.reload_project(mixfile, project_dir) do
+                {:ok, _} ->
+                  Build.clean(true)
 
-              _ ->
-                # TODO emit diagnostics here?
-                :ok
+                _ ->
+                  # TODO emit diagnostics here?
+                  :ok
+              end
+            rescue
+              e ->
+                message =
+                  "Unable to reload project: #{Exception.message(e)}"
+
+                Logger.error(message)
+
+                JsonRpc.show_message(
+                  :error,
+                  message
+                )
             end
           else
             message =
@@ -1889,13 +1902,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
             Logger.error(message)
 
-            JsonRpc.telemetry(
-              "lsp_server_error",
-              %{
-                "elixir_ls.lsp_process" => inspect(__MODULE__),
-                "elixir_ls.lsp_server_error" => message
-              },
-              %{}
+            JsonRpc.show_message(
+              :error,
+              message
             )
           end
 
@@ -1903,13 +1912,9 @@ defmodule ElixirLS.LanguageServer.Server do
           message = "Unable to reload project: #{inspect(reason)}"
           Logger.error(message)
 
-          JsonRpc.telemetry(
-            "lsp_server_error",
-            %{
-              "elixir_ls.lsp_process" => inspect(__MODULE__),
-              "elixir_ls.lsp_server_error" => message
-            },
-            %{}
+          JsonRpc.show_message(
+            :error,
+            message
           )
       end
     end
