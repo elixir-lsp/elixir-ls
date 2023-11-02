@@ -1,5 +1,26 @@
 ### Unreleased
 
+### v0.17.6: 2 November 2023
+
+#### Improvements
+
+- Bring back partial support for elixir 1.12. Note that it's best effort and not all features will work
+- Directory issues with fish launch script fixed [Jamin Thornsberry](https://github.com/jaminthorns)
+- RTX activation in launch script now uses `env -s` instead of `activate` [Walton Hoops](https://github.com/Whoops)
+- Language server is now more resilient when cwd changes. Workaround added for elixir issue https://github.com/elixir-lang/elixir/pull/13061
+- Tracer should now be able to recover when DETS files are corrupted
+- elixir_sense plugin crash is now handled and should not prevent completions
+
+#### Fixes
+
+- Fixed crash in debugger when on_load fails during module interpreting
+- Fixed crash in completions due to missing regex escapes
+- Fixed crash in document symbols on invalid typespec
+- Fixed crash in test code lense when test block cannot be found
+- Launch script properly uses custom `Mix.install`. This error made it fail on elixir 1.16. Not e that elixir 1.16 is not yet supported
+- Fixed crash in type inference incorrectly matching on typespec with arguments
+- Fixed crash in completions when callbacks from typespecs do not match those from docs
+
 ### v0.17.5: 31 October 2023
 
 #### Improvements
