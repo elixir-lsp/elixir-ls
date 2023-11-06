@@ -170,7 +170,14 @@ defmodule ElixirLS.LanguageServer.Tracer do
         Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
         File.rm_rf!(path)
         {:ok, _} = :dets.open_file(table_name, opts)
+
+      {:error, {:file_error, _, :enoent} = reason} ->
+        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
+        :ok = path |> Path.dirname() |> File.mkdir_p()
+        {:ok, _} = :dets.open_file(table_name, opts)
     end
+
+    Process.sleep(200)
 
     case :dets.to_ets(table_name, table_name) do
       ^table_name ->
@@ -179,7 +186,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
       {:error, reason} ->
         Logger.warning("Unable to read DETS #{path}: #{inspect(reason)}")
         File.rm_rf!(path)
+        Process.sleep(200)
         {:ok, _} = :dets.open_file(table_name, opts)
+        Process.sleep(200)
         ^table_name = :dets.to_ets(table_name, table_name)
     end
   end
@@ -345,6 +354,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
     else
       {:error, reason} ->
         Logger.error("Unable to sync DETS #{table_name}, #{inspect(reason)}")
+
+      other ->
+        Logger.error("Unable to sync DETS #{table_name}, #{inspect(other)}")
     end
   end
 
