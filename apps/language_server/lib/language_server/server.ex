@@ -333,6 +333,14 @@ defmodule ElixirLS.LanguageServer.Server do
           state
 
         _ ->
+          message = Exception.format_exit(reason)
+
+          JsonRpc.telemetry(
+            "build_error",
+            %{"elixir_ls.build_error" => message},
+            %{}
+          )
+
           path = Path.join(state.project_dir, MixfileHelpers.mix_exs())
           handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason, path)], state)
       end
