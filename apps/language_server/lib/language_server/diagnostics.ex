@@ -222,7 +222,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     JsonRpc.notify("textDocument/publishDiagnostics", message)
   end
 
-  def mixfile_diagnostic({file, line, message}, severity) do
+  def mixfile_diagnostic({file, line, message}, severity) when not is_nil(file) do
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
       file: file,
@@ -237,7 +237,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         severity: severity,
         message: message,
         position: position
-      }) do
+      })
+      when not is_nil(file) do
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
       file: file,
@@ -247,7 +248,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def error_to_diagnostic(kind, payload, stacktrace, path, project_dir) do
+  def error_to_diagnostic(kind, payload, stacktrace, path, project_dir) when not is_nil(path) do
     path = SourceFile.Path.absname(path, project_dir)
     message = Exception.format(kind, payload, stacktrace)
 
@@ -261,7 +262,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
-      file: SourceFile.Path.absname(path, project_dir),
+      file: path,
       position: line || 0,
       message: message,
       severity: :error,
@@ -269,7 +270,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def exception_to_diagnostic(error, path) do
+  def exception_to_diagnostic(error, path) when not is_nil(path) do
     msg =
       case error do
         {:shutdown, 1} ->
