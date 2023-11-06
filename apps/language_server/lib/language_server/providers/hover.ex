@@ -25,12 +25,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
             }
           rescue
             e ->
-              stripped_docs =
-                Enum.map(docs, fn info ->
-                  Map.delete(info, :docs)
-                end)
-
-              raise "line:\n#{Enum.at(lines, line - 1)}\nchar: #{character}\n#{inspect(stripped_docs)}#{Exception.message(e)}"
+              raise "#{Exception.message(e)} line:\n#{Enum.at(lines, line - 1)}\nchar: #{character}\n#{inspect(docs)}"
           end
       end
 
