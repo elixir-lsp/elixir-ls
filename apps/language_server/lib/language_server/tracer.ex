@@ -40,8 +40,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   def notify_file_deleted(file) do
-    delete_modules_by_file(file)
-    delete_calls_by_file(file)
+    GenServer.cast(__MODULE__, {:notify_file_deleted, file})
   end
 
   @impl true
@@ -87,6 +86,12 @@ defmodule ElixirLS.LanguageServer.Tracer do
     end
 
     {:noreply, %{state | project_dir: project_dir}}
+  end
+
+  def handle_cast({:notify_file_deleted, file}, state) do
+    delete_modules_by_file(file)
+    delete_calls_by_file(file)
+    {:noreply, state}
   end
 
   def handle_cast(:save, %{project_dir: nil} = state) do
