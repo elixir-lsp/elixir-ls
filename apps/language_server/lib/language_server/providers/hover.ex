@@ -308,7 +308,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp get_metadata_entry_md({key, value}) do
-    "**#{key}** #{value}"
+    "**#{key}** #{inspect(value)}"
   end
 
   defp format_header(text) do
