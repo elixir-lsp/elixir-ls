@@ -56,7 +56,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
     formatted =
       try do
         target_line_length =
-          case SourceFile.formatter_for(uri, state.project_dir) do
+          case SourceFile.formatter_for(uri, state.project_dir, true) do
             {:ok, {_, opts, _formatter_exs_dir}} ->
               Keyword.get(opts, :line_length, @default_target_line_length)
 

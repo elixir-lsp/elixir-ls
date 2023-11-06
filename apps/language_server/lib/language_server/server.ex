@@ -1001,7 +1001,7 @@ defmodule ElixirLS.LanguageServer.Server do
       !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
 
     locals_without_parens =
-      case SourceFile.formatter_for(uri, state.project_dir) do
+      case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
         {:ok, {_, opts, _formatter_exs_dir}} -> Keyword.get(opts, :locals_without_parens, [])
         {:error, _} -> []
       end
@@ -1034,7 +1034,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(formatting_req(_id, uri, _options), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
-    fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
+    fun = fn -> Formatting.format(source_file, uri, state.project_dir, state.mix_project?) end
     {:async, fun, state}
   end
 

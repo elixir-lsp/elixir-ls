@@ -229,26 +229,34 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
-  @spec formatter_for(String.t(), String.t() | nil) ::
-          {:ok, {function | nil, keyword(), String.t()}} | :error
-  def formatter_for(uri = "file:" <> _, project_dir) when is_binary(project_dir) do
+  @spec formatter_for(String.t(), String.t() | nil, boolean) ::
+          {:ok, {function | nil, keyword(), String.t()}} | {:error, any}
+  def formatter_for(uri = "file:" <> _, project_dir, mix_project?) when is_binary(project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
       alias ElixirLS.LanguageServer.MixProject
 
-      if ElixirLS.LanguageServer.MixProject.loaded?() do
+      if mix_project? do
+        if ElixirLS.LanguageServer.MixProject.loaded?() do
+          opts = [
+            deps_paths: MixProject.deps_paths(),
+            manifest_path: MixProject.manifest_path(),
+            config_mtime: MixProject.config_mtime(),
+            mix_project: MixProject.get(),
+            root: project_dir
+          ]
+
+          {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
+        else
+          {:error, :project_not_loaded}
+        end
+      else
         opts = [
-          deps_paths: MixProject.deps_paths(),
-          manifest_path: MixProject.manifest_path(),
-          config_mtime: MixProject.config_mtime(),
-          mix_project: MixProject.get(),
           root: project_dir
         ]
 
         {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
-      else
-        {:error, :project_not_loaded}
       end
     catch
       kind, payload ->
@@ -261,7 +269,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     end
   end
 
-  def formatter_for(_, _), do: {:error, :project_dir_not_set}
+  def formatter_for(_, _, _), do: {:error, :project_dir_not_set}
 
   defp format_code(code, opts) do
     try do
