@@ -9,28 +9,35 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test.DescribeBlock do
   def find_block_info(line, lines_to_env_list, lines_to_env_list_length, source_lines) do
     name = get_name(source_lines, line)
 
-    module =
-      lines_to_env_list
-      |> Enum.find(fn {env_line, _env} -> env_line == line end)
-      |> elem(1)
-      |> Map.get(:module)
+    if name do
+      module =
+        lines_to_env_list
+        |> Enum.find(fn {env_line, _env} -> env_line == line end)
+        |> elem(1)
+        |> Map.get(:module)
 
-    body_scope_id =
-      get_body_scope_id(
-        line,
-        lines_to_env_list,
-        lines_to_env_list_length
-      )
+      body_scope_id =
+        get_body_scope_id(
+          line,
+          lines_to_env_list,
+          lines_to_env_list_length
+        )
 
-    %__MODULE__{line: line, body_scope_id: body_scope_id, name: name, module: module}
+      %__MODULE__{line: line, body_scope_id: body_scope_id, name: name, module: module}
+    end
   end
 
   defp get_name(source_lines, declaration_line) do
-    %{"name" => name} =
-      ~r/^\s*describe "(?<name>.*)" do/u
-      |> Regex.named_captures(Enum.at(source_lines, declaration_line - 1))
+    case Regex.named_captures(
+           ~r/^\s*describe "(?<name>.*)" do/u,
+           Enum.at(source_lines, declaration_line - 1)
+         ) do
+      %{"name" => name} ->
+        name
 
-    name
+      nil ->
+        nil
+    end
   end
 
   defp get_body_scope_id(

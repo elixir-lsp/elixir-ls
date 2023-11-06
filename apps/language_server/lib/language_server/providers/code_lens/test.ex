@@ -128,6 +128,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         source_lines
       )
     end
+    |> Enum.reject(&is_nil/1)
   end
 
   defp get_module_lenses(test_modules, file_path, project_dir) do
