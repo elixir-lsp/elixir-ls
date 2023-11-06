@@ -1,5 +1,17 @@
 ### Unreleased
 
+### v0.17.7: 6 November 2023
+
+#### Fixes
+
+- Fixed issue in formatter not being able to format files in non mix projects
+- Fixed language server crash when unable to suggest contracts
+- Fixed language server when handling delete file notification and tracer is not behaving correctly
+- Fixed crash in completions when defoverridable refers to delegated function
+- Fixed crash in type inference engine related to invalid handling of Map functions arguments
+- Fixed crash in completions when overridable function has non trivial parameters
+- Added missing clauses handling function call expansion in type inference engine
+
 ### v0.17.6: 2 November 2023
 
 #### Improvements
