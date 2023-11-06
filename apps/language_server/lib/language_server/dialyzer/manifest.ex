@@ -32,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
           JsonRpc.show_message(
             :error,
-            "Unable to build dialyzer PLT. Most likely there are problems with your OTP and elixir installation."
+            "Unable to build dialyzer PLT. Please make sure that #{elixir_plt_path()} is writable and your OTP install is complete. Visit https://github.com/elixir-lsp/elixir-ls/issues/540 for help"
           )
 
           Logger.error("Dialyzer PLT build process exited with reason: #{error_msg}")
