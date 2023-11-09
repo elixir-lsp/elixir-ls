@@ -384,9 +384,12 @@ defmodule ElixirLS.Debugger.Server do
         _from,
         state = %__MODULE__{}
       ) do
-    {state, var_id} = get_variable_reference(child_type, state, pid, value)
-
-    {:reply, var_id, state}
+    if Map.has_key?(state.paused_processes, pid) do
+      {state, var_id} = get_variable_reference(child_type, state, pid, value)
+      {:reply, {:ok, var_id}, state}
+    else
+      {:reply, {:error, :not_paused}, state}
+    end
   end
 
   @impl GenServer
@@ -1179,7 +1182,7 @@ defmodule ElixirLS.Debugger.Server do
 
       child_type = Variables.child_type(value)
       # we need to call here as get_variable_reference modifies the state
-      var_id =
+      {:ok, var_id} =
         GenServer.call(__MODULE__, {:get_variable_reference, child_type, :evaluator, value})
 
       %{
@@ -1398,19 +1401,27 @@ defmodule ElixirLS.Debugger.Server do
     |> Enum.reduce([], fn {name, value}, acc ->
       child_type = Variables.child_type(value)
 
-      var_id =
-        GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value})
+      case GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value}) do
+        {:ok, var_id} ->
+          json =
+            %{
+              "name" => to_string(name),
+              "value" => inspect(value),
+              "variablesReference" => var_id
+            }
+            |> maybe_append_children_number(state.client_info, child_type, value)
+            |> maybe_append_variable_type(state.client_info, value)
 
-      json =
-        %{
-          "name" => to_string(name),
-          "value" => inspect(value),
-          "variablesReference" => var_id
-        }
-        |> maybe_append_children_number(state.client_info, child_type, value)
-        |> maybe_append_variable_type(state.client_info, value)
+          [json | acc]
 
-      [json | acc]
+        {:error, :not_paused} ->
+          raise ServerError,
+            message: "runtimeError",
+            format: "pid no longer paused: {pid}",
+            variables: %{
+              "pid" => inspect(pid)
+            }
+      end
     end)
     |> Enum.reverse()
   end
