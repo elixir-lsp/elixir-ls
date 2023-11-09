@@ -155,10 +155,11 @@ defmodule ElixirLS.LanguageServer.Server do
           %{}
         )
 
-        Logger.info("Terminating #{__MODULE__}: #{message}")
+        Logger.error("Terminating #{__MODULE__}: #{message}")
 
         unless Application.get_env(:language_server, :test_mode) do
-          System.stop(1)
+          Process.sleep(2000)
+          System.halt(1)
         end
     end
 
@@ -1462,11 +1463,33 @@ defmodule ElixirLS.LanguageServer.Server do
     # in case we missed something or restarted and don't have old_diagnostics
     # we also push for all open files
     uris_from_old_diagnostics =
-      Enum.map(old_diagnostics, &(&1.file |> SourceFile.Path.to_uri(project_dir)))
+      old_diagnostics
+      |> Enum.reject(&is_nil(&1.file))
+      |> Enum.map(&(&1.file |> SourceFile.Path.to_uri(project_dir)))
 
     new_diagnostics_by_uri =
       new_diagnostics
+      |> Enum.reject(&is_nil(&1.file))
       |> Enum.group_by(&(&1.file |> SourceFile.Path.to_uri(project_dir)))
+
+    invalid_diagnostics =
+      new_diagnostics
+      |> Enum.filter(&is_nil(&1.file))
+
+    # TODO remove when we are sure diagnostic code is correct
+    if invalid_diagnostics != [] do
+      Logger.error("Invalid diagnostic with nil file: #{inspect(hd(invalid_diagnostics))}")
+
+      JsonRpc.telemetry(
+        "lsp_server_error",
+        %{
+          "elixir_ls.lsp_process" => inspect(__MODULE__),
+          "elixir_ls.lsp_server_error" =>
+            "Invalid diagnostic: #{inspect(hd(invalid_diagnostics))}"
+        },
+        %{}
+      )
+    end
 
     uris_from_new_diagnostics = Map.keys(new_diagnostics_by_uri)
 
@@ -1881,7 +1904,24 @@ defmodule ElixirLS.LanguageServer.Server do
          File.dir?(Path.join([project_dir, ".elixir_ls"])) and
          not Tracer.manifest_version_current?(project_dir) do
       Logger.info("DETS databases will be rebuilt")
-      Tracer.clean_dets(project_dir)
+
+      try do
+        Tracer.clean_dets(project_dir)
+      rescue
+        e ->
+          message =
+            "Unable to clean DETS databases in #{project_dir}: #{Exception.message(e)}"
+
+          Logger.error(message)
+
+          JsonRpc.show_message(
+            :error,
+            message
+          )
+
+          Process.sleep(2000)
+          System.halt(1)
+      end
 
       case File.cwd() do
         {:ok, cwd} ->
@@ -1908,6 +1948,9 @@ defmodule ElixirLS.LanguageServer.Server do
                   :error,
                   message
                 )
+
+                Process.sleep(2000)
+                System.halt(1)
             end
           else
             message =
@@ -1919,6 +1962,9 @@ defmodule ElixirLS.LanguageServer.Server do
               :error,
               message
             )
+
+            Process.sleep(2000)
+            System.halt(1)
           end
 
         {:error, reason} ->
@@ -1929,6 +1975,9 @@ defmodule ElixirLS.LanguageServer.Server do
             :error,
             message
           )
+
+          Process.sleep(2000)
+          System.halt(1)
       end
     end
   end

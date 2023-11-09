@@ -191,6 +191,28 @@ defmodule ElixirLS.LanguageServer.Tracer do
         Process.sleep(200)
         ^table_name = :dets.to_ets(table_name, table_name)
     end
+  catch
+    kind, payload ->
+      {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+      error_msg = Exception.format(kind, payload, stacktrace)
+
+      Logger.error(
+        "Unable to init tracer table #{table} in directory #{project_dir}: #{error_msg}"
+      )
+
+      JsonRpc.telemetry(
+        "lsp_server_error",
+        %{
+          "elixir_ls.lsp_process" => inspect(__MODULE__),
+          "elixir_ls.lsp_server_error" => error_msg
+        },
+        %{}
+      )
+
+      unless Application.get_env(:language_server, :test_mode) do
+        Process.sleep(2000)
+        System.halt(1)
+      end
   end
 
   def close_table(table, project_dir) do
@@ -204,6 +226,15 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
       {:error, reason} ->
         Logger.error("Unable to close DETS #{path}, #{inspect(reason)}")
+
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => "Unable to close DETS #{path}, #{inspect(reason)}"
+          },
+          %{}
+        )
     end
   end
 
@@ -352,11 +383,17 @@ defmodule ElixirLS.LanguageServer.Tracer do
          :ok <- :dets.sync(table_name) do
       :ok
     else
-      {:error, reason} ->
-        Logger.error("Unable to sync DETS #{table_name}, #{inspect(reason)}")
-
       other ->
         Logger.error("Unable to sync DETS #{table_name}, #{inspect(other)}")
+
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => "Unable to sync DETS #{table_name}, #{inspect(other)}"
+          },
+          %{}
+        )
     end
   end
 
