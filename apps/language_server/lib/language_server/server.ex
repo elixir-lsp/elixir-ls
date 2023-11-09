@@ -330,6 +330,15 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case reason do
         :normal ->
+          WorkspaceSymbols.notify_build_complete()
+          state
+
+        :shutdown ->
+          WorkspaceSymbols.notify_build_complete()
+          state
+
+        {:shutdown, _} ->
+          WorkspaceSymbols.notify_build_complete()
           state
 
         _ ->
@@ -344,10 +353,6 @@ defmodule ElixirLS.LanguageServer.Server do
           path = Path.join(state.project_dir, MixfileHelpers.mix_exs())
           handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason, path)], state)
       end
-
-    if reason == :normal do
-      WorkspaceSymbols.notify_build_complete()
-    end
 
     state = if state.needs_build?, do: trigger_build(state), else: state
     {:noreply, state}
