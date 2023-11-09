@@ -1274,9 +1274,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp item_to_json(item, idx, options) do
+    kind =
+      try do
+        completion_kind(item.kind)
+      rescue
+        _ ->
+          raise "unexpected kind #{inspect(item.kind)} in completion #{inspect(item)}"
+      end
+
     json = %{
       "label" => item.label,
-      "kind" => completion_kind(item.kind),
+      "kind" => kind,
       "detail" => item.detail,
       "documentation" => %{"value" => item.documentation || "", kind: "markdown"},
       "labelDetails" => item.label_details,
