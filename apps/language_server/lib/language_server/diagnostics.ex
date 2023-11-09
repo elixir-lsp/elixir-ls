@@ -255,7 +255,9 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     line =
       stacktrace
       |> Enum.find_value(fn {_m, _f, _a, opts} ->
-        if opts |> Keyword.get(:file) |> SourceFile.Path.absname(project_dir) == path do
+        file = opts |> Keyword.get(:file)
+
+        if file != nil and SourceFile.Path.absname(file, project_dir) == path do
           opts |> Keyword.get(:line)
         end
       end)
