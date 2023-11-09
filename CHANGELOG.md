@@ -1,5 +1,24 @@
 ### Unreleased
 
+### v0.17.8: 9 November 2023
+
+#### Improvements
+
+- Added compatibility warning on OTP 26 and Windows
+- Raise more filesystem related errors to user. The server will now refuse to start if it cannot create its files in `.elixir_ls` directory
+
+#### Fixes
+
+- Fixed crash in completions when local function accidentally fuzzy matches `sigil_` prefix
+- Workaround for elixir crash when fetching docs and cwd is `nil`
+- Fixed crash in completions with invalid struct module
+- Fixed crash in completions when `__struct__` cannot be evaluated
+- Fixed crash in hover when inspecting not know metadata
+- Fixed crash in test code lense when describe block cannot be found
+- Fixed crash in debugger when process exits or continues during async variables retrieval
+- Fixed crash when publishing diagnostics and stacktrace entries does not specify file
+- Fixed crash in build when the server tries tu purge and recompile project and it is not currently loaded
+
 ### v0.17.7: 6 November 2023
 
 #### Fixes
