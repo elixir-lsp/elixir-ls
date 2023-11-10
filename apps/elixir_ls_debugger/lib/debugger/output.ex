@@ -18,7 +18,7 @@ defmodule ElixirLS.Debugger.Output do
   end
 
   def send_response(server \\ __MODULE__, request_packet, response_body) do
-    GenServer.call(server, {:send_response, request_packet, response_body})
+    GenServer.call(server, {:send_response, request_packet, response_body}, :infinity)
   end
 
   def send_error_response(
@@ -33,12 +33,13 @@ defmodule ElixirLS.Debugger.Output do
     GenServer.call(
       server,
       {:send_error_response, request_packet, message, format, variables, send_telemetry,
-       show_user}
+       show_user},
+      :infinity
     )
   end
 
   def send_event(server \\ __MODULE__, event, body) do
-    GenServer.call(server, {:send_event, event, body})
+    GenServer.call(server, {:send_event, event, body}, :infinity)
   end
 
   def debugger_console(server \\ __MODULE__, str) when is_binary(str) do

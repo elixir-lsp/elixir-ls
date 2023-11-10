@@ -163,7 +163,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def receive_packet(server \\ __MODULE__, packet) do
-    GenServer.call(server, {:packet, packet})
+    GenServer.call(server, {:packet, packet}, :infinity)
   end
 
   def send_request(server \\ __MODULE__, method, params) do
