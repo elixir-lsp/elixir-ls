@@ -57,7 +57,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     path |> expand(project_dir) |> convert_separators_to_native()
   end
 
-  def to_uri(path) when is_binary(path) do
+  def to_uri(path) when not is_nil(path) do
     path =
       path
       |> expand()
@@ -66,8 +66,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     to_uri_impl(path)
   end
 
-  def to_uri(path, project_dir)
-      when is_binary(path) and (is_binary(project_dir) or is_nil(project_dir)) do
+  def to_uri(path, project_dir) when not is_nil(path) do
     path =
       if project_dir == nil do
         expand(path)
