@@ -156,9 +156,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   defp maybe_close_tables(%{project_dir: nil}), do: :ok
 
-  defp maybe_close_tables(%{project_dir: project_dir}) do
+  defp maybe_close_tables(_state) do
     for table <- @tables do
-      close_table(table, project_dir)
+      close_table(table)
     end
 
     :ok
@@ -227,8 +227,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
       end
   end
 
-  def close_table(table, project_dir) do
-    path = dets_path(project_dir, table)
+  def close_table(table) do
     table_name = table_name(table)
     sync(table_name)
 
@@ -251,14 +250,28 @@ defmodule ElixirLS.LanguageServer.Tracer do
     ms = modules_by_file_matchspec(file, :"$_")
     # ms = :ets.fun2ms(fn {_, map} when :erlang.map_get(:file, map) == file -> map end)
 
-    :ets.select(table_name(:modules), ms)
+    table = table_name(:modules)
+    :ets.safe_fixtable(table, true)
+
+    try do
+      :ets.select(table, ms)
+    after
+      :ets.safe_fixtable(table, false)
+    end
   end
 
   def delete_modules_by_file(file) do
     ms = modules_by_file_matchspec(file, true)
     # ms = :ets.fun2ms(fn {_, map} when :erlang.map_get(:file, map) == file -> true end)
 
-    :ets.select_delete(table_name(:modules), ms)
+    table = table_name(:modules)
+    :ets.safe_fixtable(table, true)
+
+    try do
+      :ets.select_delete(table, ms)
+    after
+      :ets.safe_fixtable(table, false)
+    end
   end
 
   def trace(:start, %Macro.Env{} = env) do
@@ -363,16 +376,23 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def get_trace do
     # TODO get by callee
-    :ets.tab2list(table_name(:calls))
-    |> Enum.map(fn {{callee, file, line, column}, _} ->
-      %{
-        callee: callee,
-        file: file,
-        line: line,
-        column: column
-      }
-    end)
-    |> Enum.group_by(fn %{callee: callee} -> callee end)
+    table = table_name(:calls)
+    :ets.safe_fixtable(table, true)
+
+    try do
+      :ets.tab2list(table)
+      |> Enum.map(fn {{callee, file, line, column}, _} ->
+        %{
+          callee: callee,
+          file: file,
+          line: line,
+          column: column
+        }
+      end)
+      |> Enum.group_by(fn %{callee: callee} -> callee end)
+    after
+      :ets.safe_fixtable(table, false)
+    end
   end
 
   defp sync(table_name) do
@@ -405,13 +425,27 @@ defmodule ElixirLS.LanguageServer.Tracer do
   def get_calls_by_file(file) do
     ms = calls_by_file_matchspec(file, :"$_")
 
-    :ets.select(table_name(:calls), ms)
+    table = table_name(:calls)
+    :ets.safe_fixtable(table, true)
+
+    try do
+      :ets.select(table, ms)
+    after
+      :ets.safe_fixtable(table, false)
+    end
   end
 
   def delete_calls_by_file(file) do
     ms = calls_by_file_matchspec(file, true)
 
-    :ets.select_delete(table_name(:calls), ms)
+    table = table_name(:calls)
+    :ets.safe_fixtable(table, true)
+
+    try do
+      :ets.select_delete(table, ms)
+    after
+      :ets.safe_fixtable(table, false)
+    end
   end
 
   defp manifest_path(project_dir) do
