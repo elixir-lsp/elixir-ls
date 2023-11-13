@@ -1,5 +1,22 @@
 ### Unreleased
 
+### v0.17.9: 13 November 2023
+
+#### Improvements
+
+- Capitalized map keys are no longes suggested in completions. Such keys result in invalid alias expression
+- Completions should be able to infer struct and map keys in more cases when variable is a result of function returning struct or map
+- ElixirLS will refuse to start if unable to create its files. This should limit the number of cases when server starts in faulty state
+
+#### Fixes
+
+- Fixed crash in completions when attribute expands to atom not being an elixir module
+- Fixed crash in completions when map has capitalized atom keys
+- Fixed crash on invalid alias expressions
+- Fixed crash when suggestion a variable that is known to be a struct
+- Removed 5s timeout on writing debugger output. This led to crashes under heavy load
+- Fixed language server crash when diagnostic use `IO.chardata` file location
+
 ### v0.17.8: 9 November 2023
 
 #### Improvements
