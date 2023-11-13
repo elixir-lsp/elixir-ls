@@ -12,10 +12,6 @@ defmodule ElixirLS.LanguageServer.TracerTest do
     {:ok, context}
   end
 
-  test "project dir is nil" do
-    assert GenServer.call(Tracer, :get_project_dir) == nil
-  end
-
   test "set project dir" do
     project_path = FixtureHelpers.get_path("")
     :persistent_term.put(:language_server_project_dir, project_path)
