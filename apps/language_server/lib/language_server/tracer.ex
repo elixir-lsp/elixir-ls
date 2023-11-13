@@ -56,7 +56,21 @@ defmodule ElixirLS.LanguageServer.Tracer do
       ])
     end
 
-    {:ok, %{project_dir: nil}}
+    project_dir = :persistent_term.get(:language_server_project_dir, nil)
+    state = %{project_dir: project_dir}
+
+    if project_dir != nil do
+      {us, _} =
+        :timer.tc(fn ->
+          for table <- @tables do
+            init_table(table, project_dir)
+          end
+        end)
+
+      Logger.info("Loaded DETS databases in #{div(us, 1000)}ms")
+    end
+
+    {:ok, state}
   end
 
   @impl true
