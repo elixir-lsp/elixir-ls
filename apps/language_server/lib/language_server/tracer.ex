@@ -200,6 +200,11 @@ defmodule ElixirLS.LanguageServer.Tracer do
         "Unable to init tracer table #{table} in directory #{project_dir}: #{error_msg}"
       )
 
+      JsonRpc.show_message(
+        :error,
+        "Unable to init tracer tables in #{project_dir}"
+      )
+
       JsonRpc.telemetry(
         "lsp_server_error",
         %{
