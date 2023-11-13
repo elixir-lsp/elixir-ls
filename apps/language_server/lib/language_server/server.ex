@@ -1854,7 +1854,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp create_gitignore(%__MODULE__{project_dir: project_dir} = state)
+  defp create_gitignore(%__MODULE__{project_dir: project_dir, mix_project?: true} = state)
        when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
          false <- File.exists?(gitignore_path),
@@ -1866,12 +1866,15 @@ defmodule ElixirLS.LanguageServer.Server do
         state
 
       {:error, err} ->
-        Logger.warning("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
+        Logger.error("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
 
         JsonRpc.show_message(
-          :warning,
+          :error,
           "Cannot create .elixir_ls/.gitignore"
         )
+
+        Process.sleep(2000)
+        System.halt(1)
 
         state
     end
