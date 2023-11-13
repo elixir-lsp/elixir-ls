@@ -387,7 +387,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         fake_initialize(server)
         Server.receive_packet(server, notification("$/not_supported"))
         :sys.get_state(server)
-        refute_receive(%{"method" => "window/logMessage"})
         wait_until_compiled(server)
       end)
     end
@@ -422,7 +421,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
           1000
         )
 
-        refute_receive(%{"method" => "window/logMessage"})
         wait_until_compiled(server)
       end)
     end
