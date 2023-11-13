@@ -183,15 +183,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
       {:error, {:not_a_dets_file, _} = reason} ->
         Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
         File.rm_rf!(path)
-        {:ok, _} = :dets.open_file(table_name, opts)
 
-      {:error, {:file_error, _, :enoent} = reason} ->
-        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
-        :ok = path |> Path.dirname() |> File.mkdir_p()
         {:ok, _} = :dets.open_file(table_name, opts)
     end
-
-    Process.sleep(200)
 
     case :dets.to_ets(table_name, table_name) do
       ^table_name ->
@@ -200,9 +194,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
       {:error, reason} ->
         Logger.warning("Unable to read DETS #{path}: #{inspect(reason)}")
         File.rm_rf!(path)
-        Process.sleep(200)
+
         {:ok, _} = :dets.open_file(table_name, opts)
-        Process.sleep(200)
         ^table_name = :dets.to_ets(table_name, table_name)
     end
   catch
@@ -239,22 +232,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
     table_name = table_name(table)
     sync(table_name)
 
-    case :dets.close(table_name) do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
-        Logger.error("Unable to close DETS #{path}, #{inspect(reason)}")
-
-        JsonRpc.telemetry(
-          "lsp_server_error",
-          %{
-            "elixir_ls.lsp_process" => inspect(__MODULE__),
-            "elixir_ls.lsp_server_error" => "Unable to close DETS #{path}, #{inspect(reason)}"
-          },
-          %{}
-        )
-    end
+    :ok = :dets.close(table_name)
   end
 
   defp modules_by_file_matchspec(file, return) do
@@ -398,22 +376,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   defp sync(table_name) do
-    with :ok <- :dets.from_ets(table_name, table_name),
-         :ok <- :dets.sync(table_name) do
-      :ok
-    else
-      other ->
-        Logger.error("Unable to sync DETS #{table_name}, #{inspect(other)}")
-
-        JsonRpc.telemetry(
-          "lsp_server_error",
-          %{
-            "elixir_ls.lsp_process" => inspect(__MODULE__),
-            "elixir_ls.lsp_server_error" => "Unable to sync DETS #{table_name}, #{inspect(other)}"
-          },
-          %{}
-        )
-    end
+    :ok = :dets.from_ets(table_name, table_name)
+    :ok = :dets.sync(table_name)
   end
 
   defp in_project_sources?(path) do
@@ -458,15 +422,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
     path = manifest_path(project_dir)
     File.rm_rf!(path)
 
-    with :ok <- path |> Path.dirname() |> File.mkdir_p(),
-         :ok <- File.write(path, "#{@version}", [:write]) do
-      :ok
-    else
-      {:error, err} ->
-        Logger.warning(
-          "Cannot create manifest .elixir_ls/tracer_db.manifest, cause: #{Atom.to_string(err)}"
-        )
-    end
+    File.write!(path, "#{@version}", [:write])
   end
 
   def read_manifest(project_dir) do
