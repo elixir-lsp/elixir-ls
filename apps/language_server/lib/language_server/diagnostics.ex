@@ -1,14 +1,14 @@
 defmodule ElixirLS.LanguageServer.Diagnostics do
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
 
-  def normalize(diagnostics, root_path) do
+  def normalize(diagnostics, root_path, mixfile) do
     for diagnostic <- diagnostics do
       {type, file, position, description, stacktrace} =
         extract_message_info(diagnostic.message, root_path)
 
       diagnostic
       |> update_message(type, description, stacktrace)
-      |> maybe_update_file(file)
+      |> maybe_update_file(file, mixfile)
       |> maybe_update_position(type, position, stacktrace)
     end
   end
@@ -54,11 +54,15 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     Map.put(diagnostic, :message, message)
   end
 
-  defp maybe_update_file(diagnostic, path) do
+  defp maybe_update_file(diagnostic, path, mixfile) do
     if path do
       Map.put(diagnostic, :file, path)
     else
-      diagnostic
+      if is_nil(diagnostic.file) do
+        Map.put(diagnostic, :file, mixfile)
+      else
+        diagnostic
+      end
     end
   end
 

@@ -63,7 +63,8 @@ defmodule ElixirLS.LanguageServer.Build do
                     if Keyword.get(opts, :compile?) do
                       {status, compile_diagnostics} = run_mix_compile()
 
-                      compile_diagnostics = Diagnostics.normalize(compile_diagnostics, root_path)
+                      compile_diagnostics =
+                        Diagnostics.normalize(compile_diagnostics, root_path, mixfile)
 
                       Server.build_finished(
                         parent,
