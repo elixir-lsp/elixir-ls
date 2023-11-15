@@ -93,6 +93,27 @@ For `eglot`, use:
 ```
 
 </details>
+<details>
+  <summary>Helix Installation Instructions</summary>
+
+From : http://elixirforum.com/t/helix-editor-for-elixir-development/54964
+
+Put the following configuration in .config/helix/languages.toml, and happy coding!
+
+```toml
+[[language]]
+name = "elixir"
+scope = "source.elixir"
+injection-regex = "elixir"
+file-types = ["ex", "exs"]
+roots = ["mix.exs"]
+auto-format = true
+diagnostic-severity = "Hint"
+comment-token = "#"
+indent = {tab-width = 2, unit = " "}
+language-server = {command = "elixir-ls"}
+```
+</details>
 
 ## Supported Elixir and OTP versions
 
