@@ -1183,7 +1183,11 @@ defmodule ElixirLS.Debugger.Server do
       child_type = Variables.child_type(value)
       # we need to call here as get_variable_reference modifies the state
       {:ok, var_id} =
-        GenServer.call(__MODULE__, {:get_variable_reference, child_type, :evaluator, value})
+        GenServer.call(
+          __MODULE__,
+          {:get_variable_reference, child_type, :evaluator, value},
+          30_000
+        )
 
       %{
         "result" => inspect(value),
@@ -1401,7 +1405,7 @@ defmodule ElixirLS.Debugger.Server do
     |> Enum.reduce([], fn {name, value}, acc ->
       child_type = Variables.child_type(value)
 
-      case GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value}) do
+      case GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value}, 30_000) do
         {:ok, var_id} ->
           json =
             %{
