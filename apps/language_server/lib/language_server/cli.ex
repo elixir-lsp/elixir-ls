@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.CLI do
   require Logger
 
   def main do
+    :erlang.system_flag(:backtrace_depth, 16)
     Application.load(:erts)
     Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&JsonRpc.print/1, &JsonRpc.print_err/1)
