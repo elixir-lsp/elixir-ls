@@ -560,6 +560,19 @@ defmodule ElixirLS.LanguageServer.Server do
 
       state
     else
+      unless String.valid?(text) do
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => "File not valid on open:\n#{inspect(text)}"
+          },
+          %{}
+        )
+
+        Logger.error("File not valid on open:\n#{inspect(text)}")
+      end
+
       source_file = %SourceFile{text: text, version: version}
 
       state = put_in(state.source_files[uri], source_file)
@@ -603,8 +616,27 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       state =
         update_in(state.source_files[uri], fn source_file ->
-          %SourceFile{source_file | version: version, dirty?: true}
-          |> SourceFile.apply_content_changes(content_changes)
+          file =
+            %SourceFile{source_file | version: version, dirty?: true}
+            |> SourceFile.apply_content_changes(content_changes)
+
+          unless String.valid?(file.text) do
+            JsonRpc.telemetry(
+              "lsp_server_error",
+              %{
+                "elixir_ls.lsp_process" => inspect(__MODULE__),
+                "elixir_ls.lsp_server_error" =>
+                  "File not valid after: #{inspect(content_changes)} text was:\n#{inspect(source_file.text)}"
+              },
+              %{}
+            )
+
+            Logger.error(
+              "File not valid after: #{inspect(content_changes)} text was:\n#{inspect(source_file.text)}"
+            )
+          end
+
+          file
         end)
 
       # trigger parse with debounce
@@ -1446,7 +1478,12 @@ defmodule ElixirLS.LanguageServer.Server do
   defp safely_read_file(file) do
     case File.read(file) do
       {:ok, text} ->
-        text
+        if String.valid?(text) do
+          text
+        else
+          Logger.warning("Invalid encoding in #{file}")
+          nil
+        end
 
       {:error, reason} ->
         if reason != :enoent do
