@@ -150,7 +150,17 @@ defmodule ElixirLS.LanguageServer.Tracer do
           %{}
         )
 
-        Logger.info("Terminating #{__MODULE__}: #{message}")
+        JsonRpc.show_message(
+          :error,
+          "Tracer process exited due to critical error"
+        )
+
+        Logger.error("Terminating #{__MODULE__}: #{message}")
+
+        unless Application.get_env(:language_server, :test_mode) do
+          Process.sleep(2000)
+          System.halt(1)
+        end
     end
   end
 
@@ -172,13 +182,25 @@ defmodule ElixirLS.LanguageServer.Tracer do
     table_name = table_name(table)
     path = dets_path(project_dir, table)
 
-    opts = [file: path |> String.to_charlist(), auto_save: 60_000]
+    opts = [file: path |> String.to_charlist(), auto_save: 60_000, repair: true]
 
     :ok = path |> Path.dirname() |> File.mkdir_p()
 
     case :dets.open_file(table_name, opts) do
       {:ok, _} ->
         :ok
+
+      {:error, {:needs_repair, _} = reason} ->
+        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
+        File.rm_rf!(path)
+
+        {:ok, _} = :dets.open_file(table_name, opts)
+
+      {:error, {:repair_failed, _} = reason} ->
+        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
+        File.rm_rf!(path)
+
+        {:ok, _} = :dets.open_file(table_name, opts)
 
       {:error, {:not_a_dets_file, _} = reason} ->
         Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
