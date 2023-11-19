@@ -314,7 +314,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end
   end
 
-  # TODO fix those flaky tests
   describe "exit" do
     test "exit notifications when not initialized", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->

@@ -60,7 +60,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      # capture_log(fn ->
       initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
@@ -115,14 +114,12 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                      40000
 
       wait_until_compiled(server)
-      # end)
     end)
   end
 
   @tag slow: true, fixture: true
   test "only analyzes the changed files", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      # capture_log(fn ->
       initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
       assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20_000
@@ -163,7 +160,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                      3_000
 
       wait_until_compiled(server)
-      # end)
     end)
   end
 
@@ -172,10 +168,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      # capture_log(fn ->
-      IO.warn("init")
       initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
-      IO.warn("init done")
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -213,7 +206,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
              """
 
       wait_until_compiled(server)
-      # end)
     end)
   end
 
@@ -222,7 +214,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      # capture_log(fn ->
       initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
@@ -251,7 +242,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       assert error_message1 == "Function fun/0 has no local return."
       assert error_message2 == "The pattern can never match the type :error."
       wait_until_compiled(server)
-      # end)
     end)
   end
 
@@ -260,7 +250,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      # capture_log(fn ->
       initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"})
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
@@ -288,9 +277,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
       assert error_message1 == "Function 'fun'/0 has no local return"
 
-      # Note: Don't assert on error_messaage 2 because the message is not stable across OTP versions
+      # Note: Don't assert on error_message 2 because the message is not stable across OTP versions
       wait_until_compiled(server)
-      # end)
     end)
   end
 
@@ -299,7 +287,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "umbrella_dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("apps/app1/lib/app1.ex"))
 
-      # capture_log(fn ->
       initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
@@ -328,7 +315,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       assert error_message1 == "Function check_error/0 has no local return."
       assert error_message2 == "The pattern can never match the type :error."
       wait_until_compiled(server)
-      # end)
     end)
   end
 
@@ -336,7 +322,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      # capture_log(fn ->
       initialize(server, %{"dialyzerEnabled" => true})
 
       assert_receive publish_diagnostics_notif(^file_a, [_, _]), 20000
@@ -346,7 +331,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       Server.receive_packet(server, did_change_watched_files([%{"uri" => file_a, "type" => 3}]))
       assert_receive publish_diagnostics_notif(^file_a, []), 20000
       wait_until_compiled(server)
-      # end)
     end)
   end
 
@@ -422,7 +406,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
-      # capture_log(fn ->
       initialize(server, %{
         "dialyzerEnabled" => true,
         "dialyzerFormat" => "dialyxir_long",
@@ -447,7 +430,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
       assert response(3, []) == resp
       wait_until_compiled(server)
-      # end)
     end)
   end
 
@@ -456,7 +438,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
-      # capture_log(fn ->
       initialize(server, %{
         "dialyzerEnabled" => true,
         "dialyzerFormat" => "dialyxir_long",
@@ -533,7 +514,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
       assert_receive(%{"id" => 4, "result" => nil}, 5000)
       wait_until_compiled(server)
-      # end)
     end)
   end
 end
