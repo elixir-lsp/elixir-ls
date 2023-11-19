@@ -69,6 +69,16 @@ defmodule ElixirLS.LanguageServer.CLI do
 
     Launch.unload_not_needed_apps([:nimble_parsec, :mix_task_archive_deps, :elixir_ls_debugger])
 
+    :persistent_term.put(
+      :language_server_lib_dir,
+      ElixirLS.LanguageServer.module_info(:compile)[:source]
+    )
+
+    :persistent_term.put(
+      :language_server_elixir_sense_lib_dir,
+      ElixirSense.module_info(:compile)[:source]
+    )
+
     WireProtocol.stream_packets(&JsonRpc.receive_packet/1)
   end
 
@@ -81,6 +91,8 @@ defmodule ElixirLS.LanguageServer.CLI do
   end
 
   defp start_language_server do
+    check_otp_install_complete()
+
     case Application.ensure_all_started(:language_server, :temporary) do
       {:ok, _} ->
         :ok
@@ -90,21 +102,21 @@ defmodule ElixirLS.LanguageServer.CLI do
 
         JsonRpc.show_message(:error, message)
         Process.sleep(5000)
-        raise message
+        System.halt(1)
 
       {:error, {:dialyzer, {~c"no such file or directory", ~c"dialyzer.app"}}} ->
         message = incomplete_installation_message("#dialyzer-missing")
 
         JsonRpc.show_message(:error, message)
         Process.sleep(5000)
-        raise message
+        System.halt(1)
 
       {:error, _} ->
         message = incomplete_installation_message()
 
         JsonRpc.show_message(:error, message)
         Process.sleep(5000)
-        raise message
+        System.halt(1)
     end
   end
 
@@ -174,5 +186,20 @@ defmodule ElixirLS.LanguageServer.CLI do
       %{"elixir_ls.otp_sources" => to_string(otp_sources_available)},
       %{}
     )
+  end
+
+  def check_otp_install_complete do
+    try do
+      :io_lib.format(~c"~p", [[1]])
+      :ok
+    rescue
+      e in ErlangError ->
+        Logger.error(Exception.message(e))
+        message = incomplete_installation_message()
+
+        JsonRpc.show_message(:error, message)
+        Process.sleep(5000)
+        System.halt(1)
+    end
   end
 end

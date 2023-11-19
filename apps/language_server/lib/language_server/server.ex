@@ -131,8 +131,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
   @impl GenServer
   def terminate(reason, _state) do
-    IO.puts(:stderr, "terminate(#{inspect(reason)})")
-
     case reason do
       :normal ->
         :ok
@@ -180,6 +178,8 @@ defmodule ElixirLS.LanguageServer.Server do
         case result do
           {:error, type, msg, send_telemetry} ->
             JsonRpc.respond_with_error(id, type, msg)
+
+            do_sanity_check(state)
 
             if send_telemetry do
               JsonRpc.telemetry(
@@ -373,6 +373,8 @@ defmodule ElixirLS.LanguageServer.Server do
         {{^pid, ^ref, command, _start_time}, updated_requests} = Map.pop!(requests, id)
         error_msg = Exception.format_exit(reason)
         JsonRpc.respond_with_error(id, :server_error, error_msg)
+
+        do_sanity_check(state)
 
         JsonRpc.telemetry(
           "lsp_request_error",
@@ -819,6 +821,8 @@ defmodule ElixirLS.LanguageServer.Server do
         {:error, type, msg, send_telemetry, state} ->
           JsonRpc.respond_with_error(id, type, msg)
 
+          do_sanity_check(state)
+
           if send_telemetry do
             JsonRpc.telemetry(
               "lsp_request_error",
@@ -862,6 +866,8 @@ defmodule ElixirLS.LanguageServer.Server do
         {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
         error_msg = Exception.format(kind, payload, stacktrace)
         JsonRpc.respond_with_error(id, :server_error, error_msg)
+
+        do_sanity_check(state)
 
         JsonRpc.telemetry(
           "lsp_request_error",
@@ -1403,6 +1409,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
+    do_sanity_check(state)
+
     old_diagnostics =
       state.build_diagnostics ++
         state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics))
@@ -2242,6 +2250,30 @@ defmodule ElixirLS.LanguageServer.Server do
     case result do
       :ok -> warning_diagnostics
       {:error, diagnostic} -> [diagnostic | warning_diagnostics]
+    end
+  end
+
+  defp do_sanity_check(_state) do
+    try do
+      unless function_exported?(ElixirSense, :module_info, 1) and
+               :persistent_term.get(:language_server_lib_dir) ==
+                 ElixirLS.LanguageServer.module_info(:compile)[:source] do
+        raise "sanity check failed"
+      end
+
+      unless function_exported?(ElixirLS.LanguageServer, :module_info, 1) and
+               :persistent_term.get(:language_server_elixir_sense_lib_dir) ==
+                 ElixirSense.module_info(:compile)[:source] do
+        raise "sanity check failed"
+      end
+    rescue
+      _ ->
+        Logger.error("Sanity check failed. ElixirLS needs to restart.")
+
+        unless Application.get_env(:language_server, :test_mode) do
+          Process.sleep(2000)
+          System.halt(1)
+        end
     end
   end
 end

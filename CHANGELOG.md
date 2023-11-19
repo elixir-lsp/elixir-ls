@@ -1,5 +1,25 @@
 ### Unreleased
 
+### v0.17.10: 19 November 2023
+
+#### Improvements
+
+- Improved validation of language server configuration
+- Improved validation of debugger launch configuration
+- Diagnostics with no file are now emitted on `mix.exs`. Previously they were skipped
+- Debugger emits better error messages when launch configuration is invalid
+- Language server made more predictable on critical errors (e.g. project directory no longer existing)
+
+#### Fixes
+
+- Fixed crash when callback from docs cannot be matched with callbacks from typespecs
+- Fixed invalid expansion of `Enum.fetch` in type inference engine
+- Handled a few cases of invalid unicode binaries
+- Fixed crash in debugger when stacktrace frame cannot be fetched
+- Increased timeout on variable evaluation
+- Fixed crash in debugger when inspecting an improper list
+- Fixed crash in debugger when reloading test modules and `:code.delete/1` fails
+
 ### v0.17.9: 13 November 2023
 
 #### Improvements
