@@ -750,11 +750,12 @@ defmodule ElixirLS.Debugger.Server do
             :normal ->
               :ok
 
-            :shutdown ->
-              :ok
+            {%ServerError{} = error, stack} ->
+              exit_code = 1
+              Output.send_event("exited", %{"exitCode" => exit_code})
+              Output.send_event("terminated", %{"restart" => false})
 
-            {:shutdown, _} ->
-              :ok
+              reraise error, stack
 
             _other ->
               message = "Launch request failed with reason\n" <> Exception.format_exit(reason)
@@ -769,6 +770,7 @@ defmodule ElixirLS.Debugger.Server do
                 message: "launchError",
                 format: message,
                 variables: %{},
+                send_telemetry: false,
                 show_user: true
           end
       end
@@ -1630,6 +1632,16 @@ defmodule ElixirLS.Debugger.Server do
 
     project_dir =
       if project_dir not in [nil, ""] do
+        if not is_binary(project_dir) do
+          raise ServerError,
+            message: "argumentError",
+            format:
+              "invalid `projectDir` in launch config. Expected string or nil, got #{inspect(project_dir)}",
+            variables: %{},
+            send_telemetry: false,
+            show_user: true
+        end
+
         Output.debugger_console("Starting debugger in directory: #{project_dir}\n")
         project_dir
       else
@@ -1643,12 +1655,44 @@ defmodule ElixirLS.Debugger.Server do
       end
 
     task = config["task"]
+
+    if not (is_nil(task) or is_binary(task)) do
+      raise ServerError,
+        message: "argumentError",
+        format:
+          "invalid `taskArgs` in launch config. Expected string or nil, got #{inspect(task)}",
+        variables: %{},
+        send_telemetry: false,
+        show_user: true
+    end
+
     task_args = config["taskArgs"] || []
+
+    if not (is_list(task_args) and Enum.all?(task_args, &is_binary/1)) do
+      raise ServerError,
+        message: "argumentError",
+        format:
+          "invalid `taskArgs` in launch config. Expected list of strings or nil, got #{inspect(task_args)}",
+        variables: %{},
+        send_telemetry: false,
+        show_user: true
+    end
+
     auto_interpret_files? = Map.get(config, "debugAutoInterpretAllModules", true)
 
     set_env_vars(config["env"])
 
-    File.cd!(project_dir)
+    try do
+      File.cd!(project_dir)
+    rescue
+      e in File.Error ->
+        raise ServerError,
+          message: "argumentError",
+          format: Exception.format_banner(:error, e, __STACKTRACE__),
+          variables: %{},
+          send_telemetry: false,
+          show_user: true
+    end
 
     # the startup sequence here is taken from
     # https://github.com/elixir-lang/elixir/blob/v1.14.4/lib/mix/lib/mix/cli.ex#L158
@@ -1683,10 +1727,22 @@ defmodule ElixirLS.Debugger.Server do
     # make sure ANSI is disabled
     Application.put_env(:elixir, :ansi_enabled, false)
 
-    unless is_list(task_args) and "--no-compile" in task_args do
-      case Mix.Task.run("compile", ["--ignore-module-conflict"]) do
-        {:error, reason} ->
-          raise reason
+    unless "--no-compile" in task_args do
+      case Mix.Task.run("compile", ["--ignore-module-conflict", "--return-errors"]) do
+        {:error, diagnostics} ->
+          message =
+            diagnostics
+            |> Enum.filter(fn %Mix.Task.Compiler.Diagnostic{} = diag ->
+              diag.severity == :error
+            end)
+            |> Enum.map_join("\n", fn %Mix.Task.Compiler.Diagnostic{} = diag -> diag.message end)
+
+          raise ServerError,
+            message: "launchError",
+            format: message,
+            variables: %{},
+            send_telemetry: false,
+            show_user: true
 
         _ ->
           :ok
@@ -1703,6 +1759,16 @@ defmodule ElixirLS.Debugger.Server do
       config
       |> Map.get("excludeModules", [])
 
+    if not (is_list(exclude_module_names) and Enum.all?(exclude_module_names, &is_binary/1)) do
+      raise ServerError,
+        message: "argumentError",
+        format:
+          "invalid `excludeModules` in launch config. Expected list of strings or nil, got #{inspect(exclude_module_names)}",
+        variables: %{},
+        send_telemetry: false,
+        show_user: true
+    end
+
     exclude_module_pattern =
       exclude_module_names
       |> Enum.map(&wildcard_module_name_to_pattern/1)
@@ -1714,17 +1780,57 @@ defmodule ElixirLS.Debugger.Server do
         auto_interpret_modules(Mix.Project.build_path(), exclude_module_pattern)
       end
 
-      if required_files = config["requireFiles"], do: require_files(required_files)
+      required_files = Map.get(config, "requireFiles", [])
 
-      if interpret_modules_patterns = config["debugInterpretModulesPatterns"] do
-        interpret_specified_modules(interpret_modules_patterns, exclude_module_pattern)
+      if not (is_list(required_files) and Enum.all?(required_files, &is_binary/1)) do
+        raise ServerError,
+          message: "argumentError",
+          format:
+            "invalid `requireFiles` in launch config. Expected list of strings or nil, got #{inspect(required_files)}",
+          variables: %{},
+          send_telemetry: false,
+          show_user: true
       end
+
+      require_files(required_files)
+
+      interpret_modules_patterns = Map.get(config, "debugInterpretModulesPatterns", [])
+
+      if not (is_list(interpret_modules_patterns) and
+                Enum.all?(interpret_modules_patterns, &is_binary/1)) do
+        raise ServerError,
+          message: "argumentError",
+          format:
+            "invalid `debugInterpretModulesPatterns` in launch config. Expected list of strings or nil, got #{inspect(interpret_modules_patterns)}",
+          variables: %{},
+          send_telemetry: false,
+          show_user: true
+      end
+
+      interpret_specified_modules(interpret_modules_patterns, exclude_module_pattern)
     else
       Output.debugger_console("Running without debugging")
     end
 
     updated_config = Map.merge(config, %{"task" => task, "taskArgs" => task_args})
     send(server, {:ok, updated_config})
+  rescue
+    e in [
+      Mix.Error,
+      Mix.NoProjectError,
+      Mix.ElixirVersionError,
+      Mix.InvalidTaskError,
+      Mix.NoTaskError,
+      CompileError,
+      SyntaxError,
+      TokenMissingError
+    ] ->
+      raise ServerError,
+        message: "launchError",
+        format: Exception.format_banner(:error, e, __STACKTRACE__),
+        variables: %{},
+        send_telemetry: false,
+        show_user: true
   end
 
   defp set_env_vars(env) when is_map(env) do
@@ -1736,9 +1842,13 @@ defmodule ElixirLS.Debugger.Server do
           "Cannot set environment variables to #{inspect(env)}: #{Exception.message(e)}"
         )
 
-        Output.debugger_important(
-          "Invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}."
-        )
+        raise ServerError,
+          message: "argumentError",
+          format:
+            "invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}",
+          variables: %{},
+          send_telemetry: false,
+          show_user: true
     end
 
     :ok
@@ -1746,17 +1856,29 @@ defmodule ElixirLS.Debugger.Server do
 
   defp set_env_vars(env) when is_nil(env), do: :ok
 
+  defp set_env_vars(env) do
+    raise ServerError,
+      message: "argumentError",
+      format:
+        "invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}",
+      variables: %{},
+      send_telemetry: false,
+      show_user: true
+  end
+
   defp set_stack_trace_mode("all"), do: :int.stack_trace(:all)
   defp set_stack_trace_mode("no_tail"), do: :int.stack_trace(:no_tail)
   defp set_stack_trace_mode("false"), do: :int.stack_trace(false)
   defp set_stack_trace_mode(false), do: :int.stack_trace(false)
   defp set_stack_trace_mode(nil), do: nil
 
-  defp set_stack_trace_mode(_) do
+  defp set_stack_trace_mode(mode) do
     raise ServerError,
       message: "argumentError",
-      format: "stackTraceMode must be `all`, `no_tail`, or `false`",
+      format:
+        "invalid `stackTraceMode` in launch configuration. Must be `all`, `no_tail` or `false`, got #{inspect(mode)}",
       variables: %{},
+      send_telemetry: false,
       show_user: true
   end
 
@@ -1861,9 +1983,11 @@ defmodule ElixirLS.Debugger.Server do
   # files to load via the launch configuration. They must be in the correct order (for example,
   # test helpers before tests). We save the .beam files to a temporary folder which we add to the
   # code path.
+  defp require_files([]), do: :ok
+
   defp require_files(required_files) do
-    {:ok, _} = File.rm_rf(@temp_beam_dir)
-    :ok = File.mkdir_p(@temp_beam_dir)
+    File.rm_rf!(@temp_beam_dir)
+    File.mkdir_p!(@temp_beam_dir)
     true = Code.append_path(Path.expand(@temp_beam_dir))
 
     for path <- required_files,
@@ -1873,6 +1997,8 @@ defmodule ElixirLS.Debugger.Server do
         {module, beam_bin} <- modules,
         do: save_and_reload(module, beam_bin)
   end
+
+  defp interpret_specified_modules([], _exclude_module_pattern), do: :ok
 
   defp interpret_specified_modules(file_patterns, exclude_module_pattern) do
     regexes =
@@ -1886,6 +2012,7 @@ defmodule ElixirLS.Debugger.Server do
               message: "argumentError",
               format: "Unable to compile file pattern {pattern} into a regex: {error}",
               variables: %{"pattern" => inspect(pattern), "error" => inspect(error)},
+              send_telemetry: false,
               show_user: true
         end
       end)

@@ -482,7 +482,7 @@ defmodule ElixirLS.Debugger.ServerTest do
           2,
           "launch",
           "launchError",
-          "Launch request failed with reason" <> _,
+          "** (Mix.NoTaskError) The task \"ru/n\" could not be found" <> _,
           %{},
           _,
           _
@@ -491,14 +491,6 @@ defmodule ElixirLS.Debugger.ServerTest do
       )
 
       refute_receive(event(_, "initialized", %{}))
-
-      assert_receive event(_, "output", %{
-                       "category" => "console",
-                       "output" =>
-                         "Launch request failed with reason\nan exception was raised:\n    ** (Mix.NoTaskError)" <>
-                           _
-                     }),
-                     3000
 
       assert_receive(
         event(_, "exited", %{

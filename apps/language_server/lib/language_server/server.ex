@@ -326,6 +326,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
         Logger.error(message)
         JsonRpc.show_message(:error, message)
+        Process.sleep(2000)
+        System.halt(1)
     end
 
     state =
@@ -1350,7 +1352,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
                   Logger.error(message)
                   JsonRpc.show_message(:error, message)
-                  {nil, nil}
+                  Process.sleep(2000)
+                  System.halt(1)
               end
           end
 
@@ -1596,6 +1599,42 @@ defmodule ElixirLS.LanguageServer.Server do
       Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) and
         Map.get(settings, "dialyzerEnabled", true)
 
+    if enable_dialyzer do
+      dialyzer_warn_opts = Map.get(settings, "dialyzerWarnOpts", [])
+
+      if not (is_list(dialyzer_warn_opts) and Enum.all?(dialyzer_warn_opts, &is_binary/1)) do
+        Logger.error("Invalid `dialyzerWarnOpts` #{inspect(dialyzer_warn_opts)}")
+
+        JsonRpc.show_message(
+          :error,
+          "Invalid `dialyzerWarnOpts` in configuration. Expected list of strings or nil, got #{inspect(dialyzer_warn_opts)}."
+        )
+
+        Process.sleep(2000)
+        System.halt(1)
+      end
+
+      dialyzer_formats = [
+        "dialyzer",
+        "dialyxir_short",
+        "dialyxir_long"
+      ]
+
+      dialyzer_format = Map.get(settings, "dialyzerFormat", "dialyxir_long")
+
+      if dialyzer_format not in dialyzer_formats do
+        Logger.error("Invalid `dialyzerFormat` #{inspect(dialyzer_format)}")
+
+        JsonRpc.show_message(
+          :error,
+          "Invalid `dialyzerFormat` in configuration. Expected one of #{Enum.join(dialyzer_formats, ", ")} or nil, got #{inspect(dialyzer_format)}."
+        )
+
+        Process.sleep(2000)
+        System.halt(1)
+      end
+    end
+
     env_vars = Map.get(settings, "envVariables")
     mix_env = Map.get(settings, "mixEnv")
     mix_target = Map.get(settings, "mixTarget")
@@ -1656,6 +1695,18 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp add_watched_extensions(server_instance_id, exts) when is_list(exts) do
+    if not (is_list(exts) and Enum.all?(exts, &match?("." <> _, &1))) do
+      Logger.error("Invalid `additionalWatchedExtensions`: #{inspect(exts)}")
+
+      JsonRpc.show_message(
+        :error,
+        "Invalid `additionalWatchedExtensions` in configuration. Expected list of extensions starting with `.` or nil, got #{inspect(exts)}."
+      )
+
+      Process.sleep(2000)
+      System.halt(1)
+    end
+
     case JsonRpc.register_capability_request(
            server_instance_id,
            "workspace/didChangeWatchedFiles",
@@ -1740,6 +1791,9 @@ defmodule ElixirLS.LanguageServer.Server do
             :error,
             "Invalid `envVariables` in configuration. Expected a map with string key value pairs, got #{inspect(env)}."
           )
+
+          Process.sleep(2000)
+          System.halt(1)
       end
     else
       JsonRpc.show_message(
@@ -1774,9 +1828,22 @@ defmodule ElixirLS.LanguageServer.Server do
     prev_env = state.mix_env
 
     if is_nil(prev_env) or env == prev_env do
-      System.put_env("MIX_ENV", env)
-      Mix.env(String.to_atom(env))
-      %{state | mix_env: env}
+      try do
+        System.put_env("MIX_ENV", env)
+        Mix.env(String.to_atom(env))
+        %{state | mix_env: env}
+      rescue
+        e ->
+          Logger.error("Cannot set mix env to #{inspect(env)}: #{Exception.message(e)}")
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `mixEnv` in configuration. Expected a string or nil, got #{inspect(env)}."
+          )
+
+          Process.sleep(2000)
+          System.halt(1)
+      end
     else
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
 
@@ -1804,9 +1871,22 @@ defmodule ElixirLS.LanguageServer.Server do
     prev_target = state.mix_target
 
     if is_nil(prev_target) or target == prev_target do
-      System.put_env("MIX_TARGET", target)
-      Mix.target(String.to_atom(target))
-      %{state | mix_target: target}
+      try do
+        System.put_env("MIX_TARGET", target)
+        Mix.target(String.to_atom(target))
+        %{state | mix_target: target}
+      rescue
+        e ->
+          Logger.error("Cannot set mix target to #{inspect(target)}: #{Exception.message(e)}")
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `mixTarget` in configuration. Expected a string or nil, got #{inspect(target)}."
+          )
+
+          Process.sleep(2000)
+          System.halt(1)
+      end
     else
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
 
@@ -1827,22 +1907,36 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_project_dir(
          %__MODULE__{project_dir: prev_project_dir, root_uri: root_uri} = state,
-         project_dir
+         project_dir_config
        )
        when is_binary(root_uri) do
     root_dir = SourceFile.Path.absolute_from_uri(root_uri)
 
     project_dir =
-      if is_binary(project_dir) do
-        SourceFile.Path.absname(Path.join(root_dir, project_dir))
+      if is_binary(project_dir_config) do
+        SourceFile.Path.absname(Path.join(root_dir, project_dir_config))
       else
-        root_dir
+        if is_nil(project_dir_config) do
+          root_dir
+        else
+          Logger.error("Invalid `projectDir`: #{inspect(project_dir_config)}")
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `projectDir` in configuration. Expected a string or nil, got #{inspect(project_dir_config)}."
+          )
+
+          Process.sleep(2000)
+          System.halt(1)
+        end
       end
 
     cond do
       not File.dir?(project_dir) ->
+        Logger.error("Project directory #{project_dir} does not exist")
         JsonRpc.show_message(:error, "Project directory #{project_dir} does not exist")
-        state
+        Process.sleep(2000)
+        System.halt(1)
 
       is_nil(prev_project_dir) ->
         with :ok <- File.cd(project_dir),
@@ -1854,13 +1948,16 @@ defmodule ElixirLS.LanguageServer.Server do
           }
         else
           {:error, reason} ->
+            Logger.error("Unable to change directory into #{project_dir}: #{inspect(reason)}")
+
             JsonRpc.show_message(
               :error,
               "Unable to change directory into #{project_dir}: #{inspect(reason)}. " <>
                 "Please make sure the directory exists and you have necessary permissions"
             )
 
-            state
+            Process.sleep(2000)
+            System.halt(1)
         end
 
       prev_project_dir != project_dir ->
@@ -1912,8 +2009,6 @@ defmodule ElixirLS.LanguageServer.Server do
 
         Process.sleep(2000)
         System.halt(1)
-
-        state
     end
   end
 
