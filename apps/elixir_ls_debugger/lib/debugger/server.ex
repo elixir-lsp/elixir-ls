@@ -427,10 +427,8 @@ defmodule ElixirLS.Debugger.Server do
           request(_, command) ->
             raise ServerError,
               message: "invalidRequest",
-              format: "Debugger request {command} was not expected",
-              variables: %{
-                "command" => command
-              }
+              format: "Debugger request #{command} was not expected",
+              variables: %{}
         end
       else
         state =
@@ -658,10 +656,8 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(initialize_req(_, _client_info), _state = %__MODULE__{}) do
     raise ServerError,
       message: "invalidRequest",
-      format: "Debugger request {command} was not expected",
-      variables: %{
-        "command" => "initialize"
-      }
+      format: "Debugger request #{command} was not expected",
+      variables: %{}
   end
 
   defp handle_request(cancel_req(_, args), %__MODULE__{requests: requests} = state) do
@@ -697,7 +693,8 @@ defmodule ElixirLS.Debugger.Server do
           format: "Request or progress {reguestOrProgressId} cannot be cancelled",
           variables: %{
             "reguestOrProgressId" => inspect(request_or_progress_id)
-          }
+          },
+          send_telemetry: false
       end
 
     state = %{
@@ -749,22 +746,30 @@ defmodule ElixirLS.Debugger.Server do
           config
 
         {:DOWN, ^ref, :process, _pid, reason} ->
-          if reason != :normal do
-            message = "Launch request failed with reason\n" <> Exception.format_exit(reason)
+          case reason do
+            :normal ->
+              :ok
 
-            Output.debugger_console(message)
+            :shutdown ->
+              :ok
 
-            exit_code = 1
-            Output.send_event("exited", %{"exitCode" => exit_code})
-            Output.send_event("terminated", %{"restart" => false})
+            {:shutdown, _} ->
+              :ok
 
-            raise ServerError,
-              message: "launchError",
-              format: message,
-              variables: %{},
-              show_user: true
-          else
-            raise "exit reason #{inspect(reason)} was not expected"
+            _other ->
+              message = "Launch request failed with reason\n" <> Exception.format_exit(reason)
+
+              Output.debugger_console(message)
+
+              exit_code = 1
+              Output.send_event("exited", %{"exitCode" => exit_code})
+              Output.send_event("terminated", %{"restart" => false})
+
+              raise ServerError,
+                message: "launchError",
+                format: message,
+                variables: %{},
+                show_user: true
           end
       end
 
@@ -1138,7 +1143,8 @@ defmodule ElixirLS.Debugger.Server do
             format: "frameId not found: {frameId}",
             variables: %{
               "frameId" => inspect(frame_id)
-            }
+            },
+            send_telemetry: false
       end
 
     {%{"scopes" => scopes}, state}
@@ -1319,10 +1325,9 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(request(_, command), %__MODULE__{}) when is_binary(command) do
     raise ServerError,
       message: "notSupported",
-      format: "Debugger request {command} is currently not supported",
-      variables: %{
-        "command" => command
-      }
+      format: "Debugger request #{command} is currently not supported",
+      variables: %{},
+      show_user: true
   end
 
   defp maybe_continue_other_processes(state, %{"singleThread" => true}) do
@@ -1424,7 +1429,8 @@ defmodule ElixirLS.Debugger.Server do
             format: "pid no longer paused: {pid}",
             variables: %{
               "pid" => inspect(pid)
-            }
+            },
+            send_telemetry: false
       end
     end)
     |> Enum.reverse()
@@ -1514,7 +1520,8 @@ defmodule ElixirLS.Debugger.Server do
         raise ServerError,
           message: "argumentError",
           format: "Unable to find frame {frameId}",
-          variables: %{"frameId" => frame_id}
+          variables: %{"frameId" => frame_id},
+          send_telemetry: false
     end
   end
 
@@ -1535,7 +1542,8 @@ defmodule ElixirLS.Debugger.Server do
           format: "variablesReference not found: {variablesReference}",
           variables: %{
             "variablesReference" => inspect(var_id)
-          }
+          },
+          send_telemetry: false
 
       other ->
         other
