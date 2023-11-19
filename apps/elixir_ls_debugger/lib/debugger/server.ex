@@ -1902,7 +1902,8 @@ defmodule ElixirLS.Debugger.Server do
 
   defp save_and_reload(module, beam_bin) do
     :ok = File.write(Path.join(@temp_beam_dir, to_string(module) <> ".beam"), beam_bin)
-    true = :code.delete(module)
+    :code.purge(module)
+    :code.delete(module)
     :ok = interpret(module)
   end
 
