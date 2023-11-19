@@ -157,9 +157,11 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
         Logger.error("Terminating #{__MODULE__}: #{message}")
 
-        unless Application.get_env(:language_server, :test_mode) do
+        unless :persistent_term.get(:language_server_test_mode, false) do
           Process.sleep(2000)
           System.halt(1)
+        else
+          IO.warn("Terminating #{__MODULE__}: #{message}")
         end
     end
   end
@@ -243,9 +245,11 @@ defmodule ElixirLS.LanguageServer.Tracer do
         %{}
       )
 
-      unless Application.get_env(:language_server, :test_mode) do
+      unless :persistent_term.get(:language_server_test_mode, false) do
         Process.sleep(2000)
         System.halt(1)
+      else
+        IO.warn("Unable to init tracer table #{table} in directory #{project_dir}: #{error_msg}")
       end
   end
 

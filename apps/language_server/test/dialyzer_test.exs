@@ -60,110 +60,110 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      # capture_log(fn ->
+      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
-        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
-        assert publish_diagnostics_notif(^file_a, [
-                 %{
-                   "message" => error_message1,
-                   "range" => %{
-                     "end" => %{"character" => 2, "line" => 1},
-                     "start" => %{"character" => 2, "line" => 1}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
+      assert publish_diagnostics_notif(^file_a, [
+               %{
+                 "message" => error_message1,
+                 "range" => %{
+                   "end" => %{"character" => 2, "line" => 1},
+                   "start" => %{"character" => 2, "line" => 1}
                  },
-                 %{
-                   "message" => error_message2,
-                   "range" => %{
-                     "end" => %{"character" => 4, "line" => 2},
-                     "start" => %{"character" => 4, "line" => 2}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
-                 }
-               ]) = message
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               },
+               %{
+                 "message" => error_message2,
+                 "range" => %{
+                   "end" => %{"character" => 4, "line" => 2},
+                   "start" => %{"character" => 4, "line" => 2}
+                 },
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               }
+             ]) = message
 
-        assert error_message1 == "Function fun/0 has no local return."
+      assert error_message1 == "Function fun/0 has no local return."
 
-        assert error_message2 ==
-                 "The pattern can never match the type.\n\nPattern:\n:ok\n\nType:\n:error\n"
+      assert error_message2 ==
+               "The pattern can never match the type.\n\nPattern:\n:ok\n\nType:\n:error\n"
 
-        # Fix file B. It should recompile and re-analyze A and B only
-        b_text = """
-        defmodule B do
-          def fun do
-            :ok
-          end
+      # Fix file B. It should recompile and re-analyze A and B only
+      b_text = """
+      defmodule B do
+        def fun do
+          :ok
         end
-        """
+      end
+      """
 
-        b_uri = SourceFile.Path.to_uri("lib/b.ex")
-        Server.receive_packet(server, did_open(b_uri, "elixir", 1, b_text))
-        Process.sleep(1500)
-        File.write!("lib/b.ex", b_text)
+      b_uri = SourceFile.Path.to_uri("lib/b.ex")
+      Server.receive_packet(server, did_open(b_uri, "elixir", 1, b_text))
+      Process.sleep(1500)
+      File.write!("lib/b.ex", b_text)
 
-        Server.receive_packet(server, did_save(b_uri))
+      Server.receive_packet(server, did_save(b_uri))
 
-        assert_receive publish_diagnostics_notif(^file_a, []), 20000
+      assert_receive publish_diagnostics_notif(^file_a, []), 20000
 
-        assert_receive notification("window/logMessage", %{
-                         "message" => "[ElixirLS Dialyzer] Analyzing 2 modules: [A, B]"
-                       }),
-                       40000
+      assert_receive notification("window/logMessage", %{
+                       "message" => "[ElixirLS Dialyzer] Analyzing 2 modules: [A, B]"
+                     }),
+                     40000
 
-        wait_until_compiled(server)
-      end)
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
   @tag slow: true, fixture: true
   test "only analyzes the changed files", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      # capture_log(fn ->
+      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
 
-        assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20_000
+      assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20_000
 
-        c_text = """
-        defmodule C do
-        end
-        """
+      c_text = """
+      defmodule C do
+      end
+      """
 
-        c_uri = SourceFile.Path.to_uri("lib/c.ex")
+      c_uri = SourceFile.Path.to_uri("lib/c.ex")
 
-        assert_receive notification("window/logMessage", %{
-                         "message" => "[ElixirLS Dialyzer] Found " <> _
-                       })
+      assert_receive notification("window/logMessage", %{
+                       "message" => "[ElixirLS Dialyzer] Found " <> _
+                     })
 
-        assert_receive notification("window/logMessage", %{
-                         "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
-                       }),
-                       3_000
+      assert_receive notification("window/logMessage", %{
+                       "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
+                     }),
+                     3_000
 
-        Server.receive_packet(server, did_open(c_uri, "elixir", 1, c_text))
+      Server.receive_packet(server, did_open(c_uri, "elixir", 1, c_text))
 
-        # The dialyzer process checks a second back since mtime only has second
-        # granularity, so we need to wait a second.
+      # The dialyzer process checks a second back since mtime only has second
+      # granularity, so we need to wait a second.
 
-        File.write!("lib/c.ex", c_text)
-        Process.sleep(1_500)
-        Server.receive_packet(server, did_save(c_uri))
+      File.write!("lib/c.ex", c_text)
+      Process.sleep(1_500)
+      Server.receive_packet(server, did_save(c_uri))
 
-        assert_receive notification("window/logMessage", %{
-                         "message" => "[ElixirLS Dialyzer] Analyzing 1 modules: [C]"
-                       }),
-                       3_000
+      assert_receive notification("window/logMessage", %{
+                       "message" => "[ElixirLS Dialyzer] Analyzing 1 modules: [C]"
+                     }),
+                     3_000
 
-        assert_receive notification("window/logMessage", %{
-                         "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
-                       }),
-                       3_000
+      assert_receive notification("window/logMessage", %{
+                       "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
+                     }),
+                     3_000
 
-        wait_until_compiled(server)
-      end)
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
@@ -172,46 +172,48 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      # capture_log(fn ->
+      IO.warn("init")
+      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      IO.warn("init done")
 
-        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
-        assert publish_diagnostics_notif(^file_a, [
-                 %{
-                   "message" => error_message1,
-                   "range" => %{
-                     "end" => %{"character" => 2, "line" => 1},
-                     "start" => %{"character" => 2, "line" => 1}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
+      assert publish_diagnostics_notif(^file_a, [
+               %{
+                 "message" => error_message1,
+                 "range" => %{
+                   "end" => %{"character" => 2, "line" => 1},
+                   "start" => %{"character" => 2, "line" => 1}
                  },
-                 %{
-                   "message" => error_message2,
-                   "range" => %{
-                     "end" => %{"character" => 4, "line" => 2},
-                     "start" => %{"character" => 4, "line" => 2}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
-                 }
-               ]) = message
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               },
+               %{
+                 "message" => error_message2,
+                 "range" => %{
+                   "end" => %{"character" => 4, "line" => 2},
+                   "start" => %{"character" => 4, "line" => 2}
+                 },
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               }
+             ]) = message
 
-        assert error_message1 == "Function fun/0 has no local return."
+      assert error_message1 == "Function fun/0 has no local return."
 
-        assert error_message2 == """
-               The pattern can never match the type.
+      assert error_message2 == """
+             The pattern can never match the type.
 
-               Pattern:
-               :ok
+             Pattern:
+             :ok
 
-               Type:
-               :error
-               """
+             Type:
+             :error
+             """
 
-        wait_until_compiled(server)
-      end)
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
@@ -220,36 +222,36 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
+      # capture_log(fn ->
+      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
 
-        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
-        assert publish_diagnostics_notif(^file_a, [
-                 %{
-                   "message" => error_message1,
-                   "range" => %{
-                     "end" => %{"character" => 2, "line" => 1},
-                     "start" => %{"character" => 2, "line" => 1}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
+      assert publish_diagnostics_notif(^file_a, [
+               %{
+                 "message" => error_message1,
+                 "range" => %{
+                   "end" => %{"character" => 2, "line" => 1},
+                   "start" => %{"character" => 2, "line" => 1}
                  },
-                 %{
-                   "message" => error_message2,
-                   "range" => %{
-                     "end" => %{"character" => 4, "line" => 2},
-                     "start" => %{"character" => 4, "line" => 2}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
-                 }
-               ]) = message
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               },
+               %{
+                 "message" => error_message2,
+                 "range" => %{
+                   "end" => %{"character" => 4, "line" => 2},
+                   "start" => %{"character" => 4, "line" => 2}
+                 },
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               }
+             ]) = message
 
-        assert error_message1 == "Function fun/0 has no local return."
-        assert error_message2 == "The pattern can never match the type :error."
-        wait_until_compiled(server)
-      end)
+      assert error_message1 == "Function fun/0 has no local return."
+      assert error_message2 == "The pattern can never match the type :error."
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
@@ -258,37 +260,37 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"})
+      # capture_log(fn ->
+      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"})
 
-        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
-        assert publish_diagnostics_notif(^file_a, [
-                 %{
-                   "message" => error_message1,
-                   "range" => %{
-                     "end" => %{"character" => 2, "line" => 1},
-                     "start" => %{"character" => 2, "line" => 1}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
+      assert publish_diagnostics_notif(^file_a, [
+               %{
+                 "message" => error_message1,
+                 "range" => %{
+                   "end" => %{"character" => 2, "line" => 1},
+                   "start" => %{"character" => 2, "line" => 1}
                  },
-                 %{
-                   "message" => _error_message2,
-                   "range" => %{
-                     "end" => %{"character" => 4, "line" => 2},
-                     "start" => %{"character" => 4, "line" => 2}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
-                 }
-               ]) = message
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               },
+               %{
+                 "message" => _error_message2,
+                 "range" => %{
+                   "end" => %{"character" => 4, "line" => 2},
+                   "start" => %{"character" => 4, "line" => 2}
+                 },
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               }
+             ]) = message
 
-        assert error_message1 == "Function 'fun'/0 has no local return"
+      assert error_message1 == "Function 'fun'/0 has no local return"
 
-        # Note: Don't assert on error_messaage 2 because the message is not stable across OTP versions
-        wait_until_compiled(server)
-      end)
+      # Note: Don't assert on error_messaage 2 because the message is not stable across OTP versions
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
@@ -297,36 +299,36 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "umbrella_dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("apps/app1/lib/app1.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
+      # capture_log(fn ->
+      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
 
-        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
-        assert publish_diagnostics_notif(^file_a, [
-                 %{
-                   "message" => error_message1,
-                   "range" => %{
-                     "end" => %{"character" => 2, "line" => 1},
-                     "start" => %{"character" => 2, "line" => 1}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
+      assert publish_diagnostics_notif(^file_a, [
+               %{
+                 "message" => error_message1,
+                 "range" => %{
+                   "end" => %{"character" => 2, "line" => 1},
+                   "start" => %{"character" => 2, "line" => 1}
                  },
-                 %{
-                   "message" => error_message2,
-                   "range" => %{
-                     "end" => %{"character" => 4, "line" => 2},
-                     "start" => %{"character" => 4, "line" => 2}
-                   },
-                   "severity" => 2,
-                   "source" => "ElixirLS Dialyzer"
-                 }
-               ]) = message
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               },
+               %{
+                 "message" => error_message2,
+                 "range" => %{
+                   "end" => %{"character" => 4, "line" => 2},
+                   "start" => %{"character" => 4, "line" => 2}
+                 },
+                 "severity" => 2,
+                 "source" => "ElixirLS Dialyzer"
+               }
+             ]) = message
 
-        assert error_message1 == "Function check_error/0 has no local return."
-        assert error_message2 == "The pattern can never match the type :error."
-        wait_until_compiled(server)
-      end)
+      assert error_message1 == "Function check_error/0 has no local return."
+      assert error_message2 == "The pattern can never match the type :error."
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
@@ -334,17 +336,17 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{"dialyzerEnabled" => true})
+      # capture_log(fn ->
+      initialize(server, %{"dialyzerEnabled" => true})
 
-        assert_receive publish_diagnostics_notif(^file_a, [_, _]), 20000
+      assert_receive publish_diagnostics_notif(^file_a, [_, _]), 20000
 
-        # Delete file, warning diagnostics should be cleared
-        File.rm("lib/a.ex")
-        Server.receive_packet(server, did_change_watched_files([%{"uri" => file_a, "type" => 3}]))
-        assert_receive publish_diagnostics_notif(^file_a, []), 20000
-        wait_until_compiled(server)
-      end)
+      # Delete file, warning diagnostics should be cleared
+      File.rm("lib/a.ex")
+      Server.receive_packet(server, did_change_watched_files([%{"uri" => file_a, "type" => 3}]))
+      assert_receive publish_diagnostics_notif(^file_a, []), 20000
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
@@ -420,32 +422,32 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{
-          "dialyzerEnabled" => true,
-          "dialyzerFormat" => "dialyxir_long",
-          "suggestSpecs" => false
-        })
+      # capture_log(fn ->
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "suggestSpecs" => false
+      })
 
-        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
-        assert publish_diagnostics_notif(_, _) = message
+      assert publish_diagnostics_notif(_, _) = message
 
-        Server.receive_packet(
-          server,
-          did_open(file_c, "elixir", 2, File.read!(Path.absname("lib/c.ex")))
-        )
+      Server.receive_packet(
+        server,
+        did_open(file_c, "elixir", 2, File.read!(Path.absname("lib/c.ex")))
+      )
 
-        Server.receive_packet(
-          server,
-          code_lens_req(3, file_c)
-        )
+      Server.receive_packet(
+        server,
+        code_lens_req(3, file_c)
+      )
 
-        resp = assert_receive(%{"id" => 3}, 5000)
+      resp = assert_receive(%{"id" => 3}, 5000)
 
-        assert response(3, []) == resp
-        wait_until_compiled(server)
-      end)
+      assert response(3, []) == resp
+      wait_until_compiled(server)
+      # end)
     end)
   end
 
@@ -454,84 +456,84 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
 
-      capture_log(fn ->
-        initialize(server, %{
-          "dialyzerEnabled" => true,
-          "dialyzerFormat" => "dialyxir_long",
-          "suggestSpecs" => true
-        })
+      # capture_log(fn ->
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "suggestSpecs" => true
+      })
 
-        message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
-        assert publish_diagnostics_notif(_, _) = message
+      assert publish_diagnostics_notif(_, _) = message
 
-        Server.receive_packet(
-          server,
-          did_open(file_c, "elixir", 2, File.read!(Path.absname("lib/c.ex")))
-        )
+      Server.receive_packet(
+        server,
+        did_open(file_c, "elixir", 2, File.read!(Path.absname("lib/c.ex")))
+      )
 
-        Server.receive_packet(
-          server,
-          code_lens_req(3, file_c)
-        )
+      Server.receive_packet(
+        server,
+        code_lens_req(3, file_c)
+      )
 
-        resp = assert_receive(%{"id" => 3}, 5000)
+      resp = assert_receive(%{"id" => 3}, 5000)
 
-        assert response(3, [
-                 %{
-                   "command" => %{
-                     "arguments" =>
-                       args = [
-                         %{
-                           "arity" => 0,
-                           "fun" => "myfun",
-                           "line" => 2,
-                           "mod" => "Elixir.C",
-                           "spec" => "myfun() :: 1",
-                           "uri" => ^file_c
-                         }
-                       ],
-                     "command" => command = "spec:" <> _,
-                     "title" => "@spec myfun() :: 1"
-                   },
-                   "range" => %{
-                     "end" => %{"character" => 0, "line" => 1},
-                     "start" => %{"character" => 0, "line" => 1}
-                   }
+      assert response(3, [
+               %{
+                 "command" => %{
+                   "arguments" =>
+                     args = [
+                       %{
+                         "arity" => 0,
+                         "fun" => "myfun",
+                         "line" => 2,
+                         "mod" => "Elixir.C",
+                         "spec" => "myfun() :: 1",
+                         "uri" => ^file_c
+                       }
+                     ],
+                   "command" => command = "spec:" <> _,
+                   "title" => "@spec myfun() :: 1"
+                 },
+                 "range" => %{
+                   "end" => %{"character" => 0, "line" => 1},
+                   "start" => %{"character" => 0, "line" => 1}
                  }
-               ]) = resp
+               }
+             ]) = resp
 
-        Server.receive_packet(
-          server,
-          execute_command_req(4, command, args)
-        )
+      Server.receive_packet(
+        server,
+        execute_command_req(4, command, args)
+      )
 
-        assert_receive(%{
-          "id" => id,
-          "method" => "workspace/applyEdit",
-          "params" => %{
-            "edit" => %{
-              "changes" => %{
-                ^file_c => [
-                  %{
-                    "newText" => "  @spec myfun() :: 1\n",
-                    "range" => %{
-                      "end" => %{"character" => 0, "line" => 1},
-                      "start" => %{"character" => 0, "line" => 1}
-                    }
+      assert_receive(%{
+        "id" => id,
+        "method" => "workspace/applyEdit",
+        "params" => %{
+          "edit" => %{
+            "changes" => %{
+              ^file_c => [
+                %{
+                  "newText" => "  @spec myfun() :: 1\n",
+                  "range" => %{
+                    "end" => %{"character" => 0, "line" => 1},
+                    "start" => %{"character" => 0, "line" => 1}
                   }
-                ]
-              }
-            },
-            "label" => "Add @spec to Elixir.C.myfun/0"
-          }
-        })
+                }
+              ]
+            }
+          },
+          "label" => "Add @spec to Elixir.C.myfun/0"
+        }
+      })
 
-        JsonRpc.receive_packet(response(id, %{"applied" => true}))
+      JsonRpc.receive_packet(response(id, %{"applied" => true}))
 
-        assert_receive(%{"id" => 4, "result" => nil}, 5000)
-        wait_until_compiled(server)
-      end)
+      assert_receive(%{"id" => 4, "result" => nil}, 5000)
+      wait_until_compiled(server)
+      # end)
     end)
   end
 end

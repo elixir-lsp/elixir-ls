@@ -32,7 +32,12 @@ defmodule ElixirLS.LanguageServer do
         "ElixirLS has crashed. See Output panel."
       )
 
-      System.halt(1)
+      unless :persistent_term.get(:language_server_test_mode, false) do
+        Process.sleep(2000)
+        System.halt(1)
+      else
+        IO.warn("Application stopping")
+      end
     end
 
     :ok

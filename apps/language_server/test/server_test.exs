@@ -315,71 +315,77 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   end
 
   # TODO fix those flaky tests
-  # describe "exit" do
-  #   test "exit notifications when not initialized", %{server: server} do
-  #     in_fixture(__DIR__, "clean", fn ->
-  #       Process.monitor(server)
-  #       wait_until_compiled(server)
-  #       Server.receive_packet(server, notification("exit"))
-  #       assert_receive({:DOWN, _, :process, ^server, {:exit_code, 1}})
-  #     end)
-  #   end
+  describe "exit" do
+    test "exit notifications when not initialized", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        wait_until_compiled(server)
+        Server.receive_packet(server, notification("exit"))
 
-  #   test "exit notifications after shutdown", %{server: server} do
-  #     in_fixture(__DIR__, "clean", fn ->
-  #       Process.monitor(server)
-  #       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-  #       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-  #       wait_until_compiled(server)
-  #       Server.receive_packet(server, request(2, "shutdown", %{}))
-  #       assert_receive(%{"id" => 2, "result" => nil}, 1000)
-  #       Server.receive_packet(server, notification("exit"))
-  #       assert_receive({:DOWN, _, :process, ^server, {:exit_code, 0}})
-  #     end)
-  #   end
+        assert_receive(%{
+          "method" => "window/logMessage",
+          "params" => %{"message" => "Received exit with code 1"}
+        })
+      end)
+    end
 
-  #   test "returns -32600 InvalidRequest when shutting down", %{server: server} do
-  #     in_fixture(__DIR__, "clean", fn ->
-  #       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-  #       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-  #       wait_until_compiled(server)
-  #       Server.receive_packet(server, request(2, "shutdown", %{}))
-  #       assert_receive(%{"id" => 2, "result" => nil}, 1000)
+    test "exit notifications after shutdown", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(2, "shutdown", %{}))
+        assert_receive(%{"id" => 2, "result" => nil}, 1000)
+        Server.receive_packet(server, notification("exit"))
 
-  #       Server.receive_packet(server, hover_req(1, "file:///file.ex", 2, 17))
+        assert_receive(%{
+          "method" => "window/logMessage",
+          "params" => %{"message" => "Received exit with code 0"}
+        })
+      end)
+    end
 
-  #       assert_receive(
-  #         %{
-  #           "id" => 1,
-  #           "error" => %{
-  #             "code" => -32600
-  #           }
-  #         },
-  #         1000
-  #       )
-  #     end)
-  #   end
+    test "returns -32600 InvalidRequest when shutting down", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(2, "shutdown", %{}))
+        assert_receive(%{"id" => 2, "result" => nil}, 1000)
 
-  #   test "skips notifications when not shutting down", %{server: server} do
-  #     in_fixture(__DIR__, "clean", fn ->
-  #       Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-  #       assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-  #       wait_until_compiled(server)
-  #       Server.receive_packet(server, request(2, "shutdown", %{}))
-  #       assert_receive(%{"id" => 2, "result" => nil}, 1000)
+        Server.receive_packet(server, hover_req(1, "file:///file.ex", 2, 17))
 
-  #       uri = "file:///file.ex"
-  #       code = ~S(
-  #       defmodule MyModule do
-  #         use GenServer
-  #       end
-  #     )
+        assert_receive(
+          %{
+            "id" => 1,
+            "error" => %{
+              "code" => -32600
+            }
+          },
+          1000
+        )
+      end)
+    end
 
-  #       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-  #       assert :sys.get_state(server).source_files == %{}
-  #     end)
-  #   end
-  # end
+    test "skips notifications when not shutting down", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(2, "shutdown", %{}))
+        assert_receive(%{"id" => 2, "result" => nil}, 1000)
+
+        uri = "file:///file.ex"
+        code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        assert :sys.get_state(server).source_files == %{}
+      end)
+    end
+  end
 
   describe "not matched messages" do
     test "not supported $/ notifications are skipped", %{server: server} do

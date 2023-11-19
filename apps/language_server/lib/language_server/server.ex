@@ -155,9 +155,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
         Logger.error("Terminating #{__MODULE__}: #{message}")
 
-        unless Application.get_env(:language_server, :test_mode) do
+        unless :persistent_term.get(:language_server_test_mode, false) do
           Process.sleep(2000)
           System.halt(1)
+        else
+          IO.warn("Terminating #{__MODULE__}: #{message}")
         end
     end
 
@@ -326,8 +328,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
         Logger.error(message)
         JsonRpc.show_message(:error, message)
-        Process.sleep(2000)
-        System.halt(1)
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn(message)
+        end
     end
 
     state =
@@ -545,10 +552,10 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(notification("exit"), state = %__MODULE__{}) do
     code = if state.received_shutdown?, do: 0, else: 1
 
-    unless Application.get_env(:language_server, :test_mode) do
+    unless :persistent_term.get(:language_server_test_mode, false) do
       System.stop(code)
     else
-      Process.exit(self(), {:exit_code, code})
+      Logger.info("Received exit with code #{code}")
     end
 
     state
@@ -1358,8 +1365,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
                   Logger.error(message)
                   JsonRpc.show_message(:error, message)
-                  Process.sleep(2000)
-                  System.halt(1)
+
+                  unless :persistent_term.get(:language_server_test_mode, false) do
+                    Process.sleep(2000)
+                    System.halt(1)
+                  else
+                    IO.warn(message)
+                  end
               end
           end
 
@@ -1618,8 +1630,12 @@ defmodule ElixirLS.LanguageServer.Server do
           "Invalid `dialyzerWarnOpts` in configuration. Expected list of strings or nil, got #{inspect(dialyzer_warn_opts)}."
         )
 
-        Process.sleep(2000)
-        System.halt(1)
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Invalid `dialyzerWarnOpts` #{inspect(dialyzer_warn_opts)}")
+        end
       end
 
       dialyzer_formats = [
@@ -1638,8 +1654,12 @@ defmodule ElixirLS.LanguageServer.Server do
           "Invalid `dialyzerFormat` in configuration. Expected one of #{Enum.join(dialyzer_formats, ", ")} or nil, got #{inspect(dialyzer_format)}."
         )
 
-        Process.sleep(2000)
-        System.halt(1)
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Invalid `dialyzerFormat` #{inspect(dialyzer_format)}")
+        end
       end
     end
 
@@ -1711,8 +1731,12 @@ defmodule ElixirLS.LanguageServer.Server do
         "Invalid `additionalWatchedExtensions` in configuration. Expected list of extensions starting with `.` or nil, got #{inspect(exts)}."
       )
 
-      Process.sleep(2000)
-      System.halt(1)
+      unless :persistent_term.get(:language_server_test_mode, false) do
+        Process.sleep(2000)
+        System.halt(1)
+      else
+        IO.warn("Invalid `additionalWatchedExtensions`: #{inspect(exts)}")
+      end
     end
 
     case JsonRpc.register_capability_request(
@@ -1800,8 +1824,14 @@ defmodule ElixirLS.LanguageServer.Server do
             "Invalid `envVariables` in configuration. Expected a map with string key value pairs, got #{inspect(env)}."
           )
 
-          Process.sleep(2000)
-          System.halt(1)
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn(
+              "Cannot set environment variables to #{inspect(env)}: #{Exception.message(e)}"
+            )
+          end
       end
     else
       JsonRpc.show_message(
@@ -1849,8 +1879,12 @@ defmodule ElixirLS.LanguageServer.Server do
             "Invalid `mixEnv` in configuration. Expected a string or nil, got #{inspect(env)}."
           )
 
-          Process.sleep(2000)
-          System.halt(1)
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn("Cannot set mix env to #{inspect(env)}: #{Exception.message(e)}")
+          end
       end
     else
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
@@ -1892,8 +1926,12 @@ defmodule ElixirLS.LanguageServer.Server do
             "Invalid `mixTarget` in configuration. Expected a string or nil, got #{inspect(target)}."
           )
 
-          Process.sleep(2000)
-          System.halt(1)
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn("Cannot set mix target to #{inspect(target)}: #{Exception.message(e)}")
+          end
       end
     else
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
@@ -1934,8 +1972,12 @@ defmodule ElixirLS.LanguageServer.Server do
             "Invalid `projectDir` in configuration. Expected a string or nil, got #{inspect(project_dir_config)}."
           )
 
-          Process.sleep(2000)
-          System.halt(1)
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn("Invalid `projectDir`: #{inspect(project_dir_config)}")
+          end
         end
       end
 
@@ -1943,8 +1985,13 @@ defmodule ElixirLS.LanguageServer.Server do
       not File.dir?(project_dir) ->
         Logger.error("Project directory #{project_dir} does not exist")
         JsonRpc.show_message(:error, "Project directory #{project_dir} does not exist")
-        Process.sleep(2000)
-        System.halt(1)
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Project directory #{project_dir} does not exist")
+        end
 
       is_nil(prev_project_dir) ->
         with :ok <- File.cd(project_dir),
@@ -1964,8 +2011,12 @@ defmodule ElixirLS.LanguageServer.Server do
                 "Please make sure the directory exists and you have necessary permissions"
             )
 
-            Process.sleep(2000)
-            System.halt(1)
+            unless :persistent_term.get(:language_server_test_mode, false) do
+              Process.sleep(2000)
+              System.halt(1)
+            else
+              IO.warn("Unable to change directory into #{project_dir}: #{inspect(reason)}")
+            end
         end
 
       prev_project_dir != project_dir ->
@@ -2015,8 +2066,12 @@ defmodule ElixirLS.LanguageServer.Server do
           "Cannot create .elixir_ls/.gitignore"
         )
 
-        Process.sleep(2000)
-        System.halt(1)
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
+        end
     end
   end
 
@@ -2062,8 +2117,12 @@ defmodule ElixirLS.LanguageServer.Server do
             message
           )
 
-          Process.sleep(2000)
-          System.halt(1)
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn(message)
+          end
       end
 
       case File.cwd() do
@@ -2092,8 +2151,12 @@ defmodule ElixirLS.LanguageServer.Server do
                   message
                 )
 
-                Process.sleep(2000)
-                System.halt(1)
+                unless :persistent_term.get(:language_server_test_mode, false) do
+                  Process.sleep(2000)
+                  System.halt(1)
+                else
+                  IO.warn(message)
+                end
             end
           else
             message =
@@ -2106,8 +2169,12 @@ defmodule ElixirLS.LanguageServer.Server do
               message
             )
 
-            Process.sleep(2000)
-            System.halt(1)
+            unless :persistent_term.get(:language_server_test_mode, false) do
+              Process.sleep(2000)
+              System.halt(1)
+            else
+              IO.warn(message)
+            end
           end
 
         {:error, reason} ->
@@ -2119,8 +2186,12 @@ defmodule ElixirLS.LanguageServer.Server do
             message
           )
 
-          Process.sleep(2000)
-          System.halt(1)
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn(message)
+          end
       end
     end
   end
@@ -2255,25 +2326,25 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp do_sanity_check(_state) do
     try do
-      unless function_exported?(ElixirSense, :module_info, 1) and
-               :persistent_term.get(:language_server_lib_dir) ==
-                 ElixirLS.LanguageServer.module_info(:compile)[:source] do
-        raise "sanity check failed"
-      end
+      unless :persistent_term.get(:language_server_test_mode, false) do
+        unless function_exported?(ElixirSense, :module_info, 1) and
+                 :persistent_term.get(:language_server_lib_dir) ==
+                   ElixirLS.LanguageServer.module_info(:compile)[:source] do
+          raise "sanity check failed"
+        end
 
-      unless function_exported?(ElixirLS.LanguageServer, :module_info, 1) and
-               :persistent_term.get(:language_server_elixir_sense_lib_dir) ==
-                 ElixirSense.module_info(:compile)[:source] do
-        raise "sanity check failed"
+        unless function_exported?(ElixirLS.LanguageServer, :module_info, 1) and
+                 :persistent_term.get(:language_server_elixir_sense_lib_dir) ==
+                   ElixirSense.module_info(:compile)[:source] do
+          raise "sanity check failed"
+        end
       end
     rescue
       _ ->
         Logger.error("Sanity check failed. ElixirLS needs to restart.")
 
-        unless Application.get_env(:language_server, :test_mode) do
-          Process.sleep(2000)
-          System.halt(1)
-        end
+        Process.sleep(2000)
+        System.halt(1)
     end
   end
 end

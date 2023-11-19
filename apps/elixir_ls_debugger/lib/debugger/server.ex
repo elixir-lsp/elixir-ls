@@ -207,7 +207,7 @@ defmodule ElixirLS.Debugger.Server do
 
         Output.debugger_important("Terminating #{__MODULE__}: #{message}")
 
-        unless Application.get_env(:elixir_ls_debugger, :test_mode) do
+        unless :persistent_term.get(:elixir_ls_debugger_test_mode, false) do
           System.stop(1)
         end
     end
@@ -609,7 +609,7 @@ defmodule ElixirLS.Debugger.Server do
   # die right after responding to the request
   @impl GenServer
   def handle_continue(:disconnect, state = %__MODULE__{}) do
-    unless Application.get_env(:elixir_ls_debugger, :test_mode) do
+    unless :persistent_term.get(:elixir_ls_debugger_test_mode, false) do
       Output.debugger_console("Received disconnect request")
       Process.sleep(200)
       System.stop(0)
