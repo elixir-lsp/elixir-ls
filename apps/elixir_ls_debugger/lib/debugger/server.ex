@@ -656,7 +656,7 @@ defmodule ElixirLS.Debugger.Server do
   defp handle_request(initialize_req(_, _client_info), _state = %__MODULE__{}) do
     raise ServerError,
       message: "invalidRequest",
-      format: "Debugger request #{command} was not expected",
+      format: "Debugger request initialize was not expected",
       variables: %{}
   end
 

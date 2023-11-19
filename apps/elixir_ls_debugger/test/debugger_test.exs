@@ -67,8 +67,8 @@ defmodule ElixirLS.Debugger.ServerTest do
             2,
             "initialize",
             "invalidRequest",
-            "Debugger request {command} was not expected",
-            %{"command" => "initialize"},
+            "Debugger request initialize was not expected",
+            _,
             _,
             _
           )
@@ -111,8 +111,8 @@ defmodule ElixirLS.Debugger.ServerTest do
             1,
             "setBreakpoints",
             "invalidRequest",
-            "Debugger request {command} was not expected",
-            %{"command" => "setBreakpoints"},
+            "Debugger request setBreakpoints was not expected",
+            _,
             _,
             _
           )
@@ -797,8 +797,8 @@ defmodule ElixirLS.Debugger.ServerTest do
                        14,
                        "someRequest",
                        "notSupported",
-                       "Debugger request {command} is currently not supported",
-                       %{"command" => "someRequest"},
+                       "Debugger request someRequest is currently not supported",
+                       _,
                        _,
                        _
                      )
