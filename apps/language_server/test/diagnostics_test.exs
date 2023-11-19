@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
-        |> Diagnostics.normalize(root_path)
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
       assert diagnostic.message == """
              (CompileError) some message
@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
-        |> Diagnostics.normalize(root_path)
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
       assert diagnostic.message == """
              (CompileError) some message
@@ -73,7 +73,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
-        |> Diagnostics.normalize(root_path)
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
       assert diagnostic.message == """
              (CompileError) some message
@@ -98,7 +98,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
-        |> Diagnostics.normalize(root_path)
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
       assert diagnostic.message =~ "(CompileError) some message"
       assert diagnostic.file =~ "umbrella/apps/app2/lib/app2.ex"
@@ -117,7 +117,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
-        |> Diagnostics.normalize(root_path)
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
       assert diagnostic.message == """
              (CompileError) lib/non_existing.ex:3: some message
@@ -152,7 +152,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
-        |> Diagnostics.normalize(root_path)
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
       assert diagnostic.position == 13
     end
@@ -172,7 +172,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
-        |> Diagnostics.normalize(root_path)
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
       assert diagnostic.position == 6
     end
