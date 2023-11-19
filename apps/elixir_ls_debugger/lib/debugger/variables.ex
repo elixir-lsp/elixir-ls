@@ -13,6 +13,16 @@ defmodule ElixirLS.Debugger.Variables do
       :named
     else
       :indexed
+
+      try do
+        # this call will raise ArgumentError for improper list, no better way to check it
+        _ = length(var)
+        :indexed
+      rescue
+        ArgumentError ->
+          # improper list has head and tail
+          :named
+      end
     end
   end
 
@@ -36,17 +46,36 @@ defmodule ElixirLS.Debugger.Variables do
 
   def children(var, start, count) when is_list(var) do
     start = start || 0
-    count = count || Enum.count(var)
 
-    sliced =
-      var
-      |> Enum.slice(start, count)
+    try do
+      # this call will raise ArgumentError for improper list, no better way to check it
+      max_count = length(var)
+      count = count || max_count
 
-    if Keyword.keyword?(var) do
-      sliced
-    else
-      sliced
-      |> with_index_as_name(start)
+      sliced =
+        var
+        |> Enum.slice(start, count)
+
+      if Keyword.keyword?(var) do
+        sliced
+      else
+        sliced
+        |> with_index_as_name(start)
+      end
+    rescue
+      ArgumentError ->
+        count = count || 2
+
+        if start == 0 and count >= 1 do
+          [{"hd", hd(var)}]
+        else
+          []
+        end ++
+          if start + count >= 2 do
+            [{"tl", tl(var)}]
+          else
+            []
+          end
     end
   end
 
@@ -107,7 +136,13 @@ defmodule ElixirLS.Debugger.Variables do
   end
 
   def num_children(var) when is_list(var) do
-    Enum.count(var)
+    try do
+      length(var)
+    rescue
+      ArgumentError ->
+        # improper list has head and tail
+        2
+    end
   end
 
   def num_children(var) when is_bitstring(var) do
@@ -167,7 +202,14 @@ defmodule ElixirLS.Debugger.Variables do
     if Keyword.keyword?(var) and var != [] do
       "keyword"
     else
-      "list"
+      try do
+        # this call will raise ArgumentError for improper list, no better way to check it
+        _ = length(var)
+        "list"
+      rescue
+        ArgumentError ->
+          "improper list"
+      end
     end
   end
 

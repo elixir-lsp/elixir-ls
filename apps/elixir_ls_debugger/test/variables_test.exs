@@ -39,6 +39,8 @@ defmodule ElixirLS.Debugger.VariablesTest do
     assert Variables.type([1]) == "list"
     assert Variables.type(~c"asd") == "list"
 
+    assert Variables.type([[] | "data"]) == "improper list"
+
     assert Variables.type(abc: 123) == "keyword"
 
     assert Variables.type(%{}) == "map"
@@ -47,6 +49,8 @@ defmodule ElixirLS.Debugger.VariablesTest do
 
     assert Variables.type(%Date{year: 2022, month: 1, day: 1}) == "%Date{}"
     assert Variables.type(%ArgumentError{}) == "%ArgumentError{}"
+    # TODO MapSet
+    # TODO :array
   end
 
   test "num_children" do
@@ -92,6 +96,8 @@ defmodule ElixirLS.Debugger.VariablesTest do
     assert Variables.num_children([1]) == 1
     assert Variables.num_children(~c"asd") == 3
 
+    assert Variables.num_children([[] | "data"]) == 2
+
     assert Variables.num_children(abc: 123) == 1
 
     assert Variables.num_children(%{}) == 0
@@ -109,6 +115,11 @@ defmodule ElixirLS.Debugger.VariablesTest do
       assert Variables.children([1, 2, 3, 4], 0, 2) == [{"0", 1}, {"1", 2}]
       assert Variables.children([1, 2, 3, 4], 1, 2) == [{"1", 2}, {"2", 3}]
       assert Variables.children(~c"asd", 0, 10) == [{"0", 97}, {"1", 115}, {"2", 100}]
+    end
+
+    test "improper list" do
+      assert Variables.children([1, 2, 3 | "data"], 0, 10) == [{"hd", 1}, {"tl", [2, 3 | "data"]}]
+      assert Variables.children([1, 2, 3 | "data"], 1, 10) == [{"tl", [2, 3 | "data"]}]
     end
 
     test "keyword" do
