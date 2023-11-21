@@ -2465,8 +2465,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
-    assert {:error, :server_error, message, false} = DocumentSymbols.symbols(uri, text, true)
-    assert String.contains?(message, "Cannot parse source file")
+    assert {
+      :ok,
+      [%ElixirLS.LanguageServer.Protocol.DocumentSymbol{name: "A", kind: 2, range: %{"end" => %{"character" => 0, "line" => 5}, "start" => %{"character" => 0, "line" => 0}}, selectionRange: %{"end" => %{"character" => 11, "line" => 0}, "start" => %{"character" => 10, "line" => 0}}, children: [%ElixirLS.LanguageServer.Protocol.DocumentSymbol{name: "def hello", kind: 12, range: %{"end" => %{"character" => 3, "line" => 4}, "start" => %{"character" => 2, "line" => 1}}, selectionRange: %{"end" => %{"character" => 11, "line" => 1}, "start" => %{"character" => 6, "line" => 1}}, children: []}]}]
+    } = DocumentSymbols.symbols(uri, text, true)
   end
 
   test "returns def and defp as a prefix" do

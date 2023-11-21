@@ -49,7 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp list_symbols(src) do
-    case ElixirSense.string_to_quoted(src, 1, @max_parser_errors, line: 1, token_metadata: true) do
+    case ElixirSense.string_to_quoted(src, {1, 1}, @max_parser_errors, line: 1, token_metadata: true) do
       {:ok, quoted_form} -> {:ok, extract_modules(quoted_form) |> Enum.reject(&is_nil/1)}
       {:error, _error} -> {:error, :compilation_error}
     end

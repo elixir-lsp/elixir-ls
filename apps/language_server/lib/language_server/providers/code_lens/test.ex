@@ -158,7 +158,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   defp parse_source(text) do
     buffer_file_metadata =
       text
-      |> Parser.parse_string(true, true, 1)
+      |> Parser.parse_string(true, true, {1, 1})
 
     if buffer_file_metadata.error != nil do
       {:error, buffer_file_metadata}
