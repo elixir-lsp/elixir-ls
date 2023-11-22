@@ -2274,7 +2274,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
           :ok
         rescue
-          e in [EEx.SyntaxError, SyntaxError, TokenMissingError] ->
+          e in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
             message = Exception.message(e)
 
             diagnostic = %Mix.Task.Compiler.Diagnostic{
