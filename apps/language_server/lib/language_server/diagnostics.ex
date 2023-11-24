@@ -2,12 +2,11 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
 
   def normalize(diagnostics, root_path, mixfile) do
-    for diagnostic <- diagnostics do
-      {type, file, position, description, stacktrace} =
+    for %Mix.Task.Compiler.Diagnostic{} = diagnostic <- diagnostics do
+      {type, file, position, stacktrace} =
         extract_message_info(diagnostic.message, root_path)
 
       diagnostic
-      |> update_message(type, description, stacktrace)
       |> maybe_update_file(file, mixfile)
       |> maybe_update_position(type, position, stacktrace)
     end
@@ -26,32 +25,9 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     stacktrace = reversed_stacktrace |> Enum.map(&String.trim/1) |> Enum.reverse()
 
     {type, message_without_type} = split_type_and_message(message)
-    {file, position, description} = split_file_and_description(message_without_type, root_path)
+    {file, position} = get_file_and_position(message_without_type, root_path)
 
-    {type, file, position, description, stacktrace}
-  end
-
-  defp update_message(diagnostic, type, description, stacktrace) do
-    description =
-      if type do
-        "(#{type}) #{description}"
-      else
-        description
-      end
-
-    message =
-      if stacktrace != [] do
-        stacktrace =
-          stacktrace
-          |> Enum.map_join("\n", &"  │ #{&1}")
-          |> String.trim_trailing()
-
-        description <> "\n\n" <> "Stacktrace:\n" <> stacktrace
-      else
-        description
-      end
-
-    Map.put(diagnostic, :message, message)
+    {type, file, position, stacktrace}
   end
 
   defp maybe_update_file(diagnostic, path, mixfile) do
@@ -67,6 +43,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp maybe_update_position(diagnostic, "TokenMissingError", position, stacktrace) do
+    # TODO handle line:char?
     case extract_line_from_missing_hint(diagnostic.message) do
       line when is_integer(line) and line > 0 ->
         %{diagnostic | position: line}
@@ -104,8 +81,17 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end
   end
 
-  defp split_file_and_description(message, root_path) do
-    with {file, line, column, description} <- get_message_parts(message),
+  defp get_file_and_position(message, root_path) do
+    # this regex won't match filenames with spaces but in elixir 1.16 errors we can't be sure where
+    # the file name starts e.g.
+    # invalid syntax found on lib/template.eex:2:5:
+    file_position = case Regex.run(~r/([^\s:]+):(\d+)(:(\d+))?/su, message) do
+      [_, file, line] -> {file, line, ""}
+      [_, file, line, _, column] -> {file, line, column}
+      _ -> nil
+    end
+
+    with {file, line, column} <- file_position,
          {:ok, path} <- file_path(file, root_path) do
       line = String.to_integer(line)
 
@@ -116,17 +102,10 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           true -> {line, String.to_integer(column)}
         end
 
-      {path, position, description}
+      {path, position}
     else
       _ ->
-        {nil, nil, message}
-    end
-  end
-
-  defp get_message_parts(message) do
-    case Regex.run(~r/^(.*?):(\d+)(:(\d+))?: (.*)/su, message) do
-      [_, file, line, _, column, description] -> {file, line, column, description}
-      _ -> nil
+        {nil, nil}
     end
   end
 

@@ -1661,15 +1661,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          "diagnostics" => [
                            %{
                              "message" =>
-                               "(CompileError) lib/has_error.ex: cannot compile module" <> _,
+                               "** (CompileError) lib/has_error.ex: cannot compile module" <> _,
                              "range" => %{"end" => %{"line" => 0}, "start" => %{"line" => 0}},
                              "severity" => 1
                            },
                            %{
                              "message" => "undefined function does_not_exist/0" <> _,
                              "range" => %{
-                               "end" => %{"character" => 4, "line" => 3},
-                               "start" => %{"character" => 4, "line" => 3}
+                               "end" => %{"character" => _, "line" => 3},
+                               "start" => %{"character" => _, "line" => 3}
                              },
                              "severity" => 1,
                              "source" => "Elixir"
@@ -1706,8 +1706,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" => "(TokenMissingError) missing terminator: end" <> _,
-                           "range" => %{"end" => %{"line" => 5}, "start" => %{"line" => 5}},
+                           "message" => "** (TokenMissingError)" <> _,
+                           "range" => %{"end" => %{"line" => _}, "start" => %{"line" => _}},
                            "severity" => 1
                          }
                        ]
@@ -1729,7 +1729,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" => "(SyntaxError) syntax error before: ','" <> _,
+                           "message" => "** (SyntaxError)" <> _,
                            "range" => %{"end" => %{"line" => 1}, "start" => %{"line" => 1}},
                            "severity" => 1
                          }

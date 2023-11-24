@@ -22,19 +22,6 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
         |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
-
-      assert diagnostic.message == """
-             (CompileError) some message
-
-                 Hint: Some hint
-
-             Stacktrace:
-               │ (elixir 1.10.1) lib/macro.ex:304: Macro.pipe/3
-               │ (stdlib 3.7.1) lists.erl:1263: :lists.foldl/3
-               │ (elixir 1.10.1) expanding macro: Kernel.|>/2
-               │ expanding macro: SomeModule.sigil_L/2
-               │ lib/my_app/my_module.ex:10: MyApp.MyModule.render/1\
-             """
     end
 
     test "update file and position if file is present in the message" do
@@ -51,14 +38,33 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
         [build_diagnostic(message, file, position)]
         |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
-      assert diagnostic.message == """
-             (CompileError) some message
-
-             Stacktrace:
-               │ lib/my_app/my_module.ex:10: MyApp.MyModule.render/1\
-             """
-
       assert diagnostic.position == 3
+    end
+
+    test "update file and position if file is present in the message - 1.16 format" do
+      root_path = Path.join(__DIR__, "fixtures/build_errors_on_external_resource")
+      file = Path.join(root_path, "lib/has_error.ex")
+      position = 2
+
+      message = """
+      ** (SyntaxError) invalid syntax found on lib/template.eex:2:5:
+        error: syntax error before: ','
+        │
+      2 │  , 
+        │     ^
+        │
+        └─ lib/template.eex:2:5
+        (eex 1.16.0-rc.0) lib/eex/compiler.ex:332: EEx.Compiler.generate_buffer/4
+        lib/has_error.ex:2: (module)
+        (elixir 1.16.0-rc.0) lib/kernel/parallel_compiler.ex:428: anonymous fn/5 in Kernel.ParallelCompiler.spawn_workers/8
+      """
+
+      [diagnostic | _] =
+        [build_diagnostic(message, file, position)]
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
+
+      assert diagnostic.position == {2, 5}
+      assert diagnostic.file == Path.join(root_path, "lib/template.eex")
     end
 
     test "update file and position with column if file is present in the message" do
@@ -74,13 +80,6 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
         |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
-
-      assert diagnostic.message == """
-             (CompileError) some message
-
-             Stacktrace:
-               │ lib/my_app/my_module.ex:10: MyApp.MyModule.render/1\
-             """
 
       assert diagnostic.position == {3, 5}
     end
@@ -100,7 +99,6 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
         [build_diagnostic(message, file, position)]
         |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
-      assert diagnostic.message =~ "(CompileError) some message"
       assert diagnostic.file =~ "umbrella/apps/app2/lib/app2.ex"
       assert diagnostic.position == 5
     end
@@ -118,13 +116,6 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
       [diagnostic | _] =
         [build_diagnostic(message, file, position)]
         |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
-
-      assert diagnostic.message == """
-             (CompileError) lib/non_existing.ex:3: some message
-
-             Stacktrace:
-               │ lib/my_app/my_module.ex:10: MyApp.MyModule.render/1\
-             """
 
       assert diagnostic.position == 2
     end
