@@ -43,7 +43,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp maybe_update_position(diagnostic, "TokenMissingError", position, stacktrace) do
-    # TODO handle line:char?
     case extract_line_from_missing_hint(diagnostic.message) do
       line when is_integer(line) and line > 0 ->
         %{diagnostic | position: line}
@@ -143,7 +142,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   defp extract_line_from_missing_hint(message) do
     case Regex.run(
-           ~r/HINT: it looks like the .+ on line (\d+) does not have a matching /u,
+           ~r/starting at line (\d+)\)/u,
            message
          ) do
       [_, line] -> String.to_integer(line)

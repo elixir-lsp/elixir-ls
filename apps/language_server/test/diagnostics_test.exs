@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
           lib/my_app/my_module.ex:10: MyApp.MyModule.render/1
       """
 
-      [diagnostic | _] =
+      [_diagnostic | _] =
         [build_diagnostic(message, file, position)]
         |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
     end
@@ -159,6 +159,24 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
           HINT: it looks like the "do" on line 6 does not have a matching "end"
 
           (elixir 1.12.1) lib/kernel/parallel_compiler.ex:319: anonymous fn/4 in Kernel.ParallelCompiler.spawn_workers/7
+      """
+
+      [diagnostic | _] =
+        [build_diagnostic(message, file, position)]
+        |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
+
+      assert diagnostic.position == 6
+    end
+
+    test "if position is nil and error is TokenMissingError, try to retrieve from the hint - 1.16 format" do
+      root_path = Path.join(__DIR__, "fixtures/token_missing_error")
+      file = Path.join(root_path, "lib/has_error.ex")
+      position = nil
+
+      message = """
+      ** (TokenMissingError) token missing on lib/has_error.ex:16:1:
+      error: missing terminator: end (for "fn" starting at line 6)
+      └─ lib/has_error.ex:16:1
       """
 
       [diagnostic | _] =
