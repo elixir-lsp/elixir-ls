@@ -500,7 +500,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def clean_dets(project_dir) do
     for path <-
-          Path.join([project_dir, ".elixir_ls/*.dets"])
+          Path.join([SourceFile.Path.escape_for_wildcard(project_dir), ".elixir_ls/*.dets"])
           |> Path.wildcard(),
         do: File.rm_rf!(path)
   end

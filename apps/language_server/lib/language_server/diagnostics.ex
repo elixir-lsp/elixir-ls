@@ -119,7 +119,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp file_path_in_umbrella(file, root_path) do
-    case [root_path, "apps", "*", file] |> Path.join() |> Path.wildcard() do
+    case [SourceFile.Path.escape_for_wildcard(root_path), "apps", "*", SourceFile.Path.escape_for_wildcard(file)] |> Path.join() |> Path.wildcard() do
       [] ->
         {:error, :file_not_found}
 
