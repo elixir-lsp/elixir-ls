@@ -205,7 +205,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     absname(path, &File.cwd!/0)
   end
 
-  @spec absname(t, t) :: binary
+  @spec absname(t, t | (-> t)) :: binary
   def absname(path, relative_to) do
     path = IO.chardata_to_string(path)
 
