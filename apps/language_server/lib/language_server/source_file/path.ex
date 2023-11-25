@@ -162,6 +162,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
   end
 
   def escape_for_wildcard(path) when is_list(path), do: escape_for_wildcard(to_string(path))
+
   def escape_for_wildcard(path) when is_binary(path) do
     # Path.wildcard expects universal separators even on windows
     # escape all special chars

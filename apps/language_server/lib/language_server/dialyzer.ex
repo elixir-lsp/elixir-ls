@@ -452,7 +452,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         end
 
         temp_modules =
-          for file <- Path.wildcard(temp_file_path(SourceFile.Path.escape_for_wildcard(root_path), "**/*.beam")), into: %{} do
+          for file <-
+                Path.wildcard(
+                  temp_file_path(SourceFile.Path.escape_for_wildcard(root_path), "**/*.beam")
+                ),
+              into: %{} do
             {String.to_atom(Path.basename(file, ".beam")), to_charlist(file)}
           end
 

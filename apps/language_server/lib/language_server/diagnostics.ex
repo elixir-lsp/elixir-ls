@@ -84,11 +84,12 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     # this regex won't match filenames with spaces but in elixir 1.16 errors we can't be sure where
     # the file name starts e.g.
     # invalid syntax found on lib/template.eex:2:5:
-    file_position = case Regex.run(~r/([^\s:]+):(\d+)(:(\d+))?/su, message) do
-      [_, file, line] -> {file, line, ""}
-      [_, file, line, _, column] -> {file, line, column}
-      _ -> nil
-    end
+    file_position =
+      case Regex.run(~r/([^\s:]+):(\d+)(:(\d+))?/su, message) do
+        [_, file, line] -> {file, line, ""}
+        [_, file, line, _, column] -> {file, line, column}
+        _ -> nil
+      end
 
     with {file, line, column} <- file_position,
          {:ok, path} <- file_path(file, root_path) do
@@ -119,7 +120,14 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp file_path_in_umbrella(file, root_path) do
-    case [SourceFile.Path.escape_for_wildcard(root_path), "apps", "*", SourceFile.Path.escape_for_wildcard(file)] |> Path.join() |> Path.wildcard() do
+    case [
+           SourceFile.Path.escape_for_wildcard(root_path),
+           "apps",
+           "*",
+           SourceFile.Path.escape_for_wildcard(file)
+         ]
+         |> Path.join()
+         |> Path.wildcard() do
       [] ->
         {:error, :file_not_found}
 

@@ -20,11 +20,12 @@ defmodule ElixirLS.LanguageServer.Build do
                   with_diagnostics([log: true], fn ->
                     try do
                       # this call can raise
-                      current_deps = if Version.match?(System.version(), "< 1.16.0-dev") do
-                      Mix.Dep.load_on_environment([])
-                    else
-                      Mix.Dep.Converger.converge([])
-                    end
+                      current_deps =
+                        if Version.match?(System.version(), "< 1.16.0-dev") do
+                          Mix.Dep.load_on_environment([])
+                        else
+                          Mix.Dep.Converger.converge([])
+                        end
 
                       purge_changed_deps(current_deps, cached_deps)
 
