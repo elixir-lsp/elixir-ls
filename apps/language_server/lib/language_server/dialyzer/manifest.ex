@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
-  alias ElixirLS.LanguageServer.{Dialyzer, Dialyzer.Utils, JsonRpc}
+  alias ElixirLS.LanguageServer.{Dialyzer, Dialyzer.Utils, JsonRpc, SourceFile}
   import Record
   import Dialyzer.Utils
   require Logger

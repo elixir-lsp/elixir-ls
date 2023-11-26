@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   """
   use GenServer
   alias ElixirLS.LanguageServer.JsonRpc
+  alias ElixirLS.LanguageServer.SourceFile
   require Logger
 
   @version 3
