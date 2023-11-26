@@ -364,7 +364,11 @@ defmodule ElixirLS.LanguageServer.Server do
           handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason, path)], state)
       end
 
-    state = if state.needs_build?, do: trigger_build(state), else: state
+    state = if state.needs_build? do
+      trigger_build(state)
+    else
+      state
+    end
     {:noreply, state}
   end
 
@@ -738,7 +742,11 @@ defmodule ElixirLS.LanguageServer.Server do
     |> Enum.map(& &1["uri"])
     |> WorkspaceSymbols.notify_uris_modified()
 
-    if needs_build, do: trigger_build(state), else: state
+    if needs_build do
+      trigger_build(state)
+    else
+      state
+    end
   end
 
   defp handle_notification(did_change_watched_files(_changes), state = %__MODULE__{}) do
@@ -2128,15 +2136,13 @@ defmodule ElixirLS.LanguageServer.Server do
       case File.cwd() do
         {:ok, cwd} ->
           if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
-            mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs())
-
             try do
-              case Build.reload_project(mixfile, project_dir) do
-                {:ok, _} ->
-                  Build.clean(true)
+              case Build.clean(project_dir) do
+                :ok ->
+                  :ok
 
-                _ ->
-                  # TODO emit diagnostics here?
+                e ->
+                  Logger.warn("Unable to clean project, databases may not be up to date: #{inspect(e)}")
                   :ok
               end
             rescue

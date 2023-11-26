@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Build do
   require Logger
 
   def build(parent, root_path, opts) when is_binary(root_path) do
-    spawn_monitor(fn ->
+    build_pid_reference = spawn_monitor(fn ->
       with_build_lock(fn ->
         {us, result} =
           :timer.tc(fn ->
@@ -129,12 +129,32 @@ defmodule ElixirLS.LanguageServer.Build do
         })
       end)
     end)
+
+    spawn(fn ->
+      Process.monitor(parent)
+      {build_process, _ref} = build_pid_reference
+      Process.monitor(build_process)
+
+      receive do
+        {:DOWN, _ref, _, ^build_process, _reason} ->
+          :ok
+        {:DOWN, _ref, _, ^parent, _reason} ->
+          Process.exit(build_process, :kill)
+      end
+    end)
+
+    build_pid_reference
   end
 
-  def clean(clean_deps? \\ false) do
+  def clean(root_path, clean_deps? \\ false) when is_binary(root_path) do
     with_build_lock(fn ->
-      Mix.Task.clear()
-      run_mix_clean(clean_deps?)
+      mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs(), root_path)
+      case reload_project(mixfile, root_path) do
+        {:ok, _} ->
+          Mix.Task.clear()
+          run_mix_clean(clean_deps?)
+        other -> other
+      end
     end)
   end
 
@@ -142,7 +162,7 @@ defmodule ElixirLS.LanguageServer.Build do
     :global.trans({__MODULE__, self()}, func)
   end
 
-  def reload_project(mixfile, root_path) do
+  defp reload_project(mixfile, root_path) do
     if File.exists?(mixfile) do
       if module = Mix.Project.get() do
         build_path = Mix.Project.config()[:build_path]
