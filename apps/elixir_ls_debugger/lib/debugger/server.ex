@@ -1028,7 +1028,7 @@ defmodule ElixirLS.Debugger.Server do
             _ -> -1
           end
 
-        stack_frames = Enum.slice(paused_process.stack, start_frame..end_frame)
+        stack_frames = Enum.slice(paused_process.stack, start_frame..end_frame//1)
         {state, frame_ids} = ensure_frame_ids(state, pid, stack_frames)
 
         stack_frames_json =
