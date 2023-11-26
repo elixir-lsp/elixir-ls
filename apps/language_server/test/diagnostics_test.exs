@@ -165,7 +165,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
         [build_diagnostic(message, file, position)]
         |> Diagnostics.normalize(root_path, Path.join(root_path, "mix.exs"))
 
-      assert diagnostic.position == 6
+      assert diagnostic.position == 1
     end
 
     test "if position is nil and error is TokenMissingError, try to retrieve from the hint - 1.16 format" do
