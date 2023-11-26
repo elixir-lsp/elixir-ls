@@ -364,11 +364,13 @@ defmodule ElixirLS.LanguageServer.Server do
           handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason, path)], state)
       end
 
-    state = if state.needs_build? do
-      trigger_build(state)
-    else
-      state
-    end
+    state =
+      if state.needs_build? do
+        trigger_build(state)
+      else
+        state
+      end
+
     {:noreply, state}
   end
 
@@ -2142,7 +2144,10 @@ defmodule ElixirLS.LanguageServer.Server do
                   :ok
 
                 e ->
-                  Logger.warn("Unable to clean project, databases may not be up to date: #{inspect(e)}")
+                  Logger.warn(
+                    "Unable to clean project, databases may not be up to date: #{inspect(e)}"
+                  )
+
                   :ok
               end
             rescue
