@@ -2144,7 +2144,7 @@ defmodule ElixirLS.LanguageServer.Server do
                   :ok
 
                 e ->
-                  Logger.warn(
+                  Logger.warning(
                     "Unable to clean project, databases may not be up to date: #{inspect(e)}"
                   )
 
