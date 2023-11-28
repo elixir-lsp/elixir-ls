@@ -2465,7 +2465,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
-    assert {:error, :server_error, "Cannot parse source file", false} = DocumentSymbols.symbols(uri, text, true)
+    assert {:error, :server_error, "Cannot parse source file", false} =
+             DocumentSymbols.symbols(uri, text, true)
   end
 
   test "returns def and defp as a prefix" do

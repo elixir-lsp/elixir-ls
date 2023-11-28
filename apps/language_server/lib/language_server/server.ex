@@ -317,7 +317,6 @@ defmodule ElixirLS.LanguageServer.Server do
         %__MODULE__{build_ref: ref, build_running?: true} = state
       ) do
     state = %{state | build_running?: false}
-    IO.warn("Build end reason: #{inspect(reason)}")
 
     # in case the build was interrupted make sure that cwd is reset to project dir
     case File.cd(state.project_dir) do
@@ -1339,7 +1338,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
   # Build
 
-  defp trigger_build(state = %__MODULE__{project_dir: project_dir, full_build_done?: full_build_done?}) do
+  defp trigger_build(
+         state = %__MODULE__{project_dir: project_dir, full_build_done?: full_build_done?}
+       ) do
     cond do
       not is_binary(project_dir) ->
         state

@@ -67,7 +67,8 @@ defmodule ElixirLS.LanguageServer.Build do
                   case deps_result do
                     :ok ->
                       if Keyword.get(opts, :compile?) do
-                        {status, compile_diagnostics} = run_mix_compile(Keyword.get(opts, :force?, false))
+                        {status, compile_diagnostics} =
+                          run_mix_compile(Keyword.get(opts, :force?, false))
 
                         compile_diagnostics =
                           Diagnostics.normalize(compile_diagnostics, root_path, mixfile)
@@ -128,7 +129,6 @@ defmodule ElixirLS.LanguageServer.Build do
           JsonRpc.telemetry("build", %{"elixir_ls.build_result" => result}, %{
             "elixir_ls.build_time" => div(us, 1000)
           })
-          IO.warn("Releasing build lock")
         end)
       end)
 
@@ -266,7 +266,6 @@ defmodule ElixirLS.LanguageServer.Build do
       Code.put_compiler_option(:no_warn_undefined, :all)
 
       # We can get diagnostics if Mixfile fails to load
-      IO.warn("Building mixfile #{mixfile}")
       {mixfile_status, mixfile_diagnostics} =
         case Kernel.ParallelCompiler.compile([mixfile]) do
           {:ok, _, warnings} ->
