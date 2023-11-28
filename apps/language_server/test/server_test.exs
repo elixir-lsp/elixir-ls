@@ -1682,7 +1682,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                          "uri" => ^error_file,
                          "diagnostics" => [
                            %{
-                             "message" => "(CompileError) undefined function does_not_exist" <> _,
+                             "message" => "** (CompileError) lib/has_error.ex:4: undefined function does_not_exist" <> _,
                              "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
                              "severity" => 1
                            }

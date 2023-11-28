@@ -491,7 +491,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
          {version, ""} <- Integer.parse(text) do
       version
     else
-      _ -> nil
+      other ->
+        IO.warn("Manifest: #{inspect(other)}")
+        nil
     end
   end
 
