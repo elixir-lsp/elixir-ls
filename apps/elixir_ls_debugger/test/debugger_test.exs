@@ -12,6 +12,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
   setup do
     {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start_link(self())
+    default_group_leader = Process.info(Process.whereis(ElixirLS.Debugger.Output))[:group_leader]
     Process.group_leader(Process.whereis(ElixirLS.Debugger.Output), packet_capture)
 
     {:ok, _} = start_supervised(BreakpointCondition)
@@ -19,6 +20,7 @@ defmodule ElixirLS.Debugger.ServerTest do
     {:ok, server} = Server.start_link(name: Server)
 
     on_exit(fn ->
+      Process.group_leader(Process.whereis(ElixirLS.Debugger.Output), default_group_leader)
       for mod <- :int.interpreted(), do: :int.nn(mod)
       :int.auto_attach(false)
       :int.no_break()

@@ -54,6 +54,7 @@ defmodule ElixirLS.LanguageServer.Server do
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
+    full_build_done?: false,
     build_running?: false,
     analysis_ready?: false,
     received_shutdown?: false,
@@ -364,7 +365,13 @@ defmodule ElixirLS.LanguageServer.Server do
           handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason, path)], state)
       end
 
-    state = if state.needs_build?, do: trigger_build(state), else: state
+    state =
+      if state.needs_build? do
+        trigger_build(state)
+      else
+        state
+      end
+
     {:noreply, state}
   end
 
@@ -738,7 +745,11 @@ defmodule ElixirLS.LanguageServer.Server do
     |> Enum.map(& &1["uri"])
     |> WorkspaceSymbols.notify_uris_modified()
 
-    if needs_build, do: trigger_build(state), else: state
+    if needs_build do
+      trigger_build(state)
+    else
+      state
+    end
   end
 
   defp handle_notification(did_change_watched_files(_changes), state = %__MODULE__{}) do
@@ -1327,7 +1338,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
   # Build
 
-  defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
+  defp trigger_build(
+         state = %__MODULE__{project_dir: project_dir, full_build_done?: full_build_done?}
+       ) do
     cond do
       not is_binary(project_dir) ->
         state
@@ -1335,7 +1348,8 @@ defmodule ElixirLS.LanguageServer.Server do
       not state.build_running? ->
         opts = [
           fetch_deps?: Map.get(state.settings || %{}, "fetchDeps", false),
-          compile?: Map.get(state.settings || %{}, "autoBuild", true)
+          compile?: Map.get(state.settings || %{}, "autoBuild", true),
+          force?: not full_build_done?
         ]
 
         {_pid, build_ref} =
@@ -1449,7 +1463,7 @@ defmodule ElixirLS.LanguageServer.Server do
       state.project_dir
     )
 
-    state
+    %{state | full_build_done?: if(status == :ok, do: true, else: state.full_build_done?)}
   end
 
   defp handle_dialyzer_result(diagnostics, build_ref, state = %__MODULE__{}) do
@@ -1679,7 +1693,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     add_watched_extensions(state.server_instance_id, additional_watched_extensions)
 
-    maybe_rebuild(state)
+    # maybe_rebuild(state)
     state = create_gitignore(state)
 
     if state.mix_project? do
@@ -2128,21 +2142,22 @@ defmodule ElixirLS.LanguageServer.Server do
       case File.cwd() do
         {:ok, cwd} ->
           if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
-            mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs())
-
             try do
-              case Build.reload_project(mixfile, project_dir) do
-                {:ok, _} ->
-                  Build.clean(true)
+              case Build.clean(project_dir) do
+                :ok ->
+                  :ok
 
-                _ ->
-                  # TODO emit diagnostics here?
+                e ->
+                  Logger.warning(
+                    "Unable to clean project, databases may not be up to date: #{inspect(e)}"
+                  )
+
                   :ok
               end
             rescue
               e ->
                 message =
-                  "Unable to reload project: #{Exception.message(e)}"
+                  "Unable to reload project: #{Exception.format(:error, e, __STACKTRACE__)}"
 
                 Logger.error(message)
 
@@ -2274,7 +2289,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
           :ok
         rescue
-          e in [EEx.SyntaxError, SyntaxError, TokenMissingError] ->
+          e in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
             message = Exception.message(e)
 
             diagnostic = %Mix.Task.Compiler.Diagnostic{

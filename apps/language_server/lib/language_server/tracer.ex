@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   """
   use GenServer
   alias ElixirLS.LanguageServer.JsonRpc
+  alias ElixirLS.LanguageServer.SourceFile
   require Logger
 
   @version 3
@@ -490,7 +491,9 @@ defmodule ElixirLS.LanguageServer.Tracer do
          {version, ""} <- Integer.parse(text) do
       version
     else
-      _ -> nil
+      other ->
+        IO.warn("Manifest: #{inspect(other)}")
+        nil
     end
   end
 
@@ -500,7 +503,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def clean_dets(project_dir) do
     for path <-
-          Path.join([project_dir, ".elixir_ls/*.dets"])
+          Path.join([SourceFile.Path.escape_for_wildcard(project_dir), ".elixir_ls/*.dets"])
           |> Path.wildcard(),
         do: File.rm_rf!(path)
   end

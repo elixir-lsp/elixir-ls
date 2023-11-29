@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
       # Use contents and indentation of the next line to help us guess whether to insert an "end"
       indentation_suggests_edit? =
         if Enum.at(prev_tokens, -1) == "do" or "fn" in prev_tokens do
-          next_line = Enum.find(Enum.slice(lines, (line + 1)..-1), "", &(!blank?(&1)))
+          next_line = Enum.find(Enum.slice(lines, (line + 1)..-1//1), "", &(!blank?(&1)))
           next_tokens = tokens(next_line)
           next_indentation_length = String.length(indentation(next_line))
 

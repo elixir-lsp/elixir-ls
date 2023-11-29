@@ -161,6 +161,23 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     end
   end
 
+  def escape_for_wildcard(path) when is_list(path), do: escape_for_wildcard(to_string(path))
+
+  def escape_for_wildcard(path) when is_binary(path) do
+    # Path.wildcard expects universal separators even on windows
+    # escape all special chars
+    path
+    |> convert_separators_to_universal()
+    |> String.replace("\\", "\\\\")
+    |> String.replace("?", "\\?")
+    |> String.replace("*", "\\*")
+    |> String.replace("{", "\\{")
+    |> String.replace("}", "\\}")
+    |> String.replace("[", "\\[")
+    |> String.replace("]", "\\]")
+    |> String.replace(",", "\\,")
+  end
+
   # the functions below are copied from elixir project
   # https://github.com/lukaszsamson/elixir/blob/bf3e2fd3ad78235bda059b80994a90d9a4184353/lib/elixir/lib/path.ex
   # with applied https://github.com/elixir-lang/elixir/pull/13061
@@ -189,7 +206,7 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
     absname(path, &File.cwd!/0)
   end
 
-  @spec absname(t, t) :: binary
+  @spec absname(t, t | (-> t)) :: binary
   def absname(path, relative_to) do
     path = IO.chardata_to_string(path)
 

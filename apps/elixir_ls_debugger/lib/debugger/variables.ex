@@ -12,16 +12,11 @@ defmodule ElixirLS.Debugger.Variables do
     if Keyword.keyword?(var) do
       :named
     else
-      :indexed
-
-      try do
-        # this call will raise ArgumentError for improper list, no better way to check it
-        _ = length(var)
+      if List.improper?(var) do
+        # improper list has head and tail
+        :named
+      else
         :indexed
-      rescue
-        ArgumentError ->
-          # improper list has head and tail
-          :named
       end
     end
   end
@@ -48,7 +43,7 @@ defmodule ElixirLS.Debugger.Variables do
     start = start || 0
 
     try do
-      # this call will raise ArgumentError for improper list, no better way to check it
+      # this call will raise ArgumentError for improper list
       max_count = length(var)
       count = count || max_count
 
@@ -137,6 +132,7 @@ defmodule ElixirLS.Debugger.Variables do
 
   def num_children(var) when is_list(var) do
     try do
+      # this call will raise ArgumentError for improper list
       length(var)
     rescue
       ArgumentError ->
@@ -202,13 +198,10 @@ defmodule ElixirLS.Debugger.Variables do
     if Keyword.keyword?(var) and var != [] do
       "keyword"
     else
-      try do
-        # this call will raise ArgumentError for improper list, no better way to check it
-        _ = length(var)
+      if List.improper?(var) do
+        "improper list"
+      else
         "list"
-      rescue
-        ArgumentError ->
-          "improper list"
       end
     end
   end

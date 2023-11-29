@@ -102,12 +102,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     character = SourceFile.lsp_character_to_elixir(line_text, character)
 
     text_before_cursor = String.slice(line_text, 0, character - 1)
-    text_after_cursor = String.slice(line_text, (character - 1)..-1)
+    text_after_cursor = String.slice(line_text, (character - 1)..-1//1)
 
     prefix = get_prefix(text_before_cursor)
 
     # Can we use ElixirSense.Providers.Suggestion? ElixirSense.suggestions/3
-    metadata = ElixirSense.Core.Parser.parse_string(text, true, true, line)
+    metadata = ElixirSense.Core.Parser.parse_string(text, true, true, {line, character})
 
     env = ElixirSense.Core.Metadata.get_env(metadata, {line, character})
 

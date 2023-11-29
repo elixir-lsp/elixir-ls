@@ -2458,15 +2458,15 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     uri = "file:///project/test.exs"
 
     text = """
-    defmodule A do
+    defmodule aA do
       def hello do
         Hello.hi(
       end
     end
     """
 
-    assert {:error, :server_error, message, false} = DocumentSymbols.symbols(uri, text, true)
-    assert String.contains?(message, "Cannot parse source file")
+    assert {:error, :server_error, "Cannot parse source file", false} =
+             DocumentSymbols.symbols(uri, text, true)
   end
 
   test "returns def and defp as a prefix" do
