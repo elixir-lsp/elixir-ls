@@ -54,7 +54,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         "filePath" => file_path,
         "testName" => block.name,
         "projectDir" => project_dir,
-        "module" => get_module_name(block.module)
+        "module" => inspect(block.module)
       }
       |> Map.merge(if block.describe != nil, do: %{"describe" => block.describe.name}, else: %{})
     end
@@ -72,7 +72,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         "filePath" => file_path,
         "describe" => block.name,
         "projectDir" => project_dir,
-        "module" => get_module_name(block.module)
+        "module" => inspect(block.module)
       })
     end)
   end
@@ -165,11 +165,5 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     else
       {:ok, buffer_file_metadata}
     end
-  end
-
-  defp get_module_name(module) do
-    module
-    |> Module.split()
-    |> Enum.join(".")
   end
 end
