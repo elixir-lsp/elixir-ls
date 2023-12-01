@@ -327,6 +327,9 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # we return a 0 length range exactly at that location
   defp range({line_start, char_start}, source_file)
        when not is_nil(source_file) do
+    # some diagnostics are broken
+    line_start = line_start || 1
+    char_start = char_start || 1
     lines = SourceFile.lines(source_file)
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
@@ -348,6 +351,13 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # we return exactly that range
   defp range({line_start, char_start, line_end, char_end}, source_file)
        when not is_nil(source_file) do
+    # some diagnostics are broken
+    line_start = line_start || 1
+    char_start = char_start || 1
+
+    line_end = line_end || 1
+    char_end = char_end || 1
+
     lines = SourceFile.lines(source_file)
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
