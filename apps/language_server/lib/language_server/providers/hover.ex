@@ -25,7 +25,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
             }
           rescue
             e ->
-              raise "#{Exception.message(e)} line:\n#{Enum.at(lines, line - 1)}\nchar: #{character}\n#{inspect(docs)}"
+              raise "#{inspect(e.__struct__)}\n#{inspect(__STACKTRACE__)}\nline:\n#{Enum.at(lines, line - 1)}\nchar: #{character}\n#{inspect(docs)}"
           end
       end
 
