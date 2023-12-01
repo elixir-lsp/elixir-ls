@@ -225,7 +225,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Other attributes
-  defp extract_symbol(_current_module, {:@, location, [{name, _, _}]}) do
+  defp extract_symbol(_current_module, {:@, location, [{name, _, _}]}) when is_atom(name) do
     %Info{type: :constant, name: "@#{name}", location: location, children: []}
   end
 
