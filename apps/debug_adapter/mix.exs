@@ -1,4 +1,4 @@
-defmodule ElixirLS.Debugger.Mixfile do
+defmodule ElixirLS.DebugAdapter.MixProject do
   use Mix.Project
 
   @version __DIR__
@@ -13,7 +13,7 @@ defmodule ElixirLS.Debugger.Mixfile do
 
   def project do
     [
-      app: :elixir_ls_debugger,
+      app: :debug_adapter,
       version: @version,
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -32,7 +32,7 @@ defmodule ElixirLS.Debugger.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.Debugger, []}, extra_applications: []]
+    [mod: {ElixirLS.DebugAdapter.Application, []}, extra_applications: []]
   end
 
   defp deps do

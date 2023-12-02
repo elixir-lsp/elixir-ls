@@ -1,6 +1,6 @@
-defmodule ElixirLS.Debugger.VariablesTest do
+defmodule ElixirLS.DebugAdapter.VariablesTest do
   use ExUnit.Case, async: true
-  alias ElixirLS.Debugger.Variables
+  alias ElixirLS.DebugAdapter.Variables
 
   test "type" do
     assert Variables.type(1234) == "integer"
@@ -190,7 +190,7 @@ defmodule ElixirLS.Debugger.VariablesTest do
 
     test "fun" do
       children = Variables.children(fn -> :ok end, 0, 10)
-      assert children[:module] == ElixirLS.Debugger.VariablesTest
+      assert children[:module] == ElixirLS.DebugAdapter.VariablesTest
       assert children[:type] == :local
       assert children[:arity] == 0
     end

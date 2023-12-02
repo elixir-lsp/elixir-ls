@@ -1,6 +1,6 @@
-defmodule ElixirLS.Debugger.Server do
+defmodule ElixirLS.DebugAdapter.Server do
   @moduledoc """
-  Implements the VS Code Debug Protocol
+  Implements Debug Adapter Protocol
 
   Refer to the protocol's [documentation](https://microsoft.github.io/debug-adapter-protocol)
   for details.
@@ -16,7 +16,7 @@ defmodule ElixirLS.Debugger.Server do
     defexception [:message, :format, :variables, {:send_telemetry, true}, {:show_user, false}]
   end
 
-  alias ElixirLS.Debugger.{
+  alias ElixirLS.DebugAdapter.{
     Output,
     Stacktrace,
     Protocol,
@@ -27,7 +27,7 @@ defmodule ElixirLS.Debugger.Server do
     ModuleInfoCache
   }
 
-  alias ElixirLS.Debugger.Stacktrace.Frame
+  alias ElixirLS.DebugAdapter.Stacktrace.Frame
   alias ElixirLS.Utils.Launch
   use GenServer
   use Protocol
@@ -207,7 +207,7 @@ defmodule ElixirLS.Debugger.Server do
 
         Output.debugger_important("Terminating #{__MODULE__}: #{message}")
 
-        unless :persistent_term.get(:elixir_ls_debugger_test_mode, false) do
+        unless :persistent_term.get(:debug_adapter_test_mode, false) do
           System.stop(1)
         end
     end
@@ -243,7 +243,7 @@ defmodule ElixirLS.Debugger.Server do
     stacktrace =
       case Stacktrace.get(pid) do
         [_gen_server_frame, first_frame | stacktrace] ->
-          # drop GenServer call to Debugger.Server from dbg callback
+          # drop GenServer call to DebugAdapter.Server from dbg callback
           # overwrite erlang debugger bindings with exact elixir ones
           first_frame = %{
             first_frame
@@ -609,7 +609,7 @@ defmodule ElixirLS.Debugger.Server do
   # die right after responding to the request
   @impl GenServer
   def handle_continue(:disconnect, state = %__MODULE__{}) do
-    unless :persistent_term.get(:elixir_ls_debugger_test_mode, false) do
+    unless :persistent_term.get(:debug_adapter_test_mode, false) do
       Output.debugger_console("Received disconnect request")
       Process.sleep(200)
       System.stop(0)
@@ -905,7 +905,7 @@ defmodule ElixirLS.Debugger.Server do
 
                       {:error, :excluded} ->
                         {:error,
-                         "Module #{inspect(m)} is used internally by the debugger and cannot be interpreted"}
+                         "Module #{inspect(m)} is used internally by the debug adapter and cannot be interpreted"}
                     end
 
                   lines ->
@@ -1310,7 +1310,7 @@ defmodule ElixirLS.Debugger.Server do
 
       results =
         ElixirSense.Providers.Suggestion.Complete.complete(prefix, env, metadata, {1, 1})
-        |> Enum.map(&ElixirLS.Debugger.Completions.map/1)
+        |> Enum.map(&ElixirLS.DebugAdapter.Completions.map/1)
 
       %{"targets" => results}
     end
@@ -1695,7 +1695,7 @@ defmodule ElixirLS.Debugger.Server do
     # we assume that mix is already started and has archives and tasks loaded
     Launch.reload_mix_env_and_target()
 
-    Mix.ProjectStack.post_config(build_path: ".elixir_ls/debugger/build")
+    Mix.ProjectStack.post_config(build_path: ".elixir_ls/debug_adapter/build")
 
     Mix.ProjectStack.post_config(
       test_elixirc_options: [

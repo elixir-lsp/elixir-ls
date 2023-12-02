@@ -1,4 +1,4 @@
-defmodule ElixirLS.Debugger.Output do
+defmodule ElixirLS.DebugAdapter.Output do
   @moduledoc """
   Implements the JSON-based request protocol for VS Code debug adapters.
 
@@ -9,7 +9,7 @@ defmodule ElixirLS.Debugger.Output do
   """
   alias ElixirLS.Utils.WireProtocol
   use GenServer
-  use ElixirLS.Debugger.Protocol
+  use ElixirLS.DebugAdapter.Protocol
 
   ## Client API
 

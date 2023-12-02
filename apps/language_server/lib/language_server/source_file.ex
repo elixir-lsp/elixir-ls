@@ -235,15 +235,15 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
-      alias ElixirLS.LanguageServer.MixProject
+      alias ElixirLS.LanguageServer.MixProjectCache
 
       if mix_project? do
-        if ElixirLS.LanguageServer.MixProject.loaded?() do
+        if MixProjectCache.loaded?() do
           opts = [
-            deps_paths: MixProject.deps_paths(),
-            manifest_path: MixProject.manifest_path(),
-            config_mtime: MixProject.config_mtime(),
-            mix_project: MixProject.get(),
+            deps_paths: MixProjectCache.deps_paths(),
+            manifest_path: MixProjectCache.manifest_path(),
+            config_mtime: MixProjectCache.config_mtime(),
+            mix_project: MixProjectCache.get(),
             root: project_dir
           ]
 

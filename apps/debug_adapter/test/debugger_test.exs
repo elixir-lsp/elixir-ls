@@ -1,10 +1,10 @@
-defmodule ElixirLS.Debugger.ServerTest do
-  # Awkwardly, testing that the debugger can debug ExUnit tests in the fixture project
+defmodule ElixirLS.DebugAdapter.ServerTest do
+  # Awkwardly, testing that the debug adapter can debug ExUnit tests in the fixture project
   # gives us no way to capture the output, since ExUnit doesn't really distinguish
-  # between the debugger's tests and the fixture project's tests. Expect to see output printed
+  # between the debug adapter tests and the fixture project's tests. Expect to see output printed
   # from both.
 
-  alias ElixirLS.Debugger.{Server, Protocol, BreakpointCondition, ModuleInfoCache}
+  alias ElixirLS.DebugAdapter.{Server, Protocol, BreakpointCondition, ModuleInfoCache, Output}
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -12,15 +12,15 @@ defmodule ElixirLS.Debugger.ServerTest do
 
   setup do
     {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start_link(self())
-    default_group_leader = Process.info(Process.whereis(ElixirLS.Debugger.Output))[:group_leader]
-    Process.group_leader(Process.whereis(ElixirLS.Debugger.Output), packet_capture)
+    default_group_leader = Process.info(Process.whereis(Output))[:group_leader]
+    Process.group_leader(Process.whereis(Output), packet_capture)
 
     {:ok, _} = start_supervised(BreakpointCondition)
     {:ok, _} = start_supervised({ModuleInfoCache, %{}})
     {:ok, server} = Server.start_link(name: Server)
 
     on_exit(fn ->
-      Process.group_leader(Process.whereis(ElixirLS.Debugger.Output), default_group_leader)
+      Process.group_leader(Process.whereis(Output), default_group_leader)
       for mod <- :int.interpreted(), do: :int.nn(mod)
       :int.auto_attach(false)
       :int.no_break()
@@ -2323,7 +2323,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert [
                  {{Proto, 2},
-                  [:active, :enable, :null, {ElixirLS.Debugger.BreakpointCondition, :check_0}]}
+                  [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(Proto)
 
         assert %{{Proto, :go, 1} => [2]} = :sys.get_state(server).function_breakpoints
@@ -2435,7 +2435,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert [
                  {{Proto.List, 7},
-                  [:active, :enable, :null, {ElixirLS.Debugger.BreakpointCondition, :check_0}]}
+                  [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(Proto.List)
 
         assert %{{Proto.List, :go, 1} => [7]} = :sys.get_state(server).function_breakpoints
@@ -2522,7 +2522,7 @@ defmodule ElixirLS.Debugger.ServerTest do
 
         assert [
                  {{DerivedProto.MyStruct, 33},
-                  [:active, :enable, :null, {ElixirLS.Debugger.BreakpointCondition, :check_0}]}
+                  [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(DerivedProto.MyStruct)
 
         assert %{{DerivedProto.MyStruct, :go, 1} => [33]} =

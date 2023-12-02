@@ -50,7 +50,7 @@ defmodule ElixirLS.LanguageServer.Build do
                           manifest_path: Mix.Project.manifest_path()
                         }
 
-                        ElixirLS.LanguageServer.MixProject.store(state)
+                        ElixirLS.LanguageServer.MixProjectCache.store(state)
 
                         :ok
                       catch

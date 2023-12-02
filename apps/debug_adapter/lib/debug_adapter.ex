@@ -1,7 +1,7 @@
-defmodule ElixirLS.Debugger.CLI do
+defmodule ElixirLS.DebugAdapter do
   alias ElixirLS.Utils
   alias ElixirLS.Utils.{WireProtocol, Launch}
-  alias ElixirLS.Debugger.{Output, Server}
+  alias ElixirLS.DebugAdapter.{Output, Server}
 
   def main do
     Application.load(:erts)
@@ -10,18 +10,18 @@ defmodule ElixirLS.Debugger.CLI do
     Launch.start_mix()
 
     if Version.match?(System.version(), ">= 1.15.0-dev") do
-      # make sue that debugger modules are in code path
+      # make sue that OTP debugger modules are in code path
       # without starting the app
       Mix.ensure_application!(:debugger)
     end
 
-    {:ok, _} = Application.ensure_all_started(:elixir_ls_debugger, :permanent)
+    {:ok, _} = Application.ensure_all_started(:debug_adapter, :permanent)
 
-    Output.debugger_console("Started ElixirLS Debugger v#{Launch.debugger_version()}")
+    Output.debugger_console("Started ElixirLS Debug Adapter v#{Launch.debug_adapter_version()}")
     versions = Launch.get_versions()
 
     Output.debugger_console(
-      "ElixirLS Debugger built with elixir #{versions.compile_elixir_version} on OTP #{versions.compile_otp_version}"
+      "ElixirLS Debug Adapter built with elixir #{versions.compile_elixir_version} on OTP #{versions.compile_otp_version}"
     )
 
     Output.debugger_console(

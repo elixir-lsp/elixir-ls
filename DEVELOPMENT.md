@@ -26,7 +26,7 @@ It's easiest to test ElixirLS with [VSCode extension](https://github.com/elixir-
 
 ### Local release
 
-You can run a local release of language server and debugger with launch scripts from `scripts` directory with `ELS_LOCAL=1` environment variable. This will make the install script use source, lockfile and config from the local ElixirLS directory.
+You can run a local release of language server and debug adapter with launch scripts from `scripts` directory with `ELS_LOCAL=1` environment variable. This will make the install script use source, lockfile and config from the local ElixirLS directory.
 
 ```shell
 cd path/to/my_project

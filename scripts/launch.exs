@@ -15,8 +15,8 @@ ElixirLS.Installer.install_for_launch()
 
 case System.get_env("ELS_MODE") do
   "language_server" ->
-    ElixirLS.LanguageServer.CLI.main()
+    ElixirLS.LanguageServer.main()
 
-  "debugger" ->
-    ElixirLS.Debugger.CLI.main()
+  "debug_adapter" ->
+    ElixirLS.DebugAdapter.main()
 end

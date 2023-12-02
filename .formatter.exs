@@ -6,7 +6,7 @@
   ],
   subdirectories: [
     "apps/elixir_ls_utils",
-    "apps/elixir_ls_debugger",
+    "apps/debug_adapter",
     "apps/language_server"
   ]
 ]

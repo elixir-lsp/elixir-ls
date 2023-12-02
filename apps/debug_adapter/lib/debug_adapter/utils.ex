@@ -1,4 +1,4 @@
-defmodule ElixirLS.Debugger.Utils do
+defmodule ElixirLS.DebugAdapter.Utils do
   def parse_mfa(mfa_str) do
     case Code.string_to_quoted(mfa_str) do
       {:ok, {:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}}

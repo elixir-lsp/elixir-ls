@@ -4,11 +4,11 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   alias ElixirLS.LanguageServer.Providers.Formatting
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirLS.LanguageServer.MixProject
+  alias ElixirLS.LanguageServer.MixProjectCache
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
 
   setup do
-    {:ok, _} = start_supervised(MixProject)
+    {:ok, _} = start_supervised(MixProjectCache)
     :ok
   end
 

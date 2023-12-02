@@ -47,8 +47,8 @@ defmodule ElixirLS.Utils.Launch do
     get_version(:language_server)
   end
 
-  def debugger_version do
-    get_version(:elixir_ls_debugger)
+  def debug_adapter_version do
+    get_version(:debug_adapter)
   end
 
   def limit_num_schedulers do
@@ -219,7 +219,7 @@ defmodule ElixirLS.Utils.Launch do
   end
 
   # this code is executed on Mix.State.init
-  # since we start mix earlier with language server/debugger
+  # since we start mix earlier with language server/debug adapter
   # we need to reinitialize Mix.State when env is loaded form client settings
   def reload_mix_env_and_target() do
     Mix.env(from_env("MIX_ENV", :dev))

@@ -1,15 +1,15 @@
-defmodule ElixirLS.Debugger.Protocol do
+defmodule ElixirLS.DebugAdapter.Protocol do
   @moduledoc """
-  Macros for VS Code debug protocol requests
+  Macros for Debug Adapter Protocol requests
 
   These macros can be used for pattern matching against incoming requests, or for creating request
   messages for use in tests.
   """
-  import ElixirLS.Debugger.Protocol.Basic
+  import ElixirLS.DebugAdapter.Protocol.Basic
 
   defmacro __using__(_) do
     quote do
-      import ElixirLS.Debugger.Protocol.Basic
+      import ElixirLS.DebugAdapter.Protocol.Basic
       import unquote(__MODULE__)
     end
   end
