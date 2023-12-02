@@ -34,17 +34,17 @@ Note: On its first run, Dialyzer will build a PLT cache.  This will take a consi
 | ------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | BBEdit       | [bbpackage](https://github.com/chipotle/Elixir.bbpackage)                                          |                                                                            |
 | Emacs        | [eglot](https://github.com/joaotavora/eglot)                                                       |                                                                            |
-| Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode)                                                  | Supports debugger via [dap-mode](https://github.com/yyoncho/dap-mode) |
+| Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode)                                                  | Supports debug adapter via [dap-mode](https://github.com/yyoncho/dap-mode) |
 | Kakoune      | [kak-lsp](https://github.com/kak-lsp/kak-lsp)                                                      | [Limitations](https://github.com/kak-lsp/kak-lsp/#limitations)        |
-| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debugger                                                  |
-| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                                                   | Does not support debugger                                                  |
-| Neovim       | [nvim-dap](https://github.com/mfussenegger/nvim-dap)                                               | Supports debugger only                                                |
-| Neovim       | [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)                                         | Does not support debugger                                                  |
+| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debug adapter                                                  |
+| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                                                   | Does not support debug adapter                                                  |
+| Neovim       | [nvim-dap](https://github.com/mfussenegger/nvim-dap)                                               | Supports debug adapter only                                                |
+| Neovim       | [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)                                         | Does not support debug adapter                                                  |
 | Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)                                   |                                                                            |
-| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                                             | Does not support debugger                                                  |
-| Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                                                 | Does not support debugger or @spec suggestions                             |
-| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)                                  | Does not support debugger                                                  |
-| Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                                               | Does not support debugger                                                  |
+| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                                             | Does not support debug adapter                                                  |
+| Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                                                 | Does not support debug adapter or @spec suggestions                             |
+| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)                                  | Does not support debug adapter                                                  |
+| Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                                               | Does not support debug adapter                                                  |
 | VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls)                      | Supports all ElixirLS features                                        |
 
 Please feel free to create and publish your own client packages and add them to this list!
@@ -125,7 +125,7 @@ It is generally recommended to install Elixir and Erlang via [ASDF](https://gith
 
 ## Debugger support
 
-ElixirLS provides debugger support adhering to the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/), which is closely related to the Language Server Protocol.
+ElixirLS provides debug adapter support adhering to the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/), which is closely related to the Language Server Protocol.
 
 When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and its dependencies before launching the Mix task. Therefore, you can set breakpoints anywhere in your project or dependency modules.
 
@@ -175,7 +175,7 @@ To debug Phoenix applications using ElixirLS, you can use the following launch c
 }
 ```
 
-Please make sure that `startApps` is not set to `true`. To clarify, `startApps` is a configuration option in the ElixirLS debugger. It controls whether or not to start the applications in the Mix project before running the task. In the case of Phoenix applications, setting `startApps` to `true` can interfere with the application's normal startup process and cause issues.
+Please make sure that `startApps` is not set to `true`. To clarify, `startApps` is a configuration option in the ElixirLS debug adapter. It controls whether or not to start the applications in the Mix project before running the task. In the case of Phoenix applications, setting `startApps` to `true` can interfere with the application's normal startup process and cause issues.
 
 If you are running tests in the Phoenix application, you may need to set `startApps` to true. This will ensure that the necessary applications are started before the tests run.
 
@@ -242,9 +242,9 @@ If a breakpoint is set on the line with `some_function()`, the last bound value 
 
 Additionally, although all bound variables are accessible in the expression evaluator, the evaluator doesn't support accessing module attributes (because these are determined at compile time).
 
-### Connecting to debugger
+### Connecting to debug adapter
 
-It may be useful to connect to a running debugger node via OTP distribution. This enables inspecting the running application and remotely triggering debugged functions. In order to do so, set `ELS_ELIXIR_OPTS` in the launch configuration and pass in the appropriate node `name/sname` and `cookie`.
+It may be useful to connect to a running debug adapter node via OTP distribution. This enables inspecting the running application and remotely triggering debugged functions. In order to do so, set `ELS_ELIXIR_OPTS` in the launch configuration and pass in the appropriate node `name/sname` and `cookie`.
 
 ```json
 {
@@ -326,9 +326,9 @@ Below is a list of configuration options supported by the ElixirLS language serv
 <dt>elixirLS.languageServerOverridePath</dt><dd>Absolute path to an alternative ElixirLS release that will override the packaged release</dd>
 </dl>
 
-## Debugger configuration options
+## Debug Adapter configuration options
 
-Below is a list of configuration options supported by the ElixirLS Debugger. Configuration options can be supplied via the debugger launch configuration. Please refer to your editor's documentation on how to configure debugger adapters.
+Below is a list of configuration options supported by the ElixirLS Debug Adapter. Configuration options can be supplied via launch configuration. Please refer to your editor's documentation on how to configure debug adapters.
 
 <dl>
   <dt>startApps</dt><dd>Run `mix app.start` before launching the debugger. Some tasks (such as Phoenix tests) expect apps to already be running before the test files are required. Defaults to `false`.</dd>
@@ -441,7 +441,7 @@ When launching ElixirLS from an IDE that is itself launched from a graphical she
 
 To ensure that the correct environment is set up, you can create a setup script at `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (for Unix-based systems) or `%APPDATA%\elixir_ls\setup.bat` (for Windows).
 
-In the setup script, the environment variable `ELS_MODE` is available and set to either `debugger` or `language_server` to help you decide what to do.
+In the setup script, the environment variable `ELS_MODE` is available and set to either `debug_adapter` or `language_server` to help you decide what to do.
 
 Note: The setup script must not read from `stdin` or write to `stdout`. On Unix, Linux, and macOS
 this might be accomplished by adding `>/dev/null` at the end of any line that produces

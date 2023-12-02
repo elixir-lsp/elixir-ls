@@ -1,4 +1,4 @@
-defmodule ElixirLS.Debugger.Completions do
+defmodule ElixirLS.DebugAdapter.Completions do
   # type CompletionItemType = 'method' | 'function' | 'constructor' | 'field'
   #   | 'variable' | 'class' | 'interface' | 'module' | 'property' | 'unit'
   #   | 'value' | 'enum' | 'keyword' | 'snippet' | 'text' | 'color' | 'file'

@@ -1,4 +1,4 @@
-defmodule ElixirLS.Utils.Mixfile do
+defmodule ElixirLS.Utils.MixProject do
   use Mix.Project
 
   @version __DIR__

@@ -1,4 +1,4 @@
-defmodule ElixirLS.Debugger.Variables do
+defmodule ElixirLS.DebugAdapter.Variables do
   @moduledoc """
   Helper functions for working with variables for paused processes
   """

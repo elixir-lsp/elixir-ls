@@ -17,7 +17,7 @@ The Language Server Protocol and Debugger Adapter Protocol mandate that all comm
 
 The first process is the name for standard IO while the second is the standard error. They are both IO servers, that means, `:gen_server` implementations that follow the [IO protocol](http://erlang.org/doc/apps/stdlib/io_protocol.html).
 
-The servers read and decode protocol messages in `ElixirLS.Utils.PacketStream`. Output messages are sent via `ElixirLS.LanguageServer.JsonRpc` or `ElixirLS.Debugger.Output`.
+The servers read and decode protocol messages in `ElixirLS.Utils.PacketStream`. Output messages are sent via `ElixirLS.LanguageServer.JsonRpc` or `ElixirLS.DebugAdapter.Output`.
 
 ## Starts Mix
 

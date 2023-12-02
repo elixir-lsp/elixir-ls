@@ -1,4 +1,4 @@
-defmodule ElixirLS.Debugger.ModuleInfoCache do
+defmodule ElixirLS.DebugAdapter.ModuleInfoCache do
   @moduledoc """
   Caches module_info of interpreted modules. There are cases when module_info call
   may deadlock (https://github.com/elixir-lsp/elixir-ls/issues/940)

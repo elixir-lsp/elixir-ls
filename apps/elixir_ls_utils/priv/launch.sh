@@ -1,6 +1,6 @@
 #!/bin/sh
 # Actual launcher. This does the hard work of figuring out the best way
-# to launch the language server or the debugger.
+# to launch the language server or the debug adapter.
 
 # Running this script is a one-time action per project launch, so we opt for
 # code simplicity instead of performance. Hence some potentially redundant
@@ -54,7 +54,7 @@ else
 fi
 
 # In case that people want to tweak the path, which Elixir to use, or
-# whatever prior to launching the language server or the debugger, we
+# whatever prior to launching the language server or the debug adapter, we
 # give them the chance here. ELS_MODE will be set for
 # the really complex stuff. Use an XDG compliant path.
 

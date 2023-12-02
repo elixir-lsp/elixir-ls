@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use GenServer
   require Logger
-  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics}
+  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics, MixProjectCache}
 
   alias ElixirLS.LanguageServer.Providers.{
     Completion,
@@ -1243,12 +1243,12 @@ defmodule ElixirLS.LanguageServer.Server do
       Map.get(state.settings || %{}, "autoBuild", true) and
         Map.get(state.settings || %{}, "enableTestLenses", false)
 
-    if state.mix_project? and enabled? and ElixirLS.LanguageServer.MixProject.loaded?() do
+    if state.mix_project? and enabled? and MixProjectCache.loaded?() do
       get_test_code_lenses(
         state,
         uri,
         source_file,
-        ElixirLS.LanguageServer.MixProject.umbrella?()
+        MixProjectCache.umbrella?()
       )
     else
       {:ok, []}
@@ -1264,7 +1264,7 @@ defmodule ElixirLS.LanguageServer.Server do
        when is_binary(project_dir) do
     file_path = SourceFile.Path.from_uri(uri)
 
-    ElixirLS.LanguageServer.MixProject.apps_paths()
+    MixProjectCache.apps_paths()
     |> Enum.find(fn {_app, app_path} -> under_app?(file_path, project_dir, app_path) end)
     |> case do
       nil ->
@@ -1318,7 +1318,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp is_test_file?(file_path, project_dir) do
-    config = ElixirLS.LanguageServer.MixProject.config()
+    config = MixProjectCache.config()
     test_paths = config[:test_paths] || ["test"]
     test_pattern = config[:test_pattern] || "*_test.exs"
 
@@ -1863,7 +1863,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       # sleep so the client has time to show the message
       Process.sleep(5000)
-      ElixirLS.LanguageServer.restart()
+      ElixirLS.LanguageServer.Application.restart()
       Process.sleep(:infinity)
     end
 
@@ -1913,7 +1913,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       # sleep so the client has time to show the message
       Process.sleep(5000)
-      ElixirLS.LanguageServer.restart()
+      ElixirLS.LanguageServer.Application.restart()
       Process.sleep(:infinity)
     end
   end
@@ -1960,7 +1960,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       # sleep so the client has time to show the message
       Process.sleep(5000)
-      ElixirLS.LanguageServer.restart()
+      ElixirLS.LanguageServer.Application.restart()
       Process.sleep(:infinity)
     end
   end
@@ -2049,7 +2049,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
         # sleep so the client has time to show the message
         Process.sleep(5000)
-        ElixirLS.LanguageServer.restart()
+        ElixirLS.LanguageServer.Application.restart()
         Process.sleep(:infinity)
 
       true ->
@@ -2108,107 +2108,6 @@ defmodule ElixirLS.LanguageServer.Server do
       {from, ^uri} -> GenServer.reply(from, [])
       _ -> false
     end)
-  end
-
-  defp maybe_rebuild(state = %__MODULE__{project_dir: project_dir}) do
-    # detect if we are opening a project that has been compiled without a tracer
-    if is_binary(project_dir) and state.mix_project? and
-         File.dir?(Path.join([project_dir, ".elixir_ls"])) and
-         not Tracer.manifest_version_current?(project_dir) do
-      Logger.info("DETS databases will be rebuilt")
-
-      try do
-        Tracer.clean_dets(project_dir)
-      rescue
-        e ->
-          message =
-            "Unable to clean DETS databases in #{project_dir}: #{Exception.message(e)}"
-
-          Logger.error(message)
-
-          JsonRpc.show_message(
-            :error,
-            message
-          )
-
-          unless :persistent_term.get(:language_server_test_mode, false) do
-            Process.sleep(2000)
-            System.halt(1)
-          else
-            IO.warn(message)
-          end
-      end
-
-      case File.cwd() do
-        {:ok, cwd} ->
-          if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
-            try do
-              case Build.clean(project_dir) do
-                :ok ->
-                  :ok
-
-                e ->
-                  Logger.warning(
-                    "Unable to clean project, databases may not be up to date: #{inspect(e)}"
-                  )
-
-                  :ok
-              end
-            rescue
-              e ->
-                message =
-                  "Unable to reload project: #{Exception.format(:error, e, __STACKTRACE__)}"
-
-                Logger.error(message)
-
-                JsonRpc.show_message(
-                  :error,
-                  message
-                )
-
-                unless :persistent_term.get(:language_server_test_mode, false) do
-                  Process.sleep(2000)
-                  System.halt(1)
-                else
-                  IO.warn(message)
-                end
-            end
-          else
-            message =
-              "Unable to reload project: cwd #{inspect(cwd)} is not project dir #{project_dir}"
-
-            Logger.error(message)
-
-            JsonRpc.show_message(
-              :error,
-              message
-            )
-
-            unless :persistent_term.get(:language_server_test_mode, false) do
-              Process.sleep(2000)
-              System.halt(1)
-            else
-              IO.warn(message)
-            end
-          end
-
-        {:error, reason} ->
-          message = "Unable to reload project: #{inspect(reason)}"
-          Logger.error(message)
-
-          JsonRpc.show_message(
-            :error,
-            message
-          )
-
-          unless :persistent_term.get(:language_server_test_mode, false) do
-            Process.sleep(2000)
-            System.halt(1)
-          else
-            IO.warn(message)
-          end
-      end
-    end
   end
 
   defp pull_configuration(state) do

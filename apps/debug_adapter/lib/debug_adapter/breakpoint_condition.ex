@@ -1,10 +1,10 @@
-defmodule ElixirLS.Debugger.BreakpointCondition do
+defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   @moduledoc """
   Server that tracks breakpoint conditions
   """
 
   use GenServer
-  alias ElixirLS.Debugger.Output
+  alias ElixirLS.DebugAdapter.Output
   @range 0..99
 
   def start_link(args) do
@@ -178,7 +178,7 @@ defmodule ElixirLS.Debugger.BreakpointCondition do
     @spec unquote(:"check_#{i}")(term) :: boolean
     def unquote(:"check_#{i}")(binding) do
       {condition, log_message, hit_count, hits} = get_condition(unquote(i))
-      elixir_binding = binding |> ElixirLS.Debugger.Binding.to_elixir_variable_names()
+      elixir_binding = binding |> ElixirLS.DebugAdapter.Binding.to_elixir_variable_names()
       result = eval_condition(condition, elixir_binding)
 
       result =

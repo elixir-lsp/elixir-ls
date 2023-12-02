@@ -1,6 +1,6 @@
-defmodule ElixirLS.Debugger.UtilsTest do
+defmodule ElixirLS.DebugAdapter.UtilsTest do
   use ExUnit.Case, async: true
-  alias ElixirLS.Debugger.Utils
+  alias ElixirLS.DebugAdapter.Utils
 
   describe "parse_mfa" do
     test "elixir" do

@@ -1,9 +1,9 @@
-defmodule ElixirLS.Debugger.Stacktrace do
+defmodule ElixirLS.DebugAdapter.Stacktrace do
   @moduledoc """
   Retrieves the stack trace for a process that's paused at a breakpoint
   """
-  alias ElixirLS.Debugger.Output
-  alias ElixirLS.Debugger.ModuleInfoCache
+  alias ElixirLS.DebugAdapter.Output
+  alias ElixirLS.DebugAdapter.ModuleInfoCache
 
   defmodule Frame do
     defstruct [

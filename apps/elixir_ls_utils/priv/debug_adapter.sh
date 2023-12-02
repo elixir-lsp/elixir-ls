@@ -1,5 +1,5 @@
 #!/bin/sh
-# Launches the debugger. This script must be in the same directory as the compiled .ez archives.
+# Launches the debug adapter. This script must be in the same directory as the compiled .ez archives.
 
 readlink_f () {
   cd "$(dirname "$1")" > /dev/null || exit 1
@@ -19,7 +19,7 @@ else
   >&2 echo "ELS_INSTALL_PREFIX is set, running ${ELS_INSTALL_PREFIX}/launch.sh"
 fi
 
-export ELS_MODE=debugger
-export ELS_SCRIPT="ElixirLS.Debugger.CLI.main()"
+export ELS_MODE=debug_adapter
+export ELS_SCRIPT="ElixirLS.DebugAdapter.main()"
 
 exec "${dir}/launch.sh"

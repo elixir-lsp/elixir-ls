@@ -1,4 +1,4 @@
-defmodule ElixirLS.Debugger.Binding do
+defmodule ElixirLS.DebugAdapter.Binding do
   def to_elixir_variable_names(bindings) do
     bindings
     |> Enum.group_by(fn {key, _} -> get_elixir_variable(key) end)

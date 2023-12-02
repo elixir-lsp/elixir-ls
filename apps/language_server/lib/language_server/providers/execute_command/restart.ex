@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.Restart do
         )
 
         Process.sleep(1000)
-        ElixirLS.LanguageServer.restart()
+        ElixirLS.LanguageServer.Application.restart()
       end)
 
     {:ok, %{}}

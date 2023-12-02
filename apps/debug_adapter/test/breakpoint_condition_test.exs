@@ -1,6 +1,6 @@
-defmodule ElixirLS.Debugger.BreakpointConditionTest do
+defmodule ElixirLS.DebugAdapter.BreakpointConditionTest do
   use ExUnit.Case, async: false
-  alias ElixirLS.Debugger.BreakpointCondition
+  alias ElixirLS.DebugAdapter.BreakpointCondition
   import ExUnit.CaptureIO
 
   @name BreakpointConditionTestServer
@@ -21,13 +21,13 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
 
   describe "register" do
     test "basic" do
-      assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+      assert {:ok, {BreakpointCondition, :check_0}} ==
                BreakpointCondition.register_condition(@name, Some, [123], "a == b", nil, 0)
 
-      assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_1}} ==
+      assert {:ok, {BreakpointCondition, :check_1}} ==
                BreakpointCondition.register_condition(@name, Some, [124], "c == d", "asd", 1)
 
-      assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_2}} ==
+      assert {:ok, {BreakpointCondition, :check_2}} ==
                BreakpointCondition.register_condition(@name, Other, [124], "c == d", nil, 2)
 
       state = :sys.get_state(Process.whereis(@name))
@@ -51,10 +51,10 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
     end
 
     test "update" do
-      assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+      assert {:ok, {BreakpointCondition, :check_0}} ==
                BreakpointCondition.register_condition(@name, Some, [123], "a == b", nil, 2)
 
-      assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+      assert {:ok, {BreakpointCondition, :check_0}} ==
                BreakpointCondition.register_condition(@name, Some, [123], "c == b", "xxx", 3)
 
       state = :sys.get_state(Process.whereis(@name))
@@ -66,7 +66,7 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
 
   describe "unregister" do
     test "basic" do
-      assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+      assert {:ok, {BreakpointCondition, :check_0}} ==
                BreakpointCondition.register_condition(@name, Some, [123], "a == b", nil, 0)
 
       BreakpointCondition.register_hit(@name, 0)
@@ -81,7 +81,7 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
     end
 
     test "idempotency" do
-      assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+      assert {:ok, {BreakpointCondition, :check_0}} ==
                BreakpointCondition.register_condition(@name, Some, [123], "a == b", nil, 1)
 
       assert :ok == BreakpointCondition.unregister_condition(@name, Some, [123])
@@ -95,7 +95,7 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
   end
 
   test "has_condition?" do
-    assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+    assert {:ok, {BreakpointCondition, :check_0}} ==
              BreakpointCondition.register_condition(@name, Some, [123], "a == b", nil, 1)
 
     assert BreakpointCondition.has_condition?(@name, Some, [123])
@@ -105,10 +105,10 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
   end
 
   test "get_condition" do
-    assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+    assert {:ok, {BreakpointCondition, :check_0}} ==
              BreakpointCondition.register_condition(@name, Some, [123], "a == b", nil, 1)
 
-    assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_1}} ==
+    assert {:ok, {BreakpointCondition, :check_1}} ==
              BreakpointCondition.register_condition(@name, Some, [124], "c == d", "xxx", 2)
 
     BreakpointCondition.register_hit(@name, 1)
@@ -118,7 +118,7 @@ defmodule ElixirLS.Debugger.BreakpointConditionTest do
   end
 
   test "register_hit" do
-    assert {:ok, {ElixirLS.Debugger.BreakpointCondition, :check_0}} ==
+    assert {:ok, {BreakpointCondition, :check_0}} ==
              BreakpointCondition.register_condition(@name, Some, [123], "a == b", nil, 1)
 
     BreakpointCondition.register_hit(@name, 0)

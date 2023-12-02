@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.MixProject do
+defmodule ElixirLS.LanguageServer.MixProjectCache do
   @moduledoc """
   This module serves as a caching layer guarantying a safe access to Mix.Project functions. Note that
   Mix.Project functions cannot be safely called during a build as dep mix projects are being pushed and

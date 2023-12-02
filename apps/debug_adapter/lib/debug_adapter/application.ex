@@ -1,15 +1,15 @@
-defmodule ElixirLS.Debugger do
+defmodule ElixirLS.DebugAdapter.Application do
   @moduledoc """
-  Debugger adapter for Elixir Mix tasks using VS Code Debug Protocol
+  Debug adapter for Elixir Mix tasks using Debug Adapter Protocol
   """
 
   use Application
-  alias ElixirLS.Debugger.Output
-  alias ElixirLS.Debugger.{Server, BreakpointCondition, ModuleInfoCache}
+  alias ElixirLS.DebugAdapter.Output
+  alias ElixirLS.DebugAdapter.{Server, BreakpointCondition, ModuleInfoCache}
 
   @impl Application
   def start(_type, _args) do
-    # We don't start this as a worker because if the debugger crashes, we want
+    # We don't start this as a worker because if the debug adapter crashes, we want
     # this process to remain alive to print errors
     {:ok, _pid} = Output.start(Output)
 
@@ -28,7 +28,7 @@ defmodule ElixirLS.Debugger do
         []
       end
 
-    opts = [strategy: :one_for_one, name: ElixirLS.Debugger.Supervisor, max_restarts: 0]
+    opts = [strategy: :one_for_one, name: ElixirLS.DebugAdapter.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)
   end
 

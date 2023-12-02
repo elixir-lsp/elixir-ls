@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Mixfile do
+defmodule ElixirLS.LanguageServer.MixProject do
   use Mix.Project
 
   @version __DIR__
@@ -31,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:logger, :eex]]
+    [mod: {ElixirLS.LanguageServer.Application, []}, extra_applications: [:logger, :eex]]
   end
 
   defp deps do

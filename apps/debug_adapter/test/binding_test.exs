@@ -1,6 +1,6 @@
-defmodule ElixirLS.Debugger.BindingTest do
+defmodule ElixirLS.DebugAdapter.BindingTest do
   use ExUnit.Case, async: true
-  alias ElixirLS.Debugger.Binding
+  alias ElixirLS.DebugAdapter.Binding
 
   test "get_elixir_variable" do
     assert :asd == Binding.get_elixir_variable(:_asd@1)

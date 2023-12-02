@@ -13,7 +13,7 @@ defmodule ElixirLS.Utils.MixTest.Case do
   @allowed_apps ~w(
     iex
     elixir_sense
-    elixir_ls_debugger
+    debug_adapter
     elixir_ls_utils
     language_server
     stream_data

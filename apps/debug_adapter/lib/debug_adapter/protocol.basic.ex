@@ -1,6 +1,6 @@
-defmodule ElixirLS.Debugger.Protocol.Basic do
+defmodule ElixirLS.DebugAdapter.Protocol.Basic do
   @moduledoc """
-  Macros for VS Code debug protocol messages
+  Macros for Debug Adapter Protocol messages
 
   These macros can be used for pattern matching or for creating messages corresponding to the
   request, response, and event types as specified in VS Code debug protocol.
