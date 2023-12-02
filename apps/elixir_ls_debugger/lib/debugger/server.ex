@@ -985,23 +985,14 @@ defmodule ElixirLS.Debugger.Server do
       message: "invalidRequest",
       format: "Cannot pause process when running with no debug",
       variables: %{},
+      send_telemetry: false,
       show_user: true
   end
 
   defp handle_request(pause_req(_, thread_id), state = %__MODULE__{}) do
-    pid = state.thread_ids_to_pids[thread_id]
+    pid = get_pid_by_thread_id!(state, thread_id, true)
 
-    if pid do
-      :int.attach(pid, build_attach_mfa(:paused))
-    else
-      raise ServerError,
-        message: "invalidArgument",
-        format: "threadId not found: {threadId}",
-        variables: %{
-          "threadId" => inspect(thread_id)
-        },
-        show_user: true
-    end
+    :int.attach(pid, build_attach_mfa(:paused))
 
     {%{}, state}
   end
@@ -1010,7 +1001,7 @@ defmodule ElixirLS.Debugger.Server do
          request(_, "stackTrace", %{"threadId" => thread_id} = args),
          state = %__MODULE__{}
        ) do
-    pid = get_pid_by_thread_id!(state, thread_id)
+    pid = get_pid_by_thread_id!(state, thread_id, false)
 
     case state.paused_processes[pid] do
       %PausedProcess{} = paused_process ->
@@ -1050,7 +1041,8 @@ defmodule ElixirLS.Debugger.Server do
           format: "process not paused: {threadId}",
           variables: %{
             "threadId" => inspect(thread_id)
-          }
+          },
+          send_telemetry: false
     end
   end
 
@@ -1211,7 +1203,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id)
+    pid = get_pid_by_thread_id!(state, thread_id, true)
 
     state =
       case state.dbg_session do
@@ -1235,7 +1227,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id)
+    pid = get_pid_by_thread_id!(state, thread_id, true)
 
     state =
       if match?({^pid, _ref}, state.dbg_session) do
@@ -1255,7 +1247,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(step_in_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id)
+    pid = get_pid_by_thread_id!(state, thread_id, true)
 
     validate_dbg_pid!(state, pid, "stepIn")
 
@@ -1270,7 +1262,7 @@ defmodule ElixirLS.Debugger.Server do
   end
 
   defp handle_request(step_out_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id)
+    pid = get_pid_by_thread_id!(state, thread_id, true)
 
     validate_dbg_pid!(state, pid, "stepOut")
 
@@ -1378,15 +1370,17 @@ defmodule ElixirLS.Debugger.Server do
       :ok
   end
 
-  defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id) do
+  defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id, show_message_on_error?) do
     case state.thread_ids_to_pids[thread_id] do
       nil ->
         raise ServerError,
           message: "invalidArgument",
-          format: "threadId not found: {threadId}",
+          format: "Unable to find process pid for DAP threadId {threadId}",
           variables: %{
             "threadId" => inspect(thread_id)
-          }
+          },
+          send_telemetry: false,
+          show_user: show_message_on_error?
 
       pid ->
         pid
@@ -1430,7 +1424,7 @@ defmodule ElixirLS.Debugger.Server do
         {:error, :not_paused} ->
           raise ServerError,
             message: "runtimeError",
-            format: "pid no longer paused: {pid}",
+            format: "process with pid {pid} is not paused",
             variables: %{
               "pid" => inspect(pid)
             },
@@ -1638,7 +1632,7 @@ defmodule ElixirLS.Debugger.Server do
           raise ServerError,
             message: "argumentError",
             format:
-              "invalid `projectDir` in launch config. Expected string or nil, got #{inspect(project_dir)}",
+              "Invalid `projectDir` in launch config. Expected string or nil, got #{inspect(project_dir)}",
             variables: %{},
             send_telemetry: false,
             show_user: true
@@ -1662,7 +1656,7 @@ defmodule ElixirLS.Debugger.Server do
       raise ServerError,
         message: "argumentError",
         format:
-          "invalid `taskArgs` in launch config. Expected string or nil, got #{inspect(task)}",
+          "Invalid `taskArgs` in launch config. Expected string or nil, got #{inspect(task)}",
         variables: %{},
         send_telemetry: false,
         show_user: true
@@ -1674,7 +1668,7 @@ defmodule ElixirLS.Debugger.Server do
       raise ServerError,
         message: "argumentError",
         format:
-          "invalid `taskArgs` in launch config. Expected list of strings or nil, got #{inspect(task_args)}",
+          "Invalid `taskArgs` in launch config. Expected list of strings or nil, got #{inspect(task_args)}",
         variables: %{},
         send_telemetry: false,
         show_user: true
@@ -1765,7 +1759,7 @@ defmodule ElixirLS.Debugger.Server do
       raise ServerError,
         message: "argumentError",
         format:
-          "invalid `excludeModules` in launch config. Expected list of strings or nil, got #{inspect(exclude_module_names)}",
+          "Invalid `excludeModules` in launch config. Expected list of strings or nil, got #{inspect(exclude_module_names)}",
         variables: %{},
         send_telemetry: false,
         show_user: true
@@ -1788,7 +1782,7 @@ defmodule ElixirLS.Debugger.Server do
         raise ServerError,
           message: "argumentError",
           format:
-            "invalid `requireFiles` in launch config. Expected list of strings or nil, got #{inspect(required_files)}",
+            "Invalid `requireFiles` in launch config. Expected list of strings or nil, got #{inspect(required_files)}",
           variables: %{},
           send_telemetry: false,
           show_user: true
@@ -1803,7 +1797,7 @@ defmodule ElixirLS.Debugger.Server do
         raise ServerError,
           message: "argumentError",
           format:
-            "invalid `debugInterpretModulesPatterns` in launch config. Expected list of strings or nil, got #{inspect(interpret_modules_patterns)}",
+            "Invalid `debugInterpretModulesPatterns` in launch config. Expected list of strings or nil, got #{inspect(interpret_modules_patterns)}",
           variables: %{},
           send_telemetry: false,
           show_user: true
@@ -1847,7 +1841,7 @@ defmodule ElixirLS.Debugger.Server do
         raise ServerError,
           message: "argumentError",
           format:
-            "invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}",
+            "Invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}",
           variables: %{},
           send_telemetry: false,
           show_user: true
@@ -1862,7 +1856,7 @@ defmodule ElixirLS.Debugger.Server do
     raise ServerError,
       message: "argumentError",
       format:
-        "invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}",
+        "Invalid `env` in launch configuration. Expected a map with string key value pairs, got #{inspect(env)}",
       variables: %{},
       send_telemetry: false,
       show_user: true
@@ -1878,7 +1872,7 @@ defmodule ElixirLS.Debugger.Server do
     raise ServerError,
       message: "argumentError",
       format:
-        "invalid `stackTraceMode` in launch configuration. Must be `all`, `no_tail` or `false`, got #{inspect(mode)}",
+        "Invalid `stackTraceMode` in launch configuration. Must be `all`, `no_tail` or `false`, got #{inspect(mode)}",
       variables: %{},
       send_telemetry: false,
       show_user: true
