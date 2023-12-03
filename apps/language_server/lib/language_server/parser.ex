@@ -58,6 +58,7 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   def handle_cast({:parse_with_debounce, uri, source_file}, state) do
+    # TODO check source_file.language_id
     state = if String.ends_with?(uri, [".ex", ".exs", ".eex"]) do
       state = update_in(state.debounce_refs[uri], fn old_ref ->
         if old_ref do

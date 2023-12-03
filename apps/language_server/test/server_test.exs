@@ -527,7 +527,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => [diagnostic]
+                         "diagnostics" => [diagnostic],
+                         "version" => 1
                        }),
                        1000
 
@@ -550,14 +551,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         state = :sys.get_state(server)
 
-        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+        assert %SourceFile{dirty?: false, text: ^code, language_id: "elixir", version: 1} =
                  Server.get_source_file(state, uri)
 
         # Code.with_diagnostics is broken on elixir < 1.15.3
         if Version.match?(System.version(), ">= 1.15.3") do
           assert_receive notification("textDocument/publishDiagnostics", %{
                            "uri" => ^uri,
-                           "diagnostics" => [diagnostic]
+                           "diagnostics" => [diagnostic],
+                           "version" => 1
                          }),
                          1000
 
@@ -810,11 +812,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        }),
                        1000
 
-        Server.receive_packet(server, did_change(uri, 1, content_changes))
+        Server.receive_packet(server, did_change(uri, 2, content_changes))
 
         assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => [_]
+                         "diagnostics" => [_],
+                         "version" => 2
                        }),
                        1000
 
@@ -846,11 +849,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         fake_initialize(server)
-        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_open(uri, "elixir", 0, code))
 
         assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => [_]
+                         "diagnostics" => [_],
+                         "version" => 0
                        }),
                        1000
 
@@ -858,12 +862,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         assert_receive notification("textDocument/publishDiagnostics", %{
                          "uri" => ^uri,
-                         "diagnostics" => []
+                         "diagnostics" => [],
+                         "version" => 1
                        }),
                        1000
 
         state = :sys.get_state(server)
-        assert %SourceFile{dirty?: true, version: 2} = Server.get_source_file(state, uri)
+        assert %SourceFile{dirty?: true, version: 1} = Server.get_source_file(state, uri)
 
         wait_until_compiled(server)
       end)
