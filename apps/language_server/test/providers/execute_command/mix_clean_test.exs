@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, Tracer, MixProject}
+  alias ElixirLS.LanguageServer.{Server, Protocol, Tracer, MixProjectCache}
   use ElixirLS.Utils.MixTest.Case, async: false
   import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use Protocol
@@ -7,7 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.MixCleanTest do
   setup do
     {:ok, _} = start_supervised(Tracer)
     {:ok, server} = Server.start_link()
-    {:ok, _} = start_supervised(MixProject)
+    {:ok, _} = start_supervised(MixProjectCache)
     start_server(server)
 
     on_exit(fn ->

@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
-  alias ElixirLS.LanguageServer.{Server, SourceFile, Tracer, Build, JsonRpc, MixProject}
+  alias ElixirLS.LanguageServer.{Server, SourceFile, Tracer, Build, JsonRpc, MixProjectCache, Parser}
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   import ElixirLS.LanguageServer.Test.ServerTestHelpers
@@ -22,7 +22,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       start_server(server)
 
       {:ok, tracer} = start_supervised(Tracer)
-      {:ok, _} = start_supervised(MixProject)
+      {:ok, _} = start_supervised(MixProjectCache)
+      {:ok, _} = start_supervised(Parser)
 
       on_exit(fn ->
         if Process.alive?(server) do
@@ -2218,7 +2219,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
   defp with_new_server(packet_capture, func) do
     server = start_supervised!({Server, nil})
-    {:ok, mix_project} = start_supervised(MixProject)
+    {:ok, mix_project} = start_supervised(MixProjectCache)
 
     Process.group_leader(server, packet_capture)
     Process.group_leader(mix_project, packet_capture)
@@ -2232,7 +2233,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       wait_until_compiled(server)
       stop_supervised(Server)
       stop_supervised(JsonRpc)
-      stop_supervised(MixProject)
+      stop_supervised(MixProjectCache)
       flush_mailbox()
     end
   end

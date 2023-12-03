@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     JsonRpc,
     Tracer,
     Build,
-    MixProject
+    MixProjectCache
   }
 
   import ExUnit.CaptureLog
@@ -33,7 +33,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
 
   setup do
     {:ok, server} = Server.start_link()
-    {:ok, _} = start_supervised(MixProject)
+    {:ok, _} = start_supervised(MixProjectCache)
     start_server(server)
 
     {:ok, _tracer} = start_supervised(Tracer)
