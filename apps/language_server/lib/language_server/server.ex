@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use GenServer
   require Logger
-  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics, MixProjectCache}
+  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics, MixProjectCache, Parser}
 
   alias ElixirLS.LanguageServer.Providers.{
     Completion,
@@ -49,8 +49,7 @@ defmodule ElixirLS.LanguageServer.Server do
     :root_uri,
     :project_dir,
     :settings,
-    parse_file_refs: %{},
-    parser_diagnostics: %{},
+    parser_diagnostics: [],
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
@@ -111,6 +110,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
   def dialyzer_finished(server \\ __MODULE__, diagnostics, build_ref) do
     GenServer.cast(server, {:dialyzer_finished, diagnostics, build_ref})
+  end
+
+  def parser_finished(server \\ __MODULE__, diagnostics) do
+    GenServer.cast(server, {:parser_finished, diagnostics})
   end
 
   def rebuild(server \\ __MODULE__) do
@@ -250,6 +253,15 @@ defmodule ElixirLS.LanguageServer.Server do
   @impl GenServer
   def handle_cast({:dialyzer_finished, diagnostics, build_ref}, state = %__MODULE__{}) do
     {:noreply, handle_dialyzer_result(diagnostics, build_ref, state)}
+  end
+
+  @impl GenServer
+  def handle_cast({:parser_finished, diagnostics}, state = %__MODULE__{}) do
+    old_diagnostics = current_diagnostics(state)
+    state = %{state | parser_diagnostics: diagnostics}
+    publish_diagnostics(state, old_diagnostics)
+
+    {:noreply, state}
   end
 
   @impl GenServer
@@ -409,58 +421,6 @@ defmodule ElixirLS.LanguageServer.Server do
      %{state | requests: updated_requests, requests_ids_by_pid: updated_requests_ids_by_pid}}
   end
 
-  @impl GenServer
-  def handle_info(
-        {:parse_file, uri},
-        %__MODULE__{source_files: source_files} = state
-      ) do
-    old_diagnostics =
-      state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics))
-
-    parser_diagnostics =
-      case source_files[uri] do
-        %SourceFile{} = source_file ->
-          file =
-            case uri do
-              "file:" <> _ ->
-                SourceFile.Path.from_uri(uri)
-
-              _ ->
-                # we don't know extension of untitled files so it's not clear which parser to use
-                # it's better to skip that file
-                nil
-            end
-
-          case parse_file(source_file.text, file) do
-            [] ->
-              Map.delete(state.parser_diagnostics, uri)
-
-            diagnostics ->
-              Map.put(state.parser_diagnostics, uri, diagnostics)
-          end
-
-        nil ->
-          Map.delete(state.parser_diagnostics, uri)
-      end
-
-    state = %{
-      state
-      | parser_diagnostics: parser_diagnostics,
-        parse_file_refs: Map.delete(state.parse_file_refs, uri)
-    }
-
-    publish_diagnostics(
-      state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics)),
-      old_diagnostics,
-      state.source_files,
-      state.project_dir
-    )
-
-    {:noreply, state}
-  end
-
   ## Helpers
 
   defp handle_notification(notification("initialized"), state = %__MODULE__{}) do
@@ -593,9 +553,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
       source_file = %SourceFile{text: text, version: version}
 
-      state = put_in(state.source_files[uri], source_file)
-      # parse handler will emit diagnostics for opened file
-      trigger_parse(state, uri, 0)
+      Parser.parse_with_debounce(uri, source_file)
+
+      put_in(state.source_files[uri], source_file)
     end
   end
 
@@ -610,8 +570,7 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       awaiting_contracts = reject_awaiting_contracts(state.awaiting_contracts, uri)
 
-      # parse handler will clean up diagnostics and refs for closed file
-      state = trigger_parse(state, uri, 0)
+      Parser.notify_closed(uri)
 
       %{
         state
@@ -634,11 +593,13 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       state =
         update_in(state.source_files[uri], fn source_file ->
-          file =
+          updated_source_file =
             %SourceFile{source_file | version: version, dirty?: true}
             |> SourceFile.apply_content_changes(content_changes)
 
-          unless String.valid?(file.text) do
+          Parser.parse_with_debounce(uri, updated_source_file)
+
+          unless String.valid?(updated_source_file.text) do
             JsonRpc.telemetry(
               "lsp_server_error",
               %{
@@ -654,11 +615,10 @@ defmodule ElixirLS.LanguageServer.Server do
             )
           end
 
-          file
+          updated_source_file
         end)
 
-      # trigger parse with debounce
-      trigger_parse(state, uri, 300)
+      state
     end
   end
 
@@ -1437,9 +1397,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
     do_sanity_check(state)
 
-    old_diagnostics =
-      state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics))
+    old_diagnostics = current_diagnostics(state)
 
     state = put_in(state.build_diagnostics, diagnostics)
 
@@ -1455,27 +1413,16 @@ defmodule ElixirLS.LanguageServer.Server do
           dialyze(state)
       end
 
-    publish_diagnostics(
-      state.build_diagnostics ++
-        state.dialyzer_diagnostics ++ List.flatten(Map.values(state.parser_diagnostics)),
-      old_diagnostics,
-      state.source_files,
-      state.project_dir
-    )
+    publish_diagnostics(state, old_diagnostics)
 
     %{state | full_build_done?: if(status == :ok, do: true, else: state.full_build_done?)}
   end
 
   defp handle_dialyzer_result(diagnostics, build_ref, state = %__MODULE__{}) do
-    old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
+    old_diagnostics = current_diagnostics(state)
     state = put_in(state.dialyzer_diagnostics, diagnostics)
 
-    publish_diagnostics(
-      state.build_diagnostics ++ state.dialyzer_diagnostics,
-      old_diagnostics,
-      state.source_files,
-      state.project_dir
-    )
+    publish_diagnostics(state, old_diagnostics)
 
     # If these results were triggered by the most recent build and files are not dirty, then we know
     # we're up to date and can release spec suggestions to the code lens provider
@@ -1531,7 +1478,13 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files, project_dir) do
+  defp current_diagnostics(state = %__MODULE__{}) do
+    state.build_diagnostics ++
+        state.dialyzer_diagnostics ++ state.parser_diagnostics
+  end
+
+  defp publish_diagnostics(state = %__MODULE__{project_dir: project_dir, source_files: source_files}, old_diagnostics) do
+    new_diagnostics = current_diagnostics(state)
     # we need to publish diagnostics for all files in new_diagnostics
     # to clear diagnostics we need to push empty sets for old_diagnostics
     # in case we missed something or restarted and don't have old_diagnostics
@@ -2149,92 +2102,6 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       Logger.info("Client does not support workspace/configuration request")
       state
-    end
-  end
-
-  defp trigger_parse(state, uri, debounce_timeout) do
-    if String.ends_with?(uri, [".ex", ".exs", ".eex"]) do
-      update_in(state.parse_file_refs[uri], fn old_ref ->
-        if old_ref do
-          Process.cancel_timer(old_ref, info: false)
-        end
-
-        Process.send_after(self(), {:parse_file, uri}, debounce_timeout)
-      end)
-    else
-      state
-    end
-  end
-
-  defp parse_file(_text, nil), do: []
-
-  defp parse_file(text, file) do
-    {result, raw_diagnostics} =
-      Build.with_diagnostics([log: false], fn ->
-        try do
-          parser_options = [
-            file: file,
-            columns: true
-          ]
-
-          if String.ends_with?(file, ".eex") do
-            EEx.compile_string(text,
-              file: file,
-              parser_options: parser_options
-            )
-          else
-            Code.string_to_quoted!(text, parser_options)
-          end
-
-          :ok
-        rescue
-          e in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
-            message = Exception.message(e)
-
-            diagnostic = %Mix.Task.Compiler.Diagnostic{
-              compiler_name: "ElixirLS",
-              file: file,
-              position: {e.line, e.column},
-              message: message,
-              severity: :error
-            }
-
-            {:error, diagnostic}
-
-          e ->
-            message = Exception.message(e)
-
-            diagnostic = %Mix.Task.Compiler.Diagnostic{
-              compiler_name: "ElixirLS",
-              file: file,
-              position: {1, 1},
-              message: message,
-              severity: :error
-            }
-
-            # e.g. https://github.com/elixir-lang/elixir/issues/12926
-            Logger.warning(
-              "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
-                Exception.format(:error, e, __STACKTRACE__)
-            )
-
-            JsonRpc.telemetry(
-              "parser_error",
-              %{"elixir_ls.parser_error" => Exception.format(:error, e, __STACKTRACE__)},
-              %{}
-            )
-
-            {:error, diagnostic}
-        end
-      end)
-
-    warning_diagnostics =
-      raw_diagnostics
-      |> Enum.map(&Diagnostics.code_diagnostic/1)
-
-    case result do
-      :ok -> warning_diagnostics
-      {:error, diagnostic} -> [diagnostic | warning_diagnostics]
     end
   end
 

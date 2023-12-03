@@ -15,6 +15,7 @@ defmodule ElixirLS.LanguageServer.Application do
         {LanguageServer.Providers.WorkspaceSymbols, []},
         {LanguageServer.Tracer, []},
         {LanguageServer.MixProjectCache, []},
+        {LanguageServer.Parser, []},
         {LanguageServer.ExUnitTestTracer, []}
       ]
       |> Enum.reject(&is_nil/1)
