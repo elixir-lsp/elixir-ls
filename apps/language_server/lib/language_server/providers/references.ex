@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.References do
   @moduledoc """
-  This module provides References support by using `ElixirSense.references/3` to
+  This module provides textDocument/references support by using `ElixirSense.references/3` to
   find all references to any function or module identified at the provided
   location.
 
@@ -10,20 +10,20 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#textDocument_references
   """
 
-  alias ElixirLS.LanguageServer.{SourceFile, Build}
+  alias ElixirLS.LanguageServer.{SourceFile, Build, Parser}
   import ElixirLS.LanguageServer.Protocol
   require Logger
 
-  def references(text, uri, line, character, _include_declaration, project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
+  def references(%Parser.Context{source_file: source_file, metadata: metadata}, uri, line, character, _include_declaration, project_dir) do
+    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
 
     Build.with_build_lock(fn ->
       trace = ElixirLS.LanguageServer.Tracer.get_trace()
 
-      ElixirSense.references(text, line, character, trace)
+      ElixirSense.references(source_file.text, line, character, trace, if(metadata, do: [metadata: metadata], else: []))
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
-        |> build_reference(uri, text, project_dir)
+        |> build_reference(uri, source_file.text, project_dir)
       end)
       |> Enum.filter(&(not is_nil(&1)))
       # ElixirSense returns references from both compile tracer and current buffer
