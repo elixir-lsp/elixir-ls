@@ -171,44 +171,48 @@ defmodule ElixirLS.LanguageServer.Build do
   defp reload_project(mixfile, root_path) do
     if File.exists?(mixfile) do
       if module = Mix.Project.get() do
-        build_path = Mix.Project.config()[:build_path]
+        if module != ElixirLS.LanguageServer.MixProject do
+          build_path = Mix.Project.config()[:build_path]
 
-        deps_paths =
-          try do
-            # this call can raise (RuntimeError) cannot retrieve dependencies information because dependencies
-            # were not loaded. Please invoke one of "deps.loadpaths", "loadpaths", or "compile" Mix task
-            Mix.Project.deps_paths()
-          catch
-            kind, payload ->
-              {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
-              message = Exception.format(kind, payload, stacktrace)
-              Logger.warning("Unable to prune mix project: #{message}")
-              []
-          end
-
-        for {app, path} <- deps_paths do
-          child_module =
+          deps_paths =
             try do
-              Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
-                mix_project
-              end)
+              # this call can raise (RuntimeError) cannot retrieve dependencies information because dependencies
+              # were not loaded. Please invoke one of "deps.loadpaths", "loadpaths", or "compile" Mix task
+              Mix.Project.deps_paths()
             catch
               kind, payload ->
                 {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
                 message = Exception.format(kind, payload, stacktrace)
-                Logger.warning("Unable to prune mix project module for #{app}: #{message}")
+                Logger.warning("Unable to prune mix project: #{message}")
+                []
             end
 
-          if child_module do
-            purge_module(child_module)
+          for {app, path} <- deps_paths do
+            child_module =
+              try do
+                Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
+                  mix_project
+                end)
+              catch
+                kind, payload ->
+                  {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+                  message = Exception.format(kind, payload, stacktrace)
+                  Logger.warning("Unable to prune mix project module for #{app}: #{message}")
+              end
+
+            if child_module do
+              purge_module(child_module)
+            end
           end
+
+          unload_mix_project_apps()
+
+          Mix.Project.pop()
+          purge_module(module)
+        else
+          # don't do any pruning in language server tests
+          Mix.Project.pop()
         end
-
-        unload_mix_project_apps()
-
-        # FIXME: Private API
-        Mix.Project.pop()
-        purge_module(module)
       end
 
       # We need to clear persistent cache, otherwise `deps.loadpaths` task fails with
@@ -244,7 +248,6 @@ defmodule ElixirLS.LanguageServer.Build do
       set_compiler_options()
 
       # Override build directory to avoid interfering with other dev tools
-      # FIXME: Private API
       Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
       Mix.ProjectStack.post_config(prune_code_paths: false)
 
@@ -548,7 +551,6 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp fetch_deps(current_deps) do
-    # FIXME: private struct
     missing_deps =
       current_deps
       |> Enum.filter(fn %Mix.Dep{status: status, scm: scm} ->
@@ -561,7 +563,6 @@ defmodule ElixirLS.LanguageServer.Build do
           _ -> false
         end
       end)
-      # FIXME: Private struct
       |> Enum.map(fn %Mix.Dep{app: app, requirement: requirement} -> "#{app} #{requirement}" end)
 
     if missing_deps != [] do
@@ -613,11 +614,10 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp read_cached_deps() do
-    # FIXME: Private api
     # we cannot use Mix.Dep.cached() here as it tries to load deps
     project = Mix.Project.get()
     # in test do not try to load cache from elixir_ls
-    if project != nil and project != ElixirLS.LanguageServer.Mixfile do
+    if project != nil and project != ElixirLS.LanguageServer.MixProject do
       env_target = {Mix.env(), Mix.target()}
 
       case Mix.State.read_cache({:cached_deps, project}) do
