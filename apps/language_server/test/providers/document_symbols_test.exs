@@ -2458,7 +2458,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     uri = "file:///project/test.exs"
 
     text = """
-    defmodule aA do
+    defmodule aA do)
       def hello do
         Hello.hi(
       end
