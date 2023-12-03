@@ -1,16 +1,16 @@
 defmodule ElixirLS.LanguageServer.Providers.Implementation do
   @moduledoc """
-  Go-to-implementation provider utilizing Elixir Sense
+  textDocument/implementation provider utilizing Elixir Sense
   """
 
-  alias ElixirLS.LanguageServer.{Protocol, SourceFile}
+  alias ElixirLS.LanguageServer.{Protocol, SourceFile, Parser}
 
-  def implementation(uri, text, line, character, project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
-    locations = ElixirSense.implementations(text, line, character)
+  def implementation(uri, %Parser.Context{source_file: source_file, metadata: metadata}, line, character, project_dir) do
+    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+    locations = ElixirSense.implementations(source_file.text, line, character, if(metadata, do: [metadata: metadata], else: []))
 
     results =
-      for location <- locations, do: Protocol.Location.new(location, uri, text, project_dir)
+      for location <- locations, do: Protocol.Location.new(location, uri, source_file.text, project_dir)
 
     {:ok, results}
   end

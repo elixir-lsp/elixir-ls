@@ -920,7 +920,8 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Definition.definition(uri, source_file.text, line, character, state.project_dir)
+      parser_context = Parser.parse_immediate(uri, source_file)
+      Definition.definition(uri, parser_context, line, character, state.project_dir)
     end
 
     {:async, fun, state}
@@ -930,7 +931,8 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Implementation.implementation(uri, source_file.text, line, character, state.project_dir)
+      parser_context = Parser.parse_immediate(uri, source_file)
+      Implementation.implementation(uri, parser_context, line, character, state.project_dir)
     end
 
     {:async, fun, state}
@@ -943,9 +945,10 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
+      parser_context = Parser.parse_immediate(uri, source_file)
       {:ok,
        References.references(
-         source_file.text,
+         parser_context,
          uri,
          line,
          character,
@@ -961,7 +964,8 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Hover.hover(source_file.text, line, character, state.project_dir)
+      parser_context = Parser.parse_immediate(uri, source_file)
+      Hover.hover(parser_context, line, character)
     end
 
     {:async, fun, state}
@@ -1049,7 +1053,8 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
     fun = fn ->
-      Completion.completion(source_file.text, line, character,
+      parser_context = Parser.parse_immediate(uri, source_file)
+      Completion.completion(parser_context, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
         tags_supported: tags_supported,
@@ -1072,7 +1077,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(signature_help_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
-    fun = fn -> SignatureHelp.signature(source_file, line, character) end
+    fun = fn ->
+      parser_context = Parser.parse_immediate(uri, source_file)
+      SignatureHelp.signature(parser_context, line, character)
+    end
     {:async, fun, state}
   end
 

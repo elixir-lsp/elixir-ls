@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   text before the cursor so we can filter out suggestions that are not relevant.
   """
   alias ElixirLS.LanguageServer.Protocol.TextEdit
-  alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.{SourceFile, Parser}
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirSense.Providers.Suggestion.Matcher
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
@@ -93,7 +93,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     [".", "@", "&", "%", "^", ":", "!", "-", "~"]
   end
 
-  def completion(text, line, character, options) do
+  def completion(%Parser.Context{source_file: %SourceFile{text: text}, metadata: metadata}, line, character, options) do
     lines = SourceFile.lines(text)
     line_text = Enum.at(lines, line)
 
@@ -106,8 +106,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     prefix = get_prefix(text_before_cursor)
 
-    # Can we use ElixirSense.Providers.Suggestion? ElixirSense.suggestions/3
-    metadata = ElixirSense.Core.Parser.parse_string(text, true, true, {line, character})
+    metadata = metadata || ElixirSense.Core.Parser.parse_string(text, true, true, {line, character})
 
     env = ElixirSense.Core.Metadata.get_env(metadata, {line, character})
 
@@ -173,8 +172,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         SourceFile.elixir_position_to_lsp(text, position_to_insert_alias)
       )
 
-    items =
-      build_suggestions(text, line, character, options)
+    required_alias = Keyword.get(options, :auto_insert_required_alias, true)
+
+    items = ElixirSense.suggestions(text, line, character, required_alias: required_alias, metadata: metadata)
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)
@@ -213,11 +213,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> items_to_json(options)
 
     {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
-  end
-
-  defp build_suggestions(text, line, character, options) do
-    required_alias = Keyword.get(options, :auto_insert_required_alias, true)
-    ElixirSense.suggestions(text, line, character, required_alias: required_alias)
   end
 
   defp maybe_add_do(completion_items, context) do

@@ -1,20 +1,20 @@
 defmodule ElixirLS.LanguageServer.Providers.Definition do
   @moduledoc """
-  Go-to-definition provider utilizing Elixir Sense
+  textDocument/definition provider utilizing Elixir Sense
   """
 
-  alias ElixirLS.LanguageServer.{Protocol, SourceFile}
+  alias ElixirLS.LanguageServer.{Protocol, SourceFile, Parser}
 
-  def definition(uri, text, line, character, project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
+  def definition(uri, %Parser.Context{source_file: source_file, metadata: metadata}, line, character, project_dir) do
+    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
 
     result =
-      case ElixirSense.definition(text, line, character) do
+      case ElixirSense.definition(source_file.text, line, character, if(metadata, do: [metadata: metadata], else: [])) do
         nil ->
           nil
 
         %ElixirSense.Location{} = location ->
-          Protocol.Location.new(location, uri, text, project_dir)
+          Protocol.Location.new(location, uri, source_file.text, project_dir)
       end
 
     {:ok, result}

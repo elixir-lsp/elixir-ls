@@ -1,22 +1,22 @@
 defmodule ElixirLS.LanguageServer.Providers.Hover do
-  alias ElixirLS.LanguageServer.{SourceFile, DocLinks}
+  alias ElixirLS.LanguageServer.{SourceFile, DocLinks, Parser}
   import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.MarkdownUtils
 
   @moduledoc """
-  Hover provider utilizing Elixir Sense
+  textDocument/hover provider utilizing Elixir Sense
   """
 
-  def hover(text, line, character, _project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
+  def hover(%Parser.Context{source_file: source_file, metadata: metadata}, line, character) do
+    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
 
     response =
-      case ElixirSense.docs(text, line, character) do
+      case ElixirSense.docs(source_file.text, line, character, if(metadata, do: [metadata: metadata], else: [])) do
         nil ->
           nil
 
         %{docs: docs, range: es_range} ->
-          lines = SourceFile.lines(text)
+          lines = SourceFile.lines(source_file.text)
 
           try do
             %{
