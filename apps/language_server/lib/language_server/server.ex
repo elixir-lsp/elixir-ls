@@ -528,7 +528,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_notification(did_open(uri, _language_id, version, text), state = %__MODULE__{}) do
+  defp handle_notification(did_open(uri, language_id, version, text), state = %__MODULE__{}) do
     if Map.has_key?(state.source_files, uri) do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
@@ -551,7 +551,7 @@ defmodule ElixirLS.LanguageServer.Server do
         Logger.error("File not valid on open:\n#{inspect(text)}")
       end
 
-      source_file = %SourceFile{text: text, version: version}
+      source_file = %SourceFile{text: text, version: version, language_id: language_id}
 
       Parser.parse_with_debounce(uri, source_file)
 
@@ -593,6 +593,8 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       state =
         update_in(state.source_files[uri], fn source_file ->
+          # LSP 3.17: The version number points to the version after all provided content changes have
+	        # been applied
           updated_source_file =
             %SourceFile{source_file | version: version, dirty?: true}
             |> SourceFile.apply_content_changes(content_changes)

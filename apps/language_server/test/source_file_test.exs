@@ -144,15 +144,15 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     end
 
     test "empty update" do
-      assert %SourceFile{text: "abc123", version: 0} =
+      assert %SourceFile{text: "abc123"} =
                SourceFile.apply_content_changes(new("abc123"), [])
     end
 
     test "full update" do
-      assert %SourceFile{text: "efg456", version: 1} =
+      assert %SourceFile{text: "efg456"} =
                SourceFile.apply_content_changes(new("abc123"), [%{"text" => "efg456"}])
 
-      assert %SourceFile{text: "world", version: 2} =
+      assert %SourceFile{text: "world"} =
                SourceFile.apply_content_changes(new("abc123"), [
                  %{"text" => "hello"},
                  %{"text" => "world"}
@@ -162,7 +162,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "incrementally removing content" do
       sf = new("function abc() {\n  console.log(\"hello, world!\");\n}")
 
-      assert %SourceFile{text: "function abc() {\n  console.log(\"\");\n}", version: 1} =
+      assert %SourceFile{text: "function abc() {\n  console.log(\"\");\n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "",
@@ -174,7 +174,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "incrementally removing multi-line content" do
       sf = new("function abc() {\n  foo();\n  bar();\n  \n}")
 
-      assert %SourceFile{text: "function abc() {\n  \n}", version: 1} =
+      assert %SourceFile{text: "function abc() {\n  \n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "",
@@ -186,7 +186,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "incrementally removing multi-line content 2" do
       sf = new("function abc() {\n  foo();\n  bar();\n  \n}")
 
-      assert %SourceFile{text: "function abc() {\n  \n  \n}", version: 1} =
+      assert %SourceFile{text: "function abc() {\n  \n  \n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "",
@@ -199,8 +199,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       sf = new("function abc() {\n  console.log(\"hello\");\n}")
 
       assert %SourceFile{
-               text: "function abc() {\n  console.log(\"hello, world!\");\n}",
-               version: 1
+               text: "function abc() {\n  console.log(\"hello, world!\");\n}"
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
@@ -214,8 +213,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       sf = new("function abc() {\n  while (true) {\n    foo();\n  };\n}")
 
       assert %SourceFile{
-               text: "function abc() {\n  while (true) {\n    foo();\n    bar();\n  };\n}",
-               version: 1
+               text: "function abc() {\n  while (true) {\n    foo();\n    bar();\n  };\n}"
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
@@ -229,8 +227,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       sf = new("function abc() {\n  console.log(\"hello, world!\");\n}")
 
       assert %SourceFile{
-               text: "function abc() {\n  console.log(\"hello, test case!!!\");\n}",
-               version: 1
+               text: "function abc() {\n  console.log(\"hello, test case!!!\");\n}"
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
@@ -243,7 +240,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "incrementally replacing single-line content, less chars" do
       sf = new("function abc() {\n  console.log(\"hello, world!\");\n}")
 
-      assert %SourceFile{text: "function abc() {\n  console.log(\"hey\");\n}", version: 1} =
+      assert %SourceFile{text: "function abc() {\n  console.log(\"hey\");\n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "hey",
@@ -256,8 +253,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       sf = new("function abc() {\n  console.log(\"hello, world!\");\n}")
 
       assert %SourceFile{
-               text: "function abc() {\n  console.log(\"world, hello!\");\n}",
-               version: 1
+               text: "function abc() {\n  console.log(\"world, hello!\");\n}"
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
@@ -271,8 +267,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       sf = new("function abc() {\n  console.log(\"hello, world!\");\n}")
 
       assert %SourceFile{
-               text: "\n//hello\nfunction d(){\n  console.log(\"hello, world!\");\n}",
-               version: 1
+               text: "\n//hello\nfunction d(){\n  console.log(\"hello, world!\");\n}"
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
@@ -285,7 +280,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "incrementally replacing multi-line content, less lines" do
       sf = new("a1\nb1\na2\nb2\na3\nb3\na4\nb4\n")
 
-      assert %SourceFile{text: "a1\nb1\na2\nb2xx\nyy", version: 1} =
+      assert %SourceFile{text: "a1\nb1\na2\nb2xx\nyy"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "xx\nyy",
@@ -297,7 +292,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "incrementally replacing multi-line content, same num of lines and chars" do
       sf = new("a1\nb1\na2\nb2\na3\nb3\na4\nb4\n")
 
-      assert %SourceFile{text: "a1\nb1\n\nxx1\nxx2\nb3\na4\nb4\n", version: 1} =
+      assert %SourceFile{text: "a1\nb1\n\nxx1\nxx2\nb3\na4\nb4\n"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "\nxx1\nxx2",
@@ -309,7 +304,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "incrementally replacing multi-line content, same num of lines but diff chars" do
       sf = new("a1\nb1\na2\nb2\na3\nb3\na4\nb4\n")
 
-      assert %SourceFile{text: "a1\nb1\n\ny\n\nb3\na4\nb4\n", version: 1} =
+      assert %SourceFile{text: "a1\nb1\n\ny\n\nb3\na4\nb4\n"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "\ny\n",
@@ -322,7 +317,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       sf = new("a1\ncc\nb1")
       text = for _ <- 1..20000, into: "", do: "\ndd"
 
-      assert %SourceFile{text: res, version: 1} =
+      assert %SourceFile{text: res} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => text,
@@ -337,8 +332,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       sf = new("function abc() {\n  console.log(\"hello, world!\");\n}")
 
       assert %SourceFile{
-               text: "function abcdefghij() {\n  console.log(\"hello, test case!!!\");\n}",
-               version: 3
+               text: "function abcdefghij() {\n  console.log(\"hello, test case!!!\");\n}"
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
@@ -359,7 +353,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "basic append" do
       sf = new("foooo\nbar\nbaz")
 
-      assert %SourceFile{text: "foooo\nbar some extra content\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\nbar some extra content\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => " some extra content",
@@ -371,7 +365,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "multi-line append" do
       sf = new("foooo\nbar\nbaz")
 
-      assert %SourceFile{text: "foooo\nbar some extra\ncontent\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\nbar some extra\ncontent\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => " some extra\ncontent",
@@ -383,7 +377,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "basic delete" do
       sf = new("foooo\nbar\nbaz")
 
-      assert %SourceFile{text: "foooo\n\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\n\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "",
@@ -395,7 +389,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "multi-line delete" do
       sf = new("foooo\nbar\nbaz")
 
-      assert %SourceFile{text: "foooo\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "",
@@ -407,7 +401,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "single character replace" do
       sf = new("foooo\nbar\nbaz")
 
-      assert %SourceFile{text: "foooo\nbaz\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\nbaz\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "z",
@@ -419,7 +413,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "multi-character replace" do
       sf = new("foo\nbar")
 
-      assert %SourceFile{text: "foo\nfoobar", version: 1} =
+      assert %SourceFile{text: "foo\nfoobar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "foobar",
@@ -431,7 +425,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "windows line endings are preserved in document" do
       sf = new("foooo\r\nbar\rbaz")
 
-      assert %SourceFile{text: "foooo\r\nbaz\rbaz", version: 1} =
+      assert %SourceFile{text: "foooo\r\nbaz\rbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "z",
@@ -443,7 +437,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "windows line endings are preserved in inserted text" do
       sf = new("foooo\nbar\nbaz")
 
-      assert %SourceFile{text: "foooo\nbaz\r\nz\rz\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\nbaz\r\nz\rz\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "z\r\nz\rz",
@@ -455,7 +449,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "utf8 codons are preserved in document" do
       sf = new("foooo\nb🏳️‍🌈r\nbaz")
 
-      assert %SourceFile{text: "foooo\nb🏳️‍🌈z\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\nb🏳️‍🌈z\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "z",
@@ -467,7 +461,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "utf8 codonss are preserved in inserted text" do
       sf = new("foooo\nbar\nbaz")
 
-      assert %SourceFile{text: "foooo\nbaz🏳️‍🌈z\nbaz", version: 1} =
+      assert %SourceFile{text: "foooo\nbaz🏳️‍🌈z\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "z🏳️‍🌈z",
@@ -479,7 +473,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "invalid update range - before the document starts -> before the document starts" do
       sf = new("foo\nbar")
 
-      assert %SourceFile{text: "abc123foo\nbar", version: 1} =
+      assert %SourceFile{text: "abc123foo\nbar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "abc123",
@@ -491,7 +485,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "invalid update range - before the document starts -> the middle of document" do
       sf = new("foo\nbar")
 
-      assert %SourceFile{text: "foobar\nbar", version: 1} =
+      assert %SourceFile{text: "foobar\nbar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "foobar",
@@ -503,7 +497,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "invalid update range - the middle of document -> after the document ends" do
       sf = new("foo\nbar")
 
-      assert %SourceFile{text: "foo\nfoobar", version: 1} =
+      assert %SourceFile{text: "foo\nfoobar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "foobar",
@@ -515,7 +509,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "invalid update range - after the document ends -> after the document ends" do
       sf = new("foo\nbar")
 
-      assert %SourceFile{text: "foo\nbarabc123", version: 1} =
+      assert %SourceFile{text: "foo\nbarabc123"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "abc123",
@@ -527,7 +521,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     test "invalid update range - before the document starts -> after the document ends" do
       sf = new("foo\nbar")
 
-      assert %SourceFile{text: "entirely new content", version: 1} =
+      assert %SourceFile{text: "entirely new content"} =
                SourceFile.apply_content_changes(sf, [
                  %{
                    "text" => "entirely new content",

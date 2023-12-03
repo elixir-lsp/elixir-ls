@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   import ElixirLS.LanguageServer.Protocol
   require Logger
 
-  defstruct [:text, :version, dirty?: false]
+  defstruct [:text, :version, :language_id, dirty?: false]
 
   @endings ["\r\n", "\r", "\n"]
 
@@ -53,12 +53,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         %{"text" => new_text} ->
           put_in(source_file.text, new_text)
       end
-
-    source_file =
-      update_in(source_file.version, fn
-        v when is_integer(v) -> v + 1
-        _ -> 1
-      end)
 
     apply_content_changes(source_file, rest)
   end
