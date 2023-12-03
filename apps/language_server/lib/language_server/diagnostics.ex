@@ -1,4 +1,8 @@
 defmodule ElixirLS.LanguageServer.Diagnostics do
+  @moduledoc """
+  This module provides utility functions for normalizing diagnostics
+  from various sources
+  """
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
 
   def normalize(diagnostics, root_path, mixfile) do
