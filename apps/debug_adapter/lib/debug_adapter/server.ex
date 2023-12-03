@@ -1038,9 +1038,10 @@ defmodule ElixirLS.DebugAdapter.Server do
       nil ->
         raise ServerError,
           message: "invalidArgument",
-          format: "process not paused: {threadId}",
+          format: "Process with threadId {threadId} and pid {pid} is not paused",
           variables: %{
-            "threadId" => inspect(thread_id)
+            "threadId" => inspect(thread_id),
+            "pid" => inspect(pid)
           },
           send_telemetry: false
     end

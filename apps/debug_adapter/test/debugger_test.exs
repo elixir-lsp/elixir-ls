@@ -700,7 +700,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        7,
                        "stackTrace",
                        "invalidArgument",
-                       "threadId not found: {threadId}",
+                       "Unable to find process pid for DAP threadId {threadId}",
                        %{"threadId" => "\"not existing\""},
                        _,
                        _
@@ -739,7 +739,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        10,
                        "next",
                        "invalidArgument",
-                       "threadId not found: {threadId}",
+                       "Unable to find process pid for DAP threadId {threadId}",
                        %{"threadId" => "\"not existing\""},
                        _,
                        _
@@ -752,7 +752,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        11,
                        "stepIn",
                        "invalidArgument",
-                       "threadId not found: {threadId}",
+                       "Unable to find process pid for DAP threadId {threadId}",
                        %{"threadId" => "\"not existing\""},
                        _,
                        _
@@ -765,7 +765,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        12,
                        "stepOut",
                        "invalidArgument",
-                       "threadId not found: {threadId}",
+                       "Unable to find process pid for DAP threadId {threadId}",
                        %{"threadId" => "\"not existing\""},
                        _,
                        _
@@ -778,7 +778,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        13,
                        "continue",
                        "invalidArgument",
-                       "threadId not found: {threadId}",
+                       "Unable to find process pid for DAP threadId {threadId}",
                        %{"threadId" => "\"not existing\""},
                        _,
                        _
@@ -808,8 +808,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        7,
                        "stackTrace",
                        "invalidArgument",
-                       "process not paused: {threadId}",
-                       %{"threadId" => ^thread_id_str},
+                       "Process with threadId {threadId} and pid {pid} is not paused",
+                       %{"threadId" => ^thread_id_str, "pid" => _},
                        _,
                        _
                      )
