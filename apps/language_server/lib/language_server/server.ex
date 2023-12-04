@@ -1471,7 +1471,8 @@ defmodule ElixirLS.LanguageServer.Server do
     state.dialyzer_sup != nil
   end
 
-  defp safely_read_file(file) do
+  defp safely_read_file("file:" <> _ = uri) do
+    file = SourceFile.Path.from_uri(uri)
     case File.read(file) do
       {:ok, text} ->
         if String.valid?(text) do
@@ -1489,6 +1490,7 @@ defmodule ElixirLS.LanguageServer.Server do
         nil
     end
   end
+  defp safely_read_file(_uri), do: nil
 
   defp publish_diagnostics(state = %__MODULE__{project_dir: project_dir, source_files: source_files, last_published_diagnostics_uris: last_published_diagnostics_uris}) do
     # we need to publish diagnostics for all uris in current diagnostics
@@ -1568,7 +1570,7 @@ defmodule ElixirLS.LanguageServer.Server do
       Diagnostics.publish_file_diagnostics(
         uri,
         uri_diagnostics,
-        Map.get_lazy(source_files, uri, fn -> safely_read_file(SourceFile.Path.from_uri(uri)) end),
+        Map.get_lazy(source_files, uri, fn -> safely_read_file(uri) end),
         version
       )
 
