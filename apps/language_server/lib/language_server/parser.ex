@@ -46,6 +46,8 @@ defmodule ElixirLS.LanguageServer.Parser do
     {:ok, %{files: %{}, debounce_refs: %{}}}
   end
 
+  # TODO terminate
+
   @impl true
   def handle_cast({:closed, uri}, state = %{files: files, debounce_refs: debounce_refs}) do
     {maybe_ref, updated_debounce_refs} = Map.pop(debounce_refs, uri)
@@ -58,8 +60,7 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   def handle_cast({:parse_with_debounce, uri, source_file}, state) do
-    # TODO check source_file.language_id
-    state = if String.ends_with?(uri, [".ex", ".exs", ".eex"]) do
+    state = if should_parse?(uri, source_file) do
       state = update_in(state.debounce_refs[uri], fn old_ref ->
         if old_ref do
           Process.cancel_timer(old_ref, info: false)
@@ -80,7 +81,7 @@ defmodule ElixirLS.LanguageServer.Parser do
           }
       end)
     else
-      Logger.debug("Not parsing #{uri} with debounce")
+      Logger.debug("Not parsing #{uri} with debounce: languageId #{source_file.language_id}")
       state
     end
 
@@ -89,7 +90,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
   @impl true
   def handle_call({:parse_immediate, uri, source_file}, _from, %{files: files, debounce_refs: debounce_refs} = state) do
-    {reply, state} = if String.ends_with?(uri, [".ex", ".exs", ".eex"]) do
+    {reply, state} = if should_parse?(uri, source_file) do
       {maybe_ref, updated_debounce_refs} = Map.pop(debounce_refs, uri)
       if maybe_ref do
         Process.cancel_timer(maybe_ref, info: false)
@@ -103,7 +104,7 @@ defmodule ElixirLS.LanguageServer.Parser do
           # current version already parsed
           {file, state}
         _other ->
-          Logger.debug("Parsing #{uri} immediately")
+          Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
           # overwrite everything
           file = %Context{
             source_file: source_file,
@@ -119,7 +120,7 @@ defmodule ElixirLS.LanguageServer.Parser do
           {file, state}
       end
     else
-      Logger.debug("Not parsing #{uri} immediately")
+      Logger.debug("Not parsing #{uri} immediately: languageId #{source_file.language_id}")
       # not parsing - respond with empty struct
       reply = %Context{
         source_file: source_file,
@@ -136,9 +137,10 @@ defmodule ElixirLS.LanguageServer.Parser do
         {:parse_file, uri},
         %{files: files, debounce_refs: debounce_refs} = state
       ) do
-    Logger.debug("Parsing #{uri} after debounce")
+    file = Map.fetch!(files, uri)
+    Logger.debug("Parsing #{uri} after debounce: languageId #{file.source_file.language_id}")
 
-    updated_file = Map.fetch!(files, uri)
+    updated_file = file
     |> do_parse()
 
     updated_files = Map.put(files, uri, updated_file)
@@ -150,8 +152,12 @@ defmodule ElixirLS.LanguageServer.Parser do
     {:noreply, state}
   end
 
+  defp should_parse?(uri, source_file) do
+    String.ends_with?(uri, [".ex", ".exs", ".eex"]) or source_file.language_id in ["elixir", "eex", "html-eex"]
+  end
+
   defp do_parse(%Context{source_file: source_file, path: path} = file) do
-    {ast, diagnostics} = parse_file(source_file.text, path)
+    {ast, diagnostics} = parse_file(source_file.text, path, source_file.language_id)
 
     metadata = if ast do
       acc = MetadataBuilder.build(ast)
@@ -170,11 +176,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     case uri do
       "file:" <> _ -> SourceFile.Path.from_uri(uri)
       _ ->
-        # TODO think if this is sane
-        extension = uri
-        |> String.split(".")
-        |> List.last
-        "nofile." <> extension
+        "nofile"
     end
   end
 
@@ -184,10 +186,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     |> Server.parser_finished()
   end
 
-
-  # TODO uri instead of file?
-  # defp parse_file(_text, nil), do: {nil, []}
-  defp parse_file(text, file) do
+  defp parse_file(text, file, language_id) do
     {result, raw_diagnostics} =
       Build.with_diagnostics([log: false], fn ->
         try do
@@ -196,7 +195,7 @@ defmodule ElixirLS.LanguageServer.Parser do
             columns: true
           ]
 
-          ast = if String.ends_with?(file, ".eex") do
+          ast = if is_binary(file) and String.ends_with?(file, ".eex") or language_id in ["eex", "html-eex"] do
             EEx.compile_string(text,
               file: file,
               parser_options: parser_options
