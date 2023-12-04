@@ -180,8 +180,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
   defp notify_diagnostics_updated(updated_files) do
     updated_files
-    |> Enum.map(fn {_uri, %Context{diagnostics: diagnostics}} -> diagnostics end)
-    |> List.flatten
+    |> Map.new(fn {uri, %Context{diagnostics: diagnostics, parsed_version: version}} -> {uri, {version, diagnostics}} end)
     |> Server.parser_finished()
   end
 
@@ -209,38 +208,44 @@ defmodule ElixirLS.LanguageServer.Parser do
           {:ok, ast}
         rescue
           e in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
-            message = Exception.message(e)
+            message = Exception.format_banner(:error, e)
 
             diagnostic = %Mix.Task.Compiler.Diagnostic{
               compiler_name: "ElixirLS",
               file: file,
               position: {e.line, e.column},
               message: message,
-              severity: :error
+              severity: :error,
+              details: e
             }
 
             {:error, diagnostic}
 
-          e ->
-            message = Exception.message(e)
+        catch
+          kind, err ->
+            {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+
+            message = Exception.format(kind, payload, stacktrace)
 
             diagnostic = %Mix.Task.Compiler.Diagnostic{
               compiler_name: "ElixirLS",
               file: file,
-              position: {1, 1},
+              # 0 means unknown
+              position: 0,
               message: message,
-              severity: :error
+              severity: :error,
+              details: payload
             }
 
             # e.g. https://github.com/elixir-lang/elixir/issues/12926
             Logger.warning(
               "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
-                Exception.format(:error, e, __STACKTRACE__)
+                message
             )
 
             JsonRpc.telemetry(
               "parser_error",
-              %{"elixir_ls.parser_error" => Exception.format(:error, e, __STACKTRACE__)},
+              %{"elixir_ls.parser_error" => message},
               %{}
             )
 
@@ -250,7 +255,9 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     warning_diagnostics =
       raw_diagnostics
-      |> Enum.map(&Diagnostics.code_diagnostic/1)
+      |> Enum.map(fn raw ->
+        Diagnostics.code_diagnostic(raw)
+      end)
 
     case result do
       {:ok, ast} -> {ast, warning_diagnostics}

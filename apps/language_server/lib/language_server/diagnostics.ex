@@ -216,11 +216,11 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     JsonRpc.notify("textDocument/publishDiagnostics", message)
   end
 
-  def mixfile_diagnostic({file, line, message}, severity) when not is_nil(file) do
+  def mixfile_diagnostic({file, position, message}, severity) when not is_nil(file) do
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
       file: file,
-      position: line,
+      position: position,
       message: message,
       severity: severity
     }
@@ -242,6 +242,20 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
+  def error_to_diagnostic(:error, %kind{} = payload, _stacktrace, path, project_dir) when kind in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] do
+    path = SourceFile.Path.absname(path, project_dir)
+    message = Exception.format_banner(:error, payload)
+
+    %Mix.Task.Compiler.Diagnostic{
+      compiler_name: "ElixirLS",
+      file: path,
+      position: {payload.line, payload.column},
+      message: message,
+      severity: :error,
+      details: payload
+    }
+  end
+
   def error_to_diagnostic(kind, payload, stacktrace, path, project_dir) when not is_nil(path) do
     path = SourceFile.Path.absname(path, project_dir)
     message = Exception.format(kind, payload, stacktrace)
@@ -259,6 +273,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
       file: path,
+      # 0 means unknown
       position: line || 0,
       message: message,
       severity: :error,
@@ -292,6 +307,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#diagnostic
 
   # position is a 1 based line number
+  # 0 means unknown
   # we return a 0 length range at first non whitespace character in line
   defp range(line_start, source_file)
        when is_integer(line_start) and not is_nil(source_file) do
@@ -311,6 +327,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
             {line_start - 1, SourceFile.elixir_character_to_lsp(line, start_idx)}
         end
       else
+        # position unknown
         # return begin of the file
         {0, 0}
       end
