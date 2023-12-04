@@ -1835,6 +1835,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       # re-visiting the same project
       with_new_server(packet_capture, fn server ->
+        {:ok, _pid} = Parser.start_link([])
         initialize(server)
 
         file_path = "apps/app1/lib/bar.ex"
