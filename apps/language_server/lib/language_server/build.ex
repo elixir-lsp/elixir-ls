@@ -89,7 +89,6 @@ defmodule ElixirLS.LanguageServer.Build do
                       end
 
                     {:error, kind, err, stacktrace} ->
-                      # TODO get path from exception message
                       Server.build_finished(
                         parent,
                         {:error,
@@ -198,6 +197,7 @@ defmodule ElixirLS.LanguageServer.Build do
                   {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
                   message = Exception.format(kind, payload, stacktrace)
                   Logger.warning("Unable to prune mix project module for #{app}: #{message}")
+                  nil
               end
 
             if child_module do
