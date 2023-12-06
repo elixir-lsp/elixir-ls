@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   """
 
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
-  alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.{SourceFile, Parser}
   require ElixirLS.LanguageServer.Protocol, as: Protocol
 
   defmodule Info do
@@ -24,16 +24,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     :deprecated
   ]
 
-  @max_parser_errors 6
+  def symbols(uri, %Parser.Context{ast: ast, source_file: source_file}, hierarchical) do
+    symbols = extract_modules(ast) |> Enum.reject(&is_nil/1)
 
-  def symbols(uri, text, hierarchical) do
-    case list_symbols(text) do
-      {:ok, symbols} ->
-        {:ok, build_symbols(symbols, uri, text, hierarchical)}
-
-      {:error, :compilation_error} ->
-        {:error, :server_error, "Cannot parse source file", false}
-    end
+    {:ok, build_symbols(symbols, uri, source_file.text, hierarchical)}
   end
 
   defp build_symbols(symbols, uri, text, hierarchical)
@@ -46,16 +40,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     symbols
     |> Enum.map(&build_symbol_information_flat(uri, text, &1))
     |> List.flatten()
-  end
-
-  defp list_symbols(src) do
-    case ElixirSense.string_to_quoted(src, {1, 1}, @max_parser_errors,
-           line: 1,
-           token_metadata: true
-         ) do
-      {:ok, quoted_form} -> {:ok, extract_modules(quoted_form) |> Enum.reject(&is_nil/1)}
-      {:error, _error} -> {:error, :compilation_error}
-    end
   end
 
   # Identify and extract the module symbol, and the symbols contained within the module

@@ -3,13 +3,11 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
   textDocument/definition provider utilizing Elixir Sense
   """
 
-  alias ElixirLS.LanguageServer.{Protocol, SourceFile, Parser}
+  alias ElixirLS.LanguageServer.{Protocol, Parser}
 
   def definition(uri, %Parser.Context{source_file: source_file, metadata: metadata}, line, character, project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
-
     result =
-      case ElixirSense.definition(source_file.text, line, character, if(metadata, do: [metadata: metadata], else: [])) do
+      case ElixirSense.definition(source_file.text, line, character, [metadata: metadata]) do
         nil ->
           nil
 

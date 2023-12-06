@@ -7,10 +7,8 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
   def trigger_characters(), do: ["(", ","]
 
   def signature(%Parser.Context{source_file: %SourceFile{} = source_file, metadata: metadata}, line, character) do
-    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
-
     response =
-      case ElixirSense.signature(source_file.text, line, character, if(metadata, do: [metadata: metadata], else: [])) do
+      case ElixirSense.signature(source_file.text, line, character, [metadata: metadata]) do
         %{active_param: active_param, signatures: signatures} ->
           %{
             "activeSignature" => 0,

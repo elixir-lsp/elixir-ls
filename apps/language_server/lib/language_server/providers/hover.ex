@@ -8,10 +8,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   """
 
   def hover(%Parser.Context{source_file: source_file, metadata: metadata}, line, character) do
-    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
-
     response =
-      case ElixirSense.docs(source_file.text, line, character, if(metadata, do: [metadata: metadata], else: [])) do
+      case ElixirSense.docs(source_file.text, line, character, [metadata: metadata]) do
         nil ->
           nil
 
