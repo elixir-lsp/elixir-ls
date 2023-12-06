@@ -95,18 +95,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   def completion(%Parser.Context{source_file: %SourceFile{text: text}, metadata: metadata}, line, character, options) do
     lines = SourceFile.lines(text)
-    line_text = Enum.at(lines, line)
-
-    # convert to 1 based utf8 position
-    line = line + 1
-    character = SourceFile.lsp_character_to_elixir(line_text, character)
+    line_text = Enum.at(lines, line - 1)
 
     text_before_cursor = String.slice(line_text, 0, character - 1)
     text_after_cursor = String.slice(line_text, (character - 1)..-1//1)
 
     prefix = get_prefix(text_before_cursor)
-
-    metadata = metadata || ElixirSense.Core.Parser.parse_string(text, true, true, {line, character})
 
     env = ElixirSense.Core.Metadata.get_env(metadata, {line, character})
 

@@ -923,7 +923,8 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      parser_context = Parser.parse_immediate(uri, source_file)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
       Definition.definition(uri, parser_context, line, character, state.project_dir)
     end
 
@@ -934,7 +935,8 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      parser_context = Parser.parse_immediate(uri, source_file)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
       Implementation.implementation(uri, parser_context, line, character, state.project_dir)
     end
 
@@ -948,7 +950,8 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      parser_context = Parser.parse_immediate(uri, source_file)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
       {:ok,
        References.references(
          parser_context,
@@ -967,7 +970,8 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      parser_context = Parser.parse_immediate(uri, source_file)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
       Hover.hover(parser_context, line, character)
     end
 
@@ -985,8 +989,9 @@ defmodule ElixirLS.LanguageServer.Server do
           "hierarchicalDocumentSymbolSupport"
         ]) || false
 
-      if String.ends_with?(uri, [".ex", ".exs"]) do
-        DocumentSymbols.symbols(uri, source_file.text, hierarchical?)
+      if String.ends_with?(uri, [".ex", ".exs", ".eex"]) or source_file.language_id in ["elixir", "eex", "html-eex"] do
+        parser_context = Parser.parse_immediate(uri, source_file)
+        DocumentSymbols.symbols(uri, parser_context, hierarchical?)
       else
         {:ok, []}
       end
@@ -1056,7 +1061,8 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
     fun = fn ->
-      parser_context = Parser.parse_immediate(uri, source_file)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
       Completion.completion(parser_context, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
@@ -1081,7 +1087,8 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_request(signature_help_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
     fun = fn ->
-      parser_context = Parser.parse_immediate(uri, source_file)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
       SignatureHelp.signature(parser_context, line, character)
     end
     {:async, fun, state}

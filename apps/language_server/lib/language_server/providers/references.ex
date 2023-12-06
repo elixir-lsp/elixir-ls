@@ -15,12 +15,10 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   require Logger
 
   def references(%Parser.Context{source_file: source_file, metadata: metadata}, uri, line, character, _include_declaration, project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
-
     Build.with_build_lock(fn ->
       trace = ElixirLS.LanguageServer.Tracer.get_trace()
 
-      ElixirSense.references(source_file.text, line, character, trace, if(metadata, do: [metadata: metadata], else: []))
+      ElixirSense.references(source_file.text, line, character, trace, [metadata: metadata])
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
         |> build_reference(uri, source_file.text, project_dir)
