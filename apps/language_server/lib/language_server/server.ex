@@ -1127,17 +1127,10 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
+      parser_context = Parser.parse_immediate(uri, source_file)
       {:ok, spec_code_lenses} = get_spec_code_lenses(state, uri, source_file)
 
-      test_code_lenses =
-        case get_test_code_lenses(state, uri, source_file) do
-          {:ok, test_code_lenses} ->
-            test_code_lenses
-
-          {:error, %ElixirSense.Core.Metadata{error: reason}} ->
-            Logger.info("Error while building test code lenses: #{inspect(reason)}")
-            []
-        end
+      {:ok, test_code_lenses} = get_test_code_lenses(state, uri, parser_context)
 
       {:ok, spec_code_lenses ++ test_code_lenses}
     end
@@ -1252,7 +1245,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp get_test_code_lenses(
          state = %__MODULE__{project_dir: project_dir},
          "file:" <> _ = uri,
-         source_file,
+         parser_context,
          true = _umbrella
        )
        when is_binary(project_dir) do
@@ -1266,7 +1259,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {app, app_path} ->
         if is_test_file?(file_path, state, app, app_path) do
-          CodeLens.test_code_lens(uri, source_file.text, Path.join(project_dir, app_path))
+          CodeLens.test_code_lens(parser_context, Path.join(project_dir, app_path))
         else
           {:ok, []}
         end
@@ -1276,7 +1269,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp get_test_code_lenses(
          %__MODULE__{project_dir: project_dir},
          "file:" <> _ = uri,
-         source_file,
+         parser_context,
          false = _umbrella
        )
        when is_binary(project_dir) do
@@ -1284,7 +1277,7 @@ defmodule ElixirLS.LanguageServer.Server do
       file_path = SourceFile.Path.from_uri(uri)
 
       if is_test_file?(file_path, project_dir) do
-        CodeLens.test_code_lens(uri, source_file.text, project_dir)
+        CodeLens.test_code_lens(parser_context, project_dir)
       else
         {:ok, []}
       end
@@ -1293,7 +1286,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, _), do: {:ok, []}
+  defp get_test_code_lenses(%__MODULE__{}, _uri, _parser_context, _), do: {:ok, []}
 
   defp is_test_file?(file_path, state = %__MODULE__{project_dir: project_dir}, app, app_path)
        when is_binary(project_dir) do
