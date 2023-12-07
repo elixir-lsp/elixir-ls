@@ -2616,7 +2616,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       text = "defimpl "
 
       parser_context = ParserContextBuilder.from_string(text)
-      
+
       assert {:ok, []} = DocumentSymbols.symbols(uri, parser_context, true)
     end
   end

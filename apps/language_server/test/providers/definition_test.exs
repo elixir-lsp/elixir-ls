@@ -24,7 +24,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
                                 ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
@@ -50,7 +51,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
                                 ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
@@ -76,7 +78,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
@@ -102,7 +105,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
@@ -128,7 +132,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
@@ -154,7 +159,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
@@ -180,7 +186,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
                  ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
@@ -206,7 +213,8 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())

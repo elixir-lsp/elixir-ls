@@ -24,7 +24,8 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
                                                ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, [%Location{uri: ^uri, range: range}]} =
              Implementation.implementation(uri, parser_context, line, char, File.cwd!())

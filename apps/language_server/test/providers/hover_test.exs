@@ -22,7 +22,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {2, 1}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, resp} = Hover.hover(parser_context, line, char)
     assert nil == resp
@@ -36,10 +38,12 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
       end
     end
     """
-    
+
     {line, char} = {2, 5}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
@@ -61,7 +65,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {2, 10}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
@@ -81,7 +87,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {1, 3}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
@@ -101,7 +109,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {1, 18}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
@@ -123,7 +133,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {2, 10}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
@@ -145,7 +157,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {0, 19}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     if Version.match?(System.version(), ">= 1.14.0") do
       assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
@@ -170,7 +184,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {1, 3}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
@@ -190,7 +206,9 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
 
     {line, char} = {1, 4}
     parser_context = ParserContextBuilder.from_string(text)
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)

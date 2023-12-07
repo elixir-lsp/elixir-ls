@@ -5,9 +5,15 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
 
   alias ElixirLS.LanguageServer.{Protocol, Parser}
 
-  def definition(uri, %Parser.Context{source_file: source_file, metadata: metadata}, line, character, project_dir) do
+  def definition(
+        uri,
+        %Parser.Context{source_file: source_file, metadata: metadata},
+        line,
+        character,
+        project_dir
+      ) do
     result =
-      case ElixirSense.definition(source_file.text, line, character, [metadata: metadata]) do
+      case ElixirSense.definition(source_file.text, line, character, metadata: metadata) do
         nil ->
           nil
 

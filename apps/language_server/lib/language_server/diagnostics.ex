@@ -242,7 +242,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def error_to_diagnostic(:error, %kind{} = payload, _stacktrace, path, project_dir) when kind in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] do
+  def error_to_diagnostic(:error, %kind{} = payload, _stacktrace, path, project_dir)
+      when kind in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] do
     path = SourceFile.Path.absname(path, project_dir)
     message = Exception.format_banner(:error, payload)
 
