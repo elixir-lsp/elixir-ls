@@ -1104,6 +1104,7 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
       parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+      # TODO not working for eex
       SignatureHelp.signature(parser_context, line, character)
     end
 
@@ -1117,7 +1118,12 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      OnTypeFormatting.format(source_file, line, character, ch, options)
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        OnTypeFormatting.format(source_file, line, character, ch, options)
+      else
+        # TODO no support for eex
+        {:ok, nil}
+      end
     end
 
     {:async, fun, state}
@@ -1154,7 +1160,16 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(folding_range_req(_id, uri), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
-    fun = fn -> FoldingRange.provide(source_file) end
+
+    fun = fn ->
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        FoldingRange.provide(source_file)
+      else
+        # TODO no support for eex
+        {:ok, []}
+      end
+    end
+
     {:async, fun, state}
   end
 
