@@ -334,6 +334,24 @@ defmodule ElixirLS.LanguageServer.Parser do
         # we can't fix it
         {{:not_parsable, cursor_position}, @dummy_ast, @dummy_metadata}
     end
+  catch
+    kind, err ->
+      {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+
+      message = Exception.format(kind, payload, stacktrace)
+
+      Logger.warning(
+        "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
+          message
+      )
+
+      JsonRpc.telemetry(
+        "parser_error",
+        %{"elixir_ls.parser_error" => message},
+        %{}
+      )
+
+      {{:not_parsable, cursor_position}, @dummy_ast, @dummy_metadata}
   end
 
   defp fix_missing_env(acc, source, nil), do: ElixirSense.Core.Metadata.fill(source, acc)
