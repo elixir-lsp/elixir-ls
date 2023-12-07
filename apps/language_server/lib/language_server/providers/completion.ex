@@ -93,7 +93,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     [".", "@", "&", "%", "^", ":", "!", "-", "~"]
   end
 
-  def completion(%Parser.Context{source_file: %SourceFile{text: text}, metadata: metadata}, line, character, options) do
+  def completion(
+        %Parser.Context{source_file: %SourceFile{text: text}, metadata: metadata},
+        line,
+        character,
+        options
+      ) do
     lines = SourceFile.lines(text)
     line_text = Enum.at(lines, line - 1)
 
@@ -168,7 +173,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     required_alias = Keyword.get(options, :auto_insert_required_alias, true)
 
-    items = ElixirSense.suggestions(text, line, character, required_alias: required_alias, metadata: metadata)
+    items =
+      ElixirSense.suggestions(text, line, character,
+        required_alias: required_alias,
+        metadata: metadata
+      )
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
       |> maybe_add_do(context)

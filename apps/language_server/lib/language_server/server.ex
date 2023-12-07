@@ -17,7 +17,17 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use GenServer
   require Logger
-  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics, MixProjectCache, Parser}
+
+  alias ElixirLS.LanguageServer.{
+    SourceFile,
+    Build,
+    Protocol,
+    JsonRpc,
+    Dialyzer,
+    Diagnostics,
+    MixProjectCache,
+    Parser
+  }
 
   alias ElixirLS.LanguageServer.Providers.{
     Completion,
@@ -49,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Server do
     :root_uri,
     :project_dir,
     :settings,
-    last_published_diagnostics_uris: [], 
+    last_published_diagnostics_uris: [],
     parser_diagnostics: %{},
     document_versions_on_build: %{},
     build_diagnostics: [],
@@ -259,8 +269,9 @@ defmodule ElixirLS.LanguageServer.Server do
 
   @impl GenServer
   def handle_cast({:parser_finished, diagnostics}, state = %__MODULE__{}) do
-    state = %{state | parser_diagnostics: diagnostics}
-    |> publish_diagnostics()
+    state =
+      %{state | parser_diagnostics: diagnostics}
+      |> publish_diagnostics()
 
     {:noreply, state}
   end
@@ -595,7 +606,7 @@ defmodule ElixirLS.LanguageServer.Server do
       state =
         update_in(state.source_files[uri], fn source_file ->
           # LSP 3.17: The version number points to the version after all provided content changes have
-	        # been applied
+          # been applied
           updated_source_file =
             %SourceFile{source_file | version: version, dirty?: true}
             |> SourceFile.apply_content_changes(content_changes)
@@ -952,6 +963,7 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
       parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+
       {:ok,
        References.references(
          parser_context,
@@ -989,7 +1001,8 @@ defmodule ElixirLS.LanguageServer.Server do
           "hierarchicalDocumentSymbolSupport"
         ]) || false
 
-      if String.ends_with?(uri, [".ex", ".exs", ".eex"]) or source_file.language_id in ["elixir", "eex", "html-eex"] do
+      if String.ends_with?(uri, [".ex", ".exs", ".eex"]) or
+           source_file.language_id in ["elixir", "eex", "html-eex"] do
         parser_context = Parser.parse_immediate(uri, source_file)
         DocumentSymbols.symbols(uri, parser_context, hierarchical?)
       else
@@ -1063,6 +1076,7 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
       parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+
       Completion.completion(parser_context, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
@@ -1086,11 +1100,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(signature_help_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
+
     fun = fn ->
       {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
       parser_context = Parser.parse_immediate(uri, source_file, {line, character})
       SignatureHelp.signature(parser_context, line, character)
     end
+
     {:async, fun, state}
   end
 
@@ -1367,7 +1383,8 @@ defmodule ElixirLS.LanguageServer.Server do
               end
           end
 
-        document_versions_on_build = Map.new(state.source_files, fn {uri, source_file} -> {uri, source_file.version} end)
+        document_versions_on_build =
+          Map.new(state.source_files, fn {uri, source_file} -> {uri, source_file.version} end)
 
         %__MODULE__{
           state
@@ -1421,19 +1438,21 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
     do_sanity_check(state)
 
-    state = if state.needs_build? or status == :error or not dialyzer_enabled?(state) do
-      state
-    else
-      dialyze(state)
-    end
+    state =
+      if state.needs_build? or status == :error or not dialyzer_enabled?(state) do
+        state
+      else
+        dialyze(state)
+      end
 
-    state = if state.needs_build? do
-      # do not publish diagnostics if we need another build
-      state
-    else
-      put_in(state.build_diagnostics, diagnostics)
-      |> publish_diagnostics()
-    end
+    state =
+      if state.needs_build? do
+        # do not publish diagnostics if we need another build
+        state
+      else
+        put_in(state.build_diagnostics, diagnostics)
+        |> publish_diagnostics()
+      end
 
     %{state | full_build_done?: if(status == :ok, do: true, else: state.full_build_done?)}
   end
@@ -1444,8 +1463,9 @@ defmodule ElixirLS.LanguageServer.Server do
     if build_ref == state.build_ref do
       Logger.info("Dialyzer analysis is up to date")
 
-      state = put_in(state.dialyzer_diagnostics, diagnostics)
-      |> publish_diagnostics()
+      state =
+        put_in(state.dialyzer_diagnostics, diagnostics)
+        |> publish_diagnostics()
 
       {dirty, not_dirty} =
         state.awaiting_contracts
@@ -1480,6 +1500,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp safely_read_file("file:" <> _ = uri) do
     file = SourceFile.Path.from_uri(uri)
+
     case File.read(file) do
       {:ok, text} ->
         if String.valid?(text) do
@@ -1497,9 +1518,16 @@ defmodule ElixirLS.LanguageServer.Server do
         nil
     end
   end
+
   defp safely_read_file(_uri), do: nil
 
-  defp publish_diagnostics(state = %__MODULE__{project_dir: project_dir, source_files: source_files, last_published_diagnostics_uris: last_published_diagnostics_uris}) do
+  defp publish_diagnostics(
+         state = %__MODULE__{
+           project_dir: project_dir,
+           source_files: source_files,
+           last_published_diagnostics_uris: last_published_diagnostics_uris
+         }
+       ) do
     # we need to publish diagnostics for all uris in current diagnostics
     # to clear diagnostics we need to push empty sets for uris from last push
     # in case we missed something or restarted and don't have old diagnostics uris
@@ -1510,17 +1538,21 @@ defmodule ElixirLS.LanguageServer.Server do
     filter_diagnostics_with_known_location = fn
       %Mix.Task.Compiler.Diagnostic{file: file} when is_binary(file) ->
         file != "nofile"
-      _ -> false
+
+      _ ->
+        false
     end
 
-    valid_build_and_dialyzer_diagnostics_by_uri = (state.build_diagnostics ++ state.dialyzer_diagnostics)
-    |> Enum.filter(filter_diagnostics_with_known_location)
-    |> Enum.group_by(fn
-      %Mix.Task.Compiler.Diagnostic{file: file} -> SourceFile.Path.to_uri(file, project_dir)
-    end)
+    valid_build_and_dialyzer_diagnostics_by_uri =
+      (state.build_diagnostics ++ state.dialyzer_diagnostics)
+      |> Enum.filter(filter_diagnostics_with_known_location)
+      |> Enum.group_by(fn
+        %Mix.Task.Compiler.Diagnostic{file: file} -> SourceFile.Path.to_uri(file, project_dir)
+      end)
 
-    uris_from_build_and_dialyzer_diagnostics = Map.keys(valid_build_and_dialyzer_diagnostics_by_uri)
-    
+    uris_from_build_and_dialyzer_diagnostics =
+      Map.keys(valid_build_and_dialyzer_diagnostics_by_uri)
+
     invalid_diagnostics =
       (state.build_diagnostics ++ state.dialyzer_diagnostics)
       |> Enum.reject(filter_diagnostics_with_known_location)
@@ -1543,36 +1575,54 @@ defmodule ElixirLS.LanguageServer.Server do
     uris_from_open_files = Map.keys(source_files)
 
     uris_to_publish_diagnostics =
-      Enum.uniq(last_published_diagnostics_uris ++ uris_from_parser_diagnostics ++ uris_from_build_and_dialyzer_diagnostics ++ uris_from_open_files)
+      Enum.uniq(
+        last_published_diagnostics_uris ++
+          uris_from_parser_diagnostics ++
+          uris_from_build_and_dialyzer_diagnostics ++ uris_from_open_files
+      )
 
     for uri <- uris_to_publish_diagnostics do
-      {parser_diagnostics_document_version, parser_diagnostics} = Map.get(state.parser_diagnostics, uri, {nil, []})
+      {parser_diagnostics_document_version, parser_diagnostics} =
+        Map.get(state.parser_diagnostics, uri, {nil, []})
 
       build_document_version = Map.get(state.document_versions_on_build, uri)
-      build_and_dialyzer_diagnostics = Map.get(valid_build_and_dialyzer_diagnostics_by_uri, uri, [])
 
-      {version, uri_diagnostics} = cond do
-        is_integer(parser_diagnostics_document_version) and is_integer(build_document_version) and parser_diagnostics_document_version > build_document_version ->
-          # document open and edited since build was triggered
-          # parser diagnostics are more recent, discard build and dialyzer
-          {parser_diagnostics_document_version, parser_diagnostics}
-        is_integer(parser_diagnostics_document_version) and is_integer(build_document_version) and parser_diagnostics_document_version == build_document_version ->
-          # document open and not edited since build was triggered
-          # parser build and dialyzer diagnostics are recent
-          # prefer them as they will likely contain the same warnings as parser ones
-          {build_document_version, if(build_and_dialyzer_diagnostics != [], do: build_and_dialyzer_diagnostics, else: parser_diagnostics)}
-        is_integer(parser_diagnostics_document_version) and is_nil(build_document_version) ->
-          # document open but was closed when build was triggered
-          # document could have been edited
-          # combine diagnostics
-          # they can be duplicated but it is not trivial to deduplicate
-          {parser_diagnostics_document_version, Enum.uniq(parser_diagnostics ++ build_and_dialyzer_diagnostics)}
-        true ->
-          # document closed
-          # don't emit parser diagnostics
-          # return build diagnostics with possibly nil version
-          {build_document_version, build_and_dialyzer_diagnostics}
-      end
+      build_and_dialyzer_diagnostics =
+        Map.get(valid_build_and_dialyzer_diagnostics_by_uri, uri, [])
+
+      {version, uri_diagnostics} =
+        cond do
+          is_integer(parser_diagnostics_document_version) and is_integer(build_document_version) and
+              parser_diagnostics_document_version > build_document_version ->
+            # document open and edited since build was triggered
+            # parser diagnostics are more recent, discard build and dialyzer
+            {parser_diagnostics_document_version, parser_diagnostics}
+
+          is_integer(parser_diagnostics_document_version) and is_integer(build_document_version) and
+              parser_diagnostics_document_version == build_document_version ->
+            # document open and not edited since build was triggered
+            # parser build and dialyzer diagnostics are recent
+            # prefer them as they will likely contain the same warnings as parser ones
+            {build_document_version,
+             if(build_and_dialyzer_diagnostics != [],
+               do: build_and_dialyzer_diagnostics,
+               else: parser_diagnostics
+             )}
+
+          is_integer(parser_diagnostics_document_version) and is_nil(build_document_version) ->
+            # document open but was closed when build was triggered
+            # document could have been edited
+            # combine diagnostics
+            # they can be duplicated but it is not trivial to deduplicate
+            {parser_diagnostics_document_version,
+             Enum.uniq(parser_diagnostics ++ build_and_dialyzer_diagnostics)}
+
+          true ->
+            # document closed
+            # don't emit parser diagnostics
+            # return build diagnostics with possibly nil version
+            {build_document_version, build_and_dialyzer_diagnostics}
+        end
 
       Diagnostics.publish_file_diagnostics(
         uri,

@@ -52,7 +52,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
             ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
@@ -74,7 +75,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                 ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
@@ -95,7 +97,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                  ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
@@ -119,7 +122,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
         ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
@@ -143,7 +147,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                   ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
@@ -174,7 +179,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
          ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
@@ -206,7 +212,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
               ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
@@ -227,7 +234,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
           ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
@@ -248,7 +256,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                              ^
     """)
 
-    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     list =
       References.references(parser_context, uri, line, char, true, File.cwd!())

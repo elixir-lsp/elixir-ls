@@ -65,7 +65,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %{"items" => [first_item | items]}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %{"items" => [first_item | items]}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     assert first_item["label"] == "end"
 
@@ -121,7 +122,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
-    
+
     {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
     logger_labels = ["warn", "debug", "error", "info"]
@@ -468,7 +469,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -519,7 +520,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, supports)
 
@@ -533,7 +534,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = {0, 21}
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -558,7 +559,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -602,7 +603,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -625,7 +626,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -656,7 +657,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -678,7 +679,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -702,7 +703,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -726,7 +727,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
@@ -752,7 +753,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, result} = Completion.completion(parser_context, line, char, @supports)
 
@@ -779,7 +780,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, result} = Completion.completion(parser_context, line, char, @supports)
       assert result["isIncomplete"] == false
@@ -809,7 +810,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, signature_after_complete: true)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, opts)
 
@@ -851,7 +852,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, signature_after_complete: true)
 
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, %{"items" => [item]}} = Completion.completion(parser_context, line, char, opts)
       assert item["command"] == @signature_command
@@ -868,7 +869,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       opts = Keyword.merge(@supports, snippets_supported: false, signature_help_supported: false)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
       {:ok, %{"items" => [item]}} = Completion.completion(parser_context, line, char, opts)
 
       assert item["insertText"] == "add_2_numbers"
@@ -894,7 +895,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       opts = Keyword.merge(@supports, snippets_supported: false)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
       {:ok, %{"items" => [item]}} = Completion.completion(parser_context, line, char, opts)
 
       assert item["insertText"] == "add_2_numbers("
@@ -909,7 +910,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       opts = Keyword.merge(@supports, signature_help_supported: false)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
       {:ok, %{"items" => [item]}} = Completion.completion(parser_context, line, char, opts)
 
       assert item["insertText"] == "add_2_numbers(${1:a}, ${2:b})"
@@ -968,7 +969,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(add_2_numbers: 2))
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
       {:ok, %{"items" => [item]}} = Completion.completion(parser_context, line, char, opts)
 
       assert item["insertText"] == "add_2_numbers"
@@ -990,7 +991,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(drop: 2))
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
       {:ok, %{"items" => [item]}} = Completion.completion(parser_context, line, char, opts)
 
       assert item["insertText"] == "drop($1)$0"
@@ -1036,7 +1037,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, signature_help_supported: false)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %{"items" => [item1, item2, item3]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %{"items" => [item1, item2, item3]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item1["label"] == "my_func"
       assert item1["insertText"] == "my_func(${1:text})"
@@ -1064,6 +1067,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
+
       {:ok, %{"items" => [item1, item2, item3]}} =
         Completion.completion(parser_context, line, char, @supports)
 
@@ -1080,7 +1084,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item3["command"] == nil
 
       opts = Keyword.merge(@supports, snippets_supported: false)
-      {:ok, %{"items" => [item1, item2, item3]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %{"items" => [item1, item2, item3]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item1["label"] == "my_func"
       assert item1["insertText"] == "my_func/1"
@@ -1135,7 +1141,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
       opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(timestamps: 0))
-      {:ok, %{"items" => [item_1, item_2]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %{"items" => [item_1, item_2]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item_1["label"] == "timestamps"
       assert item_1["labelDetails"]["detail"] == "()"
@@ -1207,7 +1215,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %{"items" => [pub, priv]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %{"items" => [pub, priv]}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert pub["label"] == "my_func"
       assert pub["detail"] == "function"
@@ -1238,7 +1248,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %{"items" => [item | _]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %{"items" => [item | _]}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert item["label"] == "func"
       assert item["detail"] == "function"
@@ -1261,7 +1273,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %{"items" => [item | _]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %{"items" => [item | _]}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert item["documentation"] == %{
                :kind => "markdown",
@@ -1290,9 +1304,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
+
       assert {:ok, %{"items" => [first | _] = _items}} =
                Completion.completion(
-                parser_context,
+                 parser_context,
                  line,
                  char,
                  @supports
@@ -1319,9 +1334,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
+
       assert {:ok, %{"items" => [first | _] = _items}} =
                Completion.completion(
-                parser_context,
+                 parser_context,
                  line,
                  char,
                  @supports
@@ -1348,9 +1364,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
+
       assert {:ok, %{"items" => [first | _] = _items}} =
                Completion.completion(
-                parser_context,
+                 parser_context,
                  line,
                  char,
                  @supports
@@ -1377,9 +1394,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
+
       assert {:ok, %{"items" => [first | _] = _items}} =
                Completion.completion(
-                parser_context,
+                 parser_context,
                  line,
                  char,
                  @supports
@@ -1406,9 +1424,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
+
       assert {:ok, %{"items" => [first | _] = _items}} =
                Completion.completion(
-                parser_context,
+                 parser_context,
                  line,
                  char,
                  @supports
@@ -1439,6 +1458,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
+
       assert {:ok, %{"items" => [first | _] = items}} =
                Completion.completion(parser_context, line, char, @supports)
 
@@ -1501,7 +1521,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      assert {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
+
+      assert {:ok, %{"items" => items}} =
+               Completion.completion(parser_context, line, char, @supports)
 
       refute Enum.any?(items, fn i -> i["label"] == "make_ref/0" end)
     end
@@ -1523,8 +1545,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = {4, 9}
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
-      assert {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
+
+      assert {:ok, %{"items" => items}} =
+               Completion.completion(parser_context, line, char, @supports)
+
       assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "case"}, &1))
       assert insert_text =~ "case do\n\t"
     end
@@ -1544,8 +1569,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = {4, 10}
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
-      assert {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
+
+      assert {:ok, %{"items" => items}} =
+               Completion.completion(parser_context, line, char, @supports)
 
       assert %{"insertText" => insert_text} =
                Enum.find(items, &match?(%{"label" => "unless"}, &1))
@@ -1568,8 +1595,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = {4, 9}
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-    parser_context = ParserContextBuilder.from_string(text, {line, char})
-      assert {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
+
+      assert {:ok, %{"items" => items}} =
+               Completion.completion(parser_context, line, char, @supports)
 
       assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "if"}, &1))
 

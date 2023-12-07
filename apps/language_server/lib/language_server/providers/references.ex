@@ -14,11 +14,18 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   import ElixirLS.LanguageServer.Protocol
   require Logger
 
-  def references(%Parser.Context{source_file: source_file, metadata: metadata}, uri, line, character, _include_declaration, project_dir) do
+  def references(
+        %Parser.Context{source_file: source_file, metadata: metadata},
+        uri,
+        line,
+        character,
+        _include_declaration,
+        project_dir
+      ) do
     Build.with_build_lock(fn ->
       trace = ElixirLS.LanguageServer.Tracer.get_trace()
 
-      ElixirSense.references(source_file.text, line, character, trace, [metadata: metadata])
+      ElixirSense.references(source_file.text, line, character, trace, metadata: metadata)
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
         |> build_reference(uri, source_file.text, project_dir)

@@ -1,5 +1,14 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
-  alias ElixirLS.LanguageServer.{Server, SourceFile, Tracer, Build, JsonRpc, MixProjectCache, Parser}
+  alias ElixirLS.LanguageServer.{
+    Server,
+    SourceFile,
+    Tracer,
+    Build,
+    JsonRpc,
+    MixProjectCache,
+    Parser
+  }
+
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   import ElixirLS.LanguageServer.Test.ServerTestHelpers

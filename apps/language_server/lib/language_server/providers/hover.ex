@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   def hover(%Parser.Context{source_file: source_file, metadata: metadata}, line, character) do
     response =
-      case ElixirSense.docs(source_file.text, line, character, [metadata: metadata]) do
+      case ElixirSense.docs(source_file.text, line, character, metadata: metadata) do
         nil ->
           nil
 
