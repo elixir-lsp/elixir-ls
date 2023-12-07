@@ -3,12 +3,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Helpers do
 
   def first_and_last_of_list([]), do: :empty_list
 
+  def first_and_last_of_list([head]), do: {head, head}
+
+  def first_and_last_of_list([head, last]), do: {head, last}
+
   def first_and_last_of_list([head | tail]) do
-    tail
-    |> List.last()
-    |> case do
-      nil -> {head, head}
-      last -> {head, last}
-    end
+    {head, List.last(tail)}
   end
 end
