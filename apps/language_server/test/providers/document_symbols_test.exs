@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
   alias ElixirLS.LanguageServer.Providers.DocumentSymbols
   alias ElixirLS.LanguageServer.Protocol
+  alias ElixirLS.LanguageServer.Test.ParserContextBuilder
 
   test "returns hierarchical symbol information" do
     uri = "file:///project/file.ex"
@@ -42,6 +43,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -206,7 +209,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 16, "line" => 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "returns flat symbol information" do
@@ -237,6 +240,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -340,7 +345,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles nested module definitions" do
@@ -352,6 +357,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -388,7 +395,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 16, "line" => 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles nested module definitions" do
@@ -400,6 +407,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -429,7 +438,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn()",
                 containerName: "SubModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles multiple module definitions" do
@@ -442,6 +451,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def some_other_function(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -483,7 +494,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 16, "line" => 4}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles multiple module definitions" do
@@ -496,6 +507,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def some_other_function(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -529,7 +542,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def some_other_function()",
                 containerName: "MyOtherModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles elixir atom module definitions" do
@@ -539,6 +552,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -561,7 +576,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 6, "line" => 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles elixir atom module definitions" do
@@ -571,6 +586,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -589,7 +606,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 12,
                 containerName: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles unquoted module definitions" do
@@ -599,6 +616,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -621,7 +640,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 16, "line" => 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles unquoted module definitions" do
@@ -631,6 +650,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -649,7 +670,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "def my_fn()",
                 containerName: "# unknown"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles erlang atom module definitions" do
@@ -659,6 +680,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -681,7 +704,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 6, "line" => 1}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles erlang atom module definitions" do
@@ -691,6 +714,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -709,7 +734,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 12,
                 containerName: "my_module"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles nested module definitions with __MODULE__" do
@@ -721,6 +746,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -741,7 +768,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "__MODULE__"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles nested module definitions with __MODULE__" do
@@ -753,6 +780,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -770,7 +799,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 12,
                 containerName: "__MODULE__.SubModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles protocols and implementations" do
@@ -790,6 +819,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       def size(param), do: length(param)
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -874,7 +905,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 0, "line" => 9}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles protocols and implementations" do
@@ -894,6 +925,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       def size(param), do: length(param)
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -960,7 +993,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: "MyProtocol, for: [List, MyList]"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles module definitions with struct" do
@@ -971,6 +1004,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       defstruct [:prop, prop_with_def: nil]
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1020,7 +1055,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles module definitions with struct" do
@@ -1031,6 +1066,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       defstruct [:prop, prop_with_def: nil]
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1071,7 +1108,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: "defstruct MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles module definitions with exception" do
@@ -1082,6 +1119,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       defexception [:message]
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1118,7 +1157,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyError"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles module definitions with exception" do
@@ -1129,6 +1168,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       defexception [:message]
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1158,7 +1199,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: "defexception MyError"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles module definitions with typespecs" do
@@ -1176,6 +1217,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @type
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1233,7 +1276,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles module definitions with typespecs" do
@@ -1251,6 +1294,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @type
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1304,7 +1349,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "@type",
                 containerName: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles module definitions with callbacks" do
@@ -1322,6 +1367,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @macrocallback my_macrocallback_no_arg() :: Macro.t
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1369,7 +1416,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles module definitions with callbacks" do
@@ -1387,6 +1434,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @macrocallback my_macrocallback_no_arg() :: Macro.t
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1430,7 +1479,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 24,
                 containerName: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles funs with specs" do
@@ -1441,6 +1490,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(a), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1455,7 +1506,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles funs with specs" do
@@ -1466,6 +1517,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def my_fn(a), do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1478,7 +1531,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 12,
                 containerName: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles records" do
@@ -1490,7 +1543,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       end
     ]
 
-    result = DocumentSymbols.symbols(uri, text, true)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    result = DocumentSymbols.symbols(uri, parser_context, true)
 
     # earlier elixir versions return different ranges
     if Version.match?(System.version(), ">= 1.13.0") do
@@ -1555,7 +1610,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       end
     ]
 
-    result = DocumentSymbols.symbols(uri, text, false)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    result = DocumentSymbols.symbols(uri, parser_context, false)
 
     # earlier elixir versions return different ranges
     if Version.match?(System.version(), ">= 1.13.0") do
@@ -1615,6 +1672,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
+    parser_context = ParserContextBuilder.from_string(text)
+
     assert {:ok,
             [
               %Protocol.DocumentSymbol{
@@ -1622,7 +1681,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] skips docs attributes" do
@@ -1636,13 +1695,15 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
+    parser_context = ParserContextBuilder.from_string(text)
+
     assert {:ok,
             [
               %Protocol.SymbolInformation{
                 name: "MyModule",
                 kind: 2
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles various builtin attributes" do
@@ -1669,6 +1730,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @impl MyBehaviour
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1756,7 +1819,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles various builtin attributes" do
@@ -1783,6 +1846,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @impl MyBehaviour
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1872,7 +1937,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 14,
                 containerName: "MyModule"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles exunit tests" do
@@ -1883,6 +1948,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         test "does something", do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1905,7 +1972,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModuleTest"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles exunit tests" do
@@ -1916,6 +1983,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         test "does something", do: :ok
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1940,7 +2009,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: "MyModuleTest"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles exunit describe tests" do
@@ -1953,6 +2022,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -1989,7 +2060,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModuleTest"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[nested] handles exunit describes and tests with unevaluated names" do
@@ -2002,6 +2073,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -2038,7 +2111,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModuleTest"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
 
     assert describe_sigil == "describe ~S(some \"description\")"
   end
@@ -2053,6 +2126,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -2088,7 +2163,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: "describe \"some description\""
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[flat] handles exunit describes and tests with unevaluated names" do
@@ -2101,6 +2176,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         end
       end
     ]
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -2136,7 +2213,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: describe_sigil
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
 
     assert describe_sigil == "describe ~S(some \"description\")"
   end
@@ -2156,6 +2233,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       end
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -2204,7 +2283,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModuleTest"
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles exunit callbacks" do
@@ -2222,6 +2301,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       end
     end
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -2268,7 +2349,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 },
                 containerName: "MyModuleTest"
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles config" do
@@ -2287,6 +2368,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       migration_timestamps: [type: :naive_datetime_usec],
       username: "postgres"
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -2342,7 +2425,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   "start" => %{"character" => 0, "line" => 9}
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "[flat] handles config" do
@@ -2361,6 +2444,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       migration_timestamps: [type: :naive_datetime_usec],
       username: "postgres"
     """
+
+    parser_context = ParserContextBuilder.from_string(text)
 
     assert {:ok,
             [
@@ -2404,7 +2489,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   }
                 }
               }
-            ]} = DocumentSymbols.symbols(uri, text, false)
+            ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
 
   test "[nested] handles a file with a top-level module without a name" do
@@ -2416,7 +2501,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
-    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, text, true)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, parser_context, true)
 
     assert [
              %Protocol.DocumentSymbol{
@@ -2443,7 +2530,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
-    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, text, true)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, parser_context, true)
 
     assert [
              %Protocol.DocumentSymbol{
@@ -2465,8 +2554,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
-    assert {:error, :server_error, "Cannot parse source file", false} =
-             DocumentSymbols.symbols(uri, text, true)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    assert {:ok, []} =
+             DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "returns def and defp as a prefix" do
@@ -2484,6 +2575,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     end
     """
 
+    parser_context = ParserContextBuilder.from_string(text)
+
     assert {:ok,
             [
               %Protocol.DocumentSymbol{
@@ -2496,26 +2589,35 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   }
                 ]
               }
-            ]} = DocumentSymbols.symbols(uri, text, true)
+            ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   describe "invalid documents" do
     test "handles a module being defined" do
       uri = "file:///project.test.ex"
       text = "defmodule "
-      assert {:ok, []} = DocumentSymbols.symbols(uri, text, true)
+
+      parser_context = ParserContextBuilder.from_string(text)
+
+      assert {:ok, []} = DocumentSymbols.symbols(uri, parser_context, true)
     end
 
     test "handles a protocol being defined" do
       uri = "file:///project.test.ex"
       text = "defprotocol "
-      assert {:ok, []} = DocumentSymbols.symbols(uri, text, true)
+
+      parser_context = ParserContextBuilder.from_string(text)
+
+      assert {:ok, []} = DocumentSymbols.symbols(uri, parser_context, true)
     end
 
     test "handles a protocol being impolemented" do
       uri = "file:///project.test.ex"
       text = "defimpl "
-      assert {:ok, []} = DocumentSymbols.symbols(uri, text, true)
+
+      parser_context = ParserContextBuilder.from_string(text)
+      
+      assert {:ok, []} = DocumentSymbols.symbols(uri, parser_context, true)
     end
   end
 end

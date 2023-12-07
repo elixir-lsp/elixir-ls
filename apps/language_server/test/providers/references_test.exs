@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   alias ElixirLS.LanguageServer.Tracer
   alias ElixirLS.LanguageServer.Build
+  alias ElixirLS.LanguageServer.Test.ParserContextBuilder
   require ElixirLS.Test.TextLoc
 
   setup_all context do
@@ -41,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds local, remote and imported references to a function" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {1, 8}
@@ -51,7 +52,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
             ^
     """)
 
-    list = References.references(text, uri, line, char, true, File.cwd!())
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 3
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
@@ -61,7 +64,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds local, remote and imported references to a macro" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {8, 12}
@@ -71,7 +74,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                 ^
     """)
 
-    list = References.references(text, uri, line, char, true, File.cwd!())
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 3
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
@@ -81,7 +86,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "find a references to a macro generated function call" do
     file_path = FixtureHelpers.get_path("uses_macro_a.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {6, 13}
 
@@ -90,7 +95,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                  ^
     """)
 
-    assert References.references(text, uri, line, char, true, File.cwd!()) == [
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "end" => %{"character" => 16, "line" => 6},
@@ -103,7 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds a references to a macro imported function call" do
     file_path = FixtureHelpers.get_path("uses_macro_a.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {10, 4}
 
@@ -112,7 +119,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
         ^
     """)
 
-    assert References.references(text, uri, line, char, true, File.cwd!()) == [
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "start" => %{"line" => 10, "character" => 4},
@@ -125,7 +134,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds references to a variable" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {4, 14}
 
@@ -134,7 +143,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                   ^
     """)
 
-    assert References.references(text, uri, line, char, true, File.cwd!()) == [
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "end" => %{"character" => 23, "line" => 2},
@@ -154,7 +165,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds references to an attribute" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
     {line, char} = {24, 5}
 
@@ -163,7 +174,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
          ^
     """)
 
-    assert References.references(text, uri, line, char, true, File.cwd!()) == [
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
              %{
                "range" => %{
                  "end" => %{"character" => 23, "line" => 24},
@@ -183,7 +196,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds remote references to erlang function" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {31, 10}
@@ -193,7 +206,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
               ^
     """)
 
-    list = References.references(text, uri, line, char, true, File.cwd!())
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 2
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
@@ -202,7 +217,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds remote references to erlang module" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {31, 6}
@@ -212,7 +227,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
           ^
     """)
 
-    list = References.references(text, uri, line, char, true, File.cwd!())
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 2
     assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
@@ -221,7 +238,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
   test "finds alias references" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {0, 25}
@@ -231,8 +248,10 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
                              ^
     """)
 
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     list =
-      References.references(text, uri, line, char, true, File.cwd!())
+      References.references(parser_context, uri, line, char, true, File.cwd!())
       |> Enum.filter(&String.ends_with?(&1["uri"], "references_alias.ex"))
 
     references_lines = Enum.map(list, & &1["range"]["start"]["line"])

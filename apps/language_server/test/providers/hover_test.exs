@@ -1,6 +1,8 @@
 defmodule ElixirLS.LanguageServer.Providers.HoverTest do
   use ElixirLS.Utils.MixTest.Case, async: false
   import ElixirLS.LanguageServer.Test.PlatformTestHelpers
+  alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.Test.ParserContextBuilder
 
   alias ElixirLS.LanguageServer.Providers.Hover
   # mix cmd --app language_server mix test test/providers/hover_test.exs
@@ -19,8 +21,10 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {2, 1}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, resp} = Hover.hover(text, line, char, fake_dir())
+    assert {:ok, resp} = Hover.hover(parser_context, line, char)
     assert nil == resp
   end
 
@@ -32,11 +36,13 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
       end
     end
     """
-
+    
     {line, char} = {2, 5}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+             Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
              v,
@@ -54,9 +60,11 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {2, 10}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+             Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
              v,
@@ -72,9 +80,11 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {1, 3}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+             Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
              v,
@@ -90,9 +100,11 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {1, 18}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+             Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
              v,
@@ -110,9 +122,11 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {2, 10}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+             Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(v, "```elixir\n:timer.sleep(time)\n```\n\n*function*")
     # TODO hexdocs and standard lib docs
@@ -130,10 +144,12 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {0, 19}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     if Version.match?(System.version(), ">= 1.14.0") do
       assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-               Hover.hover(text, line, char, fake_dir())
+               Hover.hover(parser_context, line, char)
 
       assert String.starts_with?(
                v,
@@ -141,7 +157,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
              )
     else
       assert {:ok, nil} =
-               Hover.hover(text, line, char, fake_dir())
+               Hover.hover(parser_context, line, char)
     end
   end
 
@@ -153,9 +169,11 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {1, 3}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+             Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
              v,
@@ -171,9 +189,11 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     """
 
     {line, char} = {1, 4}
+    parser_context = ParserContextBuilder.from_string(text)
+    {line, char} = SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-             Hover.hover(text, line, char, fake_dir())
+             Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
              v,

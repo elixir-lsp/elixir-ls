@@ -252,7 +252,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     end
   end
 
-  defp do_parse(%Context{source_file: source_file = %SourceFile{}, path: path} = file, cursor_position \\ nil) do
+  def do_parse(%Context{source_file: source_file = %SourceFile{}, path: path} = file, cursor_position \\ nil) do
     {ast, diagnostics} = parse_file(source_file.text, path, source_file.language_id)
 
     {flag, ast, metadata} = if ast do
