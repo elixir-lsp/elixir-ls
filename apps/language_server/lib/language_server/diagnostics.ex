@@ -7,12 +7,21 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   def normalize(diagnostics, root_path, mixfile) do
     for %Mix.Task.Compiler.Diagnostic{} = diagnostic <- diagnostics do
-      {type, file, position, stacktrace} =
-        extract_message_info(diagnostic.message, root_path)
+      case diagnostic |> dbg do
+        %Mix.Task.Compiler.Diagnostic{details: payload = %_{line: _}, compiler_name: compiler_name} ->
+          # remove stacktrace
+          message = Exception.format_banner(:error, payload)
+          compiler_name = if compiler_name == "Elixir", do: "ElixirLS", else: compiler_name
+          %Mix.Task.Compiler.Diagnostic{diagnostic | message: message, compiler_name: compiler_name}
 
-      diagnostic
-      |> maybe_update_file(file, mixfile)
-      |> maybe_update_position(type, position, stacktrace)
+        _ ->
+          {type, file, position, stacktrace} =
+            extract_message_info(diagnostic.message, root_path)
+
+          diagnostic
+          |> maybe_update_file(file, mixfile)
+          |> maybe_update_position(type, position, stacktrace)
+      end
     end
   end
 
@@ -175,47 +184,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end)
   end
 
-  def publish_file_diagnostics(uri, uri_diagnostics, source_file, version) do
-    diagnostics_json =
-      for diagnostic <- uri_diagnostics do
-        severity =
-          case diagnostic.severity do
-            :error -> 1
-            :warning -> 2
-            :information -> 3
-            :hint -> 4
-          end
-
-        message =
-          case diagnostic.message do
-            m when is_binary(m) -> m
-            m when is_list(m) -> m |> Enum.join("\n")
-          end
-
-        %{
-          "message" => message,
-          "severity" => severity,
-          "range" => range(diagnostic.position, source_file),
-          "source" => diagnostic.compiler_name
-        }
-      end
-      |> Enum.sort_by(& &1["range"]["start"])
-
-    message = %{
-      "uri" => uri,
-      "diagnostics" => diagnostics_json
-    }
-
-    message =
-      if is_integer(version) do
-        Map.put(message, "version", version)
-      else
-        message
-      end
-
-    JsonRpc.notify("textDocument/publishDiagnostics", message)
-  end
-
   def mixfile_diagnostic({file, position, message}, severity) when not is_nil(file) do
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
@@ -242,15 +210,19 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def error_to_diagnostic(:error, %kind{} = payload, _stacktrace, path, project_dir)
-      when kind in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] do
+  def error_to_diagnostic(:error, %_{line: _} = payload, _stacktrace, path, project_dir) do
     path = SourceFile.Path.absname(path, project_dir)
     message = Exception.format_banner(:error, payload)
+
+    position = case payload do
+      %{line: line, column: column} -> {line, column}
+      %{line: line} -> line
+    end
 
     %Mix.Task.Compiler.Diagnostic{
       compiler_name: "ElixirLS",
       file: path,
-      position: {payload.line, payload.column},
+      position: position,
       message: message,
       severity: :error,
       details: payload
@@ -303,6 +275,161 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
+  def publish_file_diagnostics(uri, uri_diagnostics, source_file, version) do
+    diagnostics_json =
+      for diagnostic <- uri_diagnostics do
+        severity =
+          case diagnostic.severity do
+            :error -> 1
+            :warning -> 2
+            :information -> 3
+            :hint -> 4
+          end
+
+        message =
+          case diagnostic.message do
+            m when is_binary(m) -> m
+            m when is_list(m) -> m |> Enum.join("\n")
+          end
+
+        %{
+          "message" => message,
+          "severity" => severity,
+          "range" => range(diagnostic.position, source_file),
+          "source" => diagnostic.compiler_name,
+          "relatedInformation" => build_related_information(diagnostic, uri, source_file),
+          "tags" => get_tags(diagnostic)
+        }
+      end
+      |> Enum.sort_by(& &1["range"]["start"])
+
+    message = %{
+      "uri" => uri,
+      "diagnostics" => diagnostics_json
+    }
+
+    message =
+      if is_integer(version) do
+        Map.put(message, "version", version)
+      else
+        message
+      end
+
+    JsonRpc.notify("textDocument/publishDiagnostics", message)
+  end
+
+  defp get_tags(diagnostic) do
+    unused = if Regex.match?(~r/unused|no effect/u, diagnostic.message) do
+      [1]
+    else
+      []
+    end
+    deprecated = if Regex.match?(~r/deprecated/u, diagnostic.message) do
+      [2]
+    else
+      []
+    end
+
+    unused ++ deprecated
+  end
+
+  defp get_related_information_description(description, uri, source_file) do
+    line = case Regex.run(
+           ~r/line (\d+)/u,
+           description
+         ) do
+          [_, line] -> String.to_integer(line)
+          _ -> nil
+        end
+
+        message = case String.split(description, "hint: ") do
+          [_, hint] -> hint
+          _ -> description
+        end
+
+        if line do
+          [
+            %{
+              "location" => %{
+                "uri" => uri,
+                "range" => range(line, source_file)
+              },
+              "message" => message
+            }
+          ]
+        else
+          []
+        end
+  end
+
+  defp get_related_information_message(message, uri, source_file) do
+    line = case Regex.run(
+           ~r/line (\d+)/u,
+           message
+         ) do
+          [_, line] -> String.to_integer(line)
+          _ -> nil
+        end
+
+        if line do
+          [
+            %{
+              "location" => %{
+                "uri" => uri,
+                "range" => range(line, source_file)
+              },
+              "message" => "related"
+            }
+          ]
+        else
+          []
+        end
+  end
+
+  defp build_related_information(diagnostic, uri, source_file) do
+    case diagnostic.details do
+      # for backwards compatibility with elixir < 1.16
+      %kind{} = payload when kind == MismatchedDelimiterError ->
+        [
+          %{
+            "location" => %{
+              "uri" => uri,
+              "range" => range({payload.line, payload.column - 1, payload.line, payload.column - 1 + String.length(to_string(payload.opening_delimiter))}, source_file)
+            },
+            "message" => "opening delimiter: #{payload.opening_delimiter}"
+          },
+          %{
+            "location" => %{
+              "uri" => uri,
+              "range" => range({payload.end_line, payload.end_column - 1, payload.end_line, payload.end_column - 1 + String.length(to_string(payload.closing_delimiter))}, source_file)
+            },
+            "message" => "closing delimiter: #{payload.closing_delimiter}"
+          }
+        ]
+      %kind{end_line: end_line, opening_delimiter: opening_delimiter} = payload when kind == TokenMissingError and not is_nil(opening_delimiter) ->
+        message = String.split(payload.description, "hint: ") |> hd
+        [
+          %{
+            "location" => %{
+              "uri" => uri,
+              "range" => range({payload.line, payload.column - 1, payload.line, payload.column - 1 + String.length(to_string(payload.opening_delimiter))}, source_file)
+            },
+            "message" => "opening delimiter: #{payload.opening_delimiter}"
+          },
+          %{
+            "location" => %{
+              "uri" => uri,
+              "range" => range(end_line, source_file)
+            },
+            "message" => message
+          }
+        ] ++ get_related_information_description(payload.description, uri, source_file)
+      %{description: description} ->
+        get_related_information_description(description, uri, source_file)
+      _ -> []
+    end ++ get_related_information_message(diagnostic.message, uri, source_file)
+  end
+
   # for details see
   # https://hexdocs.pm/mix/1.13.4/Mix.Task.Compiler.Diagnostic.html#t:position/0
   # https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#diagnostic
@@ -351,11 +478,11 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
        when not is_nil(source_file) do
     # some diagnostics are broken
     line_start = line_start || 1
-    char_start = char_start || 1
+    char_start = char_start || 0
     lines = SourceFile.lines(source_file)
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
-      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start - 1})
+      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start + 1})
 
     %{
       "start" => %{
@@ -375,18 +502,18 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
        when not is_nil(source_file) do
     # some diagnostics are broken
     line_start = line_start || 1
-    char_start = char_start || 1
+    char_start = char_start || 0
 
     line_end = line_end || 1
-    char_end = char_end || 1
+    char_end = char_end || 0
 
     lines = SourceFile.lines(source_file)
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
-      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start - 1})
+      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start + 1})
 
     {line_end_lsp, char_end_lsp} =
-      SourceFile.elixir_position_to_lsp(lines, {line_end, char_end - 1})
+      SourceFile.elixir_position_to_lsp(lines, {line_end, char_end + 1})
 
     %{
       "start" => %{

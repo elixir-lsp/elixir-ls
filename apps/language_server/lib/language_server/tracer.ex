@@ -352,7 +352,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
     attributes =
       if Version.match?(System.version(), ">= 1.13.0-dev") do
         for name <- apply(Module, :attributes_in, [module]) do
-          {name, Module.get_attribute(module, name)}
+          # reading attribute value here breaks unused attributes warnings
+          # https://github.com/elixir-lang/elixir/issues/13168
+          # {name, Module.get_attribute(module, name)}
+          {name, nil}
         end
       else
         []
