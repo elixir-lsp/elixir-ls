@@ -299,7 +299,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           "source" => diagnostic.compiler_name,
           "relatedInformation" => build_related_information(diagnostic, uri, source_file),
           "tags" => get_tags(diagnostic)
-        }
+        }|>dbg
       end
       |> Enum.sort_by(& &1["range"]["start"])
 
@@ -372,7 +372,13 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
            message
          ) do
           [_, line] -> String.to_integer(line)
-          _ -> nil
+          _ -> case Regex.run(
+            ~r/\.ex\:(\d+)/u,
+            message
+          ) do
+           [_, line] -> String.to_integer(line)
+           _ -> nil
+         end
         end
 
         if line do
