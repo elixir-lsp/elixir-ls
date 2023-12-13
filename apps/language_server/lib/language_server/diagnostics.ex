@@ -344,7 +344,11 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
         message = case String.split(description, "hint: ") do
           [_, hint] -> hint
-          _ -> description
+          _ ->
+            case String.split(description, "HINT: ") do
+              [_, hint] -> hint
+              _ -> description
+            end
         end
 
         if line do
