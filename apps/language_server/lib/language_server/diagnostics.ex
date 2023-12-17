@@ -5,23 +5,52 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   """
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
 
-  def normalize(diagnostics, root_path, mixfile) do
-    for %Mix.Task.Compiler.Diagnostic{} = diagnostic <- diagnostics do
-      case diagnostic |> dbg do
-        %Mix.Task.Compiler.Diagnostic{details: payload = %_{line: _}, compiler_name: compiler_name} ->
-          # remove stacktrace
-          message = Exception.format_banner(:error, payload)
-          compiler_name = if compiler_name == "Elixir", do: "ElixirLS", else: compiler_name
-          %Mix.Task.Compiler.Diagnostic{diagnostic | message: message, compiler_name: compiler_name}
+  @enforce_keys [:file, :severity, :message, :position, :compiler_name]
+  defstruct [
+    :file,
+    :severity,
+    :message,
+    :position,
+    :compiler_name,
+    span: nil,
+    details: nil,
+    stacktrace: []
+  ]
 
-        _ ->
-          {type, file, position, stacktrace} =
+  def from_mix_task_compiler_diagnostic(%Mix.Task.Compiler.Diagnostic{} = diagnostic, root_path, mixfile) do
+    diagnostic_fields = diagnostic |> Map.from_struct() |> Map.delete(:__struct__)
+    normalized = struct(__MODULE__, diagnostic_fields)
+
+    if Version.match?(System.version(), ">= 1.16.0-dev") do
+      # don't include stacktrace in exceptions with position
+      # TODO remove match and handle throws and exits when elixir fixes
+      # https://github.com/elixir-lang/elixir/issues/13193
+      message = if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and match?(%{line: _}, diagnostic.details) do
+        Exception.format_banner(:error, diagnostic.details)
+      else
+        diagnostic.message
+      end
+
+      dbg(diagnostic)
+
+      {file, position} = case diagnostic.file do
+        nil ->
+          if candidate = get_file_position_from_stacktrace(Map.fetch!(diagnostic, :stacktrace), root_path) do
+            candidate
+          else
+            {mixfile, 0}
+          end
+        file -> {file, diagnostic.position}
+      end
+      
+      %__MODULE__{normalized | message: message, file: file, position: position}
+    else
+      {type, file, position, stacktrace} =
             extract_message_info(diagnostic.message, root_path)
 
-          diagnostic
-          |> maybe_update_file(file, mixfile)
-          |> maybe_update_position(type, position, stacktrace)
-      end
+      normalized
+      |> maybe_update_file(file, mixfile)
+      |> maybe_update_position(type, position, stacktrace)
     end
   end
 
@@ -94,6 +123,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp get_file_and_position(message, root_path) do
+    # TODO revert this change
     # this regex won't match filenames with spaces but in elixir 1.16 errors we can't be sure where
     # the file name starts e.g.
     # invalid syntax found on lib/template.eex:2:5:
@@ -184,91 +214,116 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end)
   end
 
-  def mixfile_diagnostic({file, position, message}, severity) when not is_nil(file) do
-    %Mix.Task.Compiler.Diagnostic{
-      compiler_name: "ElixirLS",
-      file: file,
+  def from_kernel_parallel_compiler_tuple({file, position, message}, severity, fallback_file) do
+    %__MODULE__{
+      compiler_name: "Elixir",
+      file: file || fallback_file,
       position: position,
       message: message,
       severity: severity
     }
   end
 
-  def code_diagnostic(%{
+  def from_code_diagnostic(%{
         file: file,
         severity: severity,
         message: message,
-        position: position
-      })
-      when not is_nil(file) do
-    %Mix.Task.Compiler.Diagnostic{
+        position: position,
+        stacktrace: stacktrace
+      } = diagnostic, fallback_file, root_path) do
+        dbg()
+
+        {file, position} = case file do
+          nil ->
+            if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
+              candidate
+            else
+              {fallback_file, 0}
+            end
+          file -> {file, position}
+        end
+
+    %__MODULE__{
       compiler_name: "ElixirLS",
       file: file,
       position: position,
+      # elixir >= 1.16
+      span: diagnostic[:span],
+      # elixir >= 1.16
+      details: diagnostic[:exception],
+      stacktrace: stacktrace,
       message: message,
       severity: severity
     }
   end
 
-  def error_to_diagnostic(:error, %_{line: _} = payload, _stacktrace, path, project_dir) do
-    path = SourceFile.Path.absname(path, project_dir)
-    message = Exception.format_banner(:error, payload)
-
-    position = case payload do
-      %{line: line, column: column} -> {line, column}
-      %{line: line} -> line
+  def from_parser_error(kind, payload, stacktrace, file) do
+    # assume file is absolute or nofile
+    # position will be defined for expected errors
+    # in case of unexpected errors file will not match any stack frame
+    {position, span} = get_line_span(file, payload, stacktrace)
+  
+    message = if position do
+      # known and expected errors have defined position
+      Exception.format_banner(kind, payload)
+    else
+      Exception.format(kind, payload, stacktrace)
     end
 
-    %Mix.Task.Compiler.Diagnostic{
-      compiler_name: "ElixirLS",
-      file: path,
-      position: position,
+    %__MODULE__{
+      compiler_name: "Elixir",
+      stacktrace: stacktrace,
+      file: file,
+      position: position || 0,
+      span: span,
       message: message,
       severity: :error,
       details: payload
     }
   end
 
-  def error_to_diagnostic(kind, payload, stacktrace, path, project_dir) when not is_nil(path) do
-    path = SourceFile.Path.absname(path, project_dir)
-    message = Exception.format(kind, payload, stacktrace)
+  def from_error(kind, payload, stacktrace, file, project_dir) do
+    # assume file is absolute
+    {position, span} = get_line_span(file, payload, stacktrace)
+    
+    message = if position do
+      # known and expected errors have defined position
+      Exception.format_banner(kind, payload)
+    else
+      Exception.format(kind, payload, stacktrace)
+    end
 
-    line =
-      stacktrace
-      |> Enum.find_value(fn {_m, _f, _a, opts} ->
-        file = opts |> Keyword.get(:file)
+    %__MODULE__{
+      compiler_name: "Elixir",
+      stacktrace: stacktrace,
+      file: file,
+      position: position || 0,
+      span: span,
+      message: message,
+      severity: :error,
+      details: payload
+    }
+  end
 
-        if file != nil and SourceFile.Path.absname(file, project_dir) == path do
-          opts |> Keyword.get(:line)
+  def from_shutdown_reason(error, fallback_file, root_path) when not is_nil(fallback_file) do
+    dbg()
+    msg = Exception.format_exit(error)
+
+    {file, position} = case error do
+      {_payload, [{_, _, _, info} | _] = stacktrace} when is_list(info) ->
+        if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
+          candidate
+        else
+          {fallback_file, 0}
         end
-      end)
+      _ ->
+        {fallback_file, 0}
+    end
 
-    %Mix.Task.Compiler.Diagnostic{
-      compiler_name: "ElixirLS",
-      file: path,
-      # 0 means unknown
-      position: line || 0,
-      message: message,
-      severity: :error,
-      details: payload
-    }
-  end
-
-  def exception_to_diagnostic(error, path) when not is_nil(path) do
-    msg =
-      case error do
-        {:shutdown, 1} ->
-          "Build failed for unknown reason. See output log."
-
-        _ ->
-          Exception.format_exit(error)
-      end
-
-    %Mix.Task.Compiler.Diagnostic{
-      compiler_name: "ElixirLS",
-      file: path,
-      # 0 means unknown
-      position: 0,
+    %__MODULE__{
+      compiler_name: "Elixir",
+      file: file,
+      position: position,
       message: msg,
       severity: :error,
       details: error
@@ -277,7 +332,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   def publish_file_diagnostics(uri, uri_diagnostics, source_file, version) do
     diagnostics_json =
-      for diagnostic <- uri_diagnostics do
+      for %__MODULE__{} = diagnostic <- uri_diagnostics do
         severity =
           case diagnostic.severity do
             :error -> 1
@@ -295,11 +350,11 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         %{
           "message" => message,
           "severity" => severity,
-          "range" => range(diagnostic.position, source_file),
+          "range" => range(normalize_position(diagnostic), source_file),
           "source" => diagnostic.compiler_name,
           "relatedInformation" => build_related_information(diagnostic, uri, source_file),
           "tags" => get_tags(diagnostic)
-        }|>dbg
+        }
       end
       |> Enum.sort_by(& &1["range"]["start"])
 
@@ -373,7 +428,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
          ) do
           [_, line] -> String.to_integer(line)
           _ -> case Regex.run(
-            ~r/\.ex\:(\d+)/u,
+            ~r/\.ex\:(\d+)\)/u,
             message
           ) do
            [_, line] -> String.to_integer(line)
@@ -404,14 +459,14 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           %{
             "location" => %{
               "uri" => uri,
-              "range" => range({payload.line, payload.column - 1, payload.line, payload.column - 1 + String.length(to_string(payload.opening_delimiter))}, source_file)
+              "range" => range({payload.line, payload.column, payload.line, payload.column + String.length(to_string(payload.opening_delimiter))}, source_file)
             },
             "message" => "opening delimiter: #{payload.opening_delimiter}"
           },
           %{
             "location" => %{
               "uri" => uri,
-              "range" => range({payload.end_line, payload.end_column - 1, payload.end_line, payload.end_column - 1 + String.length(to_string(payload.closing_delimiter))}, source_file)
+              "range" => range({payload.end_line, payload.end_column, payload.end_line, payload.end_column + String.length(to_string(payload.closing_delimiter))}, source_file)
             },
             "message" => "closing delimiter: #{payload.closing_delimiter}"
           }
@@ -422,7 +477,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           %{
             "location" => %{
               "uri" => uri,
-              "range" => range({payload.line, payload.column - 1, payload.line, payload.column - 1 + String.length(to_string(payload.opening_delimiter))}, source_file)
+              "range" => range({payload.line, payload.column, payload.line, payload.column + String.length(to_string(payload.opening_delimiter))}, source_file)
             },
             "message" => "opening delimiter: #{payload.opening_delimiter}"
           },
@@ -440,13 +495,20 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end ++ get_related_information_message(diagnostic.message, uri, source_file)
   end
 
-  # for details see
-  # https://hexdocs.pm/mix/1.13.4/Mix.Task.Compiler.Diagnostic.html#t:position/0
-  # https://microsoft.github.io/language-server-protocol/specifications/specification-3-16/#diagnostic
+  defp normalize_position(%{position: {start_line, start_column}, span: {end_line, end_column}, details: %kind{closing_delimiter: closing_delimiter}}) when kind == MismatchedDelimiterError do
+    # convert to pre 1.16 4-tuple
+    # include mismatched delimiter in range
+    {start_line, start_column, end_line, end_column + String.length(to_string(closing_delimiter))}
+  end
+  defp normalize_position(%{position: {start_line, start_column}, span: {end_line, end_column}}) do
+    # convert to pre 1.16 4-tuple
+    {start_line, start_column, end_line, end_column}
+  end
+  defp normalize_position(%{position: position}), do: position
 
-  # position is a 1 based line number
-  # 0 means unknown
+  # position is a 1 based line number or 0 if line is unknown
   # we return a 0 length range at first non whitespace character in line
+  # or first position in file if line is unknown
   defp range(line_start, source_file)
        when is_integer(line_start) and not is_nil(source_file) do
     # line is 1 based
@@ -482,17 +544,17 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  # position is a 1 based line number and 0 based character cursor (UTF8)
+  # position is a 1 based line number and 1 based character cursor (UTF8)
   # we return a 0 length range exactly at that location
   defp range({line_start, char_start}, source_file)
        when not is_nil(source_file) do
     # some diagnostics are broken
-    line_start = line_start || 1
-    char_start = char_start || 0
+    line_start = max(line_start, 1)
+    char_start = max(char_start, 1)
     lines = SourceFile.lines(source_file)
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
-      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start + 1})
+      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start})
 
     %{
       "start" => %{
@@ -506,24 +568,24 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  # position is a range defined by 1 based line numbers and 0 based character cursors (UTF8)
+  # position is a range defined by 1 based line numbers and 1 based character cursors (UTF8)
   # we return exactly that range
   defp range({line_start, char_start, line_end, char_end}, source_file)
        when not is_nil(source_file) do
     # some diagnostics are broken
-    line_start = line_start || 1
-    char_start = char_start || 0
+    line_start = max(line_start, 1)
+    char_start = max(char_start, 1)
 
-    line_end = line_end || 1
-    char_end = char_end || 0
+    line_end = max(line_end, 1)
+    char_end = max(char_end, 1)
 
     lines = SourceFile.lines(source_file)
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
-      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start + 1})
+      SourceFile.elixir_position_to_lsp(lines, {line_start, char_start})
 
     {line_end_lsp, char_end_lsp} =
-      SourceFile.elixir_position_to_lsp(lines, {line_end, char_end + 1})
+      SourceFile.elixir_position_to_lsp(lines, {line_end, char_end})
 
     %{
       "start" => %{
@@ -543,5 +605,69 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp range(_, _) do
     # we don't care about utf16 positions here as we send 0
     %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
+  end
+
+  # this utility function is copied from elixir source
+  # TODO colum >= 0 PR
+  def get_line_span(
+         _file,
+         %{line: line, column: column, end_line: end_line, end_column: end_column},
+         _stack
+       )
+       when is_integer(line) and line > 0 and is_integer(column) and column > 0 and
+              is_integer(end_line) and end_line > 0 and is_integer(end_column) and end_column > 0 do
+    {{line, column}, {end_line, end_column}}
+  end
+
+  def get_line_span(_file, %{line: line, column: column}, _stack)
+       when is_integer(line) and line > 0 and is_integer(column) and column > 0 do
+    {{line, column}, nil}
+  end
+
+  def get_line_span(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
+    {line, nil}
+  end
+
+  def get_line_span(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
+    get_line_span_from_stacktrace_info(info, file)
+  end
+
+  # we need that case as exception is normalized
+  def get_line_span(file, %UndefinedFunctionError{}, [{_, _, _, []}, {_, _, _, info} | _]) do
+    get_line_span_from_stacktrace_info(info, file)
+  end
+
+  def get_line_span(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
+       when expanding in [~c"expanding macro", ~c"expanding struct"] do
+    get_line_span_from_stacktrace_info(info, file)
+  end
+
+  def get_line_span(file, _reason, [{_, _, _, info} | _]) do
+    get_line_span_from_stacktrace_info(info, file)
+  end
+
+  def get_line_span(_, _, _) do
+    {nil, nil}
+  end
+
+  defp get_line_span_from_stacktrace_info(info, file) do
+    info_file = Keyword.get(info, :file)
+    # TODO project_dir
+    if info_file != nil and SourceFile.Path.absname(info_file) == file do
+      {Keyword.get(info, :line), nil}
+    else
+      {nil, nil}
+    end
+  end
+
+  defp get_file_position_from_stacktrace(stacktrace, project_dir) do
+    Enum.find_value(stacktrace, fn {_, _, _, info} ->
+      if info_file = Keyword.get(info, :file) do
+        info_file = SourceFile.Path.absname(info_file, project_dir)
+        if SourceFile.Path.path_in_dir?(info_file, project_dir) and File.exists?(info_file, [:raw]) do
+          {info_file, Keyword.get(info, :line, 0)}
+        end
+      end
+    end)
   end
 end
