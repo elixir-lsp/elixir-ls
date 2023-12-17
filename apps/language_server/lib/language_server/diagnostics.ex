@@ -17,16 +17,15 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     stacktrace: []
   ]
 
-  def from_mix_task_compiler_diagnostic(%Mix.Task.Compiler.Diagnostic{} = diagnostic, root_path, mixfile) do
+  def from_mix_task_compiler_diagnostic(%Mix.Task.Compiler.Diagnostic{} = diagnostic, mixfile, root_path) do
     diagnostic_fields = diagnostic |> Map.from_struct() |> Map.delete(:__struct__)
     normalized = struct(__MODULE__, diagnostic_fields)
 
     if Version.match?(System.version(), ">= 1.16.0-dev") do
       # don't include stacktrace in exceptions with position
-      # TODO remove match and handle throws and exits when elixir fixes
-      # https://github.com/elixir-lang/elixir/issues/13193
-      message = if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and match?(%{line: _}, diagnostic.details) do
-        Exception.format_banner(:error, diagnostic.details)
+      message = if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 do
+        {kind, reason} = diagnostic.details
+        Exception.format_banner(kind, reason)
       else
         diagnostic.message
       end
@@ -244,47 +243,23 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         end
 
     %__MODULE__{
-      compiler_name: "ElixirLS",
+      compiler_name: "Elixir",
       file: file,
       position: position,
       # elixir >= 1.16
       span: diagnostic[:span],
       # elixir >= 1.16
-      details: diagnostic[:exception],
+      details: diagnostic[:details],
       stacktrace: stacktrace,
       message: message,
       severity: severity
     }
   end
 
-  def from_parser_error(kind, payload, stacktrace, file) do
-    # assume file is absolute or nofile
-    # position will be defined for expected errors
-    # in case of unexpected errors file will not match any stack frame
-    {position, span} = get_line_span(file, payload, stacktrace)
-  
-    message = if position do
-      # known and expected errors have defined position
-      Exception.format_banner(kind, payload)
-    else
-      Exception.format(kind, payload, stacktrace)
-    end
-
-    %__MODULE__{
-      compiler_name: "Elixir",
-      stacktrace: stacktrace,
-      file: file,
-      position: position || 0,
-      span: span,
-      message: message,
-      severity: :error,
-      details: payload
-    }
-  end
-
   def from_error(kind, payload, stacktrace, file, project_dir) do
+    dbg()
     # assume file is absolute
-    {position, span} = get_line_span(file, payload, stacktrace)
+    {position, span} = get_line_span(file, payload, stacktrace, project_dir)
     
     message = if position do
       # known and expected errors have defined position
@@ -301,7 +276,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       span: span,
       message: message,
       severity: :error,
-      details: payload
+      details: {kind, payload}
     }
   end
 
@@ -309,15 +284,15 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     dbg()
     msg = Exception.format_exit(error)
 
-    {file, position} = case error do
+    {{file, position}, stacktrace} = case error do
       {_payload, [{_, _, _, info} | _] = stacktrace} when is_list(info) ->
         if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
-          candidate
+          {candidate, stacktrace}
         else
-          {fallback_file, 0}
+          {{fallback_file, 0}, stacktrace}
         end
       _ ->
-        {fallback_file, 0}
+        {{fallback_file, 0}, []}
     end
 
     %__MODULE__{
@@ -326,7 +301,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       position: position,
       message: msg,
       severity: :error,
-      details: error
+      stacktrace: stacktrace,
+      details: {:exit, error}
     }
   end
 
@@ -612,54 +588,55 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   def get_line_span(
          _file,
          %{line: line, column: column, end_line: end_line, end_column: end_column},
-         _stack
+         _stack, _project_dir
        )
        when is_integer(line) and line > 0 and is_integer(column) and column > 0 and
               is_integer(end_line) and end_line > 0 and is_integer(end_column) and end_column > 0 do
     {{line, column}, {end_line, end_column}}
   end
 
-  def get_line_span(_file, %{line: line, column: column}, _stack)
+  def get_line_span(_file, %{line: line, column: column}, _stack, _project_dir)
        when is_integer(line) and line > 0 and is_integer(column) and column > 0 do
     {{line, column}, nil}
   end
 
-  def get_line_span(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
+  def get_line_span(_file, %{line: line}, _stack, _project_dir) when is_integer(line) and line > 0 do
     {line, nil}
   end
 
-  def get_line_span(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
-    get_line_span_from_stacktrace_info(info, file)
+  def get_line_span(file, :undef, [{_, _, _, []}, {_, _, _, info} | _], project_dir) do
+    get_line_span_from_stacktrace_info(info, file, project_dir)
   end
 
   # we need that case as exception is normalized
-  def get_line_span(file, %UndefinedFunctionError{}, [{_, _, _, []}, {_, _, _, info} | _]) do
-    get_line_span_from_stacktrace_info(info, file)
+  def get_line_span(file, %UndefinedFunctionError{}, [{_, _, _, []}, {_, _, _, info} | _], project_dir) do
+    get_line_span_from_stacktrace_info(info, file, project_dir)
   end
 
-  def get_line_span(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
+  def get_line_span(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _], project_dir)
        when expanding in [~c"expanding macro", ~c"expanding struct"] do
-    get_line_span_from_stacktrace_info(info, file)
+    get_line_span_from_stacktrace_info(info, file, project_dir)
   end
 
-  def get_line_span(file, _reason, [{_, _, _, info} | _]) do
-    get_line_span_from_stacktrace_info(info, file)
+  def get_line_span(file, _reason, [{_, _, _, info} | _], project_dir) do
+    get_line_span_from_stacktrace_info(info, file, project_dir)
   end
 
-  def get_line_span(_, _, _) do
+  def get_line_span(_, _, _, _) do
     {nil, nil}
   end
 
-  defp get_line_span_from_stacktrace_info(info, file) do
+  defp get_line_span_from_stacktrace_info(_info, _file, :no_stacktrace), do: {nil, nil}
+  defp get_line_span_from_stacktrace_info(info, file, project_dir) do
     info_file = Keyword.get(info, :file)
-    # TODO project_dir
-    if info_file != nil and SourceFile.Path.absname(info_file) == file do
+    if info_file != nil and SourceFile.Path.absname(info_file, project_dir) == file do
       {Keyword.get(info, :line), nil}
     else
       {nil, nil}
     end
   end
 
+  defp get_file_position_from_stacktrace(_stacktrace, :no_stacktrace), do: nil
   defp get_file_position_from_stacktrace(stacktrace, project_dir) do
     Enum.find_value(stacktrace, fn {_, _, _, info} ->
       if info_file = Keyword.get(info, :file) do

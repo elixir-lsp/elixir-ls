@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Build do
                           run_mix_compile(Keyword.get(opts, :force?, false))
 
                         compile_diagnostics = compile_diagnostics
-                        |> Enum.map(&Diagnostics.from_mix_task_compiler_diagnostic(&1, root_path, mixfile))
+                        |> Enum.map(&Diagnostics.from_mix_task_compiler_diagnostic(&1, mixfile, root_path))
 
                         Server.build_finished(
                           parent,

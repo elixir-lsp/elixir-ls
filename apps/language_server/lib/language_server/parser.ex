@@ -428,34 +428,12 @@ defmodule ElixirLS.LanguageServer.Parser do
           {:ok, ast}
         rescue
           e in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
-            diagnostic = Diagnostics.from_parser_error(:error, e, __STACKTRACE__, file)
-            # {line, span} = Diagnostics.get_line_span(file, e, __STACKTRACE__)
-            # dbg(e)
-            # message = Exception.format_banner(:error, e)
-
-            # diagnostic = %Diagnostics{
-            #   compiler_name: "ElixirLS",
-            #   file: file,
-            #   position: {e.line, e.column},
-            #   message: message,
-            #   severity: :error,
-            #   details: e
-            # }
+            diagnostic = Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
 
             {:error, diagnostic}
         catch
           kind, err ->
-            diagnostic = Diagnostics.from_parser_error(kind, err, __STACKTRACE__, file)
-
-            # diagnostic = %Diagnostics{
-            #   compiler_name: "ElixirLS",
-            #   file: file,
-            #   # 0 means unknown
-            #   position: 0,
-            #   message: message,
-            #   severity: :error,
-            #   details: payload
-            # }
+            diagnostic = Diagnostics.from_error(kind, err, __STACKTRACE__, file, :no_stacktrace)
 
             # e.g. https://github.com/elixir-lang/elixir/issues/12926
             Logger.warning(
@@ -476,7 +454,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     warning_diagnostics =
       raw_diagnostics
       |> Enum.map(fn raw ->
-        Diagnostics.from_code_diagnostic(raw, file, nil)
+        Diagnostics.from_code_diagnostic(raw, file, :no_stacktrace)
       end)
 
     case result do
