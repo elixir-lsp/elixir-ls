@@ -2322,8 +2322,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert Proto in :int.interpreted()
 
         assert [
-                 {{Proto, 2},
-                  [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+                 {{Proto, 2}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(Proto)
 
         assert %{{Proto, :go, 1} => [2]} = :sys.get_state(server).function_breakpoints
@@ -2434,8 +2433,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert Proto.List in :int.interpreted()
 
         assert [
-                 {{Proto.List, 7},
-                  [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+                 {{Proto.List, 7}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
                ] = :int.all_breaks(Proto.List)
 
         assert %{{Proto.List, :go, 1} => [7]} = :sys.get_state(server).function_breakpoints
