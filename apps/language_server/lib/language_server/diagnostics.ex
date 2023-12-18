@@ -17,35 +17,43 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     stacktrace: []
   ]
 
-  def from_mix_task_compiler_diagnostic(%Mix.Task.Compiler.Diagnostic{} = diagnostic, mixfile, root_path) do
+  def from_mix_task_compiler_diagnostic(
+        %Mix.Task.Compiler.Diagnostic{} = diagnostic,
+        mixfile,
+        root_path
+      ) do
     diagnostic_fields = diagnostic |> Map.from_struct() |> Map.delete(:__struct__)
     normalized = struct(__MODULE__, diagnostic_fields)
 
     if Version.match?(System.version(), ">= 1.16.0-dev") do
       # don't include stacktrace in exceptions with position
-      message = if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 do
-        {kind, reason} = diagnostic.details
-        Exception.format_banner(kind, reason)
-      else
-        diagnostic.message
-      end
+      message =
+        if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and
+             is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 do
+          {kind, reason} = diagnostic.details
+          Exception.format_banner(kind, reason)
+        else
+          diagnostic.message
+        end
 
-      dbg(diagnostic)
+      {file, position} =
+        case diagnostic.file do
+          nil ->
+            if candidate =
+                 get_file_position_from_stacktrace(Map.fetch!(diagnostic, :stacktrace), root_path) do
+              candidate
+            else
+              {mixfile, 0}
+            end
 
-      {file, position} = case diagnostic.file do
-        nil ->
-          if candidate = get_file_position_from_stacktrace(Map.fetch!(diagnostic, :stacktrace), root_path) do
-            candidate
-          else
-            {mixfile, 0}
-          end
-        file -> {file, diagnostic.position}
-      end
-      
+          file ->
+            {file, diagnostic.position}
+        end
+
       %__MODULE__{normalized | message: message, file: file, position: position}
     else
       {type, file, position, stacktrace} =
-            extract_message_info(diagnostic.message, root_path)
+        extract_message_info(diagnostic.message, root_path)
 
       normalized
       |> maybe_update_file(file, mixfile)
@@ -122,8 +130,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp get_file_and_position(message, root_path) do
-    # TODO revert this change
-    # this regex won't match filenames with spaces but in elixir 1.16 errors we can't be sure where
+    # this regex won't match filenames with spaces
     # the file name starts e.g.
     # invalid syntax found on lib/template.eex:2:5:
     file_position =
@@ -223,24 +230,29 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
   end
 
-  def from_code_diagnostic(%{
-        file: file,
-        severity: severity,
-        message: message,
-        position: position,
-        stacktrace: stacktrace
-      } = diagnostic, fallback_file, root_path) do
-        dbg()
+  def from_code_diagnostic(
+        %{
+          file: file,
+          severity: severity,
+          message: message,
+          position: position,
+          stacktrace: stacktrace
+        } = diagnostic,
+        fallback_file,
+        root_path
+      ) do
+    {file, position} =
+      case file do
+        nil ->
+          if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
+            candidate
+          else
+            {fallback_file, 0}
+          end
 
-        {file, position} = case file do
-          nil ->
-            if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
-              candidate
-            else
-              {fallback_file, 0}
-            end
-          file -> {file, position}
-        end
+        file ->
+          {file, position}
+      end
 
     %__MODULE__{
       compiler_name: "Elixir",
@@ -257,16 +269,16 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   def from_error(kind, payload, stacktrace, file, project_dir) do
-    dbg()
     # assume file is absolute
     {position, span} = get_line_span(file, payload, stacktrace, project_dir)
-    
-    message = if position do
-      # known and expected errors have defined position
-      Exception.format_banner(kind, payload)
-    else
-      Exception.format(kind, payload, stacktrace)
-    end
+
+    message =
+      if position do
+        # known and expected errors have defined position
+        Exception.format_banner(kind, payload)
+      else
+        Exception.format(kind, payload, stacktrace)
+      end
 
     %__MODULE__{
       compiler_name: "Elixir",
@@ -281,19 +293,20 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   def from_shutdown_reason(error, fallback_file, root_path) when not is_nil(fallback_file) do
-    dbg()
     msg = Exception.format_exit(error)
 
-    {{file, position}, stacktrace} = case error do
-      {_payload, [{_, _, _, info} | _] = stacktrace} when is_list(info) ->
-        if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
-          {candidate, stacktrace}
-        else
-          {{fallback_file, 0}, stacktrace}
-        end
-      _ ->
-        {{fallback_file, 0}, []}
-    end
+    {{file, position}, stacktrace} =
+      case error do
+        {_payload, [{_, _, _, info} | _] = stacktrace} when is_list(info) ->
+          if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
+            {candidate, stacktrace}
+          else
+            {{fallback_file, 0}, stacktrace}
+          end
+
+        _ ->
+          {{fallback_file, 0}, []}
+      end
 
     %__MODULE__{
       compiler_name: "Elixir",
@@ -350,81 +363,92 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp get_tags(diagnostic) do
-    unused = if Regex.match?(~r/unused|no effect/u, diagnostic.message) do
-      [1]
-    else
-      []
-    end
-    deprecated = if Regex.match?(~r/deprecated/u, diagnostic.message) do
-      [2]
-    else
-      []
-    end
+    unused =
+      if Regex.match?(~r/unused|no effect/u, diagnostic.message) do
+        [1]
+      else
+        []
+      end
+
+    deprecated =
+      if Regex.match?(~r/deprecated/u, diagnostic.message) do
+        [2]
+      else
+        []
+      end
 
     unused ++ deprecated
   end
 
   defp get_related_information_description(description, uri, source_file) do
-    line = case Regex.run(
-           ~r/line (\d+)/u,
-           description
-         ) do
-          [_, line] -> String.to_integer(line)
-          _ -> nil
-        end
+    line =
+      case Regex.run(
+             ~r/line (\d+)/u,
+             description
+           ) do
+        [_, line] -> String.to_integer(line)
+        _ -> nil
+      end
 
-        message = case String.split(description, "hint: ") do
-          [_, hint] -> hint
-          _ ->
-            case String.split(description, "HINT: ") do
-              [_, hint] -> hint
-              _ -> description
-            end
-        end
+    message =
+      case String.split(description, "hint: ") do
+        [_, hint] ->
+          hint
 
-        if line do
-          [
-            %{
-              "location" => %{
-                "uri" => uri,
-                "range" => range(line, source_file)
-              },
-              "message" => message
-            }
-          ]
-        else
-          []
-        end
+        _ ->
+          case String.split(description, "HINT: ") do
+            [_, hint] -> hint
+            _ -> description
+          end
+      end
+
+    if line do
+      [
+        %{
+          "location" => %{
+            "uri" => uri,
+            "range" => range(line, source_file)
+          },
+          "message" => message
+        }
+      ]
+    else
+      []
+    end
   end
 
   defp get_related_information_message(message, uri, source_file) do
-    line = case Regex.run(
-           ~r/line (\d+)/u,
-           message
-         ) do
-          [_, line] -> String.to_integer(line)
-          _ -> case Regex.run(
-            ~r/\.ex\:(\d+)\)/u,
-            message
-          ) do
-           [_, line] -> String.to_integer(line)
-           _ -> nil
-         end
-        end
+    line =
+      case Regex.run(
+             ~r/line (\d+)/u,
+             message
+           ) do
+        [_, line] ->
+          String.to_integer(line)
 
-        if line do
-          [
-            %{
-              "location" => %{
-                "uri" => uri,
-                "range" => range(line, source_file)
-              },
-              "message" => "related"
-            }
-          ]
-        else
-          []
-        end
+        _ ->
+          case Regex.run(
+                 ~r/\.ex\:(\d+)\)/u,
+                 message
+               ) do
+            [_, line] -> String.to_integer(line)
+            _ -> nil
+          end
+      end
+
+    if line do
+      [
+        %{
+          "location" => %{
+            "uri" => uri,
+            "range" => range(line, source_file)
+          },
+          "message" => "related"
+        }
+      ]
+    else
+      []
+    end
   end
 
   defp build_related_information(diagnostic, uri, source_file) do
@@ -435,25 +459,43 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           %{
             "location" => %{
               "uri" => uri,
-              "range" => range({payload.line, payload.column, payload.line, payload.column + String.length(to_string(payload.opening_delimiter))}, source_file)
+              "range" =>
+                range(
+                  {payload.line, payload.column, payload.line,
+                   payload.column + String.length(to_string(payload.opening_delimiter))},
+                  source_file
+                )
             },
             "message" => "opening delimiter: #{payload.opening_delimiter}"
           },
           %{
             "location" => %{
               "uri" => uri,
-              "range" => range({payload.end_line, payload.end_column, payload.end_line, payload.end_column + String.length(to_string(payload.closing_delimiter))}, source_file)
+              "range" =>
+                range(
+                  {payload.end_line, payload.end_column, payload.end_line,
+                   payload.end_column + String.length(to_string(payload.closing_delimiter))},
+                  source_file
+                )
             },
             "message" => "closing delimiter: #{payload.closing_delimiter}"
           }
         ]
-      %kind{end_line: end_line, opening_delimiter: opening_delimiter} = payload when kind == TokenMissingError and not is_nil(opening_delimiter) ->
+
+      %kind{end_line: end_line, opening_delimiter: opening_delimiter} = payload
+      when kind == TokenMissingError and not is_nil(opening_delimiter) ->
         message = String.split(payload.description, "hint: ") |> hd
+
         [
           %{
             "location" => %{
               "uri" => uri,
-              "range" => range({payload.line, payload.column, payload.line, payload.column + String.length(to_string(payload.opening_delimiter))}, source_file)
+              "range" =>
+                range(
+                  {payload.line, payload.column, payload.line,
+                   payload.column + String.length(to_string(payload.opening_delimiter))},
+                  source_file
+                )
             },
             "message" => "opening delimiter: #{payload.opening_delimiter}"
           },
@@ -465,21 +507,31 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
             "message" => message
           }
         ] ++ get_related_information_description(payload.description, uri, source_file)
+
       %{description: description} ->
         get_related_information_description(description, uri, source_file)
-      _ -> []
+
+      _ ->
+        []
     end ++ get_related_information_message(diagnostic.message, uri, source_file)
   end
 
-  defp normalize_position(%{position: {start_line, start_column}, span: {end_line, end_column}, details: %kind{closing_delimiter: closing_delimiter}}) when kind == MismatchedDelimiterError do
+  defp normalize_position(%{
+         position: {start_line, start_column},
+         span: {end_line, end_column},
+         details: %kind{closing_delimiter: closing_delimiter}
+       })
+       when kind == MismatchedDelimiterError do
     # convert to pre 1.16 4-tuple
     # include mismatched delimiter in range
     {start_line, start_column, end_line, end_column + String.length(to_string(closing_delimiter))}
   end
+
   defp normalize_position(%{position: {start_line, start_column}, span: {end_line, end_column}}) do
     # convert to pre 1.16 4-tuple
     {start_line, start_column, end_line, end_column}
   end
+
   defp normalize_position(%{position: position}), do: position
 
   # position is a 1 based line number or 0 if line is unknown
@@ -586,21 +638,23 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # this utility function is copied from elixir source
   # TODO colum >= 0 PR
   def get_line_span(
-         _file,
-         %{line: line, column: column, end_line: end_line, end_column: end_column},
-         _stack, _project_dir
-       )
-       when is_integer(line) and line > 0 and is_integer(column) and column > 0 and
-              is_integer(end_line) and end_line > 0 and is_integer(end_column) and end_column > 0 do
+        _file,
+        %{line: line, column: column, end_line: end_line, end_column: end_column},
+        _stack,
+        _project_dir
+      )
+      when is_integer(line) and line > 0 and is_integer(column) and column > 0 and
+             is_integer(end_line) and end_line > 0 and is_integer(end_column) and end_column > 0 do
     {{line, column}, {end_line, end_column}}
   end
 
   def get_line_span(_file, %{line: line, column: column}, _stack, _project_dir)
-       when is_integer(line) and line > 0 and is_integer(column) and column > 0 do
+      when is_integer(line) and line > 0 and is_integer(column) and column > 0 do
     {{line, column}, nil}
   end
 
-  def get_line_span(_file, %{line: line}, _stack, _project_dir) when is_integer(line) and line > 0 do
+  def get_line_span(_file, %{line: line}, _stack, _project_dir)
+      when is_integer(line) and line > 0 do
     {line, nil}
   end
 
@@ -609,12 +663,22 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   # we need that case as exception is normalized
-  def get_line_span(file, %UndefinedFunctionError{}, [{_, _, _, []}, {_, _, _, info} | _], project_dir) do
+  def get_line_span(
+        file,
+        %UndefinedFunctionError{},
+        [{_, _, _, []}, {_, _, _, info} | _],
+        project_dir
+      ) do
     get_line_span_from_stacktrace_info(info, file, project_dir)
   end
 
-  def get_line_span(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _], project_dir)
-       when expanding in [~c"expanding macro", ~c"expanding struct"] do
+  def get_line_span(
+        file,
+        _reason,
+        [{_, _, _, [file: expanding]}, {_, _, _, info} | _],
+        project_dir
+      )
+      when expanding in [~c"expanding macro", ~c"expanding struct"] do
     get_line_span_from_stacktrace_info(info, file, project_dir)
   end
 
@@ -627,8 +691,10 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp get_line_span_from_stacktrace_info(_info, _file, :no_stacktrace), do: {nil, nil}
+
   defp get_line_span_from_stacktrace_info(info, file, project_dir) do
     info_file = Keyword.get(info, :file)
+
     if info_file != nil and SourceFile.Path.absname(info_file, project_dir) == file do
       {Keyword.get(info, :line), nil}
     else
@@ -637,11 +703,14 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   defp get_file_position_from_stacktrace(_stacktrace, :no_stacktrace), do: nil
+
   defp get_file_position_from_stacktrace(stacktrace, project_dir) do
     Enum.find_value(stacktrace, fn {_, _, _, info} ->
       if info_file = Keyword.get(info, :file) do
         info_file = SourceFile.Path.absname(info_file, project_dir)
-        if SourceFile.Path.path_in_dir?(info_file, project_dir) and File.exists?(info_file, [:raw]) do
+
+        if SourceFile.Path.path_in_dir?(info_file, project_dir) and
+             File.exists?(info_file, [:raw]) do
           {info_file, Keyword.get(info, :line, 0)}
         end
       end

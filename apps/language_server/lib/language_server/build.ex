@@ -70,8 +70,11 @@ defmodule ElixirLS.LanguageServer.Build do
                         {status, compile_diagnostics} =
                           run_mix_compile(Keyword.get(opts, :force?, false))
 
-                        compile_diagnostics = compile_diagnostics
-                        |> Enum.map(&Diagnostics.from_mix_task_compiler_diagnostic(&1, mixfile, root_path))
+                        compile_diagnostics =
+                          compile_diagnostics
+                          |> Enum.map(
+                            &Diagnostics.from_mix_task_compiler_diagnostic(&1, mixfile, root_path)
+                          )
 
                         Server.build_finished(
                           parent,
@@ -269,40 +272,53 @@ defmodule ElixirLS.LanguageServer.Build do
       Code.put_compiler_option(:no_warn_undefined, :all)
 
       # We can get diagnostics if Mixfile fails to load
-      {mixfile_status, mixfile_diagnostics} = if Version.match?(System.version(), ">= 1.15.3") do
-        {result, raw_diagnostics} =
-          with_diagnostics([log: true], fn ->
-            try do
-              Code.compile_file(mixfile)
-              :ok
-            catch
-              kind, err ->
-                {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
-                {:error, kind, payload, stacktrace}
-            end
-          end)
+      {mixfile_status, mixfile_diagnostics} =
+        if Version.match?(System.version(), ">= 1.15.3") do
+          {result, raw_diagnostics} =
+            with_diagnostics([log: true], fn ->
+              try do
+                Code.compile_file(mixfile)
+                :ok
+              catch
+                kind, err ->
+                  {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+                  {:error, kind, payload, stacktrace}
+              end
+            end)
 
-        diagnostics =
+          diagnostics =
             raw_diagnostics
             |> Enum.map(&Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
 
-        case result do
-          :ok -> {:ok, diagnostics}
-          {:error, kind, err, stacktrace} ->
-            {:error,
-             diagnostics ++
-               [Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)]}
-        end
+          case result do
+            :ok ->
+              {:ok, diagnostics}
+
+            {:error, kind, err, stacktrace} ->
+              {:error,
+               diagnostics ++
+                 [Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)]}
+          end
         else
           case Kernel.ParallelCompiler.compile([mixfile]) do
             {:ok, _, warnings} ->
-              {:ok, Enum.map(warnings, &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile))}
+              {:ok,
+               Enum.map(
+                 warnings,
+                 &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
+               )}
 
             {:error, errors, warnings} ->
               {
                 :error,
-                Enum.map(warnings, &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)) ++
-                  Enum.map(errors, &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :error, mixfile))
+                Enum.map(
+                  warnings,
+                  &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
+                ) ++
+                  Enum.map(
+                    errors,
+                    &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :error, mixfile)
+                  )
               }
           end
         end
@@ -350,7 +366,7 @@ defmodule ElixirLS.LanguageServer.Build do
             end
           end)
 
-          config_path = SourceFile.Path.absname(Mix.Project.config()[:config_path], root_path)
+        config_path = SourceFile.Path.absname(Mix.Project.config()[:config_path], root_path)
 
         config_diagnostics =
           config_raw_diagnostics
@@ -401,7 +417,7 @@ defmodule ElixirLS.LanguageServer.Build do
         opts
       end
 
-    case Mix.Task.run("compile", opts) |> dbg do
+    case Mix.Task.run("compile", opts) do
       {status, diagnostics} when status in [:ok, :error, :noop] and is_list(diagnostics) ->
         {status, diagnostics}
 

@@ -438,7 +438,7 @@ defmodule ElixirLS.LanguageServer.Parser do
             # e.g. https://github.com/elixir-lang/elixir/issues/12926
             Logger.warning(
               "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
-              diagnostic.message
+                diagnostic.message
             )
 
             JsonRpc.telemetry(

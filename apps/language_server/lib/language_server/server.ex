@@ -386,7 +386,12 @@ defmodule ElixirLS.LanguageServer.Server do
           )
 
           path = Path.join(state.project_dir, MixfileHelpers.mix_exs())
-          handle_build_result(:error, [Diagnostics.from_shutdown_reason(reason, path, state.project_dir)], state)
+
+          handle_build_result(
+            :error,
+            [Diagnostics.from_shutdown_reason(reason, path, state.project_dir)],
+            state
+          )
       end
 
     state =
