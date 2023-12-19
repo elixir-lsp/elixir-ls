@@ -454,7 +454,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp build_related_information(diagnostic, uri, source_file) do
     case diagnostic.details do
       # for backwards compatibility with elixir < 1.16
-      %kind{} = payload when kind == MismatchedDelimiterError ->
+      {:error, %kind{} = payload} when kind == MismatchedDelimiterError ->
         [
           %{
             "location" => %{
@@ -482,10 +482,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           }
         ]
 
-      %kind{end_line: end_line, opening_delimiter: opening_delimiter} = payload
+      {:error, %kind{opening_delimiter: opening_delimiter} = payload}
       when kind == TokenMissingError and not is_nil(opening_delimiter) ->
-        message = String.split(payload.description, "hint: ") |> hd
-
         [
           %{
             "location" => %{
@@ -502,18 +500,19 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           %{
             "location" => %{
               "uri" => uri,
-              "range" => range(end_line, source_file)
+              "range" => range({payload.end_line, payload.end_column}, source_file)
             },
-            "message" => message
+            "message" => "expected delimiter: #{payload.expected_delimiter}"
           }
-        ] ++ get_related_information_description(payload.description, uri, source_file)
+        ]
 
-      %{description: description} ->
-        get_related_information_description(description, uri, source_file)
+      {:error, %{description: description}} ->
+        get_related_information_description(description, uri, source_file) ++ get_related_information_message(diagnostic.message, uri, source_file)
 
       _ ->
-        []
-    end ++ get_related_information_message(diagnostic.message, uri, source_file)
+        # elixir < 1.16 and other errors on 1.16
+        get_related_information_message(diagnostic.message, uri, source_file)
+    end
   end
 
   defp normalize_position(%{
