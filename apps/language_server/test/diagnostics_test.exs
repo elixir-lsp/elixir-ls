@@ -216,6 +216,43 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
       test "Mix.Task.Compiler.Diagnostic without position - get from stacktrace" do
         diagnostic = %Mix.Task.Compiler.Diagnostic{
+          file: Path.join(File.cwd!(), "temp.ex"),
+          severity: :warning,
+          message:
+            "module attribute @bar in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)",
+          position: 0,
+          compiler_name: "Elixir",
+          span: nil,
+          details: nil,
+          stacktrace: [{Sample, :bar, 0, [file: "temp.ex", column: 5, line: 20]}]
+        }
+
+        File.touch("temp.ex")
+
+        normalized =
+          Diagnostics.from_mix_task_compiler_diagnostic(
+            diagnostic,
+            "/somedir/mix.exs",
+            File.cwd!()
+          )
+
+        assert normalized == %Diagnostics{
+                 file: Path.join(File.cwd!(), "temp.ex"),
+                 severity: :warning,
+                 message:
+                   "module attribute @bar in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)",
+                 position: 20,
+                 compiler_name: "Elixir",
+                 span: nil,
+                 details: nil,
+                 stacktrace: [{Sample, :bar, 0, [file: "temp.ex", column: 5, line: 20]}]
+               }
+      after
+        File.rm_rf!("temp.ex")
+      end
+
+      test "Mix.Task.Compiler.Diagnostic without file and position - get from stacktrace" do
+        diagnostic = %Mix.Task.Compiler.Diagnostic{
           file: nil,
           severity: :warning,
           message:
@@ -251,7 +288,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
         File.rm_rf!("temp.ex")
       end
 
-      test "Mix.Task.Compiler.Diagnostic without position - when attempt to get it from stacktrace fails fall back to mix.exs" do
+      test "Mix.Task.Compiler.Diagnostic without file and position - when attempt to get it from stacktrace fails fall back to mix.exs" do
         diagnostic = %Mix.Task.Compiler.Diagnostic{
           file: nil,
           severity: :warning,
@@ -313,10 +350,10 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
 
     test "Code.diagnostic/1 without position - get from stacktrace" do
       diagnostic = %{
-        file: nil,
+        file: Path.join(File.cwd!(), "temp.ex"),
         message:
           "redefining module Foo (current version loaded from .elixir_ls/build/test/lib/somedir/ebin/Elixir.Foo.beam)",
-        position: nil,
+        position: 0,
         severity: :warning,
         span: nil,
         stacktrace: [{Foo, :__MODULE__, 0, [file: "temp.ex", line: 102]}]
@@ -340,12 +377,41 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
       File.rm_rf!("temp.ex")
     end
 
-    test "Code.diagnostic/1 without position - when attempt to get it from stacktrace fails fall back to provided file" do
+    test "Code.diagnostic/1 without file and position - get from stacktrace" do
       diagnostic = %{
         file: nil,
         message:
           "redefining module Foo (current version loaded from .elixir_ls/build/test/lib/somedir/ebin/Elixir.Foo.beam)",
-        position: nil,
+        position: 0,
+        severity: :warning,
+        span: nil,
+        stacktrace: [{Foo, :__MODULE__, 0, [file: "temp.ex", line: 102]}]
+      }
+
+      File.touch("temp.ex")
+      normalized = Diagnostics.from_code_diagnostic(diagnostic, "/somedir/mix.exs", File.cwd!())
+
+      assert normalized == %Diagnostics{
+               file: Path.join(File.cwd!(), "temp.ex"),
+               severity: :warning,
+               message:
+                 "redefining module Foo (current version loaded from .elixir_ls/build/test/lib/somedir/ebin/Elixir.Foo.beam)",
+               position: 102,
+               compiler_name: "Elixir",
+               span: nil,
+               details: nil,
+               stacktrace: [{Foo, :__MODULE__, 0, [file: "temp.ex", line: 102]}]
+             }
+    after
+      File.rm_rf!("temp.ex")
+    end
+
+    test "Code.diagnostic/1 without file and position - when attempt to get it from stacktrace fails fall back to provided file" do
+      diagnostic = %{
+        file: nil,
+        message:
+          "redefining module Foo (current version loaded from .elixir_ls/build/test/lib/somedir/ebin/Elixir.Foo.beam)",
+        position: 0,
         severity: :warning,
         span: nil,
         stacktrace: [{Foo, :__MODULE__, 0, [file: "mix.exs", line: 102]}]
@@ -392,6 +458,71 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
                  compiler_name: "Elixir",
                  span: {39, 1},
                  details: {:error, %TokenMissingError{}},
+                 stacktrace: []
+               } = normalized
+      end
+
+      test "exception without position - fall back to stacktrace" do
+        payload = %CompileError{
+          file: "/somedir/lib/b.ex",
+          line: nil
+        }
+
+        normalized =
+          Diagnostics.from_error(
+            :error,
+            payload,
+            [{:elixir_compiler_2, :__FILE__, 1, [file: ~c"mix.exs", line: 99]}],
+            "/somedir/mix.exs",
+            "/somedir"
+          )
+
+        assert %ElixirLS.LanguageServer.Diagnostics{
+                 file: "/somedir/mix.exs",
+                 severity: :error,
+                 position: 99,
+                 compiler_name: "Elixir",
+                 span: nil,
+                 details: {:error, %CompileError{}},
+                 stacktrace: [{:elixir_compiler_2, :__FILE__, 1, [file: ~c"mix.exs", line: 99]}]
+               } = normalized
+      end
+
+      test "exception without file and position - fall back to stacktrace" do
+        payload = %RuntimeError{message: "foo"}
+
+        normalized =
+          Diagnostics.from_error(
+            :error,
+            payload,
+            [{:elixir_compiler_2, :__FILE__, 1, [file: ~c"mix.exs", line: 99]}],
+            "/somedir/mix.exs",
+            "/somedir"
+          )
+
+        assert %ElixirLS.LanguageServer.Diagnostics{
+                 file: "/somedir/mix.exs",
+                 severity: :error,
+                 position: 99,
+                 compiler_name: "Elixir",
+                 span: nil,
+                 details: {:error, %RuntimeError{__exception__: true, message: "foo"}},
+                 stacktrace: [{:elixir_compiler_2, :__FILE__, 1, [file: ~c"mix.exs", line: 99]}]
+               } = normalized
+      end
+
+      test "exception without file and position - when attempt to get it from stacktrace fails fall back to provided file" do
+        payload = %RuntimeError{message: "foo"}
+
+        normalized = Diagnostics.from_error(:error, payload, [], "/somedir/mix.exs", "/somedir")
+
+        assert %ElixirLS.LanguageServer.Diagnostics{
+                 file: "/somedir/mix.exs",
+                 severity: :error,
+                 position: 0,
+                 compiler_name: "Elixir",
+                 span: nil,
+                 details: {:error, %RuntimeError{__exception__: true, message: "foo"}},
                  stacktrace: []
                } = normalized
       end
@@ -492,6 +623,36 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
              } = normalized
 
       assert file == Path.join(File.cwd!(), "temp.ex")
+    after
+      File.rm_rf!("temp.ex")
+    end
+
+    test "shutdown reason with exception stacktrace - when attempt to get it from stacktrace fails fall back to provided file" do
+      payload =
+        {%RuntimeError{message: "foo"},
+         [{:elixir_compiler_2, :__FILE__, 1, [file: ~c"/abc/temp.ex", line: 99]}]}
+
+      File.touch("temp.ex")
+      normalized = Diagnostics.from_shutdown_reason(payload, "/somedir/mix.exs", File.cwd!())
+
+      assert %ElixirLS.LanguageServer.Diagnostics{
+               compiler_name: "Elixir",
+               details:
+                 {:exit,
+                  {%RuntimeError{message: "foo"},
+                   [{:elixir_compiler_2, :__FILE__, 1, [file: ~c"/abc/temp.ex", line: 99]}]}},
+               file: file,
+               position: 0,
+               severity: :error,
+               span: nil,
+               stacktrace: [
+                 {:elixir_compiler_2, :__FILE__, 1, [file: ~c"/abc/temp.ex", line: 99]}
+               ],
+               message:
+                 "an exception was raised:\n    ** (RuntimeError) foo\n        /abc/temp.ex:99: (file)"
+             } = normalized
+
+      assert file == "/somedir/mix.exs"
     after
       File.rm_rf!("temp.ex")
     end
