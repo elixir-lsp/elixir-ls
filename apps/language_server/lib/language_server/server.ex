@@ -1626,9 +1626,9 @@ defmodule ElixirLS.LanguageServer.Server do
             # document open but was closed when build was triggered
             # document could have been edited
             # combine diagnostics
-            # they can be duplicated but it is not trivial to deduplicate
-            {parser_diagnostics_document_version,
-             Enum.uniq(parser_diagnostics ++ build_and_dialyzer_diagnostics)}
+            # they can be duplicated but it is not trivial to deduplicate here
+            # instead we deduplicate on publish with rendered messages
+            {parser_diagnostics_document_version, parser_diagnostics ++ build_and_dialyzer_diagnostics}
 
           true ->
             # document closed

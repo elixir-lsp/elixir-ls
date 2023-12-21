@@ -346,6 +346,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         }
       end
       |> Enum.sort_by(& &1["range"]["start"])
+      |> Enum.dedup()
 
     message = %{
       "uri" => uri,
