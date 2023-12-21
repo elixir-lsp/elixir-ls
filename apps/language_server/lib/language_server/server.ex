@@ -1628,7 +1628,8 @@ defmodule ElixirLS.LanguageServer.Server do
             # combine diagnostics
             # they can be duplicated but it is not trivial to deduplicate here
             # instead we deduplicate on publish with rendered messages
-            {parser_diagnostics_document_version, parser_diagnostics ++ build_and_dialyzer_diagnostics}
+            {parser_diagnostics_document_version,
+             parser_diagnostics ++ build_and_dialyzer_diagnostics}
 
           true ->
             # document closed

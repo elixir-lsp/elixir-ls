@@ -37,18 +37,12 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         end
 
       {file, position} =
-        case diagnostic.file do
-          nil ->
-            if candidate =
-                 get_file_position_from_stacktrace(Map.fetch!(diagnostic, :stacktrace), root_path) do
-              candidate
-            else
-              {mixfile, 0}
-            end
-
-          file ->
-            {file, diagnostic.position}
-        end
+        get_file_and_position_with_stacktrace_fallback(
+          {diagnostic.file, diagnostic.position},
+          Map.fetch!(diagnostic, :stacktrace),
+          root_path,
+          mixfile
+        )
 
       %__MODULE__{normalized | message: message, file: file, position: position}
     else
@@ -242,17 +236,12 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         root_path
       ) do
     {file, position} =
-      case file do
-        nil ->
-          if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
-            candidate
-          else
-            {fallback_file, 0}
-          end
-
-        file ->
-          {file, position}
-      end
+      get_file_and_position_with_stacktrace_fallback(
+        {file, position},
+        stacktrace,
+        root_path,
+        fallback_file
+      )
 
     %__MODULE__{
       compiler_name: "Elixir",
@@ -274,17 +263,21 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     message =
       if position do
+        # NOTICE get_line_span returns nil position on failure
         # known and expected errors have defined position
         Exception.format_banner(kind, payload)
       else
         Exception.format(kind, payload, stacktrace)
       end
 
+    # try to get position from first matching stacktrace for that file
+    position = position || get_position_from_stacktrace(stacktrace, file, project_dir)
+
     %__MODULE__{
       compiler_name: "Elixir",
       stacktrace: stacktrace,
       file: file,
-      position: position || 0,
+      position: position,
       span: span,
       message: message,
       severity: :error,
@@ -716,5 +709,51 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         end
       end
     end)
+  end
+
+  defp get_position_from_stacktrace(_stacktrace, _file, :no_stacktrace), do: 0
+
+  defp get_position_from_stacktrace(stacktrace, file, project_dir) do
+    Enum.find_value(stacktrace, 0, fn {_, _, _, info} ->
+      info_file = Keyword.get(info, :file)
+
+      if info_file != nil and SourceFile.Path.absname(info_file, project_dir) == file do
+        Keyword.get(info, :line)
+      end
+    end)
+  end
+
+  defp get_file_and_position_with_stacktrace_fallback(
+         {nil, _},
+         stacktrace,
+         root_path,
+         fallback_file
+       ) do
+    # file unknown, try to get first matching project file from stacktrace
+    if candidate = get_file_position_from_stacktrace(stacktrace, root_path) do
+      candidate
+    else
+      # we have to return something
+      {fallback_file, 0}
+    end
+  end
+
+  defp get_file_and_position_with_stacktrace_fallback(
+         {file, 0},
+         stacktrace,
+         root_path,
+         _fallback_file
+       ) do
+    # file known but position unknown - try first matching stacktrace entry from that file
+    {file, get_position_from_stacktrace(stacktrace, file, root_path)}
+  end
+
+  defp get_file_and_position_with_stacktrace_fallback(
+         {file, position},
+         _stacktrace,
+         _root_path,
+         _fallback_file
+       ) do
+    {file, position}
   end
 end
