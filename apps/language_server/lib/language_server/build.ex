@@ -62,7 +62,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
                   deps_diagnostics =
                     deps_raw_diagnostics
-                    |> Enum.map(&Diagnostics.code_diagnostic/1)
+                    |> Enum.map(&Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
 
                   case deps_result do
                     :ok ->
@@ -71,7 +71,10 @@ defmodule ElixirLS.LanguageServer.Build do
                           run_mix_compile(Keyword.get(opts, :force?, false))
 
                         compile_diagnostics =
-                          Diagnostics.normalize(compile_diagnostics, root_path, mixfile)
+                          compile_diagnostics
+                          |> Enum.map(
+                            &Diagnostics.from_mix_task_compiler_diagnostic(&1, mixfile, root_path)
+                          )
 
                         Server.build_finished(
                           parent,
@@ -95,7 +98,7 @@ defmodule ElixirLS.LanguageServer.Build do
                          mixfile_diagnostics ++
                            deps_diagnostics ++
                            [
-                             Diagnostics.error_to_diagnostic(
+                             Diagnostics.from_error(
                                kind,
                                err,
                                stacktrace,
@@ -270,16 +273,54 @@ defmodule ElixirLS.LanguageServer.Build do
 
       # We can get diagnostics if Mixfile fails to load
       {mixfile_status, mixfile_diagnostics} =
-        case Kernel.ParallelCompiler.compile([mixfile]) do
-          {:ok, _, warnings} ->
-            {:ok, Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning))}
+        if Version.match?(System.version(), ">= 1.15.3") do
+          {result, raw_diagnostics} =
+            with_diagnostics([log: true], fn ->
+              try do
+                Code.compile_file(mixfile)
+                :ok
+              catch
+                kind, err ->
+                  {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+                  {:error, kind, payload, stacktrace}
+              end
+            end)
 
-          {:error, errors, warnings} ->
-            {
-              :error,
-              Enum.map(warnings, &Diagnostics.mixfile_diagnostic(&1, :warning)) ++
-                Enum.map(errors, &Diagnostics.mixfile_diagnostic(&1, :error))
-            }
+          diagnostics =
+            raw_diagnostics
+            |> Enum.map(&Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
+
+          case result do
+            :ok ->
+              {:ok, diagnostics}
+
+            {:error, kind, err, stacktrace} ->
+              {:error,
+               diagnostics ++
+                 [Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)]}
+          end
+        else
+          case Kernel.ParallelCompiler.compile([mixfile]) do
+            {:ok, _, warnings} ->
+              {:ok,
+               Enum.map(
+                 warnings,
+                 &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
+               )}
+
+            {:error, errors, warnings} ->
+              {
+                :error,
+                Enum.map(
+                  warnings,
+                  &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
+                ) ++
+                  Enum.map(
+                    errors,
+                    &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :error, mixfile)
+                  )
+              }
+          end
         end
 
       # restore warnings
@@ -325,18 +366,18 @@ defmodule ElixirLS.LanguageServer.Build do
             end
           end)
 
+        config_path = SourceFile.Path.absname(Mix.Project.config()[:config_path], root_path)
+
         config_diagnostics =
           config_raw_diagnostics
-          |> Enum.map(&Diagnostics.code_diagnostic/1)
+          |> Enum.map(&Diagnostics.from_code_diagnostic(&1, config_path, root_path))
 
         case config_result do
           {:error, kind, err, stacktrace} ->
-            config_path = Mix.Project.config()[:config_path]
-
             {:error,
              mixfile_diagnostics ++
                config_diagnostics ++
-               [Diagnostics.error_to_diagnostic(kind, err, stacktrace, config_path, root_path)]}
+               [Diagnostics.from_error(kind, err, stacktrace, config_path, root_path)]}
 
           :ok ->
             {:ok, mixfile_diagnostics ++ config_diagnostics}

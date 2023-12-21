@@ -428,43 +428,22 @@ defmodule ElixirLS.LanguageServer.Parser do
           {:ok, ast}
         rescue
           e in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
-            message = Exception.format_banner(:error, e)
-
-            diagnostic = %Mix.Task.Compiler.Diagnostic{
-              compiler_name: "ElixirLS",
-              file: file,
-              position: {e.line, e.column},
-              message: message,
-              severity: :error,
-              details: e
-            }
+            diagnostic = Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
 
             {:error, diagnostic}
         catch
           kind, err ->
-            {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
-
-            message = Exception.format(kind, payload, stacktrace)
-
-            diagnostic = %Mix.Task.Compiler.Diagnostic{
-              compiler_name: "ElixirLS",
-              file: file,
-              # 0 means unknown
-              position: 0,
-              message: message,
-              severity: :error,
-              details: payload
-            }
+            diagnostic = Diagnostics.from_error(kind, err, __STACKTRACE__, file, :no_stacktrace)
 
             # e.g. https://github.com/elixir-lang/elixir/issues/12926
             Logger.warning(
               "Unexpected parser error, please report it to elixir project https://github.com/elixir-lang/elixir/issues\n" <>
-                message
+                diagnostic.message
             )
 
             JsonRpc.telemetry(
               "parser_error",
-              %{"elixir_ls.parser_error" => message},
+              %{"elixir_ls.parser_error" => diagnostic.message},
               %{}
             )
 
@@ -475,7 +454,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     warning_diagnostics =
       raw_diagnostics
       |> Enum.map(fn raw ->
-        Diagnostics.code_diagnostic(raw)
+        Diagnostics.from_code_diagnostic(raw, file, :no_stacktrace)
       end)
 
     case result do

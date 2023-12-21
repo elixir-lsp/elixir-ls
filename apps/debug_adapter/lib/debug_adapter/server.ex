@@ -1101,15 +1101,16 @@ defmodule ElixirLS.DebugAdapter.Server do
             "expensive" => false
           }
 
-          args_scope = if frame.args != :undefined do
-            %{
-              "name" => "arguments",
-              "variablesReference" => args_id,
-              "namedVariables" => 0,
-              "indexedVariables" => Enum.count(frame.args),
-              "expensive" => false
-            }
-          end
+          args_scope =
+            if frame.args != :undefined do
+              %{
+                "name" => "arguments",
+                "variablesReference" => args_id,
+                "namedVariables" => 0,
+                "indexedVariables" => Enum.count(frame.args),
+                "expensive" => false
+              }
+            end
 
           messages_scope = %{
             "name" => "messages",
@@ -1129,7 +1130,11 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           scopes =
             [vars_scope, versioned_vars_scope, process_info_scope]
-            |> Kernel.++(if frame.args != :undefined and Enum.count(frame.args) > 0, do: [args_scope], else: [])
+            |> Kernel.++(
+              if frame.args != :undefined and Enum.count(frame.args) > 0,
+                do: [args_scope],
+                else: []
+            )
             |> Kernel.++(if Enum.count(frame.messages) > 0, do: [messages_scope], else: [])
 
           {state, scopes}

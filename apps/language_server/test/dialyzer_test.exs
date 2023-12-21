@@ -13,7 +13,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     Parser
   }
 
-  import ExUnit.CaptureLog
   import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol

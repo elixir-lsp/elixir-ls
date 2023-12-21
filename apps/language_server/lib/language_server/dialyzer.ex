@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Dialyzer do
-  alias ElixirLS.LanguageServer.{JsonRpc, Server, SourceFile}
+  alias ElixirLS.LanguageServer.{JsonRpc, Server, SourceFile, Diagnostics}
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, Utils, SuccessTypings}
   import Utils
   use GenServer
@@ -604,7 +604,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         source_file = SourceFile.Path.absname(to_string(source_file), project_dir),
         in_project?(source_file, project_dir),
         not SourceFile.Path.path_in_dir?(source_file, deps_path) do
-      %Mix.Task.Compiler.Diagnostic{
+      %Diagnostics{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
         position: normalize_postion(position),

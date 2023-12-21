@@ -368,13 +368,13 @@ defmodule ElixirLS.LanguageServer.Server do
           WorkspaceSymbols.notify_build_complete()
           state
 
-        :shutdown ->
-          WorkspaceSymbols.notify_build_complete()
-          state
+        # :shutdown ->
+        #   WorkspaceSymbols.notify_build_complete()
+        #   state
 
-        {:shutdown, _} ->
-          WorkspaceSymbols.notify_build_complete()
-          state
+        # {:shutdown, _} ->
+        #   WorkspaceSymbols.notify_build_complete()
+        #   state
 
         _ ->
           message = Exception.format_exit(reason)
@@ -386,7 +386,12 @@ defmodule ElixirLS.LanguageServer.Server do
           )
 
           path = Path.join(state.project_dir, MixfileHelpers.mix_exs())
-          handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason, path)], state)
+
+          handle_build_result(
+            :error,
+            [Diagnostics.from_shutdown_reason(reason, path, state.project_dir)],
+            state
+          )
       end
 
     state =
@@ -1544,7 +1549,7 @@ defmodule ElixirLS.LanguageServer.Server do
     uris_from_parser_diagnostics = Map.keys(state.parser_diagnostics)
 
     filter_diagnostics_with_known_location = fn
-      %Mix.Task.Compiler.Diagnostic{file: file} when is_binary(file) ->
+      %Diagnostics{file: file} when is_binary(file) ->
         file != "nofile"
 
       _ ->
@@ -1555,7 +1560,7 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.build_diagnostics ++ state.dialyzer_diagnostics)
       |> Enum.filter(filter_diagnostics_with_known_location)
       |> Enum.group_by(fn
-        %Mix.Task.Compiler.Diagnostic{file: file} -> SourceFile.Path.to_uri(file, project_dir)
+        %Diagnostics{file: file} -> SourceFile.Path.to_uri(file, project_dir)
       end)
 
     uris_from_build_and_dialyzer_diagnostics =
@@ -1621,9 +1626,10 @@ defmodule ElixirLS.LanguageServer.Server do
             # document open but was closed when build was triggered
             # document could have been edited
             # combine diagnostics
-            # they can be duplicated but it is not trivial to deduplicate
+            # they can be duplicated but it is not trivial to deduplicate here
+            # instead we deduplicate on publish with rendered messages
             {parser_diagnostics_document_version,
-             Enum.uniq(parser_diagnostics ++ build_and_dialyzer_diagnostics)}
+             parser_diagnostics ++ build_and_dialyzer_diagnostics}
 
           true ->
             # document closed
