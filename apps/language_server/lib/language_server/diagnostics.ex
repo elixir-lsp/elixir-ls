@@ -507,7 +507,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         ]
 
       {:error, %{description: description}} ->
-        get_related_information_description(description, uri, source_file) ++ get_related_information_message(diagnostic.message, uri, source_file)
+        get_related_information_description(description, uri, source_file) ++
+          get_related_information_message(diagnostic.message, uri, source_file)
 
       _ ->
         # elixir < 1.16 and other errors on 1.16
