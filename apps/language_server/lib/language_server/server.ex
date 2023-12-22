@@ -368,14 +368,6 @@ defmodule ElixirLS.LanguageServer.Server do
           WorkspaceSymbols.notify_build_complete()
           state
 
-        # :shutdown ->
-        #   WorkspaceSymbols.notify_build_complete()
-        #   state
-
-        # {:shutdown, _} ->
-        #   WorkspaceSymbols.notify_build_complete()
-        #   state
-
         _ ->
           message = Exception.format_exit(reason)
 
