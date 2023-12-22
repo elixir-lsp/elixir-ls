@@ -1,5 +1,37 @@
 ### Unreleased
 
+### v0.18.0: 2x December 2023
+
+#### Highlights
+
+- Elixir 1.16 support
+- Diagnostics provider now returns related info with code positions. This feature works best with elixir 1.16 allowing for navigation to invalid syntax elements like mismatched brackets
+- On type parser has been improved and extended. It now keeps a cache of parsed AST and extracted document metadata. Most of the providers has been updated to reuse this metadata eliminating the need for on demand parsing. This should make completions, hover, etc more snappy. The previous implementation was particularly not efficient for completions provider that would parse the file twice for each request
+- Phoenix integration improved. Go To Definition can now navigate to controllers when inside a Phoenix scope. Complete suggestions in Phoenix.Router now return controllers and actions[Gustavo Aguiar](https://github.com/gugahoa)
+
+#### Improvements
+
+- Diagnostic provider returns deprecated and not used tags on certain warnings. This allows editors for visually marking code ranges using deprecated APIs and not used code constructs
+- Diagnostics are now stored along with document version. Diagnostic publishing algorithm has been improved to prefer recent parser diagnostics over stale build diagnostics.
+- Parser is now able to provide diagnostics in `untitled:` schema files based on `languageId` document property
+- On type formatting and Folding ranges providers are now disabled on `eex` documents as `eex` was never supported in those providers
+- OTP 26 compatibility warning on Windows updated to direct users to install 26.2+ version
+- Struct field completions now work on functions returning remote type [sarah kate](https://github.com/sarahkw)
+- Type inference from guard expressions added [Nguyễn Văn Đức](https://github.com/Goose97)
+
+#### Fixes
+
+- Fixed crash in document symbols provider on invalid attribute nodes
+- Fixed crash on cases where some compiler generates diagnostics with invalid position
+- Fixed test lense provider on code using `Elixir` proxy
+- Fixed debugger crash when stacktrace frame returns `undefined` instead of arguments list
+- Improved LSP compatibility on document synchronization. Previously the document version after applying changes was increased. This bug was present since the initial code release but started causing issues with discarded diagnostics in Helix editor since v0.17.0 started publishing diagnostics with document version
+- Fixed invalid result returned from build process when handling error during project reload
+
+#### Potential incompatibilities
+
+- `elixir_ls_debugger` app has been renamed to `debug_adapter` to better reflect that it is not a debugger but an adapter implementing Debug Adapter Protocol. Similarly, the launch scripts has been renamed to `debug_adapter.sh` and `debug_adapter.bat` respectively. Editor extensions and custom launcher scripts may need an update
+
 ### v0.17.10: 19 November 2023
 
 #### Improvements
