@@ -1,4 +1,5 @@
 # Elixir Language Server (ElixirLS)
+
 [![Actions Status](https://img.shields.io/github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)](github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)
 [![Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://elixir-lang.slack.com/archives/C7D272G6N)
 
@@ -111,13 +112,12 @@ ElixirLS generally aims to support the last three released versions of Elixir an
 |      any        |     <= 1.12     |        No         |                No support for Code.Fragment                |
 |      22         |       1.12      |        Yes        |         Erlang docs not working (requires EIP 48)          |
 |      23         |   1.12 - 1.14   |        Yes        |                            None                            |
-|      24         |   1.12 - 1.15   |        Yes        |                            None                            |
-|      25         |  1.13.4 - 1.15  |        Yes        |                            None                            |
+|      24         |   1.12 - 1.16   |        Yes        |                            None                            |
+|      25         |  1.13.4 - 1.16  |        Yes        |                            None                            |
 | 26.0.0 - 26.0.1 |       any       |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
-|   >= 26.0.2     |  1.14.5 - 1.15  |    *nix only      | [#927](https://github.com/elixir-lsp/elixir-ls/issues/927)         |
-|   >= 26.1.0     |  1.14.5 - 1.15  |    Yes      |     [#1023](https://github.com/elixir-lsp/elixir-ls/issues/1023)       |
-|      any        |     1.15.5     |        Yes         |                Broken formatter [#975](https://github.com/elixir-lsp/elixir-ls/issues/975)                |
-
+| 26.0.2 - 26.1.2    |  1.14.5 - 1.16  |    *nix only      | [#927](https://github.com/elixir-lsp/elixir-ls/issues/927), [#1023](https://github.com/elixir-lsp/elixir-ls/issues/1023)          |
+|   >= 26.2.0     |  1.14.5 - 1.16  |        Yes        |                            None                            |
+|      any        |     1.15.5      |        Yes        |                Broken formatter [#975](https://github.com/elixir-lsp/elixir-ls/issues/975)                |
 
 ### Version management
 
@@ -374,13 +374,13 @@ On Fedora Linux, if you only install the Elixir package you will not have a full
 
 If you are seeing the message "Invalid beam file or no abstract code", you need to make sure that your Mix project is set to use the `elixirc` compiler option `--debug-info`, which can be done by adding the following line to your `mix.exs` `project` section:
 
-```
+```elixir
 elixirc_options: [debug_info: Mix.env() == :dev]
 ```
 
 For example:
 
-```
+```elixir
 defmodule MyApp.MixProject do
   use Mix.Project
 
