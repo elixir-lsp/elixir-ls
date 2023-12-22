@@ -51,7 +51,35 @@ defmodule ElixirLS.LanguageServer.Parser do
     {:ok, %{files: %{}, debounce_refs: %{}}}
   end
 
-  # TODO terminate
+  @impl GenServer
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      _other ->
+        message = Exception.format_exit(reason)
+
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => message
+          },
+          %{}
+        )
+
+        Logger.info("Terminating #{__MODULE__}: #{message}")
+    end
+
+    :ok
+  end
 
   @impl true
   def handle_cast({:closed, uri}, state = %{files: files, debounce_refs: debounce_refs}) do
