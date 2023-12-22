@@ -1,6 +1,6 @@
 ### Unreleased
 
-### v0.18.0: 2x December 2023
+### v0.18.0: 22 December 2023
 
 #### Highlights
 
