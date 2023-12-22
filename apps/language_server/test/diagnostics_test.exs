@@ -417,7 +417,6 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
           column: 13,
           end_line: 39,
           end_column: 1,
-          line_offset: 0,
           snippet:
             "# throw :foo\n# exit(:bar)\ndefmodule A do\n  def a() do\n    raise \"asd\"\n  # end\nend\n# A.a()\n# IO.warn(\"dfg\", __ENV__)\n# \"oops\"\n# :ok\n# asdfsf = 2\n# :ok\n# defmodule Sample do\n#   @foo 1\n#   @bar 1\n#   @foo\n\n#   def bar do\n#     @bar\n#     :ok\n#   end\n# end\n# exit({:shutdown, 1})\n# throw :asd\n# exit(:dupa)\n# IO.warn(\"asd\")\ndefmodule Foo do\n  @after_verify __MODULE__\n\n  def __after_verify__(_) do\n    # raise \"what\"\n    # throw :asd\n    # exit(:qw)\n    # exit({:shutdown, 1})\n    # IO.warn(\"asd\")\n  end\nend\n",
           opening_delimiter: :do,
