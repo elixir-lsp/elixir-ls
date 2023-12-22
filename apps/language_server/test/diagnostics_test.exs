@@ -143,29 +143,6 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
         assert diagnostic.position == 13
       end
 
-      test "if position is nil and error is TokenMissingError, try to retrieve from the hint" do
-        root_path = Path.join(__DIR__, "fixtures/token_missing_error")
-        file = Path.join(root_path, "lib/has_error.ex")
-        position = nil
-
-        message = """
-        ** (TokenMissingError) lib/has_error.ex:16:1: missing terminator: end (for "do" starting at line 1)
-
-            HINT: it looks like the "do" on line 6 does not have a matching "end"
-
-            (elixir 1.12.1) lib/kernel/parallel_compiler.ex:319: anonymous fn/4 in Kernel.ParallelCompiler.spawn_workers/7
-        """
-
-        diagnostic =
-          build_diagnostic(message, file, position)
-          |> Diagnostics.from_mix_task_compiler_diagnostic(
-            Path.join(root_path, "mix.exs"),
-            root_path
-          )
-
-        assert diagnostic.position == 1
-      end
-
       defp build_diagnostic(message, file, position) do
         %Mix.Task.Compiler.Diagnostic{
           compiler_name: "Elixir",

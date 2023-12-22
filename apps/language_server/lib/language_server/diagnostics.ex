@@ -46,12 +46,20 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
       %__MODULE__{normalized | message: message, file: file, position: position}
     else
-      {type, file, position, stacktrace} =
+      {_type, file, position, stacktrace} =
         extract_message_info(diagnostic.message, root_path)
+
+      {file, position} =
+        get_file_and_position_with_stacktrace_fallback(
+          {file || diagnostic.file, position || diagnostic.position},
+          Map.get(diagnostic, :stacktrace, []),
+          root_path,
+          mixfile
+        )
 
       normalized
       |> maybe_update_file(file, mixfile)
-      |> maybe_update_position(type, position, stacktrace)
+      |> maybe_update_position(position, stacktrace)
     end
   end
 
@@ -85,21 +93,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     end
   end
 
-  defp maybe_update_position(diagnostic, "TokenMissingError", position, stacktrace) do
-    case extract_line_from_missing_hint(diagnostic.message) do
-      line when is_integer(line) and line > 0 ->
-        %{diagnostic | position: line}
-
-      _ ->
-        do_maybe_update_position(diagnostic, position, stacktrace)
-    end
-  end
-
-  defp maybe_update_position(diagnostic, _type, position, stacktrace) do
-    do_maybe_update_position(diagnostic, position, stacktrace)
-  end
-
-  defp do_maybe_update_position(diagnostic, position, stacktrace) do
+  defp maybe_update_position(diagnostic, position, stacktrace) do
     cond do
       position != nil ->
         %{diagnostic | position: position}
@@ -189,16 +183,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   defp is_stack?(_) do
     false
-  end
-
-  defp extract_line_from_missing_hint(message) do
-    case Regex.run(
-           ~r/starting at line (\d+)\)/u,
-           message
-         ) do
-      [_, line] -> String.to_integer(line)
-      _ -> nil
-    end
   end
 
   defp extract_line_from_stacktrace(file, stacktrace) do
