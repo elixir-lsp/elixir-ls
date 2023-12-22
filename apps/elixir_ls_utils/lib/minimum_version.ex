@@ -7,7 +7,8 @@ defmodule ElixirLS.Utils.MinimumVersion do
        "Erlang OTP releases below 22 are not supported (Currently running OTP #{otp_release})"}
     else
       if otp_release == 26 and is_windows() do
-        {:error, "Erlang OTP 26 has critical bugs on Windows. Please downgrade to OTP 25"}
+        {:error,
+         "Erlang OTP 26.0 and 26.1 have critical bugs on Windows. Please make sure OTP 26.2 or greater is installed"}
       else
         :ok
       end
