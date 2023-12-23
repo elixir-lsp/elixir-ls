@@ -8,6 +8,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   @enforce_keys [:file, :severity, :message, :position, :compiler_name]
   defstruct [
     :file,
+    :source,
     :severity,
     :message,
     :position,
@@ -23,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         root_path
       ) do
     diagnostic_fields = diagnostic |> Map.from_struct() |> Map.delete(:__struct__)
-    normalized = struct(__MODULE__, diagnostic_fields)
+    normalized = struct(__MODULE__, diagnostic_fields) |> normalize_message()
 
     if Version.match?(System.version(), ">= 1.16.0-dev") do
       # don't include stacktrace in exceptions with position
@@ -206,6 +207,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       message: message,
       severity: severity
     }
+    |> normalize_message()
   end
 
   def from_code_diagnostic(
@@ -235,10 +237,13 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       span: diagnostic[:span],
       # elixir >= 1.16
       details: diagnostic[:details],
+      # elixir >= 1.16
+      source: diagnostic[:source],
       stacktrace: stacktrace,
       message: message,
       severity: severity
     }
+    |> normalize_message()
   end
 
   def from_error(kind, payload, stacktrace, file, project_dir) do
@@ -307,14 +312,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
             :hint -> 4
           end
 
-        message =
-          case diagnostic.message do
-            m when is_binary(m) -> m
-            m when is_list(m) -> m |> Enum.join("\n")
-          end
-
         %{
-          "message" => message,
+          "message" => diagnostic.message,
           "severity" => severity,
           "range" => range(normalize_position(diagnostic), source_file),
           "source" => diagnostic.compiler_name,
@@ -739,5 +738,9 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
          _fallback_file
        ) do
     {file, position}
+  end
+
+  defp normalize_message(%__MODULE__{message: message} = diagnostic) do
+    %__MODULE__{diagnostic | message: IO.chardata_to_string(message)}
   end
 end
