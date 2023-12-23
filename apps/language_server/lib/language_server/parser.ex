@@ -38,11 +38,11 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   def parse_immediate(uri, source_file = %SourceFile{}) do
-    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file})
+    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file}, 30_000)
   end
 
   def parse_immediate(uri, source_file = %SourceFile{}, position) do
-    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position})
+    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, 30_000)
   end
 
   @impl true
