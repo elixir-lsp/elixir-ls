@@ -12,6 +12,11 @@ defmodule ElixirLS.LanguageServer.Parser do
   require Logger
 
   @debounce_timeout 300
+  @parse_timeout 30_000
+
+  @dummy_source ""
+  @dummy_ast Code.string_to_quoted!(@dummy_source)
+  @dummy_metadata ElixirSense.Core.Metadata.fill(@dummy_source, MetadataBuilder.build(@dummy_ast))
 
   defmodule Context do
     defstruct [
@@ -38,11 +43,11 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   def parse_immediate(uri, source_file = %SourceFile{}) do
-    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file}, 30_000)
+    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file}, @parse_timeout)
   end
 
   def parse_immediate(uri, source_file = %SourceFile{}, position) do
-    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, 30_000)
+    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, @parse_timeout)
   end
 
   @impl true
@@ -168,7 +173,9 @@ defmodule ElixirLS.LanguageServer.Parser do
         # not parsing - respond with empty struct
         reply = %Context{
           source_file: source_file,
-          path: get_path(uri)
+          path: get_path(uri),
+          ast: @dummy_ast,
+          metadata: @dummy_metadata
         }
 
         {reply, state}
@@ -224,7 +231,9 @@ defmodule ElixirLS.LanguageServer.Parser do
         # not parsing - respond with empty struct
         reply = %Context{
           source_file: source_file,
-          path: get_path(uri)
+          path: get_path(uri),
+          ast: @dummy_ast,
+          metadata: @dummy_metadata
         }
 
         {reply, state}
@@ -258,10 +267,6 @@ defmodule ElixirLS.LanguageServer.Parser do
     String.ends_with?(uri, [".ex", ".exs", ".eex"]) or
       source_file.language_id in ["elixir", "eex", "html-eex"]
   end
-
-  @dummy_source ""
-  @dummy_ast Code.string_to_quoted!(@dummy_source)
-  @dummy_metadata ElixirSense.Core.Metadata.fill(@dummy_source, MetadataBuilder.build(@dummy_ast))
 
   defp maybe_fix_missing_env(
          %Context{metadata: metadata, flag: flag, source_file: source_file = %SourceFile{}} =
