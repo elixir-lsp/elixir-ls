@@ -191,9 +191,10 @@ defmodule ElixirLS.LanguageServer do
   def check_otp_install_complete do
     try do
       :io_lib.format(~c"~p", [[1]])
+      :crypto.strong_rand_bytes(1)
       :ok
     rescue
-      e in ErlangError ->
+      e in [ErlangError, UndefinedFunctionError] ->
         Logger.error(Exception.message(e))
         message = incomplete_installation_message()
 
