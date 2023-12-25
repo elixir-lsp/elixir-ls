@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
   import ElixirLS.LanguageServer.Protocol
+  require ElixirSense.Core.Introspection, as: Introspection
   require Logger
 
   defstruct [:text, :version, :language_id, dirty?: false]
@@ -163,10 +164,16 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         nil
 
       docs ->
-        # TODO handle default arguments
         Enum.find_value(docs, fn
-          {{^fun, ^arity}, line, _, _, _, _metadata} -> line
-          _ -> nil
+          {{^fun, a}, line, _, _, _, metadata} ->
+            default_args = Map.get(metadata, :defaults, 0)
+
+            if Introspection.matches_arity_with_defaults?(a, default_args, arity) do
+              line
+            end
+
+          _ ->
+            nil
         end)
     end
   end
