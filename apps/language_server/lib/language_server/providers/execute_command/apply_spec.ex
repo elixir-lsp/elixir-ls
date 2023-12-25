@@ -40,7 +40,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
       else
         new_line = SourceFile.function_line(mod, fun, arity)
 
-        if SourceFile.function_def_on_line?(cur_text, line, fun) do
+        if SourceFile.function_def_on_line?(cur_text, new_line, fun) do
           new_line
         else
           raise "Function definition has moved since suggestion was generated. " <>
