@@ -239,7 +239,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
      }}
   end
 
-  # indexed and no uris momified or already indexing
+  # indexed and no uris modified or already indexing
   def handle_cast(:build_complete, state) do
     {:noreply, state}
   end
