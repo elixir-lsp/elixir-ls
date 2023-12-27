@@ -1,12 +1,13 @@
 ### Unreleased
 
-### v0.18.1: 27 December 2023
+### v0.18.1: 28 December 2023
 
 #### Improvements
 
 - Variables defined in `ex_unit` `test`, `setup` and `setup_all` context are now returned by completions provider. Navigation to variable definition and references now also works correctly
 - Suggest spec code lens now emits specs for all arity variants when function has default arguments. Previously only the one with all parameters was emitted
 - Missing required OTP `:crypto` module is now detected on startup
+- Completions provider is now properly returning quoted remote calls. Previously accepting a suggestion would insert invalid code
 
 #### Fixes
 

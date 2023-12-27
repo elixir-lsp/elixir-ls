@@ -695,7 +695,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     insert_text =
       case name do
         name when name in ["size", "unit"] ->
-          function_snippet(name, ["integer"], 1, options |> Keyword.merge(with_parens?: true))
+          function_snippet(
+            name,
+            ["integer"],
+            1,
+            "Kernel",
+            options |> Keyword.merge(with_parens?: true)
+          )
 
         other ->
           other
@@ -895,7 +901,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   defp def_snippet(def_str, name, args, arity, opts) do
     if Keyword.get(opts, :snippets_supported, false) do
-      "#{def_str}#{function_snippet(name, args, arity, opts)} do\n\t$0\nend"
+      "#{def_str}#{function_snippet(name, args, arity, "Kernel", opts)} do\n\t$0\nend"
     else
       "#{def_str}#{name}"
     end
@@ -972,7 +978,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     nil
   end
 
-  def function_snippet(name, args, arity, opts) do
+  def function_snippet(name, args, arity, origin, opts) do
+    name = sanitize_function_name(name, origin)
     snippets_supported? = Keyword.get(opts, :snippets_supported, false)
     trigger_signature? = Keyword.get(opts, :trigger_signature?, false)
     capture_before? = Keyword.get(opts, :capture_before?, false)
@@ -1173,36 +1180,32 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     trigger_signature? = signature_help_supported? && ((arity == 1 && !pipe_before?) || arity > 1)
 
-    {label, insert_text} =
+    insert_text =
       cond do
         match?("~" <> _, name) ->
           "~" <> sigil_name = name
-          {name, sigil_name}
+          sigil_name
 
         use_name_only?(origin, name) or String.starts_with?(text_after_cursor, "(") ->
-          {name, name}
+          sanitize_function_name(name, origin)
 
         true ->
-          label = name
-
-          insert_text =
-            function_snippet(
-              name,
-              args_list,
-              arity,
-              Keyword.merge(
-                options,
-                pipe_before?: pipe_before?,
-                capture_before?: capture_before?,
-                trigger_signature?: trigger_signature?,
-                locals_without_parens: locals_without_parens,
-                text_after_cursor: text_after_cursor,
-                with_parens?: with_parens?,
-                snippet: info[:snippet]
-              )
+          function_snippet(
+            name,
+            args_list,
+            arity,
+            origin,
+            Keyword.merge(
+              options,
+              pipe_before?: pipe_before?,
+              capture_before?: capture_before?,
+              trigger_signature?: trigger_signature?,
+              locals_without_parens: locals_without_parens,
+              text_after_cursor: text_after_cursor,
+              with_parens?: with_parens?,
+              snippet: info[:snippet]
             )
-
-          {label, insert_text}
+          )
       end
 
     footer = SourceFile.format_spec(spec, line_length: 30)
@@ -1215,20 +1218,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         }
       end
 
-    %__MODULE__{
-      label: label,
-      kind: :function,
-      detail: to_string(type),
-      label_details: %{
-        "detail" => "(#{Enum.join(args_list, ", ")})",
-        "description" => "#{origin}.#{name}/#{arity}"
-      },
-      documentation: summary <> footer,
-      insert_text: insert_text,
-      priority: 17,
-      tags: metadata_to_tags(metadata),
-      command: command
-    }
+    label = sanitize_function_name(name, origin)
+
+    if label == name or remote_calls? do
+      %__MODULE__{
+        label: label,
+        kind: :function,
+        detail: to_string(type),
+        label_details: %{
+          "detail" => "(#{Enum.join(args_list, ", ")})",
+          "description" => "#{origin}.#{label}/#{arity}"
+        },
+        documentation: summary <> footer,
+        insert_text: insert_text,
+        priority: 17,
+        tags: metadata_to_tags(metadata),
+        command: command
+      }
+    end
   end
 
   defp use_name_only?(module_name, function_name) do
@@ -1368,5 +1375,22 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     (locals_without_parens || MapSet.new())
     |> MapSet.member?({String.to_atom(name), arity})
     |> Kernel.not()
+  end
+
+  defp sanitize_function_name(name, origin) when origin in ["Kernel", "Kernel.SpecialForms"],
+    do: name
+
+  defp sanitize_function_name(name, origin) do
+    if not Regex.match?(~r/^([_\p{Ll}\p{Lo}][\p{L}\p{N}_]*[?!]?)$/u, name) do
+      # not an allowed identifier - quote
+      escaped =
+        name
+        |> String.replace("\\", "\\\\")
+        |> String.replace("\"", "\\\"")
+
+      "\"" <> escaped <> "\""
+    else
+      name
+    end
   end
 end
