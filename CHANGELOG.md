@@ -1,5 +1,24 @@
 ### Unreleased
 
+### v0.18.1: 27 December 2023
+
+#### Improvements
+
+- Variables defined in `ex_unit` `test`, `setup` and `setup_all` context are now returned by completions provider. Navigation to variable definition and references now also works correctly
+- Suggest spec code lens now emits specs for all arity variants when function has default arguments. Previously only the one with all parameters was emitted
+- Missing required OTP `:crypto` module is now detected on startup
+
+#### Fixes
+
+- Fixed regression and crash on `phoenix-heex` files. This problem was introduced in v0.18.0 and broke completions, definition and hover
+- Fixed a crash during struct field inspection when the struct cannot be instantiated
+- Fixed a crash in implementations provider when behaviour implementation is a delegate or a guard
+- Fixed a crash on invalid delegate AST node
+- Fixed a crash when incorrect AST resulted in mismatched alias stack pop operations
+- Fixed a crash on older elixir versions when compiler diagnostic message is not a binary. This problem was introduced in v0.18.0
+- Fixed invalid argument passed to fallback implementation for Apply spec code action
+- Workspace symbols provider now correctly navigates to functions with default arguments
+
 ### v0.18.0: 22 December 2023
 
 #### Highlights
