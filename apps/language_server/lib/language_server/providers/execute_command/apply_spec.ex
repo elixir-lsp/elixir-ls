@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
   alias ElixirLS.LanguageServer.{JsonRpc, SourceFile}
   import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.Server
+  require Logger
 
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
@@ -40,60 +41,68 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
       else
         new_line = SourceFile.function_line(mod, fun, arity)
 
-        if SourceFile.function_def_on_line?(cur_text, new_line, fun) do
+        if new_line != nil and new_line > 0 and
+             SourceFile.function_def_on_line?(cur_text, new_line, fun) do
           new_line
-        else
-          raise "Function definition has moved since suggestion was generated. " <>
-                  "Try again after file has been recompiled."
         end
       end
 
-    cur_line = Enum.at(SourceFile.lines(cur_text), line - 1)
-    [indentation] = Regex.run(~r/^\s*/u, cur_line)
+    if line do
+      cur_line = Enum.at(SourceFile.lines(cur_text), line - 1)
+      [indentation] = Regex.run(~r/^\s*/u, cur_line)
 
-    # Attempt to format to fit within the preferred line length, fallback to having it all on one
-    # line if anything fails
-    formatted =
-      try do
-        target_line_length =
-          case SourceFile.formatter_for(uri, state.project_dir, true) do
-            {:ok, {_, opts, _formatter_exs_dir}} ->
-              Keyword.get(opts, :line_length, @default_target_line_length)
+      # Attempt to format to fit within the preferred line length, fallback to having it all on one
+      # line if anything fails
+      formatted =
+        try do
+          target_line_length =
+            case SourceFile.formatter_for(uri, state.project_dir, true) do
+              {:ok, {_, opts, _formatter_exs_dir}} ->
+                Keyword.get(opts, :line_length, @default_target_line_length)
 
-            {:error, _} ->
-              @default_target_line_length
-          end
+              {:error, reason} ->
+                Logger.warning(
+                  "Unable to get formatter for #{uri} due to #{inspect(reason)}, using default line length"
+                )
 
-        target_line_length = target_line_length - String.length(indentation)
+                @default_target_line_length
+            end
 
-        Code.format_string!("@spec #{spec}", line_length: target_line_length)
-        |> IO.iodata_to_binary()
-        |> SourceFile.lines()
-        |> Enum.map_join("\n", &(indentation <> &1))
-        |> Kernel.<>("\n")
-      rescue
-        _ ->
-          "#{indentation}@spec #{spec}\n"
-      end
+          target_line_length = target_line_length - String.length(indentation)
 
-    edit_result =
-      JsonRpc.send_request("workspace/applyEdit", %{
-        "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
-        "edit" => %{
-          "changes" => %{
-            # we don't care about utf16 positions here as we send 0
-            uri => [%{"range" => range(line - 1, 0, line - 1, 0), "newText" => formatted}]
+          Code.format_string!("@spec #{spec}", line_length: target_line_length)
+          |> IO.iodata_to_binary()
+          |> SourceFile.lines()
+          |> Enum.map_join("\n", &(indentation <> &1))
+          |> Kernel.<>("\n")
+        rescue
+          _ ->
+            "#{indentation}@spec #{spec}\n"
+        end
+
+      edit_result =
+        JsonRpc.send_request("workspace/applyEdit", %{
+          "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
+          "edit" => %{
+            "changes" => %{
+              # we don't care about utf16 positions here as we send 0
+              uri => [%{"range" => range(line - 1, 0, line - 1, 0), "newText" => formatted}]
+            }
           }
-        }
-      })
+        })
 
-    case edit_result do
-      {:ok, %{"applied" => true}} ->
-        {:ok, nil}
+      case edit_result do
+        {:ok, %{"applied" => true}} ->
+          {:ok, nil}
 
-      other ->
-        {:error, :server_error,
-         "cannot insert spec, workspace/applyEdit returned #{inspect(other)}", true}
+        other ->
+          {:error, :server_error,
+           "cannot insert spec, workspace/applyEdit returned #{inspect(other)}", true}
+      end
+    else
+      {:error, :server_error,
+       "cannot insert spec, function definition has moved since suggestion was generated. " <>
+         "Try again after file has been recompiled.", false}
     end
   end
 end

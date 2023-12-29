@@ -1380,7 +1380,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   defp sanitize_function_name(name, origin) when origin in ["Kernel", "Kernel.SpecialForms"],
     do: name
 
-  defp sanitize_function_name(name, origin) do
+  defp sanitize_function_name(name, _origin) do
     if not Regex.match?(~r/^([_\p{Ll}\p{Lo}][\p{L}\p{N}_]*[?!]?)$/u, name) do
       # not an allowed identifier - quote
       escaped =

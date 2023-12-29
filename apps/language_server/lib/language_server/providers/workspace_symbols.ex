@@ -276,11 +276,15 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   defp find_function_location(module, function, arity, path) do
-    if String.ends_with?(path, ".erl") do
-      ErlangSourceFile.function_line(path, function)
-    else
-      SourceFile.function_line(module, function, arity)
-    end
+    line =
+      if String.ends_with?(path, ".erl") do
+        ErlangSourceFile.function_line(path, function)
+      else
+        SourceFile.function_line(module, function, arity)
+      end
+
+    # both functions can return nil
+    max(line || 1, 1)
   end
 
   defp find_module_path(module, beam_file) do

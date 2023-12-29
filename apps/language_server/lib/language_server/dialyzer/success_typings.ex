@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.SuccessTypings do
         :dialyzer_plt.lookup_contract(plt, mfa) == :none,
         {stripped_fun, stripped_arity} = SourceFile.strip_macro_prefix({fun, arity}),
         line = SourceFile.function_line(mod, stripped_fun, stripped_arity),
-        is_integer(line),
+        is_integer(line) and line > 0,
         do: {file, line, {mod, stripped_fun, stripped_arity}, success_typing, stripped_fun != fun}
   end
 
