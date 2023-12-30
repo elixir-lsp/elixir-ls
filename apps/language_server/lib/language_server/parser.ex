@@ -47,22 +47,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     end
   end
 
-  def parse_immediate(uri, source_file = %SourceFile{}) do
-    if should_parse?(uri, source_file) do
-      GenServer.call(__MODULE__, {:parse_immediate, uri, source_file}, @parse_timeout)
-    else
-      Logger.debug("Not parsing #{uri} immediately: languageId #{source_file.language_id}")
-      # not parsing - respond with empty struct
-      %Context{
-        source_file: source_file,
-        path: get_path(uri),
-        ast: @dummy_ast,
-        metadata: @dummy_metadata
-      }
-    end
-  end
-
-  def parse_immediate(uri, source_file = %SourceFile{}, position) do
+  def parse_immediate(uri, source_file = %SourceFile{}, position \\ nil) do
     if should_parse?(uri, source_file) do
       GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, @parse_timeout)
     else
@@ -150,44 +135,6 @@ defmodule ElixirLS.LanguageServer.Parser do
 
   @impl true
   def handle_call(
-        {:parse_immediate, uri, source_file = %SourceFile{}},
-        _from,
-        %{files: files} = state
-      ) do
-    state = cancel_debounce(state, uri)
-
-    # TODO cancel or wait for parse end?
-
-    current_version = source_file.version
-
-    {reply, state} = case files[uri] do
-      %Context{parsed_version: ^current_version} = file ->
-        Logger.debug("#{uri} already parsed")
-        # current version already parsed
-        {file, state}
-
-      _other ->
-        Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
-        # overwrite everything
-        file =
-          %Context{
-            source_file: source_file,
-            path: get_path(uri)
-          }
-          |> do_parse()
-
-        updated_files = Map.put(files, uri, file)
-
-        notify_diagnostics_updated(updated_files)
-
-        state = %{state | files: updated_files}
-        {file, state}
-    end
-
-    {:reply, reply, state}
-  end
-
-  def handle_call(
         {:parse_immediate, uri, source_file = %SourceFile{}, position},
         _from,
         %{files: files} = state
@@ -200,7 +147,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     {reply, state} = case files[uri] do
       %Context{parsed_version: ^current_version} = file ->
-        Logger.debug("#{uri} already parsed for cursor position #{inspect(position)}")
+        Logger.debug("#{uri} already parsed")
         file = maybe_fix_missing_env(file, position)
 
         updated_files = Map.put(files, uri, file)
@@ -274,6 +221,7 @@ defmodule ElixirLS.LanguageServer.Parser do
       source_file.language_id in ["elixir", "eex", "html-eex"]
   end
 
+  defp maybe_fix_missing_env(%Context{} = file, nil), do: file
   defp maybe_fix_missing_env(
          %Context{metadata: metadata, flag: flag, source_file: source_file = %SourceFile{}} =
            file,
