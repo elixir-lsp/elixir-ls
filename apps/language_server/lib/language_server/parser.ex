@@ -39,21 +39,48 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   def parse_with_debounce(uri, source_file = %SourceFile{}) do
-    GenServer.cast(__MODULE__, {:parse_with_debounce, uri, source_file})
+    if should_parse?(uri, source_file) do
+      GenServer.cast(__MODULE__, {:parse_with_debounce, uri, source_file})
+    else
+      Logger.debug("Not parsing #{uri} with debounce: languageId #{source_file.language_id}")
+      :ok
+    end
   end
 
   def parse_immediate(uri, source_file = %SourceFile{}) do
-    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file}, @parse_timeout)
+    if should_parse?(uri, source_file) do
+      GenServer.call(__MODULE__, {:parse_immediate, uri, source_file}, @parse_timeout)
+    else
+      Logger.debug("Not parsing #{uri} immediately: languageId #{source_file.language_id}")
+      # not parsing - respond with empty struct
+      %Context{
+        source_file: source_file,
+        path: get_path(uri),
+        ast: @dummy_ast,
+        metadata: @dummy_metadata
+      }
+    end
   end
 
   def parse_immediate(uri, source_file = %SourceFile{}, position) do
-    GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, @parse_timeout)
+    if should_parse?(uri, source_file) do
+      GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, @parse_timeout)
+    else
+      Logger.debug("Not parsing #{uri} immediately: languageId #{source_file.language_id}")
+      # not parsing - respond with empty struct
+      %Context{
+        source_file: source_file,
+        path: get_path(uri),
+        ast: @dummy_ast,
+        metadata: @dummy_metadata
+      }
+    end
   end
 
   @impl true
   def init(_args) do
     # TODO get source files on start?
-    {:ok, %{files: %{}, debounce_refs: %{}}}
+    {:ok, %{files: %{}, debounce_refs: %{}, parse_pids: %{}}}
   end
 
   @impl GenServer
@@ -99,30 +126,24 @@ defmodule ElixirLS.LanguageServer.Parser do
 
   def handle_cast({:parse_with_debounce, uri, source_file = %SourceFile{}}, state) do
     state =
-      if should_parse?(uri, source_file) do
-        state =
-          update_in(state.debounce_refs[uri], fn old_ref ->
-            if old_ref do
-              Process.cancel_timer(old_ref, info: false)
-            end
+      update_in(state.debounce_refs[uri], fn old_ref ->
+        if old_ref do
+          Process.cancel_timer(old_ref, info: false)
+        end
 
-            Process.send_after(self(), {:parse_file, uri}, @debounce_timeout)
-          end)
+        Process.send_after(self(), {:parse_file, uri}, @debounce_timeout)
+      end)
 
-        update_in(state.files[uri], fn
-          nil ->
-            %Context{
-              source_file: source_file,
-              path: get_path(uri)
-            }
+    state = update_in(state.files[uri], fn
+      nil ->
+        %Context{
+          source_file: source_file,
+          path: get_path(uri)
+        }
 
-          old_file ->
-            %Context{old_file | source_file: source_file}
-        end)
-      else
-        Logger.debug("Not parsing #{uri} with debounce: languageId #{source_file.language_id}")
-        state
-      end
+      old_file ->
+        %Context{old_file | source_file: source_file}
+    end)
 
     {:noreply, state}
   end
@@ -133,49 +154,35 @@ defmodule ElixirLS.LanguageServer.Parser do
         _from,
         %{files: files} = state
       ) do
-    {reply, state} =
-      if should_parse?(uri, source_file) do
-        state = cancel_debounce(state, uri)
+    state = cancel_debounce(state, uri)
 
-        # TODO cancel or wait for parse end?
+    # TODO cancel or wait for parse end?
 
-        current_version = source_file.version
+    current_version = source_file.version
 
-        case files[uri] do
-          %Context{parsed_version: ^current_version} = file ->
-            Logger.debug("#{uri} already parsed")
-            # current version already parsed
-            {file, state}
+    {reply, state} = case files[uri] do
+      %Context{parsed_version: ^current_version} = file ->
+        Logger.debug("#{uri} already parsed")
+        # current version already parsed
+        {file, state}
 
-          _other ->
-            Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
-            # overwrite everything
-            file =
-              %Context{
-                source_file: source_file,
-                path: get_path(uri)
-              }
-              |> do_parse()
+      _other ->
+        Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
+        # overwrite everything
+        file =
+          %Context{
+            source_file: source_file,
+            path: get_path(uri)
+          }
+          |> do_parse()
 
-            updated_files = Map.put(files, uri, file)
+        updated_files = Map.put(files, uri, file)
 
-            notify_diagnostics_updated(updated_files)
+        notify_diagnostics_updated(updated_files)
 
-            state = %{state | files: updated_files}
-            {file, state}
-        end
-      else
-        Logger.debug("Not parsing #{uri} immediately: languageId #{source_file.language_id}")
-        # not parsing - respond with empty struct
-        reply = %Context{
-          source_file: source_file,
-          path: get_path(uri),
-          ast: @dummy_ast,
-          metadata: @dummy_metadata
-        }
-
-        {reply, state}
-      end
+        state = %{state | files: updated_files}
+        {file, state}
+    end
 
     {:reply, reply, state}
   end
@@ -185,53 +192,44 @@ defmodule ElixirLS.LanguageServer.Parser do
         _from,
         %{files: files} = state
       ) do
-    {reply, state} =
-      if should_parse?(uri, source_file) do
-        state = cancel_debounce(state, uri)
+    state = cancel_debounce(state, uri)
 
-        # TODO cancel or wait for parse end?
+    # TODO cancel or wait for parse end?
 
-        current_version = source_file.version
+    current_version = source_file.version
 
-        case files[uri] do
-          %Context{parsed_version: ^current_version} = file ->
-            Logger.debug("#{uri} already parsed for cursor position #{inspect(position)}")
-            file = maybe_fix_missing_env(file, position)
+    {reply, state} = case files[uri] do
+      %Context{parsed_version: ^current_version} = file ->
+        Logger.debug("#{uri} already parsed for cursor position #{inspect(position)}")
+        file = maybe_fix_missing_env(file, position)
 
-            updated_files = Map.put(files, uri, file)
-            # no change to diagnostics, only update stored metadata
-            state = %{state | files: updated_files}
-            {file, state}
+        updated_files = Map.put(files, uri, file)
+        # no change to diagnostics, only update stored metadata
+        state = %{state | files: updated_files}
+        {file, state}
 
-          _other ->
-            Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
-            # overwrite everything
-            file =
-              %Context{
-                source_file: source_file,
-                path: get_path(uri)
-              }
-              |> do_parse(position)
+      _other ->
+        Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
+        # overwrite everything
+        file =
+          %Context{
+            source_file: source_file,
+            path: get_path(uri)
+          }
+          |> do_parse(position)
 
-            updated_files = Map.put(files, uri, file)
+        # spawn(fn ->
+        #   updated_file = do_parse(file)
+        #   send(parent, {:parse_file_done, uri, updated_file})
+        # end)
 
-            notify_diagnostics_updated(updated_files)
+        updated_files = Map.put(files, uri, file)
 
-            state = %{state | files: updated_files}
-            {file, state}
-        end
-      else
-        Logger.debug("Not parsing #{uri} immediately: languageId #{source_file.language_id}")
-        # not parsing - respond with empty struct
-        reply = %Context{
-          source_file: source_file,
-          path: get_path(uri),
-          ast: @dummy_ast,
-          metadata: @dummy_metadata
-        }
+        notify_diagnostics_updated(updated_files)
 
-        {reply, state}
-      end
+        state = %{state | files: updated_files}
+        {file, state}
+    end
 
     {:reply, reply, state}
   end
