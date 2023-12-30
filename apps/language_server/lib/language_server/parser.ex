@@ -136,7 +136,7 @@ defmodule ElixirLS.LanguageServer.Parser do
   @impl true
   def handle_call(
         {:parse_immediate, uri, source_file = %SourceFile{}, position},
-        _from,
+        from,
         %{files: files} = state
       ) do
     state = cancel_debounce(state, uri)
@@ -144,8 +144,9 @@ defmodule ElixirLS.LanguageServer.Parser do
     # TODO cancel or wait for parse end?
 
     current_version = source_file.version
+    parent = self()
 
-    {reply, state} = case files[uri] do
+    case files[uri] do
       %Context{parsed_version: ^current_version} = file ->
         Logger.debug("#{uri} already parsed")
         file = maybe_fix_missing_env(file, position)
@@ -153,32 +154,27 @@ defmodule ElixirLS.LanguageServer.Parser do
         updated_files = Map.put(files, uri, file)
         # no change to diagnostics, only update stored metadata
         state = %{state | files: updated_files}
-        {file, state}
+        
+        {:reply, file, state}
 
       _other ->
         Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
-        # overwrite everything
-        file =
-          %Context{
-            source_file: source_file,
-            path: get_path(uri)
-          }
-          |> do_parse(position)
+        
+        # TODO monitor, store from
 
-        # spawn(fn ->
-        #   updated_file = do_parse(file)
-        #   send(parent, {:parse_file_done, uri, updated_file})
-        # end)
+        spawn(fn ->
+          # overwrite everything
+          updated_file =
+            %Context{
+              source_file: source_file,
+              path: get_path(uri)
+            }
+            |> do_parse(position)
+          send(parent, {:parse_file_done, uri, updated_file, from})
+        end)
 
-        updated_files = Map.put(files, uri, file)
-
-        notify_diagnostics_updated(updated_files)
-
-        state = %{state | files: updated_files}
-        {file, state}
+        {:noreply, state}
     end
-
-    {:reply, reply, state}
   end
 
   @impl GenServer
@@ -195,7 +191,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     spawn(fn ->
       updated_file = do_parse(file)
-      send(parent, {:parse_file_done, uri, updated_file})
+      send(parent, {:parse_file_done, uri, updated_file, nil})
     end)
 
     state = %{state | debounce_refs: Map.delete(debounce_refs, uri)}
@@ -204,13 +200,15 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   def handle_info(
-        {:parse_file_done, uri, updated_file},
+        {:parse_file_done, uri, updated_file, from},
         %{files: files} = state
       ) do
+    if from do
+      GenServer.reply(from, updated_file)
+    end
+
     updated_files = Map.put(files, uri, updated_file)
-
     state = %{state | files: updated_files}
-
     notify_diagnostics_updated(updated_files)
 
     {:noreply, state}
