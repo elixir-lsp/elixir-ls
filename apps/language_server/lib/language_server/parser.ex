@@ -250,13 +250,27 @@ defmodule ElixirLS.LanguageServer.Parser do
     file = Map.fetch!(files, uri)
     Logger.debug("Parsing #{uri} after debounce: languageId #{file.source_file.language_id}")
 
-    updated_file =
-      file
-      |> do_parse()
+    parent = self()
 
+    # TODO store pid, monitor?
+
+    spawn(fn ->
+      updated_file = do_parse(file)
+      send(parent, {:parse_file_done, uri, updated_file})
+    end)
+
+    state = %{state | debounce_refs: Map.delete(debounce_refs, uri)}
+
+    {:noreply, state}
+  end
+
+  def handle_info(
+        {:parse_file_done, uri, updated_file},
+        %{files: files} = state
+      ) do
     updated_files = Map.put(files, uri, updated_file)
 
-    state = %{state | files: updated_files, debounce_refs: Map.delete(debounce_refs, uri)}
+    state = %{state | files: updated_files}
 
     notify_diagnostics_updated(updated_files)
 
