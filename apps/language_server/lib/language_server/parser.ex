@@ -87,16 +87,14 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   @impl true
-  def handle_cast({:closed, uri}, state = %{files: files, debounce_refs: debounce_refs}) do
-    {maybe_ref, updated_debounce_refs} = Map.pop(debounce_refs, uri)
+  def handle_cast({:closed, uri}, state = %{files: files}) do
+    state = cancel_debounce(state, uri)
 
-    if maybe_ref do
-      Process.cancel_timer(maybe_ref, info: false)
-    end
+    # TODO maybe cancel parse
 
     updated_files = Map.delete(files, uri)
     notify_diagnostics_updated(updated_files)
-    {:noreply, %{state | files: updated_files, debounce_refs: updated_debounce_refs}}
+    {:noreply, %{state | files: updated_files}}
   end
 
   def handle_cast({:parse_with_debounce, uri, source_file = %SourceFile{}}, state) do
@@ -133,15 +131,13 @@ defmodule ElixirLS.LanguageServer.Parser do
   def handle_call(
         {:parse_immediate, uri, source_file = %SourceFile{}},
         _from,
-        %{files: files, debounce_refs: debounce_refs} = state
+        %{files: files} = state
       ) do
     {reply, state} =
       if should_parse?(uri, source_file) do
-        {maybe_ref, updated_debounce_refs} = Map.pop(debounce_refs, uri)
+        state = cancel_debounce(state, uri)
 
-        if maybe_ref do
-          Process.cancel_timer(maybe_ref, info: false)
-        end
+        # TODO cancel or wait for parse end?
 
         current_version = source_file.version
 
@@ -165,7 +161,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
             notify_diagnostics_updated(updated_files)
 
-            state = %{state | files: updated_files, debounce_refs: updated_debounce_refs}
+            state = %{state | files: updated_files}
             {file, state}
         end
       else
@@ -187,15 +183,13 @@ defmodule ElixirLS.LanguageServer.Parser do
   def handle_call(
         {:parse_immediate, uri, source_file = %SourceFile{}, position},
         _from,
-        %{files: files, debounce_refs: debounce_refs} = state
+        %{files: files} = state
       ) do
     {reply, state} =
       if should_parse?(uri, source_file) do
-        {maybe_ref, updated_debounce_refs} = Map.pop(debounce_refs, uri)
+        state = cancel_debounce(state, uri)
 
-        if maybe_ref do
-          Process.cancel_timer(maybe_ref, info: false)
-        end
+        # TODO cancel or wait for parse end?
 
         current_version = source_file.version
 
@@ -206,7 +200,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
             updated_files = Map.put(files, uri, file)
             # no change to diagnostics, only update stored metadata
-            state = %{state | files: updated_files, debounce_refs: updated_debounce_refs}
+            state = %{state | files: updated_files}
             {file, state}
 
           _other ->
@@ -223,7 +217,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
             notify_diagnostics_updated(updated_files)
 
-            state = %{state | files: updated_files, debounce_refs: updated_debounce_refs}
+            state = %{state | files: updated_files}
             {file, state}
         end
       else
@@ -433,6 +427,16 @@ defmodule ElixirLS.LanguageServer.Parser do
       _ ->
         "nofile"
     end
+  end
+
+  defp cancel_debounce(state = %{debounce_refs: debounce_refs}, uri) do
+    {maybe_ref, updated_debounce_refs} = Map.pop(debounce_refs, uri)
+
+    if maybe_ref do
+      Process.cancel_timer(maybe_ref, info: false)
+    end
+
+    %{state | debounce_refs: updated_debounce_refs}
   end
 
   defp notify_diagnostics_updated(updated_files) do
