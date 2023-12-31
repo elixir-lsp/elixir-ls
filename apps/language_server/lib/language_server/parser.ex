@@ -65,7 +65,7 @@ defmodule ElixirLS.LanguageServer.Parser do
   @impl true
   def init(_args) do
     # TODO get source files on start?
-    {:ok, %{files: %{}, debounce_refs: %{}, parse_pids: %{}}}
+    {:ok, %{files: %{}, debounce_refs: %{}, parse_pids: %{}, parse_uris: %{}}}
   end
 
   @impl GenServer
@@ -159,10 +159,8 @@ defmodule ElixirLS.LanguageServer.Parser do
 
       _other ->
         Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
-        
-        # TODO monitor, store from
 
-        spawn(fn ->
+        {pid, ref} = spawn_monitor(fn ->
           # overwrite everything
           updated_file =
             %Context{
@@ -173,7 +171,8 @@ defmodule ElixirLS.LanguageServer.Parser do
           send(parent, {:parse_file_done, uri, updated_file, from})
         end)
 
-        {:noreply, state}
+        {:noreply, %{state | parse_pids: Map.put(state.parse_pids, uri, {pid, ref, from}), 
+        parse_uris: Map.put(state.parse_uris, ref, uri)}}
     end
   end
 
@@ -187,14 +186,13 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     parent = self()
 
-    # TODO store pid, monitor?
-
-    spawn(fn ->
+    {pid, ref} = spawn_monitor(fn ->
       updated_file = do_parse(file)
       send(parent, {:parse_file_done, uri, updated_file, nil})
     end)
 
-    state = %{state | debounce_refs: Map.delete(debounce_refs, uri)}
+    state = %{state | debounce_refs: Map.delete(debounce_refs, uri), parse_pids: Map.put(state.parse_pids, uri, {pid, ref, nil}),
+    parse_uris: Map.put(state.parse_uris, ref, uri)}
 
     {:noreply, state}
   end
@@ -210,6 +208,22 @@ defmodule ElixirLS.LanguageServer.Parser do
     updated_files = Map.put(files, uri, updated_file)
     state = %{state | files: updated_files}
     notify_diagnostics_updated(updated_files)
+
+    {:noreply, state}
+  end
+
+  def handle_info(
+        {:DOWN, ref, :process, pid, reason},
+        %{parse_pids: parse_pids, parse_uris: parse_uris} = state
+      ) do
+    {uri, updated_parse_uris} = Map.pop!(parse_uris, ref)
+    {{^pid, ^ref, from}, updated_parse_pids} = Map.pop!(parse_pids, uri)
+
+    if reason != :normal and from != nil do
+      GenServer.reply(from, :error)
+    end
+
+    state = %{state | parse_pids: updated_parse_pids, parse_uris: updated_parse_uris}
 
     {:noreply, state}
   end
