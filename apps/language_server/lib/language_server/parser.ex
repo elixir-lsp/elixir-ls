@@ -139,6 +139,7 @@ defmodule ElixirLS.LanguageServer.Parser do
         from,
         %{files: files} = state
       ) do
+    # TODO cancel if version greater?
     state = cancel_debounce(state, uri)
 
     # TODO cancel or wait for parse end?
@@ -158,7 +159,7 @@ defmodule ElixirLS.LanguageServer.Parser do
         {:reply, file, state}
 
       _other ->
-        Logger.debug("Parsing #{uri} immediately: languageId #{source_file.language_id}")
+        Logger.debug("Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately")
 
         {pid, ref} = spawn_monitor(fn ->
           # overwrite everything
@@ -171,8 +172,8 @@ defmodule ElixirLS.LanguageServer.Parser do
           send(parent, {:parse_file_done, uri, updated_file, from})
         end)
 
-        {:noreply, %{state | parse_pids: Map.put(state.parse_pids, uri, {pid, ref, from}), 
-        parse_uris: Map.put(state.parse_uris, ref, uri)}}
+        {:noreply, %{state | parse_pids: Map.put(state.parse_pids, {uri, current_version}, {pid, ref, from}), 
+        parse_uris: Map.put(state.parse_uris, ref, {uri, current_version})}}
     end
   end
 
@@ -182,7 +183,8 @@ defmodule ElixirLS.LanguageServer.Parser do
         %{files: files, debounce_refs: debounce_refs} = state
       ) do
     file = Map.fetch!(files, uri)
-    Logger.debug("Parsing #{uri} after debounce: languageId #{file.source_file.language_id}")
+    version = file.source_file.version
+    Logger.debug("Parsing #{uri} version #{version} languageId #{file.source_file.language_id} after debounce")
 
     parent = self()
 
@@ -191,8 +193,8 @@ defmodule ElixirLS.LanguageServer.Parser do
       send(parent, {:parse_file_done, uri, updated_file, nil})
     end)
 
-    state = %{state | debounce_refs: Map.delete(debounce_refs, uri), parse_pids: Map.put(state.parse_pids, uri, {pid, ref, nil}),
-    parse_uris: Map.put(state.parse_uris, ref, uri)}
+    state = %{state | debounce_refs: Map.delete(debounce_refs, uri), parse_pids: Map.put(state.parse_pids, {uri, version}, {pid, ref, nil}),
+    parse_uris: Map.put(state.parse_uris, ref, {uri, version})}
 
     {:noreply, state}
   end
@@ -216,8 +218,8 @@ defmodule ElixirLS.LanguageServer.Parser do
         {:DOWN, ref, :process, pid, reason},
         %{parse_pids: parse_pids, parse_uris: parse_uris} = state
       ) do
-    {uri, updated_parse_uris} = Map.pop!(parse_uris, ref)
-    {{^pid, ^ref, from}, updated_parse_pids} = Map.pop!(parse_pids, uri)
+    {{uri, version}, updated_parse_uris} = Map.pop!(parse_uris, ref)
+    {{^pid, ^ref, from}, updated_parse_pids} = Map.pop!(parse_pids, {uri, version})
 
     if reason != :normal and from != nil do
       GenServer.reply(from, :error)
