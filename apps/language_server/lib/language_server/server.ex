@@ -407,7 +407,7 @@ defmodule ElixirLS.LanguageServer.Server do
       if id do
         {{^pid, ^ref, command, _start_time}, updated_requests} = Map.pop!(requests, id)
         error_msg = Exception.format_exit(reason)
-        JsonRpc.respond_with_error(id, :server_error, error_msg)
+        JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
         do_sanity_check(state)
 
@@ -415,7 +415,7 @@ defmodule ElixirLS.LanguageServer.Server do
           "lsp_request_error",
           %{
             "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-            "elixir_ls.lsp_error" => :server_error,
+            "elixir_ls.lsp_error" => :internal_error,
             "elixir_ls.lsp_error_message" => error_msg
           },
           %{}
@@ -854,7 +854,7 @@ defmodule ElixirLS.LanguageServer.Server do
       kind, payload ->
         {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
         error_msg = Exception.format(kind, payload, stacktrace)
-        JsonRpc.respond_with_error(id, :server_error, error_msg)
+        JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
         do_sanity_check(state)
 
@@ -862,7 +862,7 @@ defmodule ElixirLS.LanguageServer.Server do
           "lsp_request_error",
           %{
             "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-            "elixir_ls.lsp_error" => :server_error,
+            "elixir_ls.lsp_error" => :internal_error,
             "elixir_ls.lsp_error_message" => error_msg
           },
           %{}

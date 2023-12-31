@@ -226,16 +226,25 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     end
   end
 
+  # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#errorCodes
+
+  # Defined by JSON-RPC
   defp error_code_and_message(:parse_error), do: {-32700, "Parse error"}
   defp error_code_and_message(:invalid_request), do: {-32600, "Invalid Request"}
   defp error_code_and_message(:method_not_found), do: {-32601, "Method not found"}
   defp error_code_and_message(:invalid_params), do: {-32602, "Invalid params"}
   defp error_code_and_message(:internal_error), do: {-32603, "Internal error"}
-  defp error_code_and_message(:server_error), do: {-32000, "Server error"}
+
+  # -32099 - -32000 - JSON-RPC reserved error codes
+  # No LSP error codes should be defined between the start and end range.
+  # For backwards compatibility the `ServerNotInitialized` and the `UnknownErrorCode`
+	# are left in the range.
   defp error_code_and_message(:server_not_initialized), do: {-32002, "Server not initialized"}
   defp error_code_and_message(:unknown_error_code), do: {-32001, "Unknown error code"}
 
-  defp error_code_and_message(:request_cancelled), do: {-32800, "Request cancelled"}
+  # -32899 - -32800 - LSP reserved error codes
+  defp error_code_and_message(:request_failed), do: {-32803, "Request cancelled"}
+  defp error_code_and_message(:server_cancelled), do: {-32802, "Server cancelled"}
   defp error_code_and_message(:content_modified), do: {-32801, "Content modified"}
-  defp error_code_and_message(:code_lens_error), do: {-32900, "Error while building code lenses"}
+  defp error_code_and_message(:request_cancelled), do: {-32800, "Request cancelled"}
 end
