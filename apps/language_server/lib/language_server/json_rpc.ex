@@ -67,6 +67,16 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     end
   end
 
+  defmacro error_response(id, code, message, data) do
+    quote do
+      %{
+        "error" => %{"code" => unquote(code), "message" => unquote(message), "data" => unquote(data)},
+        "id" => unquote(id),
+        "jsonrpc" => "2.0"
+      }
+    end
+  end
+
   ## Utils
 
   def notify(method, params) do
@@ -77,9 +87,13 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     WireProtocol.send(response(id, result))
   end
 
-  def respond_with_error(id, type, message \\ nil) do
+  def respond_with_error(id, type, message \\ nil, data \\ nil) do
     {code, default_message} = error_code_and_message(type)
-    WireProtocol.send(error_response(id, code, message || default_message))
+    if data do
+      WireProtocol.send(error_response(id, code, message || default_message, data))
+    else
+      WireProtocol.send(error_response(id, code, message || default_message))
+    end
   end
 
   def show_message(type, message) do

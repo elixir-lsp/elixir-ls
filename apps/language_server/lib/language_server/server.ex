@@ -748,15 +748,42 @@ defmodule ElixirLS.LanguageServer.Server do
 
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
-        {:ok, result, state} = handle_request(packet, state)
-        elapsed = System.monotonic_time(:millisecond) - start_time
-        JsonRpc.respond(id, result)
+        try do
+          {:ok, result, state} = handle_request(packet, state)
+          elapsed = System.monotonic_time(:millisecond) - start_time
+          JsonRpc.respond(id, result)
 
-        JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
-          "elixir_ls.lsp_request_time" => elapsed
-        })
+          JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
+            "elixir_ls.lsp_request_time" => elapsed
+          })
 
-        state
+          state
+        catch
+          kind, payload ->
+            {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+            error_msg = Exception.format(kind, payload, stacktrace)
+
+            # on error in initialize the protocol requires to respond with
+            # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initializeError
+            # the initialize request can fail on broken OTP installs, no point in retrying
+            JsonRpc.respond_with_error(id, :internal_error, error_msg, %{
+              "retry" => false
+            })
+
+            do_sanity_check(state)
+
+            JsonRpc.telemetry(
+              "lsp_request_error",
+              %{
+                "elixir_ls.lsp_command" => "initialize",
+                "elixir_ls.lsp_error" => :internal_error,
+                "elixir_ls.lsp_error_message" => error_msg
+              },
+              %{}
+            )
+
+            state
+        end
 
       _ ->
         JsonRpc.respond_with_error(id, :server_not_initialized)
