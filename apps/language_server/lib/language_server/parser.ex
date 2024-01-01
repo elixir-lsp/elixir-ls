@@ -319,8 +319,8 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   defp should_parse?(uri, source_file) do
-    String.ends_with?(uri, [".ex", ".exs", ".eex"]) or
-      source_file.language_id in ["elixir", "eex", "html-eex"]
+    String.ends_with?(uri, [".ex", ".exs", ".eex", ".heex"]) or
+      source_file.language_id in ["elixir", "eex", "html-eex", "phoenix-heex"]
   end
 
   defp maybe_fix_missing_env(%Context{} = file, nil), do: file
@@ -506,6 +506,16 @@ defmodule ElixirLS.LanguageServer.Parser do
     (is_binary(file) and String.ends_with?(file, ".eex")) or language_id in ["eex", "html-eex"]
   end
 
+  defp html_eex?(file, language_id) do
+    (is_binary(file) and
+       (String.ends_with?(file, ".html.eex") or String.ends_with?(file, ".htm.eex"))) or
+      language_id in ["html-eex"]
+  end
+
+  defp heex?(file, language_id) do
+    (is_binary(file) and String.ends_with?(file, ".heex")) or language_id in ["phoenix-heex"]
+  end
+
   defp parse_file(text, file, language_id) do
     {result, raw_diagnostics} =
       Build.with_diagnostics([log: false], fn ->
@@ -517,18 +527,70 @@ defmodule ElixirLS.LanguageServer.Parser do
           ]
 
           ast =
-            if eex?(file, language_id) do
-              EEx.compile_string(text,
-                file: file,
-                parser_options: parser_options
-              )
-            else
-              Code.string_to_quoted!(text, parser_options)
+            cond do
+              eex?(file, language_id) ->
+                EEx.compile_string(text,
+                  file: file,
+                  parser_options: parser_options
+                )
+
+              html_eex?(file, language_id) ->
+                if Code.ensure_loaded?(Phoenix.HTML.Engine) do
+                  EEx.compile_string(text,
+                    file: file,
+                    parser_options: parser_options,
+                    engine: Phoenix.HTML.Engine
+                  )
+                else
+                  EEx.compile_string(text,
+                    file: file,
+                    parser_options: parser_options
+                  )
+                end
+
+              heex?(file, language_id) ->
+                cond do
+                  Code.ensure_loaded?(Phoenix.LiveView.TagEngine) ->
+                    # LV 0.18+
+                    EEx.compile_string(text,
+                      file: file,
+                      parser_options: parser_options,
+                      source: text,
+                      caller: __ENV__,
+                      engine: Phoenix.LiveView.TagEngine,
+                      tag_handler: Phoenix.LiveView.HTMLEngine
+                    )
+
+                  Code.ensure_loaded?(Phoenix.LiveView.HTMLEngine) ->
+                    # LV <= 0.17
+                    EEx.compile_string(text,
+                      file: file,
+                      parser_options: parser_options,
+                      source: text,
+                      caller: __ENV__,
+                      engine: Phoenix.LiveView.HTMLEngine
+                    )
+
+                  true ->
+                    EEx.compile_string(text,
+                      file: file,
+                      parser_options: parser_options
+                    )
+                end
+
+              true ->
+                Code.string_to_quoted!(text, parser_options)
             end
 
           {:ok, ast}
         rescue
-          e in [EEx.SyntaxError, SyntaxError, TokenMissingError, MismatchedDelimiterError] ->
+          e in [
+            EEx.SyntaxError,
+            SyntaxError,
+            TokenMissingError,
+            MismatchedDelimiterError,
+            Phoenix.LiveView.Tokenizer.ParseError
+          ] ->
             diagnostic = Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
 
             {:error, diagnostic}
