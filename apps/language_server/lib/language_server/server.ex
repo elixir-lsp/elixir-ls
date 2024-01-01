@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def terminate(reason, state) do
+  def terminate(reason, _state) do
     case reason do
       :normal ->
         :ok
