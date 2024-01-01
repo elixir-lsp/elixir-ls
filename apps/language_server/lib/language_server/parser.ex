@@ -52,7 +52,15 @@ defmodule ElixirLS.LanguageServer.Parser do
 
   def parse_immediate(uri, source_file = %SourceFile{}, position \\ nil) do
     if should_parse?(uri, source_file) do
-      GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, @parse_timeout)
+      case GenServer.call(
+             __MODULE__,
+             {:parse_immediate, uri, source_file, position},
+             @parse_timeout
+           ) do
+        :error -> raise "parser error"
+        :stale -> raise Server.ContentModifiedError, uri
+        %Context{} = context -> context
+      end
     else
       Logger.debug(
         "Not parsing #{uri} version #{source_file.version} languageId #{source_file.language_id} immediately"
@@ -120,12 +128,16 @@ defmodule ElixirLS.LanguageServer.Parser do
         state
       ) do
     state =
-      update_in(state.debounce_refs[uri], fn old_ref ->
-        if old_ref do
-          Process.cancel_timer(old_ref, info: false)
-        end
+      update_in(state.debounce_refs[uri], fn
+        nil ->
+          {Process.send_after(self(), {:parse_file, uri}, @debounce_timeout), current_version}
 
-        Process.send_after(self(), {:parse_file, uri}, @debounce_timeout)
+        {old_ref, ^current_version} ->
+          {old_ref, current_version}
+
+        {old_ref, old_version} when old_version < current_version ->
+          Process.cancel_timer(old_ref, info: false)
+          {Process.send_after(self(), {:parse_file, uri}, @debounce_timeout), current_version}
       end)
 
     state =
@@ -139,6 +151,9 @@ defmodule ElixirLS.LanguageServer.Parser do
         %Context{source_file: %SourceFile{version: old_version}} = old_file
         when current_version > old_version ->
           %Context{old_file | source_file: source_file}
+
+        %Context{source_file: %SourceFile{version: old_version}} = old_file ->
+          old_file
       end)
 
     {:noreply, state}
@@ -150,8 +165,6 @@ defmodule ElixirLS.LanguageServer.Parser do
         from,
         %{files: files} = state
       ) do
-    state = cancel_debounce(state, uri)
-
     current_version = source_file.version
     parent = self()
 
@@ -173,14 +186,20 @@ defmodule ElixirLS.LanguageServer.Parser do
         state = %{state | queue: state.queue ++ [{{uri, current_version, position}, from}]}
         {:noreply, state}
 
+      {%Context{source_file: %SourceFile{version: old_version}}, _}
+      when old_version > current_version ->
+        {:reply, :stale, state}
+
       {other, _} ->
-        Logger.debug(
-          "Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately"
-        )
+        state = cancel_debounce(state, uri)
 
         updated_file =
           case other do
             nil ->
+              Logger.debug(
+                "Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately"
+              )
+
               %Context{
                 source_file: source_file,
                 path: get_path(uri)
@@ -188,6 +207,10 @@ defmodule ElixirLS.LanguageServer.Parser do
 
             %Context{source_file: %SourceFile{version: old_version}} = old_file
             when old_version <= current_version ->
+              Logger.debug(
+                "Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately"
+              )
+
               %Context{old_file | source_file: source_file}
           end
 
@@ -458,7 +481,8 @@ defmodule ElixirLS.LanguageServer.Parser do
     {maybe_ref, updated_debounce_refs} = Map.pop(debounce_refs, uri)
 
     if maybe_ref do
-      Process.cancel_timer(maybe_ref, info: false)
+      {ref, _version} = maybe_ref
+      Process.cancel_timer(ref, info: false)
     end
 
     %{state | debounce_refs: updated_debounce_refs}

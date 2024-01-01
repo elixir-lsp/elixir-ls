@@ -91,6 +91,16 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
+  defmodule ContentModifiedError do
+    defexception [:uri, :message]
+
+    @impl true
+    def exception(uri) do
+      msg = "document URI: #{inspect(uri)} modified"
+      %ContentModifiedError{message: msg, uri: uri}
+    end
+  end
+
   @default_watched_extensions [
     ".ex",
     ".exs",
@@ -1217,6 +1227,9 @@ defmodule ElixirLS.LanguageServer.Server do
         rescue
           e in InvalidParamError ->
             {:error, :invalid_params, e.message, true}
+
+          e in ContentModifiedError ->
+            {:error, :content_modified, e.message, true}
         end
 
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
