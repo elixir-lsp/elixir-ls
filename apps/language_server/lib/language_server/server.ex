@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def terminate(reason, _state) do
+  def terminate(reason, state) do
     case reason do
       :normal ->
         :ok
@@ -168,6 +168,7 @@ defmodule ElixirLS.LanguageServer.Server do
         :ok
 
       _other ->
+        do_sanity_check()
         message = Exception.format_exit(reason)
 
         JsonRpc.telemetry(
@@ -207,7 +208,7 @@ defmodule ElixirLS.LanguageServer.Server do
           {:error, type, msg, send_telemetry} ->
             JsonRpc.respond_with_error(id, type, msg)
 
-            do_sanity_check(state)
+            do_sanity_check()
 
             if send_telemetry do
               JsonRpc.telemetry(
@@ -419,7 +420,7 @@ defmodule ElixirLS.LanguageServer.Server do
         error_msg = Exception.format_exit(reason)
         JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
-        do_sanity_check(state)
+        do_sanity_check()
 
         JsonRpc.telemetry(
           "lsp_request_error",
@@ -780,7 +781,7 @@ defmodule ElixirLS.LanguageServer.Server do
               "retry" => false
             })
 
-            do_sanity_check(state)
+            do_sanity_check()
 
             JsonRpc.telemetry(
               "lsp_request_error",
@@ -847,7 +848,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {:error, type, msg, send_telemetry, state} ->
           JsonRpc.respond_with_error(id, type, msg)
 
-          do_sanity_check(state)
+          do_sanity_check()
 
           if send_telemetry do
             JsonRpc.telemetry(
@@ -893,7 +894,7 @@ defmodule ElixirLS.LanguageServer.Server do
         error_msg = Exception.format(kind, payload, stacktrace)
         JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
-        do_sanity_check(state)
+        do_sanity_check()
 
         JsonRpc.telemetry(
           "lsp_request_error",
@@ -1481,7 +1482,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
-    do_sanity_check(state)
+    do_sanity_check()
 
     state =
       if state.needs_build? or status == :error or not dialyzer_enabled?(state) do
@@ -2243,7 +2244,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp do_sanity_check(_state) do
+  def do_sanity_check() do
     try do
       unless :persistent_term.get(:language_server_test_mode, false) do
         unless function_exported?(ElixirSense, :module_info, 1) and

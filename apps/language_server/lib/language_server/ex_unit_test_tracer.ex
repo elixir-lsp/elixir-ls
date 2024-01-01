@@ -51,6 +51,7 @@ defmodule ElixirLS.LanguageServer.ExUnitTestTracer do
         :ok
 
       _other ->
+        ElixirLS.LanguageServer.Server.do_sanity_check()
         message = Exception.format_exit(reason)
 
         JsonRpc.telemetry(
