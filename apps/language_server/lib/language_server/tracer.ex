@@ -210,6 +210,12 @@ defmodule ElixirLS.LanguageServer.Tracer do
         File.rm_rf!(path)
 
         {:ok, _} = :dets.open_file(table_name, opts)
+
+      {:error, {:format_8_no_longer_supported, _} = reason} ->
+        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
+        File.rm_rf!(path)
+
+        {:ok, _} = :dets.open_file(table_name, opts)
     end
 
     case :dets.to_ets(table_name, table_name) do
