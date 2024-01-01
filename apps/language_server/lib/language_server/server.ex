@@ -91,6 +91,16 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
+  defmodule ContentModifiedError do
+    defexception [:uri, :message]
+
+    @impl true
+    def exception(uri) do
+      msg = "document URI: #{inspect(uri)} modified"
+      %ContentModifiedError{message: msg, uri: uri}
+    end
+  end
+
   @default_watched_extensions [
     ".ex",
     ".exs",
@@ -407,7 +417,7 @@ defmodule ElixirLS.LanguageServer.Server do
       if id do
         {{^pid, ^ref, command, _start_time}, updated_requests} = Map.pop!(requests, id)
         error_msg = Exception.format_exit(reason)
-        JsonRpc.respond_with_error(id, :server_error, error_msg)
+        JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
         do_sanity_check(state)
 
@@ -415,7 +425,7 @@ defmodule ElixirLS.LanguageServer.Server do
           "lsp_request_error",
           %{
             "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-            "elixir_ls.lsp_error" => :server_error,
+            "elixir_ls.lsp_error" => :internal_error,
             "elixir_ls.lsp_error_message" => error_msg
           },
           %{}
@@ -748,15 +758,42 @@ defmodule ElixirLS.LanguageServer.Server do
 
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
-        {:ok, result, state} = handle_request(packet, state)
-        elapsed = System.monotonic_time(:millisecond) - start_time
-        JsonRpc.respond(id, result)
+        try do
+          {:ok, result, state} = handle_request(packet, state)
+          elapsed = System.monotonic_time(:millisecond) - start_time
+          JsonRpc.respond(id, result)
 
-        JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
-          "elixir_ls.lsp_request_time" => elapsed
-        })
+          JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
+            "elixir_ls.lsp_request_time" => elapsed
+          })
 
-        state
+          state
+        catch
+          kind, payload ->
+            {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+            error_msg = Exception.format(kind, payload, stacktrace)
+
+            # on error in initialize the protocol requires to respond with
+            # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initializeError
+            # the initialize request can fail on broken OTP installs, no point in retrying
+            JsonRpc.respond_with_error(id, :internal_error, error_msg, %{
+              "retry" => false
+            })
+
+            do_sanity_check(state)
+
+            JsonRpc.telemetry(
+              "lsp_request_error",
+              %{
+                "elixir_ls.lsp_command" => "initialize",
+                "elixir_ls.lsp_error" => :internal_error,
+                "elixir_ls.lsp_error_message" => error_msg
+              },
+              %{}
+            )
+
+            state
+        end
 
       _ ->
         JsonRpc.respond_with_error(id, :server_not_initialized)
@@ -854,7 +891,7 @@ defmodule ElixirLS.LanguageServer.Server do
       kind, payload ->
         {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
         error_msg = Exception.format(kind, payload, stacktrace)
-        JsonRpc.respond_with_error(id, :server_error, error_msg)
+        JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
         do_sanity_check(state)
 
@@ -862,7 +899,7 @@ defmodule ElixirLS.LanguageServer.Server do
           "lsp_request_error",
           %{
             "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-            "elixir_ls.lsp_error" => :server_error,
+            "elixir_ls.lsp_error" => :internal_error,
             "elixir_ls.lsp_error_message" => error_msg
           },
           %{}
@@ -1190,6 +1227,9 @@ defmodule ElixirLS.LanguageServer.Server do
         rescue
           e in InvalidParamError ->
             {:error, :invalid_params, e.message, true}
+
+          e in ContentModifiedError ->
+            {:error, :content_modified, e.message, true}
         end
 
       GenServer.call(parent, {:request_finished, id, result}, :infinity)

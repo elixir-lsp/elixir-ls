@@ -96,11 +96,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
           {:ok, nil}
 
         other ->
-          {:error, :server_error,
+          {:error, :request_failed,
            "cannot insert spec, workspace/applyEdit returned #{inspect(other)}", true}
       end
     else
-      {:error, :server_error,
+      {:error, :content_modified,
        "cannot insert spec, function definition has moved since suggestion was generated. " <>
          "Try again after file has been recompiled.", false}
     end
