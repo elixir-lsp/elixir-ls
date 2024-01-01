@@ -421,7 +421,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
             Code.ensure_loaded?(module),
-            docs = if(not String.ends_with?(path, ".erl"), do: ElixirSense.Core.Normalized.Code.get_docs(module, :docs)),
+            docs =
+              if(not String.ends_with?(path, ".erl"),
+                do: ElixirSense.Core.Normalized.Code.get_docs(module, :docs)
+              ),
             {function, arity} <- module.module_info(:exports) do
           {function, arity} = SourceFile.strip_macro_prefix({function, arity})
           location = find_function_location(module, function, arity, path, docs)
@@ -473,7 +476,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
         send(self, {:indexing_complete, key, results})
 
-        Logger.info("[ElixirLS WorkspaceSymbols] #{length(results)} #{key} added to index in #{div(us, 1000)}ms")
+        Logger.info(
+          "[ElixirLS WorkspaceSymbols] #{length(results)} #{key} added to index in #{div(us, 1000)}ms"
+        )
       end)
 
     :ok

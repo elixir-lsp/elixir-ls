@@ -97,6 +97,7 @@ defmodule ElixirLS.LanguageServer.Parser do
       _other ->
         ElixirLS.LanguageServer.Server.do_sanity_check()
         message = Exception.format_exit(reason)
+
         JsonRpc.telemetry(
           "lsp_server_error",
           %{
@@ -152,7 +153,7 @@ defmodule ElixirLS.LanguageServer.Parser do
         when current_version > old_version ->
           %Context{old_file | source_file: source_file}
 
-        %Context{source_file: %SourceFile{version: old_version}} = old_file ->
+        %Context{} = old_file ->
           old_file
       end)
 
