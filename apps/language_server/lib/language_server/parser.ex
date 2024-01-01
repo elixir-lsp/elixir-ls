@@ -12,7 +12,7 @@ defmodule ElixirLS.LanguageServer.Parser do
   require Logger
 
   @debounce_timeout 300
-  @parse_timeout 30_000
+  @parse_timeout 120_000
 
   @dummy_source ""
   @dummy_ast Code.string_to_quoted!(@dummy_source)
@@ -42,7 +42,10 @@ defmodule ElixirLS.LanguageServer.Parser do
     if should_parse?(uri, source_file) do
       GenServer.cast(__MODULE__, {:parse_with_debounce, uri, source_file})
     else
-      Logger.debug("Not parsing #{uri} with debounce: languageId #{source_file.language_id}")
+      Logger.debug(
+        "Not parsing #{uri} version #{source_file.version} languageId #{source_file.language_id} with debounce"
+      )
+
       :ok
     end
   end
@@ -51,7 +54,10 @@ defmodule ElixirLS.LanguageServer.Parser do
     if should_parse?(uri, source_file) do
       GenServer.call(__MODULE__, {:parse_immediate, uri, source_file, position}, @parse_timeout)
     else
-      Logger.debug("Not parsing #{uri} immediately: languageId #{source_file.language_id}")
+      Logger.debug(
+        "Not parsing #{uri} version #{source_file.version} languageId #{source_file.language_id} immediately"
+      )
+
       # not parsing - respond with empty struct
       %Context{
         source_file: source_file,
@@ -65,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Parser do
   @impl true
   def init(_args) do
     # TODO get source files on start?
-    {:ok, %{files: %{}, debounce_refs: %{}, parse_pids: %{}, parse_uris: %{}}}
+    {:ok, %{files: %{}, debounce_refs: %{}, parse_pids: %{}, parse_uris: %{}, queue: []}}
   end
 
   @impl GenServer
@@ -109,7 +115,10 @@ defmodule ElixirLS.LanguageServer.Parser do
     {:noreply, %{state | files: updated_files}}
   end
 
-  def handle_cast({:parse_with_debounce, uri, source_file = %SourceFile{}}, state) do
+  def handle_cast(
+        {:parse_with_debounce, uri, source_file = %SourceFile{version: current_version}},
+        state
+      ) do
     state =
       update_in(state.debounce_refs[uri], fn old_ref ->
         if old_ref do
@@ -119,16 +128,18 @@ defmodule ElixirLS.LanguageServer.Parser do
         Process.send_after(self(), {:parse_file, uri}, @debounce_timeout)
       end)
 
-    state = update_in(state.files[uri], fn
-      nil ->
-        %Context{
-          source_file: source_file,
-          path: get_path(uri)
-        }
+    state =
+      update_in(state.files[uri], fn
+        nil ->
+          %Context{
+            source_file: source_file,
+            path: get_path(uri)
+          }
 
-      old_file ->
-        %Context{old_file | source_file: source_file}
-    end)
+        %Context{source_file: %SourceFile{version: old_version}} = old_file
+        when current_version > old_version ->
+          %Context{old_file | source_file: source_file}
+      end)
 
     {:noreply, state}
   end
@@ -139,41 +150,60 @@ defmodule ElixirLS.LanguageServer.Parser do
         from,
         %{files: files} = state
       ) do
-    # TODO cancel if version greater?
     state = cancel_debounce(state, uri)
-
-    # TODO cancel or wait for parse end?
 
     current_version = source_file.version
     parent = self()
 
-    case files[uri] do
-      %Context{parsed_version: ^current_version} = file ->
-        Logger.debug("#{uri} already parsed")
+    case {files[uri], Map.has_key?(state.parse_pids, {uri, current_version})} do
+      {%Context{parsed_version: ^current_version} = file, _} ->
+        Logger.debug(
+          "#{uri} version #{current_version} languageId #{source_file.language_id} already parsed"
+        )
+
         file = maybe_fix_missing_env(file, position)
 
-        updated_files = Map.put(files, uri, file)
-        # no change to diagnostics, only update stored metadata
-        state = %{state | files: updated_files}
-        
         {:reply, file, state}
 
-      _other ->
-        Logger.debug("Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately")
+      {_, true} ->
+        Logger.debug(
+          "#{uri} version #{current_version} languageId #{source_file.language_id} is currently being parsed"
+        )
 
-        {pid, ref} = spawn_monitor(fn ->
-          # overwrite everything
-          updated_file =
-            %Context{
-              source_file: source_file,
-              path: get_path(uri)
-            }
-            |> do_parse(position)
-          send(parent, {:parse_file_done, uri, updated_file, from})
-        end)
+        state = %{state | queue: state.queue ++ [{{uri, current_version, position}, from}]}
+        {:noreply, state}
 
-        {:noreply, %{state | parse_pids: Map.put(state.parse_pids, {uri, current_version}, {pid, ref, from}), 
-        parse_uris: Map.put(state.parse_uris, ref, {uri, current_version})}}
+      {other, _} ->
+        Logger.debug(
+          "Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately"
+        )
+
+        updated_file =
+          case other do
+            nil ->
+              %Context{
+                source_file: source_file,
+                path: get_path(uri)
+              }
+
+            %Context{source_file: %SourceFile{version: old_version}} = old_file
+            when old_version <= current_version ->
+              %Context{old_file | source_file: source_file}
+          end
+
+        {pid, ref} =
+          spawn_monitor(fn ->
+            updated_file = do_parse(updated_file, position)
+            send(parent, {:parse_file_done, uri, updated_file, from})
+          end)
+
+        {:noreply,
+         %{
+           state
+           | files: Map.put(files, uri, updated_file),
+             parse_pids: Map.put(state.parse_pids, {uri, current_version}, {pid, ref, from}),
+             parse_uris: Map.put(state.parse_uris, ref, {uri, current_version})
+         }}
     end
   end
 
@@ -184,17 +214,25 @@ defmodule ElixirLS.LanguageServer.Parser do
       ) do
     file = Map.fetch!(files, uri)
     version = file.source_file.version
-    Logger.debug("Parsing #{uri} version #{version} languageId #{file.source_file.language_id} after debounce")
+
+    Logger.debug(
+      "Parsing #{uri} version #{version} languageId #{file.source_file.language_id} after debounce"
+    )
 
     parent = self()
 
-    {pid, ref} = spawn_monitor(fn ->
-      updated_file = do_parse(file)
-      send(parent, {:parse_file_done, uri, updated_file, nil})
-    end)
+    {pid, ref} =
+      spawn_monitor(fn ->
+        updated_file = do_parse(file)
+        send(parent, {:parse_file_done, uri, updated_file, nil})
+      end)
 
-    state = %{state | debounce_refs: Map.delete(debounce_refs, uri), parse_pids: Map.put(state.parse_pids, {uri, version}, {pid, ref, nil}),
-    parse_uris: Map.put(state.parse_uris, ref, {uri, version})}
+    state = %{
+      state
+      | debounce_refs: Map.delete(debounce_refs, uri),
+        parse_pids: Map.put(state.parse_pids, {uri, version}, {pid, ref, nil}),
+        parse_uris: Map.put(state.parse_uris, ref, {uri, version})
+    }
 
     {:noreply, state}
   end
@@ -207,11 +245,37 @@ defmodule ElixirLS.LanguageServer.Parser do
       GenServer.reply(from, updated_file)
     end
 
-    updated_files = Map.put(files, uri, updated_file)
-    state = %{state | files: updated_files}
-    notify_diagnostics_updated(updated_files)
+    parsed_file_version = updated_file.parsed_version
 
-    {:noreply, state}
+    state =
+      case files[uri] do
+        nil ->
+          # file got closed, no need to do anything
+          state
+
+        %Context{source_file: %SourceFile{version: version}} when version > parsed_file_version ->
+          # result is from stale request, discard it
+          state
+
+        _ ->
+          updated_files = Map.put(files, uri, updated_file)
+          notify_diagnostics_updated(updated_files)
+          %{state | files: updated_files}
+      end
+
+    queue =
+      Enum.reduce(state.queue, [], fn
+        {{^uri, ^parsed_file_version, position}, from}, acc ->
+          file = maybe_fix_missing_env(updated_file, position)
+          GenServer.reply(from, file)
+          acc
+
+        {request, from}, acc ->
+          [{request, from} | acc]
+      end)
+      |> Enum.reverse()
+
+    {:noreply, %{state | queue: queue}}
   end
 
   def handle_info(
@@ -236,6 +300,7 @@ defmodule ElixirLS.LanguageServer.Parser do
   end
 
   defp maybe_fix_missing_env(%Context{} = file, nil), do: file
+
   defp maybe_fix_missing_env(
          %Context{metadata: metadata, flag: flag, source_file: source_file = %SourceFile{}} =
            file,

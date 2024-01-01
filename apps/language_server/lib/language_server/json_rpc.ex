@@ -70,7 +70,11 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   defmacro error_response(id, code, message, data) do
     quote do
       %{
-        "error" => %{"code" => unquote(code), "message" => unquote(message), "data" => unquote(data)},
+        "error" => %{
+          "code" => unquote(code),
+          "message" => unquote(message),
+          "data" => unquote(data)
+        },
         "id" => unquote(id),
         "jsonrpc" => "2.0"
       }
@@ -89,6 +93,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   def respond_with_error(id, type, message \\ nil, data \\ nil) do
     {code, default_message} = error_code_and_message(type)
+
     if data do
       WireProtocol.send(error_response(id, code, message || default_message, data))
     else
@@ -252,7 +257,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   # -32099 - -32000 - JSON-RPC reserved error codes
   # No LSP error codes should be defined between the start and end range.
   # For backwards compatibility the `ServerNotInitialized` and the `UnknownErrorCode`
-	# are left in the range.
+  # are left in the range.
   defp error_code_and_message(:server_not_initialized), do: {-32002, "Server not initialized"}
   defp error_code_and_message(:unknown_error_code), do: {-32001, "Unknown error code"}
 
