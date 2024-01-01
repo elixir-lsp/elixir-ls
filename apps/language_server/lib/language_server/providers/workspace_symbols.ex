@@ -275,16 +275,16 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end
   end
 
-  defp find_function_location(module, function, arity, path) do
+  defp find_function_location(module, function, arity, path, docs) do
     line =
       if String.ends_with?(path, ".erl") do
         ErlangSourceFile.function_line(path, function)
       else
-        SourceFile.function_line(module, function, arity)
+        SourceFile.function_line(module, function, arity, docs)
       end
 
     # both functions can return nil
-    max(line || 1, 1)
+    line || 1
   end
 
   defp find_module_path(module, beam_file) do
@@ -420,9 +420,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk,
             Code.ensure_loaded?(module),
+            docs = if(not String.ends_with?(path, ".erl"), do: ElixirSense.Core.Normalized.Code.get_docs(module, :docs)),
             {function, arity} <- module.module_info(:exports) do
           {function, arity} = SourceFile.strip_macro_prefix({function, arity})
-          location = find_function_location(module, function, arity, path)
+          location = find_function_location(module, function, arity, path, docs)
 
           build_result(:functions, {module, function, arity}, path, location, project_dir)
         end
@@ -467,11 +468,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
     {:ok, _pid} =
       Task.start_link(fn ->
-        results = fun.()
+        {us, results} = :timer.tc(fun)
 
         send(self, {:indexing_complete, key, results})
 
-        Logger.info("[ElixirLS WorkspaceSymbols] #{length(results)} #{key} added to index")
+        Logger.info("[ElixirLS WorkspaceSymbols] #{length(results)} #{key} added to index in #{div(us, 1000)}ms")
       end)
 
     :ok

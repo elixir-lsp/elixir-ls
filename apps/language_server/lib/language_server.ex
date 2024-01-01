@@ -134,6 +134,8 @@ defmodule ElixirLS.LanguageServer do
         true
       end
 
+    :persistent_term.put(:language_server_eep48, supported)
+
     JsonRpc.telemetry("eep48", %{"elixir_ls.eep48" => to_string(supported)}, %{})
   end
 
