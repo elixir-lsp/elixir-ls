@@ -562,7 +562,7 @@ defmodule ElixirLS.LanguageServer.Parser do
                     )
 
                   Code.ensure_loaded?(Phoenix.LiveView.HTMLEngine) ->
-                    # LV <= 0.17
+                    # LV <= 0.18.17
                     EEx.compile_string(text,
                       file: file,
                       parser_options: parser_options,
