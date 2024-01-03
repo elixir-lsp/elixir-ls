@@ -30,6 +30,16 @@ else
     "$mise" env -s fish | source
   else
     echo "mise not found" >&2
+    echo "Looking for rtx executable" >&2
+
+    set rtx (which rtx)
+    if test -n "$rtx"
+      echo "rtx executable found in $rtx, activating" >&2
+
+      "$rtx" env -s fish | source
+    else
+      echo "rtx not found" >&2
+    end
   end
 end
 

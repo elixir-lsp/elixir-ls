@@ -56,6 +56,15 @@ else
     eval "$($(which mise) env -s "$preferred_shell")"
   else
     >&2 echo "mise not found"
+    >&2 echo "Looking for rtx executable"
+
+    if which rtx >/dev/null
+    then
+      >&2 echo "rtx executable found in $(which rtx), activating"
+      eval "$($(which rtx) env -s "$preferred_shell")"
+    else
+      >&2 echo "rtx not found"
+    fi
   fi
 fi
 
