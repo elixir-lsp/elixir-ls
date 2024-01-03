@@ -21,15 +21,15 @@ if test -f "$asdf_vm"
   source "$asdf_vm"
 else
   echo "ASDF not found" >&2
-  echo "Looking for rtx executable" >&2
+  echo "Looking for mise executable" >&2
 
-  set rtx (which rtx)
-  if test -n "$rtx"
-    echo "rtx executable found in $rtx, activating" >&2
+  set mise (which mise)
+  if test -n "$mise"
+    echo "mise executable found in $mise, activating" >&2
 
-    "$rtx" env -s fish | source
+    "$mise" env -s fish | source
   else
-    echo "rtx not found" >&2
+    echo "mise not found" >&2
   end
 end
 

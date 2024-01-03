@@ -42,14 +42,14 @@ then
   .  "${asdf_vm}"
 else
   >&2 echo "ASDF not found"
-  >&2 echo "Looking for rtx executable"
+  >&2 echo "Looking for mise executable"
 
-  if which rtx >/dev/null
+  if which mise >/dev/null
   then
-    >&2 echo "rtx executable found in $(which rtx), activating"
-    eval "$($(which rtx) activate "$preferred_shell")"
+    >&2 echo "mise executable found in $(which mise), activating"
+    eval "$($(which mise) activate "$preferred_shell")"
   else
-    >&2 echo "rtx not found"
+    >&2 echo "mise not found"
   fi
 fi
 
