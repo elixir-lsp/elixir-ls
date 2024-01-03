@@ -3,7 +3,7 @@
 Incomplete installations is a frequent cause of ElixirLS failures. Generally
 this is resolved by:
 
-* Installing elixir and erlang via [ASDF](https://github.com/asdf-vm/asdf) or [RTX](https://github.com/jdx/rtx)
+* Installing elixir and erlang via [ASDF](https://github.com/asdf-vm/asdf) or [MISE](https://github.com/jdx/mise)
   (recommended)
 * Installing a full version of Erlang/OTP via the package manager
 
@@ -16,7 +16,7 @@ installed. For Ubuntu this can be fixed by running
 sudo apt-get install erlang erlang-dialyzer
 ```
 
-or installing Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) or [RTX](https://github.com/jdx/rtx)
+or installing Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) or [MISE](https://github.com/jdx/mise)
 
 Relevant issue: https://github.com/elixir-lsp/vscode-elixir-ls/issues/134
 
@@ -29,6 +29,6 @@ installed. For fedora this can be fixed by running
 sudo dnf install erlang erlang-edoc
 ```
 
-or installing Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) or [RTX](https://github.com/jdx/rtx)
+or installing Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) or [MISE](https://github.com/jdx/mise)
 
 Relevant issue: https://github.com/elixir-lsp/elixir-ls/issues/431
