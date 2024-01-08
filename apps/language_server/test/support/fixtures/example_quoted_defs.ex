@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs do
   quoted def
   """
   @spec unquote(:"0abc\"asd")(any, integer) :: :ok
-  def unquote(:"0abc\"asd")(example, arg) do
+  def unquote(:"0abc\"asd")(_example, _arg) do
     :ok
   end
 end
