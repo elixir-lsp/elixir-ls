@@ -148,16 +148,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     end
   end
 
-  def module_line(module) do
-    case ElixirSense.Core.Normalized.Code.get_docs(module, :moduledoc) do
-      nil ->
-        nil
-
-      {line, _docs, _metadata} ->
-        line
-    end
-  end
-
   def function_line(mod, fun, arity, docs \\ nil) do
     case docs || ElixirSense.Core.Normalized.Code.get_docs(mod, :docs) do
       nil ->
