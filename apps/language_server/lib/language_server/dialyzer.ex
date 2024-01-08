@@ -39,10 +39,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
            "separate package."}
 
       not dialyzable?(System) ->
-        # TODO is this relevant anymore? We require OTP 22+ (minimum for elixir 1.13)
         {:error, :no_debug_info,
          "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
-           "You may need to recompile Elixir with Erlang >= OTP 20"}
+           "You may need to recompile Elixir"}
 
       true ->
         :ok
