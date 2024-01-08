@@ -19,9 +19,6 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
       %{
         state
         | modules_indexed: true,
-          functions_indexed: true,
-          types_indexed: true,
-          callbacks_indexed: true,
           modified_uris: [fixture_uri]
       }
     end)
@@ -34,7 +31,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
   end
 
   test "empty query", %{server: server} do
-    assert {:ok, []} == WorkspaceSymbols.symbols("", server)
+    assert {:ok, list} = WorkspaceSymbols.symbols("", server)
+    assert is_list(list)
+    assert list != []
   end
 
   test "returns modules", %{server: server} do
@@ -43,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
     assert module =
              Enum.find(list, &(&1.name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"))
 
-    assert module.kind == 2
+    assert module.kind == 11
     assert module.location.uri |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
 
     assert module.location.range == %{
@@ -66,6 +65,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
              )
 
     assert some_function.kind == 12
+
+    assert some_function.containerName == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
 
     assert some_function.location.uri
            |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
@@ -92,6 +93,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
              )
 
     assert some_type.kind == 5
+
+    assert some_type.containerName == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
 
     assert some_type.location.uri
            |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
@@ -124,6 +127,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
 
     assert some_callback.kind == 24
 
+    assert some_callback.containerName == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
+
     assert some_callback.location.uri
            |> String.ends_with?("test/support/fixtures/workspace_symbols.ex")
 
@@ -147,7 +152,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
   defp wait_until_indexed(pid) do
     state = :sys.get_state(pid)
 
-    if state.modules == [] or state.functions == [] or state.types == [] or state.callbacks == [] do
+    if state.modules == [] do
       Process.sleep(500)
       wait_until_indexed(pid)
     end
