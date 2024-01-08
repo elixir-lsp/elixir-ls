@@ -951,6 +951,8 @@ defmodule ElixirLS.LanguageServer.Server do
         server_instance_id: server_instance_id
     }
 
+    :persistent_term.put(:language_server_client_capabilities, client_capabilities)
+
     {:ok,
      %{
        "capabilities" => server_capabilities(server_instance_id),
