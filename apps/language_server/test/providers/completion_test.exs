@@ -565,8 +565,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       assert [item] = items
 
-      # 3 is function
-      assert item["kind"] == 3
+      # 21 is constant which we use for macro
+      assert item["kind"] == 21
       assert item["label"] == "error"
       assert item["detail"] == "macro"
       assert item["labelDetails"]["detail"] == "(message_or_fun, metadata \\\\ [])"

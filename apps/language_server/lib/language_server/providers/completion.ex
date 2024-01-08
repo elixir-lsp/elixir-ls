@@ -12,6 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirSense.Providers.Suggestion.Matcher
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
+  require Logger
 
   @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
   defstruct [
@@ -172,6 +173,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       )
 
     required_alias = Keyword.get(options, :auto_insert_required_alias, true)
+    parent = self()
+    pid = spawn(fn ->
+      for _i <- 1..100 do
+        receive do
+         :done -> :ok
+        after
+          1000 ->
+            case Process.info(parent, :current_stacktrace) do
+              {:current_stacktrace, stacktrace} ->
+                dbg(stacktrace)
+              nil -> :ok
+            end
+        end
+      end
+    end)
 
     items =
       ElixirSense.suggestions(text, line, character,
@@ -185,10 +201,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> Enum.reject(&is_nil/1)
       |> sort_items()
 
+    send(pid, :done)
+
     # add trigger signatures to arity 0 if there are higher arity completions that would trigger
     commands =
       items
-      |> Enum.filter(&(&1.kind in [:function, :class]))
+      |> Enum.filter(&(&1.kind in [:function, :constant, :class]))
       |> Enum.group_by(&{&1.kind, &1.label})
       |> Map.new(fn {key, values} ->
         command = Enum.find_value(values, & &1.command)
@@ -198,7 +216,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     items =
       items
       |> Enum.map(fn
-        %{command: nil, kind: kind} = item when kind in [:function, :class] ->
+        %{command: nil, kind: kind} = item when kind in [:function, :constant, :class] ->
           command = commands[{kind, item.label}]
 
           if command do
@@ -375,7 +393,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     %__MODULE__{
       label: name,
-      kind: :variable,
+      kind: :enum_member,
       detail: "module attribute",
       documentation: name <> "\n" <> if(summary, do: summary, else: ""),
       insert_text: insert_text,
@@ -1223,7 +1241,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     if label == name or remote_calls? do
       %__MODULE__{
         label: label,
-        kind: :function,
+        kind: if(type == :function, do: :function, else: :constant),
         detail: to_string(type),
         label_details: %{
           "detail" => "(#{Enum.join(args_list, ", ")})",

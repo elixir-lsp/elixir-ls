@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 children: [
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@my_mod_var",
                     range: %{
                       "end" => %{"character" => 37, "line" => 2},
@@ -83,17 +83,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 12,
+                    kind: 14,
                     name: "defmacro my_macro()"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 12,
+                    kind: 14,
                     name: "defmacrop my_private_macro()"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 12,
+                    kind: 14,
                     name: "defguard my_guard(a)",
                     range: %{
                       "end" => %{"character" => 47, "line" => 7},
@@ -106,7 +106,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 12,
+                    kind: 14,
                     name: "defguardp my_private_guard(a)"
                   },
                   %Protocol.DocumentSymbol{
@@ -124,7 +124,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 12,
+                    kind: 14,
                     name: "defguard my_guard"
                   },
                   %Protocol.DocumentSymbol{
@@ -257,7 +257,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 name: "@my_mod_var",
-                kind: 14,
+                kind: 22,
                 location: %{
                   range: %{
                     "end" => %{"character" => 37, "line" => 2},
@@ -284,17 +284,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 name: "defmacro my_macro()",
-                kind: 12,
+                kind: 14,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "defmacrop my_private_macro()",
-                kind: 12,
+                kind: 14,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "defguard my_guard(a)",
-                kind: 12,
+                kind: 14,
                 location: %{
                   range: %{
                     "end" => %{"character" => 47, "line" => 7},
@@ -305,7 +305,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 name: "defguardp my_private_guard(a)",
-                kind: 12,
+                kind: 14,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
@@ -321,7 +321,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 name: "defguard my_guard",
-                kind: 12,
+                kind: 14,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
@@ -1269,7 +1269,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@type"
                   }
                 ],
@@ -1345,7 +1345,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
-                kind: 14,
+                kind: 22,
                 name: "@type",
                 containerName: "MyModule"
               }
@@ -1739,7 +1739,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 children: [
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@optional_callbacks",
                     range: %{
                       "end" => %{"character" => 58, "line" => 1},
@@ -1757,62 +1757,62 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@derive"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@enforce_keys"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@compile"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@dialyzer"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@file"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@external_resource"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@on_load"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@on_definition"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@vsn"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@after_compile"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@before_compile"
                   },
                   %Protocol.DocumentSymbol{
                     children: [],
-                    kind: 14,
+                    kind: 22,
                     name: "@fallback_to_any"
                   }
                 ],
@@ -1863,7 +1863,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 name: "@optional_callbacks",
-                kind: 14,
+                kind: 22,
                 location: %{
                   range: %{
                     "end" => %{"character" => 58, "line" => 1},
@@ -1879,62 +1879,62 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               },
               %Protocol.SymbolInformation{
                 name: "@derive",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@enforce_keys",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@compile",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@dialyzer",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@file",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@external_resource",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@on_load",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@on_definition",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@vsn",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@after_compile",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@before_compile",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               },
               %Protocol.SymbolInformation{
                 name: "@fallback_to_any",
-                kind: 14,
+                kind: 22,
                 containerName: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
