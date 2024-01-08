@@ -249,7 +249,12 @@ defmodule ElixirLS.LanguageServer.Server do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
         abs_path = SourceFile.Path.absolute_from_uri(uri, state.project_dir)
-        {:reply, Dialyzer.suggest_contracts([abs_path]), state}
+        parent = self()
+        spawn(fn ->
+          contracts = Dialyzer.suggest_contracts(parent, [abs_path])
+          GenServer.reply(from, contracts)
+        end)
+        {:noreply, state}
 
       %{source_files: %{^uri => _}} ->
         # file not saved or analysis not finished
@@ -1521,19 +1526,24 @@ defmodule ElixirLS.LanguageServer.Server do
           Map.fetch!(state.source_files, uri).dirty?
         end)
 
-      contracts_by_file =
-        not_dirty
-        |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
-        |> Dialyzer.suggest_contracts()
-        |> Enum.group_by(fn {file, _, _, _, _} -> file end)
+      # Dialyzer.suggest_contracts is blocking and can take a long time to complete
+      # if we block here we hang the server
+      parent = self()
+      spawn(fn ->
+        contracts_by_file =
+          not_dirty
+          |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
+          |> then(fn uris -> Dialyzer.suggest_contracts(parent, uris) end)
+          |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
-      for {from, uri} <- not_dirty do
-        contracts =
-          contracts_by_file
-          |> Map.get(SourceFile.Path.from_uri(uri), [])
+        for {from, uri} <- not_dirty do
+          contracts =
+            contracts_by_file
+            |> Map.get(SourceFile.Path.from_uri(uri), [])
 
-        GenServer.reply(from, contracts)
-      end
+          GenServer.reply(from, contracts)
+        end
+      end)
 
       %{state | analysis_ready?: true, awaiting_contracts: dirty}
     else
