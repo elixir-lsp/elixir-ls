@@ -71,15 +71,15 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     GenServer.cast(__MODULE__, :notify_settings_stored)
   end
 
-  def notify_build_complete(server \\ __MODULE__, override_test_mode \\ false) do
-    unless :persistent_term.get(:language_server_test_mode, false) && not override_test_mode do
+  def notify_build_complete(server \\ __MODULE__) do
+    unless :persistent_term.get(:language_server_test_mode, false) and not :persistent_term.get(:language_server_override_test_mode, false) do
       GenServer.cast(server, :build_complete)
     end
   end
 
   @spec notify_uris_modified([String.t()]) :: :ok | nil
-  def notify_uris_modified(uris, server \\ __MODULE__, override_test_mode \\ false) do
-    unless :persistent_term.get(:language_server_test_mode, false) && not override_test_mode do
+  def notify_uris_modified(uris, server \\ __MODULE__) do
+    unless :persistent_term.get(:language_server_test_mode, false) and not :persistent_term.get(:language_server_override_test_mode, false) do
       GenServer.cast(server, {:uris_modified, uris})
     end
   end
