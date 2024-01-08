@@ -250,10 +250,12 @@ defmodule ElixirLS.LanguageServer.Server do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
         abs_path = SourceFile.Path.absolute_from_uri(uri, state.project_dir)
         parent = self()
+
         spawn(fn ->
           contracts = Dialyzer.suggest_contracts(parent, [abs_path])
           GenServer.reply(from, contracts)
         end)
+
         {:noreply, state}
 
       %{source_files: %{^uri => _}} ->
@@ -1529,6 +1531,7 @@ defmodule ElixirLS.LanguageServer.Server do
       # Dialyzer.suggest_contracts is blocking and can take a long time to complete
       # if we block here we hang the server
       parent = self()
+
       spawn(fn ->
         contracts_by_file =
           not_dirty
