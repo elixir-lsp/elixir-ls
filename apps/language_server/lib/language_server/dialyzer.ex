@@ -76,13 +76,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     )
   end
 
-  def suggest_contracts(server \\ {:global, {self(), __MODULE__}}, files)
+  def suggest_contracts(parent \\ self(), files)
 
-  def suggest_contracts(_server, []), do: []
+  def suggest_contracts(_parent, []), do: []
 
-  def suggest_contracts(server, files) do
+  def suggest_contracts(parent, files) do
     try do
-      GenServer.call(server, {:suggest_contracts, files}, :infinity)
+      GenServer.call({:global, {parent, __MODULE__}}, {:suggest_contracts, files}, :infinity)
     catch
       kind, payload ->
         {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
