@@ -13,6 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     defstruct [:type, :name, :location, :children, :selection_location, :symbol]
   end
 
+  @macro_defs [:defmacro, :defmacrop, :defguard, :defguardp]
   @defs [:def, :defp, :defmacro, :defmacrop, :defguard, :defguardp, :defdelegate]
 
   @supplementing_attributes [
@@ -210,7 +211,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   # Other attributes
   defp extract_symbol(_current_module, {:@, location, [{name, _, _}]}) when is_atom(name) do
-    %Info{type: :constant, name: "@#{name}", location: location, children: []}
+    %Info{type: :enum_member, name: "@#{name}", location: location, children: []}
   end
 
   # Function, macro, guard with when
@@ -222,7 +223,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     name = Macro.to_string(fn_head) |> String.replace("\n", "")
 
     %Info{
-      type: :function,
+      type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: "#{name}",
       name: "#{defname} #{name}",
       location: location,
@@ -237,7 +238,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     name = Macro.to_string(fn_head) |> String.replace("\n", "")
 
     %Info{
-      type: :function,
+      type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: "#{name}",
       name: "#{defname} #{name}",
       location: location,
