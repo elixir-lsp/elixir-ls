@@ -597,9 +597,12 @@ defmodule ElixirLS.LanguageServer.Build do
     # see https://github.com/elixir-lang/elixir/issues/13001
     for app <- mix_project_apps do
       purge_app(app, false)
+
       if reload? do
         case Application.load(app) do
-          :ok -> :ok
+          :ok ->
+            :ok
+
           {:error, reason} ->
             Logger.warning("Application #{app} failed to load: #{inspect(reason)}")
         end

@@ -72,14 +72,16 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   def notify_build_complete(server \\ __MODULE__) do
-    unless :persistent_term.get(:language_server_test_mode, false) and not :persistent_term.get(:language_server_override_test_mode, false) do
+    unless :persistent_term.get(:language_server_test_mode, false) and
+             not :persistent_term.get(:language_server_override_test_mode, false) do
       GenServer.cast(server, :build_complete)
     end
   end
 
   @spec notify_uris_modified([String.t()]) :: :ok | nil
   def notify_uris_modified(uris, server \\ __MODULE__) do
-    unless :persistent_term.get(:language_server_test_mode, false) and not :persistent_term.get(:language_server_override_test_mode, false) do
+    unless :persistent_term.get(:language_server_test_mode, false) and
+             not :persistent_term.get(:language_server_override_test_mode, false) do
       GenServer.cast(server, {:uris_modified, uris})
     end
   end
@@ -153,7 +155,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
     # as of LSP 3.17 only one tag is defined and clients are required to silently ignore unknown tags
     # so there's no need to pass the list
-    tag_support = :persistent_term.get(:language_server_client_capabilities)["workspace"]["symbol"]["tagSupport"] != nil
+    tag_support =
+      :persistent_term.get(:language_server_client_capabilities)["workspace"]["symbol"][
+        "tagSupport"
+      ] != nil
 
     {:noreply, %{state | project_dir: project_dir, tag_support: tag_support}}
   end
@@ -230,7 +235,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   # indexed and no uris modified or already indexing
   def handle_cast(:build_complete, state) do
-    IO.puts "build_complete not indexing #{inspect(state.modified_uris)}"
+    IO.puts("build_complete not indexing #{inspect(state.modified_uris)}")
     {:noreply, state}
   end
 
@@ -256,91 +261,109 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   ## Helpers
 
   defp get_app_modules() do
-    apps = if Mix.Project.umbrella?() do
-      for {app, _path} <- Mix.Project.apps_paths() do
-        app
+    apps =
+      if Mix.Project.umbrella?() do
+        for {app, _path} <- Mix.Project.apps_paths() do
+          app
+        end
+      else
+        [Mix.Project.config()[:app]]
       end
-    else
-      [Mix.Project.config()[:app]]
-    end
 
     for app <- apps do
       case :application.get_key(app, :modules) do
         {:ok, modules} ->
           modules
-        :undefined -> []
+
+        :undefined ->
+          []
       end
     end
-    |> List.flatten
+    |> List.flatten()
     |> Enum.filter(&Code.ensure_loaded?/1)
   end
 
   defp find_module_path(module) do
-      with true <- Code.ensure_loaded?(module),
-           path when not is_nil(path) <- module.module_info(:compile)[:source],
-           path_binary = List.to_string(path),
-           true <- File.exists?(path_binary, [:raw]) do
-        path_binary
-      else
-        _ -> nil
-      end
+    with true <- Code.ensure_loaded?(module),
+         path when not is_nil(path) <- module.module_info(:compile)[:source],
+         path_binary = List.to_string(path),
+         true <- File.exists?(path_binary, [:raw]) do
+      path_binary
+    else
+      _ -> nil
+    end
   end
 
-  @module_kind_codes [SymbolUtils.symbol_kind_to_code(:module), SymbolUtils.symbol_kind_to_code(:interface)]
+  @module_kind_codes [
+    SymbolUtils.symbol_kind_to_code(:module),
+    SymbolUtils.symbol_kind_to_code(:interface)
+  ]
 
-  defp get_score(%{name: name, kind: kind_code}, %{query: query, query_downcase: query_downcase, query_parts: query_parts}) do
+  defp get_score(%{name: name, kind: kind_code}, %{
+         query: query,
+         query_downcase: query_downcase,
+         query_parts: query_parts
+       }) do
     name_downcase = String.downcase(name)
     name_length = String.length(name)
 
-    last_part = name |> String.split(".") |> List.last
+    last_part = name |> String.split(".") |> List.last()
     last_part_downcase = String.downcase(last_part)
 
-    res = cond do
-      Matcher.match?(" " <> last_part, " " <> query) ->
-        # exact case match on function/type/callback or last part in module alias
-        # assumes query does not include `.`
+    res =
+      cond do
+        Matcher.match?(" " <> last_part, " " <> query) ->
+          # exact case match on function/type/callback or last part in module alias
+          # assumes query does not include `.`
 
-        # 0-1 boost for similarity
-        distance = String.jaro_distance(last_part, query)
-        1.9 + distance
-      Matcher.match?(" " <> last_part_downcase, " " <> query_downcase) ->
-        # non exact case match on function/type/callback or last part in module alias
-        # assumes query does not include `.`
+          # 0-1 boost for similarity
+          distance = String.jaro_distance(last_part, query)
+          1.9 + distance
 
-        # 0-1 boost for similarity
-        distance = String.jaro_distance(last_part_downcase, query_downcase)
-        1.7 + distance
-      Matcher.match?(" " <> name, " " <> query) ->
-        # exact case match on full name
+        Matcher.match?(" " <> last_part_downcase, " " <> query_downcase) ->
+          # non exact case match on function/type/callback or last part in module alias
+          # assumes query does not include `.`
 
-        # 0-1 boost for similarity
-        distance = String.jaro_distance(name, query)
+          # 0-1 boost for similarity
+          distance = String.jaro_distance(last_part_downcase, query_downcase)
+          1.7 + distance
 
-        # 0-1 penalty starting for names longer than 8 codepoints
-        length_penalty = 1.0 - 1.0 / max(1, name_length / 8.0)
+        Matcher.match?(" " <> name, " " <> query) ->
+          # exact case match on full name
 
-        1.5 + distance - length_penalty
-      Matcher.match?(" " <> name_downcase, " " <> query_downcase) ->
-        # non exact case match on full name
+          # 0-1 boost for similarity
+          distance = String.jaro_distance(name, query)
 
-        # 0-1 boost for similarity
-        distance = String.jaro_distance(name_downcase, query_downcase)
-        
-        # 0-1 penalty starting for names longer than 8 codepoints
-        length_penalty = 1.0 - 1.0 / max(1, name_length / 8.0)
+          # 0-1 penalty starting for names longer than 8 codepoints
+          length_penalty = 1.0 - 1.0 / max(1, name_length / 8.0)
 
-        1.2 + distance - length_penalty
-      true ->
+          1.5 + distance - length_penalty
+
+        Matcher.match?(" " <> name_downcase, " " <> query_downcase) ->
+          # non exact case match on full name
+
+          # 0-1 boost for similarity
+          distance = String.jaro_distance(name_downcase, query_downcase)
+
+          # 0-1 penalty starting for names longer than 8 codepoints
+          length_penalty = 1.0 - 1.0 / max(1, name_length / 8.0)
+
+          1.2 + distance - length_penalty
+
+        true ->
+          0.0
+      end
+
+    res =
+      if res > 0.0 and kind_code not in @module_kind_codes and length(query_parts) == 1 and
+           not Matcher.match?(" " <> last_part_downcase, " " <> query_downcase) do
+        # exclude functions/types/callbacks when module matches and function/type/callback does not contribute
+        # IO.puts("excluding #{name}")
         0.0
-    end
+      else
+        res
+      end
 
-    res = if res > 0.0 and kind_code not in @module_kind_codes and length(query_parts) == 1 and not Matcher.match?(" " <> last_part_downcase, " " <> query_downcase) do
-      # exclude functions/types/callbacks when module matches and function/type/callback does not contribute
-      # IO.puts("excluding #{name}")
-      0.0
-    else
-      res
-    end
     # if res > 0 do
     #   IO.puts("#{query} #{name} #{res}")
     # end
@@ -360,12 +383,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       chunked_module_paths
       |> do_process_chunked(fn chunk ->
         for {module, path} <- chunk do
-          {module_annotation, module_metadata, docs} = case Code.fetch_docs(module) do
-            {:docs_v1, module_annotation, _, _, _, module_metadata, docs} ->
-              {module_annotation, module_metadata, docs}
-            _ ->
-              {0, %{}, []}
-          end
+          {module_annotation, module_metadata, docs} =
+            case Code.fetch_docs(module) do
+              {:docs_v1, module_annotation, _, _, _, module_metadata, docs} ->
+                {module_annotation, module_metadata, docs}
+
+              _ ->
+                {0, %{}, []}
+            end
 
           # TODO migrate Complete to use Code.fetch_docs format?
           # docs = ElixirSense.Core.Normalized.Code.get_docs(module, :moduledoc)
@@ -378,105 +403,159 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
           # TODO @moduledoc location
           location = find_module_location(path, module_annotation)
-          module_symbol_kind = cond do
-            function_exported?(module, :behaviour_info, 1) ->
-              :interface
-            function_exported?(module, :__struct__, 0) ->
-              :struct
-            true ->
-              :module
-          end
-          module_result = build_result(module_symbol_kind, module, path, location, module_metadata, project_dir, tag_support)
+
+          module_symbol_kind =
+            cond do
+              function_exported?(module, :behaviour_info, 1) ->
+                :interface
+
+              function_exported?(module, :__struct__, 0) ->
+                :struct
+
+              true ->
+                :module
+            end
+
+          module_result =
+            build_result(
+              module_symbol_kind,
+              module,
+              path,
+              location,
+              module_metadata,
+              project_dir,
+              tag_support
+            )
 
           # functions/macros
-          function_results = for {function, arity_original} <- module.module_info(:exports),
-          {function, arity_original} not in @builtin_functions,
-          {function, arity} = SourceFile.strip_macro_prefix({function, arity_original}) do
-            kind = if arity == arity_original do
-              :function
-            else
-              :macro
-            end
-
-            {annotation, metadata, found_arity} = Enum.find_value(docs, {0, %{}, arity}, fn
-              {{^kind, ^function, a}, annotation, _, _, metadata} ->
-                default_args = Map.get(metadata, :defaults, 0)
-
-                if Introspection.matches_arity_with_defaults?(a, default_args, arity) do
-                  {annotation, metadata, a}
+          function_results =
+            for {function, arity_original} <- module.module_info(:exports),
+                {function, arity_original} not in @builtin_functions,
+                {function, arity} = SourceFile.strip_macro_prefix({function, arity_original}) do
+              kind =
+                if arity == arity_original do
+                  :function
+                else
+                  :macro
                 end
-              _ ->
-                nil
-            end)
 
-            # discard lower arity results for functions/macros with default args
-            if found_arity == arity do
-              # TODO @doc location
-              location = find_function_location(function, path, annotation)
-              symbol_kind = if kind == :function, do: :function, else: :constant
-              build_result(symbol_kind, {module, function, arity}, path, location, metadata, project_dir, tag_support)
+              {annotation, metadata, found_arity} =
+                Enum.find_value(docs, {0, %{}, arity}, fn
+                  {{^kind, ^function, a}, annotation, _, _, metadata} ->
+                    default_args = Map.get(metadata, :defaults, 0)
+
+                    if Introspection.matches_arity_with_defaults?(a, default_args, arity) do
+                      {annotation, metadata, a}
+                    end
+
+                  _ ->
+                    nil
+                end)
+
+              # discard lower arity results for functions/macros with default args
+              if found_arity == arity do
+                # TODO @doc location
+                location = find_function_location(function, path, annotation)
+                symbol_kind = if kind == :function, do: :function, else: :constant
+
+                build_result(
+                  symbol_kind,
+                  {module, function, arity},
+                  path,
+                  location,
+                  metadata,
+                  project_dir,
+                  tag_support
+                )
+              end
             end
-          end
-          |> Enum.reject(&is_nil/1)
+            |> Enum.reject(&is_nil/1)
 
           # callbacks/macrocallbacks
 
-          callback_results = if function_exported?(module, :behaviour_info, 1) do
-            for {{callback, arity}, [{:type, location, _, _}]} <- ElixirSense.Core.Normalized.Typespec.get_callbacks(module) do
-              {callback, arity} = SourceFile.strip_macro_prefix({callback, arity})
+          callback_results =
+            if function_exported?(module, :behaviour_info, 1) do
+              for {{callback, arity}, [{:type, location, _, _}]} <-
+                    ElixirSense.Core.Normalized.Typespec.get_callbacks(module) do
+                {callback, arity} = SourceFile.strip_macro_prefix({callback, arity})
 
-              {annotation, metadata} = Enum.find_value(docs, {0, %{}}, fn
-                {{kind, ^callback, ^arity}, annotation, _, _, metadata} when kind in [:callback, :macrocallback] ->
-                  {annotation, metadata}
-                _ ->
-                  nil
-              end)
+                {annotation, metadata} =
+                  Enum.find_value(docs, {0, %{}}, fn
+                    {{kind, ^callback, ^arity}, annotation, _, _, metadata}
+                    when kind in [:callback, :macrocallback] ->
+                      {annotation, metadata}
 
-              location = if :erl_anno.line(annotation) != 0 do
-                # TODO @doc location
-                annotation
-              else
-                location
+                    _ ->
+                      nil
+                  end)
+
+                location =
+                  if :erl_anno.line(annotation) != 0 do
+                    # TODO @doc location
+                    annotation
+                  else
+                    location
+                  end
+
+                build_result(
+                  :event,
+                  {module, callback, arity},
+                  path,
+                  location,
+                  metadata,
+                  project_dir,
+                  tag_support
+                )
               end
-    
-              build_result(:event, {module, callback, arity}, path, location, metadata, project_dir, tag_support)
+            else
+              []
             end
-          else
-            []
-          end
 
           # typespecs
 
-          typespec_results = for {kind, {type, type_ast, args}} <-
-              ElixirSense.Core.Normalized.Typespec.get_types(module),
-            kind in [:type, :opaque] do
-            arity = length(args)
-            location =
-              case type_ast do
-                {_, location, _, _} -> location
-                {_, location, _} -> location
-              end
+          typespec_results =
+            for {kind, {type, type_ast, args}} <-
+                  ElixirSense.Core.Normalized.Typespec.get_types(module),
+                kind in [:type, :opaque] do
+              arity = length(args)
 
-            {annotation, metadata} = Enum.find_value(docs, {0, %{}}, fn
-              {{:type, ^type, ^arity}, annotation, _, _, metadata} ->
-                {annotation, metadata}
-              _ ->
-                nil
-            end)
+              location =
+                case type_ast do
+                  {_, location, _, _} -> location
+                  {_, location, _} -> location
+                end
 
-            location = if :erl_anno.line(annotation) != 0 do
-              # TODO @typedoc location
-              annotation
-            else
-              location
+              {annotation, metadata} =
+                Enum.find_value(docs, {0, %{}}, fn
+                  {{:type, ^type, ^arity}, annotation, _, _, metadata} ->
+                    {annotation, metadata}
+
+                  _ ->
+                    nil
+                end)
+
+              location =
+                if :erl_anno.line(annotation) != 0 do
+                  # TODO @typedoc location
+                  annotation
+                else
+                  location
+                end
+
+              build_result(
+                :class,
+                {module, type, arity},
+                path,
+                location,
+                metadata,
+                project_dir,
+                tag_support
+              )
             end
-
-            build_result(:class, {module, type, arity}, path, location, metadata, project_dir, tag_support)
-          end
 
           [module_result] ++ function_results ++ callback_results ++ typespec_results
         end
-        |> List.flatten
+        |> List.flatten()
       end)
     end)
   end
@@ -487,6 +566,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       ErlangSourceFile.module_line(path)
     end || 0
   end
+
   defp find_module_location(_path, annotation), do: annotation
 
   defp find_function_location(function, path, 0) do
@@ -494,6 +574,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       ErlangSourceFile.function_line(path, function)
     end || 0
   end
+
   defp find_function_location(_function, _path, annotation), do: annotation
 
   defp index_async(key, fun) do
@@ -570,12 +651,15 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
         range: build_range(annotation)
       }
     }
+
     container_name = container_name(key, symbol)
-    res = if container_name do
-      Map.put(res, :containerName, container_name)
-    else
-      res
-    end
+
+    res =
+      if container_name do
+        Map.put(res, :containerName, container_name)
+      else
+        res
+      end
 
     if tag_support do
       tags = metadata_to_tags(metadata)

@@ -174,20 +174,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     required_alias = Keyword.get(options, :auto_insert_required_alias, true)
     parent = self()
-    pid = spawn(fn ->
-      for _i <- 1..100 do
-        receive do
-         :done -> :ok
-        after
-          1000 ->
-            case Process.info(parent, :current_stacktrace) do
-              {:current_stacktrace, stacktrace} ->
-                dbg(stacktrace)
-              nil -> :ok
-            end
+
+    pid =
+      spawn(fn ->
+        for _i <- 1..100 do
+          receive do
+            :done -> :ok
+          after
+            1000 ->
+              case Process.info(parent, :current_stacktrace) do
+                {:current_stacktrace, stacktrace} ->
+                  dbg(stacktrace)
+
+                nil ->
+                  :ok
+              end
+          end
         end
-      end
-    end)
+      end)
 
     items =
       ElixirSense.suggestions(text, line, character,
