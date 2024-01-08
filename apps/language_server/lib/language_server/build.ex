@@ -76,6 +76,15 @@ defmodule ElixirLS.LanguageServer.Build do
                             &Diagnostics.from_mix_task_compiler_diagnostic(&1, mixfile, root_path)
                           )
 
+                        if status == :ok do
+                          # reload apps to make sure app controller has the correct list of modules
+                          # if we don't do that, workspace symbols and other providers relying on
+                          # `:application.get_key(app, :modules)` would not notice newly added modules
+                          # no need to do that on :noop and :error
+                          # workaround for https://github.com/elixir-lang/elixir/issues/13001
+                          unload_mix_project_apps(true)
+                        end
+
                         Server.build_finished(
                           parent,
                           {status, mixfile_diagnostics ++ deps_diagnostics ++ compile_diagnostics}
@@ -569,7 +578,7 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
-  defp unload_mix_project_apps() do
+  defp unload_mix_project_apps(reload? \\ false) do
     # note that this will unload config so we need to call loadconfig afterwards
     mix_project_apps =
       if Mix.Project.umbrella?() do
@@ -588,6 +597,13 @@ defmodule ElixirLS.LanguageServer.Build do
     # see https://github.com/elixir-lang/elixir/issues/13001
     for app <- mix_project_apps do
       purge_app(app, false)
+      if reload? do
+        case Application.load(app) do
+          :ok -> :ok
+          {:error, reason} ->
+            Logger.warning("Application #{app} failed to load: #{inspect(reason)}")
+        end
+      end
     end
   end
 
