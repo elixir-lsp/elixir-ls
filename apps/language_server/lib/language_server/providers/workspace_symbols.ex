@@ -204,8 +204,6 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       ) do
     Logger.info("[ElixirLS WorkspaceSymbols] Updating index...")
 
-    dbg(modified_uris)
-
     module_paths =
       get_app_modules()
       |> process_chunked(fn chunk ->
