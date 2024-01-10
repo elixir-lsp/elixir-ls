@@ -180,7 +180,6 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> process_chunked(fn chunk ->
         for module <- chunk,
             path = find_module_path(module),
-            path != nil,
             do: {module, path}
       end)
 
@@ -209,7 +208,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       |> process_chunked(fn chunk ->
         for module <- chunk,
             path = find_module_path(module),
-            path != nil and SourceFile.Path.to_uri(path, project_dir) in modified_uris,
+            SourceFile.Path.to_uri(path, project_dir) in modified_uris,
             do: {module, path}
       end)
 
