@@ -225,7 +225,7 @@ defmodule ElixirLS.LanguageServer.Parser do
          %{
            state
            | files: Map.put(files, uri, updated_file),
-             parse_pids: Map.put(state.parse_pids, {uri, current_version}, {pid, ref, from}),
+             parse_pids: put_nested(state.parse_pids, {uri, current_version}, ref, {pid, from}),
              parse_uris: Map.put(state.parse_uris, ref, {uri, current_version})
          }}
     end
@@ -254,7 +254,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     state = %{
       state
       | debounce_refs: Map.delete(debounce_refs, uri),
-        parse_pids: Map.put(state.parse_pids, {uri, version}, {pid, ref, nil}),
+        parse_pids: put_nested(state.parse_pids, {uri, version}, ref, {pid, nil}),
         parse_uris: Map.put(state.parse_uris, ref, {uri, version})
     }
 
@@ -307,7 +307,16 @@ defmodule ElixirLS.LanguageServer.Parser do
         %{parse_pids: parse_pids, parse_uris: parse_uris} = state
       ) do
     {{uri, version}, updated_parse_uris} = Map.pop!(parse_uris, ref)
-    {{^pid, ^ref, from}, updated_parse_pids} = Map.pop!(parse_pids, {uri, version})
+
+    {by_ref, updated_parse_pids} = Map.pop!(parse_pids, {uri, version})
+    {{^pid, from}, updated_by_ref} = Map.pop!(by_ref, ref)
+
+    updated_parse_pids =
+      if updated_by_ref == %{} do
+        updated_by_ref
+      else
+        Map.put(updated_parse_pids, ref, updated_by_ref)
+      end
 
     if reason != :normal and from != nil do
       GenServer.reply(from, :error)
@@ -624,5 +633,12 @@ defmodule ElixirLS.LanguageServer.Parser do
       {:ok, ast} -> {ast, warning_diagnostics}
       {:error, diagnostic} -> {nil, [diagnostic | warning_diagnostics]}
     end
+  end
+
+  defp put_nested(map, key1, key2, value) do
+    update_in(map, [key1], fn
+      nil -> %{key2 => value}
+      inner -> Map.put(inner, key2, value)
+    end)
   end
 end
