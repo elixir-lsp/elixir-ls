@@ -1332,7 +1332,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           insert_text_format(:snippet)
         else
           insert_text_format(:plain_text)
-        end
+        end,
+      # adjustIndentation
+      "insertTextMode" => 2
     }
 
     json =
