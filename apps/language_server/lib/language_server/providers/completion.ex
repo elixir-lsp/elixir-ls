@@ -853,49 +853,51 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
        ) do
     completion = function_completion(item, context, options)
 
-    completion =
-      if name in @operators do
-        %__MODULE__{completion | kind: :operator}
-      else
-        completion
-      end
-
-    completion =
-      if item.needed_require do
-        {line_to_insert_require, column_to_insert_require} = context.position_to_insert_alias
-
-        indentation =
-          if column_to_insert_require >= 1,
-            do: 1..column_to_insert_require |> Enum.map_join(fn _ -> " " end),
-            else: ""
-
-        require_edit = indentation <> "require " <> item.needed_require <> "\n"
-
-        label_details =
-          Map.update!(
-            completion.label_details,
-            "description",
-            &("require " <> &1)
-          )
-
-        %__MODULE__{
+    if completion do
+      completion =
+        if name in @operators do
+          %__MODULE__{completion | kind: :operator}
+        else
           completion
-          | additional_text_edit: %TextEdit{
-              range: range(line_to_insert_require, 0, line_to_insert_require, 0),
-              newText: require_edit
-            },
-            label_details: label_details
-        }
+        end
+
+      completion =
+        if item.needed_require do
+          {line_to_insert_require, column_to_insert_require} = context.position_to_insert_alias
+
+          indentation =
+            if column_to_insert_require >= 1,
+              do: 1..column_to_insert_require |> Enum.map_join(fn _ -> " " end),
+              else: ""
+
+          require_edit = indentation <> "require " <> item.needed_require <> "\n"
+
+          label_details =
+            Map.update!(
+              completion.label_details,
+              "description",
+              &("require " <> &1)
+            )
+
+          %__MODULE__{
+            completion
+            | additional_text_edit: %TextEdit{
+                range: range(line_to_insert_require, 0, line_to_insert_require, 0),
+                newText: require_edit
+              },
+              label_details: label_details
+          }
+        else
+          completion
+        end
+
+      file_path = Keyword.get(options, :file_path)
+
+      if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
+        %__MODULE__{completion | insert_text: snippet, label: name}
       else
         completion
       end
-
-    file_path = Keyword.get(options, :file_path)
-
-    if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
-      %__MODULE__{completion | insert_text: snippet, label: name}
-    else
-      completion
     end
   end
 
