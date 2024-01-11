@@ -1585,6 +1585,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp publish_diagnostics(
          state = %__MODULE__{
            project_dir: project_dir,
+           mix_project?: mix_project?,
            source_files: source_files,
            last_published_diagnostics_uris: last_published_diagnostics_uris
          }
@@ -1596,42 +1597,26 @@ defmodule ElixirLS.LanguageServer.Server do
 
     uris_from_parser_diagnostics = Map.keys(state.parser_diagnostics)
 
-    filter_diagnostics_with_known_location = fn
-      %Diagnostics{file: file} when is_binary(file) ->
-        file != "nofile"
-
-      _ ->
-        false
-    end
-
     valid_build_and_dialyzer_diagnostics_by_uri =
       (state.build_diagnostics ++ state.dialyzer_diagnostics)
-      |> Enum.filter(filter_diagnostics_with_known_location)
+      |> Enum.map(fn %Diagnostics{file: file} = diagnostic ->
+        if is_binary(file) or (is_list(file) and to_string(file) != "nofile") do
+          diagnostic
+        else
+          # diagnostics without file are meaningless in LSP, try to point to mixfile instead
+          if project_dir != nil and mix_project? do
+            file = Path.join(project_dir, MixfileHelpers.mix_exs())
+            %Diagnostics{diagnostic | file: file, source: file, position: 0}
+          end
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
       |> Enum.group_by(fn
         %Diagnostics{file: file} -> SourceFile.Path.to_uri(file, project_dir)
       end)
 
     uris_from_build_and_dialyzer_diagnostics =
       Map.keys(valid_build_and_dialyzer_diagnostics_by_uri)
-
-    invalid_diagnostics =
-      (state.build_diagnostics ++ state.dialyzer_diagnostics)
-      |> Enum.reject(filter_diagnostics_with_known_location)
-
-    # TODO remove when we are sure diagnostic code is correct
-    if invalid_diagnostics != [] do
-      Logger.error("Invalid diagnostic with nil file: #{inspect(hd(invalid_diagnostics))}")
-
-      JsonRpc.telemetry(
-        "lsp_server_error",
-        %{
-          "elixir_ls.lsp_process" => inspect(__MODULE__),
-          "elixir_ls.lsp_server_error" =>
-            "Invalid diagnostic: #{inspect(hd(invalid_diagnostics))}"
-        },
-        %{}
-      )
-    end
 
     uris_from_open_files = Map.keys(source_files)
 
