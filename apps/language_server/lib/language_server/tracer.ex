@@ -206,6 +206,12 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
         {:ok, _} = :dets.open_file(table_name, opts)
 
+      {:error, {:cannot_repair, _} = reason} ->
+        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
+        File.rm_rf!(path)
+
+        {:ok, _} = :dets.open_file(table_name, opts)
+
       {:error, {:not_a_dets_file, _} = reason} ->
         Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
         File.rm_rf!(path)
