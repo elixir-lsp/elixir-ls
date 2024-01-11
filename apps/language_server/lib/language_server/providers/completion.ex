@@ -893,7 +893,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     file_path = Keyword.get(options, :file_path)
 
     if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
-      %__MODULE__{completion | insert_text: snippet, kind: :snippet, label: name}
+      %__MODULE__{completion | insert_text: snippet, label: name}
     else
       completion
     end
