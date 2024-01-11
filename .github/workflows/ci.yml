@@ -58,6 +58,15 @@ jobs:
           - elixir: 1.15.x
             otp: 26.x
             tests_may_fail: false
+          - elixir: 1.16.x
+            otp: 24.x
+            tests_may_fail: false
+          - elixir: 1.16.x
+            otp: 25.x
+            tests_may_fail: false
+          - elixir: 1.16.x
+            otp: 26.x
+            tests_may_fail: false
     env:
       MIX_ENV: test
     steps:
@@ -107,6 +116,12 @@ jobs:
           - elixir: 1.15.x
             otp: 25.x
           - elixir: 1.15.x
+            otp: 26.x
+          - elixir: 1.16.x
+            otp: 24.x
+          - elixir: 1.16.x
+            otp: 25.x
+          - elixir: 1.16.x
             otp: 26.x
     env:
       MIX_ENV: test
