@@ -262,7 +262,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   defp error_code_and_message(:unknown_error_code), do: {-32001, "Unknown error code"}
 
   # -32899 - -32800 - LSP reserved error codes
-  defp error_code_and_message(:request_failed), do: {-32803, "Request cancelled"}
+  defp error_code_and_message(:request_failed), do: {-32803, "Request failed"}
   defp error_code_and_message(:server_cancelled), do: {-32802, "Server cancelled"}
   defp error_code_and_message(:content_modified), do: {-32801, "Content modified"}
   defp error_code_and_message(:request_cancelled), do: {-32800, "Request cancelled"}
