@@ -30,9 +30,17 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       # don't include stacktrace in exceptions with position
       message =
         if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and
-             is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 do
+             is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 and
+             elem(diagnostic.details, 0) in [:error, :throw, :exit] do
           {kind, reason} = diagnostic.details
-          Exception.format_banner(kind, reason)
+
+          try do
+            Exception.format_banner(kind, reason)
+          rescue
+            _ ->
+              # we can't trust that details from external compilers will behave
+              diagnostic.message
+          end
         else
           diagnostic.message
         end
