@@ -1506,7 +1506,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                "insertTextFormat" => 2,
                "kind" => 15,
                "label" => ~s(@moduledoc """"""),
-               "sortText" => "00000000"
+               "sortText" => "00000000",
+               "insertTextMode" => 2
              }
     end
   end
