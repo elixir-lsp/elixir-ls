@@ -87,6 +87,29 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                    "ExUnit.Assertions"
                  ])
 
+  @operators ~w(
+    @
+    .
+    + - ! ^ not
+    **	
+    * /	
+    + -	
+    ++ -- +++ --- .. <>
+    in not in
+    |> <<< >>> <<~ ~>> <~ ~> <~>
+    < > <= >=
+    == != =~ === !==
+    && &&& and
+    || ||| or
+    =
+    &
+    =>
+    |
+    ::
+    when
+    <- \\\\
+  )
+
   def trigger_characters do
     # VS Code's 24x7 autocompletion triggers automatically on alphanumeric characters. We add these
     # for "SomeModule." calls, @module_attrs, function capture, variable pinning, erlang module calls,
@@ -831,8 +854,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     completion = function_completion(item, context, options)
 
     completion =
-      if origin == "Kernel" || origin == "Kernel.SpecialForms" do
-        %__MODULE__{completion | kind: :keyword, priority: 18}
+      if name in @operators do
+        %__MODULE__{completion | kind: :operator}
       else
         completion
       end
