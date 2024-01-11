@@ -145,9 +145,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
       Code.ensure_loaded?(mod) and function_exported?(mod, :__protocol__, 1) ->
         # defprotocol
         # defs in defprotocol do not have when and have at least 1 arg
-        {:"::", [], [{:foo, [], [{:any, [], []} | rest]}, {:any, [], []}]} = ast
+        {:"::", [], [{:foo, [], [_ | rest_args]}, res]} = ast
         # first arg in defprotocol defs is always of type t
-        {:"::", [], [{:foo, [], [{:t, [], []} | rest]}, {:any, [], []}]}
+        {:"::", [], [{:foo, [], [{:t, [], []} | rest_args]}, res]}
 
       Code.ensure_loaded?(mod) and function_exported?(mod, :__impl__, 1) ->
         # defimpl
