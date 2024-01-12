@@ -187,7 +187,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
       type_name =
         type_name
-        |> String.replace("\n", "")
+        |> String.replace(~r/,*\n\s*/, fn
+          "," <> _ -> ", "
+          _ -> ""
+        end)
 
       type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
 
@@ -220,7 +223,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
          {defname, location, [{:when, _, [{_, head_location, _} = fn_head, _]} | _]}
        )
        when defname in @defs do
-    name = Macro.to_string(fn_head) |> String.replace("\n", "")
+    name =
+      Macro.to_string(fn_head)
+      |> String.replace(~r/,*\n\s*/, fn
+        "," <> _ -> ", "
+        _ -> ""
+      end)
 
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
@@ -235,7 +243,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   # Function, macro, delegate
   defp extract_symbol(_current_module, {defname, location, [{_, head_location, _} = fn_head | _]})
        when defname in @defs do
-    name = Macro.to_string(fn_head) |> String.replace("\n", "")
+    name =
+      Macro.to_string(fn_head)
+      |> String.replace(~r/,*\n\s*/, fn
+        "," <> _ -> ", "
+        _ -> ""
+      end)
 
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
