@@ -313,7 +313,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     updated_parse_pids =
       if updated_by_ref == %{} do
-        updated_by_ref
+        updated_parse_pids
       else
         Map.put(updated_parse_pids, ref, updated_by_ref)
       end
