@@ -41,6 +41,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         def fun_multiple_when(_other) do
           :something_else
         end
+        def fun_multiline_args(
+              foo,
+              bar
+            )
+            when is_atom(foo),
+            do: foo
+        def fun_multiline_args(
+              foo,
+              bar
+            ),
+            do: bar
       end
     ]
 
@@ -196,12 +207,22 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                       "end" => %{"character" => 37, "line" => 31},
                       "start" => %{"character" => 12, "line" => 31}
                     }
+                  },
+                  %Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "def fun_multiline_args(foo, bar)"
+                  },
+                  %Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 12,
+                    name: "def fun_multiline_args(foo, bar)"
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
                 range: %{
-                  "end" => %{"character" => 9, "line" => 34},
+                  "end" => %{"character" => 9, "line" => 45},
                   "start" => %{"character" => 6, "line" => 1}
                 },
                 selectionRange: %{
@@ -238,6 +259,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
         after
           :ok
         end
+        def fun_multiline_args(
+              foo,
+              bar
+            )
+            when is_atom(foo),
+            do: foo
+        def fun_multiline_args(
+              foo,
+              bar
+            ),
+            do: bar
       end
     ]
 
@@ -250,7 +282,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 location: %{
                   range: %{
-                    "end" => %{"character" => 9, "line" => 24},
+                    "end" => %{"character" => 9, "line" => 35},
                     "start" => %{"character" => 6, "line" => 1}
                   }
                 }
@@ -343,6 +375,16 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     "start" => %{"character" => 8, "line" => 13}
                   }
                 },
+                containerName: "MyModule"
+              },
+              %Protocol.SymbolInformation{
+                kind: 12,
+                name: "def fun_multiline_args(foo, bar)",
+                containerName: "MyModule"
+              },
+              %Protocol.SymbolInformation{
+                kind: 12,
+                name: "def fun_multiline_args(foo, bar)",
                 containerName: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
@@ -1215,6 +1257,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @type my_with_args_when(key, value) :: [{key, value}] when value: integer
       @type abc
       @type
+      @type my_with_multiline_args(
+              key,
+              value
+            ) :: [{key, value}]
     end
     """
 
@@ -1271,6 +1317,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     children: [],
                     kind: 22,
                     name: "@type"
+                  },
+                  %Protocol.DocumentSymbol{
+                    children: [],
+                    kind: 5,
+                    name: "@type my_with_multiline_args(key, value)"
                   }
                 ],
                 kind: 2,
@@ -1292,6 +1343,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       @type my_with_args_when(key, value) :: [{key, value}] when value: integer
       @type abc
       @type
+      @type my_with_multiline_args(
+              key,
+              value
+            ) :: [{key, value}]
     end
     """
 
@@ -1347,6 +1402,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %Protocol.SymbolInformation{
                 kind: 22,
                 name: "@type",
+                containerName: "MyModule"
+              },
+              %Protocol.SymbolInformation{
+                kind: 5,
+                name: "@type my_with_multiline_args(key, value)",
                 containerName: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
@@ -2556,8 +2616,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     parser_context = ParserContextBuilder.from_string(text)
 
-    assert {:ok, []} =
-             DocumentSymbols.symbols(uri, parser_context, true)
+    assert {:ok, []} = DocumentSymbols.symbols(uri, parser_context, true)
   end
 
   test "returns def and defp as a prefix" do
