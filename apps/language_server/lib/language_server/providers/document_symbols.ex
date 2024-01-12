@@ -187,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
       type_name =
         type_name
-        |> String.replace(~r/,*\n\s*/, fn
+        |> String.replace(~r/,*\n\s*/u, fn
           "," <> _ -> ", "
           _ -> ""
         end)
@@ -225,7 +225,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
        when defname in @defs do
     name =
       Macro.to_string(fn_head)
-      |> String.replace(~r/,*\n\s*/, fn
+      |> String.replace(~r/,*\n\s*/u, fn
         "," <> _ -> ", "
         _ -> ""
       end)
@@ -245,7 +245,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
        when defname in @defs do
     name =
       Macro.to_string(fn_head)
-      |> String.replace(~r/,*\n\s*/, fn
+      |> String.replace(~r/,*\n\s*/u, fn
         "," <> _ -> ", "
         _ -> ""
       end)
