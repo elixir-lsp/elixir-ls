@@ -61,6 +61,10 @@ defmodule ElixirLS.DebugAdapter.Output do
     send_event(server, "output", %{"category" => "stderr", "output" => maybe_append_newline(str)})
   end
 
+  def ex_unit_event(server \\ __MODULE__, data) when is_map(data) do
+    send_event(server, "output", %{"category" => "ex_unit", "output" => "", "data" => data})
+  end
+
   def telemetry(server \\ __MODULE__, event, properties, measurements)
       when is_binary(event) and is_map(properties) and is_map(measurements) do
     elixir_release =
