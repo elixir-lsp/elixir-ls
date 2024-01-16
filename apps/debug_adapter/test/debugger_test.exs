@@ -356,6 +356,127 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
   end
 
   @tag :fixture
+  test "no mix exs", %{server: server} do
+    in_fixture(__DIR__, "no_mix_exs", fn ->
+      Server.receive_packet(
+        server,
+        initialize_req(1, %{
+          "supportsVariablePaging" => true,
+          "supportsVariableType" => true
+        })
+      )
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "run",
+          "taskArgs" => ["--no-mix-exs", "script.exs"],
+          "projectDir" => File.cwd!(),
+          "exitAfterTaskReturns" => false,
+          "requireFiles" => [
+            "script.exs"
+          ]
+        })
+      )
+
+      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(event(_, "initialized", %{}))
+      abs_path = Path.absname("script.exs")
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(3, %{"path" => abs_path}, [%{"line" => 4}])
+      )
+
+      assert_receive(
+        response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
+        5000
+      )
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone", %{}))
+
+      Server.receive_packet(server, request(6, "threads", %{}))
+      assert_receive(response(_, 6, "threads", %{"threads" => threads}))
+      # ensure thread ids are unique
+      thread_ids = Enum.map(threads, & &1["id"])
+      assert Enum.count(Enum.uniq(thread_ids)) == Enum.count(thread_ids)
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => thread_id
+                     }),
+                     5_000
+
+      Server.receive_packet(server, stacktrace_req(7, thread_id))
+
+      assert_receive response(_, 7, "stackTrace", %{
+                       "totalFrames" => 1,
+                       "stackFrames" => [
+                         %{
+                           "column" => 0,
+                           "id" => frame_id,
+                           "line" => 4,
+                           "name" => "Abc.debug_me/0",
+                           "source" => %{"path" => ^abs_path}
+                         }
+                       ]
+                     })
+                     when is_integer(frame_id)
+
+      Server.receive_packet(server, scopes_req(8, frame_id))
+
+      assert_receive response(_, 8, "scopes", %{
+                       "scopes" => [
+                         %{
+                           "expensive" => false,
+                           "indexedVariables" => 0,
+                           "name" => "variables",
+                           "namedVariables" => 1,
+                           "variablesReference" => vars_id
+                         },
+                         %{
+                           "expensive" => false,
+                           "indexedVariables" => 0,
+                           "name" => "versioned variables",
+                           "namedVariables" => 1,
+                           "variablesReference" => _vars_id
+                         },
+                         %{
+                           "expensive" => false,
+                           "indexedVariables" => 0,
+                           "name" => "process info",
+                           "namedVariables" => _,
+                           "variablesReference" => _
+                         }
+                       ]
+                     })
+
+      Server.receive_packet(server, vars_req(9, vars_id))
+
+      assert_receive response(_, 9, "variables", %{
+                       "variables" => [
+                         %{
+                           "name" => "a",
+                           "type" => "list",
+                           "value" => "[1, 2, 3]",
+                           "variablesReference" => _
+                         }
+                       ]
+                     }),
+                     1000
+
+      Server.receive_packet(server, continue_req(15, thread_id))
+      assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
+    end)
+  end
+
+  @tag :fixture
   test "launch with no debug", %{server: server} do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
