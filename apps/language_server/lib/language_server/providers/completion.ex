@@ -129,6 +129,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     text_before_cursor = String.slice(line_text, 0, character - 1)
     text_after_cursor = String.slice(line_text, (character - 1)..-1//1)
 
+    full_text_before_cursor =
+      if line >= 2 do
+        Enum.slice(lines, 0..(line - 2))
+      else
+        []
+      end
+      |> Kernel.++([text_before_cursor])
+      |> Enum.join("\n")
+
     prefix = get_prefix(text_before_cursor)
 
     env = ElixirSense.Core.Metadata.get_env(metadata, {line, character})
@@ -156,19 +165,62 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           nil
       end
 
+    container_cursor_quoted =
+      case NormalizedCode.Fragment.container_cursor_to_quoted(full_text_before_cursor,
+             token_metadata: true,
+             columns: true
+           ) do
+        {:ok, ast} -> ast
+        _ -> nil
+      end
+
     do_block_indent =
-      lines
-      |> Enum.slice(0..(line - 1))
-      |> Enum.reverse()
-      |> Enum.find_value(0, fn line_text ->
-        if Regex.match?(~r/(?<=\s|^)do\s*(#.*)?$/u, line_text) do
-          String.length(line_text) - String.length(String.trim_leading(line_text))
+      if container_cursor_quoted != nil and Version.match?(System.version(), ">= 1.14.0-dev") do
+        case Macro.path(container_cursor_quoted, &match?({:__cursor__, _, []}, &1)) do
+          nil ->
+            0
+
+          [_cursor | rest] ->
+            Enum.find_value(rest, 0, fn
+              {_, meta, _} when is_list(meta) ->
+                if Keyword.has_key?(meta, :do) do
+                  line = Keyword.fetch!(meta, :line)
+                  line_text = Enum.at(lines, line - 1)
+                  String.length(line_text) - String.length(String.trim_leading(line_text))
+                end
+
+              _ ->
+                nil
+            end)
         end
-      end)
+      else
+        lines
+        |> Enum.slice(0..(line - 1))
+        |> Enum.reverse()
+        |> Enum.reduce_while({0, 0}, fn line_text, {do_count, indent} ->
+          if Regex.match?(~r/(?<=\s|^)do\s*(#.*)?$/u, line_text) or
+               Regex.match?(~r/(?<=\s|^)fn\s*.*(->)?(#.*)?$/u, line_text) do
+            if do_count == 0 do
+              {:halt,
+               {0, String.length(line_text) - String.length(String.trim_leading(line_text))}}
+            else
+              {:cont, {do_count - 1, indent}}
+            end
+          else
+            if Regex.match?(~r/(?<=\s|^)end[\s\)]*(#.*)?$/u, line_text) do
+              {:cont, {do_count + 1, indent}}
+            else
+              {:cont, {do_count, indent}}
+            end
+          end
+        end)
+        |> elem(1)
+      end
 
     line_indent = String.length(line_text) - String.length(String.trim_leading(line_text))
 
     context = %{
+      container_cursor_to_quoted: container_cursor_quoted,
       text_before_cursor: text_before_cursor,
       text_after_cursor: text_after_cursor,
       prefix: prefix,
@@ -290,7 +342,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                          "line" => context.line - 1,
                          "character" =>
                            context.character - String.length(hint) - 1 -
-                             (context.line_indent - context.do_block_indent)
+                             max(context.line_indent - context.do_block_indent, 0)
                        },
                        "end" => %{
                          "line" => context.line - 1,
@@ -314,7 +366,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
                        "line" => context.line - 1,
                        "character" =>
                          context.character - String.length(hint) - 1 -
-                           (context.line_indent - context.do_block_indent)
+                           max(context.line_indent - context.do_block_indent, 0)
                      },
                      "end" => %{"line" => context.line - 1, "character" => context.character - 1}
                    },
