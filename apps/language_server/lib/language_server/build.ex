@@ -3,7 +3,16 @@ defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.Utils.MixfileHelpers
   require Logger
 
+  defp store_required_apps() do
+    unless :persistent_term.get(:language_server_required_apps, false) do
+      apps = Application.loaded_applications() |> Enum.map(&elem(&1, 0))
+      :persistent_term.put(:language_server_required_apps, apps)
+    end
+  end
+
   def build(parent, root_path, opts) when is_binary(root_path) do
+    Application.loaded_applications() |> Enum.map(&elem(&1, 0)) |> dbg
+
     build_pid_reference =
       spawn_monitor(fn ->
         with_build_lock(fn ->
@@ -180,6 +189,8 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp reload_project(mixfile, root_path) do
+    store_required_apps()
+
     if File.exists?(mixfile) do
       if module = Mix.Project.get() do
         if module != ElixirLS.LanguageServer.MixProject do
@@ -234,6 +245,8 @@ defmodule ElixirLS.LanguageServer.Build do
       # Note that `Mix.State.clear_cache()` is not enough (at least on elixir 1.14)
       Mix.Project.clear_deps_cache()
       Mix.State.clear_cache()
+
+      reset_apps_config()
 
       Mix.Task.clear()
 
@@ -472,8 +485,6 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp purge_app(app, purge_modules? \\ true) do
-    Logger.debug("Stopping #{app}")
-
     case Application.stop(app) do
       :ok -> :ok
       {:error, {:not_started, _}} -> :ok
@@ -488,12 +499,9 @@ defmodule ElixirLS.LanguageServer.Build do
         end
 
       if modules != [] do
-        Logger.debug("Purging #{length(modules)} modules from #{app}")
         for module <- modules, do: purge_module(module)
       end
     end
-
-    Logger.debug("Unloading #{app}")
 
     case Application.unload(app) do
       :ok -> :ok
@@ -520,6 +528,8 @@ defmodule ElixirLS.LanguageServer.Build do
   defp maybe_purge_dep(%Mix.Dep{status: status, deps: deps} = dep) do
     for dep <- deps, do: maybe_purge_dep(dep)
 
+    dbg({dep.app, status})
+
     purge? =
       case status do
         {:nomatchvsn, _} -> true
@@ -534,16 +544,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp purge_dep(%Mix.Dep{app: app} = dep) do
-    if app in [
-         :language_server,
-         :elixir_ls_utils,
-         :elixir_sense,
-         :jason_v,
-         :path_glob_vendored,
-         :dialyxir_vendored,
-         :erlex_vendored,
-         :erl2ex_vendored
-       ] do
+    if app in :persistent_term.get(:language_server_required_apps) do
       raise "Unloading required #{app}"
     end
 
@@ -606,6 +607,17 @@ defmodule ElixirLS.LanguageServer.Build do
           {:error, reason} ->
             Logger.warning("Application #{app} failed to load: #{inspect(reason)}")
         end
+      end
+    end
+  end
+
+  defp reset_apps_config() do
+    apps = Application.loaded_applications() |> Enum.map(&elem(&1, 0))
+
+    for app <- apps -- :persistent_term.get(:language_server_required_apps) do
+      # workaround for https://github.com/elixir-lang/elixir/issues/13246
+      for {key, _} <- :application.get_all_env(app) do
+        :application.unset_env(app, key, persistent: true)
       end
     end
   end
