@@ -208,7 +208,7 @@ defmodule ElixirLS.LanguageServer.Server do
           {:error, type, msg, send_telemetry} ->
             JsonRpc.respond_with_error(id, type, msg)
 
-            do_sanity_check()
+            do_sanity_check(msg || to_string(type))
 
             if send_telemetry do
               JsonRpc.telemetry(
@@ -427,7 +427,7 @@ defmodule ElixirLS.LanguageServer.Server do
         error_msg = Exception.format_exit(reason)
         JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
-        do_sanity_check()
+        do_sanity_check(error_msg)
 
         JsonRpc.telemetry(
           "lsp_request_error",
@@ -788,7 +788,7 @@ defmodule ElixirLS.LanguageServer.Server do
               "retry" => false
             })
 
-            do_sanity_check()
+            do_sanity_check(error_msg)
 
             JsonRpc.telemetry(
               "lsp_request_error",
@@ -855,7 +855,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {:error, type, msg, send_telemetry, state} ->
           JsonRpc.respond_with_error(id, type, msg)
 
-          do_sanity_check()
+          do_sanity_check(msg)
 
           if send_telemetry do
             JsonRpc.telemetry(
@@ -901,7 +901,7 @@ defmodule ElixirLS.LanguageServer.Server do
         error_msg = Exception.format(kind, payload, stacktrace)
         JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
-        do_sanity_check()
+        do_sanity_check(error_msg)
 
         JsonRpc.telemetry(
           "lsp_request_error",
@@ -2244,8 +2244,12 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  def do_sanity_check() do
+  def do_sanity_check(message \\ nil) do
     try do
+      if message != nil and String.contains?(message, "UndefinedFunctionError") do
+        raise "sanity check failed"
+      end
+
       unless :persistent_term.get(:language_server_test_mode, false) do
         unless function_exported?(ElixirSense, :module_info, 1) and
                  :persistent_term.get(:language_server_lib_dir) ==
@@ -2262,6 +2266,7 @@ defmodule ElixirLS.LanguageServer.Server do
     rescue
       _ ->
         Logger.error("Sanity check failed. ElixirLS needs to restart.")
+        IO.warn("sanity")
 
         Process.sleep(2000)
         System.halt(1)

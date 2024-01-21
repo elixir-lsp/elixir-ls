@@ -23,6 +23,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
             }
           rescue
             e ->
+              if match?({_, _}, docs) do
+                Logger.error("Sanity check failed. ElixirLS needs to restart.")
+
+                Process.sleep(2000)
+                System.halt(1)
+              end
+
               raise "#{inspect(e.__struct__)}\n#{inspect(__STACKTRACE__)}\nline:\n#{Enum.at(lines, line - 1)}\nchar: #{character}\n#{inspect(docs)}"
           end
       end
