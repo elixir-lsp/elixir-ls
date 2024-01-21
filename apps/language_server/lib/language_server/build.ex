@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   def build(parent, root_path, opts) when is_binary(root_path) do
-    Application.loaded_applications() |> Enum.map(&elem(&1, 0)) |> dbg
+    Application.loaded_applications() |> Enum.map(&elem(&1, 0))
 
     build_pid_reference =
       spawn_monitor(fn ->
@@ -527,8 +527,6 @@ defmodule ElixirLS.LanguageServer.Build do
 
   defp maybe_purge_dep(%Mix.Dep{status: status, deps: deps} = dep) do
     for dep <- deps, do: maybe_purge_dep(dep)
-
-    dbg({dep.app, status})
 
     purge? =
       case status do
