@@ -42,10 +42,6 @@ defmodule ElixirLS.LanguageServer.Parser do
     if should_parse?(uri, source_file) do
       GenServer.cast(__MODULE__, {:parse_with_debounce, uri, source_file})
     else
-      Logger.debug(
-        "Not parsing #{uri} version #{source_file.version} languageId #{source_file.language_id} with debounce"
-      )
-
       :ok
     end
   end
@@ -62,10 +58,6 @@ defmodule ElixirLS.LanguageServer.Parser do
         %Context{} = context -> context
       end
     else
-      Logger.debug(
-        "Not parsing #{uri} version #{source_file.version} languageId #{source_file.language_id} immediately"
-      )
-
       # not parsing - respond with empty struct
       %Context{
         source_file: source_file,
@@ -171,19 +163,11 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     case {files[uri], Map.has_key?(state.parse_pids, {uri, current_version})} do
       {%Context{parsed_version: ^current_version} = file, _} ->
-        Logger.debug(
-          "#{uri} version #{current_version} languageId #{source_file.language_id} already parsed"
-        )
-
         file = maybe_fix_missing_env(file, position)
 
         {:reply, file, state}
 
       {_, true} ->
-        Logger.debug(
-          "#{uri} version #{current_version} languageId #{source_file.language_id} is currently being parsed"
-        )
-
         state = %{state | queue: state.queue ++ [{{uri, current_version, position}, from}]}
         {:noreply, state}
 
@@ -197,10 +181,6 @@ defmodule ElixirLS.LanguageServer.Parser do
         updated_file =
           case other do
             nil ->
-              Logger.debug(
-                "Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately"
-              )
-
               %Context{
                 source_file: source_file,
                 path: get_path(uri)
@@ -208,10 +188,6 @@ defmodule ElixirLS.LanguageServer.Parser do
 
             %Context{source_file: %SourceFile{version: old_version}} = old_file
             when old_version <= current_version ->
-              Logger.debug(
-                "Parsing #{uri} version #{current_version} languageId #{source_file.language_id} immediately"
-              )
-
               %Context{old_file | source_file: source_file}
           end
 
@@ -238,10 +214,6 @@ defmodule ElixirLS.LanguageServer.Parser do
       ) do
     file = Map.fetch!(files, uri)
     version = file.source_file.version
-
-    Logger.debug(
-      "Parsing #{uri} version #{version} languageId #{file.source_file.language_id} after debounce"
-    )
 
     parent = self()
 
@@ -355,11 +327,9 @@ defmodule ElixirLS.LanguageServer.Parser do
                    cursor_position
                  ) do
               {:ok, acc} ->
-                Logger.debug("Fixed missing env")
                 ElixirSense.Core.Metadata.fill(source_file.text, acc)
 
               _ ->
-                Logger.debug("Not able to fix missing env")
                 metadata
             end
 
@@ -420,8 +390,6 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     case ElixirSense.Core.Parser.string_to_ast(source_file.text, options) do
       {:ok, ast, modified_source, _error} ->
-        Logger.debug("Syntax error fixed")
-
         metadata =
           MetadataBuilder.build(ast)
           |> fix_missing_env(modified_source, cursor_position)
@@ -429,7 +397,6 @@ defmodule ElixirLS.LanguageServer.Parser do
         {{:fixed, cursor_position}, ast, metadata}
 
       _ ->
-        Logger.debug("Not able to fix syntax error")
         # we can't fix it
         {{:not_parsable, cursor_position}, @dummy_ast, @dummy_metadata}
     end
@@ -465,11 +432,9 @@ defmodule ElixirLS.LanguageServer.Parser do
                cursor_position
              ) do
           {:ok, acc} ->
-            Logger.debug("Fixed missing env")
             acc
 
           _ ->
-            Logger.debug("Not able to fix missing env")
             acc
         end
       end

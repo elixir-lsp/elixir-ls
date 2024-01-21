@@ -232,7 +232,6 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   # indexed and no uris modified or already indexing
   def handle_cast(:build_complete, state) do
-    IO.puts("build_complete not indexing #{inspect(state.modified_uris)}")
     {:noreply, state}
   end
 
@@ -355,15 +354,11 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
       if res > 0.0 and kind_code not in @module_kind_codes and length(query_parts) == 1 and
            not Matcher.match?(" " <> last_part_downcase, " " <> query_downcase) do
         # exclude functions/types/callbacks when module matches and function/type/callback does not contribute
-        # IO.puts("excluding #{name}")
         0.0
       else
         res
       end
 
-    # if res > 0 do
-    #   IO.puts("#{query} #{name} #{res}")
-    # end
     res
   end
 
