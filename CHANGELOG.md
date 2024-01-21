@@ -1,5 +1,49 @@
 ### Unreleased
 
+### v0.19.0: 21 January 2024
+
+#### Highlights
+
+- On type parsing and diagnostics for phoenix `.heex` files
+- Workspace symbols provider has been reimplemented. Previously the workspace symbols index was build from all available symbols. To make it more focused and helpful now only symbols from the project are considered. This change made it much quicker and improved the quality of returned results. Fuzzy matching engine was also improved and made consistent with how complete provider works.
+
+#### Improvements
+
+- Parser is now asynchronous. This should limit the number of cases when providers wait on parsing.
+- Function location in workspace symbols provider is optimized. Index build speed should now be much quicker
+- Added support for `mise` version manager (the former `rtx` is still supported) - [Robson Roberto Souza Peixoto](https://github.com/robsonpeixoto)
+- Workspace symbols provider return results on empty query
+- Workspace symbols provider no longer returns duplicated results for functions with default arguments
+- Workspace symbols provider now returns `containerName` if applicable
+- Workspace symbols provider now returns deprecated symbol tag
+- Workspace symbols provider, completions and other providers return distinct symbol kinds for functions and macros. This makes them visually different in editors (e.g VSCode uses different icons)
+- Apps are now reloaded after build so application controller can provide an accurate list of modules. This works around https://github.com/elixir-lang/elixir/issues/13001
+- App config is now reset on each build. This works around https://github.com/elixir-lang/elixir/issues/13246
+- Suggest contracts calls are now non blocking. Previously a call to dialyzer would block the server.
+- Diagnostics without `file` set will now be returned as originating from `mix.exs`. Diagnostics without document URI are meaningless in LSP
+- Document symbols rendering is improved for defs with multiline arguments - [Milo Lee](https://github.com/oo6)
+- Debugger now respects `--no-mix-exs` flag in launch config `taskArgs`
+- Do block indentation level discovery is improved in completions provider. This should improve keyword completions position
+- Elixir version checks have been optimized in completions provider. Those turned out to be expensive.
+- Completions provider now caches modules. This greatly improves responsiveness when completion is invoked off an empty hint
+- Completions provider now returns `@nifs` attribute added in elixir 1.16
+- Definitions provider now supports resetting aliases `alias: nil` on phoenix router scope
+
+#### Fixes
+
+- Fixed crash when code action is unable to apply spec
+- Fixed a crash when loading an old format or unrepairable DETS file
+- Operators, functions and macros are now correctly labelled in completions provider. Previously every symbol from `Kernel` was labelled as `keyword` and every completion having a snippet was labelled as `snippet`.
+- Fixed a crash in build when printing invalid diagnostics from external compilers
+- Fixed a crash in suggest contracts when dialyzer is able to infer concrete types in protocol
+- Fixed a crash in completions provider when a completion would be filtered out
+- Fixed a crash in document symbols provider when unable to get a line for AST node
+- Mix clean custom command will no longer crash when executed in non mix project
+- Completions provider returns correct type when a module has functions and macros with the same name. This bug made it return `Application.compile_env` as function instead of macro
+- Fixed a crash in phoenix router scopes when code fails to parse
+- Fixed a crash in definitions provider when cursor over phoenix controller action in router
+- Fixed a crash in definitions provider with nested phoenix scopes. The scope combination algorithm was incorrect and produced invalid aliases
+
 ### v0.18.1: 28 December 2023
 
 #### Improvements
@@ -27,7 +71,7 @@
 - Elixir 1.16 support
 - Diagnostics provider now returns related info with code positions. This feature works best with elixir 1.16 allowing for navigation to invalid syntax elements like mismatched brackets
 - On type parser has been improved and extended. It now keeps a cache of parsed AST and extracted document metadata. Most of the providers has been updated to reuse this metadata eliminating the need for on demand parsing. This should make completions, hover, etc more snappy. The previous implementation was particularly not efficient for completions provider that would parse the file twice for each request
-- Phoenix integration improved. Go To Definition can now navigate to controllers when inside a Phoenix scope. Complete suggestions in Phoenix.Router now return controllers and actions[Gustavo Aguiar](https://github.com/gugahoa)
+- Phoenix integration improved. Go To Definition can now navigate to controllers when inside a Phoenix scope. Complete suggestions in Phoenix.Router now return controllers and actions [Gustavo Aguiar](https://github.com/gugahoa)
 
 #### Improvements
 
