@@ -2,6 +2,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   alias ElixirLS.LanguageServer.{SourceFile, DocLinks, Parser}
   import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.MarkdownUtils
+  require Logger
 
   @moduledoc """
   textDocument/hover provider utilizing Elixir Sense
