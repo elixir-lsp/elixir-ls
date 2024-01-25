@@ -1,7 +1,11 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
+
   import ElixirLS.LanguageServer.Protocol
   require ElixirSense.Core.Introspection, as: Introspection
   require Logger
+
+  @type t :: %__MODULE__{}
 
   defstruct [:text, :version, :language_id, dirty?: false]
 
@@ -45,7 +49,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def apply_content_changes(%__MODULE__{} = source_file, [edit | rest]) do
     source_file =
-      case edit do
+      case maybe_convert_text_edit(edit) do
         %{"range" => edited_range, "text" => new_text} when not is_nil(edited_range) ->
           update_in(source_file.text, fn text ->
             apply_edit(text, edited_range, new_text)
@@ -56,6 +60,14 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       end
 
     apply_content_changes(source_file, rest)
+  end
+
+  defp maybe_convert_text_edit(%TextEdit{range: range, newText: new_text}) do
+    %{"range" => range, "text" => new_text}
+  end
+
+  defp maybe_convert_text_edit(edit) do
+    edit
   end
 
   def full_range(source_file) do

@@ -42,7 +42,8 @@ defmodule ElixirLS.LanguageServer.Server do
     OnTypeFormatting,
     CodeLens,
     ExecuteCommand,
-    FoldingRange
+    FoldingRange,
+    CodeAction
   }
 
   alias ElixirLS.Utils.Launch
@@ -1217,6 +1218,12 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(code_action_req(_id, uri, diagnostics), state = %__MODULE__{}) do
+    source_file = get_source_file(state, uri)
+
+    {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, state}
+  end
+
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
     {:error, :method_not_found, nil, false, state}
@@ -1272,7 +1279,7 @@ defmodule ElixirLS.LanguageServer.Server do
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       },
       "foldingRangeProvider" => true,
-      "codeActionProvider" => false
+      "codeActionProvider" => true
     }
   end
 
