@@ -209,6 +209,17 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro code_action_req(id, uri, diagnostics) do
+    quote do
+      request(unquote(id), "textDocument/codeAction", %{
+        "context" => %{"diagnostics" => unquote(diagnostics)},
+        "textDocument" => %{
+          "uri" => unquote(uri)
+        }
+      })
+    end
+  end
+
   # Other utilities
 
   defmacro range(start_line, start_character, end_line, end_character) do
