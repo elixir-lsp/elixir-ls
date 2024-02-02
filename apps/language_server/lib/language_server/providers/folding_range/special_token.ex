@@ -63,9 +63,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
   defp do_group_tokens([], acc), do: acc
 
   # Don't create folding ranges for @doc false
-  # TODO why?
   defp do_group_tokens(
-         [{:at_op, _, _}, {:identifier, _, doc_identifier}, {false, _, _} | rest] = tokens,
+         [{:at_op, _, _}, {:identifier, _, doc_identifier}, {false, _, _} | rest],
          acc
        )
        when doc_identifier in @docs do
@@ -74,7 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
 
   # Start a folding range for `@doc` and `@moduledoc`
   defp do_group_tokens(
-         [{:at_op, _, _} = at_op, {:identifier, _, doc_identifier} = token | rest] = tokens,
+         [{:at_op, _, _} = at_op, {:identifier, _, doc_identifier} = token | rest],
          acc
        )
        when doc_identifier in @docs do

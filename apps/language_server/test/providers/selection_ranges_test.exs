@@ -447,4 +447,79 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
 
     assert end_character == SourceFile.lines(text) |> Enum.at(0) |> SourceFile.line_length_utf16()
   end
+
+  describe "struct" do
+    test "inside {}" do
+      text = """
+      %My.Struct{
+        some: 123,
+        other: "abc"
+      }
+      """
+
+      ranges = get_ranges(text, 1, 2)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 4, 0)
+      # full struct
+      assert Enum.at(ranges, 1) == range(0, 0, 3, 1)
+      # full {} outside
+      assert Enum.at(ranges, 2) == range(0, 10, 3, 1)
+      # full {} inside
+      assert Enum.at(ranges, 3) == range(0, 11, 3, 0)
+      # full lines:
+      assert Enum.at(ranges, 4) == range(1, 0, 2, 14)
+      # trimmed lines:
+      assert Enum.at(ranges, 5) == range(1, 2, 2, 14)
+      # some:
+      # TODO split by ,
+      assert Enum.at(ranges, 6) == range(1, 2, 1, 6)
+    end
+
+    test "on alias" do
+      text = """
+      %My.Struct{
+        some: 123,
+        other: "abc"
+      }
+      """
+
+      ranges = get_ranges(text, 0, 2)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 4, 0)
+      # full struct
+      assert Enum.at(ranges, 1) == range(0, 0, 3, 1)
+      # %My.Struct
+      assert Enum.at(ranges, 3) == range(0, 0, 0, 10)
+      # My.Struct
+      assert Enum.at(ranges, 4) == range(0, 1, 0, 10)
+    end
+  end
+
+  describe "comma separated" do
+    test "arg with match left side" do
+      text = """
+      fun(%My{} = my, keyword: 123, other: "")
+      """
+
+      ranges = get_ranges(text, 0, 6)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 1, 0)
+      # full call
+      assert Enum.at(ranges, 1) == range(0, 0, 0, 40)
+      # full () outside
+      assert Enum.at(ranges, 2) == range(0, 3, 0, 40)
+      # full () inside
+      assert Enum.at(ranges, 3) == range(0, 4, 0, 39)
+      # TODO split by ,
+      # # %My{} = my,
+      # assert Enum.at(ranges, 4) == range(0, 4, 0, 15)
+      # # %My{} = my
+      # assert Enum.at(ranges, 5) == range(0, 4, 0, 14)
+      # # %My{}
+      # assert Enum.at(ranges, 5) == range(0, 4, 0, 9)
+    end
+  end
 end

@@ -8,11 +8,14 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   alias ElixirLS.LanguageServer.{SourceFile}
   alias ElixirLS.LanguageServer.Providers.FoldingRange
   import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   defp token_length(:end), do: 3
   defp token_length(token) when token in [:"(", :"[", :"{", :")", :"]", :"}"], do: 1
   defp token_length(token) when token in [:"<<", :">>", :do, :fn], do: 2
   defp token_length(_), do: 0
+
+  # @stop_tokens [:",", :";", :|]
 
   def selection_ranges(text, positions) do
     lines = SourceFile.lines(text)
@@ -55,7 +58,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
       cell_pair_ranges =
         ([full_file_range] ++
            for {{start_line, start_character}, {end_line, _end_line_start_character}} <-
-                 cell_pairs |> dbg,
+                 cell_pairs,
                (start_line < line or (start_line == line and start_character <= character)) and
                  end_line > line do
              line_length = lines |> Enum.at(end_line - 1) |> String.length()
@@ -82,7 +85,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
            end)
         |> List.flatten()
 
-      cell_pair_ranges = sort_ranges(cell_pair_ranges)
+      cell_pair_ranges = sort_ranges_widest_to_narrowest(cell_pair_ranges)
 
       token_pair_ranges =
         token_pairs
@@ -201,18 +204,39 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
                 ast,
                 {[full_file_range], []},
                 fn
-                  {node, meta, _} = ast, {acc, parent_meta} ->
-                    parent_meta_from_stack =
-                      case parent_meta do
+                  {node, meta, args} = ast, {acc, parent_ast} ->
+                    parent_ast_from_stack =
+                      case parent_ast do
                         [] -> []
                         [item | _] -> item
                       end
 
                     {start_line, start_character} =
-                      {Keyword.get(meta, :line, 0) - 1, Keyword.get(meta, :column, 0) - 1}
+                      cond do
+                        node == :%{} and match?({:%, _, _}, parent_ast_from_stack) ->
+                          # get line and column from parent % node, current node meta points to {
+                          {_, parent_meta, _} = parent_ast_from_stack
+
+                          {Keyword.get(parent_meta, :line, 0) - 1,
+                           Keyword.get(parent_meta, :column, 0) - 1}
+
+                        true ->
+                          {Keyword.get(meta, :line, 0) - 1, Keyword.get(meta, :column, 0) - 1}
+                      end
 
                     {end_line, end_character} =
                       cond do
+                        node == :__aliases__ ->
+                          last = meta[:last]
+
+                          last_length =
+                            case List.last(args) do
+                              atom when is_atom(atom) -> atom |> to_string() |> String.length()
+                              _ -> 0
+                            end
+
+                          {last[:line] - 1, last[:column] - 1 + last_length}
+
                         end_location = meta[:end_of_expression] ->
                           {end_location[:line] - 1, end_location[:column] - 1}
 
@@ -280,16 +304,15 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
                     if (start_line < line or (start_line == line and start_character <= character)) and
                          (end_line > line or (end_line == line and end_character >= character)) do
-                      # dbg(ast)
                       {ast,
                        {[range(start_line, start_character, end_line, end_character) | acc],
-                        [meta | parent_meta]}}
+                        [ast | parent_ast]}}
                     else
-                      {ast, {acc, [meta | parent_meta]}}
+                      {ast, {acc, [ast | parent_ast]}}
                     end
 
-                  other, {acc, parent_meta} ->
-                    {other, {acc, parent_meta}}
+                  other, {acc, parent_ast} ->
+                    {other, {acc, parent_ast}}
                 end,
                 fn
                   {_, _meta, _} = ast, {acc, [_ | tail]} ->
@@ -301,12 +324,11 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
               )
 
             acc
-            |> sort_ranges()
+            |> sort_ranges_widest_to_narrowest()
 
           _ ->
             [full_file_range]
         end
-        |> IO.inspect(label: "ast ranges")
 
       surround_context_ranges =
         [full_file_range] ++
@@ -318,13 +340,19 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
               [range(start_line - 1, start_character - 1, end_line - 1, end_character - 1)]
           end
 
-      token_pair_ranges
-      |> merge_ranges(cell_pair_ranges |> dbg)
-      |> merge_ranges(special_token_group_ranges |> dbg)
-      |> merge_ranges(comment_block_ranges |> dbg)
-      |> merge_ranges(surround_context_ranges |> dbg)
-      |> merge_ranges(ast_ranges |> dbg)
-      |> dbg
+      merged_ranges =
+        token_pair_ranges
+        |> merge_ranges_lists(cell_pair_ranges)
+        |> merge_ranges_lists(special_token_group_ranges)
+        |> merge_ranges_lists(comment_block_ranges)
+        |> merge_ranges_lists(surround_context_ranges)
+        |> merge_ranges_lists(ast_ranges)
+
+      if not increasingly_narrowing?(merged_ranges) do
+        raise "merged_ranges are not increasingly narrowing"
+      end
+
+      merged_ranges
       |> Enum.reduce(nil, fn selection_range, parent ->
         range(start_line_elixir, start_character_elixir, end_line_elixir, end_character_elixir) =
           selection_range
@@ -347,64 +375,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
           "parent" => parent
         }
       end)
-      |> IO.inspect()
-
-      #       cursor_location = SourceFile.lsp_position_to_elixir(text, {line, character})
-    end
-  end
-
-  def merge_ranges(range_1, range_2) do
-    do_merge_ranges(range_1, range_2, [])
-    |> Enum.reverse()
-  end
-
-  def do_merge_ranges([], [], acc) do
-    acc
-  end
-
-  def do_merge_ranges([range | rest_1], [], acc) do
-    do_merge_ranges(rest_1, [], [range | acc])
-  end
-
-  def do_merge_ranges([], [range | rest_2], acc) do
-    do_merge_ranges([], rest_2, [range | acc])
-  end
-
-  def do_merge_ranges([range | rest_1], [range | rest_2], acc) do
-    do_merge_ranges(rest_1, rest_2, [range | acc])
-  end
-
-  def do_merge_ranges([range_1 | rest_1], [range_2 | rest_2], acc) do
-    IO.inspect({range_1, range_2}, label: "merging")
-    IO.inspect(acc, label: "acc")
-
-    range_2 =
-      case acc do
-        [] ->
-          range_2
-
-        [last_range | _] ->
-          # we might have added a narrower range by favoring range_1 in the previous iteration
-          # compute intersection
-          intersection(last_range, range_2)
-      end
-
-    cond do
-      left_in_right?(range_2, range_1) ->
-        # range_2 in range_1
-        IO.puts("range_2 in range_1")
-        do_merge_ranges(rest_1, [range_2 | rest_2], [range_1 | acc])
-
-      left_in_right?(range_1, range_2) ->
-        # range_1 in range_2
-        IO.puts("range_1 in range_2")
-        do_merge_ranges([range_1 | rest_1], rest_2, [range_2 | acc])
-
-      true ->
-        # ranges intersect - add union and favor range_1
-        union_range = union(range_1, range_2)
-        IO.inspect(union_range, label: "union")
-        do_merge_ranges(rest_1, rest_2, [range_1, union_range | acc])
     end
   end
 
@@ -416,68 +386,5 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
       |> String.length()
 
     range(0, 0, Enum.count(lines) - 1, utf8_size)
-  end
-
-  defp sort_ranges(ranges) do
-    ranges
-    |> Enum.sort_by(fn range(start_line, start_character, end_line, end_character) ->
-      {start_line - end_line, start_character - end_character}
-    end)
-  end
-
-  defp union(
-         range(start_line_1, start_character_1, end_line_1, end_character_1),
-         range(start_line_2, start_character_2, end_line_2, end_character_2)
-       ) do
-    {start_line, start_character} =
-      cond do
-        start_line_1 < start_line_2 -> {start_line_1, start_character_1}
-        start_line_1 > start_line_2 -> {start_line_2, start_character_2}
-        true -> {start_line_1, min(start_character_1, start_character_2)}
-      end
-
-    {end_line, end_character} =
-      cond do
-        end_line_1 < end_line_2 -> {end_line_2, end_character_2}
-        end_line_1 > end_line_2 -> {end_line_1, end_character_1}
-        true -> {end_line_1, max(end_character_1, end_character_2)}
-      end
-
-    range(start_line, start_character, end_line, end_character)
-  end
-
-  defp intersection(
-         range(start_line_1, start_character_1, end_line_1, end_character_1),
-         range(start_line_2, start_character_2, end_line_2, end_character_2)
-       ) do
-    {start_line, start_character} =
-      cond do
-        start_line_1 < start_line_2 -> {start_line_2, start_character_2}
-        start_line_1 > start_line_2 -> {start_line_1, start_character_1}
-        true -> {start_line_1, max(start_character_1, start_character_2)}
-      end
-
-    {end_line, end_character} =
-      cond do
-        end_line_1 < end_line_2 -> {end_line_1, end_character_1}
-        end_line_1 > end_line_2 -> {end_line_2, end_character_2}
-        true -> {end_line_1, min(end_character_1, end_character_2)}
-      end
-
-    if start_line > end_line or (start_line == end_line and start_character > end_character) do
-      raise ArgumentError, message: "no intersection"
-    end
-
-    range(start_line, start_character, end_line, end_character)
-  end
-
-  defp left_in_right?(
-         range(start_line_1, start_character_1, end_line_1, end_character_1),
-         range(start_line_2, start_character_2, end_line_2, end_character_2)
-       ) do
-    (start_line_1 > start_line_2 or
-       (start_line_1 == start_line_2 and start_character_1 >= start_character_2)) and
-      (end_line_1 < end_line_2 or
-         (end_line_1 == end_line_2 and end_character_1 <= end_character_2))
   end
 end
