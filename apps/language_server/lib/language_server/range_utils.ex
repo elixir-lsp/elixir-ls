@@ -153,4 +153,17 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
   defp trim_range_to_acc(range, [acc_range | _]) do
     intersection(range, acc_range)
   end
+
+  def deduplicate(ranges) do
+    do_deduplicate(ranges, [])
+    |> Enum.reverse()
+  end
+
+  defp do_deduplicate([], acc), do: acc
+  defp do_deduplicate([range | rest], [range | _] = acc) do
+    do_deduplicate(rest, acc)
+  end
+  defp do_deduplicate([range | rest], acc) do 
+    do_deduplicate(rest, [range | acc])
+  end
 end

@@ -507,4 +507,66 @@ defmodule ElixirLS.LanguageServer.RangeUtilsTest do
       assert merge_ranges_lists(range_1, range_2) == expected
     end
   end
+
+  describe "deduplicate/1" do
+    test "removes duplicates in the middle" do
+      range_1 = [
+        range(0, 0, 10, 10),
+        range(1, 1, 5, 5),
+        range(1, 1, 5, 5),
+        range(1, 1, 5, 5),
+        range(2, 2, 4, 4)
+      ]
+
+      expected = [
+        range(0, 0, 10, 10),
+        range(1, 1, 5, 5),
+        range(2, 2, 4, 4)
+      ]
+
+      assert deduplicate(range_1) == expected
+    end
+
+    test "removes duplicates at start" do
+      range_1 = [
+        range(0, 0, 10, 10),
+        range(0, 0, 10, 10),
+        range(1, 1, 5, 5),
+        range(2, 2, 4, 4)
+      ]
+
+      expected = [
+        range(0, 0, 10, 10),
+        range(1, 1, 5, 5),
+        range(2, 2, 4, 4)
+      ]
+
+      assert deduplicate(range_1) == expected
+    end
+
+    test "removes duplicates at end" do
+      range_1 = [
+        range(0, 0, 10, 10),
+        range(1, 1, 5, 5),
+        range(2, 2, 4, 4),
+        range(2, 2, 4, 4)
+      ]
+
+      expected = [
+        range(0, 0, 10, 10),
+        range(1, 1, 5, 5),
+        range(2, 2, 4, 4)
+      ]
+
+      assert deduplicate(range_1) == expected
+    end
+
+    test "handles empty list" do
+      assert deduplicate([]) == []
+    end
+
+    test "handles one element list" do
+      assert deduplicate([range(0, 0, 10, 10)]) == [range(0, 0, 10, 10)]
+    end
+  end
 end

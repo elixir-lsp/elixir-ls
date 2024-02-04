@@ -372,8 +372,10 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       ranges = get_ranges(text, 0, 0)
       # full range
       assert Enum.at(ranges, 0) == range(0, 0, 1, 0)
+      # full expression
+      assert Enum.at(ranges, 1) == range(0, 0, 0, 9)
       # full literal
-      assert Enum.at(ranges, 1) == range(0, 0, 0, 4)
+      assert Enum.at(ranges, 2) == range(0, 0, 0, 4)
     end
 
     test "atom" do
@@ -408,29 +410,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       # NOTE AST only matching - no tokens inside interpolation
       assert Enum.at(ranges, 5) == range(0, 16, 0, 17)
     end
-  end
-
-  test "case" do
-    text = """
-    case x do
-      a ->
-        some_fun()
-      b ->
-        more()
-        funs()
-    end
-    """
-
-    ranges = get_ranges(text, 4, 5)
-
-    # full range
-    assert Enum.at(ranges, 0) == range(0, 0, 7, 0)
-    # full b case
-    assert Enum.at(ranges, 5) == range(3, 2, 5, 10)
-    # b block
-    assert Enum.at(ranges, 7) == range(4, 4, 5, 10)
-    # more()
-    assert Enum.at(ranges, 8) == range(4, 4, 4, 10)
   end
 
   test "utf16" do
@@ -469,11 +448,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert Enum.at(ranges, 3) == range(0, 11, 3, 0)
       # full lines:
       assert Enum.at(ranges, 4) == range(1, 0, 2, 14)
-      # trimmed lines:
+      # full lines trimmed
       assert Enum.at(ranges, 5) == range(1, 2, 2, 14)
-      # some:
-      # TODO split by ,
-      assert Enum.at(ranges, 6) == range(1, 2, 1, 6)
+      # some: 123
+      assert Enum.at(ranges, 6) == range(1, 2, 1, 11)
+      # some
+      assert Enum.at(ranges, 7) == range(1, 2, 1, 6)
     end
 
     test "on alias" do
@@ -498,9 +478,9 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
   end
 
   describe "comma separated" do
-    test "arg with match left side" do
+    test "before first ," do
       text = """
-      fun(%My{} = my, keyword: 123, other: "")
+      fun(%My{} = my, keyword: 123, other: [:a, ""])
       """
 
       ranges = get_ranges(text, 0, 6)
@@ -508,18 +488,264 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       # full range
       assert Enum.at(ranges, 0) == range(0, 0, 1, 0)
       # full call
-      assert Enum.at(ranges, 1) == range(0, 0, 0, 40)
+      assert Enum.at(ranges, 1) == range(0, 0, 0, 46)
       # full () outside
-      assert Enum.at(ranges, 2) == range(0, 3, 0, 40)
+      assert Enum.at(ranges, 2) == range(0, 3, 0, 46)
       # full () inside
-      assert Enum.at(ranges, 3) == range(0, 4, 0, 39)
-      # TODO split by ,
-      # # %My{} = my,
-      # assert Enum.at(ranges, 4) == range(0, 4, 0, 15)
-      # # %My{} = my
-      # assert Enum.at(ranges, 5) == range(0, 4, 0, 14)
-      # # %My{}
-      # assert Enum.at(ranges, 5) == range(0, 4, 0, 9)
+      assert Enum.at(ranges, 3) == range(0, 4, 0, 45)
+      # %My{} = my
+      assert Enum.at(ranges, 4) == range(0, 4, 0, 14)
     end
+
+    test "between ," do
+      text = """
+      fun(%My{} = my, keyword: 123, other: [:a, ""])
+      """
+
+      ranges = get_ranges(text, 0, 18)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 1, 0)
+      # full call
+      assert Enum.at(ranges, 1) == range(0, 0, 0, 46)
+      # full () outside
+      assert Enum.at(ranges, 2) == range(0, 3, 0, 46)
+      # full () inside
+      assert Enum.at(ranges, 3) == range(0, 4, 0, 45)
+      # keyword: 123
+      assert Enum.at(ranges, 4) == range(0, 16, 0, 28)
+    end
+
+    test "after last ," do
+      text = """
+      fun(%My{} = my, keyword: 123, other: [:a, ""])
+      """
+
+      ranges = get_ranges(text, 0, 31)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 1, 0)
+      # full call
+      assert Enum.at(ranges, 1) == range(0, 0, 0, 46)
+      # full () outside
+      assert Enum.at(ranges, 2) == range(0, 3, 0, 46)
+      # full () inside
+      assert Enum.at(ranges, 3) == range(0, 4, 0, 45)
+      # other: [:a, ""]
+      assert Enum.at(ranges, 4) == range(0, 30, 0, 45)
+    end
+  end
+
+  describe "case" do
+    test "case" do
+      text = """
+      case x do
+        a ->
+          some_fun()
+        b ->
+          more()
+          funs()
+      end
+      """
+  
+      ranges = get_ranges(text, 4, 5)
+  
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 7, 0)
+      # full b case
+      assert Enum.at(ranges, 5) == range(3, 2, 5, 10)
+      # b block
+      assert Enum.at(ranges, 8) == range(4, 4, 5, 10)
+      # more()
+      assert Enum.at(ranges, 9) == range(4, 4, 4, 10)
+    end
+    
+    test "inside case arg" do
+      text = """
+      case foo do
+        {:ok, _} -> :ok
+        _ ->
+          Logger.error("Foo")
+          :error
+      end
+      """
+
+      ranges = get_ranges(text, 0, 6)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 6, 0)
+      # full case
+      assert Enum.at(ranges, 1) == range(0, 0, 5, 3)
+      # foo
+      assert Enum.at(ranges, 3) == range(0, 5, 0, 8)
+    end
+
+    test "left side of -> single line" do
+      text = """
+      case foo do
+        {:ok, _} -> :ok
+        _ ->
+          Logger.error("Foo")
+          :error
+      end
+      """
+
+      ranges = get_ranges(text, 1, 3)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 6, 0)
+      # full case
+      assert Enum.at(ranges, 1) == range(0, 0, 5, 3)
+      # do block
+      assert Enum.at(ranges, 2) == range(0, 9, 5, 3)
+      # do block inside
+      assert Enum.at(ranges, 3) == range(1, 0, 4, 10)
+      # do block inside trimmed
+      assert Enum.at(ranges, 4) == range(1, 2, 4, 10)
+      # full expression
+      assert Enum.at(ranges, 5) == range(1, 2, 1, 17)
+      # {:ok, _}
+      assert Enum.at(ranges, 6) == range(1, 2, 1, 10)
+    end
+
+    test "right side of -> single line" do
+      text = """
+      case foo do
+        {:ok, _} -> :ok
+        _ ->
+          Logger.error("Foo")
+          :error
+      end
+      """
+
+      ranges = get_ranges(text, 1, 16)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 6, 0)
+      # full case
+      assert Enum.at(ranges, 1) == range(0, 0, 5, 3)
+      # do block
+      assert Enum.at(ranges, 2) == range(0, 9, 5, 3)
+      # do block inside
+      assert Enum.at(ranges, 3) == range(1, 0, 4, 10)
+      # do block inside trimmed
+      assert Enum.at(ranges, 4) == range(1, 2, 4, 10)
+      # full expression
+      assert Enum.at(ranges, 5) == range(1, 2, 1, 17)
+      # :ok expression
+      assert Enum.at(ranges, 6) == range(1, 14, 1, 17)
+    end
+
+    test "left side of -> multi line" do
+      text = """
+      case foo do
+        {:ok, _} -> :ok
+        %{
+          asdf: 1
+        } ->
+          Logger.error("Foo")
+          :error
+        _ -> :foo
+      end
+      """
+
+      ranges = get_ranges(text, 3, 5)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 9, 0)
+      # full case
+      assert Enum.at(ranges, 1) == range(0, 0, 8, 3)
+      # do block
+      assert Enum.at(ranges, 2) == range(0, 9, 8, 3)
+      # do block inside
+      assert Enum.at(ranges, 3) == range(1, 0, 7, 11)
+      # do block inside trimmed
+      assert Enum.at(ranges, 4) == range(1, 2, 7, 11)
+      # case -> expression
+      assert Enum.at(ranges, 5) == range(2, 2, 6, 10)
+      # pattern with ->
+      assert Enum.at(ranges, 6) == range(2, 2, 4, 6)
+      # pattern
+      assert Enum.at(ranges, 7) == range(2, 2, 4, 3)
+    end
+
+    test "right side of -> multi line" do
+      text = """
+      case foo do
+        {:ok, _} -> :ok
+        %{
+          asdf: 1
+        } ->
+          Logger.error("Foo")
+          :error
+        _ -> :foo
+      end
+      """
+
+      ranges = get_ranges(text, 5, 5)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 9, 0)
+      # full case
+      assert Enum.at(ranges, 1) == range(0, 0, 8, 3)
+      # do block
+      assert Enum.at(ranges, 2) == range(0, 9, 8, 3)
+      # do block inside
+      assert Enum.at(ranges, 3) == range(1, 0, 7, 11)
+      # do block inside trimmed
+      assert Enum.at(ranges, 4) == range(1, 2, 7, 11)
+      # case -> expression
+      assert Enum.at(ranges, 5) == range(2, 2, 6, 10)
+      # full block
+      assert Enum.at(ranges, 8) == range(5, 4, 6, 10)
+    end
+
+    test "right side of -> last expression in do block" do
+      text = """
+      case foo do
+        {:ok, _} -> :ok
+        %{
+          asdf: 1
+        } ->
+          Logger.error("Foo")
+          :error
+        _ -> :foo
+      end
+      """
+
+      ranges = get_ranges(text, 7, 8)
+
+      # full range
+      assert Enum.at(ranges, 0) == range(0, 0, 9, 0)
+      # full case
+      assert Enum.at(ranges, 1) == range(0, 0, 8, 3)
+      # do block
+      assert Enum.at(ranges, 2) == range(0, 9, 8, 3)
+      # do block inside trimmed
+      assert Enum.at(ranges, 5) == range(1, 2, 7, 11)
+      # case -> expression
+      assert Enum.at(ranges, 6) == range(7, 2, 7, 11)
+      # :foo
+      assert Enum.at(ranges, 7) == range(7, 7, 7, 11)
+    end
+  end
+
+  test "operators" do
+    text = """
+    var1 + var2 * var3 > var4 - var5
+    """
+
+    ranges = get_ranges(text, 0, 8)
+
+    # full range
+    assert Enum.at(ranges, 0) == range(0, 0, 1, 0)
+    # full expression
+    assert Enum.at(ranges, 1) == range(0, 0, 0, 32)
+    # full left side of operator >
+    assert Enum.at(ranges, 2) == range(0, 0, 0, 18)
+    # var2 * var3
+    assert Enum.at(ranges, 3) == range(0, 7, 0, 18)
+    # var2
+    assert Enum.at(ranges, 4) == range(0, 7, 0, 11)
   end
 end
