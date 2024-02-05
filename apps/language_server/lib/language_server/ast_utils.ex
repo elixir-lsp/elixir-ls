@@ -6,6 +6,17 @@ defmodule ElixirLS.LanguageServer.AstUtils do
   @unary_operators ~w[@ + - ! ^ not &]a
 
   def node_range(atom) when is_atom(atom), do: nil
+  def node_range([{{:__block__, _, [atom]} = first, _} | _] = list) when is_atom(atom) do
+    case List.last(list) do
+      {_, last} ->
+        case {node_range(first), node_range(last)} do
+          {range(start_line, start_character, _, _), range(_, _, end_line, end_character)} ->
+            range(start_line, start_character, end_line, end_character)
+          _ -> nil
+          end
+      _ -> nil
+    end
+  end
   def node_range(list) when is_list(list), do: nil
 
   def node_range({:__block__, meta, args} = ast) do
@@ -110,9 +121,13 @@ defmodule ElixirLS.LanguageServer.AstUtils do
               # TODO is it needed
               {line, column}
           end
+        form == :"&" and match?([int] when is_integer(int), args) ->
+          [int] = args
+          {line, column}
         form in @binary_operators and match?([_, _], args) ->
           [left, _right] = args
           operator_length = form |> to_string() |> String.length()
+          
           case node_range(left) do
             range(line, column, _, _) ->
               {line, column}
@@ -144,6 +159,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
           closing_length =
             case form do
               :<<>> -> 2
+              :fn -> 3
               _ -> 1
             end
 
@@ -175,6 +191,9 @@ defmodule ElixirLS.LanguageServer.AstUtils do
           # try to format it instead
           get_eoe_by_formatting(ast, {line, column})
 
+        form == :"&" and match?([int] when is_integer(int), args) ->
+          [int] = args
+          {line, column + String.length(to_string(int))}
         form in @binary_operators and match?([_, _], args) ->
           [left, right] = args
           operator_length = form |> to_string() |> String.length()
@@ -209,6 +228,8 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                   {end_line, end_column}
                 nil ->
                   # TODO is it needed
+                  nil
+                  # {line, column + operator_length}
               end
           end
           |> dbg
@@ -223,7 +244,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
             _ ->
               # local call no parens
               last_arg = List.last(args)
-              case node_range(last_arg) do
+              case node_range(last_arg |> dbg) |> dbg do
                 range(_, _, end_line, end_column) ->
                   {end_line, end_column}
                 nil ->

@@ -250,7 +250,6 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range(text) == range(0, 0, 4, 3)
     end
 
-    # TODO
     test "if short notation" do
       text = """
       if true, do: 1
@@ -353,6 +352,10 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range("&Some.fun/1") == range(0, 0, 0, 11)
     end
 
+    test "anonymous capture" do
+      assert get_range("& &1 + 1") == range(0, 0, 0, 8)
+    end
+
     test "complicated local call" do
       text = """
       fun(%My{} = my, keyword: 123, other: [:a, ""])
@@ -369,6 +372,47 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       """
 
       assert get_range(text) == range(0, 0, 2, 3)
+    end
+
+    test "anonymous function no args" do
+      test = """
+      fn -> 1 end
+      """
+      assert get_range(test) == range(0, 0, 0, 11)
+    end
+
+    test "anonymous function multiple args" do
+      test = """
+      fn a, b -> 1 end
+      """
+      assert get_range(test) == range(0, 0, 0, 16)
+    end
+
+    test "anonymous function multiple clauses" do
+      test = """
+      fn
+        1 -> 1
+        _ -> 2
+      end
+      """
+      assert get_range(test) == range(0, 0, 3, 3)
+    end
+
+    test "with" do
+      text = """
+      with {:ok, x} <- foo() do
+        x
+      end
+      """
+      assert get_range(text) == range(0, 0, 2, 3)
+    end
+
+    test "def short notation" do
+      test = ~S"""
+      defp name(%Config{} = config),
+        do: :"#{__MODULE__}_#{config.node_id}_#{config.channel_unique_id}"
+      """
+      assert get_range(test) == range(0, 0, 1, 39)
     end
   end
 end
