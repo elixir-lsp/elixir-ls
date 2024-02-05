@@ -9,6 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   alias ElixirLS.LanguageServer.Providers.FoldingRange
   import ElixirLS.LanguageServer.Protocol
   import ElixirLS.LanguageServer.RangeUtils
+  alias ElixirLS.LanguageServer.AstUtils
 
   defp token_length(:end), do: 3
   defp token_length(token) when token in [:"(", :"[", :"{", :")", :"]", :"}"], do: 1
@@ -79,11 +80,11 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
       merged_ranges =
         [full_file_range | token_pair_ranges] |> dbg
-        |> merge_ranges_lists([full_file_range | cell_pair_ranges])
-        |> merge_ranges_lists([full_file_range | special_token_group_ranges])
-        |> merge_ranges_lists([full_file_range | comment_block_ranges])
-        |> merge_ranges_lists([full_file_range | surround_context_ranges])
-        |> merge_ranges_lists([full_file_range | ast_node_ranges])
+        |> merge_ranges_lists([full_file_range | cell_pair_ranges] |> dbg)
+        |> merge_ranges_lists([full_file_range | special_token_group_ranges] |> dbg)
+        |> merge_ranges_lists([full_file_range | comment_block_ranges] |> dbg)
+        |> merge_ranges_lists([full_file_range | surround_context_ranges] |> dbg)
+        |> merge_ranges_lists([full_file_range | ast_node_ranges] |> dbg)
 
       if not increasingly_narrowing?(merged_ranges) do
         raise "merged_ranges are not increasingly narrowing"
@@ -320,131 +321,165 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
         ast,
         {[], []},
         fn
-          {node, meta, args} = ast, {acc, parent_ast} ->
+          {form, meta, args} = ast, {acc, parent_ast} ->
             parent_ast_from_stack =
               case parent_ast do
                 [] -> []
                 [item | _] -> item
               end
 
-            {start_line, start_character} =
-              cond do
-                node == :%{} and match?({:%, _, _}, parent_ast_from_stack) ->
-                  # get line and column from parent % node, current node meta points to {
-                  {_, parent_meta, _} = parent_ast_from_stack
+            # {start_line, start_character} =
+            #   cond do
+            #     node == :%{} and match?({:%, _, _}, parent_ast_from_stack) ->
+            #       # get line and column from parent % node, current node meta points to {
+            #       {_, parent_meta, _} = parent_ast_from_stack
 
-                  {Keyword.get(parent_meta, :line, 1) - 1,
-                   Keyword.get(parent_meta, :column, 1) - 1}
+            #       {Keyword.get(parent_meta, :line, 1) - 1,
+            #        Keyword.get(parent_meta, :column, 1) - 1}
 
-                node in @binary_operators and match?([_, _], args) ->
-                  [left | _] = args
-                  # dbg(binding(), limit: :infinity)
-                  find_start_of_expression(left, {Keyword.get(meta, :line, 1) - 1, Keyword.get(meta, :column, 1) - 1})
+            #     node in @binary_operators and match?([_, _], args) ->
+            #       [left | _] = args
+            #       # dbg(binding(), limit: :infinity)
+            #       find_start_of_expression(left, {Keyword.get(meta, :line, 1) - 1, Keyword.get(meta, :column, 1) - 1})
 
-                true ->
-                  {Keyword.get(meta, :line, 0) - 1, Keyword.get(meta, :column, 1) - 1}
+
+                
+            #     meta_line = meta[:line] ->
+            #       {meta_line - 1, Keyword.get(meta, :column, 1) - 1}
+                
+            #     true ->
+            #       find_start_of_expression(ast, {nil, nil})
+            #   end
+
+            # if start_line < 0 or start_character < 0 do
+            #   dbg(ast)
+            #   raise "could not find start of expression"
+            # end
+
+            # {end_line, end_character} =
+            #   cond do
+            #     node == :__aliases__ ->
+            #       last = meta[:last]
+
+            #       last_length =
+            #         case List.last(args) do
+            #           atom when is_atom(atom) -> atom |> to_string() |> String.length()
+            #           _ -> 0
+            #         end
+
+            #       {last[:line] - 1, last[:column] - 1 + last_length}
+
+            #     node in @binary_operators and match?([_, _], args) ->
+            #       dbg(ast)
+            #       dbg(parent_ast_from_stack)
+            #       [_left, right] = args
+            #       operator_length = node|> to_string() |> String.length()
+            #       find_end_of_expression(right, parent_ast_from_stack, {start_line, start_character + operator_length})
+
+            #     node in @unary_operators and match?([_], args) ->
+            #       [right] = args
+            #       operator_length = node|> to_string() |> String.length()
+            #       find_end_of_expression(right, parent_ast_from_stack, {start_line, start_character + operator_length})
+
+            #     end_location = meta[:end_of_expression] ->
+            #       {end_location[:line] - 1, end_location[:column] - 1}
+
+            #     end_location = meta[:end] ->
+            #       {end_location[:line] - 1, end_location[:column] - 1 + 3}
+
+            #     end_location = meta[:closing] ->
+            #       closing_length =
+            #         case node do
+            #           :<<>> -> 2
+            #           _ -> 1
+            #         end
+
+            #       {end_location[:line] - 1, end_location[:column] - 1 + closing_length}
+
+            #     token = meta[:token] ->
+            #       {start_line, start_character + String.length(token)}
+
+            #     meta[:delimiter] && (is_list(node) or is_binary(node)) ->
+            #       {start_line, start_character + String.length(to_string(node))}
+
+            #     # TODO a few other cases
+
+            #     #   parent_end_line =
+            #     #   parent_meta_from_stack
+            #     #   |> dbg()
+            #     #   |> Keyword.get(:end, [])
+            #     #   |> Keyword.get(:line) ->
+            #     # # last expression in block does not have end_of_expression
+            #     # parent_do_line = parent_meta_from_stack[:do][:line]
+
+            #     # if parent_end_line > parent_do_line do
+            #     #   # take end location from parent and assume end_of_expression is last char in previous line
+            #     #   end_of_expression =
+            #     #     Enum.at(lines, max(parent_end_line - 2, 0))
+            #     #     |> String.length()
+
+            #     #   SourceFile.elixir_position_to_lsp(
+            #     #     lines,
+            #     #     {parent_end_line - 1, end_of_expression + 1}
+            #     #   )
+            #     # else
+            #     #   # take end location from parent and assume end_of_expression is last char before final ; trimmed
+            #     #   line = Enum.at(lines, parent_end_line - 1)
+            #     #   parent_end_column = parent_meta_from_stack[:end][:column]
+
+            #     #   end_of_expression =
+            #     #     line
+            #     #     |> String.slice(0..(parent_end_column - 2))
+            #     #     |> String.trim_trailing()
+            #     #     |> String.replace_trailing(";", "")
+            #     #     |> String.length()
+
+            #     #   SourceFile.elixir_position_to_lsp(
+            #     #     lines,
+            #     #     {parent_end_line, end_of_expression + 1}
+            #     #   )
+            #     # end
+            #     true ->
+            #       find_end_of_expression(ast, parent_ast_from_stack, {start_line, start_character})
+            #   end
+
+            range = AstUtils.node_range(ast) |> dbg
+            # range = try do
+            #   AstUtils.node_range(ast)
+            # rescue
+            #   _ -> nil
+            # end
+
+            case range do
+              range(start_line, start_character, end_line, end_character) = range ->
+                start_character = if form == :"%{}" and match?({:%, _, _}, parent_ast_from_stack) do
+                  # undo column offset for structs inner map node
+                  start_character + 1
+                else
+                  start_character
+                end
+                range = range(start_line, start_character, end_line, end_character)
+                if (start_line < line or (start_line == line and start_character <= character)) and
+                    (end_line > line or (end_line == line and end_character >= character)) do
+                      # range = range(start_line, start_character, end_line, end_character)
+                      if not valid?(range) do
+                        raise "invalid range"
+                      end
+                  # dbg({ast, range, parent_ast_from_stack})
+                  {ast,
+                  {[range | acc],
+                    [ast | parent_ast]}}
+                else
+                  dbg({ast, range, {line, character}, "outside"})
+                  {ast, {acc, [ast | parent_ast]}}
+                end
+              nil ->
+                dbg({ast, "nil"})
+                {ast, {acc, [ast | parent_ast]}}
               end
-
-            {end_line, end_character} =
-              cond do
-                node == :__aliases__ ->
-                  last = meta[:last]
-
-                  last_length =
-                    case List.last(args) do
-                      atom when is_atom(atom) -> atom |> to_string() |> String.length()
-                      _ -> 0
-                    end
-
-                  {last[:line] - 1, last[:column] - 1 + last_length}
-
-                node in @binary_operators and match?([_, _], args) ->
-                  dbg(ast)
-                  dbg(parent_ast_from_stack)
-                  [_left, right] = args
-                  operator_length = node|> to_string() |> String.length()
-                  find_end_of_expression(right, parent_ast_from_stack, {start_line, start_character + operator_length})
-
-                node in @unary_operators and match?([_], args) ->
-                  [right] = args
-                  operator_length = node|> to_string() |> String.length()
-                  find_end_of_expression(right, parent_ast_from_stack, {start_line, start_character + operator_length})
-
-                end_location = meta[:end_of_expression] ->
-                  {end_location[:line] - 1, end_location[:column] - 1}
-
-                end_location = meta[:end] ->
-                  {end_location[:line] - 1, end_location[:column] - 1 + 3}
-
-                end_location = meta[:closing] ->
-                  closing_length =
-                    case node do
-                      :<<>> -> 2
-                      _ -> 1
-                    end
-
-                  {end_location[:line] - 1, end_location[:column] - 1 + closing_length}
-
-                token = meta[:token] ->
-                  {start_line, start_character + String.length(token)}
-
-                # is_atom(node) ->
-                #   {start_line, start_character + String.length(to_string(node))}
-
-                meta[:delimiter] && (is_list(node) or is_binary(node)) ->
-                  {start_line, start_character + String.length(to_string(node))}
-
-                # TODO a few other cases
-
-                #   parent_end_line =
-                #   parent_meta_from_stack
-                #   |> dbg()
-                #   |> Keyword.get(:end, [])
-                #   |> Keyword.get(:line) ->
-                # # last expression in block does not have end_of_expression
-                # parent_do_line = parent_meta_from_stack[:do][:line]
-
-                # if parent_end_line > parent_do_line do
-                #   # take end location from parent and assume end_of_expression is last char in previous line
-                #   end_of_expression =
-                #     Enum.at(lines, max(parent_end_line - 2, 0))
-                #     |> String.length()
-
-                #   SourceFile.elixir_position_to_lsp(
-                #     lines,
-                #     {parent_end_line - 1, end_of_expression + 1}
-                #   )
-                # else
-                #   # take end location from parent and assume end_of_expression is last char before final ; trimmed
-                #   line = Enum.at(lines, parent_end_line - 1)
-                #   parent_end_column = parent_meta_from_stack[:end][:column]
-
-                #   end_of_expression =
-                #     line
-                #     |> String.slice(0..(parent_end_column - 2))
-                #     |> String.trim_trailing()
-                #     |> String.replace_trailing(";", "")
-                #     |> String.length()
-
-                #   SourceFile.elixir_position_to_lsp(
-                #     lines,
-                #     {parent_end_line, end_of_expression + 1}
-                #   )
-                # end
-                true ->
-                  {start_line, start_character}
-              end
-
-            if (start_line < line or (start_line == line and start_character <= character)) and
-                 (end_line > line or (end_line == line and end_character >= character)) do
-              {ast,
-               {[range(start_line, start_character, end_line, end_character) | acc],
-                [ast | parent_ast]}}
-            else
-              {ast, {acc, [ast | parent_ast]}}
-            end
 
           other, {acc, parent_ast} ->
+            dbg({other, "other"})
             {other, {acc, parent_ast}}
         end,
         fn
@@ -500,16 +535,20 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   def find_start_of_expression(ast, acc) do
     {_, soe} = Macro.prewalk(ast, acc, fn
       {kind, meta, _} = node, {line, column} ->
-        soe_line = meta[:line] - 1
-        correction = if kind == :"%{}" do
-          # TODO is is a bug in parser? column is invalid
-          -1
-        else
-          0
-        end
-        soe_column = meta[:column] - 1 + correction
-        if soe_line < line or (soe_line == line and soe_column <= column) do
-          {node, {soe_line, soe_column}}
+        if soe_line = meta[:line] do
+          soe_line = soe_line - 1
+          correction = if kind == :"%{}" do
+            # TODO is is a bug in parser? column is invalid
+            -1
+          else
+            0
+          end
+          soe_column = meta[:column] - 1 + correction
+          if soe_line < line or (soe_line == line and soe_column <= column) do
+            {node, {soe_line, soe_column}}
+          else
+            {node, {line, column}}
+          end
         else
           {node, {line, column}}
         end
@@ -517,21 +556,64 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
         {node, acc}
     end)
     dbg({ast, soe})
+    case soe do
+      {nil, nil} -> :ok
+      {l, c} when l < 0 or c < 0 -> raise "invalid start of expression"
+      _ -> :ok
+    end
     soe
   end
 
   defp find_end_of_expression(ast, parent_node, acc) do
+    {soe_line, soe_column} = find_start_of_expression(ast, {nil, nil})
+      {soe_line, soe_column} = if {soe_line, soe_column} == {nil, nil} do
+        acc
+      else
+        {soe_line, soe_column}
+      end
+
+    # try to find it in meta recursively
     {_, eoe} = Macro.prewalk(ast, acc, fn
-      {_, meta, _} = node, {line, column} ->
-        end_of_expression = meta[:end_of_expression]
-        if end_of_expression do
-          eoe_line = end_of_expression[:line] - 1
-          eoe_column = end_of_expression[:column] - 1
-          if eoe_line > line or (eoe_line == line and eoe_column >= column) do
-            {node, {eoe_line, eoe_column}}
-          else
-            {node, {line, column}}
-          end
+      {node, meta, args} = ast, {line, column} ->
+        {eoe_line, eoe_column} = cond do
+          node == :__aliases__ ->
+            last = meta[:last]
+
+            last_length =
+              case List.last(args) do
+                atom when is_atom(atom) -> atom |> to_string() |> String.length()
+                _ -> 0
+              end
+
+            {last[:line] - 1, last[:column] - 1 + last_length}
+
+          end_location = meta[:end_of_expression] ->
+            {end_location[:line] - 1, end_location[:column] - 1}
+
+          end_location = meta[:end] ->
+            {end_location[:line] - 1, end_location[:column] - 1 + 3}
+
+          end_location = meta[:closing] ->
+            closing_length =
+              case node do
+                :<<>> -> 2
+                _ -> 1
+              end
+
+            {end_location[:line] - 1, end_location[:column] - 1 + closing_length}
+
+          token = meta[:token] ->
+            {soe_line, soe_column + String.length(token)}
+
+          meta[:delimiter] && (is_list(node) or is_binary(node)) ->
+            {soe_line, soe_column + String.length(to_string(node))}
+
+          true ->
+            {line, column}
+        end
+
+        if eoe_line > line or (eoe_line == line and eoe_column >= column) do
+          {node, {eoe_line, eoe_column}}
         else
           {node, {line, column}}
         end
@@ -556,14 +638,8 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
       eoe
     end
 
+    # try to format the expression and count chars
     eoe = if eoe == acc do
-      {soe_line, soe_column} = find_start_of_expression(ast, {nil, nil})
-      {soe_line, soe_column} = if {soe_line, soe_column} == {nil, nil} do
-        acc
-      else
-        {soe_line, soe_column}
-      end
-
       code = ast |> dbg |> Code.quoted_to_algebra |> Inspect.Algebra.format(:infinity) |> IO.iodata_to_binary()
       lines = code |> SourceFile.lines()
       case lines do
