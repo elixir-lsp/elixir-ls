@@ -5,9 +5,17 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
   import ElixirLS.LanguageServer.AstUtils
 
   defp get_range(code) do
-    IO.puts(code)
-    {:ok, ast} = Code.string_to_quoted(code, columns: true, token_metadata: true, unescape: false, literal_encoder: &{:ok, {:__block__, &2, [&1]}})
-    dbg(ast)
+    # IO.puts(code)
+
+    {:ok, ast} =
+      Code.string_to_quoted(code,
+        columns: true,
+        token_metadata: true,
+        unescape: false,
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}}
+      )
+
+    # dbg(ast)
     node_range(ast)
   end
 
@@ -42,6 +50,14 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
 
     test "quoted atom charlist" do
       assert get_range(":'abc'") == range(0, 0, 0, 6)
+    end
+
+    test "quoted atom string interpolated" do
+      assert get_range(":\"ab\#{inspect(self())}c\"") == range(0, 0, 0, 24)
+    end
+
+    test "quoted atom charlist interpolated" do
+      assert get_range(":'ab\#{inspect(self())}c'") == range(0, 0, 0, 24)
     end
 
     test "string" do
@@ -84,6 +100,14 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range("'abc \#{inspect(a)} sd'") == range(0, 0, 0, 22)
     end
 
+    test "string heredoc interpolated" do
+      assert get_range("\"\"\"\nab\#{inspect(a)}c\n\"\"\"") == range(0, 0, 2, 3)
+    end
+
+    test "charlist heredoc interpolated" do
+      assert get_range("'''\nab\#{inspect(a)}c\n'''") == range(0, 0, 2, 3)
+    end
+
     test "sigil" do
       assert get_range("~w(asd fgh)") == range(0, 0, 0, 11)
     end
@@ -93,16 +117,17 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
     end
 
     test "sigil with interpolation" do
-      text = "~s(asd " <> "\#" <> "{" <> "inspect(self())" <> "} fgh)"
+      text = "~s(asd \#{inspect(self())} fgh)"
       assert get_range(text) == range(0, 0, 0, 30)
     end
-    
+
     test "sigil with heredoc string" do
       text = """
       ~S\"\"\"
       some text
       \"\"\"
       """
+
       assert get_range(text) == range(0, 0, 2, 3)
     end
 
@@ -112,6 +137,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       some text
       '''
       """
+
       assert get_range(text) == range(0, 0, 2, 3)
     end
 
@@ -300,8 +326,12 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range(":some.fun(123)") == range(0, 0, 0, 14)
     end
 
-    test "remote call quoted" do
+    test "remote call quoted string" do
       assert get_range("Some.\"0fun\"(123)") == range(0, 0, 0, 16)
+    end
+
+    test "remote call quoted charlist" do
+      assert get_range("Some.'0fun'(123)") == range(0, 0, 0, 16)
     end
 
     test "remote call pipe" do
@@ -309,6 +339,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       123
       |> Some.fun1()
       """
+
       assert get_range(text) == range(0, 0, 1, 14)
     end
 
@@ -317,6 +348,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       123
       |> Some.fun1
       """
+
       assert get_range(text) == range(0, 0, 1, 12)
     end
 
@@ -325,6 +357,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       123
       |> local()
       """
+
       assert get_range(text) == range(0, 0, 1, 10)
     end
 
@@ -333,6 +366,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       123
       |> local
       """
+
       assert get_range(text) == range(0, 0, 1, 8)
     end
 
@@ -378,6 +412,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       test = """
       fn -> 1 end
       """
+
       assert get_range(test) == range(0, 0, 0, 11)
     end
 
@@ -385,6 +420,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       test = """
       fn a, b -> 1 end
       """
+
       assert get_range(test) == range(0, 0, 0, 16)
     end
 
@@ -395,6 +431,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
         _ -> 2
       end
       """
+
       assert get_range(test) == range(0, 0, 3, 3)
     end
 
@@ -404,6 +441,7 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
         x
       end
       """
+
       assert get_range(text) == range(0, 0, 2, 3)
     end
 
@@ -412,7 +450,8 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       defp name(%Config{} = config),
         do: :"#{__MODULE__}_#{config.node_id}_#{config.channel_unique_id}"
       """
-      assert get_range(test) == range(0, 0, 1, 39)
+
+      assert get_range(test) == range(0, 0, 1, 68)
     end
   end
 end

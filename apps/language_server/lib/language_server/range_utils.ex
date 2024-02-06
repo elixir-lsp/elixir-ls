@@ -160,10 +160,12 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
   end
 
   defp do_deduplicate([], acc), do: acc
+
   defp do_deduplicate([range | rest], [range | _] = acc) do
     do_deduplicate(rest, acc)
   end
-  defp do_deduplicate([range | rest], acc) do 
+
+  defp do_deduplicate([range | rest], acc) do
     do_deduplicate(rest, [range | acc])
   end
 end
