@@ -116,16 +116,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
     end)
   end
 
-  # this function differs from the one in SourceFile - it returns utf8 ranges
-  defp full_range(lines) do
-    utf8_size =
-      lines
-      |> List.last()
-      |> String.length()
-
-    range(0, 0, Enum.count(lines) - 1, utf8_size)
-  end
-
   def token_pair_ranges(lines, token_pairs, stop_tokens, line, character) do
     token_pairs
     |> Enum.filter(fn {{_, {start_line, start_character, _}, _},

@@ -5,7 +5,15 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
 
   import ElixirLS.LanguageServer.Protocol
 
-  @type range_t :: map
+  # this function differs from the one in SourceFile - it returns utf8 ranges
+  def full_range(lines) do
+    utf8_size =
+      lines
+      |> List.last()
+      |> String.length()
+
+    range(0, 0, Enum.count(lines) - 1, utf8_size)
+  end
 
   def valid?(range(start_line, start_character, end_line, end_character))
       when is_integer(start_line) and is_integer(end_line) and is_integer(start_character) and
@@ -23,7 +31,6 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
       increasingly_narrowing?([right | rest])
   end
 
-  @spec left_in_right?(range_t, range_t) :: boolean
   def left_in_right?(
         range(start_line_1, start_character_1, end_line_1, end_character_1),
         range(start_line_2, start_character_2, end_line_2, end_character_2)
