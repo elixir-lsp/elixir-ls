@@ -361,11 +361,14 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     # TODO pass line_length to format
     # TODO locals_without_parens to quoted_to_algebra
     # TODO pass comments to quoted_to_algebra
-    code =
+    code = if Version.match?(System.version(), ">= 1.13.0-dev") do
       ast
       |> Code.quoted_to_algebra(escape: false)
       |> Inspect.Algebra.format(:infinity)
       |> IO.iodata_to_binary()
+    else
+      Macro.to_string(ast)
+    end
 
     lines = code |> SourceFile.lines()
 
