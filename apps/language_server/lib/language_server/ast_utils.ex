@@ -119,8 +119,16 @@ defmodule ElixirLS.LanguageServer.AstUtils do
       {start_line, start_column} =
         cond do
           form == :%{} ->
-            # TODO elixir parser bug?
-            {line, column - 1}
+            column =
+              if Version.match?(System.version(), "< 1.16.2") do
+                # workaround elixir bug
+                # https://github.com/elixir-lang/elixir/commit/fd4e6b530c0e010712b06909c89820b08e49c238
+                column - 1
+              else
+                column
+              end
+
+            {line, column}
 
           form == :-> and match?([[_ | _], _], args) ->
             [[left | _], _right] = args
