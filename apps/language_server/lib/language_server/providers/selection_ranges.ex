@@ -16,8 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   defp token_length(token) when token in [:"<<", :">>", :do, :fn], do: 2
   defp token_length(_), do: 0
 
-  # TODO => |
-  @stop_tokens [:",", :";", :eol]
+  @stop_tokens [:",", :";", :eol, :eof, :pipe_op]
 
   def selection_ranges(text, positions) do
     lines = SourceFile.lines(text)
