@@ -1030,19 +1030,21 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 8, 0, 12))
     end
 
-    test "left side of | near" do
-      text = """
-      %{state | 1 => 1, counter: counter + to_dispatch, demand: demand - to_dispatch}
-      """
+    if Version.match?(System.version(), ">= 1.14.0-dev") do
+      test "left side of | near" do
+        text = """
+        %{state | 1 => 1, counter: counter + to_dispatch, demand: demand - to_dispatch}
+        """
 
-      ranges = get_ranges(text, 0, 8)
+        ranges = get_ranges(text, 0, 8)
 
-      # full range
-      assert_range(ranges, range(0, 0, 1, 0))
-      # full map
-      assert_range(ranges, range(0, 0, 0, 79))
-      # |
-      assert_range(ranges, range(0, 8, 0, 9))
+        # full range
+        assert_range(ranges, range(0, 0, 1, 0))
+        # full map
+        assert_range(ranges, range(0, 0, 0, 79))
+        # |
+        assert_range(ranges, range(0, 8, 0, 9))
+      end
     end
 
     test "right side of | near" do
