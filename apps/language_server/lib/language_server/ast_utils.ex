@@ -68,7 +68,10 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                 end
 
               lines = SourceFile.lines(literal)
-              {line + length(lines), meta[:indentation] + get_delimiter_length(delimiter)}
+              # meta[:indentation] is nil on 1.12
+              indentation = Keyword.get(meta, :indentation, 0)
+
+              {line + length(lines), indentation + get_delimiter_length(delimiter)}
             else
               get_literal_end(literal, {line, column}, delimiter)
             end
@@ -194,13 +197,18 @@ defmodule ElixirLS.LanguageServer.AstUtils do
           form == :__aliases__ ->
             last = meta[:last]
 
-            last_length =
-              case List.last(args) do
-                atom when is_atom(atom) -> atom |> to_string() |> String.length()
-                _ -> 0
-              end
+            if last do
+              last_length =
+                case List.last(args) do
+                  atom when is_atom(atom) -> atom |> to_string() |> String.length()
+                  _ -> 0
+                end
 
-            {last[:line] - 1, last[:column] - 1 + last_length}
+              {last[:line] - 1, last[:column] - 1 + last_length}
+            else
+              # last is nil on 1.12
+              get_eoe_by_formatting(ast, {line, column})
+            end
 
           form == :% and match?([_, _], args) ->
             [_alias, map] = args
