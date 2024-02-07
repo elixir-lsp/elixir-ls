@@ -10,6 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   import ElixirLS.LanguageServer.Protocol
   import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.AstUtils
+  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   defp token_length(:end), do: 3
   defp token_length(token) when token in [:"(", :"[", :"{", :")", :"]", :"}"], do: 1
@@ -402,7 +403,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   def ast_node_ranges(_, _, _), do: []
 
   def surround_context_ranges(text, line, character) do
-    case Code.Fragment.surround_context(text, {line + 1, character + 1}) do
+    case NormalizedCode.Fragment.surround_context(text, {line + 1, character + 1}) do
       :none ->
         []
 
