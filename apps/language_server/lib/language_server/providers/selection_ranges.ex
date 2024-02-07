@@ -188,8 +188,9 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
           {_, {start_line, start_character, _}, _} = previous_token
           {_, {end_line, end_character, _}, _} = token
 
-          if (start_line < line or (start_line == line and start_character <= character)) and
-               (end_line > line or (end_line == line and end_character >= character)) do
+          range_between_stop_tokens = range(start_line, start_character, end_line, end_character)
+
+          if in?(range_between_stop_tokens, {line, character}) do
             # dbg({previous_token, after_previous, before_stop, token})
             {end_line, end_character} =
               case before_stop do
@@ -225,15 +226,17 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
                   {start_line, start_character}
               end
 
-            # TODO
-            {:halt,
-             {token_tuple,
-              [
-                intersection(
-                  range(start_line, start_character, end_line, end_character),
-                  inner_range
-                )
-              ]}}
+            trimmed_range =
+              intersection(
+                range(start_line, start_character, end_line, end_character),
+                inner_range
+              )
+
+            if in?(trimmed_range, {line, character}) do
+              {:halt, {token_tuple, [trimmed_range]}}
+            else
+              {:halt, {token_tuple, []}}
+            end
           else
             {:cont, {token_tuple, []}}
           end

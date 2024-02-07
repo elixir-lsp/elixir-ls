@@ -15,6 +15,11 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
     range(0, 0, Enum.count(lines) - 1, utf8_size)
   end
 
+  def in?(range(start_line, start_character, end_line, end_character), {line, character}) do
+    (start_line < line or (start_line == line and start_character <= character)) and
+      (end_line > line or (end_line == line and end_character >= character))
+  end
+
   def valid?(range(start_line, start_character, end_line, end_character))
       when is_integer(start_line) and is_integer(end_line) and is_integer(start_character) and
              is_integer(end_character) do
