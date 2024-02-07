@@ -44,20 +44,28 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range(":abc") == range(0, 0, 0, 4)
     end
 
-    test "quoted atom string" do
-      assert get_range(":\"abc\"") == range(0, 0, 0, 6)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "quoted atom string" do
+        assert get_range(":\"abc\"") == range(0, 0, 0, 6)
+      end
     end
 
-    test "quoted atom charlist" do
-      assert get_range(":'abc'") == range(0, 0, 0, 6)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "quoted atom charlist" do
+        assert get_range(":'abc'") == range(0, 0, 0, 6)
+      end
     end
 
-    test "quoted atom string interpolated" do
-      assert get_range(":\"ab\#{inspect(self())}c\"") == range(0, 0, 0, 24)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "quoted atom string interpolated" do
+        assert get_range(":\"ab\#{inspect(self())}c\"") == range(0, 0, 0, 24)
+      end
     end
 
-    test "quoted atom charlist interpolated" do
-      assert get_range(":'ab\#{inspect(self())}c'") == range(0, 0, 0, 24)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "quoted atom charlist interpolated" do
+        assert get_range(":'ab\#{inspect(self())}c'") == range(0, 0, 0, 24)
+      end
     end
 
     test "string" do
@@ -80,32 +88,42 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range("\"\"\"\nabc\n\"\"\"") == range(0, 0, 2, 3)
     end
 
-    test "string heredoc with indentation" do
-      assert get_range("\"\"\"\n  abc\n  \"\"\"") == range(0, 0, 2, 5)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "string heredoc with indentation" do
+        assert get_range("\"\"\"\n  abc\n  \"\"\"") == range(0, 0, 2, 5)
+      end
     end
 
     test "charlist heredoc" do
       assert get_range("'''\nabc\n'''") == range(0, 0, 2, 3)
     end
 
-    test "charlist heredoc with indentation" do
-      assert get_range("'''\n  abc\n  '''") == range(0, 0, 2, 5)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "charlist heredoc with indentation" do
+        assert get_range("'''\n  abc\n  '''") == range(0, 0, 2, 5)
+      end
     end
 
     test "string interpolated" do
       assert get_range("\"abc \#{inspect(a)} sd\"") == range(0, 0, 0, 22)
     end
 
-    test "charlist interpolated" do
-      assert get_range("'abc \#{inspect(a)} sd'") == range(0, 0, 0, 22)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "charlist interpolated" do
+        assert get_range("'abc \#{inspect(a)} sd'") == range(0, 0, 0, 22)
+      end
     end
 
-    test "string heredoc interpolated" do
-      assert get_range("\"\"\"\nab\#{inspect(a)}c\n\"\"\"") == range(0, 0, 2, 3)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "string heredoc interpolated" do
+        assert get_range("\"\"\"\nab\#{inspect(a)}c\n\"\"\"") == range(0, 0, 2, 3)
+      end
     end
 
-    test "charlist heredoc interpolated" do
-      assert get_range("'''\nab\#{inspect(a)}c\n'''") == range(0, 0, 2, 3)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "charlist heredoc interpolated" do
+        assert get_range("'''\nab\#{inspect(a)}c\n'''") == range(0, 0, 2, 3)
+      end
     end
 
     test "sigil" do
@@ -343,13 +361,15 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range(text) == range(0, 0, 1, 14)
     end
 
-    test "remote call pipe no parens" do
-      text = """
-      123
-      |> Some.fun1
-      """
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "remote call pipe no parens" do
+        text = """
+        123
+        |> Some.fun1
+        """
 
-      assert get_range(text) == range(0, 0, 1, 12)
+        assert get_range(text) == range(0, 0, 1, 12)
+      end
     end
 
     test "local call pipe" do
@@ -445,13 +465,15 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range(text) == range(0, 0, 2, 3)
     end
 
-    test "def short notation" do
-      test = ~S"""
-      defp name(%Config{} = config),
-        do: :"#{__MODULE__}_#{config.node_id}_#{config.channel_unique_id}"
-      """
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "def short notation" do
+        test = ~S"""
+        defp name(%Config{} = config),
+          do: :"#{__MODULE__}_#{config.node_id}_#{config.channel_unique_id}"
+        """
 
-      assert get_range(test) == range(0, 0, 1, 68)
+        assert get_range(test) == range(0, 0, 1, 68)
+      end
     end
   end
 end

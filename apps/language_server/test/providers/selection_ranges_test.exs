@@ -228,21 +228,23 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(1, 0, 2, 4))
     end
 
-    test "left from do" do
-      text = """
-      do
-        1
-        24
-      end
-      """
+    if Version.match?(System.version(), ">= 1.14.0-dev") do
+      test "left from do" do
+        text = """
+        do
+          1
+          24
+        end
+        """
 
-      ranges = get_ranges(text, 0, 0)
-      # full range
-      assert_range(ranges, range(0, 0, 4, 0))
-      # outside do-end
-      assert_range(ranges, range(0, 0, 3, 3))
-      # do
-      assert_range(ranges, range(0, 0, 0, 2))
+        ranges = get_ranges(text, 0, 0)
+        # full range
+        assert_range(ranges, range(0, 0, 4, 0))
+        # outside do-end
+        assert_range(ranges, range(0, 0, 3, 3))
+        # do
+        assert_range(ranges, range(0, 0, 0, 2))
+      end
     end
 
     test "right from do" do
@@ -260,21 +262,23 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 0, 3, 3))
     end
 
-    test "left from end" do
-      text = """
-      do
-        1
-        24
-      end
-      """
+    if Version.match?(System.version(), ">= 1.14.0-dev") do
+      test "left from end" do
+        text = """
+        do
+          1
+          24
+        end
+        """
 
-      ranges = get_ranges(text, 3, 0)
-      # full range
-      assert_range(ranges, range(0, 0, 4, 0))
-      # outside do-end
-      assert_range(ranges, range(0, 0, 3, 3))
-      # end
-      assert_range(ranges, range(3, 0, 3, 3))
+        ranges = get_ranges(text, 3, 0)
+        # full range
+        assert_range(ranges, range(0, 0, 4, 0))
+        # outside do-end
+        assert_range(ranges, range(0, 0, 3, 3))
+        # end
+        assert_range(ranges, range(3, 0, 3, 3))
+      end
     end
 
     test "right from end" do
