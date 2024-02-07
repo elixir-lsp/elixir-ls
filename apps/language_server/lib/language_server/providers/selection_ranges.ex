@@ -427,8 +427,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
         token_pairs
         |> Enum.filter(fn {{_, {start_line, start_character, _}, _},
                            {_, {end_line, end_character, _}, _}} ->
-          (start_line < line or (start_line == line and start_character <= character)) and
-            (end_line > line or (end_line == line and end_character >= character))
+          in?(range(start_line, start_character, end_line, end_character), {line, character})
         end)
         |> Enum.min_by(
           fn {{_, {start_line, start_character, _}, _}, {_, {end_line, end_character, _}, _}} ->
