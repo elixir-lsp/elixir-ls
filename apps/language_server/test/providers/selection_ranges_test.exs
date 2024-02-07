@@ -957,4 +957,39 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
     # var2
     assert_range(ranges, range(0, 7, 0, 11))
   end
+
+  describe "keyword args" do
+    test "single line" do
+      text = """
+      my(1, a: 2, b: 3)
+      """
+
+      ranges = get_ranges(text, 0, 6)
+
+      # full range
+      assert_range(ranges, range(0, 0, 1, 0))
+      # full call
+      assert_range(ranges, range(0, 0, 0, 17))
+      # full keyword
+      assert_range(ranges, range(0, 6, 0, 16))
+    end
+
+    test "multi line" do
+      text = """
+      my(1, a: 2, 
+        b: 3,
+        c: 4
+      )
+      """
+
+      ranges = get_ranges(text, 1, 2)
+
+      # full range
+      assert_range(ranges, range(0, 0, 4, 0))
+      # full call
+      assert_range(ranges, range(0, 0, 3, 1))
+      # full keyword
+      assert_range(ranges, range(0, 6, 2, 6))
+    end
+  end
 end

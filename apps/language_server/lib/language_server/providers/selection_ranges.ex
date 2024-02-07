@@ -328,51 +328,63 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
     |> List.flatten()
   end
 
+  @empty_node {:__block__, [], []}
+
   def ast_node_ranges({:ok, ast}, line, character) do
-    {_new_ast, {acc, []}} =
+    {_new_ast, {acc, [@empty_node]}} =
       Macro.traverse(
         ast,
-        {[], []},
+        {[], [@empty_node]},
         fn
-          {form, _meta, _args} = ast, {acc, parent_ast} ->
-            parent_ast_from_stack =
-              case parent_ast do
-                [] -> []
-                [item | _] -> item
-              end
+          ast, {acc, [parent_ast_from_stack | _] = parent_ast} ->
+            matching_range =
+              case AstUtils.node_range(ast) do
+                range(start_line, start_character, end_line, end_character) ->
+                  start_character =
+                    if match?({:%{}, _, _}, ast) and match?({:%, _, _}, parent_ast_from_stack) and
+                         Version.match?(System.version(), "< 1.16.2") do
+                      # workaround elixir bug
+                      # https://github.com/elixir-lang/elixir/commit/fd4e6b530c0e010712b06909c89820b08e49c238
+                      # undo column offset for structs inner map node
+                      start_character + 1
+                    else
+                      start_character
+                    end
 
-            case AstUtils.node_range(ast) do
-              range(start_line, start_character, end_line, end_character) ->
-                start_character =
-                  if form == :%{} and match?({:%, _, _}, parent_ast_from_stack) and
-                       Version.match?(System.version(), "< 1.16.2") do
-                    # workaround elixir bug
-                    # https://github.com/elixir-lang/elixir/commit/fd4e6b530c0e010712b06909c89820b08e49c238
-                    # undo column offset for structs inner map node
-                    start_character + 1
+                  range = range(start_line, start_character, end_line, end_character)
+
+                  if (start_line < line or (start_line == line and start_character <= character)) and
+                       (end_line > line or (end_line == line and end_character >= character)) do
+                    # dbg({ast, range, parent_ast_from_stack})
+                    # {ast, {[range | acc], [ast | parent_ast]}}
+                    range
                   else
-                    start_character
+                    # dbg({ast, range, {line, character}, "outside"})
+                    # {ast, {acc, [ast | parent_ast]}}
+                    nil
                   end
 
-                range = range(start_line, start_character, end_line, end_character)
+                nil ->
+                  # dbg({ast, "nil"})
+                  # {ast, {acc, [ast | parent_ast]}}
+                  nil
+              end
 
-                if (start_line < line or (start_line == line and start_character <= character)) and
-                     (end_line > line or (end_line == line and end_character >= character)) do
-                  # dbg({ast, range, parent_ast_from_stack})
-                  {ast, {[range | acc], [ast | parent_ast]}}
-                else
-                  # dbg({ast, range, {line, character}, "outside"})
-                  {ast, {acc, [ast | parent_ast]}}
-                end
+            ranges_acc =
+              if matching_range != nil do
+                [matching_range | acc]
+              else
+                acc
+              end
 
-              nil ->
-                # dbg({ast, "nil"})
-                {ast, {acc, [ast | parent_ast]}}
-            end
+            parent_acc =
+              if match?({_, _, _}, ast) do
+                [ast | parent_ast]
+              else
+                parent_ast
+              end
 
-          other, {acc, parent_ast} ->
-            # dbg({other, "other"})
-            {other, {acc, parent_ast}}
+            {ast, {ranges_acc, parent_acc}}
         end,
         fn
           {_, _meta, _} = ast, {acc, [_ | tail]} ->

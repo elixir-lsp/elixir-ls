@@ -300,6 +300,8 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     end
   end
 
+  def node_range(_), do: nil
+
   def get_literal_end(true, {line, column}, _), do: {line, column + 4}
   def get_literal_end(false, {line, column}, _), do: {line, column + 5}
   def get_literal_end(nil, {line, column}, _), do: {line, column + 3}
@@ -361,14 +363,15 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     # TODO pass line_length to format
     # TODO locals_without_parens to quoted_to_algebra
     # TODO pass comments to quoted_to_algebra
-    code = if Version.match?(System.version(), ">= 1.13.0-dev") do
-      ast
-      |> Code.quoted_to_algebra(escape: false)
-      |> Inspect.Algebra.format(:infinity)
-      |> IO.iodata_to_binary()
-    else
-      Macro.to_string(ast)
-    end
+    code =
+      if Version.match?(System.version(), ">= 1.13.0-dev") do
+        ast
+        |> Code.quoted_to_algebra(escape: false)
+        |> Inspect.Algebra.format(:infinity)
+        |> IO.iodata_to_binary()
+      else
+        Macro.to_string(ast)
+      end
 
     lines = code |> SourceFile.lines()
 
