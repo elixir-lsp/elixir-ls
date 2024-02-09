@@ -161,6 +161,17 @@ defmodule ElixirLS.LanguageServer.AstUtils do
           match?({:., _, [Kernel, :to_string]}, form) ->
             {line, column}
 
+          match?({:., _, [Access, :get]}, form) and match?([_ | _], args) ->
+            [arg | _] = args
+
+            case node_range(arg) do
+              range(line, column, _, _) ->
+                {line, column}
+
+              nil ->
+                nil
+            end
+
           match?({:., _, [_ | _]}, form) ->
             {:., _, [module_or_var | _]} = form
 
@@ -257,7 +268,6 @@ defmodule ElixirLS.LanguageServer.AstUtils do
             case args do
               [] ->
                 {:., _, [_, fun]} = form
-                # TODO handle quotes
                 {line, column + String.length(to_string(fun))}
 
               _ ->

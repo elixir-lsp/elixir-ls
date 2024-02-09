@@ -336,6 +336,18 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range("local.(123)") == range(0, 0, 0, 11)
     end
 
+    test "nested call" do
+      assert get_range("local.prop.foo") == range(0, 0, 0, 14)
+    end
+
+    test "access" do
+      assert get_range("local[\"some\"]") == range(0, 0, 0, 13)
+    end
+
+    test "nested access" do
+      assert get_range("local[\"some\"][1]") == range(0, 0, 0, 16)
+    end
+
     test "remote call" do
       assert get_range("Some.fun(123)") == range(0, 0, 0, 13)
     end
@@ -404,6 +416,10 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
 
     test "remote capture" do
       assert get_range("&Some.fun/1") == range(0, 0, 0, 11)
+    end
+
+    test "remote capture quoted" do
+      assert get_range("&Some.\"fun\"/1") == range(0, 0, 0, 13)
     end
 
     test "anonymous capture" do
