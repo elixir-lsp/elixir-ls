@@ -83,7 +83,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   def full_range(source_file) do
-    lines = lines(source_file)
+    [_ | _] = lines = lines(source_file)
 
     utf16_size =
       lines

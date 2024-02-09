@@ -26,6 +26,27 @@ defmodule ElixirLS.LanguageServer.RangeUtilsTest do
     end
   end
 
+  describe "in?" do
+    test "empty range" do
+      assert in?(range(1, 2, 1, 2), {1, 2})
+    end
+
+    test "in range" do
+      assert in?(range(1, 2, 3, 4), {1, 2})
+      assert in?(range(1, 2, 3, 4), {1, 3})
+      assert in?(range(1, 2, 3, 4), {2, 2})
+      assert in?(range(1, 2, 5, 6), {5, 5})
+      assert in?(range(1, 2, 5, 6), {5, 6})
+    end
+
+    test "out of range" do
+      refute in?(range(1, 2, 3, 4), {0, 3})
+      refute in?(range(1, 2, 3, 4), {1, 1})
+      refute in?(range(1, 2, 5, 6), {5, 7})
+      refute in?(range(1, 2, 5, 6), {6, 3})
+    end
+  end
+
   describe "left_in_right?" do
     test "returns true if range 1 is inside range 2" do
       range1 = range(2, 1, 3, 20)
