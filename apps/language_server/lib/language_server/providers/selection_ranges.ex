@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
   @stop_tokens [:",", :";", :eol, :eof, :pipe_op]
 
-  def selection_ranges(text, positions) do
+  def selection_ranges(text, positions, options \\ []) do
     lines = SourceFile.lines(text)
     full_file_range = full_range(lines)
 
@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
       comment_block_ranges = comment_block_ranges(lines, comment_groups, line, character)
 
-      ast_node_ranges = ast_node_ranges(parse_result, line, character)
+      ast_node_ranges = ast_node_ranges(parse_result, line, character, options)
 
       surround_context_ranges = surround_context_ranges(text, line, character)
 
@@ -334,7 +334,11 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
   @empty_node {:__block__, [], []}
 
-  def ast_node_ranges({:ok, ast}, line, character) do
+  def ast_node_ranges({:ok, ast}, line, character, options) do
+    node_range_options = [
+      formatter_opts: Keyword.get(options, :formatter_opts, [])
+    ]
+
     {_new_ast, {acc, [@empty_node]}} =
       Macro.traverse(
         ast,
@@ -342,7 +346,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
         fn
           ast, {acc, [parent_ast_from_stack | _] = parent_ast} ->
             matching_range =
-              case AstUtils.node_range(ast) do
+              case AstUtils.node_range(ast, node_range_options) do
                 range(start_line, start_character, end_line, end_character) ->
                   start_character =
                     if match?({:%{}, _, _}, ast) and match?({:%, _, _}, parent_ast_from_stack) and
@@ -403,7 +407,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
     |> sort_ranges_widest_to_narrowest()
   end
 
-  def ast_node_ranges(_, _, _), do: []
+  def ast_node_ranges(_, _, _, _), do: []
 
   def surround_context_ranges(text, line, character) do
     case NormalizedCode.Fragment.surround_context(text, {line + 1, character + 1}) do

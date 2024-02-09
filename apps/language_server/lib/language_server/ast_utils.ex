@@ -5,9 +5,10 @@ defmodule ElixirLS.LanguageServer.AstUtils do
   @binary_operators ~w[| . ** * / + - ++ -- +++ --- .. <> in |> <<< >>> <<~ ~>> <~ ~> <~> < > <= >= == != === !== =~ && &&& and || ||| or = => :: when <- -> \\]a
   @unary_operators ~w[@ + - ! ^ not &]a
 
-  def node_range(atom) when is_atom(atom), do: nil
+  def node_range(node, options \\ [])
+  def node_range(atom, _options) when is_atom(atom), do: nil
 
-  def node_range([{{:__block__, _, [_]} = first, _} | _] = list) do
+  def node_range([{{:__block__, _, [_]} = first, _} | _] = list, _options) do
     case List.last(list) do
       {_, last} ->
         case {node_range(first), node_range(last)} do
@@ -23,9 +24,9 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     end
   end
 
-  def node_range(list) when is_list(list), do: nil
+  def node_range(list, _options) when is_list(list), do: nil
 
-  def node_range({:__block__, meta, args} = _ast) do
+  def node_range({:__block__, meta, args} = _ast, _options) do
     line = Keyword.get(meta, :line)
     column = Keyword.get(meta, :column)
 
@@ -85,10 +86,10 @@ defmodule ElixirLS.LanguageServer.AstUtils do
   end
 
   # interpolated charlist AST is too complicated to handle via the generic algorithm
-  def node_range({{:., _, [List, :to_charlist]}, meta, _args} = ast) do
+  def node_range({{:., _, [List, :to_charlist]}, meta, _args} = ast, options) do
     line = Keyword.get(meta, :line) - 1
     column = Keyword.get(meta, :column) - 1
-    {end_line, end_column} = get_eoe_by_formatting(ast, {line, column})
+    {end_line, end_column} = get_eoe_by_formatting(ast, {line, column}, options)
     # on elixir 1.15+ formatter changes charlist '' to ~c"" sigil so we need to correct columns
     # if charlist is single line
     correction =
@@ -102,14 +103,14 @@ defmodule ElixirLS.LanguageServer.AstUtils do
   end
 
   # interpolated atom AST is too complicated to handle via the generic algorithm
-  def node_range({{:., _, [:erlang, :binary_to_atom]}, meta, _args} = ast) do
+  def node_range({{:., _, [:erlang, :binary_to_atom]}, meta, _args} = ast, options) do
     line = Keyword.get(meta, :line) - 1
     column = Keyword.get(meta, :column) - 1
-    {end_line, end_column} = get_eoe_by_formatting(ast, {line, column})
+    {end_line, end_column} = get_eoe_by_formatting(ast, {line, column}, options)
     range(line, column, end_line, end_column)
   end
 
-  def node_range({form, meta, args} = ast) do
+  def node_range({form, meta, args} = ast, options) do
     line = Keyword.get(meta, :line)
     column = Keyword.get(meta, :column)
 
@@ -218,7 +219,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
               {last[:line] - 1, last[:column] - 1 + last_length}
             else
               # last is nil on 1.12
-              get_eoe_by_formatting(ast, {line, column})
+              get_eoe_by_formatting(ast, {line, column}, options)
             end
 
           form == :% and match?([_, _], args) ->
@@ -235,7 +236,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
           form == :<<>> or (is_atom(form) and String.starts_with?(to_string(form), "sigil_")) ->
             # interpolated string AST is too complicated
             # try to format it instead
-            get_eoe_by_formatting(ast, {line, column})
+            get_eoe_by_formatting(ast, {line, column}, options)
 
           form == :& and match?([int] when is_integer(int), args) ->
             [int] = args
@@ -317,7 +318,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     end
   end
 
-  def node_range(_), do: nil
+  def node_range(_, _options), do: nil
 
   def get_literal_end(true, {line, column}, _), do: {line, column + 4}
   def get_literal_end(false, {line, column}, _), do: {line, column + 5}
@@ -376,15 +377,19 @@ defmodule ElixirLS.LanguageServer.AstUtils do
   def get_delimiter_length("\"\"\""), do: 3
   def get_delimiter_length("'''"), do: 3
 
-  defp get_eoe_by_formatting(ast, {line, column}) do
-    # TODO pass line_length to format
-    # TODO locals_without_parens to quoted_to_algebra
-    # TODO pass comments to quoted_to_algebra
+  defp get_eoe_by_formatting(ast, {line, column}, options) do
+    formatter_opts = Keyword.get(options, :formatter_opts, [])
+    locals_without_parens = Keyword.get(formatter_opts, :locals_without_parens, [])
+    line_length = Keyword.get(formatter_opts, :line_length, 98)
+
     code =
       if Version.match?(System.version(), ">= 1.13.0-dev") do
         ast
-        |> Code.quoted_to_algebra(escape: false)
-        |> Inspect.Algebra.format(:infinity)
+        |> Code.quoted_to_algebra(
+          escape: false,
+          locals_without_parens: locals_without_parens
+        )
+        |> Inspect.Algebra.format(line_length)
         |> IO.iodata_to_binary()
       else
         Macro.to_string(ast)

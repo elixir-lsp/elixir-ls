@@ -1224,7 +1224,17 @@ defmodule ElixirLS.LanguageServer.Server do
 
     fun = fn ->
       if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
-        ranges = SelectionRanges.selection_ranges(source_file.text, positions)
+        formatter_opts =
+          case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
+            {:ok, {_, opts, _formatter_exs_dir}} -> opts
+            {:error, _} -> []
+          end
+
+        ranges =
+          SelectionRanges.selection_ranges(source_file.text, positions,
+            formatter_opts: formatter_opts
+          )
+
         {:ok, ranges}
       else
         # TODO no support for eex
