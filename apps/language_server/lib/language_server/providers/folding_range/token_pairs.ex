@@ -58,7 +58,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
   end
 
   @spec pair_tokens([Token.t()]) :: [{Token.t(), Token.t()}]
-  defp pair_tokens(tokens) do
+  def pair_tokens(tokens) do
     do_pair_tokens(tokens, [], [])
   end
 
@@ -82,8 +82,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
          pairs
        ) do
     head_matches_any? = @token_pairs |> Map.has_key?(head_kind)
-    # Map.get/2 will always succeed because we only push matches to the stack.
-    head_matches_top? = @token_pairs |> Map.get(top_kind) |> Enum.member?(head_kind)
+    # Map.fetch!/2 will always succeed because we only push matches to the stack.
+    head_matches_top? = @token_pairs |> Map.fetch!(top_kind) |> Enum.member?(head_kind)
 
     {new_stack, new_pairs} =
       case {head_matches_any?, head_matches_top?} do

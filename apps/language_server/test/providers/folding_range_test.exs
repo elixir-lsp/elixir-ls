@@ -355,7 +355,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
     @tag text: """
          defmodule A do          # 0
-           @module doc ~S\"\"\"
+           @moduledoc ~S\"\"\"
            sigil @moduledoc      # 2
            \"\"\"
 
