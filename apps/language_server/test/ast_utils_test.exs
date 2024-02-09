@@ -336,8 +336,10 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range("local.(123)") == range(0, 0, 0, 11)
     end
 
-    test "nested call" do
-      assert get_range("local.prop.foo") == range(0, 0, 0, 14)
+    if Version.match?(System.version(), ">= 1.13.0-dev") do
+      test "nested call" do
+        assert get_range("local.prop.foo") == range(0, 0, 0, 14)
+      end
     end
 
     test "access" do
