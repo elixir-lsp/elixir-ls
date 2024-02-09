@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
   import ElixirLS.LanguageServer.Protocol
 
   # this function differs from the one in SourceFile - it returns utf8 ranges
-  def full_range(lines) do
+  def full_range(lines = [_ | _]) do
     utf8_size =
       lines
       |> List.last()
