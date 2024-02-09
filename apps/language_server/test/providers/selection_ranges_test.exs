@@ -1058,8 +1058,8 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 0, 1, 0))
       # full map
       assert_range(ranges, range(0, 0, 0, 79))
-      # |
-      assert_range(ranges, range(0, 8, 0, 9))
+      # | expression
+      assert_range(ranges, range(0, 2, 0, 78))
     end
   end
 end

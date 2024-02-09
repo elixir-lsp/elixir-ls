@@ -2,12 +2,12 @@ defmodule ElixirLS.LanguageServer.AstUtils do
   import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.SourceFile
 
-  @binary_operators ~w[. ** * / + - ++ -- +++ --- .. <> in |> <<< >>> <<~ ~>> <~ ~> <~> < > <= >= == != === !== =~ && &&& and || ||| or = => :: when <- -> \\]a
+  @binary_operators ~w[| . ** * / + - ++ -- +++ --- .. <> in |> <<< >>> <<~ ~>> <~ ~> <~> < > <= >= == != === !== =~ && &&& and || ||| or = => :: when <- -> \\]a
   @unary_operators ~w[@ + - ! ^ not &]a
 
   def node_range(atom) when is_atom(atom), do: nil
 
-  def node_range([{{:__block__, _, [atom]} = first, _} | _] = list) when is_atom(atom) do
+  def node_range([{{:__block__, _, [_]} = first, _} | _] = list) do
     case List.last(list) do
       {_, last} ->
         case {node_range(first), node_range(last)} do
@@ -119,7 +119,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
       line = line - 1
       column = column - 1
 
-      {start_line, start_column} =
+      start_position =
         cond do
           form == :%{} ->
             column =
@@ -141,8 +141,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                 {line, column}
 
               nil ->
-                # TODO is it needed
-                {line, column}
+                nil
             end
 
           form == :& and match?([int] when is_integer(int), args) ->
@@ -156,9 +155,11 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                 {line, column}
 
               nil ->
-                # TODO is it needed
-                {line, column}
+                nil
             end
+
+          match?({:., _, [Kernel, :to_string]}, form) ->
+            {line, column}
 
           match?({:., _, [_ | _]}, form) ->
             {:., _, [module_or_var | _]} = form
@@ -168,15 +169,14 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                 {line, column}
 
               nil ->
-                # TODO is it needed
-                {line, column}
+                nil
             end
 
           true ->
             {line, column}
         end
 
-      {end_line, end_column} =
+      end_position =
         cond do
           end_location = meta[:end] ->
             {end_location[:line] - 1, end_location[:column] - 1 + 3}
@@ -218,8 +218,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                 {end_line, end_column}
 
               nil ->
-                # TODO is it needed
-                {line, column}
+                nil
             end
 
           form == :<<>> or (is_atom(form) and String.starts_with?(to_string(form), "sigil_")) ->
@@ -233,28 +232,25 @@ defmodule ElixirLS.LanguageServer.AstUtils do
 
           form in @binary_operators and match?([_, _], args) ->
             [_left, right] = args
-            operator_length = form |> to_string() |> String.length()
 
             case node_range(right) do
               range(_, _, end_line, end_column) ->
                 {end_line, end_column}
 
               nil ->
-                # TODO is it needed
-                {line, column + operator_length}
+                # e.g. inside form of a call - not enough meta {:., _, [alias, atom]}
+                nil
             end
 
           form in @unary_operators and match?([_], args) ->
             [right] = args
-            operator_length = form |> to_string() |> String.length()
 
             case node_range(right) do
               range(_, _, end_line, end_column) ->
                 {end_line, end_column}
 
               nil ->
-                # TODO is it needed
-                {line, column + operator_length}
+                nil
             end
 
           match?({:., _, [_, _]}, form) ->
@@ -270,9 +266,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                     {end_line, end_column}
 
                   nil ->
-                    # TODO is it needed
                     nil
-                    # {line, column + operator_length}
                 end
             end
 
@@ -295,8 +289,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                     {end_line, end_column}
 
                   nil ->
-                    # TODO is it needed
-                    {line, column + variable_length}
+                    nil
                 end
             end
 
@@ -304,7 +297,13 @@ defmodule ElixirLS.LanguageServer.AstUtils do
             raise "unhandled block"
         end
 
-      range(start_line, start_column, end_line, end_column)
+      case {start_position, end_position} do
+        {{start_line, start_column}, {end_line, end_column}} ->
+          range(start_line, start_column, end_line, end_column)
+
+        _ ->
+          nil
+      end
     end
   end
 
