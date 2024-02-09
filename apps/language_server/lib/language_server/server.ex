@@ -940,7 +940,6 @@ defmodule ElixirLS.LanguageServer.Server do
        )
        when not is_initialized(server_instance_id) do
     show_version_warnings()
-    IO.inspect(client_capabilities)
 
     server_instance_id =
       :crypto.strong_rand_bytes(32) |> Base.url_encode64() |> binary_part(0, 32)
