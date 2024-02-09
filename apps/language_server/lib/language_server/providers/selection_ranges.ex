@@ -3,9 +3,21 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   This module provides document/selectionRanges support
 
   https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_selectionRange
+
+  There is no one good way to get selection ranges that is bot robust and accurate. This module uses a combination of
+  different approaches. Each produces different ranges (possibly contradictory) that are finally merged and combined
+
+  Algorithms providers currently used:
+  1. Token pairs (), [], do-end etc. with stop tokens , ; eol eof |
+  2. Special token groups (regular/charlist strings/heredocs) and sigils
+  3. Comment blocks
+  4. Code.Fragment.surround_context
+  5. AST
+
+  First 3 algorithms reuse passes from folding ranges provider with some modifications
   """
 
-  alias ElixirLS.LanguageServer.{SourceFile}
+  alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.FoldingRange
   import ElixirLS.LanguageServer.Protocol
   import ElixirLS.LanguageServer.RangeUtils
