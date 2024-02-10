@@ -495,7 +495,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           if parent_end_line > parent_do_line do
             # take end location from parent and assume end_of_expression is last char in previous line
             end_of_expression =
-              Enum.at(lines, max(parent_end_line - 2, 0))
+              (Enum.at(lines, max(parent_end_line - 2, 0)) || "")
               |> String.length()
 
             SourceFile.elixir_position_to_lsp(
