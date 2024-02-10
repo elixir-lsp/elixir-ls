@@ -257,15 +257,20 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   ## Helpers
 
   defp get_app_modules() do
-    config = Mix.Project.config()
-
     apps =
-      case Mix.Project.apps_paths(config) do
-        nil ->
-          config[:app] |> List.wrap()
+      try do
+        config = Mix.Project.config()
 
-        map ->
-          Map.keys(map)
+        case Mix.Project.apps_paths(config) do
+          nil ->
+            config[:app] |> List.wrap()
+
+          map ->
+            Map.keys(map)
+        end
+      rescue
+        Mix.NoProjectError ->
+          []
       end
 
     for app <- apps do
