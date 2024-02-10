@@ -116,13 +116,21 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
         nil -> "unknown"
       end
 
+    {mix_env, mix_target} =
+      try do
+        {Mix.env(), Mix.target()}
+      rescue
+        ArgumentError ->
+          {nil, nil}
+      end
+
     common_properties = %{
       "elixir_ls.elixir_release" => elixir_release,
       "elixir_ls.elixir_version" => System.version(),
       "elixir_ls.otp_release" => System.otp_release(),
       "elixir_ls.erts_version" => to_string(Application.spec(:erts, :vsn)),
-      "elixir_ls.mix_env" => Mix.env(),
-      "elixir_ls.mix_target" => Mix.target()
+      "elixir_ls.mix_env" => mix_env,
+      "elixir_ls.mix_target" => mix_target
     }
 
     notify("telemetry/event", %{
