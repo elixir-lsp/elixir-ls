@@ -492,7 +492,13 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         ]
 
       {:error, %{description: description}} ->
-        get_related_information_description(description, uri, source_file) ++
+        if String.valid?(description) do
+          get_related_information_description(description, uri, source_file)
+        else
+          # SyntaxError can contain invalid UTF8 binaries in `description`
+          # noticed on elixir 1.15.7
+          []
+        end ++
           get_related_information_message(diagnostic.message, uri, source_file)
 
       _ ->
