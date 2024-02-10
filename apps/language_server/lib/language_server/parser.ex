@@ -563,6 +563,8 @@ defmodule ElixirLS.LanguageServer.Parser do
             SyntaxError,
             TokenMissingError,
             MismatchedDelimiterError,
+            CompileError,
+            Phoenix.LiveView.HTMLTokenizer.ParseError,
             Phoenix.LiveView.Tokenizer.ParseError
           ] ->
             diagnostic = Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
