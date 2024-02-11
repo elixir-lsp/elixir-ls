@@ -1104,8 +1104,17 @@ defmodule ElixirLS.LanguageServer.Server do
 
     locals_without_parens =
       case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
-        {:ok, {_, opts, _formatter_exs_dir}} -> Keyword.get(opts, :locals_without_parens, [])
-        {:error, _} -> []
+        {:ok, {_, opts, _formatter_exs_dir}} ->
+          locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
+
+          if List.improper?(locals_without_parens) do
+            []
+          else
+            locals_without_parens
+          end
+
+        {:error, _} ->
+          []
       end
       |> MapSet.new()
 
