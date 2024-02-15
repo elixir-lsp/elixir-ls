@@ -12,6 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirSense.Providers.Suggestion.Matcher
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
+  alias ElixirLS.LanguageServer.MarkdownUtils
   require Logger
 
   @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
@@ -610,7 +611,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       label: name,
       kind: kind,
       detail: detail,
-      documentation: summary,
+      documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
       insert_text: insert_text,
       filter_text: name,
       label_details: label_details,
@@ -661,7 +662,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         label: label,
         kind: :interface,
         detail: "#{origin} #{subtype}",
-        documentation: summary,
+        documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
         insert_text: insert_text,
         priority: 12,
         filter_text: filter_text,
@@ -695,7 +696,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         label: label,
         kind: :interface,
         detail: "#{origin} protocol function",
-        documentation: summary,
+        documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
         insert_text: insert_text,
         priority: 12,
         filter_text: name,
@@ -842,7 +843,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         "detail" => "(#{Enum.join(args_list, ", ")})",
         "description" => if(origin, do: "#{origin}.#{name}/#{arity}", else: "#{name}/#{arity}")
       },
-      documentation: "#{doc}#{formatted_spec}",
+      documentation: "#{doc}\n\n#{MarkdownUtils.get_metadata_md(metadata)}\n\n#{formatted_spec}",
       insert_text: snippet,
       priority: 10,
       kind: :class,
@@ -1307,7 +1308,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           "detail" => "(#{Enum.join(args_list, ", ")})",
           "description" => "#{origin}.#{label}/#{arity}"
         },
-        documentation: summary <> footer,
+        documentation:
+          summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata) <> "\n\n" <> footer,
         insert_text: insert_text,
         priority: 17,
         tags: metadata_to_tags(metadata),

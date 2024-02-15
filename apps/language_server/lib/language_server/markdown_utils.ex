@@ -38,4 +38,99 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
       |> String.replace_trailing("\n", "")
     end) <> "\n"
   end
+
+  def get_metadata_md(metadata) do
+    text =
+      metadata
+      |> Enum.sort()
+      |> Enum.map(&get_metadata_entry_md/1)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join("\n\n")
+
+    case text do
+      "" -> ""
+      not_empty -> not_empty <> "\n\n"
+    end
+  end
+
+  # erlang name
+  defp get_metadata_entry_md({:name, _text}), do: nil
+
+  # erlang signature
+  defp get_metadata_entry_md({:signature, _text}), do: nil
+
+  # erlang edit_url
+  defp get_metadata_entry_md({:edit_url, _text}), do: nil
+
+  # erlang :otp_doc_vsn
+  defp get_metadata_entry_md({:otp_doc_vsn, _text}), do: nil
+
+  # erlang :source
+  defp get_metadata_entry_md({:source, _text}), do: nil
+
+  # erlang :types
+  defp get_metadata_entry_md({:types, _text}), do: nil
+
+  # erlang :equiv
+  defp get_metadata_entry_md({:equiv, {:function, name, arity}}) do
+    "**Equivalent** #{name}/#{arity}"
+  end
+
+  defp get_metadata_entry_md({:deprecated, text}) do
+    "**Deprecated** #{text}"
+  end
+
+  defp get_metadata_entry_md({:since, text}) do
+    "**Since** #{text}"
+  end
+
+  defp get_metadata_entry_md({:group, text}) do
+    "**Group** #{text}"
+  end
+
+  defp get_metadata_entry_md({:guard, true}) do
+    "**Guard**"
+  end
+
+  defp get_metadata_entry_md({:hidden, true}) do
+    "**Hidden**"
+  end
+
+  defp get_metadata_entry_md({:builtin, true}) do
+    "**Built-in**"
+  end
+
+  defp get_metadata_entry_md({:implementing, module}) do
+    "**Implementing behaviour** #{inspect(module)}"
+  end
+
+  defp get_metadata_entry_md({:implementing_module_app, app}) do
+    "**Behaviour defined in application** #{inspect(app)}"
+  end
+
+  defp get_metadata_entry_md({:optional, true}) do
+    "**Optional**"
+  end
+
+  defp get_metadata_entry_md({:optional, false}), do: nil
+
+  defp get_metadata_entry_md({:overridable, true}) do
+    "**Overridable**"
+  end
+
+  defp get_metadata_entry_md({:overridable, false}), do: nil
+
+  defp get_metadata_entry_md({:opaque, true}) do
+    "**Opaque**"
+  end
+
+  defp get_metadata_entry_md({:defaults, _}), do: nil
+
+  defp get_metadata_entry_md({:delegate_to, {m, f, a}}) do
+    "**Delegates to** #{inspect(m)}.#{f}/#{a}"
+  end
+
+  defp get_metadata_entry_md({key, value}) do
+    "**#{key}** #{inspect(value)}"
+  end
 end

@@ -113,7 +113,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     *module* #{build_module_link(info.module)}
 
-    #{get_metadata_md(info.metadata)}
+    #{MarkdownUtils.get_metadata_md(info.metadata)}
 
     #{documentation_section(info.docs)}
     """
@@ -150,7 +150,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     *#{kind}* #{build_function_link(info.module, info.function, info.arity)}
 
-    #{get_metadata_md(info.metadata)}
+    #{MarkdownUtils.get_metadata_md(info.metadata)}
 
     #{spec_text}
 
@@ -178,7 +178,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     *type* #{build_type_link(info.module, info.type, info.arity)}
 
-    #{get_metadata_md(info.metadata)}
+    #{MarkdownUtils.get_metadata_md(info.metadata)}
 
     ### Definition
 
@@ -230,91 +230,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     #{MarkdownUtils.adjust_headings(docs, 3)}
     """
-  end
-
-  def get_metadata_md(metadata) do
-    text =
-      metadata
-      |> Enum.sort()
-      |> Enum.map(&get_metadata_entry_md/1)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.join("\n\n")
-
-    case text do
-      "" -> ""
-      not_empty -> not_empty <> "\n\n"
-    end
-  end
-
-  # erlang name
-  defp get_metadata_entry_md({:name, _text}), do: nil
-
-  # erlang signature
-  defp get_metadata_entry_md({:signature, _text}), do: nil
-
-  # erlang edit_url
-  defp get_metadata_entry_md({:edit_url, _text}), do: nil
-
-  # erlang :otp_doc_vsn
-  defp get_metadata_entry_md({:otp_doc_vsn, _text}), do: nil
-
-  # erlang :source
-  defp get_metadata_entry_md({:source, _text}), do: nil
-
-  # erlang :types
-  defp get_metadata_entry_md({:types, _text}), do: nil
-
-  # erlang :equiv
-  defp get_metadata_entry_md({:equiv, {:function, name, arity}}) do
-    "**Equivalent** #{name}/#{arity}"
-  end
-
-  defp get_metadata_entry_md({:deprecated, text}) do
-    "**Deprecated** #{text}"
-  end
-
-  defp get_metadata_entry_md({:since, text}) do
-    "**Since** #{text}"
-  end
-
-  defp get_metadata_entry_md({:group, text}) do
-    "**Group** #{text}"
-  end
-
-  defp get_metadata_entry_md({:guard, true}) do
-    "**Guard**"
-  end
-
-  defp get_metadata_entry_md({:hidden, true}) do
-    "**Hidden**"
-  end
-
-  defp get_metadata_entry_md({:builtin, true}) do
-    "**Built-in**"
-  end
-
-  defp get_metadata_entry_md({:implementing, module}) do
-    "**Implementing behaviour** #{inspect(module)}"
-  end
-
-  defp get_metadata_entry_md({:optional, true}) do
-    "**Optional**"
-  end
-
-  defp get_metadata_entry_md({:optional, false}), do: nil
-
-  defp get_metadata_entry_md({:opaque, true}) do
-    "**Opaque**"
-  end
-
-  defp get_metadata_entry_md({:defaults, _}), do: nil
-
-  defp get_metadata_entry_md({:delegate_to, {m, f, a}}) do
-    "**Delegates to** #{inspect(m)}.#{f}/#{a}"
-  end
-
-  defp get_metadata_entry_md({key, value}) do
-    "**#{key}** #{inspect(value)}"
   end
 
   defp format_header(text) do
