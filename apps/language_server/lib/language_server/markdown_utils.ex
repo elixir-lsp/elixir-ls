@@ -105,7 +105,11 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   end
 
   defp get_metadata_entry_md({:implementing_module_app, app}) do
-    "**Behaviour defined in application** #{inspect(app)}"
+    "**Behaviour defined in application** #{to_string(app)}"
+  end
+
+  defp get_metadata_entry_md({:app, app}) do
+    "**Application** #{to_string(app)}"
   end
 
   defp get_metadata_entry_md({:optional, true}) do

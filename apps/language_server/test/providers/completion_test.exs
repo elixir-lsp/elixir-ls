@@ -1281,6 +1281,12 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                :kind => "markdown",
                "value" => """
                The summary
+
+               **Application** language_server
+
+
+
+
                ```elixir
                @spec add(
                        a_big_name ::
