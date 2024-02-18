@@ -439,13 +439,18 @@ This section provides additional information on how to set up the ElixirLS local
 
 When launching ElixirLS from an IDE that is itself launched from a graphical shell, the environment may not be complete enough to find or run the correct Elixir/OTP version. To address this on Unix or Linux, the ElixirLS wrapper scripts try to configure [ASDF](https://github.com/asdf-vm/asdf) (a version manager for Elixir and other languages), but that may not always be what is needed.
 
-To ensure that the correct environment is set up, you can create a setup script at `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (for Unix-based systems) or `%APPDATA%\elixir_ls\setup.bat` (for Windows).
+To ensure that the correct environment is set up, you can create a setup script. The setup script location varies based on platform and shell:
+- Unix-based systems using bash or zsh: `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (by default `~/.config/elixir_ls/setup.sh`)
+- Unix-based systems using fish: `$XDG_CONFIG_HOME/elixir_ls/setup.fish` (by default `~/.config/elixir_ls/setup.fish`)
+- Windows-based systems `%APPDATA%\elixir_ls\setup.bat`
 
 In the setup script, the environment variable `ELS_MODE` is available and set to either `debug_adapter` or `language_server` to help you decide what to do.
 
 Note: The setup script must not read from `stdin` or write to `stdout`. On Unix, Linux, and macOS
 this might be accomplished by adding `>/dev/null` at the end of any line that produces
 output; for a Windows batch script, you will want to add `@echo off` at the top and use `>nul`.
+
+If you want to debug your setup script you can write to stderr.
 
 ### Development
 
