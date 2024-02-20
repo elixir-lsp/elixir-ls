@@ -115,7 +115,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     #{MarkdownUtils.get_metadata_md(info.metadata)}
 
-    #{documentation_section(info.docs)}
+    #{documentation_section(info.docs) |> MarkdownUtils.transform_ex_doc_links(info.module)}
     """
   end
 
@@ -154,7 +154,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     #{spec_text}
 
-    #{documentation_section(info.docs)}
+    #{documentation_section(info.docs) |> MarkdownUtils.transform_ex_doc_links(info.module)}
     """
   end
 
@@ -184,7 +184,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
     #{formatted_spec}
 
-    #{documentation_section(info.docs)}
+    #{documentation_section(info.docs) |> MarkdownUtils.transform_ex_doc_links(info.module)}
     """
   end
 
