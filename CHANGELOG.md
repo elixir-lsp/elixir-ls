@@ -1,5 +1,36 @@
 ### Unreleased
 
+### v0.20.0: 21 February 2024
+
+#### Highlights
+
+- Selection ranges provider added. This provider handles expand/shrink selection editor commands in a semantic aware way
+- Completions, hover and signature help providers now are able to display `@doc` and other attributes data from the currently edited buffer
+- Hover provider now returns markdown with working links to hexdocs and erlang documentation. Support for [ExDoc autolinking](https://hexdocs.pm/ex_doc/readme.html#auto-linking) and [erlang see tags](https://www.erlang.org/doc/apps/erl_docgen/inline_tags#%3Csee*%3E---see-tags) has been added
+
+#### Improvements
+
+- Completions provider renders metadata about returned items. Metadata includes info on `since`, `deprecated`, `impl` attributes as well as a number of other flags (hidden, optional, opaque, overridable etc.)
+- Completions provider is now able to suggest callbacks and protocol functions defined in the current buffer
+- Completions provider is now able to suggest return values when implementing callbacks and protocol functions defined in the current buffer
+- Documentation and signatures is provided on builtin function in more cases
+- Avoid race conditions when reading mix project in workspace symbols provider
+- Avoid a crash in document symbols provider when unable to determine the end of expression
+- Avoid a crash when `locals_without_parens` contains invalid elements
+- Improved resilience of alias expander
+
+#### Fixes
+
+- Hover provider would emit invalid markdown when it contained escaped `#` and links with anchor
+- Fixed a crash in workspace symbols provider when the directory is no longer a mix project
+- Workaround an issue when elixir compiler would emit a diagnostic with invalid Unicode
+- Fixed a crash when `Mix.env` cannot be retrieved
+- Fixed a crash in spec code lens on protocol def with default arguments
+- Added a workaround for a crash when reading module exports while it is being compiled
+- Fixed a crash when formatting an atom argument
+- Fixed a crash when handling an invalid typespec
+- Fixed a crash when in complete provider when unable to expand a phoenix controller
+
 ### v0.19.0: 21 January 2024
 
 #### Highlights
