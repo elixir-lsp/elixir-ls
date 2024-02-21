@@ -2288,13 +2288,13 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
       unless :persistent_term.get(:language_server_test_mode, false) do
-        unless function_exported?(ElixirSense, :module_info, 1) and
+        unless function_exported?(ElixirLS.LanguageServer, :module_info, 1) and
                  :persistent_term.get(:language_server_lib_dir) ==
                    ElixirLS.LanguageServer.module_info(:compile)[:source] do
           raise "sanity check failed"
         end
 
-        unless function_exported?(ElixirLS.LanguageServer, :module_info, 1) and
+        unless function_exported?(ElixirSense, :module_info, 1) and
                  :persistent_term.get(:language_server_elixir_sense_lib_dir) ==
                    ElixirSense.module_info(:compile)[:source] do
           raise "sanity check failed"
