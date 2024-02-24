@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   def format(%SourceFile{} = source_file, line, character, "\n", _options) when line >= 1 do
     # we don't care about utf16 positions here as we only pass character back to client
     lines = SourceFile.lines(source_file)
-    prev_line = Enum.at(lines, line - 1)
+    prev_line = Enum.at(lines, line - 1, "")
 
     prev_tokens = tokens(prev_line)
 
@@ -48,6 +48,9 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
     else
       {:ok, nil}
     end
+  end
+  def format(%SourceFile{} = _source_file, _line, _character, _, _options) do
+    {:ok, nil}
   end
 
   # If terminators are already correct, we never want to insert an "end" that would break them.
