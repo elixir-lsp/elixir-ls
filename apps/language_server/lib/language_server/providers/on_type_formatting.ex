@@ -49,6 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
       {:ok, nil}
     end
   end
+
   def format(%SourceFile{} = _source_file, _line, _character, _, _options) do
     {:ok, nil}
   end

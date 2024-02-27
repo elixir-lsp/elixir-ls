@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   from various sources
   """
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
+  require Logger
 
   @enforce_keys [:file, :severity, :message, :position, :compiler_name]
   defstruct [
@@ -314,10 +315,24 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       for %__MODULE__{} = diagnostic <- uri_diagnostics do
         severity =
           case diagnostic.severity do
-            :error -> 1
-            :warning -> 2
-            :information -> 3
-            :hint -> 4
+            :error ->
+              1
+
+            :warning ->
+              2
+
+            :information ->
+              3
+
+            :hint ->
+              4
+
+            other ->
+              Logger.warn(
+                "Invalid severity on diagnostic: #{inspect(other)}, using warning level"
+              )
+
+              2
           end
 
         %{
