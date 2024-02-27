@@ -2,6 +2,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   alias ElixirLS.LanguageServer.{SourceFile, DocLinks, Parser}
   import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.MarkdownUtils
+  alias ElixirLS.LanguageServer.Providers.Hover.Docs
   require Logger
 
   @moduledoc """
@@ -10,29 +11,17 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   def hover(%Parser.Context{source_file: source_file, metadata: metadata}, line, character) do
     response =
-      case ElixirSense.docs(source_file.text, line, character, metadata: metadata) do
+      case Docs.docs(source_file.text, line, character, metadata: metadata) do
         nil ->
           nil
 
         %{docs: docs, range: es_range} ->
           lines = SourceFile.lines(source_file.text)
 
-          try do
-            %{
-              "contents" => contents(docs),
-              "range" => build_range(lines, es_range)
-            }
-          rescue
-            e ->
-              if match?({_, _}, docs) do
-                Logger.error("Sanity check failed. ElixirLS needs to restart.")
-
-                Process.sleep(2000)
-                System.halt(1)
-              end
-
-              raise "#{inspect(e.__struct__)}\n#{inspect(__STACKTRACE__)}\nline:\n#{Enum.at(lines, line - 1)}\nchar: #{character}\n#{inspect(docs)}"
-          end
+          %{
+            "contents" => contents(docs),
+            "range" => build_range(lines, es_range)
+          }
       end
 
     {:ok, response}
