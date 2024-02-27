@@ -164,8 +164,20 @@ defmodule ElixirLS.DebugAdapter.ExUnitFormatter do
 
           %{state | failure_counter: state.failure_counter + 1}
 
-        {:invalid, test_module = %ExUnit.TestModule{state: {:failed, failures}}} ->
+        {:invalid, test_module = %ExUnit.TestModule{}} ->
           # Invalid (when setup_all fails)
+          failures =
+            case test_module.state do
+              nil ->
+                # workaround exunit bug
+                # https://github.com/elixir-lang/elixir/issues/13373
+                # TODO remove when we require elixir >= 1.17
+                []
+
+              {:failed, failures} ->
+                failures
+            end
+
           formatter_cb = fn _key, value -> value end
 
           message =
