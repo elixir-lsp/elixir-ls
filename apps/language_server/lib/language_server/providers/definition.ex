@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
   """
 
   alias ElixirLS.LanguageServer.{Protocol, Parser}
+  alias ElixirLS.LanguageServer.Providers.Definition.Locator
 
   def definition(
         uri,
@@ -13,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
         project_dir
       ) do
     result =
-      case ElixirSense.definition(source_file.text, line, character, metadata: metadata) do
+      case Locator.definition(source_file.text, line, character, metadata: metadata) do
         nil ->
           nil
 
