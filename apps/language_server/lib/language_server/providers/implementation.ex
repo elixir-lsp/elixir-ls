@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation do
   """
 
   alias ElixirLS.LanguageServer.{Protocol, Parser}
+  alias ElixirLS.LanguageServer.Providers.Implementation.Locator
 
   def implementation(
         uri,
@@ -12,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation do
         character,
         project_dir
       ) do
-    locations = ElixirSense.implementations(source_file.text, line, character, metadata: metadata)
+    locations = Locator.implementations(source_file.text, line, character, metadata: metadata)
 
     results =
       for location <- locations,
