@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
   use ExUnit.Case, async: true
   alias ElixirLS.LanguageServer.Providers.Implementation.Locator
-  alias ElixirSense.Location
+  alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Source
 
   test "don't crash on empty buffer" do

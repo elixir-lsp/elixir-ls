@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.State.ModFunInfo
   alias ElixirSense.Core.SurroundContext
-  alias ElixirSense.Location
+  alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 

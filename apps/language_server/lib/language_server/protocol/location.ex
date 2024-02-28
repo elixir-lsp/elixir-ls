@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
   require ElixirLS.LanguageServer.Protocol, as: Protocol
 
   def new(
-        %ElixirSense.Location{file: file, line: line, column: column},
+        %ElixirLS.LanguageServer.Location{file: file, line: line, column: column},
         current_file_uri,
         current_file_text,
         project_dir

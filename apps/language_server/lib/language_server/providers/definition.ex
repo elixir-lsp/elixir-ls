@@ -18,7 +18,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
         nil ->
           nil
 
-        %ElixirSense.Location{} = location ->
+        %ElixirLS.LanguageServer.Location{} = location ->
           Protocol.Location.new(location, uri, source_file.text, project_dir)
       end
 
