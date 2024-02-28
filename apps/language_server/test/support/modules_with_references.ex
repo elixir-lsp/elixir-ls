@@ -66,7 +66,8 @@ defmodule ElixirSense.Providers.ReferencesTest.Modules do
     end
 
     def call_on_different_line() do
-      Callee3.func()
+      Callee3.
+        func()
     end
 
     def call_erlang() do
