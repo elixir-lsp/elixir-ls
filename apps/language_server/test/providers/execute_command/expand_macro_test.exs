@@ -132,4 +132,122 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
              }
     end
   end
+
+  describe "expand full" do
+    test "without errors" do
+      buffer = """
+      defmodule MyModule do
+
+      end
+      """
+
+      code = "use Application"
+      result = ExpandMacro.expand_full(buffer, code, 2)
+
+      assert result.expand_once =~
+               """
+               (
+                 require Application
+                 Application.__using__([])
+               )
+               """
+               |> String.trim()
+
+      assert result.expand =~
+               """
+               (
+                 require Application
+                 Application.__using__([])
+               )
+               """
+               |> String.trim()
+
+      assert result.expand_partial =~
+               """
+               (
+                 require Application
+
+                 (
+                   @behaviour Application
+                   @doc false
+                   def stop(_state) do
+                     :ok
+                   end
+
+                   defoverridable Application
+                 )
+               )
+               """
+               |> String.trim()
+
+      assert result.expand_all =~
+               (if Version.match?(System.version(), ">= 1.14.0") do
+                  """
+                  (
+                    require Application
+
+                    (
+                      Module.__put_attribute__(MyModule, :behaviour, Application, nil, [])
+                      Module.__put_attribute__(MyModule, :doc, {0, false}, nil, [])
+
+                      def stop(_state) do
+                        :ok
+                      end
+
+                      Module.make_overridable(MyModule, Application)
+                  """
+                else
+                  """
+                  (
+                    require Application
+
+                    (
+                      Module.__put_attribute__(MyModule, :behaviour, Application, nil)
+                      Module.__put_attribute__(MyModule, :doc, {0, false}, nil)
+
+                      def stop(_state) do
+                        :ok
+                      end
+
+                      Module.make_overridable(MyModule, Application)
+                  """
+                end)
+               |> String.trim()
+    end
+
+    test "with errors" do
+      buffer = """
+      defmodule MyModule do
+
+      end
+      """
+
+      code = "{"
+      result = ExpandMacro.expand_full(buffer, code, 2)
+
+      assert result.expand_once =~
+               """
+               "missing terminator: }\
+               """
+               |> String.trim()
+
+      assert result.expand =~
+               """
+               "missing terminator: }\
+               """
+               |> String.trim()
+
+      assert result.expand_partial =~
+               """
+               "missing terminator: }\
+               """
+               |> String.trim()
+
+      assert result.expand_all =~
+               """
+               "missing terminator: }\
+               """
+               |> String.trim()
+    end
+  end
 end
