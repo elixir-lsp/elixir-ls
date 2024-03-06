@@ -10,7 +10,6 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   @type signature_info :: %{
           active_param: non_neg_integer,

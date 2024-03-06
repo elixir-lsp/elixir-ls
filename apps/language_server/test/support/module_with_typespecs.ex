@@ -186,6 +186,7 @@ defmodule ElixirSenseExample.ModuleWithTypespecs do
 
     @spec macro_with_options(options_t) :: Macro.t()
     defmacro macro_with_options(options) do
+      IO.inspect(options)
       {:asd, [], nil}
     end
   end

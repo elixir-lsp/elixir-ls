@@ -17,6 +17,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   alias ElixirSense.Core.SurroundContext
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
+  # TODO change/move this
   alias ElixirSense.Plugins.Phoenix.Scope
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 

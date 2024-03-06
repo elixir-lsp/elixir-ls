@@ -86,14 +86,6 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           range: range
         }
 
-  @spec find(
-          any(),
-          State.Env.t(),
-          [VarInfo.t()],
-          [AttributeInfo.t()],
-          Metadata.t(),
-          ElixirSense.call_trace_t() | nil
-        ) :: [ElixirSense.Providers.References.reference_info()]
   def find(
         context,
         %State.Env{

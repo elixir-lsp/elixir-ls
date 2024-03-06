@@ -14,6 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
     source_file = Server.get_source_file(state, uri)
     cur_text = source_file.text
 
+    # TODO change/move this
     if String.trim(text) != "" do
       formatted =
         ElixirSense.expand_full(cur_text, text, line + 1)

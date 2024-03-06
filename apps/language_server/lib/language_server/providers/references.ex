@@ -1,8 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.References do
   @moduledoc """
-  This module provides textDocument/references support by using `ElixirSense.references/3` to
-  find all references to any function or module identified at the provided
-  location.
+  This module provides textDocument/references support. Currently its able to find references to
+  functions, macros, variables and module attributes
 
   Does not support configuring "includeDeclaration" and assumes it is always
   `true`
