@@ -2475,6 +2475,26 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert [] == Suggestion.suggestions(buffer, 11, 11)
   end
 
+  test "built-in functions not returned on local calls" do
+    buffer = """
+    defmodule ElixirSenseExample.ModuleO do
+      
+    end
+    """
+
+    refute Enum.any?(Suggestion.suggestions(buffer, 2, 2), &(&1[:name] == "module_info"))
+  end
+
+  test "built-in functions not returned on remote calls" do
+    buffer = """
+    defmodule ElixirSenseExample.ModuleO do
+      ElixirSenseExample.ModuleO.
+    end
+    """
+
+    assert Enum.any?(Suggestion.suggestions(buffer, 2, 30), &(&1[:name] == "module_info"))
+  end
+
   test "functions and module suggestions with __MODULE__" do
     buffer = """
     defmodule ElixirSenseExample.SmodO do
@@ -4509,6 +4529,54 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 4, 35)
       |> Enum.filter(&(&1.type == :bitstring_option))
       |> Enum.map(& &1.name)
+  end
+
+  # TODO change that to only output max arity
+  test "function with default args generate multiple entries" do
+    buffer = """
+    ElixirSenseExample.FunctionsWithTheSameName.all
+    """
+
+    assert [
+             %{
+               arity: 1,
+               def_arity: 2,
+               name: "all?",
+               summary: "all?/2 docs",
+               type: :function
+             },
+             %{
+               arity: 2,
+               def_arity: 2,
+               name: "all?",
+               summary: "all?/2 docs",
+               type: :function
+             }
+           ] = Suggestion.suggestions(buffer, 1, 48) |> Enum.filter(&(&1[:name] == "all?"))
+  end
+
+  test "functions with the same name but different arities generates independent entries" do
+    buffer = """
+    ElixirSenseExample.FunctionsWithTheSameName.con
+    """
+
+    assert [
+             %{
+               arity: 1,
+               def_arity: 1,
+               name: "concat",
+               summary: "concat/1 docs",
+               type: :function
+             },
+             %{
+               arity: 2,
+               def_arity: 2,
+               name: "concat",
+               summary: "concat/2 docs",
+               type: :function
+             }
+           ] =
+             Suggestion.suggestions(buffer, 1, 48) |> Enum.filter(&(&1[:name] == "concat"))
   end
 
   test "function with default args from metadata" do
