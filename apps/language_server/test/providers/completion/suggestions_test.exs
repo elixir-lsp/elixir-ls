@@ -1457,32 +1457,33 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
   end
 
-  @tag requires_otp_25: true
-  test "suggest erlang behaviour callbacks on erlang implementation" do
-    buffer = """
-    :file_server.ini
-    """
+  if System.otp_release() |> String.to_integer() >= 25 do
+    test "suggest erlang behaviour callbacks on erlang implementation" do
+      buffer = """
+      :file_server.ini
+      """
 
-    list =
-      Suggestion.suggestions(buffer, 1, 17)
-      |> Enum.filter(fn s -> s.type == :function end)
+      list =
+        Suggestion.suggestions(buffer, 1, 17)
+        |> Enum.filter(fn s -> s.type == :function end)
 
-    assert [
-             %{
-               args: "args",
-               args_list: ["args"],
-               arity: 1,
-               def_arity: 1,
-               metadata: %{implementing: :gen_server},
-               name: "init",
-               origin: ":file_server",
-               snippet: nil,
-               spec: "@callback init(args :: term()) ::" <> _,
-               summary: "- Args = term" <> _,
-               type: :function,
-               visibility: :public
-             }
-           ] = list
+      assert [
+               %{
+                 args: "args",
+                 args_list: ["args"],
+                 arity: 1,
+                 def_arity: 1,
+                 metadata: %{implementing: :gen_server},
+                 name: "init",
+                 origin: ":file_server",
+                 snippet: nil,
+                 spec: "@callback init(args :: term()) ::" <> _,
+                 summary: "- Args = term" <> _,
+                 type: :function,
+                 visibility: :public
+               }
+             ] = list
+    end
   end
 
   test "lists params and vars" do
@@ -4443,7 +4444,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              Suggestion.suggestions(buffer, 3, 8) |> Enum.filter(&("#{&1.name}" =~ "+"))
   end
 
-  @tag requires_elixir_1_13: true
   test "sigil" do
     buffer = """
     defmodule ElixirSenseExample.OtherModule do

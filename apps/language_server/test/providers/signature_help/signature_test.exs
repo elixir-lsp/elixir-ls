@@ -1051,25 +1051,26 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
     end
 
-    @tag requires_otp_25: true
-    test "finds signatures from metadata erlang behaviour call from outside" do
-      code = """
-      :file_server.init()
-      """
+    if System.otp_release() |> String.to_integer() >= 23 do
+      test "finds signatures from metadata erlang behaviour call from outside" do
+        code = """
+        :file_server.init()
+        """
 
-      res = Signature.signature(code, 1, 19)
+        res = Signature.signature(code, 1, 19)
 
-      assert %{
-               active_param: 0,
-               signatures: [
-                 %{
-                   documentation: "- Args = " <> _,
-                   name: "init",
-                   params: ["args"],
-                   spec: "@callback init(args :: term()) ::" <> _
-                 }
-               ]
-             } = res
+        assert %{
+                 active_param: 0,
+                 signatures: [
+                   %{
+                     documentation: "- Args = " <> _,
+                     name: "init",
+                     params: ["args"],
+                     spec: "@callback init(args :: term()) ::" <> _
+                   }
+                 ]
+               } = res
+      end
     end
 
     test "retrieve metadata function signature - fallback to callback in metadata" do
@@ -1500,40 +1501,41 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       assert :none = Signature.signature(buffer, 8, 18)
     end
 
-    @tag requires_otp_23: true
-    test "find built-in erlang functions" do
-      buffer = """
-      defmodule MyModule do
-        :erlang.orelse()
-        #             ^
-        :erlang.or()
-        #         ^
+    if System.otp_release() |> String.to_integer() >= 23 do
+      test "find built-in erlang functions" do
+        buffer = """
+        defmodule MyModule do
+          :erlang.orelse()
+          #             ^
+          :erlang.or()
+          #         ^
+        end
+        """
+
+        %{
+          active_param: 0,
+          signatures: [
+            %{
+              documentation: "",
+              name: "orelse",
+              params: ["term", "term"],
+              spec: ""
+            }
+          ]
+        } = Signature.signature(buffer, 2, 18)
+
+        assert %{
+                 active_param: 0,
+                 signatures: [
+                   %{
+                     documentation: "",
+                     name: "or",
+                     params: [_, _],
+                     spec: "@spec boolean() or boolean() :: boolean()"
+                   }
+                 ]
+               } = Signature.signature(buffer, 4, 14)
       end
-      """
-
-      %{
-        active_param: 0,
-        signatures: [
-          %{
-            documentation: "",
-            name: "orelse",
-            params: ["term", "term"],
-            spec: ""
-          }
-        ]
-      } = Signature.signature(buffer, 2, 18)
-
-      assert %{
-               active_param: 0,
-               signatures: [
-                 %{
-                   documentation: "",
-                   name: "or",
-                   params: [_, _],
-                   spec: "@spec boolean() or boolean() :: boolean()"
-                 }
-               ]
-             } = Signature.signature(buffer, 4, 14)
     end
 
     test "find :erlang module functions with different forms of typespecs" do

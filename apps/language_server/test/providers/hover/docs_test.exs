@@ -111,31 +111,32 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              }
     end
 
-    @tag requires_elixir_1_14: true
-    test "retrieve documentation from metadata modules on __MODULE__ submodule" do
-      buffer = """
-      defmodule MyLocalModule do
-        defmodule Sub do
-          @moduledoc "Some example doc"
-          @moduledoc since: "1.2.3"
-        end
+    if Version.match?(System.version(), ">= 1.14.0") do
+      test "retrieve documentation from metadata modules on __MODULE__ submodule" do
+        buffer = """
+        defmodule MyLocalModule do
+          defmodule Sub do
+            @moduledoc "Some example doc"
+            @moduledoc since: "1.2.3"
+          end
 
-        def self() do
-          __MODULE__.Sub
+          def self() do
+            __MODULE__.Sub
+          end
         end
+        """
+
+        %{
+          docs: [doc]
+        } = Docs.docs(buffer, 8, 17)
+
+        assert doc == %{
+                 module: MyLocalModule.Sub,
+                 metadata: %{since: "1.2.3"},
+                 docs: "Some example doc",
+                 kind: :module
+               }
       end
-      """
-
-      %{
-        docs: [doc]
-      } = Docs.docs(buffer, 8, 17)
-
-      assert doc == %{
-               module: MyLocalModule.Sub,
-               metadata: %{since: "1.2.3"},
-               docs: "Some example doc",
-               kind: :module
-             }
     end
 
     test "retrieve documentation from metadata modules with @moduledoc false" do
@@ -796,39 +797,40 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              }
     end
 
-    @tag requires_elixir_1_14: true
-    test "retrieve local private metadata function documentation on __MODULE__ submodule call" do
-      buffer = """
-      defmodule MyLocalModule do
-        defmodule Sub do
-          @doc "Sample doc"
-          @doc since: "1.2.3"
-          @spec flatten(list()) :: list()
-          def flatten(list) do
-            []
+    if Version.match?(System.version(), ">= 1.14.0") do
+      test "retrieve local private metadata function documentation on __MODULE__ submodule call" do
+        buffer = """
+        defmodule MyLocalModule do
+          defmodule Sub do
+            @doc "Sample doc"
+            @doc since: "1.2.3"
+            @spec flatten(list()) :: list()
+            def flatten(list) do
+              []
+            end
+          end
+
+          def func(list) do
+            __MODULE__.Sub.flatten(list)
           end
         end
+        """
 
-        def func(list) do
-          __MODULE__.Sub.flatten(list)
-        end
+        %{
+          docs: [doc]
+        } = Docs.docs(buffer, 12, 20)
+
+        assert doc == %{
+                 args: ["list"],
+                 function: :flatten,
+                 arity: 1,
+                 kind: :function,
+                 metadata: %{since: "1.2.3"},
+                 module: MyLocalModule.Sub,
+                 specs: ["@spec flatten(list()) :: list()"],
+                 docs: "Sample doc"
+               }
       end
-      """
-
-      %{
-        docs: [doc]
-      } = Docs.docs(buffer, 12, 20)
-
-      assert doc == %{
-               args: ["list"],
-               function: :flatten,
-               arity: 1,
-               kind: :function,
-               metadata: %{since: "1.2.3"},
-               module: MyLocalModule.Sub,
-               specs: ["@spec flatten(list()) :: list()"],
-               docs: "Sample doc"
-             }
     end
 
     test "does not retrieve remote private metadata function documentation" do
@@ -940,52 +942,53 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       end
     end
 
-    @tag requires_otp_23: true
-    test "retrieve fallback erlang builtin function documentation" do
-      buffer = """
-      defmodule MyModule do
-        def func(list) do
-          :erlang.or(a, b)
-          :erlang.orelse(a, b)
+    if System.otp_release() |> String.to_integer() >= 23 do
+      test "retrieve fallback erlang builtin function documentation" do
+        buffer = """
+        defmodule MyModule do
+          def func(list) do
+            :erlang.or(a, b)
+            :erlang.orelse(a, b)
+          end
         end
+        """
+
+        %{
+          docs: [doc]
+        } = Docs.docs(buffer, 3, 14)
+
+        assert %{
+                 arity: 2,
+                 function: :or,
+                 module: :erlang,
+                 specs: ["@spec boolean() or boolean() :: boolean()"],
+                 docs: "",
+                 kind: :function
+               } = doc
+
+        if String.to_integer(System.otp_release()) < 25 do
+          assert doc.args == ["boolean", "boolean"]
+          assert doc.metadata == %{app: :erts}
+        else
+          assert doc.args == ["term", "term"]
+          assert doc.metadata == %{hidden: true, app: :erts}
+        end
+
+        %{
+          docs: [doc]
+        } = Docs.docs(buffer, 4, 14)
+
+        assert %{
+                 args: ["term", "term"],
+                 arity: 2,
+                 function: :orelse,
+                 module: :erlang,
+                 metadata: %{builtin: true, app: :erts},
+                 specs: [],
+                 docs: "",
+                 kind: :function
+               } = doc
       end
-      """
-
-      %{
-        docs: [doc]
-      } = Docs.docs(buffer, 3, 14)
-
-      assert %{
-               arity: 2,
-               function: :or,
-               module: :erlang,
-               specs: ["@spec boolean() or boolean() :: boolean()"],
-               docs: "",
-               kind: :function
-             } = doc
-
-      if String.to_integer(System.otp_release()) < 25 do
-        assert doc.args == ["boolean", "boolean"]
-        assert doc.metadata == %{app: :erts}
-      else
-        assert doc.args == ["term", "term"]
-        assert doc.metadata == %{hidden: true, app: :erts}
-      end
-
-      %{
-        docs: [doc]
-      } = Docs.docs(buffer, 4, 14)
-
-      assert %{
-               args: ["term", "term"],
-               arity: 2,
-               function: :orelse,
-               module: :erlang,
-               metadata: %{builtin: true, app: :erts},
-               specs: [],
-               docs: "",
-               kind: :function
-             } = doc
     end
 
     test "retrieve macro documentation" do
@@ -1014,30 +1017,31 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              }
     end
 
-    @tag requires_elixir_1_14: true
-    test "retrieve function documentation with __MODULE__ submodule call" do
-      buffer = """
-      defmodule Inspect do
-        def func(list) do
-          __MODULE__.Algebra.string(list)
+    if Version.match?(System.version(), ">= 1.14.0") do
+      test "retrieve function documentation with __MODULE__ submodule call" do
+        buffer = """
+        defmodule Inspect do
+          def func(list) do
+            __MODULE__.Algebra.string(list)
+          end
         end
+        """
+
+        %{
+          docs: [doc]
+        } = Docs.docs(buffer, 3, 26)
+
+        assert %{
+                 args: ["string"],
+                 function: :string,
+                 module: Inspect.Algebra,
+                 metadata: %{since: "1.6.0"},
+                 specs: ["@spec string(String.t()) :: doc_string()"],
+                 kind: :function
+               } = doc
+
+        assert doc.docs =~ "Creates a document"
       end
-      """
-
-      %{
-        docs: [doc]
-      } = Docs.docs(buffer, 3, 26)
-
-      assert %{
-               args: ["string"],
-               function: :string,
-               module: Inspect.Algebra,
-               metadata: %{since: "1.6.0"},
-               specs: ["@spec string(String.t()) :: doc_string()"],
-               kind: :function
-             } = doc
-
-      assert doc.docs =~ "Creates a document"
     end
 
     test "retrieve function documentation from aliased modules" do
@@ -1290,26 +1294,27 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              }
     end
 
-    @tag requires_otp_25: true
-    test "retrieve erlang behaviour implementation" do
-      buffer = """
-      :file_server.init(a)
-      """
+    if System.otp_release() |> String.to_integer() >= 25 do
+      test "retrieve erlang behaviour implementation" do
+        buffer = """
+        :file_server.init(a)
+        """
 
-      %{
-        docs: [doc]
-      } = Docs.docs(buffer, 1, 16)
+        %{
+          docs: [doc]
+        } = Docs.docs(buffer, 1, 16)
 
-      assert %{
-               args: ["args"],
-               function: :init,
-               module: :file_server,
-               specs: ["@callback init(args :: term())" <> _],
-               metadata: %{implementing: :gen_server, implementing_module_app: :stdlib},
-               kind: :function
-             } = doc
+        assert %{
+                 args: ["args"],
+                 function: :init,
+                 module: :file_server,
+                 specs: ["@callback init(args :: term())" <> _],
+                 metadata: %{implementing: :gen_server, implementing_module_app: :stdlib},
+                 kind: :function
+               } = doc
 
-      assert doc.docs =~ "Whenever a `gen_server` process is started"
+        assert doc.docs =~ "Whenever a `gen_server` process is started"
+      end
     end
 
     test "do not crash for erlang behaviour callbacks" do

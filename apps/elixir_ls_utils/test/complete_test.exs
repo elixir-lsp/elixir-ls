@@ -269,7 +269,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"String.Cha")
   end
 
-  @tag requires_elixir_1_14: true
+  if Version.match?(System.version(), ">= 1.14.0") do
   test "elixir submodule completion with __MODULE__" do
     assert [
              %{
@@ -281,8 +281,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              }
            ] = expand(~c"__MODULE__.Cha", %Env{module: String})
   end
+end
 
-  @tag requires_elixir_1_14: true
+if Version.match?(System.version(), ">= 1.14.0") do
   test "elixir submodule completion with attribute bound to module" do
     assert [
              %{
@@ -302,6 +303,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                ]
              })
   end
+end
 
   test "find elixir modules that require alias" do
     assert [
@@ -361,19 +363,21 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [%{name: "fun2ms", origin: ":ets"}] = expand(~c":ets.fun2")
   end
 
-  @tag requires_elixir_1_14: true
+  if Version.match?(System.version(), ">= 1.14.0") do
   test "function completion on __MODULE__" do
     assert [%{name: "version", origin: "System"}] =
              expand(~c"__MODULE__.ve", %Env{module: System})
   end
+end
 
-  @tag requires_elixir_1_14: true
+if Version.match?(System.version(), ">= 1.14.0") do
   test "function completion on __MODULE__ submodules" do
     assert [%{name: "to_string", origin: "String.Chars"}] =
              expand(~c"__MODULE__.Chars.to", %Env{module: String})
   end
+end
 
-  @tag requires_elixir_1_14: true
+if Version.match?(System.version(), ">= 1.14.0") do
   test "function completion on attribute bound to module" do
     assert [%{name: "version", origin: "System"}] =
              expand(~c"@my_attr.ve", %Env{
@@ -385,6 +389,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                ]
              })
   end
+end
 
   test "function completion with arity" do
     assert [
@@ -440,7 +445,6 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"Enum.count/")
   end
 
-  @tag requires_elixir_1_13: true
   test "operator completion" do
     assert [%{name: "+", arity: 1}, %{name: "+", arity: 2}, %{name: "++", arity: 2}] =
              expand(~c"+")
@@ -452,7 +456,6 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert entries |> Enum.any?(&(&1.name == "div"))
   end
 
-  @tag requires_elixir_1_13: true
   test "sigil completion" do
     sigils = expand(~c"~")
     assert sigils |> Enum.any?(fn s -> s.name == "~C" end)
@@ -1562,13 +1565,14 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert Enum.any?(entries, &(&1.name == "MyDate" and &1.subtype == :struct))
   end
 
-  @tag requires_elixir_1_14: true
+  if Version.match?(System.version(), ">= 1.14.0") do
   test "completion for struct names with __MODULE__" do
     assert [%{name: "__MODULE__"}] = expand(~c"%__MODU", %Env{module: Date.Range})
     assert [%{name: "Range"}] = expand(~c"%__MODULE__.Ra", %Env{module: Date})
   end
+end
 
-  @tag requires_elixir_1_14: true
+  if Version.match?(System.version(), ">= 1.14.0") do
   test "completion for struct attributes" do
     assert [%{name: "@my_attr"}] =
              expand(~c"%@my", %Env{
@@ -1592,6 +1596,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                scope: MyMod
              })
   end
+end
 
   # handled elsewhere
   # TODO consider moving struct key completion here after elixir 1.13+ is required
@@ -1966,7 +1971,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"ArgumentError.bla")
   end
 
-  @tag requires_otp_23: true
+  if System.otp_release() |> String.to_integer() >= 23 do
   test "complete build in :erlang functions" do
     assert [
              %{arity: 2, name: "open_port", origin: ":erlang"},
@@ -2013,6 +2018,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              %{arity: 2, name: "append_element", origin: ":erlang"}
            ] = expand(~c":erlang.and")
   end
+end
 
   test "provide doc and specs for erlang functions" do
     assert [
@@ -2197,7 +2203,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"unquote", %Env{requires: []})
   end
 
-  @tag requires_elixir_1_14: true
+  if Version.match?(System.version(), ">= 1.14.0") do
   test "Application.compile_env classified as macro" do
     assert [
              %{
@@ -2237,4 +2243,5 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              }
            ] = expand(~c"Application.compile_e")
   end
+end
 end
