@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
   alias ElixirLS.LanguageServer.JsonRpc
-  alias ElixirSense.Providers.Suggestion.Matcher
+  alias ElixirLS.Utils.Matcher
   require ElixirSense.Core.Introspection, as: Introspection
   require Logger
 
@@ -395,9 +395,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           # docs = ElixirSense.Core.Normalized.Code.get_docs(module, :moduledoc)
           # # fetching docs is quite costly, since we already do it here we can use it to fill up caches
           # if ElixirSense.Core.Introspection.elixir_module?(module) do
-          #   ElixirSense.Providers.Suggestion.Complete.fill_elixir_module_cache(module, docs)
+          #   ElixirLS.LanguageServer.Providers.Completion.Complete.fill_elixir_module_cache(module, docs)
           # else
-          #   ElixirSense.Providers.Suggestion.Complete.fill_erlang_module_cache(module, docs)
+          #   ElixirLS.LanguageServer.Providers.Completion.Complete.fill_erlang_module_cache(module, docs)
           # end
 
           # TODO @moduledoc location

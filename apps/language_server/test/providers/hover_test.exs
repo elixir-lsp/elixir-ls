@@ -5,7 +5,6 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
   alias ElixirLS.LanguageServer.Test.ParserContextBuilder
 
   alias ElixirLS.LanguageServer.Providers.Hover
-  # mix cmd --app language_server mix test test/providers/hover_test.exs
 
   def fake_dir() do
     Path.join(__DIR__, "../../../..") |> Path.expand() |> maybe_convert_path_separators()

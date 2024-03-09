@@ -1,8 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.References do
   @moduledoc """
-  This module provides textDocument/references support by using `ElixirSense.references/3` to
-  find all references to any function or module identified at the provided
-  location.
+  This module provides textDocument/references support. Currently its able to find references to
+  functions, macros, variables and module attributes
 
   Does not support configuring "includeDeclaration" and assumes it is always
   `true`
@@ -12,6 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
 
   alias ElixirLS.LanguageServer.{SourceFile, Build, Parser}
   import ElixirLS.LanguageServer.Protocol
+  alias ElixirLS.LanguageServer.Providers.References.Locator
   require Logger
 
   def references(
@@ -25,13 +25,13 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     Build.with_build_lock(fn ->
       trace = ElixirLS.LanguageServer.Tracer.get_trace()
 
-      ElixirSense.references(source_file.text, line, character, trace, metadata: metadata)
+      Locator.references(source_file.text, line, character, trace, metadata: metadata)
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
         |> build_reference(uri, source_file.text, project_dir)
       end)
       |> Enum.filter(&(not is_nil(&1)))
-      # ElixirSense returns references from both compile tracer and current buffer
+      # Returned references come from both compile tracer and current buffer
       # There may be duplicates
       |> Enum.uniq()
     end)

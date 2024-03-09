@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
-  alias ElixirSense.Providers.Suggestion.Matcher
+  alias ElixirLS.Utils.Matcher
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirLS.LanguageServer.MarkdownUtils
   require Logger
@@ -251,7 +251,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     required_alias = Keyword.get(options, :auto_insert_required_alias, true)
 
     items =
-      ElixirSense.suggestions(text, line, character,
+      ElixirLS.LanguageServer.Providers.Completion.Suggestion.suggestions(text, line, character,
         required_alias: required_alias,
         metadata: metadata
       )

@@ -32,11 +32,12 @@ defmodule ElixirLS.Utils.MixProject do
 
   def application do
     # We must NOT start ANY applications as this is taken care in code.
-    [applications: [:jason_v]]
+    [applications: [:jason_v, :elixir_sense]]
   end
 
   defp deps do
     [
+      {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:mix_task_archive_deps, github: "elixir-lsp/mix_task_archive_deps"},
       {:dialyxir_vendored,

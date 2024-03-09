@@ -490,7 +490,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         # Analyze!
         Logger.info(
           "[ElixirLS Dialyzer] Analyzing #{Enum.count(modules_to_analyze)} modules: " <>
-            "#{inspect(modules_to_analyze)}"
+            "#{inspect(Enum.sort(modules_to_analyze))}"
         )
 
         {active_plt, new_mod_deps, raw_warnings} = Analyzer.analyze(active_plt, files_to_analyze)

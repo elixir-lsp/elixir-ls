@@ -328,7 +328,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
               4
 
             other ->
-              Logger.warn(
+              Logger.warning(
                 "Invalid severity on diagnostic: #{inspect(other)}, using warning level"
               )
 

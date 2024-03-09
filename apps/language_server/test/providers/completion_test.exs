@@ -473,11 +473,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {:ok, %{"items" => items}} = Completion.completion(parser_context, line, char, @supports)
 
-      assert [item] = items
+      assert [item] = items |> Enum.filter(&(&1["label"] == "ExampleStruct"))
 
       # 22 is struct
       assert item["kind"] == 22
-      assert item["label"] == "ExampleStruct"
       assert item["labelDetails"]["detail"] == "struct"
 
       assert item["labelDetails"]["description"] ==

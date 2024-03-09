@@ -9,7 +9,8 @@ impossible_to_format = [
     "project_with_tests",
     "test",
     "error_test.exs"
-  ])
+  ]),
+  Path.join(current_directory, "test/support/modules_with_references.ex")
 ]
 
 deps =
