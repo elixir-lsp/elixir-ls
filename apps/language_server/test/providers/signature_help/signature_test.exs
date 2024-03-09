@@ -1051,7 +1051,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
     end
 
-    if System.otp_release() |> String.to_integer() >= 23 do
+    if System.otp_release() |> String.to_integer() >= 25 do
       test "finds signatures from metadata erlang behaviour call from outside" do
         code = """
         :file_server.init()

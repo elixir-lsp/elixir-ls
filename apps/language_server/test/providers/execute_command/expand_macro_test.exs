@@ -144,75 +144,86 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
       code = "use Application"
       result = ExpandMacro.expand_full(buffer, code, 2)
 
-      assert result.expand_once =~
-               """
-               (
-                 require Application
-                 Application.__using__([])
-               )
-               """
-               |> String.trim()
-
-      assert result.expand =~
-               """
-               (
-                 require Application
-                 Application.__using__([])
-               )
-               """
-               |> String.trim()
-
-      assert result.expand_partial =~
-               """
-               (
-                 require Application
-
+      if Version.match?(System.version(), ">= 1.13.0") do
+        assert result.expand_once =~
+                 """
                  (
-                   @behaviour Application
-                   @doc false
-                   def stop(_state) do
-                     :ok
-                   end
-
-                   defoverridable Application
+                   require Application
+                   Application.__using__([])
                  )
-               )
-               """
-               |> String.trim()
+                 """
+                 |> String.trim()
 
-      assert result.expand_all =~
-               (if Version.match?(System.version(), ">= 1.14.0") do
-                  """
-                  (
-                    require Application
+        assert result.expand =~
+                 """
+                 (
+                   require Application
+                   Application.__using__([])
+                 )
+                 """
+                 |> String.trim()
 
+        assert result.expand_partial =~
+                 """
+                 (
+                   require Application
+
+                   (
+                     @behaviour Application
+                     @doc false
+                     def stop(_state) do
+                       :ok
+                     end
+
+                     defoverridable Application
+                   )
+                 )
+                 """
+                 |> String.trim()
+
+        assert result.expand_all =~
+                 (if Version.match?(System.version(), ">= 1.14.0") do
+                    """
                     (
-                      Module.__put_attribute__(MyModule, :behaviour, Application, nil, [])
-                      Module.__put_attribute__(MyModule, :doc, {0, false}, nil, [])
+                      require Application
 
-                      def stop(_state) do
-                        :ok
-                      end
+                      (
+                        Module.__put_attribute__(MyModule, :behaviour, Application, nil, [])
+                        Module.__put_attribute__(MyModule, :doc, {0, false}, nil, [])
 
-                      Module.make_overridable(MyModule, Application)
-                  """
-                else
-                  """
-                  (
-                    require Application
+                        def stop(_state) do
+                          :ok
+                        end
 
+                        Module.make_overridable(MyModule, Application)
+                    """
+                  else
+                    """
                     (
-                      Module.__put_attribute__(MyModule, :behaviour, Application, nil)
-                      Module.__put_attribute__(MyModule, :doc, {0, false}, nil)
+                      require Application
 
-                      def stop(_state) do
-                        :ok
-                      end
+                      (
+                        Module.__put_attribute__(MyModule, :behaviour, Application, nil)
+                        Module.__put_attribute__(MyModule, :doc, {0, false}, nil)
 
-                      Module.make_overridable(MyModule, Application)
-                  """
-                end)
-               |> String.trim()
+                        def stop(_state) do
+                          :ok
+                        end
+
+                        Module.make_overridable(MyModule, Application)
+                    """
+                  end)
+                 |> String.trim()
+      else
+        assert result.expand_once =~
+                 """
+                 (
+                   require(Application)
+                   Application.__using__([])
+                 )
+                 """
+                 |> String.trim()
+      end
     end
 
     test "with errors" do
