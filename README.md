@@ -310,16 +310,16 @@ Below is a list of configuration options supported by the ElixirLS language serv
 <dl>
 <dt>elixirLS.autoBuild</dt><dd>Trigger ElixirLS build when code is saved.</dd>
 <dt>elixirLS.dialyzerEnabled</dt><dd>Run ElixirLS's rapid Dialyzer when code is saved.</dd>
-<dt>elixirLS.dialyzerWarnOpts</dt><dd>Dialyzer options to enable or disable warnings - See Dialyzer's documentation for options. Note that the `race_conditions` option is unsupported.</dd>
+<dt>elixirLS.dialyzerWarnOpts</dt><dd>Dialyzer options to enable or disable warnings - See Dialyzer's documentation for options. Note that the <code>race_conditions</code> option is unsupported.</dd>
 <dt>elixirLS.dialyzerFormat</dt><dd>Formatter to use for Dialyzer warnings</dd>
 <dt>elixirLS.envVariables</dt><dd>Environment variables to use for compilation</dd>
 <dt>elixirLS.mixEnv</dt><dd>Mix environment to use for compilation</dd>
 <dt>elixirLS.mixTarget</dt><dd>Mix target to use for compilation</dd>
 <dt>elixirLS.projectDir</dt><dd>Subdirectory containing the Mix project, if it is not in the project root</dd>
 <dt>elixirLS.fetchDeps</dt><dd>Automatically fetch project dependencies when compiling.</dd>
-<dt>elixirLS.suggestSpecs</dt><dd>Suggest `@spec` annotations inline, using Dialyzer's inferred success typings (Requires Dialyzer).</dd>
+<dt>elixirLS.suggestSpecs</dt><dd>Suggest <code>@spec</code> annotations inline, using Dialyzer's inferred success typings (Requires Dialyzer).</dd>
 <dt>elixirLS.trace.server</dt><dd>Traces communication between VS Code and the Elixir language server.</dd>
-<dt>elixirLS.autoInsertRequiredAlias</dt><dd>Enable auto-insert required alias - By default, this option is true (enabled).</dd>
+<dt>elixirLS.autoInsertRequiredAlias</dt><dd>Enable auto-insert required alias - By default, this option is <code>true</code> (enabled).</dd>
 <dt>elixirLS.signatureAfterComplete</dt><dd>Show signature help after confirming autocomplete.</dd>
 <dt>elixirLS.enableTestLenses</dt><dd>Show code lenses to run tests in terminal.</dd>
 <dt>elixirLS.additionalWatchedExtensions</dt><dd>Additional file types capable of triggering a build on change</dd>
@@ -331,19 +331,19 @@ Below is a list of configuration options supported by the ElixirLS language serv
 Below is a list of configuration options supported by the ElixirLS Debug Adapter. Configuration options can be supplied via launch configuration. Please refer to your editor's documentation on how to configure debug adapters.
 
 <dl>
-  <dt>startApps</dt><dd>Run `mix app.start` before launching the debugger. Some tasks (such as Phoenix tests) expect apps to already be running before the test files are required. Defaults to `false`.</dd>
-  <dt>task</dt><dd>Mix task to run with debugger - Defaults to task set under `:default_task` key in mixfile.</dd>
+  <dt>startApps</dt><dd>Run <code>mix app.start</code> before launching the debugger. Some tasks (such as Phoenix tests) expect apps to already be running before the test files are required. Defaults to <code>false</code>.</dd>
+  <dt>task</dt><dd>Mix task to run with debugger - Defaults to task set under <code>:default_task</code> key in mixfile.</dd>
   <dt>taskArgs</dt><dd>A list of arguments to mix task</dd>
-  <dt>debugAutoInterpretAllModules</dt><dd>Auto interpret all modules from project build path. Defaults to `true`.</dd>
+  <dt>debugAutoInterpretAllModules</dt><dd>Auto interpret all modules from project build path. Defaults to <code>true</code>.</dd>
   <dt>env</dt><dd>An object with environment variables - To set Object keys, specify environment variables; values should be strings.</dd>
-  <dt>stackTraceMode</dt><dd>Option passed to :int.stack_trace/1. See https://www.erlang.org/doc/man/int#stack_trace-1 for details. Allowed values are `all`, `no_tail`, and `false`.</dd>
+  <dt>stackTraceMode</dt><dd>Option passed to <code>:int.stack_trace/1</code>. See <a href='https://www.erlang.org/doc/man/int#stack_trace-1'>:int.stack_trace/1</a> for details. Allowed values are <code>all</code>, <code>no_tail</code>, and <code>false</code>.</dd>
   <dt>requireFiles</dt><dd>A list of additional files that should be required and interpreted - This is especially useful for debugging tests.</dd>
   <dt>debugInterpretModulesPatterns</dt><dd>A list of globs specifying modules that should be interpreted</dd>
-  <dt>projectDir</dt><dd>An absolute path to the directory where `mix.exs` is located - In VSCode, `${workspaceRoot}` can be used.</dd>
+  <dt>projectDir</dt><dd>An absolute path to the directory where `mix.exs` is located - In VSCode, <code>${workspaceRoot}</code> can be used.</dd>
   <dt>excludeModules</dt><dd>A list of modules that should not be interpreted</dd>
-  <dt>exitAfterTaskReturns</dt><dd>Should the debug session stop when mix task returns. Tasks that return early while the code continues running asynchronously require `false` setting. Defaults to `true`.</dd>
-  <dt>noDebug</dt><dd>Run mix task without debugging. Defaults to `false`.</dd>
-  <dt>breakOnDbg</dt><dd>Should the debugger break on Kernel.dbg/2 macro. Defaults to `true`.</dd>
+  <dt>exitAfterTaskReturns</dt><dd>Should the debug session stop when mix task returns. Tasks that return early while the code continues running asynchronously require <code>false</code> setting. Defaults to <code>true</code>.</dd>
+  <dt>noDebug</dt><dd>Run mix task without debugging. Defaults to <code>false</code>.</dd>
+  <dt>breakOnDbg</dt><dd>Should the debugger break on Kernel.dbg/2 macro. Defaults to <code>true</code>.</dd>
 </dl>
 
 ## Troubleshooting
@@ -464,13 +464,13 @@ ElixirLS supports the following environment variables.
 
   <dt>ELS_INSTALL_PREFIX</dt><dd>(not supported on Windows) The folder where the language server was installed - If set, this makes maintaining multiple versions/instances on the same host much easier. If it is not set or empty, a heuristic will be used to discover the install location.</dd>
 
-  <dt>ELS_LOCAL</dt><dd>If set to `1`, this will make ElixirLS run a local release. If this is not set, a published release matching `VERSION` will be used (default).</dd>
+  <dt>ELS_LOCAL</dt><dd>If set to <code>1</code>, this will make ElixirLS run a local release. If this is not set, a published release matching <code>VERSION</code> will be used (default).</dd>
 
   <dt>ELS_ELIXIR_OPTS</dt><dd>Optional parameters to pass to elixir CLI - May be used to set a node name and cookie.</dd>
 
   <dt>ELS_ERL_OPTS</dt><dd>Optional parameters to pass to the erl CLI</dd>
 
-  <dt>ASDF_DIR</dt><dd>(not supported on Windows) If this is set, ElixirLS will look for the [ASDF](https://github.com/asdf-vm/asdf) script in a directory given by that variable.</dd>
+  <dt>ASDF_DIR</dt><dd>(not supported on Windows) If this is set, ElixirLS will look for the <a href="https://github.com/asdf-vm/asdf">ASDF</a> script in a directory given by that variable.</dd>
 
 </dl>
 
