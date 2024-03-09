@@ -270,40 +270,40 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
-  test "elixir submodule completion with __MODULE__" do
-    assert [
-             %{
-               name: "Chars",
-               full_name: "String.Chars",
-               subtype: :protocol,
-               summary:
-                 "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
-             }
-           ] = expand(~c"__MODULE__.Cha", %Env{module: String})
+    test "elixir submodule completion with __MODULE__" do
+      assert [
+               %{
+                 name: "Chars",
+                 full_name: "String.Chars",
+                 subtype: :protocol,
+                 summary:
+                   "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
+               }
+             ] = expand(~c"__MODULE__.Cha", %Env{module: String})
+    end
   end
-end
 
-if Version.match?(System.version(), ">= 1.14.0") do
-  test "elixir submodule completion with attribute bound to module" do
-    assert [
-             %{
-               name: "Chars",
-               full_name: "String.Chars",
-               subtype: :protocol,
-               summary:
-                 "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
-             }
-           ] =
-             expand(~c"@my_attr.Cha", %Env{
-               attributes: [
-                 %AttributeInfo{
-                   name: :my_attr,
-                   type: {:atom, String}
-                 }
-               ]
-             })
+  if Version.match?(System.version(), ">= 1.14.0") do
+    test "elixir submodule completion with attribute bound to module" do
+      assert [
+               %{
+                 name: "Chars",
+                 full_name: "String.Chars",
+                 subtype: :protocol,
+                 summary:
+                   "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
+               }
+             ] =
+               expand(~c"@my_attr.Cha", %Env{
+                 attributes: [
+                   %AttributeInfo{
+                     name: :my_attr,
+                     type: {:atom, String}
+                   }
+                 ]
+               })
+    end
   end
-end
 
   test "find elixir modules that require alias" do
     assert [
@@ -364,32 +364,32 @@ end
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
-  test "function completion on __MODULE__" do
-    assert [%{name: "version", origin: "System"}] =
-             expand(~c"__MODULE__.ve", %Env{module: System})
+    test "function completion on __MODULE__" do
+      assert [%{name: "version", origin: "System"}] =
+               expand(~c"__MODULE__.ve", %Env{module: System})
+    end
   end
-end
 
-if Version.match?(System.version(), ">= 1.14.0") do
-  test "function completion on __MODULE__ submodules" do
-    assert [%{name: "to_string", origin: "String.Chars"}] =
-             expand(~c"__MODULE__.Chars.to", %Env{module: String})
+  if Version.match?(System.version(), ">= 1.14.0") do
+    test "function completion on __MODULE__ submodules" do
+      assert [%{name: "to_string", origin: "String.Chars"}] =
+               expand(~c"__MODULE__.Chars.to", %Env{module: String})
+    end
   end
-end
 
-if Version.match?(System.version(), ">= 1.14.0") do
-  test "function completion on attribute bound to module" do
-    assert [%{name: "version", origin: "System"}] =
-             expand(~c"@my_attr.ve", %Env{
-               attributes: [
-                 %AttributeInfo{
-                   name: :my_attr,
-                   type: {:atom, System}
-                 }
-               ]
-             })
+  if Version.match?(System.version(), ">= 1.14.0") do
+    test "function completion on attribute bound to module" do
+      assert [%{name: "version", origin: "System"}] =
+               expand(~c"@my_attr.ve", %Env{
+                 attributes: [
+                   %AttributeInfo{
+                     name: :my_attr,
+                     type: {:atom, System}
+                   }
+                 ]
+               })
+    end
   end
-end
 
   test "function completion with arity" do
     assert [
@@ -1566,37 +1566,37 @@ end
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
-  test "completion for struct names with __MODULE__" do
-    assert [%{name: "__MODULE__"}] = expand(~c"%__MODU", %Env{module: Date.Range})
-    assert [%{name: "Range"}] = expand(~c"%__MODULE__.Ra", %Env{module: Date})
+    test "completion for struct names with __MODULE__" do
+      assert [%{name: "__MODULE__"}] = expand(~c"%__MODU", %Env{module: Date.Range})
+      assert [%{name: "Range"}] = expand(~c"%__MODULE__.Ra", %Env{module: Date})
+    end
   end
-end
 
   if Version.match?(System.version(), ">= 1.14.0") do
-  test "completion for struct attributes" do
-    assert [%{name: "@my_attr"}] =
-             expand(~c"%@my", %Env{
-               attributes: [
-                 %AttributeInfo{
-                   name: :my_attr,
-                   type: {:atom, Date}
-                 }
-               ],
-               scope: MyMod
-             })
+    test "completion for struct attributes" do
+      assert [%{name: "@my_attr"}] =
+               expand(~c"%@my", %Env{
+                 attributes: [
+                   %AttributeInfo{
+                     name: :my_attr,
+                     type: {:atom, Date}
+                   }
+                 ],
+                 scope: MyMod
+               })
 
-    assert [%{name: "Range"}] =
-             expand(~c"%@my_attr.R", %Env{
-               attributes: [
-                 %AttributeInfo{
-                   name: :my_attr,
-                   type: {:atom, Date}
-                 }
-               ],
-               scope: MyMod
-             })
+      assert [%{name: "Range"}] =
+               expand(~c"%@my_attr.R", %Env{
+                 attributes: [
+                   %AttributeInfo{
+                     name: :my_attr,
+                     type: {:atom, Date}
+                   }
+                 ],
+                 scope: MyMod
+               })
+    end
   end
-end
 
   # handled elsewhere
   # TODO consider moving struct key completion here after elixir 1.13+ is required
@@ -1972,53 +1972,53 @@ end
   end
 
   if System.otp_release() |> String.to_integer() >= 23 do
-  test "complete build in :erlang functions" do
-    assert [
-             %{arity: 2, name: "open_port", origin: ":erlang"},
-             %{
-               arity: 2,
-               name: "or",
-               spec: "@spec boolean() or boolean() :: boolean()",
-               type: :function,
-               args: "boolean, boolean",
-               origin: ":erlang",
-               summary: ""
-             },
-             %{
-               args: "term, term",
-               arity: 2,
-               name: "orelse",
-               origin: ":erlang",
-               spec: "",
-               summary: "",
-               type: :function
-             }
-           ] = expand(~c":erlang.or")
+    test "complete build in :erlang functions" do
+      assert [
+               %{arity: 2, name: "open_port", origin: ":erlang"},
+               %{
+                 arity: 2,
+                 name: "or",
+                 spec: "@spec boolean() or boolean() :: boolean()",
+                 type: :function,
+                 args: "boolean, boolean",
+                 origin: ":erlang",
+                 summary: ""
+               },
+               %{
+                 args: "term, term",
+                 arity: 2,
+                 name: "orelse",
+                 origin: ":erlang",
+                 spec: "",
+                 summary: "",
+                 type: :function
+               }
+             ] = expand(~c":erlang.or")
 
-    assert [
-             %{
-               arity: 2,
-               name: "and",
-               spec: "@spec boolean() and boolean() :: boolean()",
-               type: :function,
-               args: "boolean, boolean",
-               origin: ":erlang",
-               summary: ""
-             },
-             %{
-               args: "term, term",
-               arity: 2,
-               name: "andalso",
-               origin: ":erlang",
-               spec: "",
-               summary: "",
-               type: :function
-             },
-             %{arity: 2, name: "append", origin: ":erlang"},
-             %{arity: 2, name: "append_element", origin: ":erlang"}
-           ] = expand(~c":erlang.and")
+      assert [
+               %{
+                 arity: 2,
+                 name: "and",
+                 spec: "@spec boolean() and boolean() :: boolean()",
+                 type: :function,
+                 args: "boolean, boolean",
+                 origin: ":erlang",
+                 summary: ""
+               },
+               %{
+                 args: "term, term",
+                 arity: 2,
+                 name: "andalso",
+                 origin: ":erlang",
+                 spec: "",
+                 summary: "",
+                 type: :function
+               },
+               %{arity: 2, name: "append", origin: ":erlang"},
+               %{arity: 2, name: "append_element", origin: ":erlang"}
+             ] = expand(~c":erlang.and")
+    end
   end
-end
 
   test "provide doc and specs for erlang functions" do
     assert [
@@ -2204,44 +2204,44 @@ end
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
-  test "Application.compile_env classified as macro" do
-    assert [
-             %{
-               name: "compile_env",
-               arity: 2,
-               type: :macro,
-               origin: "Application",
-               needed_require: "Application"
-             },
-             %{
-               name: "compile_env",
-               arity: 3,
-               type: :macro,
-               origin: "Application",
-               needed_require: "Application"
-             },
-             %{
-               name: "compile_env",
-               arity: 4,
-               type: :function,
-               origin: "Application",
-               needed_require: nil
-             },
-             %{
-               name: "compile_env!",
-               arity: 2,
-               type: :macro,
-               origin: "Application",
-               needed_require: "Application"
-             },
-             %{
-               name: "compile_env!",
-               arity: 3,
-               type: :function,
-               origin: "Application",
-               needed_require: nil
-             }
-           ] = expand(~c"Application.compile_e")
+    test "Application.compile_env classified as macro" do
+      assert [
+               %{
+                 name: "compile_env",
+                 arity: 2,
+                 type: :macro,
+                 origin: "Application",
+                 needed_require: "Application"
+               },
+               %{
+                 name: "compile_env",
+                 arity: 3,
+                 type: :macro,
+                 origin: "Application",
+                 needed_require: "Application"
+               },
+               %{
+                 name: "compile_env",
+                 arity: 4,
+                 type: :function,
+                 origin: "Application",
+                 needed_require: nil
+               },
+               %{
+                 name: "compile_env!",
+                 arity: 2,
+                 type: :macro,
+                 origin: "Application",
+                 needed_require: "Application"
+               },
+               %{
+                 name: "compile_env!",
+                 arity: 3,
+                 type: :function,
+                 origin: "Application",
+                 needed_require: nil
+               }
+             ] = expand(~c"Application.compile_e")
+    end
   end
-end
 end
