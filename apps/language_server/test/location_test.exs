@@ -4,12 +4,12 @@ defmodule ElixirLS.LanguageServer.LocationTest do
   alias ElixirLS.LanguageServer.Location
 
   setup do
-    elixir_src = Path.join(File.cwd!(), "/test/misc/mock_elixir_src")
+    elixir_src = Path.join(__DIR__, "/misc/mock_elixir_src")
     # TODO make this work and expose via config
-    Application.put_env(:elixir_sense, :elixir_src, elixir_src)
+    Application.put_env(:language_server, :elixir_src, elixir_src)
 
     on_exit(fn ->
-      Application.delete_env(:elixir_sense, :elixir_src)
+      Application.delete_env(:language_server, :elixir_src)
     end)
   end
 

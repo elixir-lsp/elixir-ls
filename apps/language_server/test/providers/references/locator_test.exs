@@ -47,7 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{column: 14, line: 4}, end: %{column: 17, line: 4}}
+    assert range_1 == %{start: %{column: 14, line: 4}, end: %{column: 17, line: 4}} |> maybe_shift
   end
 
   test "find references with cursor over a function call", %{trace: trace} do
@@ -78,9 +78,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}}
-    assert range_3 == %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}}
+    assert range_1 ==
+             %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}} |> maybe_shift
+
+    assert range_3 ==
+             %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}} |> maybe_shift
   end
 
   test "find references with cursor over a function definition", %{trace: trace} do
@@ -114,9 +119,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}}
-    assert range_3 == %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}}
+    assert range_1 ==
+             %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}} |> maybe_shift
+
+    assert range_3 ==
+             %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}} |> maybe_shift
 
     references = Locator.references(buffer, 6, 10, trace)
 
@@ -131,8 +141,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}}
+    assert range_1 ==
+             %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}} |> maybe_shift
   end
 
   test "find references with cursor over a function definition with default arg", %{trace: trace} do
@@ -157,8 +170,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{end: %{column: 42, line: 3}, start: %{column: 37, line: 3}}
-    assert range_2 == %{end: %{column: 42, line: 4}, start: %{column: 37, line: 4}}
+    assert range_1 == %{end: %{column: 42, line: 3}, start: %{column: 37, line: 3}} |> maybe_shift
+    assert range_2 == %{end: %{column: 42, line: 4}, start: %{column: 37, line: 4}} |> maybe_shift
   end
 
   test "find references with cursor over a function with arity 1", %{trace: trace} do
@@ -185,8 +198,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}}
+    assert range_1 ==
+             %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}} |> maybe_shift
   end
 
   test "find references with cursor over a function called via @attr.call", %{trace: trace} do
@@ -214,8 +230,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}}
+    assert range_1 ==
+             %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}} |> maybe_shift
   end
 
   # TODO crashes metadata builder
@@ -271,7 +290,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{end: %{column: 23, line: 114}, start: %{column: 13, line: 114}}
+    assert range_1 ==
+             %{end: %{column: 23, line: 114}, start: %{column: 13, line: 114}} |> maybe_shift
   end
 
   test "find references with cursor over a function with arity 1 called via pipe operator", %{
@@ -300,7 +320,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 49, column: 63}, end: %{line: 49, column: 71}}
+    assert range_1 ==
+             %{start: %{line: 49, column: 63}, end: %{line: 49, column: 71}} |> maybe_shift
   end
 
   test "find references with cursor over a function with arity 1 captured", %{trace: trace} do
@@ -326,7 +347,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 49, column: 63}, end: %{line: 49, column: 71}}
+    assert range_1 ==
+             %{start: %{line: 49, column: 63}, end: %{line: 49, column: 71}} |> maybe_shift
   end
 
   test "find references with cursor over a function when caller uses pipe operator", %{
@@ -354,7 +376,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 49, column: 63}, end: %{line: 49, column: 71}}
+    assert range_1 ==
+             %{start: %{line: 49, column: 63}, end: %{line: 49, column: 71}} |> maybe_shift
   end
 
   test "find references with cursor over a function when caller uses capture operator", %{
@@ -415,7 +438,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 90, column: 60}, end: %{line: 90, column: 68}}
+    assert range_1 ==
+             %{start: %{line: 90, column: 60}, end: %{line: 90, column: 68}} |> maybe_shift
 
     references = Locator.references(buffer, 4, 59, trace)
 
@@ -460,7 +484,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 91, column: 60}, end: %{line: 91, column: 69}}
+    assert range_1 ==
+             %{start: %{line: 91, column: 60}, end: %{line: 91, column: 69}} |> maybe_shift
 
     references = Locator.references(buffer, 4, 59, trace)
 
@@ -505,8 +530,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{end: %{column: 68, line: 90}, start: %{column: 60, line: 90}}
-    assert range_2 == %{end: %{column: 69, line: 91}, start: %{column: 60, line: 91}}
+    assert range_1 ==
+             %{end: %{column: 68, line: 90}, start: %{column: 60, line: 90}} |> maybe_shift
+
+    assert range_2 ==
+             %{end: %{column: 69, line: 91}, start: %{column: 60, line: 91}} |> maybe_shift
   end
 
   test "find references for the correct arity version", %{trace: trace} do
@@ -922,9 +950,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}}
-    assert range_3 == %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}}
+    assert range_1 ==
+             %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}} |> maybe_shift
+
+    assert range_3 ==
+             %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}} |> maybe_shift
   end
 
   test "find references with cursor over a function call from an imported module", %{trace: trace} do
@@ -956,9 +989,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}}
-    assert range_3 == %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}}
+    assert range_1 ==
+             %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}} |> maybe_shift
+
+    assert range_3 ==
+             %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}} |> maybe_shift
   end
 
   test "find references with cursor over a function call pipe from an imported module", %{
@@ -988,8 +1026,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}}
+    assert range_1 ==
+             %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}} |> maybe_shift
   end
 
   test "find references with cursor over a function capture from an imported module", %{
@@ -1023,9 +1064,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}}
-    assert range_2 == %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}}
-    assert range_3 == %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}}
+    assert range_1 ==
+             %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}} |> maybe_shift
+
+    assert range_3 ==
+             %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}} |> maybe_shift
   end
 
   test "find imported references", %{trace: trace} do
@@ -1041,13 +1087,19 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     references = Locator.references(buffer, 3, 59, trace)
 
     assert references == [
-             %{range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}}, uri: nil},
              %{
-               uri: "test/support/modules_with_references.ex",
-               range: %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}}
+               range:
+                 %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}} |> maybe_shift,
+               uri: nil
              },
              %{
-               range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
+               uri: "test/support/modules_with_references.ex",
+               range:
+                 %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}} |> maybe_shift
+             },
+             %{
+               range:
+                 %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}} |> maybe_shift,
                uri: "test/support/modules_with_references.ex"
              }
            ]
@@ -1696,11 +1748,20 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}}
-    assert range_2 == %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}}
-    assert range_3 == %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}}
-    assert range_4 == %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}}
-    assert range_5 == %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}}
+    assert range_1 ==
+             %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}} |> maybe_shift
+
+    assert range_2 ==
+             %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}} |> maybe_shift
+
+    assert range_3 ==
+             %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}} |> maybe_shift
+
+    assert range_4 ==
+             %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}} |> maybe_shift
+
+    assert range_5 ==
+             %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}} |> maybe_shift
   end
 
   test "find references with cursor over an erlang module", %{trace: trace} do
@@ -1728,7 +1789,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{column: 12, line: 74}, end: %{column: 15, line: 74}}
+    assert range_1 ==
+             %{start: %{column: 12, line: 74}, end: %{column: 15, line: 74}} |> maybe_shift
   end
 
   test "find references with cursor over an erlang function call", %{trace: trace} do
@@ -1754,7 +1816,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{column: 12, line: 74}, end: %{column: 15, line: 74}}
+    assert range_1 ==
+             %{start: %{column: 12, line: 74}, end: %{column: 15, line: 74}} |> maybe_shift
   end
 
   test "find references with cursor over builtin function call", %{trace: trace} do
@@ -1780,7 +1843,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{column: 60, line: 101}, end: %{column: 71, line: 101}}
+    assert range_1 ==
+             %{start: %{column: 60, line: 101}, end: %{column: 71, line: 101}} |> maybe_shift
   end
 
   test "find references with cursor over builtin function call incomplete code", %{trace: trace} do
@@ -1806,7 +1870,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    assert range_1 == %{start: %{column: 60, line: 101}, end: %{column: 71, line: 101}}
+    assert range_1 ==
+             %{start: %{column: 60, line: 101}, end: %{column: 71, line: 101}} |> maybe_shift
   end
 
   defp read_line(file, range) do
@@ -1817,5 +1882,22 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     |> Source.split_lines()
     |> Enum.at(line - 1)
     |> String.slice((column - 1)..-1//1)
+  end
+
+  defp maybe_shift(%{
+         start: %{column: column_start, line: line_start},
+         end: %{column: column_end, line: line_end}
+       }) do
+    if Version.match?(System.version(), ">= 1.13.0") do
+      %{
+        start: %{column: column_start, line: line_start},
+        end: %{column: column_end, line: line_end}
+      }
+    else
+      %{
+        start: %{column: column_start - 1, line: line_start},
+        end: %{column: column_end - 1, line: line_end}
+      }
+    end
   end
 end

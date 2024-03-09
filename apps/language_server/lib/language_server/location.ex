@@ -66,7 +66,7 @@ defmodule ElixirLS.LanguageServer.Location do
         # location; in this case try to find a "core" Elixir source file under
         # the configured Elixir source path.
         with elixir_src when is_binary(elixir_src) <-
-               Application.get_env(:elixir_sense, :elixir_src),
+               Application.get_env(:language_server, :elixir_src),
              file =
                String.replace(
                  file,
