@@ -1,15 +1,13 @@
-# Elixir Language Server (ElixirLS)
+# ElixirLS - Elixir Language Server and Debug Adapter
 
 [![Actions Status](https://img.shields.io/github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)](github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)
 [![Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://elixir-lang.slack.com/archives/C7D272G6N)
 
-The Elixir Language Server provides a server that runs in the background, providing IDEs, editors, and other tools with information about Elixir Mix projects. It adheres to the [Language Server Protocol](https://github.com/Microsoft/language-server-protocol), a standard for frontend-independent IDE support. Debugger integration is accomplished through the similar [VS Code Debug Protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging).
+ElixirLS is provides two components: a language server driving code intelligence and a debug adapter that allows step through debugging of Elixir projects. Language server adheres to the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/). Debug adapter implements [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/).
 
 ## This is the main elixir-ls repo
 
-The [elixir-lsp](https://github.com/elixir-lsp)/[elixir-ls](https://github.com/elixir-lsp/elixir-ls) repo began as a fork when the original repo at [JakeBecker](https://github.com/JakeBecker)/[elixir-ls](https://github.com/JakeBecker/elixir-ls) became inactive for an extended period of time. So, we decided to start an active fork to merge dormant PR's and fix issues where possible. We also believe in an open and shared governance model to share the work instead of relying on one person to shoulder the whole burden.
-
-The original repository has now been deprecated in favor of this one. Any IDE extensions that use ElixirLS should switch to using this repository.
+This repo is a community maintained fork. The original repository [JakeBecker/elixir-ls](https://github.com/JakeBecker/elixir-ls) has now been deprecated in favor of this one.
 
 ## Features
 
@@ -274,7 +272,7 @@ If Dialyzer gets stuck and emits incorrect or outdated warnings, it's best to re
 
 ## Code completion
 
-ElixirLS provides an advanced code completion provider, which is built on top of the [Elixir Sense](https://github.com/elixir-lsp/elixir_sense) library. This provider uses two main mechanisms to provide suggestions to the user.
+ElixirLS provides an advanced code completion provider. This provider uses two main mechanisms to provide suggestions to the user.
 
 The first mechanism is reflection, which involves getting information about compiled modules from the Erlang and Elixir APIs. This mechanism provides precise results, but it is not well suited for on-demand completion of symbols from the currently edited file. The compiled version of the code may be outdated or the file may not even compile, which can lead to inaccurate results.
 
@@ -480,10 +478,12 @@ ElixirLS language server sends telemetry information to the client via [LSP Tele
 
 ## Acknowledgements and related projects
 
-ElixirLS isn't the first frontend-independent server for Elixir language support. The original was [Alchemist Server](https://github.com/tonini/alchemist-server/), which powers the [Alchemist](https://github.com/tonini/alchemist.el) plugin for Emacs. Another project, [Elixir Sense](https://github.com/elixir-lsp/elixir_sense), builds upon Alchemist and powers the [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir) as well as another VS Code plugin, [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). ElixirLS uses Elixir Sense for several code insight features. Credit for those projects goes to their respective authors.
+ElixirLS incorporates code intelligence providers that were originally developed in [Elixir Sense](https://github.com/elixir-lsp/elixir_sense) and still uses this library for lower lever operations. Other prior work includes [Alchemist Server](https://github.com/tonini/alchemist-server/), [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir), [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). Credit for those projects goes to their respective authors.
 
 ## License
 
 ElixirLS source code is released under Apache License 2.0.
 
 See [LICENSE](LICENSE) for more information.
+
+ElixirLS includes parts of other projects, please see the respective licenses which apply to them.
