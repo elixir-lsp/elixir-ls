@@ -6,6 +6,8 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, SuccessTypings}
   alias ElixirLS.LanguageServer.Dialyzer
 
+  # TODO add error reporting
+
   defstruct [
     :parent,
     :root_path,
@@ -13,6 +15,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     :warn_opts,
     :warning_format,
     :apps_paths,
+    :project_dir,
     :next_build
   ]
 
@@ -27,10 +30,10 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     GenServer.start_link(__MODULE__, {parent, root_path}, name: {:global, {parent, __MODULE__}})
   end
 
-  def analyze(parent \\ self(), build_ref, warn_opts, warning_format) do
+  def analyze(parent \\ self(), build_ref, warn_opts, warning_format, project_dir) do
     GenServer.cast(
       {:global, {parent, __MODULE__}},
-      {:analyze, build_ref, warn_opts, warning_format}
+      {:analyze, build_ref, warn_opts, warning_format, project_dir}
     )
   end
 
@@ -76,7 +79,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   end
 
   @impl GenServer
-  def handle_cast({:analyze, build_ref, warn_opts, warning_format}, %{analysis_pid: nil} = state) do
+  def handle_cast({:analyze, build_ref, warn_opts, warning_format, project_dir}, %{analysis_pid: nil} = state) do
     state =
       ElixirLS.LanguageServer.Build.with_build_lock(fn ->
         if Mix.Project.get() do
@@ -104,6 +107,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
             | warn_opts: warn_opts,
               warning_format: warning_format,
               apps_paths: apps_paths,
+              project_dir: project_dir,
               analysis_pid: pid
           }
         else
@@ -126,7 +130,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
         state
       ) do
     diagnostics =
-      to_diagnostics(warnings_map, state.warn_opts, state.warning_format, state.apps_paths)
+      to_diagnostics(warnings_map, state.warn_opts, state.warning_format, state.apps_paths, state.project_dir)
 
     Server.dialyzer_finished(state.parent, diagnostics, build_ref)
     state = %{state | analysis_pid: nil}
@@ -154,7 +158,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       |> Enum.reject(fn {app, _res} ->
         app in [
           :language_server,
-          :elixir_ls_debugger,
+          :debug_adapter,
           :elixir_ls_utils,
           :mix_task_archive_deps,
           :jason_v,
@@ -212,7 +216,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     |> to_charlist()
   end
 
-  defp to_diagnostics(warnings_map, warn_opts, warning_format, apps_paths) do
+  defp to_diagnostics(warnings_map, warn_opts, warning_format, apps_paths, project_dir) do
     tags_enabled = Analyzer.matching_tags(warn_opts)
 
     for {app, app_warnings_map} <- warnings_map,
@@ -221,7 +225,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
         tag in tags_enabled,
         warning = {tag, {file, position}, msg},
         app_path = Map.fetch!(apps_paths, app),
-        source_file = Path.absname(Path.join([app_path, to_string(file)])) do
+        source_file = Path.absname(Path.join([app_path, to_string(file)]), project_dir) do
       %Mix.Task.Compiler.Diagnostic{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
