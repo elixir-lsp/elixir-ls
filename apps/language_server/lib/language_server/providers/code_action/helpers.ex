@@ -1,7 +1,46 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
-  alias ElixirLS.LanguageServer.Providers.CodeMod.Ast
-  alias ElixirLS.LanguageServer.Providers.CodeMod.Text
+  alias ElixirLS.LanguageServer.Providers.CodeMod.Diff
+
+  @spec to_text_edits(String.t(), String.t()) :: {:ok, [TextEdit.t()]} | :error
+  def to_text_edits(unformatted_text, updated_text) do
+    formatted_text =
+      unformatted_text
+      |> Code.format_string!(line_length: :infinity)
+      |> IO.iodata_to_binary()
+
+    change_text_edits = Diff.diff(formatted_text, updated_text)
+
+    with {:ok, changed_line} <- changed_line(change_text_edits) do
+      is_line_formatted =
+        unformatted_text
+        |> Diff.diff(formatted_text)
+        |> Enum.filter(fn %TextEdit{range: range} ->
+          range["start"]["line"] == changed_line or range["end"]["line"] == changed_line
+        end)
+        |> Enum.empty?()
+
+      if is_line_formatted do
+        {:ok, change_text_edits}
+      else
+        :error
+      end
+    end
+  end
+
+  defp changed_line(text_edits) do
+    lines =
+      text_edits
+      |> Enum.flat_map(fn %TextEdit{range: range} ->
+        [range["start"]["line"], range["end"]["line"]]
+      end)
+      |> Enum.uniq()
+
+    case lines do
+      [line] -> {:ok, line}
+      _ -> :error
+    end
+  end
 
   @spec update_line(TextEdit.t(), non_neg_integer()) :: TextEdit.t()
   def update_line(
@@ -15,39 +54,5 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
           "end" => %{end_line | "line" => line_number}
         }
     }
-  end
-
-  @spec to_one_line_string(Ast.t()) :: {:ok, String.t()} | :error
-  def to_one_line_string(updated_ast) do
-    updated_ast
-    |> Ast.to_string()
-    # We're dealing with a single error on a single line.
-    # If the line doesn't compile (like it has a do with no end), ElixirSense
-    # adds additional lines to documents with errors. Also, in case of a one-line do,
-    # ElixirSense creates do with end from the AST.
-    |> maybe_recover_one_line_do(updated_ast)
-    |> Text.fetch_line(0)
-  end
-
-  @do_regex ~r/\s*do\s*/
-  defp maybe_recover_one_line_do(updated_text, {_name, context, _children} = _updated_ast) do
-    wrong_do_end_conditions = [
-      not Keyword.has_key?(context, :do),
-      not Keyword.has_key?(context, :end),
-      Regex.match?(@do_regex, updated_text),
-      String.ends_with?(updated_text, "\nend")
-    ]
-
-    if Enum.all?(wrong_do_end_conditions) do
-      updated_text
-      |> String.replace(@do_regex, ", do: ")
-      |> String.trim_trailing("\nend")
-    else
-      updated_text
-    end
-  end
-
-  defp maybe_recover_one_line_do(updated_text, _updated_ast) do
-    updated_text
   end
 end
