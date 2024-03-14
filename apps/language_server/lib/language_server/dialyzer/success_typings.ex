@@ -10,8 +10,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer.SuccessTypings do
           |> :dialyzer_plt.all_modules()
           |> :sets.to_list()
 
-		# TODO filter by apps?        
-		for mod <- modules,
+        # TODO filter by apps?        
+        for mod <- modules,
             file = source(mod),
             file in files,
             docs = ElixirSense.Core.Normalized.Code.get_docs(mod, :docs),

@@ -2296,7 +2296,7 @@ defmodule ElixirLS.LanguageServer.Server do
       DialyzerIncremental
     else
       Dialyzer
-	end
+    end
   end
 
   def do_sanity_check(message \\ nil) do

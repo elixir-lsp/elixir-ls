@@ -1,12 +1,10 @@
 defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   use GenServer
-  alias ElixirLS.LanguageServer.Server
+  alias ElixirLS.LanguageServer.{Server, JsonRpc}
   require Logger
   require Record
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, SuccessTypings}
   alias ElixirLS.LanguageServer.Dialyzer
-
-  # TODO add error reporting
 
   defstruct [
     :parent,
@@ -49,6 +47,41 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   end
 
   @impl GenServer
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      _other ->
+        ElixirLS.LanguageServer.Server.do_sanity_check()
+        message = Exception.format_exit(reason)
+
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => message
+          },
+          %{}
+        )
+
+        Logger.info("Terminating #{__MODULE__}: #{message}")
+
+        JsonRpc.show_message(
+          :error,
+          "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
+            "\"elixirLS.dialyzerEnabled\" to false in settings.json to disable it"
+        )
+    end
+  end
+
+  @impl GenServer
   def handle_call({:suggest_contracts, files}, _from, state) do
     specs =
       try do
@@ -79,7 +112,10 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   end
 
   @impl GenServer
-  def handle_cast({:analyze, build_ref, warn_opts, warning_format, project_dir}, %{analysis_pid: nil} = state) do
+  def handle_cast(
+        {:analyze, build_ref, warn_opts, warning_format, project_dir},
+        %{analysis_pid: nil} = state
+      ) do
     state =
       ElixirLS.LanguageServer.Build.with_build_lock(fn ->
         if Mix.Project.get() do
@@ -130,7 +166,13 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
         state
       ) do
     diagnostics =
-      to_diagnostics(warnings_map, state.warn_opts, state.warning_format, state.apps_paths, state.project_dir)
+      to_diagnostics(
+        warnings_map,
+        state.warn_opts,
+        state.warning_format,
+        state.apps_paths,
+        state.project_dir
+      )
 
     Server.dialyzer_finished(state.parent, diagnostics, build_ref)
     state = %{state | analysis_pid: nil}
