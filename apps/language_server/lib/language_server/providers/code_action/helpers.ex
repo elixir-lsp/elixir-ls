@@ -15,9 +15,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
       is_line_formatted =
         unformatted_text
         |> Diff.diff(formatted_text)
-        |> Enum.filter(fn %TextEdit{range: range} ->
-          range["start"]["line"] == changed_line or range["end"]["line"] == changed_line
-        end)
+        |> Enum.filter(&near_changed_line(&1, changed_line))
         |> Enum.empty?()
 
       if is_line_formatted do
@@ -40,6 +38,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
       [line] -> {:ok, line}
       _ -> :error
     end
+  end
+
+  defp near_changed_line(%TextEdit{range: range}, changed_line) do
+    changed_line_neighborhood = [changed_line - 1, changed_line, changed_line + 1]
+
+    range["start"]["line"] in changed_line_neighborhood or
+      range["end"]["line"] in changed_line_neighborhood
   end
 
   @spec update_line(TextEdit.t(), non_neg_integer()) :: TextEdit.t()
