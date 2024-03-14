@@ -215,6 +215,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
 
     files_rec = all_apps |> Keyword.values() |> Enum.map(&:filename.join(&1, ~c"ebin"))
 
+    # we are under build lock - it's safe to call Mix.Project APIs
     warning_apps =
       if Mix.Project.umbrella?() do
         Mix.Project.apps_paths() |> Enum.map(&elem(&1, 0))
@@ -248,11 +249,10 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     {opts, warning_modules_to_apps}
   end
 
-  # TODO add env
   defp elixir_incremental_plt_path() do
     [
       File.cwd!(),
-      ".elixir_ls/incremental-plt-elixir-ls-#{Manifest.otp_vsn()}_elixir-#{System.version()}"
+      ".elixir_ls/iplt-#{Manifest.otp_vsn()}_elixir-#{System.version()}-#{Mix.env()}"
     ]
     |> Path.join()
     |> to_charlist()
