@@ -61,7 +61,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -121,7 +125,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "only analyzes the changed files", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "incrementalDialyzer" => false
+      })
 
       assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20_000
 
@@ -169,7 +177,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -215,7 +227,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_short",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -251,7 +267,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyzer",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -288,7 +308,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "umbrella_dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("apps/app1/lib/app1.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_short",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -323,7 +347,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true})
+      initialize(server, %{"dialyzerEnabled" => true, "incrementalDialyzer" => false})
 
       assert_receive publish_diagnostics_notif(^file_a, [_, _]), 20000
 
@@ -343,7 +367,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       initialize(server, %{
         "dialyzerEnabled" => true,
         "dialyzerFormat" => "dialyxir_long",
-        "suggestSpecs" => false
+        "suggestSpecs" => false,
+        "incrementalDialyzer" => false
       })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
@@ -375,7 +400,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       initialize(server, %{
         "dialyzerEnabled" => true,
         "dialyzerFormat" => "dialyxir_long",
-        "suggestSpecs" => true
+        "suggestSpecs" => true,
+        "incrementalDialyzer" => false
       })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
