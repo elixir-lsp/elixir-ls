@@ -185,11 +185,10 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
 
   defp build_dialyzer_opts() do
     # assume that all required apps has been loaded during build
-    # notable exception is erts which is not loaded by default
+    # notable exception is erts which is not loaded by default but we load it manually during startup
     loaded_apps =
       Application.loaded_applications()
       |> Enum.map(&elem(&1, 0))
-      |> Kernel.++([:erts])
 
     all_apps =
       loaded_apps
