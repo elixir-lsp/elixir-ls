@@ -2292,7 +2292,7 @@ defmodule ElixirLS.LanguageServer.Server do
   defp dialyzer_module(settings) do
     otp_release = String.to_integer(System.otp_release())
 
-    if otp_release >= 26 and Map.get(settings, "incrementalDialyzer", false) do
+    if otp_release >= 26 and Map.get(settings, "incrementalDialyzer", true) do
       DialyzerIncremental
     else
       Dialyzer
