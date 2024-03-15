@@ -24,6 +24,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Protocol,
     JsonRpc,
     Dialyzer,
+    DialyzerIncremental,
     Diagnostics,
     MixProjectCache,
     Parser
@@ -254,7 +255,7 @@ defmodule ElixirLS.LanguageServer.Server do
         parent = self()
 
         spawn(fn ->
-          contracts = Dialyzer.suggest_contracts(parent, [abs_path])
+          contracts = dialyzer_module(state.settings).suggest_contracts(parent, [abs_path])
           GenServer.reply(from, contracts)
         end)
 
@@ -1508,7 +1509,7 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    Dialyzer.analyze(
+    dialyzer_module(state.settings).analyze(
       state.build_ref,
       warn_opts,
       dialyzer_default_format(state),
@@ -1580,7 +1581,7 @@ defmodule ElixirLS.LanguageServer.Server do
         contracts_by_file =
           not_dirty
           |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
-          |> then(fn uris -> Dialyzer.suggest_contracts(parent, uris) end)
+          |> then(fn uris -> dialyzer_module(state.settings).suggest_contracts(parent, uris) end)
           |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
         for {from, uri} <- not_dirty do
@@ -2285,6 +2286,16 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       Logger.info("Client does not support workspace/configuration request")
       state
+    end
+  end
+
+  defp dialyzer_module(settings) do
+    otp_release = String.to_integer(System.otp_release())
+
+    if otp_release >= 26 and Map.get(settings, "incrementalDialyzer", true) do
+      DialyzerIncremental
+    else
+      Dialyzer
     end
   end
 

@@ -306,8 +306,9 @@ With Dialyzer integration enabled, ElixirLS will build an index of symbols (modu
 Below is a list of configuration options supported by the ElixirLS language server. Please refer to your editor's documentation to determine how to configure language servers.
 
 <dl>
-<dt>elixirLS.autoBuild</dt><dd>Trigger ElixirLS build when code is saved.</dd>
-<dt>elixirLS.dialyzerEnabled</dt><dd>Run ElixirLS's rapid Dialyzer when code is saved.</dd>
+<dt>elixirLS.autoBuild</dt><dd>Trigger ElixirLS build when code is saved</dd>
+<dt>elixirLS.dialyzerEnabled</dt><dd>Run ElixirLS's rapid Dialyzer when code is saved</dd>
+<dt>elixirLS.incrementalDialyzer</dt><dd>Use OTP incremental dialyzer (available on OTP 26+)</dd>
 <dt>elixirLS.dialyzerWarnOpts</dt><dd>Dialyzer options to enable or disable warnings - See Dialyzer's documentation for options. Note that the <code>race_conditions</code> option is unsupported.</dd>
 <dt>elixirLS.dialyzerFormat</dt><dd>Formatter to use for Dialyzer warnings</dd>
 <dt>elixirLS.envVariables</dt><dd>Environment variables to use for compilation</dd>

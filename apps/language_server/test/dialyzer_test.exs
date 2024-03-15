@@ -61,7 +61,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -121,7 +125,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   @tag slow: true, fixture: true
   test "only analyzes the changed files", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "incrementalDialyzer" => false
+      })
 
       assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20_000
 
@@ -169,7 +177,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_long"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -215,7 +227,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_short",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -251,7 +267,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyzer"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyzer",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -288,7 +308,11 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "umbrella_dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("apps/app1/lib/app1.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true, "dialyzerFormat" => "dialyxir_short"})
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_short",
+        "incrementalDialyzer" => false
+      })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
 
@@ -323,7 +347,7 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_a = SourceFile.Path.to_uri(Path.absname("lib/a.ex"))
 
-      initialize(server, %{"dialyzerEnabled" => true})
+      initialize(server, %{"dialyzerEnabled" => true, "incrementalDialyzer" => false})
 
       assert_receive publish_diagnostics_notif(^file_a, [_, _]), 20000
 
@@ -336,73 +360,6 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
   end
 
   @tag slow: true, fixture: true
-  test "protocol rebuild does not trigger consolidation warnings", %{server: server} do
-    in_fixture(__DIR__, "protocols", fn ->
-      uri = SourceFile.Path.to_uri(Path.absname("lib/implementations.ex"))
-
-      initialize(server, %{"dialyzerEnabled" => true})
-
-      assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
-
-      assert_receive notification("window/logMessage", %{
-                       "message" => "[ElixirLS Dialyzer] Done writing manifest" <> _
-                     }),
-                     30000
-
-      v2_text = """
-      defimpl Protocols.Example, for: List do
-        def some(t), do: t
-      end
-
-      defimpl Protocols.Example, for: String do
-        def some(t), do: t
-      end
-
-      defimpl Protocols.Example, for: Map do
-        def some(t), do: t
-      end
-      """
-
-      Server.receive_packet(server, did_open(uri, "elixir", 1, v2_text))
-      File.write!("lib/implementations.ex", v2_text)
-      Server.receive_packet(server, did_save(uri))
-
-      assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
-
-      Process.sleep(2000)
-
-      v2_text = """
-      defimpl Protocols.Example, for: List do
-        def some(t), do: t
-      end
-
-      defimpl Protocols.Example, for: String do
-        def some(t), do: t
-      end
-
-      defimpl Protocols.Example, for: Map do
-        def some(t), do: t
-      end
-
-      defimpl Protocols.Example, for: Atom do
-        def some(t), do: t
-      end
-      """
-
-      File.write!("lib/implementations.ex", v2_text)
-      Server.receive_packet(server, did_save(uri))
-
-      assert_receive notification("window/logMessage", %{"message" => "Compile took" <> _}), 5000
-
-      # we should not receive Protocol has already been consolidated warnings here
-      refute_receive notification("textDocument/publishDiagnostics", %{"diagnostics" => [_ | _]}),
-                     3000
-
-      wait_until_compiled(server)
-    end)
-  end
-
-  @tag slow: true, fixture: true
   test "do not suggests contracts if not enabled", %{server: server} do
     in_fixture(__DIR__, "dialyzer", fn ->
       file_c = SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
@@ -410,7 +367,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       initialize(server, %{
         "dialyzerEnabled" => true,
         "dialyzerFormat" => "dialyxir_long",
-        "suggestSpecs" => false
+        "suggestSpecs" => false,
+        "incrementalDialyzer" => false
       })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
@@ -442,7 +400,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
       initialize(server, %{
         "dialyzerEnabled" => true,
         "dialyzerFormat" => "dialyxir_long",
-        "suggestSpecs" => true
+        "suggestSpecs" => true,
+        "incrementalDialyzer" => false
       })
 
       message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000

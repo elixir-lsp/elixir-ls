@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Supervisor do
-  alias ElixirLS.LanguageServer.Dialyzer
+  alias ElixirLS.LanguageServer.{Dialyzer, DialyzerIncremental}
   use Supervisor
 
   def start_link(parent \\ self(), root_path) do
@@ -10,7 +10,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Supervisor do
   def init({parent, root_path}) do
     Supervisor.init(
       [
-        {Dialyzer, {parent, root_path}}
+        {Dialyzer, {parent, root_path}},
+        {DialyzerIncremental, {parent, root_path}}
       ],
       strategy: :one_for_one
     )
