@@ -1,6 +1,6 @@
 defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   use GenServer
-  alias ElixirLS.LanguageServer.{Server, JsonRpc}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics}
   require Logger
   require Record
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, SuccessTypings}
@@ -280,7 +280,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
         warning = {tag, {file, position}, msg},
         app_path = Map.fetch!(apps_paths, app),
         source_file = Path.absname(Path.join([app_path, to_string(file)]), project_dir) do
-      %Mix.Task.Compiler.Diagnostic{
+      %Diagnostics{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
         position: Dialyzer.normalize_position(position),
