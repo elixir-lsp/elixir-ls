@@ -250,6 +250,14 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       |> Keyword.values()
       |> Enum.map(&:filename.join(&1, ~c"ebin"))
 
+    files_rec =
+      unless :persistent_term.get(:language_server_test_mode, false) do
+        files_rec
+      else
+        # do not include in PLT OTP and elixir apps in tests
+        warning_files_rec
+      end
+
     opts = [
       analysis_type: :incremental,
       files_rec: files_rec,
