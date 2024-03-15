@@ -35,8 +35,21 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     )
   end
 
-  def suggest_contracts(server \\ {:global, {self(), __MODULE__}}, files) do
-    GenServer.call(server, {:suggest_contracts, files}, :infinity)
+  def suggest_contracts(parent \\ self(), files)
+
+  def suggest_contracts(_parent, []), do: []
+
+  def suggest_contracts(parent, files) do
+    try do
+      GenServer.call({:global, {parent, __MODULE__}}, {:suggest_contracts, files}, :infinity)
+    catch
+      kind, payload ->
+        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        error_msg = Exception.format(kind, payload, stacktrace)
+
+        Logger.error("Unable to suggest contracts: #{error_msg}")
+        []
+    end
   end
 
   @impl GenServer
