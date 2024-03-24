@@ -212,23 +212,29 @@ defmodule ElixirLS.LanguageServer.Parser do
         {:parse_file, uri},
         %{files: files, debounce_refs: debounce_refs} = state
       ) do
-    file = Map.fetch!(files, uri)
-    version = file.source_file.version
+    state =
+      case files[uri] do
+        nil ->
+          # file got closed, no need to do anything
+          state
+        file ->
+          version = file.source_file.version
 
-    parent = self()
+          parent = self()
 
-    {pid, ref} =
-      spawn_monitor(fn ->
-        updated_file = do_parse(file)
-        send(parent, {:parse_file_done, uri, updated_file, nil})
-      end)
+          {pid, ref} =
+            spawn_monitor(fn ->
+              updated_file = do_parse(file)
+              send(parent, {:parse_file_done, uri, updated_file, nil})
+            end)
 
-    state = %{
-      state
-      | debounce_refs: Map.delete(debounce_refs, uri),
-        parse_pids: put_nested(state.parse_pids, {uri, version}, ref, {pid, nil}),
-        parse_uris: Map.put(state.parse_uris, ref, {uri, version})
-    }
+          %{
+            state
+            | debounce_refs: Map.delete(debounce_refs, uri),
+              parse_pids: put_nested(state.parse_pids, {uri, version}, ref, {pid, nil}),
+              parse_uris: Map.put(state.parse_uris, ref, {uri, version})
+          }
+      end
 
     {:noreply, state}
   end
