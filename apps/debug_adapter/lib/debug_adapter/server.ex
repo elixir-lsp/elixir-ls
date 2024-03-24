@@ -258,8 +258,9 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           [first_frame | stacktrace]
 
-        [] ->
+        _ ->
           # no stacktrace if we are running in non interpreted mode
+          # or only 1 frame with module: :undefined, function: {:undefined, :undefined}, args: :undefined
           # build frames from Process.info stacktrace
           # drop first entry as we get it from env
           [_ | stacktrace_rest] = prune_stacktrace(stacktrace)
