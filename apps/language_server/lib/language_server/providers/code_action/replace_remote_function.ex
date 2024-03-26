@@ -6,10 +6,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
 
   use ElixirLS.LanguageServer.Protocol
 
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.Providers.CodeAction.CodeActionResult
   alias ElixirLS.LanguageServer.Providers.CodeMod.Ast
-  alias ElixirLS.LanguageServer.Providers.CodeMod.Diff
-  alias ElixirLS.LanguageServer.Providers.CodeMod.Text
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.Parser
 
@@ -18,11 +17,14 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
   @spec apply(SourceFile.t(), String.t(), [map()]) :: [CodeActionResult.t()]
   def apply(%SourceFile{} = source_file, uri, diagnostics) do
     Enum.flat_map(diagnostics, fn diagnostic ->
-      with {:ok, module, function, arity, line_number} <- extract_function_and_line(diagnostic),
-           {:ok, suggestions} <- prepare_suggestions(module, function, arity) do
-        to_code_actions(source_file, line_number, module, function, suggestions, uri)
-      else
-        _ -> []
+      case extract_function_and_line(diagnostic) do
+        {:ok, module, function, arity, line} ->
+          suggestions = prepare_suggestions(module, function, arity)
+
+          build_code_actions(source_file, line, module, function, suggestions, uri)
+
+        :error ->
+          []
       end
     end)
   end
@@ -38,6 +40,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
     with [[_, module_and_function, arity]] <- Regex.scan(@function_re, message),
          {:ok, module, function_name} <- separate_module_from_function(module_and_function) do
       {:ok, module, function_name, String.to_integer(arity)}
+    else
+      _ ->
+        :error
     end
   end
 
@@ -65,17 +70,14 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
   @function_threshold 0.77
   @max_suggestions 5
   defp prepare_suggestions(module, function, arity) do
-    suggestions =
-      for {module_function, ^arity} <- module_functions(module),
-          distance = module_function |> Atom.to_string() |> String.jaro_distance(function),
-          distance >= @function_threshold do
-        {distance, module_function}
-      end
-      |> Enum.sort(:desc)
-      |> Enum.take(@max_suggestions)
-      |> Enum.map(fn {_distance, module_function} -> module_function end)
-
-    {:ok, suggestions}
+    for {module_function, ^arity} <- module_functions(module),
+        distance = module_function |> Atom.to_string() |> String.jaro_distance(function),
+        distance >= @function_threshold do
+      {distance, module_function}
+    end
+    |> Enum.sort(:desc)
+    |> Enum.take(@max_suggestions)
+    |> Enum.map(fn {_distance, module_function} -> module_function end)
   end
 
   defp module_functions(module) do
@@ -86,12 +88,12 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
     end
   end
 
-  defp to_code_actions(%SourceFile{} = source_file, line_number, module, name, suggestions, uri) do
+  defp build_code_actions(%SourceFile{} = source_file, line, module, name, suggestions, uri) do
     suggestions
     |> Enum.reduce([], fn suggestion, acc ->
-      case apply_transform(source_file, line_number, module, name, suggestion) do
+      case text_edits(source_file, line, module, name, suggestion) do
         {:ok, [_ | _] = text_edits} ->
-          text_edits = Enum.map(text_edits, &update_line(&1, line_number))
+          text_edits = Enum.map(text_edits, &update_line(&1, line))
 
           code_action =
             CodeActionResult.new("Rename to #{suggestion}", "quickfix", text_edits, uri)
@@ -105,58 +107,51 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
     |> Enum.reverse()
   end
 
-  defp apply_transform(source_file, line_number, module, name, suggestion) do
-    with {:ok, text} <- fetch_line(source_file, line_number),
-         {:ok, ast} <- Ast.from(text) do
-      function_atom = String.to_atom(name)
-
-      leading_indent = Text.leading_indent(text)
-      trailing_comment = Text.trailing_comment(text)
-
-      ast
-      |> Macro.postwalk(fn
-        {:., function_meta, [{:__aliases__, module_meta, module_alias}, ^function_atom]} ->
-          case expand_alias(source_file, module_alias, line_number) do
-            {:ok, ^module} ->
-              {:., function_meta, [{:__aliases__, module_meta, module_alias}, suggestion]}
-
-            _ ->
-              {:., function_meta, [{:__aliases__, module_meta, module_alias}, function_atom]}
-          end
-
-        # erlang call
-        {:., function_meta, [^module, ^function_atom]} ->
-          {:., function_meta, [module, suggestion]}
-
-        other ->
-          other
-      end)
-      |> to_one_line_string()
-      |> case do
-        {:ok, updated_text} ->
-          text_edits = Diff.diff(text, "#{leading_indent}#{updated_text}#{trailing_comment}")
-
-          {:ok, text_edits}
-
-        :error ->
-          :error
-      end
+  @spec text_edits(SourceFile.t(), non_neg_integer(), atom(), String.t(), atom()) ::
+          {:ok, [TextEdit.t()]} | :error
+  defp text_edits(%SourceFile{} = source_file, line, module, name, suggestion) do
+    with {:ok, updated_text} <- apply_transform(source_file, line, module, name, suggestion) do
+      to_text_edits(source_file.text, updated_text)
     end
   end
 
-  defp fetch_line(%SourceFile{} = source_file, line_number) do
-    lines = SourceFile.lines(source_file)
+  defp apply_transform(source_file, line, module, name, suggestion) do
+    with {:ok, ast, comments} <- Ast.from(source_file) do
+      function_atom = String.to_atom(name)
 
-    if length(lines) > line_number do
-      {:ok, Enum.at(lines, line_number)}
-    else
-      :error
+      one_based_line = line + 1
+
+      updated_text =
+        ast
+        |> Macro.postwalk(fn
+          {:., [line: ^one_based_line],
+           [{:__aliases__, module_meta, module_alias}, ^function_atom]} ->
+            case expand_alias(source_file, module_alias, line) do
+              {:ok, ^module} ->
+                {:., [line: one_based_line],
+                 [{:__aliases__, module_meta, module_alias}, suggestion]}
+
+              _ ->
+                {:., [line: one_based_line],
+                 [{:__aliases__, module_meta, module_alias}, function_atom]}
+            end
+
+          # erlang call
+          {:., [line: ^one_based_line], [{:__block__, module_meta, [^module]}, ^function_atom]} ->
+            {:., [line: one_based_line], [{:__block__, module_meta, [module]}, suggestion]}
+
+          other ->
+            other
+        end)
+        |> Ast.to_string(comments)
+
+      {:ok, updated_text}
     end
   end
 
   @spec expand_alias(SourceFile.t(), [atom()], non_neg_integer()) :: {:ok, atom()} | :error
-  defp expand_alias(source_file, module_alias, line_number) do
-    with {:ok, aliases} <- aliases_at(source_file, line_number) do
+  defp expand_alias(source_file, module_alias, line) do
+    with {:ok, aliases} <- aliases_at(source_file, line) do
       aliases
       |> Enum.map(fn {module, aliased} ->
         module = module |> module_to_alias() |> List.first()
@@ -177,8 +172,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
     end
   end
 
-  defp aliases_at(source_file, line_number) do
-    one_based_line = line_number + 1
+  defp aliases_at(source_file, line) do
+    one_based_line = line + 1
 
     metadata = Parser.parse_string(source_file.text, true, true, {one_based_line, 1})
 
