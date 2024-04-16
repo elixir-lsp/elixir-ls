@@ -7,8 +7,7 @@
 defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.DocsSnippets do
   @moduledoc false
 
-  # TODO change/move this
-  alias ElixirSense.Plugins.Util
+  alias ElixirLS.LanguageServer.Plugins.Util
   alias ElixirLS.Utils.Matcher
 
   # Format:

@@ -1,4 +1,4 @@
-defmodule ElixirSense.Plugins.Ecto.FakeSchemas.User do
+defmodule ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.User do
   @moduledoc """
   Fake User schema.
 
@@ -18,12 +18,12 @@ defmodule ElixirSense.Plugins.Ecto.FakeSchemas.User do
     do: %{related: FakeAssoc2, owner: __MODULE__, owner_key: :assoc2_id}
 end
 
-defmodule ElixirSense.Plugins.Ecto.FakeSchemas.Comment do
+defmodule ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Comment do
   @moduledoc """
   Fake Comment schema.
   """
 
-  alias ElixirSense.Plugins.Ecto.FakeSchemas.Post
+  alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
   def __schema__(:fields), do: [:content, :date]
   def __schema__(:associations), do: [:post]
@@ -34,13 +34,13 @@ defmodule ElixirSense.Plugins.Ecto.FakeSchemas.Comment do
     do: %{related: Post, owner: __MODULE__, owner_key: :post_id}
 end
 
-defmodule ElixirSense.Plugins.Ecto.FakeSchemas.Post do
+defmodule ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post do
   @moduledoc """
   Fake Post schema.
   """
 
-  alias ElixirSense.Plugins.Ecto.FakeSchemas.User
-  alias ElixirSense.Plugins.Ecto.FakeSchemas.Comment
+  alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.User
+  alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Comment
 
   def __schema__(:fields), do: [:id, :title, :text, :date, :user_id]
   def __schema__(:associations), do: [:user, :comments, :tags]
@@ -60,12 +60,12 @@ defmodule ElixirSense.Plugins.Ecto.FakeSchemas.Post do
     do: %{related: Tag, owner: __MODULE__, owner_key: :id}
 end
 
-defmodule ElixirSense.Plugins.Ecto.FakeSchemas.Tag do
+defmodule ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Tag do
   @moduledoc """
   Fake Tag schema.
   """
 
-  alias ElixirSense.Plugins.Ecto.FakeSchemas.Post
+  alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
   def __schema__(:fields), do: [:id, :name]
   def __schema__(:associations), do: [:posts]

@@ -12,7 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.GenericReducer do
 
   require Logger
   # TODO change/move this
-  alias ElixirSense.Plugins.Util
+  alias ElixirLS.LanguageServer.Plugins.Util
 
   @type func_call :: {module, fun :: atom, arg :: non_neg_integer, any}
   @type suggestion :: ElixirLS.LanguageServer.Providers.Completion.Suggestion.generic()

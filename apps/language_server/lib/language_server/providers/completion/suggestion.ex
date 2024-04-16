@@ -48,7 +48,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
   """
 
   alias ElixirSense.Core.Metadata
-  alias ElixirSense.Core.ModuleStore
+  alias ElixirLS.LanguageServer.Plugins.ModuleStore
   alias ElixirSense.Core.State
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Source

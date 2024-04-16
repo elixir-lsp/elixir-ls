@@ -217,6 +217,7 @@ defmodule ElixirLS.LanguageServer.Parser do
         nil ->
           # file got closed, no need to do anything
           state
+
         file ->
           version = file.source_file.version
 
