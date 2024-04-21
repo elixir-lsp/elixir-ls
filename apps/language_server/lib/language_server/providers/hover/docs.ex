@@ -181,7 +181,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
       {Binding.expand(binding_env, mod), fun}
       |> expand(env.aliases)
       |> Introspection.actual_mod_fun(
-        env.imports,
+        env.functions,
+        env.macros,
         env.requires,
         env.aliases,
         env.module,

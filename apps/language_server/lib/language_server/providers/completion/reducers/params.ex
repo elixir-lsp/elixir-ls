@@ -31,7 +31,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
     prefix = cursor_context.text_before
 
     %State.Env{
-      imports: imports,
       requires: requires,
       aliases: aliases,
       module: module,
@@ -51,7 +50,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
          {mod, fun, true, :mod_fun} <-
            Introspection.actual_mod_fun(
              {mod, fun},
-             imports,
+             env.functions,
+             env.macros,
              requires,
              if(elixir_prefix, do: [], else: aliases),
              module,

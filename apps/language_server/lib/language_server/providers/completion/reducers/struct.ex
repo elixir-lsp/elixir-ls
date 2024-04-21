@@ -55,7 +55,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
       module: module,
       vars: vars,
       attributes: attributes,
-      imports: imports,
       aliases: aliases
     } = env
 
@@ -70,7 +69,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
       attributes: attributes,
       variables: vars,
       structs: structs,
-      imports: imports,
+      functions: env.functions,
+      macros: env.macros,
       current_module: module,
       specs: specs,
       types: metadata_types,

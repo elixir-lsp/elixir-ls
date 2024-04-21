@@ -59,12 +59,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
     do_expand_full(code, env)
   end
 
-  def do_expand_full(code, %State.Env{requires: requires, imports: imports, module: module}) do
+  def do_expand_full(code, %State.Env{} = env) do
+    # TODO function and other
     env =
-      %Macro.Env{macros: __ENV__.macros}
-      |> Ast.set_module_for_env(module)
-      |> Ast.add_requires_to_env(requires)
-      |> Ast.add_imports_to_env(imports)
+      %Macro.Env{
+        macros: env.macros,
+        functions: env.functions,
+        module: env.module,
+        requires: env.requires,
+        aliases: env.aliases
+      }
 
     try do
       {:ok, expr} = code |> Code.string_to_quoted()

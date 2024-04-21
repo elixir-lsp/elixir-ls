@@ -40,7 +40,6 @@ defmodule ElixirLS.LanguageServer.Plugins.Util do
 
   def actual_mod_fun({mod, fun}, elixir_prefix, env, buffer_metadata) do
     %State.Env{
-      imports: imports,
       requires: requires,
       aliases: aliases,
       module: module,
@@ -51,7 +50,8 @@ defmodule ElixirLS.LanguageServer.Plugins.Util do
 
     Introspection.actual_mod_fun(
       {mod, fun},
-      imports,
+      env.functions,
+      env.macros,
       requires,
       if(elixir_prefix, do: [], else: aliases),
       module,

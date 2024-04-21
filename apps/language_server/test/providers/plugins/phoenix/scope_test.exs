@@ -66,7 +66,6 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.ScopeTest do
           }
         ],
         current_module: ExampleWeb.Router,
-        imports: [{Kernel, []}, {Phoenix.Router, []}],
         specs: %{},
         types: %{},
         mods_funs: %{}
@@ -98,7 +97,6 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.ScopeTest do
         ],
         attributes: [],
         current_module: ExampleWeb.Router,
-        imports: [{Kernel, []}, {Phoenix.Router, []}],
         specs: %{},
         types: %{},
         mods_funs: %{}

@@ -95,7 +95,6 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
   def find(
         context,
         %State.Env{
-          imports: imports,
           requires: requires,
           aliases: aliases,
           module: module,
@@ -119,7 +118,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
         {mod, function}
         |> expand(binding_env, module, aliases)
         |> Introspection.actual_mod_fun(
-          imports,
+          env.functions,
+          env.macros,
           requires,
           aliases,
           module,
@@ -149,7 +149,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
                 |> wrap_atom
                 |> expand(binding_env, module, aliases)
                 |> Introspection.actual_mod_fun(
-                  env.imports,
+                  env.functions,
+                  env.macros,
                   env.requires,
                   env.aliases,
                   env.module,

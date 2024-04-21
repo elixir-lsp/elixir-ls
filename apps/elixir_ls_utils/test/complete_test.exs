@@ -34,9 +34,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
   def expand(
         expr,
-        env \\ %Env{
-          imports: [{Kernel, []}]
-        },
+        env \\ %Env{functions: :elixir_env.new().functions, macros: :elixir_env.new().macros},
         metadata \\ %Metadata{},
         opts \\ []
       ) do
@@ -1237,34 +1235,26 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {MyModule, nil, nil} => %ModFunInfo{type: :defmodule},
-        {MyModule, :my_fun_priv, nil} => %ModFunInfo{type: :defp},
         {MyModule, :my_fun_priv, 2} => %ModFunInfo{
           type: :defp,
           params: [[{:some, [], nil}, {:other, [], nil}]]
         },
-        {MyModule, :my_fun_pub, nil} => %ModFunInfo{type: :def},
         {MyModule, :my_fun_pub, 1} => %ModFunInfo{type: :def, params: [[{:some, [], nil}]]},
-        {MyModule, :my_macro_priv, nil} => %ModFunInfo{type: :defmacrop},
         {MyModule, :my_macro_priv, 1} => %ModFunInfo{
           type: :defmacrop,
           params: [[{:some, [], nil}]]
         },
-        {MyModule, :my_macro_pub, nil} => %ModFunInfo{type: :defmacro},
         {MyModule, :my_macro_pub, 1} => %ModFunInfo{type: :defmacro, params: [[{:some, [], nil}]]},
-        {MyModule, :my_guard_priv, nil} => %ModFunInfo{type: :defguardp},
         {MyModule, :my_guard_priv, 1} => %ModFunInfo{
           type: :defguardp,
           params: [[{:some, [], nil}]]
         },
-        {MyModule, :my_guard_pub, nil} => %ModFunInfo{type: :defguard},
         {MyModule, :my_guard_pub, 1} => %ModFunInfo{type: :defguard, params: [[{:some, [], nil}]]},
-        {MyModule, :my_delegated, nil} => %ModFunInfo{type: :defdelegate},
         {MyModule, :my_delegated, 1} => %ModFunInfo{
           type: :defdelegate,
           params: [[{:some, [], nil}]]
         },
         {OtherModule, nil, nil} => %ModFunInfo{},
-        {OtherModule, :my_fun_pub_other, nil} => %ModFunInfo{type: :def},
         {OtherModule, :my_fun_pub_other, 1} => %ModFunInfo{
           type: :def,
           params: [[{:some, [], nil}]]
@@ -1318,18 +1308,16 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   test "complete remote funs from imported module" do
     env = %Env{
       module: MyModule,
-      imports: [{OtherModule, []}, {Kernel, []}]
+      functions: [{OtherModule, [{:my_fun_other_pub, 1}]}]
     }
 
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {OtherModule, nil, nil} => %ModFunInfo{type: :defmodule},
-        {OtherModule, :my_fun_other_pub, nil} => %ModFunInfo{type: :def},
         {OtherModule, :my_fun_other_pub, 1} => %ModFunInfo{
           type: :def,
           params: [[{:some, [], nil}]]
         },
-        {OtherModule, :my_fun_other_priv, nil} => %ModFunInfo{type: :defp},
         {OtherModule, :my_fun_other_priv, 1} => %ModFunInfo{
           type: :defp,
           params: [[{:some, [], nil}]]
@@ -1345,13 +1333,12 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   test "complete remote funs from imported module - needed import" do
     env = %Env{
       module: MyModule,
-      imports: [{OtherModule, [only: [{:my_fun_other_pub, 1}]]}, {Kernel, []}]
+      functions: [{OtherModule, [{:my_fun_other_pub, 1}]}]
     }
 
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {OtherModule, nil, nil} => %ModFunInfo{type: :defmodule},
-        {OtherModule, :my_fun_other_pub, nil} => %ModFunInfo{type: :def},
         {OtherModule, :my_fun_other_pub, 1} => %ModFunInfo{
           type: :def,
           params: [[{:some, [], nil}]]
@@ -1360,7 +1347,6 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
           type: :def,
           params: [[{:some, [], nil}]]
         },
-        {OtherModule, :my_fun_other_priv, nil} => %ModFunInfo{type: :defp},
         {OtherModule, :my_fun_other_priv, 1} => %ModFunInfo{
           type: :defp,
           params: [[{:some, [], nil}]]
@@ -1386,12 +1372,10 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {Some.OtherModule, nil, nil} => %ModFunInfo{type: :defmodule},
-        {Some.OtherModule, :my_fun_other_pub, nil} => %ModFunInfo{type: :def},
         {Some.OtherModule, :my_fun_other_pub, 1} => %ModFunInfo{
           type: :def,
           params: [[{:some, [], nil}]]
         },
-        {Some.OtherModule, :my_fun_other_priv, nil} => %ModFunInfo{type: :defp},
         {Some.OtherModule, :my_fun_other_priv, 1} => %ModFunInfo{
           type: :defp,
           params: [[{:some, [], nil}]]
@@ -1413,12 +1397,10 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {Some.OtherModule, nil, nil} => %ModFunInfo{type: :defmodule},
-        {Some.OtherModule, :my_fun_other_pub, nil} => %ModFunInfo{type: :def},
         {Some.OtherModule, :my_fun_other_pub, 1} => %ModFunInfo{
           type: :def,
           params: [[{:some, [], nil}]]
         },
-        {Some.OtherModule, :my_fun_other_priv, nil} => %ModFunInfo{type: :defp},
         {Some.OtherModule, :my_fun_other_priv, 1} => %ModFunInfo{
           type: :defp,
           params: [[{:some, [], nil}]]
@@ -1465,12 +1447,10 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {Some.OtherModule, nil, nil} => %ModFunInfo{type: :defmodule},
-        {Some.OtherModule, :my_fun_other_pub, nil} => %ModFunInfo{type: :def},
         {Some.OtherModule, :my_fun_other_pub, 1} => %ModFunInfo{
           type: :def,
           params: [[{:some, [], nil}]]
         },
-        {Some.OtherModule, :my_fun_other_priv, nil} => %ModFunInfo{type: :defp},
         {Some.OtherModule, :my_fun_other_priv, 1} => %ModFunInfo{
           type: :defp,
           params: [[{:some, [], nil}]]
@@ -1529,8 +1509,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {MyKeyword, nil, nil} => %ModFunInfo{type: :defmodule},
-        {MyKeyword, :values1, 0} => %ModFunInfo{type: :def, params: [[]]},
-        {MyKeyword, :values1, nil} => %ModFunInfo{type: :def}
+        {MyKeyword, :values1, 0} => %ModFunInfo{type: :def, params: [[]]}
       }
     }
 
@@ -1826,10 +1805,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {MyModule, nil, nil} => %ModFunInfo{type: :defmodule},
-        {MyModule, :module_info, nil} => %ModFunInfo{type: :def},
         {MyModule, :module_info, 0} => %ModFunInfo{type: :def, params: [[]]},
         {MyModule, :module_info, 1} => %ModFunInfo{type: :def, params: [[{:atom, [], nil}]]},
-        {MyModule, :__info__, nil} => %ModFunInfo{type: :def},
         {MyModule, :__info__, 1} => %ModFunInfo{type: :def, params: [[{:atom, [], nil}]]}
       }
     }
@@ -2167,7 +2144,6 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {MyModule, nil, nil} => %ElixirSense.Core.State.ModFunInfo{},
-        {MyModule, :info, nil} => macro_info,
         {MyModule, :info, 1} => macro_info
       }
     }

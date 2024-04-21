@@ -36,7 +36,6 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
           signature_info | :none
   def find(prefix, cursor_position, env, metadata) do
     %State.Env{
-      imports: imports,
       requires: requires,
       aliases: aliases,
       module: module,
@@ -50,7 +49,8 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
          {mod, fun, true, kind} <-
            Introspection.actual_mod_fun(
              {m, f},
-             imports,
+             env.functions,
+             env.macros,
              requires,
              if(elixir_prefix, do: [], else: aliases),
              module,

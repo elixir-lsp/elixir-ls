@@ -1657,6 +1657,13 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
   test "find references of public metadata functions from definition", %{trace: trace} do
     buffer = """
+    defmodule MyCalleeModule.Some do
+      def public_fun do
+        #     ^
+        :ok
+      end
+    end
+
     defmodule MyModule do
       def calls_public do
         MyCalleeModule.Some.public_fun()
@@ -1672,21 +1679,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
         public_fun()
       end
     end
-
-    defmodule MyCalleeModule.Some do
-      def public_fun do
-        #     ^
-        :ok
-      end
-    end
     """
 
-    references = Locator.references(buffer, 18, 15, trace)
+    references = Locator.references(buffer, 2, 15, trace)
 
     assert references == [
-             %{uri: nil, range: %{start: %{line: 3, column: 25}, end: %{line: 3, column: 35}}},
-             %{uri: nil, range: %{start: %{line: 8, column: 10}, end: %{line: 8, column: 20}}},
-             %{uri: nil, range: %{start: %{line: 13, column: 5}, end: %{line: 13, column: 15}}}
+             %{uri: nil, range: %{start: %{line: 10, column: 25}, end: %{line: 10, column: 35}}},
+             %{uri: nil, range: %{start: %{line: 15, column: 10}, end: %{line: 15, column: 20}}},
+             %{uri: nil, range: %{start: %{line: 20, column: 5}, end: %{line: 20, column: 15}}}
            ]
   end
 

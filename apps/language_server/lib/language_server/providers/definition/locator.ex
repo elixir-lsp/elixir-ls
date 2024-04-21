@@ -202,7 +202,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
        ) do
     %State.Env{
       module: current_module,
-      imports: imports,
       requires: requires,
       aliases: aliases,
       scope: scope
@@ -212,7 +211,8 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
 
     case {m, function}
          |> Introspection.actual_mod_fun(
-           imports,
+           env.functions,
+           env.macros,
            requires,
            aliases,
            current_module,

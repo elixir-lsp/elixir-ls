@@ -484,8 +484,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
       match_module_funs(env.module, hint, exact?, false, :all, env, metadata, cursor_position)
 
     imported_locals =
-      env.imports
-      |> Introspection.expand_imports(metadata.mods_funs_to_positions)
+      {env.functions, env.macros}
       |> Introspection.combine_imports()
       |> Enum.flat_map(fn {scope_import, imported} ->
         match_module_funs(
