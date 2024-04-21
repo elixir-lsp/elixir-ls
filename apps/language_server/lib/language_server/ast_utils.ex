@@ -130,7 +130,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
         cond do
           form == :%{} ->
             column =
-              if Version.match?(System.version(), "< 1.16.2") do
+              if Version.match?(System.version(), "< 1.17.0") do
                 # workaround elixir bug
                 # https://github.com/elixir-lang/elixir/commit/fd4e6b530c0e010712b06909c89820b08e49c238
                 column - 1

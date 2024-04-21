@@ -362,7 +362,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
                 range(start_line, start_character, end_line, end_character) ->
                   start_character =
                     if match?({:%{}, _, _}, ast) and match?({:%, _, _}, parent_ast_from_stack) and
-                         Version.match?(System.version(), "< 1.16.2") do
+                         Version.match?(System.version(), "< 1.17.0") do
                       # workaround elixir bug
                       # https://github.com/elixir-lang/elixir/commit/fd4e6b530c0e010712b06909c89820b08e49c238
                       # undo column offset for structs inner map node
