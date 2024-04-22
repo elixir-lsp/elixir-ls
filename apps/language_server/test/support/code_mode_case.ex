@@ -20,24 +20,20 @@ defmodule ElixirLS.LanguageServer.Test.CodeMod.Case do
       def modify(original, options \\ []) do
         with {:ok, changes} <- apply_code_mod(original, options) do
           original
-          |> unquote(__MODULE__).apply_changes(changes, options)
+          |> unquote(__MODULE__).apply_changes(changes)
           |> filter_edited_texts(options)
         end
       end
     end
   end
 
-  def apply_changes(original_text, changes, opts) do
+  def apply_changes(original_text, changes) do
     Enum.map(changes, fn text_edits ->
       %SourceFile{text: edited_text} =
         %SourceFile{text: original_text, version: 0}
         |> SourceFile.apply_content_changes(text_edits)
 
-      if Keyword.get(opts, :trim, true) do
-        String.trim(edited_text)
-      else
-        edited_text
-      end
+      String.trim(edited_text)
     end)
   end
 
