@@ -2059,17 +2059,26 @@ defmodule ElixirLS.DebugAdapter.Server do
 
       for line <- lines do
         env = ElixirSense.Core.Metadata.get_env(metadata, {line |> elem(0), 1})
-        metadata_modules = Enum.filter(env.module_variants, &(&1 != Elixir))
+        metadata_module = env.module
 
         modules_to_break =
-          if metadata_modules != [] and
-               Enum.all?(metadata_modules, &(&1 in loaded_modules_from_path)) do
-            # prefer metadata modules if valid and loaded
-            metadata_modules
-          else
-            # fall back to all loaded modules from file
-            # this may create breakpoints outside module line range
-            loaded_modules_from_path
+          cond do
+            metadata_module != nil and metadata_module in loaded_modules_from_path and
+                env.protocol == nil ->
+              # prefer metadata modules if valid and loaded
+              [metadata_module]
+
+            env.protocol != nil ->
+              {protocol, implementations} = env.protocol
+
+              for implementation <- implementations do
+                Module.concat(protocol, implementation)
+              end
+
+            true ->
+              # fall back to all loaded modules from file
+              # this may create breakpoints outside module line range
+              loaded_modules_from_path
           end
 
         set_breakpoint(modules_to_break, path, line)

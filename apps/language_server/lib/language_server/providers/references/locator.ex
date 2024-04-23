@@ -34,13 +34,13 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
 
         env =
           %State.Env{
-            module_variants: module_variants
+            module: module
           } =
           Metadata.get_env(metadata, {line, column})
           |> Metadata.add_scope_vars(metadata, {line, column})
 
         # find last env of current module
-        attributes = get_attributes(metadata, module_variants)
+        attributes = get_attributes(metadata, module)
 
         # one line can contain variables from many scopes
         # if the cursor is over variable take variables from the scope as it will
@@ -72,9 +72,9 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
     end
   end
 
-  defp get_attributes(_metadata, []), do: []
+  defp get_attributes(_metadata, nil), do: []
 
-  defp get_attributes(metadata, [module | _]) do
+  defp get_attributes(metadata, module) do
     %State.Env{attributes: attributes} = Metadata.get_last_module_env(metadata, module)
 
     attributes

@@ -159,9 +159,8 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
     metadata_implementations =
       for {_, env} <- metadata.lines_to_env,
           behaviour in env.behaviours,
-          module <- env.module_variants,
           uniq: true,
-          do: module
+          do: env.module
 
     metadata_implementations_locations =
       metadata_implementations
