@@ -154,7 +154,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
     case Binding.expand(binding_env, type) do
       {:atom, module} ->
         do_find_function_or_module(
-          {{:atom, Introspection.expand_alias(module, env.aliases)}, function},
+          {{:atom, module}, function},
           context,
           env,
           metadata,
@@ -170,7 +170,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   defp do_find_function_or_module(
          {nil, :super},
          context,
-         %State.Env{scope: {function, arity}, module: module} = env,
+         %State.Env{function: {function, arity}, module: module} = env,
          metadata,
          binding_env,
          visited
@@ -200,26 +200,15 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
          _binding_env,
          _visited
        ) do
-    %State.Env{
-      module: current_module,
-      requires: requires,
-      aliases: aliases,
-      scope: scope
-    } = env
-
     m = get_module(module, context, env, metadata)
 
     case {m, function}
          |> Introspection.actual_mod_fun(
-           env.functions,
-           env.macros,
-           requires,
-           aliases,
-           current_module,
-           scope,
+           env,
            metadata.mods_funs_to_positions,
            metadata.types,
-           context.begin
+           context.begin,
+           true
          ) do
       {_, _, false, _} ->
         nil

@@ -193,9 +193,18 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
     }
   end
 
-  defp infer_type({:__aliases__, _, mods}, _vars, env, buffer_metadata) do
-    mod = Module.concat(mods)
+  defp infer_type({:__aliases__, _, [{:__MODULE__, _, _} | list]}, _vars, env, buffer_metadata) do
+    mod = Module.concat(env.module, Module.concat(list))
     {actual_mod, _, _, _} = Util.actual_mod_fun({mod, nil}, false, env, buffer_metadata)
+    actual_mod
+  end
+
+  defp infer_type({:__aliases__, _, list}, _vars, env, buffer_metadata) do
+    mod = Module.concat(list)
+
+    {actual_mod, _, _, _} =
+      Util.actual_mod_fun({mod, nil}, hd(list) == Elixir, env, buffer_metadata)
+
     actual_mod
   end
 

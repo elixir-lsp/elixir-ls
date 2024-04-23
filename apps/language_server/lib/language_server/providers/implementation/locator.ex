@@ -229,7 +229,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
     case Binding.expand(binding_env, type) do
       {:atom, module} ->
         do_find_delegatee(
-          {Introspection.expand_alias(module, env.aliases), function},
+          {module, function},
           arity,
           env,
           metadata,
@@ -250,25 +250,14 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
          binding_env,
          visited
        ) do
-    %State.Env{
-      module: current_module,
-      requires: requires,
-      aliases: aliases,
-      scope: scope
-    } = env
-
     case {module, function}
          |> Introspection.actual_mod_fun(
-           env.functions,
-           env.macros,
-           requires,
-           aliases,
-           current_module,
-           scope,
+           env,
            metadata.mods_funs_to_positions,
            metadata.types,
            # we don't expect macros here so no need to check position
-           {1, 1}
+           {1, 1},
+           true
          ) do
       {mod, fun, true, :mod_fun} when not is_nil(fun) ->
         # on defdelegate - no need for arity fallback here

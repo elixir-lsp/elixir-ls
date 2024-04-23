@@ -33,11 +33,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
 
   # We only list type specs when inside typespec scope
   def add_types(hint, env, file_metadata, %{at_module_body?: _}, acc) do
-    if match?({:typespec, _, _}, env.scope) do
+    if match?({_, _}, env.typespec) do
       %State.Env{
         aliases: aliases,
-        module: module,
-        scope: scope
+        module: module
       } = env
 
       %Metadata{mods_funs_to_positions: mods_funs, types: metadata_types} = file_metadata
@@ -52,9 +51,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
       list =
         find_typespecs_for_mod_and_hint(
           {mod, hint},
-          aliases,
-          module,
-          scope,
+          env,
           mods_funs,
           metadata_types
         )
@@ -71,6 +68,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
   end
 
   defp expand({{kind, _} = type, hint}, env, aliases) when kind in [:attribute, :variable] do
+    # TODO Binding should return expanded aliases
     case Binding.expand(env, type) do
       {:atom, module} -> {Introspection.expand_alias(module, aliases), hint}
       _ -> {nil, ""}
@@ -83,18 +81,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
 
   defp find_typespecs_for_mod_and_hint(
          {mod, hint},
-         aliases,
-         module,
-         scope,
+         env,
          mods_funs,
          metadata_types
        ) do
-    case Introspection.actual_module(mod, aliases, module, scope, mods_funs) do
+    # alias already expanded by Source.split_module_and_hint
+    case Introspection.actual_module(mod, env, mods_funs, false) do
       {actual_mod, true} ->
-        find_module_types(actual_mod, {mod, hint}, metadata_types, module)
+        find_module_types(actual_mod, {mod, hint}, metadata_types, env.module)
 
       {nil, false} ->
-        find_module_types(module, {mod, hint}, metadata_types, module)
+        find_module_types(env.module, {mod, hint}, metadata_types, env.module)
 
       {_, false} ->
         []

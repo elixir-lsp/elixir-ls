@@ -26,7 +26,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Protocol do
   @doc """
   A reducer that adds suggestions of protocol functions.
   """
-  def add_functions(_hint, %State.Env{scope: {_f, _a}}, _metadata, _cursor_context, acc),
+  def add_functions(_hint, %State.Env{typespec: {_f, _a}}, _metadata, _cursor_context, acc),
+    do: {:cont, acc}
+
+  def add_functions(_hint, %State.Env{module: nil}, _metadata, _cursor_context, acc),
     do: {:cont, acc}
 
   def add_functions(_hint, %State.Env{protocol: nil}, _metadata, _cursor_context, acc),

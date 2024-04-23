@@ -23,7 +23,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Returns do
   """
   def add_returns(
         "" = _hint,
-        %State.Env{scope: {fun, arity}} = env,
+        %State.Env{function: {fun, arity}} = env,
         buffer_metadata,
         _context,
         acc

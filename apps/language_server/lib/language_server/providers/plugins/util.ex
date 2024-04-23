@@ -39,27 +39,16 @@ defmodule ElixirLS.LanguageServer.Plugins.Util do
   end
 
   def actual_mod_fun({mod, fun}, elixir_prefix, env, buffer_metadata) do
-    %State.Env{
-      requires: requires,
-      aliases: aliases,
-      module: module,
-      scope: scope
-    } = env
-
     %Metadata{mods_funs_to_positions: mods_funs, types: metadata_types} = buffer_metadata
 
     Introspection.actual_mod_fun(
       {mod, fun},
-      env.functions,
-      env.macros,
-      requires,
-      if(elixir_prefix, do: [], else: aliases),
-      module,
-      scope,
+      env,
       mods_funs,
       metadata_types,
       # we don't expect local macros here, no need to pass position
-      {1, 1}
+      {1, 1},
+      not elixir_prefix
     )
   end
 

@@ -95,10 +95,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
   def find(
         context,
         %State.Env{
-          requires: requires,
           aliases: aliases,
-          module: module,
-          scope: scope
+          module: module
         } = env,
         vars,
         attributes,
@@ -118,15 +116,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
         {mod, function}
         |> expand(binding_env, module, aliases)
         |> Introspection.actual_mod_fun(
-          env.functions,
-          env.macros,
-          requires,
-          aliases,
-          module,
-          scope,
+          env,
           mods_funs,
           metadata_types,
-          context.begin
+          context.begin,
+          false
         )
 
       case actual do
@@ -147,17 +141,13 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
               found =
                 {call.mod, function}
                 |> wrap_atom
-                |> expand(binding_env, module, aliases)
+                |> expand(binding_env, env.module, env.aliases)
                 |> Introspection.actual_mod_fun(
-                  env.functions,
-                  env.macros,
-                  env.requires,
-                  env.aliases,
-                  env.module,
-                  env.scope,
+                  env,
                   mods_funs,
                   metadata_types,
-                  call.position
+                  call.position,
+                  false
                 )
 
               case found do
@@ -183,7 +173,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
 
           tracer_call_reverences =
             {mod, fun}
-            |> xref_at_cursor(call_arity, module, scope, mods_funs, trace)
+            |> xref_at_cursor(call_arity, mods_funs, trace)
             |> Enum.map(&build_location/1)
 
           (metadata_call_references ++ tracer_call_reverences)
@@ -238,19 +228,19 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
     end
   end
 
-  defp xref_at_cursor(actual_mod_fun, arity, module, scope, mods_funs, trace) do
-    mfa = callee_at_cursor(actual_mod_fun, module, scope, arity, mods_funs)
+  defp xref_at_cursor(actual_mod_fun, arity, mods_funs, trace) do
+    mfa = callee_at_cursor(actual_mod_fun, arity)
 
     filtered_calls(mfa, mods_funs, trace)
   end
 
   # Cursor over a module
-  defp callee_at_cursor({module, nil}, _module, _scope, _arity, _mods_funs) do
+  defp callee_at_cursor({module, nil}, _arity) do
     [module]
   end
 
   # Cursor over a function call
-  defp callee_at_cursor({module, func}, _module, _scope, arity, _mods_funs) do
+  defp callee_at_cursor({module, func}, arity) do
     [module, func, arity]
   end
 
@@ -310,7 +300,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
     }
   end
 
-  defp expand({nil, func}, _env, module, _aliases) when module not in [nil, Elixir],
+  defp expand({nil, func}, _env, module, _aliases) when module != nil,
     do: {nil, func}
 
   defp expand({type, func}, env, _module, aliases) do

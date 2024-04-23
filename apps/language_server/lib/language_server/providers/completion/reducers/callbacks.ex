@@ -27,10 +27,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Callbacks do
   @doc """
   A reducer that adds suggestions of callbacks.
   """
-  def add_callbacks(hint, env, buffer_metadata, context, acc) do
+  def add_callbacks(
+        hint,
+        env = %State.Env{module: module, typespec: nil},
+        buffer_metadata,
+        context,
+        acc
+      )
+      when module != nil do
     text_before = context.text_before
 
-    %State.Env{protocol: protocol, behaviours: behaviours, scope: scope} = env
+    %State.Env{protocol: protocol, behaviours: behaviours} = env
 
     list =
       Enum.flat_map(behaviours, fn
@@ -138,12 +145,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Callbacks do
       Regex.match?(~r/\s(def|defmacro)\s+([_\p{Ll}\p{Lo}][\p{L}\p{N}_]*[?!]?)?$/u, text_before) ->
         {:halt, %{acc | result: list}}
 
-      match?({_f, _a}, scope) ->
+      env.function != nil ->
         {:cont, acc}
 
       true ->
         {:cont, %{acc | result: acc.result ++ list}}
     end
+  end
+
+  def add_callbacks(_hint, _env, _buffer_metadata, _context, acc) do
+    {:cont, acc}
   end
 
   defp def_prefix?(hint, spec) do

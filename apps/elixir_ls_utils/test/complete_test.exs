@@ -1104,7 +1104,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
           name: :nothing
         }
       ],
-      scope: {:some, 0}
+      module: My,
+      function: {:some, 0}
     }
 
     assert expand(~c"@numb", env) == [%{type: :attribute, name: "@number", summary: nil}]
@@ -1126,17 +1127,17 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   test "builtin attribute name completion" do
     env_function = %Env{
       attributes: [],
-      scope: {:some, 0}
+      module: Some.Module,
+      function: {:some, 0}
     }
 
     env_module = %Env{
       attributes: [],
-      scope: Some.Module
+      module: Some.Module
     }
 
     env_outside_module = %Env{
-      attributes: [],
-      scope: Elixir
+      attributes: []
     }
 
     assert expand(~c"@befo", env_function) == []
@@ -1567,7 +1568,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                      type: {:atom, Date}
                    }
                  ],
-                 scope: MyMod
+                 module: MyMod
                })
 
       assert [%{name: "Range"}] =
@@ -1578,7 +1579,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                      type: {:atom, Date}
                    }
                  ],
-                 scope: MyMod
+                 module: MyMod
                })
     end
   end

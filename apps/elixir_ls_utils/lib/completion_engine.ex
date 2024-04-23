@@ -514,13 +514,13 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   # do not suggest attributes outside of a module
-  defp expand_attribute(_, %State.Env{scope: scope}, %Metadata{} = _metadata)
-       when scope in [Elixir, nil],
+  defp expand_attribute(_, %State.Env{module: module}, %Metadata{} = _metadata)
+       when module == nil,
        do: no()
 
   defp expand_attribute(
          hint,
-         %State.Env{attributes: attributes, scope: scope},
+         %State.Env{attributes: attributes} = env,
          %Metadata{} = _metadata
        ) do
     attribute_names =
@@ -528,13 +528,16 @@ defmodule ElixirLS.Utils.CompletionEngine do
       |> Enum.map(fn %State.AttributeInfo{name: name} -> name end)
 
     attribute_names =
-      case scope do
-        {_fun, _arity} ->
+      case env do
+        %State.Env{function: {_fun, _arity}} ->
           attribute_names
 
-        module when not is_nil(module) ->
+        %State.Env{module: module} when not is_nil(module) ->
           # include module attributes in module scope
           attribute_names ++ BuiltinAttributes.all()
+
+        _ ->
+          []
       end
 
     for(

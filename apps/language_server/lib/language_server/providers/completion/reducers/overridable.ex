@@ -14,10 +14,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Overridable do
   @doc """
   A reducer that adds suggestions of overridable functions.
   """
-  def add_overridable(_hint, %State.Env{scope: {_f, _a}}, _metadata, _cursor_context, acc),
-    do: {:cont, acc}
 
-  def add_overridable(hint, env, metadata, _cursor_context, acc) do
+  def add_overridable(
+        hint,
+        env = %State.Env{typespec: nil, module: module},
+        metadata,
+        _cursor_context,
+        acc
+      )
+      when not is_nil(module) do
     %State.Env{protocol: protocol, behaviours: behaviours, module: module} = env
 
     # overridable behaviour callbacks are returned by Reducers.Callbacks
@@ -79,6 +84,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Overridable do
 
     {:cont, %{acc | result: acc.result ++ Enum.sort(list)}}
   end
+
+  def add_overridable(_hint, %State.Env{}, _metadata, _cursor_context, acc),
+    do: {:cont, acc}
 
   defp def_prefix?(hint, type) when type in [:defmacro, :defmacrop] do
     String.starts_with?("defmacro", hint)

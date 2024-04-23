@@ -35,13 +35,6 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
   @spec find(String.t(), {pos_integer, pos_integer}, State.Env.t(), Metadata.t()) ::
           signature_info | :none
   def find(prefix, cursor_position, env, metadata) do
-    %State.Env{
-      requires: requires,
-      aliases: aliases,
-      module: module,
-      scope: scope
-    } = env
-
     binding_env = Binding.from_env(env, metadata)
 
     with %{candidate: {m, f}, npar: npar, elixir_prefix: elixir_prefix} <-
@@ -49,15 +42,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
          {mod, fun, true, kind} <-
            Introspection.actual_mod_fun(
              {m, f},
-             env.functions,
-             env.macros,
-             requires,
-             if(elixir_prefix, do: [], else: aliases),
-             module,
-             scope,
+             env,
              metadata.mods_funs_to_positions,
              metadata.types,
-             cursor_position
+             cursor_position,
+             not elixir_prefix
            ) do
       signatures = find_signatures({mod, fun}, npar, kind, env, metadata)
 

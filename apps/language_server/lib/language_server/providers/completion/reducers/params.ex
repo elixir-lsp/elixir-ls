@@ -11,7 +11,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
   alias ElixirSense.Core.Introspection
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Source
-  alias ElixirSense.Core.State
   alias ElixirSense.Core.TypeInfo
   alias ElixirLS.Utils.Matcher
 
@@ -30,13 +29,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
   def add_options(hint, env, buffer_metadata, cursor_context, acc) do
     prefix = cursor_context.text_before
 
-    %State.Env{
-      requires: requires,
-      aliases: aliases,
-      module: module,
-      scope: scope
-    } = env
-
     binding_env = Binding.from_env(env, buffer_metadata)
 
     %Metadata{mods_funs_to_positions: mods_funs, types: metadata_types} = buffer_metadata
@@ -50,15 +42,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
          {mod, fun, true, :mod_fun} <-
            Introspection.actual_mod_fun(
              {mod, fun},
-             env.functions,
-             env.macros,
-             requires,
-             if(elixir_prefix, do: [], else: aliases),
-             module,
-             scope,
+             env,
              mods_funs,
              metadata_types,
-             {1, 1}
+             {1, 1},
+             not elixir_prefix
            ) do
       list =
         if Code.ensure_loaded?(mod) do

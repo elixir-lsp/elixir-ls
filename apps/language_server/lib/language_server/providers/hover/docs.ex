@@ -181,15 +181,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
       {Binding.expand(binding_env, mod), fun}
       |> expand(env.aliases)
       |> Introspection.actual_mod_fun(
-        env.functions,
-        env.macros,
-        env.requires,
-        env.aliases,
-        env.module,
-        env.scope,
+        env,
         metadata.mods_funs_to_positions,
         metadata.types,
-        context.begin
+        context.begin,
+        false
       )
 
     case actual do

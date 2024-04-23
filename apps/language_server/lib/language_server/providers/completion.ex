@@ -11,6 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.Utils.Matcher
+  alias ElixirSense.Core.State
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirLS.LanguageServer.MarkdownUtils
   require Logger
@@ -144,11 +145,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     env = ElixirSense.Core.Metadata.get_env(metadata, {line, character})
 
     scope =
-      case env.scope do
-        scope when scope in [Elixir, nil] -> :file
-        module when is_atom(module) -> :module
-        {_, _} -> :function
-        {:typespec, _, _} -> :typespec
+      case env do
+        %State.Env{module: nil} -> :file
+        %State.Env{function: {_, _}} -> :function
+        %State.Env{typespec: {_, _}} -> :typespec
+        %State.Env{} -> :module
       end
 
     def_before =
