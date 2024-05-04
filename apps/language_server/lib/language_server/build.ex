@@ -613,6 +613,7 @@ defmodule ElixirLS.LanguageServer.Build do
     apps = Application.loaded_applications() |> Enum.map(&elem(&1, 0))
 
     for app <- apps -- :persistent_term.get(:language_server_required_apps) do
+      purge_app(app, false)
       # workaround for https://github.com/elixir-lang/elixir/issues/13246
       for {key, _} <- :application.get_all_env(app) do
         :application.unset_env(app, key, persistent: true)
