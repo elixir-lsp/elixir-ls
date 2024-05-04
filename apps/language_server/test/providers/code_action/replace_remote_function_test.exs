@@ -125,8 +125,10 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify(suggestion: "Enum.concat")
 
-      assert result ==
-               "for x <- Enum.concat([[1], [2], [3]]), do: Enum.concat([[1], [2], [3], [x]])"
+      if Version.match?(System.version(), ">= 1.13.0") do
+        assert result ==
+                 "for x <- Enum.concat([[1], [2], [3]]), do: Enum.concat([[1], [2], [3], [x]])"
+      end
     end
 
     test "applied in a with block" do
@@ -136,7 +138,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      assert result == "with x <- Enum.count([1, 2, 3]), do: x"
+      if Version.match?(System.version(), ">= 1.13.0") do
+        assert result == "with x <- Enum.count([1, 2, 3]), do: x"
+      end
     end
 
     test "applied in a with block, preserves comment" do
@@ -146,7 +150,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      assert result == "with x <- Enum.count([1, 2, 3]), do: x # TODO: Fix this"
+      if Version.match?(System.version(), ">= 1.13.0") do
+        assert result == "with x <- Enum.count([1, 2, 3]), do: x # TODO: Fix this"
+      end
     end
 
     test "applied in a with block with started do end" do
@@ -156,7 +162,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      assert result == "with x <- Enum.count([1, 2, 3]) do"
+      if Version.match?(System.version(), ">= 1.13.0") do
+        assert result == "with x <- Enum.count([1, 2, 3]) do"
+      end
     end
 
     test "preserving the leading indent" do
@@ -165,20 +173,22 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       assert result == "     Enum.count([1, 2, 3])"
     end
 
-    test "handles erlang functions" do
-      message = """
-      :ets.inserd/2 is undefined or private. Did you mean:
-            * insert/2
-            * insert_new/2
-      """
+    if System.otp_release() |> String.to_integer() >= 23 do
+      test "handles erlang functions" do
+        message = """
+        :ets.inserd/2 is undefined or private. Did you mean:
+              * insert/2
+              * insert_new/2
+        """
 
-      {:ok, [result]} =
-        ~q{
-        :ets.inserd(a, b)
-      }
-        |> modify(message: message, suggestion: ":ets.insert(a, b)")
+        {:ok, [result]} =
+          ~q{
+          :ets.inserd(a, b)
+        }
+          |> modify(message: message, suggestion: ":ets.insert(a, b)")
 
-      assert result == ":ets.insert(a, b)"
+        assert result == ":ets.insert(a, b)"
+      end
     end
 
     test "when aliased" do
@@ -293,20 +303,22 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       assert result == "     &Enum.count/1"
     end
 
-    test "handles erlang functions" do
-      message = """
-      :ets.inserd/2 is undefined or private. Did you mean:
-            * insert/2
-            * insert_new/2
-      """
+    if System.otp_release() |> String.to_integer() >= 23 do
+      test "handles erlang functions" do
+        message = """
+        :ets.inserd/2 is undefined or private. Did you mean:
+              * insert/2
+              * insert_new/2
+        """
 
-      {:ok, [result]} =
-        ~q{
-        &:ets.inserd/2
-      }
-        |> modify(message: message, suggestion: ":ets.insert/2")
+        {:ok, [result]} =
+          ~q{
+          &:ets.inserd/2
+        }
+          |> modify(message: message, suggestion: ":ets.insert/2")
 
-      assert result == "&:ets.insert/2"
+        assert result == "&:ets.insert/2"
+      end
     end
 
     test "when aliased" do
