@@ -41,16 +41,18 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
   end
 
   test "find definition of aliased modules in `use`" do
+    # TODO this test fails if there's no newline between alias and use
     buffer = """
     defmodule MyModule do
       alias ElixirSenseExample.UseExample
+      alias Enum
       use UseExample
       #        ^
     end
     """
 
     %Location{type: :module, file: file, line: line, column: column} =
-      Locator.definition(buffer, 3, 12)
+      Locator.definition(buffer, 4, 12)
 
     assert file =~ "language_server/test/support/use_example.ex"
     assert read_line(file, {line, column}) =~ "ElixirSenseExample.UseExample"

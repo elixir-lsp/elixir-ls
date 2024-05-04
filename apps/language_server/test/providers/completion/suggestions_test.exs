@@ -1515,6 +1515,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       |> Enum.filter(fn s -> s.type == :variable end)
 
     assert list == [
+             %{name: "_from", type: :variable},
              %{name: "request", type: :variable},
              %{name: "state", type: :variable},
              %{name: "var1", type: :variable}
@@ -1533,6 +1534,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       |> Enum.filter(fn s -> s.type == :variable end)
 
     assert list == [
+             %{name: "_state", type: :variable},
              %{name: "arg", type: :variable}
            ]
   end
