@@ -1,5 +1,33 @@
 ### Unreleased
 
+### v0.21.0: 5 May 2024
+
+#### Highlights
+
+- OTP incremental dialyzer is now the default dialyzing engine on OTP 26+. While slower than ElixirLS dialyzer it is much better at tracking module dependencies and should resolve issues with transient dialyzer warning that do not disappear on recompile. ElixirLS dialyzer is still available and incremental dialyzer can be disabled by config setting `elixirLS.incrementalDialyzer`
+- Experimental support for Code actions added. Two code actions are available: Replace unknown remote def, replace an unused variable with an underscore [Samuel Heldak](https://github.com/sheldak)
+
+#### Improvements
+
+- Added a workaround for ExUnit emitting invalid event in case `setup_all` is killed. This error resulted in invalid test results being presented in Test UI
+- More apps is now unloaded on recompile. This should improve build consistency
+- Underscored variables are now returned in completions and tracked
+- All provider code has been moved to ElixirLS repo from elixir_sense. This should make it easier for contributors to navigate in the codebase
+
+#### Fixes
+
+- Fixed a crash in on-type formatting
+- Fixed a crash on invalid diagnostic severity emitted by compiler
+- Fixed a crash in parser related to race conditions
+- Fixed a crash in debugger when only 1 frame was returned
+- Fixed selection ranges incompatibility with elixir 1.16.2
+- Fixed a crash when logging elixir API error [AJ Foster](https://github.com/aj-foster)
+- Fixed a crash in type inference engine related to map keys
+
+#### Potential incompatibilities
+
+- elixir_sense plugin management code has been moved to ElixirLS repo along with all providers. This can potentially affect existing plugins
+
 ### v0.20.0: 21 February 2024
 
 #### Highlights
