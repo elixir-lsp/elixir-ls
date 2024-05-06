@@ -987,7 +987,7 @@ defmodule ElixirLS.LanguageServer.Server do
       {:ok, result} =
         Definition.definition(uri, parser_context, line, character, state.project_dir)
 
-      if result.uri == uri && result.range["start"]["line"] == line - 1 do
+      if result != nil && result.uri == uri && result.range["start"]["line"] == line - 1 do
         case References.references(parser_context, uri, line, character, false, state.project_dir) do
           [] -> {:ok, result}
           refs -> {:ok, refs}
