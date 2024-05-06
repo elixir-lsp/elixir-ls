@@ -167,7 +167,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     {:noreply, state}
   end
 
-  def handle_cast({:analyze, _build_ref, _warn_opts, _warning_format} = msg, state) do
+  def handle_cast({:analyze, _build_ref, _warn_opts, _warning_format, _project_dir} = msg, state) do
     # analysis in progress - store last requested build
     # we will trigger one more time
     {:noreply, %{state | next_build: msg}}
