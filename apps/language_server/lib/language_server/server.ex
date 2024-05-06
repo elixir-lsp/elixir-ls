@@ -983,7 +983,18 @@ defmodule ElixirLS.LanguageServer.Server do
     fun = fn ->
       {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
       parser_context = Parser.parse_immediate(uri, source_file, {line, character})
-      Definition.definition(uri, parser_context, line, character, state.project_dir)
+
+      {:ok, result} =
+        Definition.definition(uri, parser_context, line, character, state.project_dir)
+
+      if result.uri == uri && result.range["start"]["line"] == line - 1 do
+        case References.references(parser_context, uri, line, character, false, state.project_dir) do
+          [] -> {:ok, result}
+          refs -> {:ok, refs}
+        end
+      else
+        {:ok, result}
+      end
     end
 
     {:async, fun, state}
