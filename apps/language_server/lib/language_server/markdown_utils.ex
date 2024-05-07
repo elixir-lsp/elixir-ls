@@ -78,15 +78,15 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     "**Equivalent** #{name}/#{arity}"
   end
 
-  defp get_metadata_entry_md({:deprecated, text}) do
+  defp get_metadata_entry_md({:deprecated, text}) when is_binary(text) do
     "**Deprecated** #{text}"
   end
 
-  defp get_metadata_entry_md({:since, text}) do
+  defp get_metadata_entry_md({:since, text}) when is_binary(text) do
     "**Since** #{text}"
   end
 
-  defp get_metadata_entry_md({:group, text}) do
+  defp get_metadata_entry_md({:group, text}) when is_binary(text) do
     "**Group** #{text}"
   end
 
@@ -102,15 +102,15 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     "**Built-in**"
   end
 
-  defp get_metadata_entry_md({:implementing, module}) do
+  defp get_metadata_entry_md({:implementing, module}) when is_atom(module) do
     "**Implementing behaviour** #{inspect(module)}"
   end
 
-  defp get_metadata_entry_md({:implementing_module_app, app}) do
+  defp get_metadata_entry_md({:implementing_module_app, app}) when is_atom(app) do
     "**Behaviour defined in application** #{to_string(app)}"
   end
 
-  defp get_metadata_entry_md({:app, app}) do
+  defp get_metadata_entry_md({:app, app}) when is_atom(app) do
     "**Application** #{to_string(app)}"
   end
 
@@ -132,7 +132,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
 
   defp get_metadata_entry_md({:defaults, _}), do: nil
 
-  defp get_metadata_entry_md({:delegate_to, {m, f, a}}) do
+  defp get_metadata_entry_md({:delegate_to, {m, f, a}}) when is_atom(m) and is_atom(f) and is_integer(a) do
     "**Delegates to** #{inspect(m)}.#{f}/#{a}"
   end
 
