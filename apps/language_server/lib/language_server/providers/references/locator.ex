@@ -20,7 +20,19 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
   alias ElixirSense.Core.Parser
 
   def references(code, line, column, trace, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
+    {context, column} =
+      case NormalizedCode.Fragment.surround_context(code, {line, column}) do
+        :none ->
+          {:none, column}
+
+        %{context: {:dot, _, _}} ->
+          {NormalizedCode.Fragment.surround_context(code, {line, max(column - 1, 1)}), column - 1}
+
+        context ->
+          {context, column}
+      end
+
+    case context do
       :none ->
         []
 

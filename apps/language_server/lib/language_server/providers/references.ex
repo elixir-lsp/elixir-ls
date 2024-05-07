@@ -25,7 +25,18 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     Build.with_build_lock(fn ->
       trace = ElixirLS.LanguageServer.Tracer.get_trace()
 
-      Locator.references(source_file.text, line, character, trace, metadata: metadata)
+      references =
+        case Locator.references(source_file.text, line, character, trace, metadata: metadata) do
+          [] ->
+            Locator.references(source_file.text, line, max(character - 1, 1), trace,
+              metadata: metadata
+            )
+
+          references ->
+            references
+        end
+
+      references
       |> Enum.map(fn elixir_sense_reference ->
         elixir_sense_reference
         |> build_reference(uri, source_file.text, project_dir)
