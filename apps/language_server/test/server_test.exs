@@ -1384,6 +1384,45 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         wait_until_compiled(server)
       end)
     end
+
+    test "find references if already on definition", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        code = ~S(
+        defmodule MyModule do
+          def func do
+            func(\)
+            func(\)
+          end
+        end
+      )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, definition_req(1, uri, 2, 15))
+
+        assert_receive(
+          response(1, [
+            %{
+              "range" => %{
+                "end" => %{"character" => 16, "line" => 3},
+                "start" => %{"character" => 12, "line" => 3}
+              },
+              "uri" => ^uri
+            },
+            %{
+              "range" => %{
+                "end" => %{"character" => 16, "line" => 4},
+                "start" => %{"character" => 12, "line" => 4}
+              },
+              "uri" => ^uri
+            }
+          ]),
+          3000
+        )
+
+        wait_until_compiled(server)
+      end)
+    end
   end
 
   describe "textDocument/implementation" do
