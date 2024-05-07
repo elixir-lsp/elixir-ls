@@ -32,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
 
     %Protocol.Location{
       uri: uri,
-      range: Protocol.range(line, column, line, column)
+      range: Protocol.range(line, column, line + 1, 0)
     }
   end
 end
