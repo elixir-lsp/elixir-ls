@@ -7,6 +7,7 @@
 defmodule ElixirLS.LanguageServer.AstUtils do
   import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   @binary_operators ~w[| . ** * / + - ++ -- +++ --- .. <> in |> <<< >>> <<~ ~>> <~ ~> <~> < > <= >= == != === !== =~ && &&& and || ||| or = => :: when <- -> \\]a
   @unary_operators ~w[@ + - ! ^ not &]a
@@ -410,6 +411,21 @@ defmodule ElixirLS.LanguageServer.AstUtils do
       _ ->
         last_line = List.last(lines)
         {line + length(lines) - 1, String.length(last_line)}
+    end
+  end
+
+  def surround_context_with_fallback(code, {line, column}, options \\ []) do
+    case NormalizedCode.Fragment.surround_context(code, {line, column}, options) do
+      :none ->
+        {NormalizedCode.Fragment.surround_context(code, {line, max(column - 1, 1)}, options),
+         column - 1}
+
+      %{context: {:dot, _, _}} ->
+        {NormalizedCode.Fragment.surround_context(code, {line, max(column - 1, 1)}, options),
+         column - 1}
+
+      context ->
+        {context, column}
     end
   end
 end

@@ -16,15 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
     result =
       case Locator.definition(source_file.text, line, character, metadata: metadata) do
         nil ->
-          case Locator.definition(source_file.text, line, max(character - 1, 1),
-                 metadata: metadata
-               ) do
-            nil ->
-              nil
-
-            %ElixirLS.LanguageServer.Location{} = location ->
-              Protocol.Location.new(location, uri, source_file.text, project_dir)
-          end
+          nil
 
         %ElixirLS.LanguageServer.Location{} = location ->
           Protocol.Location.new(location, uri, source_file.text, project_dir)

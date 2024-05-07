@@ -19,26 +19,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.Parser
 
+  alias ElixirLS.LanguageServer.AstUtils
+
   def references(code, line, column, trace, options \\ []) do
-    {context, column} =
-      case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-        :none ->
-          {:none, column}
-
-        %{context: {:dot, _, _}} ->
-          {NormalizedCode.Fragment.surround_context(code, {line, max(column - 1, 1)}), column - 1}
-
-        context ->
-          {context, column}
-      end
-
-    case context do
-      :none ->
+    case AstUtils.surround_context_with_fallback(code, {line, column}) do
+      {:none, _} ->
         []
 
-      %{
-        begin: {begin_line, begin_col}
-      } = context ->
+      {%{begin: {begin_line, begin_col}} = context, column} ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
             Parser.parse_string(code, true, true, {line, column})
