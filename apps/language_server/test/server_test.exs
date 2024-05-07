@@ -1384,6 +1384,70 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         wait_until_compiled(server)
       end)
     end
+
+    test "definition at end of symbol", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        code = ~S(
+        defmodule Test do
+          def test, do: nil
+        end
+        defmodule OtherModule do
+          def test do
+            Test
+            Test.test(\)
+            _ = &Test.test/0
+          end
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, definition_req(1, uri, 6, 17))
+
+        assert_receive(
+          response(1, %{
+            "range" => %{
+              "end" => %{"character" => 8, "line" => 1},
+              "start" => %{"character" => 8, "line" => 1}
+            },
+            "uri" => ^uri
+          }),
+          3000
+        )
+
+        wait_until_compiled(server)
+
+        Server.receive_packet(server, definition_req(2, uri, 7, 17))
+
+        assert_receive(
+          response(2, %{
+            "range" => %{
+              "end" => %{"character" => 8, "line" => 1},
+              "start" => %{"character" => 8, "line" => 1}
+            },
+            "uri" => ^uri
+          }),
+          3000
+        )
+
+        wait_until_compiled(server)
+
+        Server.receive_packet(server, definition_req(3, uri, 8, 22))
+
+        assert_receive(
+          response(3, %{
+            "range" => %{
+              "end" => %{"character" => 8, "line" => 1},
+              "start" => %{"character" => 8, "line" => 1}
+            },
+            "uri" => ^uri
+          }),
+          3000
+        )
+
+        wait_until_compiled(server)
+      end)
+    end
   end
 
   describe "textDocument/implementation" do
