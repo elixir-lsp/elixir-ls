@@ -132,7 +132,8 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
 
   defp get_metadata_entry_md({:defaults, _}), do: nil
 
-  defp get_metadata_entry_md({:delegate_to, {m, f, a}}) when is_atom(m) and is_atom(f) and is_integer(a) do
+  defp get_metadata_entry_md({:delegate_to, {m, f, a}})
+       when is_atom(m) and is_atom(f) and is_integer(a) do
     "**Delegates to** #{inspect(m)}.#{f}/#{a}"
   end
 
