@@ -1051,7 +1051,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
   test "find definition of attributes" do
     buffer = """
     defmodule MyModule do
-      def func do
+      defmodule Child do
         @var1 1
         @var2 2
         @var1 3
