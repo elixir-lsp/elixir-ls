@@ -1,5 +1,13 @@
 ### Unreleased
 
+### v0.21.1: 8 May 2024
+
+#### Fixes
+
+- Fixed endless loop when expanding incomplete `use` macro
+- Fixed crash in incremental dialyzer when dialyze is already in progress
+- Fixed crash when rendering metadata to markdown
+
 ### v0.21.0: 5 May 2024
 
 #### Highlights
