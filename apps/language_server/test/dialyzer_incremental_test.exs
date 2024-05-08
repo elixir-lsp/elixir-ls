@@ -1,7 +1,6 @@
 if System.otp_release() |> String.to_integer() >= 26 do
   defmodule ElixirLS.LanguageServer.DialyzerIncrementalTest do
     alias ElixirLS.LanguageServer.{
-      Dialyzer,
       Server,
       Protocol,
       SourceFile,

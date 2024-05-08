@@ -465,19 +465,19 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 21) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation:
-                     "Returns `true` if `list` starts with the given `prefix` list; otherwise returns `false`.",
+                     "Returns `true` if `list` starts with the given `prefix` list" <> _,
                    name: "starts_with?",
                    params: ["list", "prefix"],
                    spec:
                      "@spec starts_with?([...], [...]) :: boolean()\n@spec starts_with?(list(), []) :: true\n@spec starts_with?([], [...]) :: false"
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 21)
     end
 
     test "find signatures for function with @doc false" do

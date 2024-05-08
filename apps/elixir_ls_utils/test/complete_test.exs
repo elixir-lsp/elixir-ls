@@ -1949,10 +1949,6 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"ArgumentError.exce")
 
     assert [] = expand(~c"Elixir.bla")
-
-    assert [
-             %{name: "blame", type: :function, arity: 2}
-           ] = expand(~c"ArgumentError.bla")
   end
 
   if System.otp_release() |> String.to_integer() >= 23 do

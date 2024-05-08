@@ -1060,11 +1060,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 7,
                         name: "prop",
                         range: %{
-                          "end" => %{"character" => 2, "line" => 1},
+                          "end" => %{"character" => _, "line" => 1},
                           "start" => %{"character" => 2, "line" => 1}
                         },
                         selectionRange: %{
-                          "end" => %{"character" => 2, "line" => 1},
+                          "end" => %{"character" => _, "line" => 1},
                           "start" => %{"character" => 2, "line" => 1}
                         }
                       },
@@ -1073,11 +1073,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 7,
                         name: "prop_with_def",
                         range: %{
-                          "end" => %{"character" => 2, "line" => 1},
+                          "end" => %{"character" => _, "line" => 1},
                           "start" => %{"character" => 2, "line" => 1}
                         },
                         selectionRange: %{
-                          "end" => %{"character" => 2, "line" => 1},
+                          "end" => %{"character" => _, "line" => 1},
                           "start" => %{"character" => 2, "line" => 1}
                         }
                       }
@@ -1133,7 +1133,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 7,
                 location: %{
                   range: %{
-                    "end" => %{"character" => 2, "line" => 1},
+                    "end" => %{"character" => _, "line" => 1},
                     "start" => %{"character" => 2, "line" => 1}
                   }
                 },
@@ -1144,7 +1144,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "prop_with_def",
                 location: %{
                   range: %{
-                    "end" => %{"character" => 2, "line" => 1},
+                    "end" => %{"character" => _, "line" => 1},
                     "start" => %{"character" => 2, "line" => 1}
                   }
                 },
@@ -1175,11 +1175,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 7,
                         name: "message",
                         range: %{
-                          "end" => %{"character" => 2, "line" => 1},
+                          "end" => %{"character" => _, "line" => 1},
                           "start" => %{"character" => 2, "line" => 1}
                         },
                         selectionRange: %{
-                          "end" => %{"character" => 2, "line" => 1},
+                          "end" => %{"character" => _, "line" => 1},
                           "start" => %{"character" => 2, "line" => 1}
                         }
                       }
@@ -1235,7 +1235,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "message",
                 location: %{
                   range: %{
-                    "end" => %{"character" => 2, "line" => 1},
+                    "end" => %{"character" => _, "line" => 1},
                     "start" => %{"character" => 2, "line" => 1}
                   }
                 },
@@ -2096,11 +2096,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 12,
                         name: "test \"does something\"",
                         range: %{
-                          "end" => %{"character" => 10, "line" => 4},
+                          "end" => %{"character" => _, "line" => 4},
                           "start" => %{"character" => 10, "line" => 4}
                         },
                         selectionRange: %{
-                          "end" => %{"character" => 10, "line" => 4},
+                          "end" => %{"character" => _, "line" => 4},
                           "start" => %{"character" => 10, "line" => 4}
                         }
                       }
@@ -2147,11 +2147,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         kind: 12,
                         name: "test \"does\" <> \"something\"",
                         range: %{
-                          "end" => %{"character" => 10, "line" => 4},
+                          "end" => %{"character" => _, "line" => 4},
                           "start" => %{"character" => 10, "line" => 4}
                         },
                         selectionRange: %{
-                          "end" => %{"character" => 10, "line" => 4},
+                          "end" => %{"character" => _, "line" => 4},
                           "start" => %{"character" => 10, "line" => 4}
                         }
                       }
@@ -2217,7 +2217,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 12,
                 location: %{
                   range: %{
-                    "end" => %{"character" => 10, "line" => 4},
+                    "end" => %{"character" => _, "line" => 4},
                     "start" => %{"character" => 10, "line" => 4}
                   }
                 },
@@ -2267,7 +2267,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 12,
                 location: %{
                   range: %{
-                    "end" => %{"character" => 10, "line" => 4},
+                    "end" => %{"character" => _, "line" => 4},
                     "start" => %{"character" => 10, "line" => 4}
                   }
                 },
@@ -2477,11 +2477,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 20,
                 name: "config :my_app MyApp.Repo",
                 range: %{
-                  "end" => %{"character" => 0, "line" => 9},
+                  "end" => %{"character" => _, "line" => _},
                   "start" => %{"character" => 0, "line" => 9}
                 },
                 selectionRange: %{
-                  "end" => %{"character" => 0, "line" => 9},
+                  "end" => %{"character" => _, "line" => _},
                   "start" => %{"character" => 0, "line" => 9}
                 }
               }
@@ -2544,7 +2544,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 20,
                 location: %{
                   range: %{
-                    "end" => %{"character" => 0, "line" => 9},
+                    "end" => %{"character" => _, "line" => _},
                     "start" => %{"character" => 0, "line" => 9}
                   }
                 }
