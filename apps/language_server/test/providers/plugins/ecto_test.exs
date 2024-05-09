@@ -641,8 +641,8 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
     test "at arg 1, suggest built-in and custom ecto types" do
       buffer = """
       import Ecto.Schema
-      field name,
-      #          ^
+      field :name,
+      #           ^
       """
 
       [cursor] = cursors(buffer)
