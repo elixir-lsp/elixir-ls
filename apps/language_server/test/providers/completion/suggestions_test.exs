@@ -3273,6 +3273,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ]
   end
 
+  @tag :type_inference
   test "suggestion for fields in struct when struct type is attribute" do
     buffer = """
     defmodule MyServer do
