@@ -356,6 +356,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
     # TODO
     # test "list available bindings" do
     #   buffer = """
+    #   defmodule Foo do
     #   import Ecto.Query
     #   alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.User, as: User
 
@@ -369,6 +370,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
     #       where: a2 in subquery(from(s in Sub, limit: 1)),
     #       where: u.id == m
     #     #        ^        ^
+    #   end
     #   end
     #   """
 
@@ -390,6 +392,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
 
     # test "list binding's fields" do
     #   buffer = """
+    #   defmodule Foo do
     #   import Ecto.Query
     #   alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
     #   alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Comment
@@ -402,6 +405,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
     #       select: {u.id, c.id, p.t, p.u}
     #       #          ^     ^      ^    ^
     #     )
+    #   end
     #   end
     #   """
 
@@ -429,6 +433,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
 
     # test "list binding's fields even without any hint after `.`" do
     #   buffer = """
+    #   defmodule Foo do
     #   import Ecto.Query
     #   alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
@@ -439,6 +444,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
     #       select: {p., c.id}
     #       #          ^
     #     )
+    #   end
     #   end
     #   """
 
@@ -455,6 +461,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
 
     test "list associations from assoc/2" do
       buffer = """
+      defmodule Foo do
       import Ecto.Query
       alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
@@ -464,6 +471,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
           join: c in assoc(p,
           #                  ^
         )
+      end
       end
       """
 
@@ -492,6 +500,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
     #   Code.ensure_loaded(ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Tag)
 
     #   buffer = """
+    #   defmodule Foo do
     #   import Ecto.Query
     #   alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
     #   alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Comment
@@ -499,6 +508,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
     #   def query() do
     #     from p in Post, join: c in Comment
     #       #       ^                ^
+    #   end
     #   end
     #   """
 
@@ -523,6 +533,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
 
     test "list bindings and binding fields inside nested functions" do
       buffer = """
+      defmodule Foo do
       import Ecto.Query
       alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
@@ -532,6 +543,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
           where: is_nil(p.t
           #             ^  ^
         )
+      end
       end
       """
 
@@ -543,12 +555,14 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
 
     test "list bindings and binding fields using full module name" do
       buffer = """
+      defmodule Foo do
       import Ecto.Query
 
       def query() do
         from p in ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post,
           where: p.t
         #        ^  ^
+      end
       end
       """
 
@@ -560,12 +574,14 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
 
     test "from/2 without parens" do
       buffer = """
+      defmodule Foo do
       import Ecto.Query
       alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
       def query() do
         from p in Post, se
           #               ^
+      end
       end
       """
 
@@ -574,12 +590,14 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
       assert [%{label: "select"}, %{label: "select_merge"}] = suggestions(buffer, cursor)
 
       buffer = """
+      defmodule Foo do
       import Ecto.Query
       alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
       def query() do
         from p in Post, where: p.id
           #                       ^
+      end
       end
       """
 
@@ -588,6 +606,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
       assert [%{label: "id"}] = suggestions(buffer, cursor)
 
       buffer = """
+      defmodule Foo do
       import Ecto.Query
       alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
@@ -597,6 +616,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
           se
           # ^
       end
+      end
       """
 
       [cursor] = cursors(buffer)
@@ -604,6 +624,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
       assert [%{label: "select"}, %{label: "select_merge"}] = suggestions(buffer, cursor)
 
       buffer = """
+      defmodule Foo do
       import Ecto.Query
       alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
@@ -612,6 +633,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
           join: u in User,
 
         # ^
+      end
       end
       """
 
@@ -622,12 +644,14 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
 
     test "succeeds when using schema with many_to_many assoc" do
       buffer = """
+      defmodule Foo do
       import Ecto.Query
       alias ElixirLS.LanguageServer.Plugins.Ecto.FakeSchemas.Post
 
       def query() do
         from p in Post, se
           #               ^
+      end
       end
       """
 
