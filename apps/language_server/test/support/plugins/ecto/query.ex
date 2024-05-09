@@ -7,7 +7,9 @@ defmodule Ecto.Query do
   Creates a query.
   """
   defmacro from(expr, kw \\ []) do
-    {expr, kw}
+    quote do
+      {unquote(expr), unquote(kw)}
+    end
   end
 
   @doc """
@@ -40,7 +42,9 @@ defmodule Ecto.Query do
 
   """
   defmacro select(query, binding \\ [], expr) do
-    {query, binding, expr}
+    quote do
+      {unquote(query), unquote(binding), unquote(expr)}
+    end
   end
 
   @doc """
@@ -76,7 +80,9 @@ defmodule Ecto.Query do
   it will default to the source, `p` in the example above.
   """
   defmacro select_merge(query, binding \\ [], expr) do
-    {query, binding, expr}
+    quote do
+      {unquote(query), unquote(binding), unquote(expr)}
+    end
   end
 
   @doc """
@@ -112,6 +118,8 @@ defmodule Ecto.Query do
 
   """
   defmacro distinct(query, binding \\ [], expr) do
-    {query, binding, expr}
+    quote do
+      {unquote(query), unquote(binding), unquote(expr)}
+    end
   end
 end
