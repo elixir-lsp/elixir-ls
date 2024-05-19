@@ -239,8 +239,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
 
     warning_modules_to_apps =
       for app <- warning_apps,
-          {:ok, app_modules} = :application.get_key(app, :modules),
-          module <- app_modules,
+          module <- safe_get_modules(app),
           into: %{},
           do: {module, app}
 
@@ -267,6 +266,13 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     ]
 
     {opts, warning_modules_to_apps}
+  end
+
+  defp safe_get_modules(app) do
+    case :application.get_key(app, :modules) do
+      {:ok, modules} -> modules
+      :undefined -> []
+    end
   end
 
   defp elixir_incremental_plt_path() do
