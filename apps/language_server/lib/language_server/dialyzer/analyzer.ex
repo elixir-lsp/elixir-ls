@@ -180,6 +180,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     main_loop(state)
   end
 
+  def all_warns, do: @default_warns ++ @non_default_warns
+
   def matching_tags(warn_opts) do
     default_warns =
       unless :persistent_term.get(:language_server_test_mode, false) do
