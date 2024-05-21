@@ -1788,7 +1788,8 @@ defmodule ElixirLS.LanguageServer.Server do
           IO.warn("Invalid `dialyzerWarnOpts` #{inspect(dialyzer_warn_opts)}")
         end
 
-        all_warns = ElixirLS.LanguageServer.Dialyzer.Analyzer.all_warns() |> Enum.map(&to_string/1)
+        all_warns =
+          ElixirLS.LanguageServer.Dialyzer.Analyzer.all_warns() |> Enum.map(&to_string/1)
 
         for opt <- dialyzer_warn_opts, opt not in all_warns do
           Logger.error("Invalid `dialyzerWarnOpts`: unknown warning option `#{opt}`")
