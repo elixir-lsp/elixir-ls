@@ -1,5 +1,15 @@
 ### Unreleased
 
+### v0.21.2: 21 May 2024
+
+#### Improvements
+
+- Improved validation of dialyzer options. Previously invalid options were allowed leading to dialyzer crashes
+
+#### Fixes
+
+- Fixed a crash in incremental dialyzer leading to used memory buildup
+
 ### v0.21.1: 8 May 2024
 
 #### Fixes
