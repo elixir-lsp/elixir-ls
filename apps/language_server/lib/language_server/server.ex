@@ -1845,6 +1845,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> set_mix_env(mix_env)
       |> set_mix_target(mix_target)
       |> set_project_dir(project_dir)
+      |> Map.put(:settings, settings)
       |> set_dialyzer_enabled(enable_dialyzer)
 
     add_watched_extensions(state.server_instance_id, additional_watched_extensions)
@@ -1885,7 +1886,7 @@ defmodule ElixirLS.LanguageServer.Server do
       %{}
     )
 
-    trigger_build(%{state | settings: settings})
+    trigger_build(state)
   end
 
   defp add_watched_extensions(_server_instance_id, []) do
@@ -1963,7 +1964,9 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_dialyzer_enabled(state = %__MODULE__{}, enable_dialyzer) do
     cond do
       enable_dialyzer and state.mix_project? and state.dialyzer_sup == nil ->
-        {:ok, pid} = Dialyzer.Supervisor.start_link(state.project_dir)
+        {:ok, pid} =
+          Dialyzer.Supervisor.start_link(state.project_dir, dialyzer_module(state.settings))
+
         %{state | dialyzer_sup: pid, analysis_ready?: false}
 
       not (enable_dialyzer and state.mix_project?) and state.dialyzer_sup != nil ->
