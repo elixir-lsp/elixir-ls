@@ -227,8 +227,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     ])
   end
 
-  defp transfer_plt(active_plt, pid) do
-    # FIXME: matching against opaque type
+  def transfer_plt(active_plt, pid) do
     plt(
       info: info,
       types: types,

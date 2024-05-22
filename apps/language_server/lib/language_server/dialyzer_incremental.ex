@@ -14,7 +14,8 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     :warning_format,
     :apps_paths,
     :project_dir,
-    :next_build
+    :next_build,
+    :plt
   ]
 
   Record.defrecordp(:iplt_info, [
@@ -95,11 +96,9 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   end
 
   @impl GenServer
-  def handle_call({:suggest_contracts, files}, _from, state) do
+  def handle_call({:suggest_contracts, files}, _from, state = %{plt: plt}) when plt != nil do
     specs =
       try do
-        # TODO maybe store plt in state?
-        plt = :dialyzer_iplt.from_file(elixir_incremental_plt_path())
         SuccessTypings.suggest_contracts(plt, files)
       catch
         :throw = kind, {:dialyzer_error, message} = payload ->
@@ -145,10 +144,15 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
 
           {opts, warning_modules_to_apps} = build_dialyzer_opts()
 
+          if state.plt do
+            :dialyzer_plt.delete(state.plt)
+          end
+
           {:ok, pid} =
             Task.start_link(fn ->
-              warnings = do_analyze(opts, warning_modules_to_apps)
-              send(parent, {:analysis_finished, warnings, build_ref})
+              {warnings, plt} = do_analyze(opts, warning_modules_to_apps)
+              Manifest.transfer_plt(plt, parent)
+              send(parent, {:analysis_finished, warnings, build_ref, plt})
             end)
 
           %{
@@ -157,7 +161,8 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
               warning_format: warning_format,
               apps_paths: apps_paths,
               project_dir: project_dir,
-              analysis_pid: pid
+              analysis_pid: pid,
+              plt: nil
           }
         else
           state
@@ -175,7 +180,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
 
   @impl GenServer
   def handle_info(
-        {:analysis_finished, warnings_map, build_ref},
+        {:analysis_finished, warnings_map, build_ref, plt},
         state
       ) do
     diagnostics =
@@ -188,12 +193,19 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       )
 
     Server.dialyzer_finished(state.parent, diagnostics, build_ref)
-    state = %{state | analysis_pid: nil}
+    state = %{state | analysis_pid: nil, plt: plt}
 
     case state.next_build do
       nil -> {:noreply, state}
       msg -> handle_cast(msg, %{state | next_build: nil})
     end
+  end
+
+  def handle_info(
+        {:"ETS-TRANSFER", _, _, _},
+        state
+      ) do
+    {:noreply, state}
   end
 
   defp build_dialyzer_opts() do
@@ -326,7 +338,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       # warnings returned by dialyzer public api are stripped to https://www.erlang.org/doc/man/dialyzer#type-dial_warning
       # file paths are app relative but we need to know which umbrella app they come from
       # we load PLT info directly and read raw warnings
-      {us, {_dialyzer_plt, plt_info}} =
+      {us, {dialyzer_plt, plt_info}} =
         :timer.tc(fn ->
           :dialyzer_iplt.plt_and_info_from_file(elixir_incremental_plt_path())
         end)
@@ -335,17 +347,20 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
 
       iplt_info(warning_map: warning_map) = plt_info
       # filter by modules from project app/umbrella apps
-      warning_map
-      |> Map.take(Map.keys(warning_modules_to_apps))
-      |> Enum.group_by(
-        fn {module, _warnings} ->
-          Map.fetch!(warning_modules_to_apps, module)
-        end,
-        fn {module, warnings} ->
-          # raw warnings may be duplicated
-          {module, Enum.uniq(warnings)}
-        end
-      )
+      warnings =
+        warning_map
+        |> Map.take(Map.keys(warning_modules_to_apps))
+        |> Enum.group_by(
+          fn {module, _warnings} ->
+            Map.fetch!(warning_modules_to_apps, module)
+          end,
+          fn {module, warnings} ->
+            # raw warnings may be duplicated
+            {module, Enum.uniq(warnings)}
+          end
+        )
+
+      {warnings, dialyzer_plt}
     catch
       :throw = kind, {:dialyzer_error, message} = payload ->
         {_payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
