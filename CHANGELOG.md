@@ -1,5 +1,16 @@
 ### Unreleased
 
+### v0.21.3: 22 May 2024
+
+#### Improvements
+
+- Reuse incremental dialyzer PLT when suggesting specs
+- Avoid starting both incremental and old dialyzer
+
+#### Fixes
+
+- Properly clean up incremental dialyzer PLT when a new one is loaded
+
 ### v0.21.2: 21 May 2024
 
 #### Improvements
