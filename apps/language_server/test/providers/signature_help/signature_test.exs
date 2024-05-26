@@ -1387,7 +1387,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                  %{
                    name: "inspect",
                    params: ["item", "opts \\\\ []"],
-                   documentation: "Inspects and writes the given `item` to the device.",
+                   documentation: "Inspects and writes the given `item`" <> _,
                    spec: "@spec inspect(" <> _
                  },
                  %{
