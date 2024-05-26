@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   def format(%SourceFile{} = source_file, line, character, "\n", _options) when line >= 1 do
     # we don't care about utf16 positions here as we only pass character back to client
     lines = SourceFile.lines(source_file)
-    prev_line = Enum.at(lines, line - 1)
+    prev_line = Enum.at(lines, line - 1, "")
 
     prev_tokens = tokens(prev_line)
 
@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
       # Use contents and indentation of the next line to help us guess whether to insert an "end"
       indentation_suggests_edit? =
         if Enum.at(prev_tokens, -1) == "do" or "fn" in prev_tokens do
-          next_line = Enum.find(Enum.slice(lines, (line + 1)..-1), "", &(!blank?(&1)))
+          next_line = Enum.find(Enum.slice(lines, (line + 1)..-1//1), "", &(!blank?(&1)))
           next_tokens = tokens(next_line)
           next_indentation_length = String.length(indentation(next_line))
 
@@ -50,6 +50,10 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
     end
   end
 
+  def format(%SourceFile{} = _source_file, _line, _character, _, _options) do
+    {:ok, nil}
+  end
+
   # If terminators are already correct, we never want to insert an "end" that would break them.
   # If terminators are incorrect, we check if inserting an "end" will fix them.
   defp terminators_correct?(text) do
@@ -57,11 +61,11 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   end
 
   defp tokens(line) do
-    Regex.scan(Regex.recompile!(~r/(?:->)|(?:[\w\:]+)/), line) |> List.flatten()
+    Regex.scan(~r/(?:->)|(?:[\w\:]+)/u, line) |> List.flatten()
   end
 
   defp indentation(line) do
-    [indentation] = Regex.run(Regex.recompile!(~r/^\s*/), line)
+    [indentation] = Regex.run(~r/^\s*/u, line)
     indentation
   end
 

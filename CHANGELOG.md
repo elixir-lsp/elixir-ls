@@ -1,13 +1,591 @@
 ### Unreleased
 
+### v0.21.3: 22 May 2024
+
+#### Improvements
+
+- Reuse incremental dialyzer PLT when suggesting specs
+- Avoid starting both incremental and old dialyzer
+
+#### Fixes
+
+- Properly clean up incremental dialyzer PLT when a new one is loaded
+
+### v0.21.2: 21 May 2024
+
+#### Improvements
+
+- Improved validation of dialyzer options. Previously invalid options were allowed leading to dialyzer crashes
+
+#### Fixes
+
+- Fixed a crash in incremental dialyzer leading to used memory buildup
+
+### v0.21.1: 8 May 2024
+
+#### Fixes
+
+- Fixed endless loop when expanding incomplete `use` macro
+- Fixed crash in incremental dialyzer when dialyze is already in progress
+- Fixed crash when rendering metadata to markdown
+
+### v0.21.0: 5 May 2024
+
+#### Highlights
+
+- OTP incremental dialyzer is now the default dialyzing engine on OTP 26+. While slower than ElixirLS dialyzer it is much better at tracking module dependencies and should resolve issues with transient dialyzer warning that do not disappear on recompile. ElixirLS dialyzer is still available and incremental dialyzer can be disabled by config setting `elixirLS.incrementalDialyzer`
+- Experimental support for Code actions added. Two code actions are available: Replace unknown remote def, replace an unused variable with an underscore [Samuel Heldak](https://github.com/sheldak)
+
+#### Improvements
+
+- Added a workaround for ExUnit emitting invalid event in case `setup_all` is killed. This error resulted in invalid test results being presented in Test UI
+- More apps is now unloaded on recompile. This should improve build consistency
+- Underscored variables are now returned in completions and tracked
+- All provider code has been moved to ElixirLS repo from elixir_sense. This should make it easier for contributors to navigate in the codebase
+
+#### Fixes
+
+- Fixed a crash in on-type formatting
+- Fixed a crash on invalid diagnostic severity emitted by compiler
+- Fixed a crash in parser related to race conditions
+- Fixed a crash in debugger when only 1 frame was returned
+- Fixed selection ranges incompatibility with elixir 1.16.2
+- Fixed a crash when logging elixir API error [AJ Foster](https://github.com/aj-foster)
+- Fixed a crash in type inference engine related to map keys
+
+#### Potential incompatibilities
+
+- elixir_sense plugin management code has been moved to ElixirLS repo along with all providers. This can potentially affect existing plugins
+
+### v0.20.0: 21 February 2024
+
+#### Highlights
+
+- Selection ranges provider added. This provider handles expand/shrink selection editor commands in a semantic aware way
+- Completions, hover and signature help providers now are able to display `@doc` and other attributes data from the currently edited buffer
+- Hover provider now returns markdown with working links to hexdocs and erlang documentation. Support for [ExDoc autolinking](https://hexdocs.pm/ex_doc/readme.html#auto-linking) and [erlang see tags](https://www.erlang.org/doc/apps/erl_docgen/inline_tags#%3Csee*%3E---see-tags) has been added
+
+#### Improvements
+
+- Completions provider renders metadata about returned items. Metadata includes info on `since`, `deprecated`, `impl` attributes as well as a number of other flags (hidden, optional, opaque, overridable etc.)
+- Completions provider is now able to suggest callbacks and protocol functions defined in the current buffer
+- Completions provider is now able to suggest return values when implementing callbacks and protocol functions defined in the current buffer
+- Documentation and signatures is provided on builtin function in more cases
+- Avoid race conditions when reading mix project in workspace symbols provider
+- Avoid a crash in document symbols provider when unable to determine the end of expression
+- Avoid a crash when `locals_without_parens` contains invalid elements
+- Improved resilience of alias expander
+
+#### Fixes
+
+- Hover provider would emit invalid markdown when it contained escaped `#` and links with anchor
+- Fixed a crash in workspace symbols provider when the directory is no longer a mix project
+- Workaround an issue when elixir compiler would emit a diagnostic with invalid Unicode
+- Fixed a crash when `Mix.env` cannot be retrieved
+- Fixed a crash in spec code lens on protocol def with default arguments
+- Added a workaround for a crash when reading module exports while it is being compiled
+- Fixed a crash when formatting an atom argument
+- Fixed a crash when handling an invalid typespec
+- Fixed a crash when in complete provider when unable to expand a phoenix controller
+
+### v0.19.0: 21 January 2024
+
+#### Highlights
+
+- On type parsing and diagnostics for phoenix `.heex` files
+- Workspace symbols provider has been reimplemented. Previously the workspace symbols index was build from all available symbols. To make it more focused and helpful now only symbols from the project are considered. This change made it much quicker and improved the quality of returned results. Fuzzy matching engine was also improved and made consistent with how complete provider works.
+
+#### Improvements
+
+- Parser is now asynchronous. This should limit the number of cases when providers wait on parsing.
+- Function location in workspace symbols provider is optimized. Index build speed should now be much quicker
+- Added support for `mise` version manager (the former `rtx` is still supported) - [Robson Roberto Souza Peixoto](https://github.com/robsonpeixoto)
+- Workspace symbols provider return results on empty query
+- Workspace symbols provider no longer returns duplicated results for functions with default arguments
+- Workspace symbols provider now returns `containerName` if applicable
+- Workspace symbols provider now returns deprecated symbol tag
+- Workspace symbols provider, completions and other providers return distinct symbol kinds for functions and macros. This makes them visually different in editors (e.g VSCode uses different icons)
+- Apps are now reloaded after build so application controller can provide an accurate list of modules. This works around https://github.com/elixir-lang/elixir/issues/13001
+- App config is now reset on each build. This works around https://github.com/elixir-lang/elixir/issues/13246
+- Suggest contracts calls are now non blocking. Previously a call to dialyzer would block the server.
+- Diagnostics without `file` set will now be returned as originating from `mix.exs`. Diagnostics without document URI are meaningless in LSP
+- Document symbols rendering is improved for defs with multiline arguments - [Milo Lee](https://github.com/oo6)
+- Debugger now respects `--no-mix-exs` flag in launch config `taskArgs`
+- Do block indentation level discovery is improved in completions provider. This should improve keyword completions position
+- Elixir version checks have been optimized in completions provider. Those turned out to be expensive.
+- Completions provider now caches modules. This greatly improves responsiveness when completion is invoked off an empty hint
+- Completions provider now returns `@nifs` attribute added in elixir 1.16
+- Definitions provider now supports resetting aliases `alias: nil` on phoenix router scope
+
+#### Fixes
+
+- Fixed crash when code action is unable to apply spec
+- Fixed a crash when loading an old format or unrepairable DETS file
+- Operators, functions and macros are now correctly labelled in completions provider. Previously every symbol from `Kernel` was labelled as `keyword` and every completion having a snippet was labelled as `snippet`.
+- Fixed a crash in build when printing invalid diagnostics from external compilers
+- Fixed a crash in suggest contracts when dialyzer is able to infer concrete types in protocol
+- Fixed a crash in completions provider when a completion would be filtered out
+- Fixed a crash in document symbols provider when unable to get a line for AST node
+- Mix clean custom command will no longer crash when executed in non mix project
+- Completions provider returns correct type when a module has functions and macros with the same name. This bug made it return `Application.compile_env` as function instead of macro
+- Fixed a crash in phoenix router scopes when code fails to parse
+- Fixed a crash in definitions provider when cursor over phoenix controller action in router
+- Fixed a crash in definitions provider with nested phoenix scopes. The scope combination algorithm was incorrect and produced invalid aliases
+
+### v0.18.1: 28 December 2023
+
+#### Improvements
+
+- Variables defined in `ex_unit` `test`, `setup` and `setup_all` context are now returned by completions provider. Navigation to variable definition and references now also works correctly
+- Suggest spec code lens now emits specs for all arity variants when function has default arguments. Previously only the one with all parameters was emitted
+- Missing required OTP `:crypto` module is now detected on startup
+- Completions provider is now properly returning quoted remote calls. Previously accepting a suggestion would insert invalid code
+
+#### Fixes
+
+- Fixed regression and crash on `phoenix-heex` files. This problem was introduced in v0.18.0 and broke completions, definition and hover
+- Fixed a crash during struct field inspection when the struct cannot be instantiated
+- Fixed a crash in implementations provider when behaviour implementation is a delegate or a guard
+- Fixed a crash on invalid delegate AST node
+- Fixed a crash when incorrect AST resulted in mismatched alias stack pop operations
+- Fixed a crash on older elixir versions when compiler diagnostic message is not a binary. This problem was introduced in v0.18.0
+- Fixed invalid argument passed to fallback implementation for Apply spec code action
+- Workspace symbols provider now correctly navigates to functions with default arguments
+
+### v0.18.0: 22 December 2023
+
+#### Highlights
+
+- Elixir 1.16 support
+- Diagnostics provider now returns related info with code positions. This feature works best with elixir 1.16 allowing for navigation to invalid syntax elements like mismatched brackets
+- On type parser has been improved and extended. It now keeps a cache of parsed AST and extracted document metadata. Most of the providers has been updated to reuse this metadata eliminating the need for on demand parsing. This should make completions, hover, etc more snappy. The previous implementation was particularly not efficient for completions provider that would parse the file twice for each request
+- Phoenix integration improved. Go To Definition can now navigate to controllers when inside a Phoenix scope. Complete suggestions in Phoenix.Router now return controllers and actions [Gustavo Aguiar](https://github.com/gugahoa)
+
+#### Improvements
+
+- Diagnostic provider returns deprecated and not used tags on certain warnings. This allows editors for visually marking code ranges using deprecated APIs and not used code constructs
+- Diagnostics are now stored along with document version. Diagnostic publishing algorithm has been improved to prefer recent parser diagnostics over stale build diagnostics.
+- Parser is now able to provide diagnostics in `untitled:` schema files based on `languageId` document property
+- On type formatting and Folding ranges providers are now disabled on `eex` documents as `eex` was never supported in those providers
+- OTP 26 compatibility warning on Windows updated to direct users to install 26.2+ version
+- Struct field completions now work on functions returning remote type [sarah kate](https://github.com/sarahkw)
+- Type inference from guard expressions added [Nguyễn Văn Đức](https://github.com/Goose97)
+
+#### Fixes
+
+- Fixed crash in document symbols provider on invalid attribute nodes
+- Fixed crash on cases where some compiler generates diagnostics with invalid position
+- Fixed test lense provider on code using `Elixir` proxy
+- Fixed debugger crash when stacktrace frame returns `undefined` instead of arguments list
+- Improved LSP compatibility on document synchronization. Previously the document version after applying changes was increased. This bug was present since the initial code release but started causing issues with discarded diagnostics in Helix editor since v0.17.0 started publishing diagnostics with document version
+- Fixed invalid result returned from build process when handling error during project reload
+
+#### Potential incompatibilities
+
+- `elixir_ls_debugger` app has been renamed to `debug_adapter` to better reflect that it is not a debugger but an adapter implementing Debug Adapter Protocol. Similarly, the launch scripts has been renamed to `debug_adapter.sh` and `debug_adapter.bat` respectively. Editor extensions and custom launcher scripts may need an update
+
+### v0.17.10: 19 November 2023
+
+#### Improvements
+
+- Improved validation of language server configuration
+- Improved validation of debugger launch configuration
+- Diagnostics with no file are now emitted on `mix.exs`. Previously they were skipped
+- Debugger emits better error messages when launch configuration is invalid
+- Language server made more predictable on critical errors (e.g. project directory no longer existing)
+
+#### Fixes
+
+- Fixed crash when callback from docs cannot be matched with callbacks from typespecs
+- Fixed invalid expansion of `Enum.fetch` in type inference engine
+- Handled a few cases of invalid unicode binaries
+- Fixed crash in debugger when stacktrace frame cannot be fetched
+- Increased timeout on variable evaluation
+- Fixed crash in debugger when inspecting an improper list
+- Fixed crash in debugger when reloading test modules and `:code.delete/1` fails
+
+### v0.17.9: 13 November 2023
+
+#### Improvements
+
+- Capitalized map keys are no longes suggested in completions. Such keys result in invalid alias expression
+- Completions should be able to infer struct and map keys in more cases when variable is a result of function returning struct or map
+- ElixirLS will refuse to start if unable to create its files. This should limit the number of cases when server starts in faulty state
+
+#### Fixes
+
+- Fixed crash in completions when attribute expands to atom not being an elixir module
+- Fixed crash in completions when map has capitalized atom keys
+- Fixed crash on invalid alias expressions
+- Fixed crash when suggestion a variable that is known to be a struct
+- Removed 5s timeout on writing debugger output. This led to crashes under heavy load
+- Fixed language server crash when diagnostic use `IO.chardata` file location
+
+### v0.17.8: 9 November 2023
+
+#### Improvements
+
+- Added compatibility warning on OTP 26 and Windows
+- Raise more filesystem related errors to user. The server will now refuse to start if it cannot create its files in `.elixir_ls` directory
+
+#### Fixes
+
+- Fixed crash in completions when local function accidentally fuzzy matches `sigil_` prefix
+- Workaround for elixir crash when fetching docs and cwd is `nil`
+- Fixed crash in completions with invalid struct module
+- Fixed crash in completions when `__struct__` cannot be evaluated
+- Fixed crash in hover when inspecting not know metadata
+- Fixed crash in test code lense when describe block cannot be found
+- Fixed crash in debugger when process exits or continues during async variables retrieval
+- Fixed crash when publishing diagnostics and stacktrace entries does not specify file
+- Fixed crash in build when the server tries tu purge and recompile project and it is not currently loaded
+
+### v0.17.7: 6 November 2023
+
+#### Fixes
+
+- Fixed issue in formatter not being able to format files in non mix projects
+- Fixed language server crash when unable to suggest contracts
+- Fixed language server when handling delete file notification and tracer is not behaving correctly
+- Fixed crash in completions when defoverridable refers to delegated function
+- Fixed crash in type inference engine related to invalid handling of Map functions arguments
+- Fixed crash in completions when overridable function has non trivial parameters
+- Added missing clauses handling function call expansion in type inference engine
+
+### v0.17.6: 2 November 2023
+
+#### Improvements
+
+- Bring back partial support for elixir 1.12. Note that it's best effort and not all features will work
+- Directory issues with fish launch script fixed [Jamin Thornsberry](https://github.com/jaminthorns)
+- RTX activation in launch script now uses `env -s` instead of `activate` [Walton Hoops](https://github.com/Whoops)
+- Language server is now more resilient when cwd changes. Workaround added for elixir issue when Path.expand would unnecessarily evaluate File.cwd!
+- Tracer should now be able to recover when DETS files are corrupted
+- elixir_sense plugin crash is now handled and should not prevent completions
+
+#### Fixes
+
+- Fixed crash in debugger when on_load fails during module interpreting
+- Fixed crash in completions due to missing regex escapes
+- Fixed crash in document symbols on invalid typespec
+- Fixed crash in test code lense when test block cannot be found
+- Launch script properly uses custom `Mix.install`. This error made it fail on elixir 1.16. Not e that elixir 1.16 is not yet supported
+- Fixed crash in type inference incorrectly matching on typespec with arguments
+- Fixed crash in completions when callbacks from typespecs do not match those from docs
+
+### v0.17.5: 31 October 2023
+
+#### Improvements
+
+- Invalid environment variables config is now raised as message. Previously it would crash the server
+- Compile tracer is more error tolerant. It should now handle invalid DETS files and missing directories
+- Dialyzer is more error tolerant - it should now be able to recover from broken beam files on elixir 1.14+
+
+#### Fixes
+
+- Fixed crash when mix is unable to load deps. Loading of deps should now emit diagnostics
+- Fixed crash in complete when editing a map/struct
+- Fixed a crash in parser on `untitled:` schema files
+- Fixed a crash when emitting diagnostics and cwd is not present
+
+### v0.17.4: 30 October 2023
+
+#### Improvements
+
+- Dialyzer will now store beams in separate directories for each elixir/OTP combo. This should limit number of errors due to beam errors
+- Debugger will now use current directory if `projectDir` is not set. This makes it easier to setup in folderless configuration
+
+#### Fixes
+
+- Fixed complete crash with non Unicode characters
+- Fixed hover crash with functions with no args
+- Fixed complete crash when one of the apps gets unloaded
+- Fixed complete crash when struct/map has non atom keys
+- Fixed complete crash on non keyword import options
+- Fixed crash when type was incorrectly recognized
+- Fixed hover crash due to system limit
+- Fixed fish shell init script to work with paths containing whitespace [Julia](https://github.com/ForLoveOfCats)
+- Document symbols handle some more cases of invalid AST
+- Language server is now more careful with current directory. It should make it more stable when project dir cannot be changed into
+- Various cases of current directory usage fixed. This should improve stability during build when cwd changes
+- All references to `Mix.Project` moved under a build lock or made go through cache. This should improve stability during build when Mix.Project stack changes
+- Fix error prone usages of `String.starts_with?` as a way of checking if file is in directory
+- Language server made more stable with `autoBuild` disabled
+
+### v0.17.3: 24 October 2023
+
+#### Fixes
+
+- Fixed crash when language server tried to respond to cancelled requests. The bug was longstanding but changes from v0.17.2 exposed it
+- Fixed crash in hover provider when markdown header cannot be formatted
+- Fixed language server crash when reloading due to configuration change. The bug was longstanding but changes from v0.17.2 exposed it
+- Fixed a crash when hovering over struct field access
+- Fixed a dot call inference crash affecting various providers
+- Workaround AST parsing crash affecting various providers
+
+### v0.17.2: 23 October 2023
+
+#### Improvements
+
+- Better rendering of functions with many arguments in hover
+- Document symbols correctly annotate ranges of last element in do-block
+- ElixirLS will emit LSP and DAP telemetry events that clients can subscribe to
+
+#### Fixes
+
+- Fixed compilation error on modules using `Application.compile_env`. This problem was introduced in v0.17.0
+- Fixed a problem when old diagnostics would not be cleared after server restart
+
+### v0.17.1: 13 October 2023
+
+#### Fixes
+
+- Fixed a crash when emitting a diagnostic during file edit
+
+### v0.17.0: 11 October 2023
+
+#### Highlights
+
+- Language Server now emit parser errors and warnings on type in .ex, .exs and .eex files
+- Language Server provides better completions for elixir reserved words. Thanks [Kevin Kalb](https://github.com/kkalb) for initial work
+- Debugger now automatically breaks on `Kernel.dbg` macro. This allows inspecting variables, evaluating expressions and stepping through piped function calls. A setting `breakOnDbg` defaulting to `true` can be used to turn off that behaviour
+- Progress reports and cancel support added in debugger. This can be used to terminate long running evaluate requests.
+- Improved rendering of documentation in hover provider
+- Improved support for Unicode identifiers and atoms. Elixir supports Unicode identifiers since v1.5 and now all ElixirLS features should work with them
+
+#### Improvements
+
+- Added support for fish shell [Sergey Kislyakov](https://github.com/Defman21)
+- Consistently render parens for basic types in Suggest Contracts Code Lense and markdown
+- Debugger should now be better at handling some common crashes
+- Debugger now optimistically translates erlang versioned variable names to elixir names
+- Debugger emits better warnings when modules cannot be interpreted
+- Debugger can be launched with `"noDebug": true`. This allows `Run Without Debugging` in VSCode
+- Debugger will now emit exit code via `exited` DAP event. This allows tracking mix task result in debug session e.g. when running tests
+- New setting added to debugger `exitAfterTaskReturns`, defaulting to `true` - controls wether to end debug session when mix task returns
+- Language server will now reset cwd to project root after interrupted build
+- All ElixirLS dependencies are now vendored and should not conflict with client project dependencies
+- ElixirLS unloads deps used during startup and compilation
+- *nix launch scripts has been refactored and split into dedicated bash, fish, zsh [Florian Neumann](https://github.com/florianb)
+- A workaround for elixir formatter accidentally compiling the project has been implemented
+- Language fences added in complete/signature/hover provided markdown fragments
+- Language server stability should be improved by unloading project's applications. This works around elixir not updating application controller state after recompilation
+- Completions provider is now able to suggest keyword params on macros. Previously only functions was supported
+- Added `float` to list of bitstring modifiers in completions provider
+
+#### Fixes
+
+- Debugger will not allow mix task with a `/`
+- A bug preventing `do` completion when there's a whitespace after cursor has been fixed
+- Document symbol provider will not crash when unable to get selection location for AST node
+- Signature provider now highlights the correct parameter in calls with default arguments when default arguments are not after required ones
+- Completions now work correctly after Unicode characters
+- Do not error if client returns `null` to `workspace/configuration` reverse request
+- Fixed a crash when getting a parameter name from complex parameter type. This bug made completions on `:pg` module fail.
+- Fixed invalid aliases in scope inference when a submodule `__MODULE__.Some` is used
+
+#### Potential incompatibilities
+
+- Debugger will terminate the debug session and return result code when mix task returns. Previously, debugger would continue running. If the new behavior is not wanted, please set `exitAfterTaskReturns` to `false` in your launch configuration
+- `debugExpressionTimeoutMs` debugger launch configuration setting no longer has any effect. DAP `cancel` request can now be used to terminate long running debugger evaluate requests.
+- Debugger will now auto break on `Kernel.dbg` macro. If this is not intended consider setting `breakOnDbg` to `false` in your launch configuration
+
+### v0.16.0: 19 August 2023
+
+#### Highlights
+
+- Added support for [rtx](https://github.com/jdxcode/rtx) version manager.
+- Language server now returns diagnostics in config files for current configuration. Previously when there were compilation errors in config files an error with stacktrace would be returned on `mix.exs` instead of the config file.
+- Configuration management has been refactored and migrated to pull based approach. This addresses recent problem on VSCode when the server would start with default settings after a restart. Pull based `workspace/configuration` request has been added in LSP 3.6 and the pull based `workspace/didChangeConfiguration` with params is deprecated.
+- Language server now uses call arity in definition, implementation, references and hover providers. This means that if there are multiple arity variants, the documentation for correct ones will be presented. In case of incomplete code all variants with arity greater or equal to the number of arguments are considered.
+
+#### Improvements
+
+- Debugger is now able to set breakpoints in multiple modules in case one line maps to many modules
+- Completions provider will now trigger signature help when accepting a completion with 0-arity function when there higher arity versions available.
+- Completions provider will now trigger signature help when accepting a completion with a typespec of arity greater than 0.
+- Mix project modules pruning is more robust. This should address some rare crashes e.g. when `deps` directory is removed during a build.
+- Logger interception is more robust. This should address some rare crashes observed on elixir 1.15.
+- Install script no longer unnecessarily starts and stops applications. This should improve launch time.
+- On Unix systems launch script now uses `SHELL` environment variable to decide if it should prefer bash or zsh. Previously, bash was preferred.
+- Providers now rely on parser `token_metadata` when determining module and functions scopes. This allows for more accurate suggestions. Previous implementation was not able to provide module attribute completions inside module body when there were defs after the cursor.
+- Language server now provides documentation for builtin module attributes in hover and completions providers [Nguyễn Văn Đức](https://github.com/Goose97).
+- Hover provider returns documentation on reserved words and variables.
+- References provider is now able to find references to functions and module in current file. Previously only compiled modules were scanned for references.
+- Hover provider returns simple documentation for functions, typespecs and modules from the current file. Previously nothing was returned and a crash was logged.
+- Completions provider returns signatures for typespecs defined in current file.
+- Improved handling of defs with default params in signature help. Now only head signature is returned.
+- Language server is now able to provide signatures from behaviour or protocol in many cases.
+- Definition and references provider are now able to return result on variable remote calls when variable is known to be a module.
+- References provider is now able to track variable references outside of modules.
+- Improved type inference when variable is reassigned.
+- Providers consider local macros only after definition. This should improve correctness and reduce number of invalid completions.
+- Improved handling of `alias` and `require` with `warn:` option.
+
+#### Fixes
+
+- Fixed crash in debugger when setting a function breakpoint on not existing function
+- Setting breakpoints in `Inspect` protocol implementations is now forbidden. This protocol is used internally and hitting a breakpoint resulted in deadlock.
+- Debugger no longer interprets `JsonV.Encoder` protocol (a vendored version of `Json.Encoder`) used internally.
+- Fixed a case when completions provider would return only 1 variant of a function with multiple arities.
+- Completion and signature providers correctly return multiple `@spec` clauses. Previously only the first one was formatted properly.
+- Changing settings no longer results in notification about changed mix target.
+- `ELS_ELIXIR_OPTS` environment variable was not correctly word split when passed to elixir command.
+- Fixed a crash when launching debugger with default mix task (equivalent of running `mix`).
+- Completions provider suggests aliased structs after `%` [Nguyễn Văn Đức](https://github.com/Goose97)
+- Completions provider no longer returns `@@`.
+- Fixed a crash in completion provider when type in callback matched local without parens.
+- Improved `Mix.Task` module subtype detection. Previously are submodules of `Mix.Tasks` were considered. Now only ones exporting `run/1`. This error resulted in unnecessary completions.
+- Fixed a case when completions provider would suggest additional edit with `alias Elixir`.
+- Fixed a case when completions provider would suggest `Elixir.Elixir` [Nguyễn Văn Đức](https://github.com/Goose97)
+- Correctly return `alias` subtype in completions provider when suggesting an alias. Previously module was returned even if such module does not exist.
+- Completions provider suggests alias for all matched module parts. Previously only first match was considered.
+- Completions provider no longer suggests alias when the hint has more than one part. This means that additional edits with aliases will not be returned after `Some.Module.`.
+- Type of pinned variables is now correctly inferred [Nguyễn Văn Đức](https://github.com/Goose97)
+- Fixed AST parsing of protocol implementations without `for:`.
+- Fixed a case when definition provider was unable to locate variables inside multiline struct.
+- Implementation provider works with macrocallback implementations.
+- Fixed endless recursion when expanding `use` macro. This caused definition provider to hang when navigating to `Kernel` functions/macros.
+- Fixed rendering of docs for builtin typespecs.
+- Fixed a crash with definition provider over `__MODULE__`.
+- Fixed a case in AST parser when `@spec` or `@callback` would get overwritten. Now all definitions are collected.
+- Fixed rare crashes on elixir 1.15 with cursor over submodule of an attribute or variable.
+- Signature provider no longer reveals details of `@opaque` typespecs.
+- Fixed order of signatures in completions provider.
+- Fix signature render of erlang functions with multiple EIP48 documentation entries (e.g. `:erlang.system_info/1`).
+- Fixed render of callback signatures. Previously they were marked as `@spec`, now `@callback` or `@macrocallback`.
+- No parens locals are no longer treated as calls on elixir 1.15+.
+- Fixed cases when crash in AST parser would produce invalid metadata.
+- Fixed crash in completions with nested dot expression on elixir 1.15.
+- Fixed AST parsing when `quote` was used as variable.
+
+#### Potential incompatibilities
+
+- The language server will get configuration `workspace/configuration` if the client supports it. Previously it relied on `workspace/didChangeConfiguration` notification.
+
+### v0.15.1: 29 June 2023
+
+#### Improvements
+
+- This is the first release supporting OTP 26. Unfortunately due to bugs in OTP only 26.0.2+ is supported. See [886](https://github.com/elixir-lsp/elixir-ls/issues/886) and [923](https://github.com/elixir-lsp/elixir-ls/pull/923) for details
+
+#### Fixes
+
+- Fixed crash when handling `workspace/didChangeWatchedFiles` when `project_dir` not yet set
+- ExUnit test tracer is now under build lock. This should fix crashes due tu race conditions
+- Fixed completion of remote calls matching locals without parens (e.g. `Map.drop` when `drop` is local without parens from `ecto_sql`) [Milo Lee](https://github.com/oo6)
+
+### v0.15.0: 20 June 2023
+
+#### Improvements
+
+- This is the first release supporting Elixir 1.15. See [898](https://github.com/elixir-lsp/elixir-ls/pull/898) for details
+- Main distribution mode switched to `Mix.install` script. This allows running ElixirLS built with a correct combination of OTP and elixir. Previously used `.ez` releases suffered from numerous problems stemming from version incompatibilities (e.g. [193](https://github.com/elixir-lsp/elixir-ls/issues/193))
+- elixir_sense replaced many of its custom source parsing internals with elixir 1.13+ Code.Fragment APIs
+- `require` and `import` are now understood by elixir_sense. This improves accuracy of definition, hover, references and complete providers. For example only imports matching `only` and `except` options will now be suggested by complete provider.
+- When accepting a completion with a not required macro a `require` directive will be now added to module.
+- Reimplemented `use` macro expansion. This should improve accuracy.
+- Better handling of typespecs in elixir_sense. This should improve accuracy in modules with defs and types sharing the same name.
+- Added ability to pass command line options to elixir and erlang via `ELS_ELIXIR_OPTS` and `ELS_ERL_OPTS`. This allows for setting a node name and connecting remotely to language server and debugger.
+
+#### Fixes
+
+- Fixed a longstanding bug with formatter not respecting `.formatter.exs` when code is compiling (requires elixir 1.15) [Thomas Depierre](https://github.com/DianaOlympos)
+- Fixed invalid alias handling with submodules
+
+#### Breaking changes and deprecations
+
+- Elixir 1.12 is no longer supported
+- `.ez` archive based distribution is now deprecated
+
+### v0.14.6: 6 May 2023
+
+#### Improvements
+
+- added option `elixirLS.autoInsertRequiredAlias` controlling if complete provider
+will auto insert aliases [Zeke Dou](https://github.com/c4710n)
+
+#### Fixes
+
+- Pin elixir_sense, dialyxir and jason versions to ensure compatibility
+- Reduce long file names. This should fix compilation issues on some filesystems
+- Fixed crash in dialyzer
+
+### v0.14.5: 21 April 2023
+
+#### Fixes
+
+- Fixed regression in debugger not respecting `MIX_ENV` and `MIX_TARGET`
+- Silence output from `dialyxir` making client disconnect from the server on elixir < 1.14
+- Avoid serializing PID to JSON
+
+### v0.14.4: 20 April 2023
+
+#### Fixes
+
+- Fixed invalid encoding of messages with unicode strings. This should resolve issues when starting the server in in non-ASCII path
+
+### v0.14.3: 17 April 2023
+
+#### Fixes
+
+- Fixed compatibility with elixir 1.12 and 1.13 [Maciej Szlosarczyk](https://github.com/maciej-szlosarczyk)
+
+### v0.14.2: 15 April 2023
+
+#### Fixes
+
+- Print correct version
+
+### v0.14.1: 14 April 2023
+
+#### Fixes
+
+- Reorder startup sequence to avert mix crash
+
+### v0.14.0: 14 April 2023
+
+#### Improvements
+
+- Numerous improvements to variable tracking. This should make navigation to variable definition and references work correctly [Samuel Hełdak](https://github.com/sheldak)
+- Doctests can now be run via Test UI [Carl-Foster](https://github.com/Carl-Foster)
+- Fixed completions of records defined in the same file
+- Fixed support for `alias __MODULE__`
+- Silent crashes in dialyzer fixed
+- Document symbol provider now does not crash on incomplete typespec
+- Debugger now properly tracks running processes. Previously UI was not updated when new processes start or running not monitored processes exit
+- Debugger now respects `MIX_TARGET` environment variable
+- Undefined function diagnostics no longer emitted from `mix.exs` dependencies. Elixir `mix` swallows those warnings since 1.10
+- Builds now use `--all-warnings` flag on `mix compile`. This should result in more predictable diagnostics in umbrella apps.
+- Completion provider returns typespecs for struct properties in documentation if struct module defines type `t()`
+- Debugger now returns type of breakpoint in the hit event as required by DAP
+- Fixed crash when elixir-ls is run in a directory without `mix.exs`
+- References provider now can find references to elixir modules. Previously modules were found only when a function or macro from that module was called
+- Typespecs from behaviour module are used on callback implementations in completions, hover and specification providers
+- `@after_verify` attribute added in elixir 1.14 is recognized as builtin
+- Fixed edge cases when private def would overshadow a public one
+- Quoted expressions are now skipped when code AST is analyzed. There is low chance anything useful can be extracted from them
+- Submodule implicit alias behavior is now correctly implemented. This should improve quality in various providers
+- Fixed crash in references provider when reference does not have a line (e.g. in phoenix live views)
+
+### Refactorings
+
+- Mix Formatter now properly formats elixir-ls code from the top directory
+- Major refactoring of elixir-ls server driven by [Steve Cohen](https://github.com/scohen) is under way. It's not yet complete and can be tested by enabling experimental server. Thanks to others involved ([Scott Ming](https://github.com/scottming), [Samuel Hełdak](https://github.com/sheldak))
+- Language server now runs with consolidated protocols. Consolidation is disabled on each build with `--no-protocol-consolidation` flag on `mix compile`. This should make the server faster. The side effect is more protocol consolidation warnings printed to the console on elixir < 1.14.
+
+#### Deprecations
+
+- This is the last release supporting elixir 1.12
+
 ### v0.13.0: 8 January 2023
 
 #### Improvements
 
-- Completions now return LSP 3.17 `labelDetails`. This allows to provide more contextual detais to completion items
+- Completions now return LSP 3.17 `labelDetails`. This allows to provide more contextual details to completion items
 - Protocol implementations are no longer auto aliased
 - Completions requiring auto aliasing are deprioretized and visually marked
-- Optimisation of references tracing. It should make difference especially in macro heavy modules (e.g. Absinthe schemas)
+- Optimization of references tracing. It should make difference especially in macro heavy modules (e.g. Absinthe schemas)
 - Improvements to dependency reloading on switching branches.
 - Improved compatibility on Windows
 - Definitions provider improved handling of multiline variables [timgent](https://github.com/timgent)
@@ -60,19 +638,20 @@ Improvements:
 - Fixed dialyzer crash on OTP 25
 - Added support for mix formatter plugins ([Dalibor Horinek](https://github.com/DaliborHorinek))
 - Debugger now returns detailed info about ports, pids and function variables
-- Debugger completions now return detal field
+- Debugger completions now return detail field
 - Diagnostic positions now return column position returned by compiler (elixir 1.14+)
 - Diagnostic position fixed to never return invalid negative values
 - An exact `do` keyword completion is now preselected and more preferred over `defoverridable`
-- Fixed hexdoc links in hover for aliased modules and imported functions ([Milo Lee](https://github.com/oo6))
+- Fixed hexdocs links in hover for aliased modules and imported functions ([Milo Lee](https://github.com/oo6))
 - Better module name suggestions in Phoenix `live` directory ([Manos Emmanouilidis](https://github.com/bottlenecked))
 
 **Deprecations**
+
 - Minimum version of Elixir is now 1.11
 
 ### v0.10.0: 10 June 2022
 
-Improvements to debugger addapter:
+Improvements to debugger adapter:
 
 - A lot of new features around breakpoints: function breakpoints, conditional breakpoints, hit count and log points [#656](https://github.com/elixir-lsp/elixir-ls/pull/656), [#661](https://github.com/elixir-lsp/elixir-ls/pull/661), [#671](https://github.com/elixir-lsp/elixir-ls/pull/671) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 - Completions in debugger eval console [#679](https://github.com/elixir-lsp/elixir-ls/pull/679) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
@@ -109,7 +688,7 @@ VSCode:
 - New OTP 25 dialyzer settings (https://github.com/elixir-lsp/vscode-elixir-ls/commit/50a8a53fa79c14d2ea4031f872ec3d7cd32155f5) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
 - Compile time environment variables can now be set in extension config [#213](https://github.com/elixir-lsp/vscode-elixir-ls/pull/213) (thanks [vacarsu](https://github.com/vacarsu))
 - Additional watched extensions can now be set in extension config [#197](https://github.com/elixir-lsp/vscode-elixir-ls/pull/197) (thanks [Vanja Bucic](https://github.com/vanjabucic))
-- Improved unquite_slicing highlighting [#221](https://github.com/elixir-lsp/vscode-elixir-ls/pull/221) (thanks [Milo Lee](https://github.com/oo6))
+- Improved unquote_slicing highlighting [#221](https://github.com/elixir-lsp/vscode-elixir-ls/pull/221) (thanks [Milo Lee](https://github.com/oo6))
 - Improved string interpolation highlighting [#229](https://github.com/elixir-lsp/vscode-elixir-ls/pull/229) (thanks [Milo Lee](https://github.com/oo6))
 - Improved regex with < highlighting [#226](https://github.com/elixir-lsp/vscode-elixir-ls/pull/226) (thanks [Tiago Moraes](https://github.com/tiagoefmoraes))
 - Extension updated to use LSP v3.16 [#227](https://github.com/elixir-lsp/vscode-elixir-ls/pull/227) (thanks [Łukasz Samson](https://github.com/lukaszsamson))
@@ -121,6 +700,7 @@ thanks [Łukasz Samson](https://github.com/lukaszsamson), [Thanabodee Charoenpir
 ### v0.9.0: 4 December 2021
 
 Improvements:
+
 - Elixir 1.13 support (thanks [Łukasz Samson](https://github.com/lukaszsamson)) [#620](https://github.com/elixir-lsp/elixir-ls/pull/620)
 - Fix formatting performance problems with .formatter.exs in subdirectories (thanks [Jon Leighton](https://github.com/jonleighton)) [#609](https://github.com/elixir-lsp/elixir-ls/pull/609)
 - Allow watching additional extensions via `additionalWatchedExtensions` (thanks [Vanja Bucic](https://github.com/vanjabucic)) [#569](https://github.com/elixir-lsp/elixir-ls/pull/569)
@@ -128,17 +708,21 @@ Improvements:
 - Allow configuring debugExpressionTimeoutMs (thanks [Jason Axelson](https://github.com/axelson)) [#613](https://github.com/elixir-lsp/elixir-ls/pull/613)
 
 Changes:
+
 - Default `fetchDeps` to false (thanks [Jason Axelson](https://github.com/axelson)) [#633](https://github.com/elixir-lsp/elixir-ls/pull/633)
   - `fetchDeps` causes some bad race conditions, especially with Elixir 1.13
 
 Bug Fixes:
+
 - Add indentation following \"do\" completion (thanks [AJ Foster](https://github.com/aj-foster)) [#606](https://github.com/elixir-lsp/elixir-ls/pull/606)
 
 Housekeeping:
+
 - Add initial mkdocs documentation website (thanks [Daniils Petrovs](https://github.com/DaniruKun)) [#619](https://github.com/elixir-lsp/elixir-ls/pull/619)
 - Update to elixir-lsp fork of mix_task_archive_deps (thanks [Jason Axelson](https://github.com/axelson)) [#628](https://github.com/elixir-lsp/elixir-ls/pull/628)
 
 VSCode:
+
 - Change the default of `fetchDeps` to false (thanks [Jason Axelson](https://github.com/axelson)) [#189](https://github.com/elixir-lsp/vscode-elixir-ls/pull/189)
 - Allow configuring the debug expression timeout (thanks [Jason Axelson](https://github.com/axelson)) [#210](https://github.com/elixir-lsp/vscode-elixir-ls/pull/210)
 - Set which pairs of brackets should be colorized (thanks [S. Arjun](https://github.com/systemctl603)) [#207](https://github.com/elixir-lsp/vscode-elixir-ls/pull/207)
@@ -151,7 +735,7 @@ Improvements:
 
 Housekeeping:
 - Remove dependency on forms (thanks [Awlexus](https://github.com/Awlexus)) [#596](https://github.com/elixir-lsp/elixir-ls/pull/596)
-- CI releases: utilize auto seleciton of latest patch version (thanks [Po Chen](https://github.com/princemaple)) [#591](https://github.com/elixir-lsp/elixir-ls/pull/591)
+- CI releases: utilize auto selection of latest patch version (thanks [Po Chen](https://github.com/princemaple)) [#591](https://github.com/elixir-lsp/elixir-ls/pull/591)
 - Change minimum OTP version to 22 in warning message (thanks [Thanabodee Charoenpiriyakij](https://github.com/wingyplus)) [#592](https://github.com/elixir-lsp/elixir-ls/pull/592)
 - Fix various typos (thanks [Kian Meng Ang](https://github.com/kianmeng)) [#594](https://github.com/elixir-lsp/elixir-ls/pull/594)
 

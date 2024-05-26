@@ -577,7 +577,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_never_raises(text, uri, "toPipe")
 
-      assert {:error, :parse_error, "Function call not found at cursor"} =
+      assert {:error, :request_failed, "Function call not found at cursor", false} =
                ManipulatePipes.execute(
                  ["toPipe", uri, 4, 13],
                  %Server{
@@ -1144,7 +1144,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert_never_raises(text, uri, "fromPipe")
 
-      assert {:error, :parse_error, "Pipe operator not found at cursor"} =
+      assert {:error, :request_failed, "Pipe operator not found at cursor", false} =
                ManipulatePipes.execute(
                  ["fromPipe", uri, 4, 16],
                  %Server{

@@ -1,11 +1,13 @@
 defmodule ElixirLS.LanguageServer.Dialyzer do
-  alias ElixirLS.LanguageServer.{JsonRpc, Server}
+  alias ElixirLS.LanguageServer.{JsonRpc, Server, SourceFile, Diagnostics}
   alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, Utils, SuccessTypings}
   import Utils
   use GenServer
   require Logger
 
   defstruct [
+    :project_dir,
+    :deps_path,
     :parent,
     :timestamp,
     :plt,
@@ -31,14 +33,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     cond do
       not Code.ensure_loaded?(:dialyzer) ->
-        {:error,
+        # TODO is this check relevant? We check for dialyzer app in CLI
+        {:error, :no_dialyzer,
          "The current Erlang installation does not include Dialyzer. It may be available as a " <>
            "separate package."}
 
       not dialyzable?(System) ->
-        {:error,
+        {:error, :no_debug_info,
          "Dialyzer is disabled because core Elixir modules are missing debug info. " <>
-           "You may need to recompile Elixir with Erlang >= OTP 20"}
+           "You may need to recompile Elixir"}
 
       true ->
         :ok
@@ -49,10 +52,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     GenServer.start_link(__MODULE__, {parent, root_path}, name: {:global, {parent, __MODULE__}})
   end
 
-  def analyze(parent \\ self(), build_ref, warn_opts, warning_format) do
+  def analyze(parent \\ self(), build_ref, warn_opts, warning_format, project_dir) do
     GenServer.cast(
       {:global, {parent, __MODULE__}},
-      {:analyze, build_ref, warn_opts, warning_format}
+      {:analyze, build_ref, warn_opts, warning_format, project_dir}
     )
   end
 
@@ -73,8 +76,21 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     )
   end
 
-  def suggest_contracts(server \\ {:global, {self(), __MODULE__}}, files) do
-    GenServer.call(server, {:suggest_contracts, files}, :infinity)
+  def suggest_contracts(parent \\ self(), files)
+
+  def suggest_contracts(_parent, []), do: []
+
+  def suggest_contracts(parent, files) do
+    try do
+      GenServer.call({:global, {parent, __MODULE__}}, {:suggest_contracts, files}, :infinity)
+    catch
+      kind, payload ->
+        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        error_msg = Exception.format(kind, payload, stacktrace)
+
+        Logger.error("Unable to suggest contracts: #{error_msg}")
+        []
+    end
   end
 
   # Server callbacks
@@ -109,7 +125,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         _from,
         state
       ) do
-    diagnostics = to_diagnostics(warnings, state.warn_opts, state.warning_format)
+    diagnostics =
+      to_diagnostics(
+        warnings,
+        state.warn_opts,
+        state.warning_format,
+        state.project_dir,
+        state.deps_path
+      )
 
     Server.dialyzer_finished(state.parent, diagnostics, build_ref)
 
@@ -144,15 +167,26 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   @impl GenServer
-  def handle_cast({:analyze, build_ref, warn_opts, warning_format}, state) do
+  def handle_cast({:analyze, build_ref, warn_opts, warning_format, project_dir}, state) do
     state =
       ElixirLS.LanguageServer.Build.with_build_lock(fn ->
+        # we can safely access Mix.Project under build lock
         if Mix.Project.get() do
           Logger.info("[ElixirLS Dialyzer] Checking for stale beam files")
+          deps_path = Mix.Project.deps_path()
+          build_path = Mix.Project.build_path()
+
           new_timestamp = adjusted_timestamp()
 
           {removed_files, file_changes} =
-            update_stale(state.md5, state.removed_files, state.file_changes, state.timestamp)
+            update_stale(
+              state.md5,
+              state.removed_files,
+              state.file_changes,
+              state.timestamp,
+              project_dir,
+              build_path
+            )
 
           state = %{
             state
@@ -161,10 +195,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               removed_files: removed_files,
               file_changes: file_changes,
               build_ref: build_ref,
-              warning_format: warning_format
+              warning_format: warning_format,
+              project_dir: project_dir,
+              deps_path: deps_path
           }
 
-          trigger_analyze(state)
+          maybe_trigger_analyze(state)
         else
           state
         end
@@ -180,12 +216,36 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   @impl GenServer
   def terminate(reason, _state) do
-    if reason != :normal do
-      JsonRpc.show_message(
-        :error,
-        "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
-          "\"elixirLS.dialyzerEnabled\" to false in settings.json to disable it"
-      )
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      _other ->
+        ElixirLS.LanguageServer.Server.do_sanity_check()
+        message = Exception.format_exit(reason)
+
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => message
+          },
+          %{}
+        )
+
+        Logger.info("Terminating #{__MODULE__}: #{message}")
+
+        JsonRpc.show_message(
+          :error,
+          "ElixirLS Dialyzer had an error. If this happens repeatedly, set " <>
+            "\"elixirLS.dialyzerEnabled\" to false in settings.json to disable it"
+        )
     end
   end
 
@@ -208,27 +268,17 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     }
   end
 
-  defp trigger_analyze(%{analysis_pid: nil} = state), do: do_analyze(state)
-  defp trigger_analyze(state), do: state
+  defp maybe_trigger_analyze(%{analysis_pid: nil} = state), do: do_analyze(state)
+  defp maybe_trigger_analyze(state), do: state
 
-  defp update_stale(md5, removed_files, file_changes, timestamp) do
+  defp update_stale(md5, removed_files, file_changes, timestamp, project_dir, build_path) do
     prev_paths = Map.keys(md5) |> MapSet.new()
 
     # FIXME: Private API
-    consolidation_path = Mix.Project.consolidation_path()
-
-    consolidated_protocol_beams =
-      for path <- Path.join(consolidation_path, "*.beam") |> Path.wildcard(),
-          into: MapSet.new(),
-          do: Path.basename(path)
-
-    # FIXME: Private API
     all_paths =
-      for path <- Mix.Utils.extract_files([Mix.Project.build_path()], [:beam]),
-          Path.basename(path) not in consolidated_protocol_beams or
-            Path.dirname(path) == consolidation_path,
+      for path <- Mix.Utils.extract_files([build_path], [:beam]),
           into: MapSet.new(),
-          do: Path.relative_to_cwd(path)
+          do: Path.relative_to(path, project_dir)
 
     removed =
       prev_paths
@@ -248,16 +298,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           |> Enum.concat(new_paths)
           |> Enum.uniq()
 
-        changed_contents =
-          Task.async_stream(
-            changed,
-            fn file ->
-              content = File.read!(file)
-              {file, content, module_md5(file)}
-            end,
-            timeout: :infinity
-          )
-          |> Enum.into([])
+        changed_contents = get_changed_files_contents(changed)
 
         {changed, changed_contents}
       end)
@@ -267,17 +308,76 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     )
 
     file_changes =
-      Enum.reduce(changed_contents, file_changes, fn {:ok, {file, content, hash}}, file_changes ->
-        if is_nil(hash) or hash == md5[file] do
-          Map.delete(file_changes, file)
-        else
-          Map.put(file_changes, file, {content, hash})
-        end
+      Enum.reduce(changed_contents, file_changes, fn
+        {:ok, {file, content, hash}}, file_changes ->
+          if is_nil(hash) or hash == md5[file] do
+            Map.delete(file_changes, file)
+          else
+            Map.put(file_changes, file, {content, hash})
+          end
+
+        {:exit, reason}, file_changes ->
+          # on elixir >= 1.14 reason will actually be {beam_path, reason}
+
+          message = "Unable to process one of the beams: #{Exception.format_exit(reason)}"
+          Logger.error(message)
+
+          case reason do
+            {beam_path, _inner_reason} when is_binary(beam_path) or is_list(beam_path) ->
+              case File.rm_rf(beam_path) do
+                {:ok, _} ->
+                  Logger.info("Beam file #{inspect(beam_path)} removed")
+                  :ok
+
+                rm_error ->
+                  Logger.warning(
+                    "Unable to remove beam file #{inspect(beam_path)}: #{inspect(rm_error)}"
+                  )
+
+                  JsonRpc.show_message(
+                    :error,
+                    "ElixirLS Dialyzer is unable to process #{inspect(beam_path)}. Please remove it manually"
+                  )
+              end
+
+            _ ->
+              JsonRpc.show_message(
+                :error,
+                "ElixirLS Dialyzer is unable to process one of the beam files. Please remove .elixir_ls/dialyzer* directory manually"
+              )
+
+              :ok
+          end
+
+          file_changes
       end)
 
     undialyzable = for {:ok, {file, _, nil}} <- changed_contents, do: file
     removed_files = Enum.uniq(removed_files ++ removed ++ (undialyzable -- changed))
     {removed_files, file_changes}
+  end
+
+  defp get_changed_files_contents(changed) do
+    with_trapping_exits(fn ->
+      # TODO remove if when we require elixir 1.14
+      task_options =
+        if Version.match?(System.version(), ">= 1.14.0-dev") do
+          [zip_input_on_exit: true]
+        else
+          []
+        end
+        |> Keyword.put(:timeout, :infinity)
+
+      Task.async_stream(
+        changed,
+        fn file ->
+          content = File.read!(file)
+          {file, content, module_md5(file)}
+        end,
+        task_options
+      )
+      |> Enum.into([])
+    end)
   end
 
   defp extract_stale(sources, timestamp) do
@@ -298,7 +398,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   defp temp_file_path(root_path, file) do
-    Path.join([root_path, ".elixir_ls/dialyzer_tmp", file])
+    Path.join([
+      root_path,
+      ".elixir_ls/dialyzer_#{System.otp_release()}_#{System.version()}_tmp",
+      file
+    ])
   end
 
   defp write_temp_file(root_path, file_path, content) do
@@ -317,15 +421,18 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
       timestamp: timestamp,
       removed_files: removed_files,
       file_changes: file_changes,
-      build_ref: build_ref
+      build_ref: build_ref,
+      project_dir: project_dir
     } = state
 
     {us, {active_plt, mod_deps, md5, warnings}} =
       :timer.tc(fn ->
-        Task.async_stream(file_changes, fn {file, {content, _}} ->
-          write_temp_file(root_path, file, content)
+        with_trapping_exits(fn ->
+          Task.async_stream(file_changes, fn {file, {content, _}} ->
+            write_temp_file(root_path, file, content)
+          end)
+          |> Stream.run()
         end)
-        |> Stream.run()
 
         for file <- removed_files do
           path = temp_file_path(root_path, file)
@@ -338,12 +445,18 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
               :ok
 
             {:error, reason} ->
-              Logger.warn("Unable to remove temporary file #{path}: #{inspect(reason)}")
+              Logger.warning(
+                "[ElixirLS Dialyzer] Unable to remove temporary file #{path}: #{inspect(reason)}"
+              )
           end
         end
 
         temp_modules =
-          for file <- Path.wildcard(temp_file_path(root_path, "**/*.beam")), into: %{} do
+          for file <-
+                Path.wildcard(
+                  temp_file_path(SourceFile.Path.escape_for_wildcard(root_path), "**/*.beam")
+                ),
+              into: %{} do
             {String.to_atom(Path.basename(file, ".beam")), to_charlist(file)}
           end
 
@@ -377,13 +490,13 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         # Analyze!
         Logger.info(
           "[ElixirLS Dialyzer] Analyzing #{Enum.count(modules_to_analyze)} modules: " <>
-            "#{inspect(modules_to_analyze)}"
+            "#{inspect(Enum.sort(modules_to_analyze))}"
         )
 
         {active_plt, new_mod_deps, raw_warnings} = Analyzer.analyze(active_plt, files_to_analyze)
 
         mod_deps = update_mod_deps(mod_deps, new_mod_deps, removed_modules)
-        warnings = add_warnings(warnings, raw_warnings)
+        warnings = add_warnings(warnings, raw_warnings, project_dir)
 
         md5 = Map.drop(md5, removed_files)
 
@@ -397,6 +510,8 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
     Logger.info("[ElixirLS Dialyzer] Analysis finished in #{div(us, 1000)} milliseconds")
 
+    JsonRpc.telemetry("dialyzer", %{}, %{"elixir_ls.dialyzer_time" => div(us, 1000)})
+
     analysis_finished(parent, :ok, active_plt, mod_deps, md5, warnings, timestamp, build_ref)
   end
 
@@ -408,15 +523,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  defp add_warnings(warnings, raw_warnings) do
+  defp add_warnings(warnings, raw_warnings, project_dir) do
     new_warnings =
       for {_, {file, line, m_or_mfa}, _} = warning <- raw_warnings,
           module = resolve_module(m_or_mfa),
           # Dialyzer warnings have the file path at the start of the app it's
           # in, which breaks umbrella apps. We have to manually resolve the file
           # from the module instead.
-          file = resolve_module_file(module, file),
-          in_project?(file) do
+          file = resolve_module_file(module, file, project_dir),
+          in_project?(SourceFile.Path.absname(file, project_dir), project_dir) do
         {module, {file, line, warning}}
       end
 
@@ -428,14 +543,19 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   defp resolve_module(module) when is_atom(module), do: module
   defp resolve_module({module, _, _}) when is_atom(module), do: module
 
-  defp resolve_module_file(module, fallback) do
+  defp resolve_module_file(module, fallback, project_dir) do
     # We try to resolve the module to its source file. The only time the source
     # info may not be available is when it has been stripped by the beam_lib
     # module, but that shouldn't be the case. More info:
     # http://erlang.org/doc/reference_manual/modules.html#module_info-0-and-module_info-1-functions
-    module.module_info(:compile)
-    |> Keyword.get(:source, fallback)
-    |> Path.relative_to_cwd()
+    if Code.ensure_loaded?(module) do
+      module.module_info(:compile)
+      |> Keyword.get(:source, fallback)
+      |> Path.relative_to(project_dir)
+    else
+      # In case the file fails to load return fallback
+      Path.relative_to(fallback, project_dir)
+    end
   end
 
   defp dependent_modules(modules, mod_deps, result \\ MapSet.new())
@@ -454,8 +574,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  defp in_project?(path) do
-    File.exists?(path) and String.starts_with?(Path.absname(path), File.cwd!())
+  defp in_project?(path, project_dir) do
+    # path and project_dir is absolute path with universal separators
+    File.exists?(path) and SourceFile.Path.path_in_dir?(path, project_dir)
   end
 
   defp module_md5(file) do
@@ -464,26 +585,29 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         core_bin = :erlang.term_to_binary(core)
         :crypto.hash(:md5, core_bin)
 
-      {:error, _} ->
+      {:error, reason} ->
+        Logger.warning(
+          "[ElixirLS Dialyzer] get_core_from_beam failed for #{file}: #{inspect(reason)}"
+        )
+
         nil
     end
   end
 
-  defp to_diagnostics(warnings_map, warn_opts, warning_format) do
+  defp to_diagnostics(warnings_map, warn_opts, warning_format, project_dir, deps_path) do
     tags_enabled = Analyzer.matching_tags(warn_opts)
-    deps_path = Mix.Project.deps_path()
 
     for {_beam_file, warnings} <- warnings_map,
         {source_file, position, data} <- warnings,
         {tag, _, _} = data,
         tag in tags_enabled,
-        source_file = Path.absname(to_string(source_file)),
-        in_project?(source_file),
-        not String.starts_with?(source_file, deps_path) do
-      %Mix.Task.Compiler.Diagnostic{
+        source_file = SourceFile.Path.absname(to_string(source_file), project_dir),
+        in_project?(source_file, project_dir),
+        not SourceFile.Path.path_in_dir?(source_file, deps_path) do
+      %Diagnostics{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
-        position: normalize_postion(position),
+        position: normalize_position(position),
         message: warning_message(data, warning_format),
         severity: :warning,
         details: data
@@ -493,22 +617,25 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   # up until OTP 23 position was line :: non_negative_integer
   # starting from OTP 24 it is erl_anno:location() :: line | {line, column}
-  defp normalize_postion({line, column}) when line > 0 do
+  def normalize_position({line, column}) when line > 0 do
     {line, column}
   end
 
   # 0 means unknown line
-  defp normalize_postion(line) when line >= 0 do
+  def normalize_position(line) when line >= 0 do
     line
   end
 
-  defp normalize_postion(position) do
-    Logger.warn("dialyzer returned warning with invalid position #{inspect(position)}")
+  def normalize_position(position) do
+    Logger.warning(
+      "[ElixirLS Dialyzer] dialyzer returned warning with invalid position #{inspect(position)}"
+    )
+
     0
   end
 
-  defp warning_message({_, _, {warning_name, args}} = raw_warning, warning_format)
-       when warning_format in ["dialyxir_long", "dialyxir_short"] do
+  def warning_message({_, _, {warning_name, args}} = raw_warning, warning_format)
+      when warning_format in ["dialyxir_long", "dialyxir_short"] do
     format_function =
       case warning_format do
         "dialyxir_long" -> :format_long
@@ -525,11 +652,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  defp warning_message(raw_warning, "dialyzer") do
+  def warning_message(raw_warning, "dialyzer") do
     dialyzer_raw_warning_message(raw_warning)
   end
 
-  defp warning_message(raw_warning, warning_format) do
+  def warning_message(raw_warning, warning_format) do
     Logger.info(
       "[ElixirLS Dialyzer] Unrecognized dialyzerFormat setting: #{inspect(warning_format)}" <>
         ", falling back to \"dialyzer\""
@@ -540,7 +667,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp dialyzer_raw_warning_message(raw_warning) do
     message = String.trim(to_string(:dialyzer.format_warning(raw_warning)))
-    Regex.replace(Regex.recompile!(~r/^.*:\d+: /), message, "")
+    Regex.replace(~r/^.*:\d+: /u, message, "")
   end
 
   # Because mtime-based stale-checking has 1-second granularity, we err on the side of
@@ -555,5 +682,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   defp maybe_cancel_write_manifest(%{write_manifest_pid: pid}) do
     Process.unlink(pid)
     Process.exit(pid, :kill)
+  end
+
+  defp with_trapping_exits(fun) do
+    Process.flag(:trap_exit, true)
+    fun.()
+  after
+    Process.flag(:trap_exit, false)
   end
 end

@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator do
   @moduledoc false
-  alias Erl2ex.Convert.{Context, ErlForms}
-  alias Erl2ex.Pipeline.{Parse, ModuleData, ExSpec}
+  alias Erl2exVendored.Convert.{Context, ErlForms}
+  alias Erl2exVendored.Pipeline.{Parse, ModuleData, ExSpec}
 
   def translate_contract(fun, contract, is_macro, mod) do
     # FIXME: Private module
@@ -23,7 +23,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
     |> drop_macro_env(is_macro)
     |> improve_defprotocol_spec(mod, fun)
     |> Macro.to_string()
-    |> String.replace("()", "")
     |> Code.format_string!(line_length: :infinity)
     |> IO.iodata_to_binary()
     |> String.replace_prefix("foo", to_string(fun))
@@ -145,10 +144,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
     cond do
       Code.ensure_loaded?(mod) and function_exported?(mod, :__protocol__, 1) ->
         # defprotocol
-        # defs in defprotocol do not have when and have at least 1 arg
-        {:"::", [], [{:foo, [], [{:any, [], []} | rest]}, {:any, [], []}]} = ast
-        # first arg in defprotocol defs is always of type t
-        {:"::", [], [{:foo, [], [{:t, [], []} | rest]}, {:any, [], []}]}
+        case ast do
+          {:"::", [], [{:foo, [], [_ | rest_args]}, res]} ->
+            # ordinary defs in defprotocol do not have when and have at least 1 arg
+            # first arg in defprotocol defs is always of type t
+            {:"::", [], [{:foo, [], [{:t, [], []} | rest_args]}, res]}
+
+          {:"::", [], [{:foo, [], []}, _]} ->
+            # def with default arg
+            ast
+        end
 
       Code.ensure_loaded?(mod) and function_exported?(mod, :__impl__, 1) ->
         # defimpl

@@ -13,20 +13,20 @@ defmodule ElixirLS.Utils.MixTest.Case do
   @allowed_apps ~w(
     iex
     elixir_sense
-    elixir_ls_debugger
+    debug_adapter
     elixir_ls_utils
     language_server
     stream_data
     statistex
     patch
     deep_merge
-    erlex
+    erlex_vendored
     benchee
     path_glob_vendored
     dialyzer
     dialyxir_vendored
-    erl2ex
-    jason_vendored
+    erl2ex_vendored
+    jason_v
     )a
 
   setup do
@@ -80,6 +80,13 @@ defmodule ElixirLS.Utils.MixTest.Case do
     end)
   end
 
+  def in_tmp(which, function) do
+    path = tmp_path(which)
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    File.cd!(path, function)
+  end
+
   defmacro in_fixture(dir, which, block) do
     module = inspect(__CALLER__.module)
     function = Atom.to_string(elem(__CALLER__.function, 0))
@@ -109,9 +116,8 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
       for {mod, file} <- :code.all_loaded() -- previous,
           file == [] or (is_list(file) and List.starts_with?(file, flag)) do
-        mod
+        purge([mod])
       end
-      |> purge
     end
   end
 

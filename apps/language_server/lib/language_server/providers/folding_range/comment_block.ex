@@ -38,13 +38,14 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
     ranges =
       lines
       |> group_comments()
+      |> Enum.filter(fn group -> length(group) > 1 end)
       |> Enum.map(&convert_comment_group_to_range/1)
 
     {:ok, ranges}
   end
 
   @spec group_comments([Line.t()]) :: [[{Line.cell(), String.t()}]]
-  defp group_comments(lines) do
+  def group_comments(lines) do
     lines
     |> Enum.reduce([[]], fn
       {_, cell, "#"}, [[{_, "#"} | _] = head | tail] ->
@@ -59,7 +60,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
       _, acc ->
         acc
     end)
-    |> Enum.filter(fn group -> length(group) > 1 end)
   end
 
   @spec convert_comment_group_to_range([[{Line.cell(), String.t()}]]) :: FoldingRange.t()

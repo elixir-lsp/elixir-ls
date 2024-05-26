@@ -2,32 +2,51 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.JsonRpc
 
-  def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir)
+  def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir, mix_project?)
       when is_binary(project_dir) do
-    if can_format?(uri, project_dir) do
-      case SourceFile.formatter_for(uri) do
-        {:ok, {formatter, opts}} ->
-          if should_format?(uri, project_dir, opts[:inputs]) do
+    file_path = SourceFile.Path.absolute_from_uri(uri, project_dir)
+    # file_path and project_dir are absolute paths with universal separators
+    if SourceFile.Path.path_in_dir?(file_path, project_dir) do
+      # file in project_dir we find formatter and options for file
+      case SourceFile.formatter_for(uri, project_dir, mix_project?) do
+        {:ok, {formatter, opts, formatter_exs_dir}} ->
+          if should_format?(uri, formatter_exs_dir, opts[:inputs], project_dir) do
             do_format(source_file, formatter, opts)
           else
+            JsonRpc.show_message(
+              :info,
+              "File #{file_path} not included in #{Path.join(formatter_exs_dir, ".formatter.exs")}"
+            )
+
             {:ok, []}
           end
 
-        :error ->
-          {:error, :internal_error, "Unable to fetch formatter options"}
+        {:error, :project_not_loaded} ->
+          JsonRpc.show_message(
+            :error,
+            "Unable to find formatter for #{file_path}: Mix project is not loaded"
+          )
+
+          {:ok, []}
+
+        {:error, message} ->
+          JsonRpc.show_message(
+            :error,
+            "Unable to find formatter for #{file_path}: #{inspect(message)}"
+          )
+
+          {:ok, []}
       end
     else
-      msg =
-        "Cannot format file from current directory " <>
-          "(Currently in #{Path.relative_to(File.cwd!(), project_dir)})"
-
-      {:error, :internal_error, msg}
+      # if file is outside project_dir we format with default options
+      do_format(source_file, nil, [])
     end
   end
 
-  # if project_dir is not set or schema is not file: we format with default options
-  def format(%SourceFile{} = source_file, _uri, _project_dir) do
+  # if project_dir is not set or schema is not file we format with default options
+  def format(%SourceFile{} = source_file, _uri, _project_dir, _mix_project?) do
     do_format(source_file, nil, [])
   end
 
@@ -41,8 +60,9 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
 
     {:ok, response}
   rescue
-    _e in [TokenMissingError, SyntaxError] ->
-      {:error, :internal_error, "Unable to format due to syntax error"}
+    e ->
+      JsonRpc.show_message(:error, "Unable to format:\n#{Exception.message(e)}")
+      {:ok, []}
   end
 
   defp get_formatted(text, formatter, _) when is_function(formatter) do
@@ -53,46 +73,16 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     IO.iodata_to_binary([Code.format_string!(text, opts), ?\n])
   end
 
-  # If in an umbrella project, the cwd might be set to a sub-app if it's being compiled. This is
-  # fine if the file we're trying to format is in that app. Otherwise, we return an error.
-  defp can_format?(file_uri = "file:" <> _, project_dir) do
-    file_path = SourceFile.Path.absolute_from_uri(file_uri)
-
-    String.starts_with?(file_path, Path.absname(project_dir)) or
-      String.starts_with?(file_path, File.cwd!())
-  end
-
-  defp can_format?(_uri, _project_dir), do: false
-
-  defp should_format?(file_uri, project_dir, inputs) when is_list(inputs) do
-    file_path = SourceFile.Path.absolute_from_uri(file_uri)
-    formatter_dir = find_formatter_dir(project_dir, Path.dirname(file_path))
+  defp should_format?(file_uri, formatter_exs_dir, inputs, project_dir) when is_list(inputs) do
+    file_path = SourceFile.Path.absolute_from_uri(file_uri, project_dir)
 
     Enum.any?(inputs, fn input_glob ->
-      glob = Path.join(formatter_dir, input_glob)
+      glob = Path.join(formatter_exs_dir, input_glob)
       PathGlobVendored.match?(file_path, glob, match_dot: true)
     end)
   end
 
-  defp should_format?(_file_uri, _project_dir, _inputs), do: true
-
-  # Finds the deepest directory that contains file_path, that also contains a
-  # .formatter.exs. It's possible, though unlikely, that the .formatter.exs we
-  # find is not actually linked to the project_dir via the :subdirectories
-  # option in the top-level .formatter.exs. Currently, that edge case is
-  # glossed over.
-  defp find_formatter_dir(project_dir, dir) do
-    cond do
-      dir == project_dir ->
-        project_dir
-
-      Path.join(dir, ".formatter.exs") |> File.exists?() ->
-        dir
-
-      true ->
-        find_formatter_dir(project_dir, Path.dirname(dir))
-    end
-  end
+  defp should_format?(_file_uri, _formatter_exs_dir, _inputs, _project_dir), do: true
 
   defp myers_diff_to_text_edits(myers_diff) do
     myers_diff_to_text_edits(myers_diff, {0, 0}, [])

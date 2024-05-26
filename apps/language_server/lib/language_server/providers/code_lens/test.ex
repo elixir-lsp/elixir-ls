@@ -12,40 +12,39 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
   alias ElixirLS.LanguageServer.Providers.CodeLens.Test.DescribeBlock
   alias ElixirLS.LanguageServer.Providers.CodeLens.Test.TestBlock
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirSense.Core.Parser
+  alias ElixirLS.LanguageServer.Parser
 
   @run_test_command "elixir.lens.test.run"
 
-  def code_lens(uri = "file:" <> _, text, project_dir) do
-    with {:ok, buffer_file_metadata} <- parse_source(text) do
-      source_lines = SourceFile.lines(text)
+  def code_lens(
+        %Parser.Context{source_file: source_file, metadata: metadata, path: path},
+        project_dir
+      ) do
+    source_lines = SourceFile.lines(source_file)
 
-      file_path = SourceFile.Path.from_uri(uri)
+    calls_list =
+      metadata.calls
+      |> Enum.map(fn {_k, v} -> v end)
+      |> List.flatten()
 
-      calls_list =
-        buffer_file_metadata.calls
-        |> Enum.map(fn {_k, v} -> v end)
-        |> List.flatten()
+    lines_to_env_list =
+      metadata.lines_to_env
+      |> Enum.sort_by(&elem(&1, 0))
 
-      lines_to_env_list =
-        buffer_file_metadata.lines_to_env
-        |> Enum.sort_by(&elem(&1, 0))
+    describe_blocks = find_describe_blocks(lines_to_env_list, calls_list, source_lines)
+    describe_lenses = get_describe_lenses(describe_blocks, path, project_dir)
 
-      describe_blocks = find_describe_blocks(lines_to_env_list, calls_list, source_lines)
-      describe_lenses = get_describe_lenses(describe_blocks, file_path, project_dir)
+    test_lenses =
+      lines_to_env_list
+      |> find_test_blocks(calls_list, describe_blocks, source_lines)
+      |> get_test_lenses(path, project_dir)
 
-      test_lenses =
-        lines_to_env_list
-        |> find_test_blocks(calls_list, describe_blocks, source_lines)
-        |> get_test_lenses(file_path, project_dir)
+    module_lenses =
+      lines_to_env_list
+      |> get_test_modules()
+      |> get_module_lenses(path, project_dir)
 
-      module_lenses =
-        lines_to_env_list
-        |> get_test_modules()
-        |> get_module_lenses(file_path, project_dir)
-
-      {:ok, test_lenses ++ describe_lenses ++ module_lenses}
-    end
+    {:ok, test_lenses ++ describe_lenses ++ module_lenses}
   end
 
   defp get_test_lenses(test_blocks, file_path, project_dir) do
@@ -53,7 +52,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
       %{
         "filePath" => file_path,
         "testName" => block.name,
-        "projectDir" => project_dir
+        "projectDir" => project_dir,
+        "module" => inspect(block.module)
       }
       |> Map.merge(if block.describe != nil, do: %{"describe" => block.describe.name}, else: %{})
     end
@@ -70,17 +70,18 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
       CodeLens.build_code_lens(block.line, "Run tests", @run_test_command, %{
         "filePath" => file_path,
         "describe" => block.name,
-        "projectDir" => project_dir
+        "projectDir" => project_dir,
+        "module" => inspect(block.module)
       })
     end)
   end
 
   defp find_test_blocks(lines_to_env_list, calls_list, describe_blocks, source_lines) do
-    runnable_functions = [{:test, 3}, {:test, 2}]
+    runnable_functions = [test: 3, test: 2, doctest: 2, doctest: 1]
 
     for func <- runnable_functions,
         {line, _col} <- calls_to(calls_list, func) do
-      {_line, %{scope_id: scope_id}} =
+      {_line, %{scope_id: scope_id, module: module}} =
         Enum.find(lines_to_env_list, fn {env_line, _env} -> env_line == line end)
 
       describe =
@@ -89,12 +90,30 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
           describe.body_scope_id == scope_id
         end)
 
-      %{"name" => test_name} =
-        ~r/^\s*test "(?<name>.*)"(,.*)?/
-        |> Regex.named_captures(Enum.at(source_lines, line - 1))
+      test_name =
+        source_lines
+        |> Enum.at(line - 1)
+        |> String.trim()
+        |> case do
+          "test " <> rest ->
+            rest
+            |> String.split(~s("))
+            |> Enum.at(1)
 
-      %TestBlock{name: test_name, describe: describe, line: line}
+          "doctest" <> _ = line ->
+            line
+            |> String.split(~s(,))
+            |> Enum.at(0)
+
+          _ ->
+            nil
+        end
+
+      if test_name do
+        %TestBlock{name: test_name, describe: describe, line: line, module: module}
+      end
     end
+    |> Enum.reject(&is_nil/1)
   end
 
   defp find_describe_blocks(lines_to_env_list, calls_list, source_lines) do
@@ -108,6 +127,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
         source_lines
       )
     end
+    |> Enum.reject(&is_nil/1)
   end
 
   defp get_module_lenses(test_modules, file_path, project_dir) do
@@ -131,18 +151,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     for call_info <- calls_list,
         call_info.func == function and call_info.arity === arity do
       call_info.position
-    end
-  end
-
-  defp parse_source(text) do
-    buffer_file_metadata =
-      text
-      |> Parser.parse_string(true, true, 1)
-
-    if buffer_file_metadata.error != nil do
-      {:error, buffer_file_metadata}
-    else
-      {:ok, buffer_file_metadata}
     end
   end
 end

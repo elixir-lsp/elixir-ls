@@ -5,6 +5,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
   """
 
   alias ElixirLS.LanguageServer.Server
+  alias ElixirSense.Core.Ast
+  alias ElixirSense.Core.MacroExpander
+  alias ElixirSense.Core.State
+  alias ElixirSense.Core.Parser
+  alias ElixirSense.Core.Metadata
 
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
@@ -14,9 +19,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
     source_file = Server.get_source_file(state, uri)
     cur_text = source_file.text
 
+    # TODO change/move this
     if String.trim(text) != "" do
       formatted =
-        ElixirSense.expand_full(cur_text, text, line + 1)
+        expand_full(cur_text, text, line + 1)
         |> Map.new(fn {key, value} ->
           key =
             key
@@ -42,6 +48,50 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
          "expandOnce" => "\n",
          "expandPartial" => "\n"
        }}
+    end
+  end
+
+  def expand_full(buffer, code, line) do
+    buffer_file_metadata = Parser.parse_string(buffer, true, true, {line, 1})
+
+    env = Metadata.get_env(buffer_file_metadata, {line, 1})
+
+    do_expand_full(code, env)
+  end
+
+  def do_expand_full(code, %State.Env{} = env) do
+    # TODO function and other
+    env =
+      %Macro.Env{
+        macros: env.macros,
+        functions: env.functions,
+        module: env.module,
+        requires: env.requires,
+        aliases: env.aliases
+      }
+
+    try do
+      {:ok, expr} = code |> Code.string_to_quoted()
+
+      # Elixir require some meta to expand ast
+      expr = MacroExpander.add_default_meta(expr)
+
+      %{
+        expand_once: expr |> Macro.expand_once(env) |> Macro.to_string(),
+        expand: expr |> Macro.expand(env) |> Macro.to_string(),
+        expand_partial: expr |> Ast.expand_partial(env) |> Macro.to_string(),
+        expand_all: expr |> Ast.expand_all(env) |> Macro.to_string()
+      }
+    rescue
+      e ->
+        message = inspect(e)
+
+        %{
+          expand_once: message,
+          expand: message,
+          expand_partial: message,
+          expand_all: message
+        }
     end
   end
 end

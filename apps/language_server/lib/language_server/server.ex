@@ -17,8 +17,18 @@ defmodule ElixirLS.LanguageServer.Server do
 
   use GenServer
   require Logger
-  alias ElixirLS.LanguageServer.Server.Decider
-  alias ElixirLS.LanguageServer.{SourceFile, Build, Protocol, JsonRpc, Dialyzer, Diagnostics}
+
+  alias ElixirLS.LanguageServer.{
+    SourceFile,
+    Build,
+    Protocol,
+    JsonRpc,
+    Dialyzer,
+    DialyzerIncremental,
+    Diagnostics,
+    MixProjectCache,
+    Parser
+  }
 
   alias ElixirLS.LanguageServer.Providers.{
     Completion,
@@ -34,7 +44,9 @@ defmodule ElixirLS.LanguageServer.Server do
     OnTypeFormatting,
     CodeLens,
     ExecuteCommand,
-    FoldingRange
+    FoldingRange,
+    SelectionRanges,
+    CodeAction
   }
 
   alias ElixirLS.Utils.Launch
@@ -51,19 +63,26 @@ defmodule ElixirLS.LanguageServer.Server do
     :root_uri,
     :project_dir,
     :settings,
+    last_published_diagnostics_uris: [],
+    parser_diagnostics: %{},
+    document_versions_on_build: %{},
     build_diagnostics: [],
     dialyzer_diagnostics: [],
     needs_build?: false,
+    full_build_done?: false,
     build_running?: false,
     analysis_ready?: false,
     received_shutdown?: false,
     requests: %{},
+    requests_ids_by_pid: %{},
     # Tracks source files that are currently open in the editor
     source_files: %{},
     awaiting_contracts: [],
-    supports_dynamic: false,
     mix_project?: false,
-    no_mixfile_warned?: false
+    mix_env: nil,
+    mix_target: nil,
+    no_mixfile_warned?: false,
+    default_settings: %{}
   ]
 
   defmodule InvalidParamError do
@@ -73,6 +92,16 @@ defmodule ElixirLS.LanguageServer.Server do
     def exception(uri) do
       msg = "invalid URI: #{inspect(uri)}"
       %InvalidParamError{message: msg, uri: uri}
+    end
+  end
+
+  defmodule ContentModifiedError do
+    defexception [:uri, :message]
+
+    @impl true
+    def exception(uri) do
+      msg = "document URI: #{inspect(uri)} modified"
+      %ContentModifiedError{message: msg, uri: uri}
     end
   end
 
@@ -88,6 +117,8 @@ defmodule ElixirLS.LanguageServer.Server do
     ".heex",
     ".sface"
   ]
+
+  @default_config_timeout 3
 
   ## Client API
 
@@ -105,6 +136,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
   def dialyzer_finished(server \\ __MODULE__, diagnostics, build_ref) do
     GenServer.cast(server, {:dialyzer_finished, diagnostics, build_ref})
+  end
+
+  def parser_finished(server \\ __MODULE__, diagnostics) do
+    GenServer.cast(server, {:parser_finished, diagnostics})
   end
 
   def rebuild(server \\ __MODULE__) do
@@ -125,13 +160,91 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
-    case result do
-      {:error, type, msg} -> JsonRpc.respond_with_error(id, type, msg)
-      {:ok, result} -> JsonRpc.respond(id, result)
+  def terminate(reason, _state) do
+    case reason do
+      :normal ->
+        :ok
+
+      :shutdown ->
+        :ok
+
+      {:shutdown, _} ->
+        :ok
+
+      _other ->
+        do_sanity_check()
+        message = Exception.format_exit(reason)
+
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => message
+          },
+          %{}
+        )
+
+        Logger.error("Terminating #{__MODULE__}: #{message}")
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Terminating #{__MODULE__}: #{message}")
+        end
     end
 
-    state = %{state | requests: Map.delete(state.requests, id)}
+    :ok
+  end
+
+  @impl GenServer
+  def handle_call({:request_finished, id, result}, _from, state = %__MODULE__{}) do
+    # in case the request has been cancelled we silently ignore
+    {popped_request, updated_requests} = Map.pop(state.requests, id)
+
+    requests_ids_by_pid =
+      if popped_request do
+        {pid, ref, command, start_time} = popped_request
+        # we are no longer interested in :DOWN message
+        Process.demonitor(ref, [:flush])
+
+        case result do
+          {:error, type, msg, send_telemetry} ->
+            JsonRpc.respond_with_error(id, type, msg)
+
+            do_sanity_check(msg || to_string(type))
+
+            if send_telemetry do
+              JsonRpc.telemetry(
+                "lsp_request_error",
+                %{
+                  "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                  "elixir_ls.lsp_error" => to_string(type),
+                  "elixir_ls.lsp_error_message" => msg || to_string(type)
+                },
+                %{}
+              )
+            end
+
+          {:ok, result} ->
+            elapsed = System.monotonic_time(:millisecond) - start_time
+            JsonRpc.respond(id, result)
+
+            JsonRpc.telemetry(
+              "lsp_request",
+              %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
+              %{
+                "elixir_ls.lsp_request_time" => elapsed
+              }
+            )
+        end
+
+        Map.delete(state.requests_ids_by_pid, pid)
+      else
+        state.requests_ids_by_pid
+      end
+
+    state = %{state | requests: updated_requests, requests_ids_by_pid: requests_ids_by_pid}
     {:reply, :ok, state}
   end
 
@@ -139,8 +252,15 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_call({:suggest_contracts, uri = "file:" <> _}, from, state = %__MODULE__{}) do
     case state do
       %{analysis_ready?: true, source_files: %{^uri => %{dirty?: false}}} ->
-        abs_path = SourceFile.Path.absolute_from_uri(uri)
-        {:reply, Dialyzer.suggest_contracts([abs_path]), state}
+        abs_path = SourceFile.Path.absolute_from_uri(uri, state.project_dir)
+        parent = self()
+
+        spawn(fn ->
+          contracts = dialyzer_module(state.settings).suggest_contracts(parent, [abs_path])
+          GenServer.reply(from, contracts)
+        end)
+
+        {:noreply, state}
 
       %{source_files: %{^uri => _}} ->
         # file not saved or analysis not finished
@@ -170,41 +290,35 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, request(id, method, _) = packet}, state = %__MODULE__{}) do
-    new_state =
-      if Decider.handles?(:standard, method) do
-        handle_request_packet(id, packet, state)
-      else
-        state
-      end
+  def handle_cast({:parser_finished, diagnostics}, state = %__MODULE__{}) do
+    state =
+      %{state | parser_diagnostics: diagnostics}
+      |> publish_diagnostics()
+
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_cast({:receive_packet, request(id, _method, _) = packet}, state = %__MODULE__{}) do
+    new_state = handle_request_packet(id, packet, state)
 
     {:noreply, new_state}
   end
 
   @impl GenServer
   def handle_cast({:receive_packet, request(id, method)}, state = %__MODULE__{}) do
-    new_state =
-      if Decider.handles?(:standard, method) do
-        handle_request_packet(id, request(id, method, nil), state)
-      else
-        state
-      end
+    new_state = handle_request_packet(id, request(id, method, nil), state)
 
     {:noreply, new_state}
   end
 
   @impl GenServer
   def handle_cast(
-        {:receive_packet, notification(method) = packet},
+        {:receive_packet, notification(_method) = packet},
         state = %__MODULE__{received_shutdown?: false, server_instance_id: server_instance_id}
       )
       when is_initialized(server_instance_id) do
-    new_state =
-      if Decider.handles?(:standard, method) do
-        handle_notification(packet, state)
-      else
-        state
-      end
+    new_state = handle_notification(packet, state)
 
     {:noreply, new_state}
   end
@@ -213,12 +327,7 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_cast({:receive_packet, notification(_) = packet}, state = %__MODULE__{}) do
     case packet do
       notification("exit") ->
-        new_state =
-          if Decider.handles?(:standard, "exit") do
-            handle_notification(packet, state)
-          else
-            state
-          end
+        new_state = handle_notification(packet, state)
 
         {:noreply, new_state}
 
@@ -233,21 +342,18 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   @impl GenServer
+  def handle_info(:default_config, state = %__MODULE__{settings: nil}) do
+    Logger.warning(
+      "Did not receive workspace/didChangeConfiguration notification after #{@default_config_timeout} seconds. " <>
+        "The server will use default config."
+    )
+
+    state = set_settings(state, state.default_settings)
+    {:noreply, state}
+  end
+
   def handle_info(:default_config, state = %__MODULE__{}) do
-    state =
-      case state do
-        %{settings: nil} ->
-          Logger.warn(
-            "Did not receive workspace/didChangeConfiguration notification after 5 seconds. " <>
-              "Using default settings."
-          )
-
-          set_settings(state, %{})
-
-        _ ->
-          state
-      end
-
+    # we got workspace/didChangeConfiguration in time, nothing to do here
     {:noreply, state}
   end
 
@@ -258,110 +364,227 @@ defmodule ElixirLS.LanguageServer.Server do
       ) do
     state = %{state | build_running?: false}
 
-    state =
-      case reason do
-        :normal -> state
-        _ -> handle_build_result(:error, [Diagnostics.exception_to_diagnostic(reason)], state)
-      end
+    # in case the build was interrupted make sure that cwd is reset to project dir
+    case File.cd(state.project_dir) do
+      :ok ->
+        :ok
 
-    if reason == :normal do
-      WorkspaceSymbols.notify_build_complete()
+      {:error, reason} ->
+        message =
+          "Cannot change directory to project dir #{state.project_dir}: #{inspect(reason)}"
+
+        Logger.error(message)
+        JsonRpc.show_message(:error, message)
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn(message)
+        end
     end
 
-    state = if state.needs_build?, do: trigger_build(state), else: state
+    state =
+      case reason do
+        :normal ->
+          WorkspaceSymbols.notify_build_complete()
+          state
+
+        _ ->
+          message = Exception.format_exit(reason)
+
+          JsonRpc.telemetry(
+            "build_error",
+            %{"elixir_ls.build_error" => message},
+            %{}
+          )
+
+          path = Path.join(state.project_dir, MixfileHelpers.mix_exs())
+
+          handle_build_result(
+            :error,
+            [Diagnostics.from_shutdown_reason(reason, path, state.project_dir)],
+            state
+          )
+      end
+
+    state =
+      if state.needs_build? do
+        trigger_build(state)
+      else
+        state
+      end
+
     {:noreply, state}
   end
 
   @impl GenServer
-  def handle_info({:DOWN, _ref, :process, pid, reason}, %__MODULE__{requests: requests} = state) do
-    state =
-      case Enum.find(requests, &match?({_, ^pid}, &1)) do
-        {id, _} ->
-          error_msg = Exception.format_exit(reason)
-          JsonRpc.respond_with_error(id, :server_error, error_msg)
-          %{state | requests: Map.delete(requests, id)}
+  def handle_info(
+        {:DOWN, ref, :process, pid, reason},
+        %__MODULE__{requests: requests, requests_ids_by_pid: requests_ids_by_pid} = state
+      ) do
+    {id, updated_requests_ids_by_pid} = Map.pop(requests_ids_by_pid, pid)
 
-        nil ->
-          state
+    updated_requests =
+      if id do
+        {{^pid, ^ref, command, _start_time}, updated_requests} = Map.pop!(requests, id)
+        error_msg = Exception.format_exit(reason)
+        JsonRpc.respond_with_error(id, :internal_error, error_msg)
+
+        do_sanity_check(error_msg)
+
+        JsonRpc.telemetry(
+          "lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+            "elixir_ls.lsp_error" => :internal_error,
+            "elixir_ls.lsp_error_message" => error_msg
+          },
+          %{}
+        )
+
+        updated_requests
+      else
+        requests
       end
 
-    {:noreply, state}
+    {:noreply,
+     %{state | requests: updated_requests, requests_ids_by_pid: updated_requests_ids_by_pid}}
   end
 
   ## Helpers
 
   defp handle_notification(notification("initialized"), state = %__MODULE__{}) do
-    # If we don't receive workspace/didChangeConfiguration for 5 seconds, use default settings
-    Process.send_after(self(), :default_config, 5000)
+    # according to https://github.com/microsoft/language-server-protocol/issues/567#issuecomment-1060605611
+    # this is the best point to pull configuration
 
-    if state.supports_dynamic do
-      add_watched_extensions(state, @default_watched_extensions)
+    state = pull_configuration(state)
+
+    unless state.settings do
+      # We still don't have the configuration. Let's wait for workspace/didChangeConfiguration
+      Process.send_after(self(), :default_config, @default_config_timeout * 1000)
+    end
+
+    supports_dynamic_configuration_change_registration =
+      get_in(state.client_capabilities, [
+        "workspace",
+        "didChangeConfiguration",
+        "dynamicRegistration"
+      ])
+
+    if supports_dynamic_configuration_change_registration do
+      Logger.info("Registering for workspace/didChangeConfiguration notifications")
+      listen_for_configuration_changes(state.server_instance_id)
+    else
+      Logger.info("Client does not support workspace/didChangeConfiguration dynamic registration")
+    end
+
+    supports_dynamic_file_watcher_registration =
+      get_in(state.client_capabilities, [
+        "workspace",
+        "didChangeWatchedFiles",
+        "dynamicRegistration"
+      ])
+
+    if supports_dynamic_file_watcher_registration do
+      Logger.info("Registering for workspace/didChangeWatchedFiles notifications")
+      add_watched_extensions(state.server_instance_id, @default_watched_extensions)
+    else
+      Logger.info("Client does not support workspace/didChangeWatchedFiles dynamic registration")
     end
 
     state
   end
 
-  defp handle_notification(cancel_request(id), %__MODULE__{requests: requests} = state) do
-    case requests do
-      %{^id => pid} ->
+  defp handle_notification(
+         cancel_request(id),
+         %__MODULE__{requests: requests, requests_ids_by_pid: requests_ids_by_pid} = state
+       ) do
+    {request, updated_requests} = Map.pop(requests, id)
+
+    updated_requests_ids_by_pid =
+      if request do
+        {pid, ref, _command, _start_time} = request
+        # we are no longer interested in :DOWN message
+        Process.demonitor(ref, [:flush])
         Process.exit(pid, :cancelled)
         JsonRpc.respond_with_error(id, :request_cancelled, "Request cancelled")
-        %{state | requests: Map.delete(requests, id)}
+        Map.delete(requests_ids_by_pid, pid)
+      else
+        Logger.debug("Received $/cancelRequest for unknown request id: #{inspect(id)}")
+        requests_ids_by_pid
+      end
 
-      _ ->
-        Logger.warn("Received $/cancelRequest for unknown request id: #{inspect(id)}")
-
-        state
-    end
+    %{state | requests: updated_requests, requests_ids_by_pid: updated_requests_ids_by_pid}
   end
 
   # We don't start performing builds until we receive settings from the client in case they've set
-  # the `projectDir` or `mixEnv` settings. If the settings don't match the format expected, leave
-  # settings unchanged or set default settings if this is the first request.
+  # the `projectDir` or `mixEnv` settings.
+  # note that clients supporting `workspace/configuration` will send nil and we need to pull
   defp handle_notification(did_change_configuration(changed_settings), state = %__MODULE__{}) do
+    Logger.info("Received workspace/didChangeConfiguration")
     prev_settings = state.settings || %{}
 
-    new_settings =
-      case changed_settings do
-        %{"elixirLS" => settings} when is_map(settings) ->
-          Map.merge(prev_settings, settings)
+    case changed_settings do
+      %{"elixirLS" => settings} when is_map(settings) ->
+        Logger.info(
+          "Received client configuration via workspace/didChangeConfiguration\n#{inspect(settings)}"
+        )
 
-        _ ->
-          prev_settings
-      end
+        # deprecated push based configuration - interesting config updated
+        new_settings = Map.merge(prev_settings, settings)
+        set_settings(state, new_settings)
 
-    set_settings(state, new_settings)
+      nil ->
+        # pull based configuration
+        # on notification the server should pull current configuration
+        # see https://github.com/microsoft/language-server-protocol/issues/1792
+        pull_configuration(state)
+
+      _ ->
+        # deprecated push based configuration - some other config updated
+        set_settings(state, prev_settings)
+    end
   end
 
   defp handle_notification(notification("exit"), state = %__MODULE__{}) do
     code = if state.received_shutdown?, do: 0, else: 1
 
-    unless Application.get_env(:language_server, :test_mode) do
-      System.halt(code)
+    unless :persistent_term.get(:language_server_test_mode, false) do
+      System.stop(code)
     else
-      Process.exit(self(), {:exit_code, code})
+      Logger.info("Received exit with code #{code}")
     end
 
     state
   end
 
-  defp handle_notification(did_open(uri, _language_id, version, text), state = %__MODULE__{}) do
+  defp handle_notification(did_open(uri, language_id, version, text), state = %__MODULE__{}) do
     if Map.has_key?(state.source_files, uri) do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didOpen for file that is already open. Received uri: #{inspect(uri)}"
       )
 
       state
     else
-      source_file = %SourceFile{text: text, version: version}
+      unless String.valid?(text) do
+        JsonRpc.telemetry(
+          "lsp_server_error",
+          %{
+            "elixir_ls.lsp_process" => inspect(__MODULE__),
+            "elixir_ls.lsp_server_error" => "File not valid on open:\n#{inspect(text)}"
+          },
+          %{}
+        )
 
-      Diagnostics.publish_file_diagnostics(
-        uri,
-        state.build_diagnostics ++ state.dialyzer_diagnostics,
-        source_file
-      )
+        Logger.error("File not valid on open:\n#{inspect(text)}")
+      end
+
+      source_file = %SourceFile{text: text, version: version, language_id: language_id}
+
+      Parser.parse_with_debounce(uri, source_file)
 
       put_in(state.source_files[uri], source_file)
     end
@@ -370,13 +593,15 @@ defmodule ElixirLS.LanguageServer.Server do
   defp handle_notification(did_close(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
       # A close notification requires a previous open notification to be sent
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didClose for file that is not open. Received uri: #{inspect(uri)}"
       )
 
       state
     else
       awaiting_contracts = reject_awaiting_contracts(state.awaiting_contracts, uri)
+
+      Parser.notify_closed(uri)
 
       %{
         state
@@ -391,22 +616,48 @@ defmodule ElixirLS.LanguageServer.Server do
       # The source file was not marked as open either due to a bug in the
       # client or a restart of the server. So just ignore the message and do
       # not update the state
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didChange for file that is not open. Received uri: #{inspect(uri)}"
       )
 
       state
     else
-      update_in(state.source_files[uri], fn source_file ->
-        %SourceFile{source_file | version: version, dirty?: true}
-        |> SourceFile.apply_content_changes(content_changes)
-      end)
+      state =
+        update_in(state.source_files[uri], fn source_file ->
+          # LSP 3.17: The version number points to the version after all provided content changes have
+          # been applied
+          updated_source_file =
+            %SourceFile{source_file | version: version, dirty?: true}
+            |> SourceFile.apply_content_changes(content_changes)
+
+          Parser.parse_with_debounce(uri, updated_source_file)
+
+          unless String.valid?(updated_source_file.text) do
+            JsonRpc.telemetry(
+              "lsp_server_error",
+              %{
+                "elixir_ls.lsp_process" => inspect(__MODULE__),
+                "elixir_ls.lsp_server_error" =>
+                  "File not valid after: #{inspect(content_changes)} text was:\n#{inspect(source_file.text)}"
+              },
+              %{}
+            )
+
+            Logger.error(
+              "File not valid after: #{inspect(content_changes)} text was:\n#{inspect(source_file.text)}"
+            )
+          end
+
+          updated_source_file
+        end)
+
+      state
     end
   end
 
   defp handle_notification(did_save(uri), state = %__MODULE__{}) do
     if not Map.has_key?(state.source_files, uri) do
-      Logger.warn(
+      Logger.warning(
         "Received textDocument/didSave for file that is not open. Received uri: #{inspect(uri)}"
       )
 
@@ -418,7 +669,11 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_watched_files(changes), state = %__MODULE__{}) do
+  defp handle_notification(
+         did_change_watched_files(changes),
+         state = %__MODULE__{project_dir: project_dir}
+       )
+       when is_binary(project_dir) do
     changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
 
     # `settings` may not always be available here, like during testing
@@ -438,11 +693,9 @@ defmodule ElixirLS.LanguageServer.Server do
              state.source_files[uri].dirty?)
       end)
 
-    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
     deleted_paths =
       for change <- changes,
           change["type"] == 3,
-          uniq: true,
           do: SourceFile.Path.from_uri(change["uri"])
 
     for path <- deleted_paths do
@@ -468,7 +721,7 @@ defmodule ElixirLS.LanguageServer.Server do
                   acc
 
                 {:error, reason} ->
-                  Logger.warn("Unable to read #{uri}: #{inspect(reason)}")
+                  Logger.warning("Unable to read #{uri}: #{inspect(reason)}")
                   # keep dirty if read fails
                   acc
               end
@@ -481,13 +734,20 @@ defmodule ElixirLS.LanguageServer.Server do
 
     state = %{state | source_files: source_files}
 
-    # TODO remove uniq when duplicated subscriptions from vscode plugin are fixed
     changes
     |> Enum.map(& &1["uri"])
-    |> Enum.uniq()
     |> WorkspaceSymbols.notify_uris_modified()
 
-    if needs_build, do: trigger_build(state), else: state
+    if needs_build do
+      trigger_build(state)
+    else
+      state
+    end
+  end
+
+  defp handle_notification(did_change_watched_files(_changes), state = %__MODULE__{}) do
+    # swallow notification if we are not in mix_project
+    state
   end
 
   defp handle_notification(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
@@ -496,7 +756,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(packet, state = %__MODULE__{}) do
-    Logger.warn("Received unmatched notification: #{inspect(packet)}")
+    Logger.warning("Received unmatched notification: #{inspect(packet)}")
     state
   end
 
@@ -506,40 +766,174 @@ defmodule ElixirLS.LanguageServer.Server do
          state = %__MODULE__{server_instance_id: server_instance_id}
        )
        when not is_initialized(server_instance_id) do
+    start_time = System.monotonic_time(:millisecond)
+
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
-        {:ok, result, state} = handle_request(packet, state)
-        JsonRpc.respond(id, result)
-        state
+        try do
+          {:ok, result, state} = handle_request(packet, state)
+          elapsed = System.monotonic_time(:millisecond) - start_time
+          JsonRpc.respond(id, result)
+
+          JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
+            "elixir_ls.lsp_request_time" => elapsed
+          })
+
+          state
+        catch
+          kind, payload ->
+            {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+            error_msg = Exception.format(kind, payload, stacktrace)
+
+            # on error in initialize the protocol requires to respond with
+            # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initializeError
+            # the initialize request can fail on broken OTP installs, no point in retrying
+            JsonRpc.respond_with_error(id, :internal_error, error_msg, %{
+              "retry" => false
+            })
+
+            do_sanity_check(error_msg)
+
+            JsonRpc.telemetry(
+              "lsp_request_error",
+              %{
+                "elixir_ls.lsp_command" => "initialize",
+                "elixir_ls.lsp_error" => :internal_error,
+                "elixir_ls.lsp_error_message" => error_msg
+              },
+              %{}
+            )
+
+            state
+        end
 
       _ ->
         JsonRpc.respond_with_error(id, :server_not_initialized)
+
+        JsonRpc.telemetry(
+          "lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => "initialize",
+            "elixir_ls.lsp_error" => :server_not_initialized,
+            "elixir_ls.lsp_error_message" => "Server not initialized"
+          },
+          %{}
+        )
+
         state
     end
   end
 
-  defp handle_request_packet(id, packet, state = %__MODULE__{received_shutdown?: false}) do
-    case handle_request(packet, state) do
-      {:ok, result, state} ->
-        JsonRpc.respond(id, result)
-        state
+  defp handle_request_packet(
+         id,
+         packet = %{"method" => command},
+         state = %__MODULE__{received_shutdown?: false}
+       ) do
+    command =
+      case packet do
+        execute_command_req(_id, custom_command_with_server_id, _args) ->
+          command <> ":" <> (ExecuteCommand.get_command(custom_command_with_server_id) || "")
 
-      {:error, type, msg, state} ->
-        JsonRpc.respond_with_error(id, type, msg)
-        state
+        _ ->
+          command
+      end
 
-      {:async, fun, state} ->
-        {pid, _ref} = handle_request_async(id, fun)
-        %{state | requests: Map.put(state.requests, id, pid)}
+    start_time = System.monotonic_time(:millisecond)
+
+    try do
+      case handle_request(packet, state) do
+        {:ok, result, state} ->
+          elapsed = System.monotonic_time(:millisecond) - start_time
+          JsonRpc.respond(id, result)
+
+          JsonRpc.telemetry(
+            "lsp_request",
+            %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
+            %{
+              "elixir_ls.lsp_request_time" => elapsed
+            }
+          )
+
+          state
+
+        {:error, type, msg, send_telemetry, state} ->
+          JsonRpc.respond_with_error(id, type, msg)
+
+          do_sanity_check(msg)
+
+          if send_telemetry do
+            JsonRpc.telemetry(
+              "lsp_request_error",
+              %{
+                "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                "elixir_ls.lsp_error" => type,
+                "elixir_ls.lsp_error_message" => msg
+              },
+              %{}
+            )
+          end
+
+          state
+
+        {:async, fun, state} ->
+          {pid, ref} = handle_request_async(id, fun)
+
+          %{
+            state
+            | requests: Map.put(state.requests, id, {pid, ref, command, start_time}),
+              requests_ids_by_pid: Map.put(state.requests_ids_by_pid, pid, id)
+          }
+      end
+    rescue
+      e in InvalidParamError ->
+        JsonRpc.respond_with_error(id, :invalid_params, e.message)
+
+        JsonRpc.telemetry(
+          "lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+            "elixir_ls.lsp_error" => :invalid_params,
+            "elixir_ls.lsp_error_message" => e.message
+          },
+          %{}
+        )
+
+        state
+    catch
+      kind, payload ->
+        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        error_msg = Exception.format(kind, payload, stacktrace)
+        JsonRpc.respond_with_error(id, :internal_error, error_msg)
+
+        do_sanity_check(error_msg)
+
+        JsonRpc.telemetry(
+          "lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+            "elixir_ls.lsp_error" => :internal_error,
+            "elixir_ls.lsp_error_message" => error_msg
+          },
+          %{}
+        )
+
+        state
     end
-  rescue
-    e in InvalidParamError ->
-      JsonRpc.respond_with_error(id, :invalid_params, e.message)
-      state
   end
 
-  defp handle_request_packet(id, _packet, state = %__MODULE__{}) do
+  defp handle_request_packet(id, _packet = %{"method" => command}, state = %__MODULE__{}) do
     JsonRpc.respond_with_error(id, :invalid_request)
+
+    JsonRpc.telemetry(
+      "lsp_request_error",
+      %{
+        "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+        "elixir_ls.lsp_error" => :invalid_request,
+        "elixir_ls.lsp_error_message" => "Invalid Request"
+      },
+      %{}
+    )
+
     state
   end
 
@@ -556,29 +950,19 @@ defmodule ElixirLS.LanguageServer.Server do
     state =
       case root_uri do
         "file://" <> _ ->
-          root_path = SourceFile.Path.absolute_from_uri(root_uri)
-          File.cd!(root_path)
-          cwd_uri = SourceFile.Path.to_uri(File.cwd!())
-          %{state | root_uri: cwd_uri}
+          %{state | root_uri: root_uri}
 
         nil ->
           state
       end
 
-    # Explicitly request file watchers from the client if supported
-    supports_dynamic =
-      get_in(client_capabilities, [
-        "textDocument",
-        "codeAction",
-        "dynamicRegistration"
-      ])
-
     state = %{
       state
       | client_capabilities: client_capabilities,
-        server_instance_id: server_instance_id,
-        supports_dynamic: supports_dynamic
+        server_instance_id: server_instance_id
     }
+
+    :persistent_term.put(:language_server_client_capabilities, client_capabilities)
 
     {:ok,
      %{
@@ -598,7 +982,9 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Definition.definition(uri, source_file.text, line, character)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+      Definition.definition(uri, parser_context, line, character, state.project_dir)
     end
 
     {:async, fun, state}
@@ -608,7 +994,9 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Implementation.implementation(uri, source_file.text, line, character)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+      Implementation.implementation(uri, parser_context, line, character, state.project_dir)
     end
 
     {:async, fun, state}
@@ -621,13 +1009,17 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+
       {:ok,
        References.references(
-         source_file.text,
+         parser_context,
          uri,
          line,
          character,
-         include_declaration
+         include_declaration,
+         state.project_dir
        )}
     end
 
@@ -638,7 +1030,9 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      Hover.hover(source_file.text, line, character, state.project_dir)
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+      Hover.hover(parser_context, line, character)
     end
 
     {:async, fun, state}
@@ -655,8 +1049,10 @@ defmodule ElixirLS.LanguageServer.Server do
           "hierarchicalDocumentSymbolSupport"
         ]) || false
 
-      if String.ends_with?(uri, [".ex", ".exs"]) do
-        DocumentSymbols.symbols(uri, source_file.text, hierarchical?)
+      if String.ends_with?(uri, [".ex", ".exs", ".eex"]) or
+           source_file.language_id in ["elixir", "eex", "html-eex"] do
+        parser_context = Parser.parse_immediate(uri, source_file)
+        DocumentSymbols.symbols(uri, parser_context, hierarchical?)
       else
         {:ok, []}
       end
@@ -674,6 +1070,8 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(completion_req(_id, uri, line, character), state = %__MODULE__{}) do
+    settings = state.settings || %{}
+
     source_file = get_source_file(state, uri)
 
     snippets_supported =
@@ -708,13 +1106,23 @@ defmodule ElixirLS.LanguageServer.Server do
       !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
 
     locals_without_parens =
-      case SourceFile.formatter_for(uri) do
-        {:ok, {_, opts}} -> Keyword.get(opts, :locals_without_parens, [])
-        :error -> []
+      case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
+        {:ok, {_, opts, _formatter_exs_dir}} ->
+          locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
+
+          if List.improper?(locals_without_parens) do
+            []
+          else
+            locals_without_parens
+          end
+
+        {:error, _} ->
+          []
       end
       |> MapSet.new()
 
-    signature_after_complete = Map.get(state.settings || %{}, "signatureAfterComplete", true)
+    auto_insert_required_alias = Map.get(settings, "autoInsertRequiredAlias", true)
+    signature_after_complete = Map.get(settings, "signatureAfterComplete", true)
 
     path =
       case uri do
@@ -723,12 +1131,16 @@ defmodule ElixirLS.LanguageServer.Server do
       end
 
     fun = fn ->
-      Completion.completion(source_file.text, line, character,
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+
+      Completion.completion(parser_context, line, character,
         snippets_supported: snippets_supported,
         deprecated_supported: deprecated_supported,
         tags_supported: tags_supported,
         signature_help_supported: signature_help_supported,
         locals_without_parens: locals_without_parens,
+        auto_insert_required_alias: auto_insert_required_alias,
         signature_after_complete: signature_after_complete,
         file_path: path
       )
@@ -739,13 +1151,20 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(formatting_req(_id, uri, _options), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
-    fun = fn -> Formatting.format(source_file, uri, state.project_dir) end
+    fun = fn -> Formatting.format(source_file, uri, state.project_dir, state.mix_project?) end
     {:async, fun, state}
   end
 
   defp handle_request(signature_help_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
-    fun = fn -> SignatureHelp.signature(source_file, line, character) end
+
+    fun = fn ->
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+      # TODO not working for eex
+      SignatureHelp.signature(parser_context, line, character)
+    end
+
     {:async, fun, state}
   end
 
@@ -756,7 +1175,12 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      OnTypeFormatting.format(source_file, line, character, ch, options)
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        OnTypeFormatting.format(source_file, line, character, ch, options)
+      else
+        # TODO no support for eex
+        {:ok, nil}
+      end
     end
 
     {:async, fun, state}
@@ -766,19 +1190,12 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      with {:ok, spec_code_lenses} <- get_spec_code_lenses(state, uri, source_file),
-           {:ok, test_code_lenses} <- get_test_code_lenses(state, uri, source_file) do
-        {:ok, spec_code_lenses ++ test_code_lenses}
-      else
-        {:error, %ElixirSense.Core.Metadata{error: {line, error_msg}}} ->
-          {:error, :code_lens_error, "#{line}: #{error_msg}"}
+      parser_context = Parser.parse_immediate(uri, source_file)
+      {:ok, spec_code_lenses} = get_spec_code_lenses(state, uri, source_file)
 
-        {:error, error} ->
-          {:error, :code_lens_error, "Error while building code lenses: #{inspect(error)}"}
+      {:ok, test_code_lenses} = get_test_code_lenses(state, uri, parser_context)
 
-        error ->
-          error
-      end
+      {:ok, spec_code_lenses ++ test_code_lenses}
     end
 
     {:async, fun, state}
@@ -808,8 +1225,8 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async,
      fn ->
        case ExecuteCommand.execute(command, args, state) do
-         {:error, :invalid_request, _msg} = res ->
-           Logger.warn("Unmatched request: #{inspect(req)}")
+         {:error, :invalid_request, _msg, _} = res ->
+           Logger.warning("Unmatched request: #{inspect(req)}")
            res
 
          other ->
@@ -819,24 +1236,60 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(folding_range_req(_id, uri), state = %__MODULE__{}) do
-    case get_source_file(state, uri) do
-      nil ->
-        {:error, :server_error, "Missing source file", state}
+    source_file = get_source_file(state, uri)
 
-      source_file ->
-        fun = fn -> FoldingRange.provide(source_file) end
-        {:async, fun, state}
+    fun = fn ->
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        FoldingRange.provide(source_file)
+      else
+        # TODO no support for eex
+        {:ok, []}
+      end
     end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(selection_range_req(_id, uri, positions), state = %__MODULE__{}) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        formatter_opts =
+          case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
+            {:ok, {_, opts, _formatter_exs_dir}} -> opts
+            {:error, _} -> []
+          end
+
+        ranges =
+          SelectionRanges.selection_ranges(source_file.text, positions,
+            formatter_opts: formatter_opts
+          )
+
+        {:ok, ranges}
+      else
+        # TODO no support for eex
+        {:ok, []}
+      end
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(code_action_req(_id, uri, diagnostics), state = %__MODULE__{}) do
+    source_file = get_source_file(state, uri)
+
+    {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, state}
   end
 
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
-    {:error, :method_not_found, nil, state}
+    {:error, :method_not_found, nil, false, state}
   end
 
   defp handle_request(req, state = %__MODULE__{}) do
-    Logger.warn("Unmatched request: #{inspect(req)}")
-    {:error, :invalid_request, nil, state}
+    Logger.warning("Unmatched request: #{inspect(req)}")
+    {:error, :invalid_request, nil, false, state}
   end
 
   defp handle_request_async(id, func) do
@@ -848,7 +1301,10 @@ defmodule ElixirLS.LanguageServer.Server do
           func.()
         rescue
           e in InvalidParamError ->
-            {:error, :invalid_params, e.message}
+            {:error, :invalid_params, e.message, true}
+
+          e in ContentModifiedError ->
+            {:error, :content_modified, e.message, true}
         end
 
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
@@ -874,6 +1330,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
+      "selectionRangeProvider" => true,
       "renameProvider" => %{"prepareProvider" => true},
       "executeCommandProvider" => %{
         "commands" => ExecuteCommand.get_commands(server_instance_id)
@@ -881,12 +1338,15 @@ defmodule ElixirLS.LanguageServer.Server do
       "workspace" => %{
         "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
       },
-      "foldingRangeProvider" => true
+      "foldingRangeProvider" => true,
+      "codeActionProvider" => true
     }
   end
 
   defp get_spec_code_lenses(state = %__MODULE__{}, uri, source_file) do
-    if dialyzer_enabled?(state) and !!state.settings["suggestSpecs"] do
+    enabled? = Map.get(state.settings || %{}, "suggestSpecs", true)
+
+    if state.mix_project? and dialyzer_enabled?(state) and enabled? do
       CodeLens.spec_code_lens(state.server_instance_id, uri, source_file.text)
     else
       {:ok, []}
@@ -894,26 +1354,33 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp get_test_code_lenses(state = %__MODULE__{}, uri, source_file) do
-    get_test_code_lenses(
-      state,
-      uri,
-      source_file,
-      state.settings["enableTestLenses"] || false,
-      Mix.Project.umbrella?()
-    )
+    # TODO check why test run from lense fails when autoBuild is disabled
+    enabled? =
+      Map.get(state.settings || %{}, "autoBuild", true) and
+        Map.get(state.settings || %{}, "enableTestLenses", false)
+
+    if state.mix_project? and enabled? and MixProjectCache.loaded?() do
+      get_test_code_lenses(
+        state,
+        uri,
+        source_file,
+        MixProjectCache.umbrella?()
+      )
+    else
+      {:ok, []}
+    end
   end
 
   defp get_test_code_lenses(
          state = %__MODULE__{project_dir: project_dir},
          "file:" <> _ = uri,
-         source_file,
-         true = _enabled,
+         parser_context,
          true = _umbrella
        )
        when is_binary(project_dir) do
     file_path = SourceFile.Path.from_uri(uri)
 
-    Mix.Project.apps_paths()
+    MixProjectCache.apps_paths()
     |> Enum.find(fn {_app, app_path} -> under_app?(file_path, project_dir, app_path) end)
     |> case do
       nil ->
@@ -921,7 +1388,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
       {app, app_path} ->
         if is_test_file?(file_path, state, app, app_path) do
-          CodeLens.test_code_lens(uri, source_file.text, Path.join(project_dir, app_path))
+          CodeLens.test_code_lens(parser_context, Path.join(project_dir, app_path))
         else
           {:ok, []}
         end
@@ -931,16 +1398,15 @@ defmodule ElixirLS.LanguageServer.Server do
   defp get_test_code_lenses(
          %__MODULE__{project_dir: project_dir},
          "file:" <> _ = uri,
-         source_file,
-         true = _enabled,
+         parser_context,
          false = _umbrella
        )
        when is_binary(project_dir) do
     try do
       file_path = SourceFile.Path.from_uri(uri)
 
-      if is_test_file?(file_path) do
-        CodeLens.test_code_lens(uri, source_file.text, project_dir)
+      if is_test_file?(file_path, project_dir) do
+        CodeLens.test_code_lens(parser_context, project_dir)
       else
         {:ok, []}
       end
@@ -949,7 +1415,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp get_test_code_lenses(%__MODULE__{}, _uri, _source_file, _, _), do: {:ok, []}
+  defp get_test_code_lenses(%__MODULE__{}, _uri, _parser_context, _), do: {:ok, []}
 
   defp is_test_file?(file_path, state = %__MODULE__{project_dir: project_dir}, app, app_path)
        when is_binary(project_dir) do
@@ -961,19 +1427,21 @@ defmodule ElixirLS.LanguageServer.Server do
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
-    file_path = Path.expand(file_path)
+    file_path = SourceFile.Path.expand(file_path, project_dir)
 
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.any?(fn path -> String.ends_with?(file_path, path) end)
   end
 
-  defp is_test_file?(file_path) do
-    test_paths = Mix.Project.config()[:test_paths] || ["test"]
-    test_pattern = Mix.Project.config()[:test_pattern] || "*_test.exs"
-    file_path = Path.expand(file_path)
+  defp is_test_file?(file_path, project_dir) do
+    config = MixProjectCache.config()
+    test_paths = config[:test_paths] || ["test"]
+    test_pattern = config[:test_pattern] || "*_test.exs"
+
+    file_path = SourceFile.Path.expand(file_path, project_dir)
 
     Mix.Utils.extract_files(test_paths, test_pattern)
-    |> Enum.map(&Path.absname/1)
+    |> Enum.map(&SourceFile.Path.absname(&1, project_dir))
     |> Enum.any?(&(&1 == file_path))
   end
 
@@ -986,27 +1454,74 @@ defmodule ElixirLS.LanguageServer.Server do
 
   # Build
 
-  defp trigger_build(state = %__MODULE__{project_dir: project_dir}) do
-    build_automatically = Map.get(state.settings || %{}, "autoBuild", true)
-
+  defp trigger_build(
+         state = %__MODULE__{project_dir: project_dir, full_build_done?: full_build_done?}
+       ) do
     cond do
-      not build_enabled?(state) ->
+      not is_binary(project_dir) ->
         state
 
-      not state.build_running? and build_automatically ->
-        fetch_deps? = Map.get(state.settings || %{}, "fetchDeps", false)
+      not state.build_running? ->
+        opts = [
+          fetch_deps?: Map.get(state.settings || %{}, "fetchDeps", false),
+          compile?: Map.get(state.settings || %{}, "autoBuild", true),
+          force?: not full_build_done?
+        ]
 
-        {_pid, build_ref} = Build.build(self(), project_dir, fetch_deps?: fetch_deps?)
+        {_pid, build_ref} =
+          case File.cwd() do
+            {:ok, cwd} ->
+              if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
+                Build.build(self(), project_dir, opts)
+              else
+                Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
+                {nil, nil}
+              end
+
+            {:error, reason} ->
+              Logger.warning(
+                "cwd is not accessible: #{inspect(reason)}, trying to change directory back to #{project_dir}"
+              )
+
+              # cwd is not accessible
+              # try to change back to project dir
+              case File.cd(project_dir) do
+                :ok ->
+                  Build.build(self(), project_dir, opts)
+
+                {:error, reason} ->
+                  message =
+                    "Cannot change directory to project dir #{project_dir}: #{inspect(reason)}"
+
+                  Logger.error(message)
+                  JsonRpc.show_message(:error, message)
+
+                  unless :persistent_term.get(:language_server_test_mode, false) do
+                    Process.sleep(2000)
+                    System.halt(1)
+                  else
+                    IO.warn(message)
+                  end
+              end
+          end
+
+        document_versions_on_build =
+          Map.new(state.source_files, fn {uri, source_file} -> {uri, source_file.version} end)
 
         %__MODULE__{
           state
           | build_ref: build_ref,
             needs_build?: false,
             build_running?: true,
-            analysis_ready?: false
+            analysis_ready?: false,
+            build_diagnostics: [],
+            dialyzer_diagnostics: [],
+            document_versions_on_build: document_versions_on_build
         }
+        |> publish_diagnostics()
 
       true ->
+        # build already running, schedule another one
         %__MODULE__{state | needs_build?: true, analysis_ready?: false}
     end
   end
@@ -1016,7 +1531,12 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    Dialyzer.analyze(state.build_ref, warn_opts, dialyzer_default_format(state))
+    dialyzer_module(state.settings).analyze(
+      state.build_ref,
+      warn_opts,
+      dialyzer_default_format(state),
+      state.project_dir
+    )
 
     state
   end
@@ -1038,44 +1558,36 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_build_result(status, diagnostics, state = %__MODULE__{}) do
-    old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
-    state = put_in(state.build_diagnostics, diagnostics)
+    do_sanity_check()
 
     state =
-      cond do
-        state.needs_build? ->
-          state
-
-        status == :error or not dialyzer_enabled?(state) ->
-          put_in(state.dialyzer_diagnostics, [])
-
-        true ->
-          dialyze(state)
+      if state.needs_build? or status == :error or not dialyzer_enabled?(state) do
+        state
+      else
+        dialyze(state)
       end
 
-    publish_diagnostics(
-      state.build_diagnostics ++ state.dialyzer_diagnostics,
-      old_diagnostics,
-      state.source_files
-    )
+    state =
+      if state.needs_build? do
+        # do not publish diagnostics if we need another build
+        state
+      else
+        put_in(state.build_diagnostics, diagnostics)
+        |> publish_diagnostics()
+      end
 
-    state
+    %{state | full_build_done?: if(status == :ok, do: true, else: state.full_build_done?)}
   end
 
   defp handle_dialyzer_result(diagnostics, build_ref, state = %__MODULE__{}) do
-    old_diagnostics = state.build_diagnostics ++ state.dialyzer_diagnostics
-    state = put_in(state.dialyzer_diagnostics, diagnostics)
-
-    publish_diagnostics(
-      state.build_diagnostics ++ state.dialyzer_diagnostics,
-      old_diagnostics,
-      state.source_files
-    )
-
     # If these results were triggered by the most recent build and files are not dirty, then we know
     # we're up to date and can release spec suggestions to the code lens provider
     if build_ref == state.build_ref do
       Logger.info("Dialyzer analysis is up to date")
+
+      state =
+        put_in(state.dialyzer_diagnostics, diagnostics)
+        |> publish_diagnostics()
 
       {dirty, not_dirty} =
         state.awaiting_contracts
@@ -1083,60 +1595,160 @@ defmodule ElixirLS.LanguageServer.Server do
           Map.fetch!(state.source_files, uri).dirty?
         end)
 
-      contracts_by_file =
-        not_dirty
-        |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
-        |> Dialyzer.suggest_contracts()
-        |> Enum.group_by(fn {file, _, _, _, _} -> file end)
+      # Dialyzer.suggest_contracts is blocking and can take a long time to complete
+      # if we block here we hang the server
+      parent = self()
 
-      for {from, uri} <- not_dirty do
-        contracts =
-          contracts_by_file
-          |> Map.get(SourceFile.Path.from_uri(uri), [])
+      spawn(fn ->
+        contracts_by_file =
+          not_dirty
+          |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
+          |> then(fn uris -> dialyzer_module(state.settings).suggest_contracts(parent, uris) end)
+          |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
-        GenServer.reply(from, contracts)
-      end
+        for {from, uri} <- not_dirty do
+          contracts =
+            contracts_by_file
+            |> Map.get(SourceFile.Path.from_uri(uri), [])
+
+          GenServer.reply(from, contracts)
+        end
+      end)
 
       %{state | analysis_ready?: true, awaiting_contracts: dirty}
     else
+      # do not publish diagnostics if those results are not for the current build
       state
     end
   end
 
-  defp build_enabled?(state = %__MODULE__{}) do
-    is_binary(state.project_dir)
-  end
-
   defp dialyzer_enabled?(state = %__MODULE__{}) do
-    Dialyzer.check_support() == :ok and build_enabled?(state) and state.dialyzer_sup != nil
+    state.dialyzer_sup != nil
   end
 
-  defp safely_read_file(file) do
+  defp safely_read_file("file:" <> _ = uri) do
+    file = SourceFile.Path.from_uri(uri)
+
     case File.read(file) do
       {:ok, text} ->
-        text
+        if String.valid?(text) do
+          text
+        else
+          Logger.warning("Invalid encoding in #{file}")
+          nil
+        end
 
       {:error, reason} ->
         if reason != :enoent do
-          Logger.warn("Couldn't read file #{file}: #{inspect(reason)}")
+          Logger.warning("Cannot read file #{file}: #{inspect(reason)}")
         end
 
         nil
     end
   end
 
-  defp publish_diagnostics(new_diagnostics, old_diagnostics, source_files) do
-    files =
-      Enum.uniq(Enum.map(new_diagnostics, & &1.file) ++ Enum.map(old_diagnostics, & &1.file))
+  defp safely_read_file(_uri), do: nil
 
-    for file <- files,
-        uri = SourceFile.Path.to_uri(file),
-        do:
-          Diagnostics.publish_file_diagnostics(
-            uri,
-            new_diagnostics,
-            Map.get_lazy(source_files, uri, fn -> safely_read_file(file) end)
-          )
+  defp publish_diagnostics(
+         state = %__MODULE__{
+           project_dir: project_dir,
+           mix_project?: mix_project?,
+           source_files: source_files,
+           last_published_diagnostics_uris: last_published_diagnostics_uris
+         }
+       ) do
+    # we need to publish diagnostics for all uris in current diagnostics
+    # to clear diagnostics we need to push empty sets for uris from last push
+    # in case we missed something or restarted and don't have old diagnostics uris
+    # we also push for all open files
+
+    uris_from_parser_diagnostics = Map.keys(state.parser_diagnostics)
+
+    valid_build_and_dialyzer_diagnostics_by_uri =
+      (state.build_diagnostics ++ state.dialyzer_diagnostics)
+      |> Enum.map(fn %Diagnostics{file: file} = diagnostic ->
+        if is_binary(file) or (is_list(file) and to_string(file) != "nofile") do
+          diagnostic
+        else
+          # diagnostics without file are meaningless in LSP, try to point to mixfile instead
+          if project_dir != nil and mix_project? do
+            file = Path.join(project_dir, MixfileHelpers.mix_exs())
+            %Diagnostics{diagnostic | file: file, source: file, position: 0}
+          end
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.group_by(fn
+        %Diagnostics{file: file} -> SourceFile.Path.to_uri(file, project_dir)
+      end)
+
+    uris_from_build_and_dialyzer_diagnostics =
+      Map.keys(valid_build_and_dialyzer_diagnostics_by_uri)
+
+    uris_from_open_files = Map.keys(source_files)
+
+    uris_to_publish_diagnostics =
+      Enum.uniq(
+        last_published_diagnostics_uris ++
+          uris_from_parser_diagnostics ++
+          uris_from_build_and_dialyzer_diagnostics ++ uris_from_open_files
+      )
+
+    for uri <- uris_to_publish_diagnostics do
+      {parser_diagnostics_document_version, parser_diagnostics} =
+        Map.get(state.parser_diagnostics, uri, {nil, []})
+
+      build_document_version = Map.get(state.document_versions_on_build, uri)
+
+      build_and_dialyzer_diagnostics =
+        Map.get(valid_build_and_dialyzer_diagnostics_by_uri, uri, [])
+
+      {version, uri_diagnostics} =
+        cond do
+          is_integer(parser_diagnostics_document_version) and is_integer(build_document_version) and
+              parser_diagnostics_document_version > build_document_version ->
+            # document open and edited since build was triggered
+            # parser diagnostics are more recent, discard build and dialyzer
+            {parser_diagnostics_document_version, parser_diagnostics}
+
+          is_integer(parser_diagnostics_document_version) and is_integer(build_document_version) and
+              parser_diagnostics_document_version == build_document_version ->
+            # document open and not edited since build was triggered
+            # parser build and dialyzer diagnostics are recent
+            # prefer them as they will likely contain the same warnings as parser ones
+            {build_document_version,
+             if(build_and_dialyzer_diagnostics != [],
+               do: build_and_dialyzer_diagnostics,
+               else: parser_diagnostics
+             )}
+
+          is_integer(parser_diagnostics_document_version) and is_nil(build_document_version) ->
+            # document open but was closed when build was triggered
+            # document could have been edited
+            # combine diagnostics
+            # they can be duplicated but it is not trivial to deduplicate here
+            # instead we deduplicate on publish with rendered messages
+            {parser_diagnostics_document_version,
+             parser_diagnostics ++ build_and_dialyzer_diagnostics}
+
+          true ->
+            # document closed
+            # don't emit parser diagnostics
+            # return build diagnostics with possibly nil version
+            {build_document_version, build_and_dialyzer_diagnostics}
+        end
+
+      Diagnostics.publish_file_diagnostics(
+        uri,
+        uri_diagnostics,
+        Map.get_lazy(source_files, uri, fn -> safely_read_file(uri) end),
+        version
+      )
+
+      # TODO dump last_published_diagnostics_uris to file?
+    end
+
+    %{state | last_published_diagnostics_uris: uris_to_publish_diagnostics}
   end
 
   defp show_version_warnings do
@@ -1149,8 +1761,27 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     case Dialyzer.check_support() do
-      :ok -> :ok
-      {:error, msg} -> JsonRpc.show_message(:warning, msg)
+      :ok ->
+        JsonRpc.telemetry(
+          "dialyzer_support",
+          %{
+            "elixir_ls.dialyzer_support" => to_string(true),
+            "elixir_ls.dialyzer_support_reason" => ""
+          },
+          %{}
+        )
+
+      {:error, reason, msg} ->
+        JsonRpc.show_message(:warning, msg)
+
+        JsonRpc.telemetry(
+          "dialyzer_support",
+          %{
+            "elixir_ls.dialyzer_support" => to_string(false),
+            "elixir_ls.dialyzer_support_reason" => to_string(reason)
+          },
+          %{}
+        )
     end
 
     :ok
@@ -1158,10 +1789,74 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp set_settings(state = %__MODULE__{}, settings) do
     enable_dialyzer =
-      Dialyzer.check_support() == :ok && Map.get(settings, "dialyzerEnabled", true)
+      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) and
+        Map.get(settings, "dialyzerEnabled", true)
+
+    if enable_dialyzer do
+      dialyzer_warn_opts = Map.get(settings, "dialyzerWarnOpts", [])
+
+      if not (is_list(dialyzer_warn_opts) and Enum.all?(dialyzer_warn_opts, &is_binary/1)) do
+        Logger.error("Invalid `dialyzerWarnOpts` #{inspect(dialyzer_warn_opts)}")
+
+        JsonRpc.show_message(
+          :error,
+          "Invalid `dialyzerWarnOpts` in configuration. Expected list of strings or nil, got #{inspect(dialyzer_warn_opts)}."
+        )
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Invalid `dialyzerWarnOpts` #{inspect(dialyzer_warn_opts)}")
+        end
+
+        all_warns =
+          ElixirLS.LanguageServer.Dialyzer.Analyzer.all_warns() |> Enum.map(&to_string/1)
+
+        for opt <- dialyzer_warn_opts, opt not in all_warns do
+          Logger.error("Invalid `dialyzerWarnOpts`: unknown warning option `#{opt}`")
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `dialyzerWarnOpts` in configuration. Unknown warning option `#{opt}`."
+          )
+
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn("Invalid `dialyzerWarnOpts`: unknown warning option `#{opt}`")
+          end
+        end
+      end
+
+      dialyzer_formats = [
+        "dialyzer",
+        "dialyxir_short",
+        "dialyxir_long"
+      ]
+
+      dialyzer_format = Map.get(settings, "dialyzerFormat", "dialyxir_long")
+
+      if dialyzer_format not in dialyzer_formats do
+        Logger.error("Invalid `dialyzerFormat` #{inspect(dialyzer_format)}")
+
+        JsonRpc.show_message(
+          :error,
+          "Invalid `dialyzerFormat` in configuration. Expected one of #{Enum.join(dialyzer_formats, ", ")} or nil, got #{inspect(dialyzer_format)}."
+        )
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Invalid `dialyzerFormat` #{inspect(dialyzer_format)}")
+        end
+      end
+    end
 
     env_vars = Map.get(settings, "envVariables")
-    mix_env = Map.get(settings, "mixEnv", "test")
+    mix_env = Map.get(settings, "mixEnv")
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
     additional_watched_extensions = Map.get(settings, "additionalWatchedExtensions", [])
@@ -1170,45 +1865,133 @@ defmodule ElixirLS.LanguageServer.Server do
       state
       |> maybe_set_env_vars(env_vars)
       |> set_mix_env(mix_env)
-      |> maybe_set_mix_target(mix_target)
+      |> set_mix_target(mix_target)
       |> set_project_dir(project_dir)
+      |> Map.put(:settings, settings)
       |> set_dialyzer_enabled(enable_dialyzer)
-      |> add_watched_extensions(additional_watched_extensions)
 
-    maybe_rebuild(state)
+    add_watched_extensions(state.server_instance_id, additional_watched_extensions)
+
+    # maybe_rebuild(state)
     state = create_gitignore(state)
-    Tracer.set_project_dir(state.project_dir)
-    trigger_build(%{state | settings: settings})
+
+    if state.mix_project? do
+      :persistent_term.put(:language_server_project_dir, state.project_dir)
+      WorkspaceSymbols.notify_settings_stored()
+      Tracer.notify_settings_stored()
+    end
+
+    JsonRpc.telemetry(
+      "lsp_config",
+      %{
+        "elixir_ls.projectDir" => to_string(Map.get(settings, "projectDir", "") != ""),
+        "elixir_ls.autoBuild" => to_string(Map.get(settings, "autoBuild", true)),
+        "elixir_ls.dialyzerEnabled" => to_string(Map.get(settings, "dialyzerEnabled", true)),
+        "elixir_ls.fetchDeps" => to_string(Map.get(settings, "fetchDeps", false)),
+        "elixir_ls.suggestSpecs" => to_string(Map.get(settings, "suggestSpecs", true)),
+        "elixir_ls.autoInsertRequiredAlias" =>
+          to_string(Map.get(settings, "autoInsertRequiredAlias", true)),
+        "elixir_ls.signatureAfterComplete" =>
+          to_string(Map.get(settings, "signatureAfterComplete", true)),
+        "elixir_ls.enableTestLenses" => to_string(Map.get(settings, "enableTestLenses", false)),
+        "elixir_ls.languageServerOverridePath" =>
+          to_string(Map.get(settings, "languageServerOverridePath", "") != ""),
+        "elixir_ls.envVariables" => to_string(Map.get(settings, "envVariables", %{}) != %{}),
+        "elixir_ls.mixEnv" => to_string(Map.get(settings, "mixEnv", "test")),
+        "elixir_ls.mixTarget" => to_string(Map.get(settings, "mixTarget", "host")),
+        "elixir_ls.dialyzerFormat" =>
+          if(Map.get(settings, "dialyzerEnabled", true),
+            do: Map.get(settings, "dialyzerFormat", "dialyxir_long"),
+            else: ""
+          )
+      },
+      %{}
+    )
+
+    trigger_build(state)
   end
 
-  defp add_watched_extensions(state = %__MODULE__{}, []) do
-    state
+  defp add_watched_extensions(_server_instance_id, []) do
+    :ok
   end
 
-  defp add_watched_extensions(state = %__MODULE__{}, exts) when is_list(exts) do
+  defp add_watched_extensions(server_instance_id, exts) when is_list(exts) do
+    if not (is_list(exts) and Enum.all?(exts, &match?("." <> _, &1))) do
+      Logger.error("Invalid `additionalWatchedExtensions`: #{inspect(exts)}")
+
+      JsonRpc.show_message(
+        :error,
+        "Invalid `additionalWatchedExtensions` in configuration. Expected list of extensions starting with `.` or nil, got #{inspect(exts)}."
+      )
+
+      unless :persistent_term.get(:language_server_test_mode, false) do
+        Process.sleep(2000)
+        System.halt(1)
+      else
+        IO.warn("Invalid `additionalWatchedExtensions`: #{inspect(exts)}")
+      end
+    end
+
     case JsonRpc.register_capability_request(
+           server_instance_id,
            "workspace/didChangeWatchedFiles",
            %{
              "watchers" => Enum.map(exts, &%{"globPattern" => "**/*" <> &1})
            }
          ) do
       {:ok, nil} ->
-        :ok
+        Logger.info("client/registerCapability succeeded")
 
       other ->
         Logger.error("client/registerCapability returned: #{inspect(other)}")
-    end
 
-    state
+        JsonRpc.telemetry(
+          "lsp_reverse_request_error",
+          %{
+            "elixir_ls.lsp_reverse_request_error" => inspect(other),
+            "elixir_ls.lsp_reverse_request" => "client/registerCapability"
+          },
+          %{}
+        )
+    end
+  end
+
+  defp listen_for_configuration_changes(server_instance_id) do
+    # the schema is not documented but uses https://github.com/microsoft/vscode-languageserver-node/blob/7792b0b21c994cc9bebc3117eeb652a22e2d9e1f/protocol/src/common/protocol.ts#L1504C18-L1504C59
+    # passing empty map without `section` results in notification with `{"settings": null}` config but the server should
+    # simply pull for configuration instead of depending on data sent in notification
+    # see https://github.com/microsoft/language-server-protocol/issues/1792
+    case JsonRpc.register_capability_request(
+           server_instance_id,
+           "workspace/didChangeConfiguration",
+           %{}
+         ) do
+      {:ok, nil} ->
+        Logger.info("client/registerCapability succeeded")
+
+      other ->
+        Logger.error("client/registerCapability returned: #{inspect(other)}")
+
+        JsonRpc.telemetry(
+          "lsp_reverse_request_error",
+          %{
+            "elixir_ls.lsp_reverse_request_error" => inspect(other),
+            "elixir_ls.lsp_reverse_request" => "client/registerCapability"
+          },
+          %{}
+        )
+    end
   end
 
   defp set_dialyzer_enabled(state = %__MODULE__{}, enable_dialyzer) do
     cond do
-      enable_dialyzer and state.dialyzer_sup == nil and is_binary(state.project_dir) ->
-        {:ok, pid} = Dialyzer.Supervisor.start_link(state.project_dir)
-        %{state | dialyzer_sup: pid}
+      enable_dialyzer and state.mix_project? and state.dialyzer_sup == nil ->
+        {:ok, pid} =
+          Dialyzer.Supervisor.start_link(state.project_dir, dialyzer_module(state.settings))
 
-      not enable_dialyzer and state.dialyzer_sup != nil ->
+        %{state | dialyzer_sup: pid, analysis_ready?: false}
+
+      not (enable_dialyzer and state.mix_project?) and state.dialyzer_sup != nil ->
         Process.exit(state.dialyzer_sup, :normal)
         %{state | dialyzer_sup: nil, analysis_ready?: false}
 
@@ -1223,80 +2006,213 @@ defmodule ElixirLS.LanguageServer.Server do
     prev_env = state.settings["envVariables"]
 
     if is_nil(prev_env) or env == prev_env do
-      System.put_env(env)
+      try do
+        System.put_env(env)
+      rescue
+        e ->
+          Logger.error(
+            "Cannot set environment variables to #{inspect(env)}: #{Exception.message(e)}"
+          )
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `envVariables` in configuration. Expected a map with string key value pairs, got #{inspect(env)}."
+          )
+
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn(
+              "Cannot set environment variables to #{inspect(env)}: #{Exception.message(e)}"
+            )
+          end
+      end
     else
       JsonRpc.show_message(
         :warning,
-        "Environment variables have changed. ElixirLS needs to restart"
+        "Environment variables change detected. ElixirLS will restart"
       )
 
+      JsonRpc.telemetry(
+        "lsp_reload",
+        %{
+          "elixir_ls.lsp_reload_reason" => "env_variables_changed"
+        },
+        %{}
+      )
+
+      # sleep so the client has time to show the message
       Process.sleep(5000)
-      System.halt(1)
+      ElixirLS.LanguageServer.Application.restart()
+      Process.sleep(:infinity)
     end
 
     state
+  end
+
+  defp set_mix_env(state = %__MODULE__{}, env) when env in [nil, ""] do
+    # mix defaults to :dev env but we choose :test as this results in better
+    # support for test files
+    set_mix_env(state, "test")
   end
 
   defp set_mix_env(state = %__MODULE__{}, env) do
-    prev_env = state.settings["mixEnv"]
+    prev_env = state.mix_env
 
     if is_nil(prev_env) or env == prev_env do
-      Mix.env(String.to_atom(env))
+      try do
+        System.put_env("MIX_ENV", env)
+        Mix.env(String.to_atom(env))
+        %{state | mix_env: env}
+      rescue
+        e ->
+          Logger.error("Cannot set mix env to #{inspect(env)}: #{Exception.message(e)}")
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `mixEnv` in configuration. Expected a string or nil, got #{inspect(env)}."
+          )
+
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn("Cannot set mix env to #{inspect(env)}: #{Exception.message(e)}")
+          end
+      end
     else
       JsonRpc.show_message(:warning, "Mix env change detected. ElixirLS will restart.")
 
-      Process.sleep(5000)
-      System.halt(1)
-    end
+      JsonRpc.telemetry(
+        "lsp_reload",
+        %{
+          "elixir_ls.lsp_reload_reason" => "mix_env_changed"
+        },
+        %{}
+      )
 
-    state
+      # sleep so the client has time to show the message
+      Process.sleep(5000)
+      ElixirLS.LanguageServer.Application.restart()
+      Process.sleep(:infinity)
+    end
   end
 
-  defp maybe_set_mix_target(state = %__MODULE__{}, nil), do: state
-
-  defp maybe_set_mix_target(state = %__MODULE__{}, ""), do: state
-
-  defp maybe_set_mix_target(state = %__MODULE__{}, target) do
-    set_mix_target(state, target)
+  defp set_mix_target(state = %__MODULE__{}, target) when target in [nil, ""] do
+    # mix defaults to :host target
+    set_mix_target(state, "host")
   end
 
   defp set_mix_target(state = %__MODULE__{}, target) do
-    prev_target = state.settings["mixTarget"]
+    prev_target = state.mix_target
 
     if is_nil(prev_target) or target == prev_target do
-      Mix.target(String.to_atom(target))
+      try do
+        System.put_env("MIX_TARGET", target)
+        Mix.target(String.to_atom(target))
+        %{state | mix_target: target}
+      rescue
+        e ->
+          Logger.error("Cannot set mix target to #{inspect(target)}: #{Exception.message(e)}")
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `mixTarget` in configuration. Expected a string or nil, got #{inspect(target)}."
+          )
+
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn("Cannot set mix target to #{inspect(target)}: #{Exception.message(e)}")
+          end
+      end
     else
       JsonRpc.show_message(:warning, "Mix target change detected. ElixirLS will restart")
 
-      Process.sleep(5000)
-      System.halt(1)
-    end
+      JsonRpc.telemetry(
+        "lsp_reload",
+        %{
+          "elixir_ls.lsp_reload_reason" => "mix_target_changed"
+        },
+        %{}
+      )
 
-    state
+      # sleep so the client has time to show the message
+      Process.sleep(5000)
+      ElixirLS.LanguageServer.Application.restart()
+      Process.sleep(:infinity)
+    end
   end
 
   defp set_project_dir(
          %__MODULE__{project_dir: prev_project_dir, root_uri: root_uri} = state,
-         project_dir
+         project_dir_config
        )
        when is_binary(root_uri) do
     root_dir = SourceFile.Path.absolute_from_uri(root_uri)
 
     project_dir =
-      if is_binary(project_dir) do
-        Path.absname(Path.join(root_dir, project_dir))
+      if is_binary(project_dir_config) do
+        SourceFile.Path.absname(Path.join(root_dir, project_dir_config))
       else
-        root_dir
+        if is_nil(project_dir_config) do
+          root_dir
+        else
+          Logger.error("Invalid `projectDir`: #{inspect(project_dir_config)}")
+
+          JsonRpc.show_message(
+            :error,
+            "Invalid `projectDir` in configuration. Expected a string or nil, got #{inspect(project_dir_config)}."
+          )
+
+          unless :persistent_term.get(:language_server_test_mode, false) do
+            Process.sleep(2000)
+            System.halt(1)
+          else
+            IO.warn("Invalid `projectDir`: #{inspect(project_dir_config)}")
+          end
+        end
       end
 
     cond do
       not File.dir?(project_dir) ->
+        Logger.error("Project directory #{project_dir} does not exist")
         JsonRpc.show_message(:error, "Project directory #{project_dir} does not exist")
-        state
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Project directory #{project_dir} does not exist")
+        end
 
       is_nil(prev_project_dir) ->
-        File.cd!(project_dir)
-        %{state | project_dir: File.cwd!(), mix_project?: File.exists?(MixfileHelpers.mix_exs())}
+        with :ok <- File.cd(project_dir),
+             {:ok, resolved_project_dir} <- File.cwd() do
+          %{
+            state
+            | project_dir: resolved_project_dir,
+              mix_project?: File.exists?(MixfileHelpers.mix_exs())
+          }
+        else
+          {:error, reason} ->
+            Logger.error("Unable to change directory into #{project_dir}: #{inspect(reason)}")
+
+            JsonRpc.show_message(
+              :error,
+              "Unable to change directory into #{project_dir}: #{inspect(reason)}. " <>
+                "Please make sure the directory exists and you have necessary permissions"
+            )
+
+            unless :persistent_term.get(:language_server_test_mode, false) do
+              Process.sleep(2000)
+              System.halt(1)
+            else
+              IO.warn("Unable to change directory into #{project_dir}: #{inspect(reason)}")
+            end
+        end
 
       prev_project_dir != project_dir ->
         JsonRpc.show_message(
@@ -1304,8 +2220,18 @@ defmodule ElixirLS.LanguageServer.Server do
           "Project directory change detected. ElixirLS will restart"
         )
 
+        JsonRpc.telemetry(
+          "lsp_reload",
+          %{
+            "elixir_ls.lsp_reload_reason" => "project_dir_changed"
+          },
+          %{}
+        )
+
+        # sleep so the client has time to show the message
         Process.sleep(5000)
-        System.halt(1)
+        ElixirLS.LanguageServer.Application.restart()
+        Process.sleep(:infinity)
 
       true ->
         state
@@ -1316,7 +2242,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp create_gitignore(%__MODULE__{project_dir: project_dir} = state)
+  defp create_gitignore(%__MODULE__{project_dir: project_dir, mix_project?: true} = state)
        when is_binary(project_dir) do
     with gitignore_path <- Path.join([project_dir, ".elixir_ls", ".gitignore"]),
          false <- File.exists?(gitignore_path),
@@ -1328,9 +2254,19 @@ defmodule ElixirLS.LanguageServer.Server do
         state
 
       {:error, err} ->
-        Logger.warning("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
+        Logger.error("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
 
-        state
+        JsonRpc.show_message(
+          :error,
+          "Cannot create .elixir_ls/.gitignore"
+        )
+
+        unless :persistent_term.get(:language_server_test_mode, false) do
+          Process.sleep(2000)
+          System.halt(1)
+        else
+          IO.warn("Cannot create .elixir_ls/.gitignore, cause: #{Atom.to_string(err)}")
+        end
     end
   end
 
@@ -1355,21 +2291,84 @@ defmodule ElixirLS.LanguageServer.Server do
     end)
   end
 
-  defp maybe_rebuild(state = %__MODULE__{project_dir: project_dir}) do
-    # detect if we are opening a project that has been compiled without a tracer
-    if is_binary(project_dir) and state.mix_project? and
-         File.dir?(Path.join([project_dir, ".elixir_ls"])) and
-         not Tracer.manifest_version_current?(project_dir) do
-      Logger.info("DETS databases will be rebuilt")
-      Tracer.clean_dets(project_dir)
+  defp pull_configuration(state) do
+    supports_get_configuration =
+      get_in(state.client_capabilities, [
+        "workspace",
+        "configuration"
+      ])
 
-      case Build.reload_project() do
-        {:ok, _} ->
-          Build.clean(true)
+    if supports_get_configuration do
+      response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")
 
-        _ ->
-          :ok
+      case response do
+        {:ok, [result]} when is_map(result) or is_nil(result) ->
+          # result type is LSPAny, we need to handle at least map and nil
+          # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#workspace_configuration
+          result = result || %{}
+
+          Logger.info(
+            "Received client configuration via workspace/configuration\n#{inspect(result)}"
+          )
+
+          set_settings(state, result)
+
+        other ->
+          Logger.error("Cannot get client configuration: #{inspect(other)}")
+
+          JsonRpc.telemetry(
+            "lsp_reverse_request_error",
+            %{
+              "elixir_ls.lsp_reverse_request_error" => inspect(other),
+              "elixir_ls.lsp_reverse_request" => "workspace/configuration"
+            },
+            %{}
+          )
+
+          state
       end
+    else
+      Logger.info("Client does not support workspace/configuration request")
+      state
+    end
+  end
+
+  defp dialyzer_module(settings) do
+    otp_release = String.to_integer(System.otp_release())
+
+    if otp_release >= 26 and Map.get(settings, "incrementalDialyzer", true) do
+      DialyzerIncremental
+    else
+      Dialyzer
+    end
+  end
+
+  def do_sanity_check(message \\ nil) do
+    try do
+      if message != nil and String.contains?(message, "UndefinedFunctionError") do
+        raise "sanity check failed"
+      end
+
+      unless :persistent_term.get(:language_server_test_mode, false) do
+        unless function_exported?(ElixirLS.LanguageServer, :module_info, 1) and
+                 :persistent_term.get(:language_server_lib_dir) ==
+                   ElixirLS.LanguageServer.module_info(:compile)[:source] do
+          raise "sanity check failed"
+        end
+
+        unless function_exported?(ElixirSense, :module_info, 1) and
+                 :persistent_term.get(:language_server_elixir_sense_lib_dir) ==
+                   ElixirSense.module_info(:compile)[:source] do
+          raise "sanity check failed"
+        end
+      end
+    rescue
+      _ ->
+        Logger.error("Sanity check failed. ElixirLS needs to restart.")
+        IO.warn("sanity")
+
+        Process.sleep(2000)
+        System.halt(1)
     end
   end
 end

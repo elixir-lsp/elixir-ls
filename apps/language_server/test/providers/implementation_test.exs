@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
   alias ElixirLS.LanguageServer.Protocol.Location
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+  alias ElixirLS.LanguageServer.Test.ParserContextBuilder
   require ElixirLS.Test.TextLoc
 
   test "find implementations" do
@@ -13,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
     Code.ensure_loaded?(ElixirLS.LanguageServer.Fixtures.ExampleBehaviourImpl)
 
     file_path = FixtureHelpers.get_path("example_behaviour.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     {line, char} = {0, 43}
@@ -23,13 +24,16 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
                                                ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, [%Location{uri: ^uri, range: range}]} =
-             Implementation.implementation(uri, text, line, char)
+             Implementation.implementation(uri, parser_context, line, char, File.cwd!())
 
     assert range ==
              %{
-               "start" => %{"line" => 5, "character" => 10},
-               "end" => %{"line" => 5, "character" => 10}
+               "start" => %{"line" => 5, "character" => 0},
+               "end" => %{"line" => 5, "character" => 0}
              }
   end
 end

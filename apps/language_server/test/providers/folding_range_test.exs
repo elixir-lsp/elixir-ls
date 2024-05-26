@@ -5,10 +5,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
   doctest(FoldingRange)
 
-  test "returns an :error tuple if input is not a source file" do
-    assert {:error, _} = %{} |> FoldingRange.provide()
-  end
-
   describe "indentation" do
     setup [:fold_via_indentation]
 
@@ -52,7 +48,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                  %{map | "key" => dt}                           # 9
 
                e ->                                             # 11
-                 Logger.warn(\"\"\"
+                 Logger.warning(\"\"\"
                  Could not use data map from #\{inspect(value)\}  # 13
                  #\{inspect(e)\}                                  # 14
                  \"\"\")
@@ -248,7 +244,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                  %{map | "key" => dt}                           # 9
 
                e ->                                             # 11
-                 Logger.warn(\"\"\"
+                 Logger.warning(\"\"\"
                  Could not use data map from #\{inspect(value)\}  # 13
                  #\{inspect(e)\}                                  # 14
                  \"\"\")
@@ -359,7 +355,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
 
     @tag text: """
          defmodule A do          # 0
-           @module doc ~S\"\"\"
+           @moduledoc ~S\"\"\"
            sigil @moduledoc      # 2
            \"\"\"
 
@@ -451,7 +447,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
                  %{map | "key" => dt}                           # 15
 
                e ->                                             # 17
-                 Logger.warn(\"\"\"
+                 Logger.warning(\"\"\"
                  Could not use data map from #\{inspect(value)\}  # 19
                  #\{inspect(e)\}                                  # 20
                  \"\"\")

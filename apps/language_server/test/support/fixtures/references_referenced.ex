@@ -27,4 +27,8 @@ defmodule ElixirLS.Test.ReferencesReferenced do
   def uses_attribute do
     @referenced_attribute
   end
+
+  def uses_erlang_fun() do
+    :ets.new(:abc, [])
+  end
 end

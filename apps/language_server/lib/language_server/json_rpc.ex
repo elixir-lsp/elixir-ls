@@ -67,6 +67,20 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     end
   end
 
+  defmacro error_response(id, code, message, data) do
+    quote do
+      %{
+        "error" => %{
+          "code" => unquote(code),
+          "message" => unquote(message),
+          "data" => unquote(data)
+        },
+        "id" => unquote(id),
+        "jsonrpc" => "2.0"
+      }
+    end
+  end
+
   ## Utils
 
   def notify(method, params) do
@@ -77,9 +91,14 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     WireProtocol.send(response(id, result))
   end
 
-  def respond_with_error(id, type, message \\ nil) do
+  def respond_with_error(id, type, message \\ nil, data \\ nil) do
     {code, default_message} = error_code_and_message(type)
-    WireProtocol.send(error_response(id, code, message || default_message))
+
+    if data do
+      WireProtocol.send(error_response(id, code, message || default_message, data))
+    else
+      WireProtocol.send(error_response(id, code, message || default_message))
+    end
   end
 
   def show_message(type, message) do
@@ -90,13 +109,57 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     notify("window/logMessage", %{type: message_type_code(type), message: to_string(message)})
   end
 
-  def register_capability_request(server \\ __MODULE__, method, options) do
+  def telemetry(name, properties, measurements) do
+    elixir_release =
+      case Regex.run(~r/^(\d+\.\d+)/, System.version()) do
+        [_, version] -> version
+        nil -> "unknown"
+      end
+
+    {mix_env, mix_target} =
+      try do
+        {Mix.env(), Mix.target()}
+      rescue
+        ArgumentError ->
+          {nil, nil}
+      end
+
+    common_properties = %{
+      "elixir_ls.elixir_release" => elixir_release,
+      "elixir_ls.elixir_version" => System.version(),
+      "elixir_ls.otp_release" => System.otp_release(),
+      "elixir_ls.erts_version" => to_string(Application.spec(:erts, :vsn)),
+      "elixir_ls.mix_env" => mix_env,
+      "elixir_ls.mix_target" => mix_target
+    }
+
+    notify("telemetry/event", %{
+      name: name,
+      properties: Map.merge(common_properties, properties),
+      measurements: measurements
+    })
+  end
+
+  def register_capability_request(server \\ __MODULE__, server_instance_id, method, options) do
+    id = server_instance_id <> method <> JasonV.encode!(options)
+
     send_request(server, "client/registerCapability", %{
       "registrations" => [
         %{
-          "id" => :crypto.hash(:sha, method) |> Base.encode16(),
+          "id" => :crypto.hash(:sha, id) |> Base.encode16(),
           "method" => method,
           "registerOptions" => options
+        }
+      ]
+    })
+  end
+
+  def get_configuration_request(server \\ __MODULE__, scope_uri, section) do
+    send_request(server, "workspace/configuration", %{
+      "items" => [
+        %{
+          "scopeUri" => scope_uri,
+          "section" => section
         }
       ]
     })
@@ -127,7 +190,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def receive_packet(server \\ __MODULE__, packet) do
-    GenServer.call(server, {:packet, packet})
+    GenServer.call(server, {:packet, packet}, :infinity)
   end
 
   def send_request(server \\ __MODULE__, method, params) do
@@ -190,16 +253,25 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     end
   end
 
+  # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#errorCodes
+
+  # Defined by JSON-RPC
   defp error_code_and_message(:parse_error), do: {-32700, "Parse error"}
   defp error_code_and_message(:invalid_request), do: {-32600, "Invalid Request"}
   defp error_code_and_message(:method_not_found), do: {-32601, "Method not found"}
   defp error_code_and_message(:invalid_params), do: {-32602, "Invalid params"}
   defp error_code_and_message(:internal_error), do: {-32603, "Internal error"}
-  defp error_code_and_message(:server_error), do: {-32000, "Server error"}
+
+  # -32099 - -32000 - JSON-RPC reserved error codes
+  # No LSP error codes should be defined between the start and end range.
+  # For backwards compatibility the `ServerNotInitialized` and the `UnknownErrorCode`
+  # are left in the range.
   defp error_code_and_message(:server_not_initialized), do: {-32002, "Server not initialized"}
   defp error_code_and_message(:unknown_error_code), do: {-32001, "Unknown error code"}
 
-  defp error_code_and_message(:request_cancelled), do: {-32800, "Request cancelled"}
+  # -32899 - -32800 - LSP reserved error codes
+  defp error_code_and_message(:request_failed), do: {-32803, "Request failed"}
+  defp error_code_and_message(:server_cancelled), do: {-32802, "Server cancelled"}
   defp error_code_and_message(:content_modified), do: {-32801, "Content modified"}
-  defp error_code_and_message(:code_lens_error), do: {-32900, "Error while building code lenses"}
+  defp error_code_and_message(:request_cancelled), do: {-32800, "Request cancelled"}
 end

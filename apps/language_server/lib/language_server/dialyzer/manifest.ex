@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
-  alias ElixirLS.LanguageServer.{Dialyzer, Dialyzer.Utils, JsonRpc}
+  alias ElixirLS.LanguageServer.{Dialyzer, Dialyzer.Utils, JsonRpc, SourceFile}
   import Record
   import Dialyzer.Utils
   require Logger
@@ -28,15 +28,26 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
           :ok
 
         {:DOWN, ^ref, :process, ^pid, reason} ->
+          error_msg = Exception.format_exit(reason)
+
           JsonRpc.show_message(
             :error,
-            "Unable to build dialyzer PLT. Most likely there are problems with your OTP and elixir installation."
+            "Unable to build dialyzer PLT. Please make sure that #{elixir_plt_path()} is writable and your OTP install is complete. Visit https://github.com/elixir-lsp/elixir-ls/issues/540 for help"
           )
 
-          Logger.error("Dialyzer PLT build process exited with reason: #{inspect(reason)}")
+          Logger.error("Dialyzer PLT build process exited with reason: #{error_msg}")
 
-          Logger.warn(
+          Logger.warning(
             "Dialyzer support disabled. Most likely there are problems with your elixir and OTP installation. Visit https://github.com/elixir-lsp/elixir-ls/issues/540 for help"
+          )
+
+          JsonRpc.telemetry(
+            "dialyzer_error",
+            %{
+              "elixir_ls.dialyzer_error" =>
+                "Dialyzer PLT build process exited with reason: #{error_msg}"
+            },
+            %{}
           )
 
           # NOTE We do not call Dialyzer.analysis_finished. LS keeps working and building normally
@@ -106,14 +117,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
       exported_types_list
     } = File.read!(manifest_path) |> :erlang.binary_to_term()
 
-    # FIXME: matching against opaque type
+    active_plt = :dialyzer_plt.new()
+
     plt(
       info: info,
       types: types,
       contracts: contracts,
       callbacks: callbacks,
       exported_types: exported_types
-    ) = active_plt = apply(:dialyzer_plt, :new, [])
+    ) = active_plt
 
     for item <- info_list, do: :ets.insert(info, item)
     for item <- types_list, do: :ets.insert(types, item)
@@ -127,7 +139,11 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def load_elixir_plt() do
-    apply(:dialyzer_plt, :from_file, [to_charlist(elixir_plt_path())])
+    if String.to_integer(System.otp_release()) < 26 do
+      :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
+    else
+      :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
+    end
   rescue
     _ -> build_elixir_plt()
   catch
@@ -150,7 +166,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
     modules_to_paths =
       for app <- @erlang_apps ++ @elixir_apps,
-          path <- Path.join([Application.app_dir(app), "**/*.beam"]) |> Path.wildcard(),
+          path <-
+            Path.join([SourceFile.Path.escape_for_wildcard(Application.app_dir(app)), "**/*.beam"])
+            |> Path.wildcard(),
           into: %{},
           do: {pathname_to_module(path), path |> String.to_charlist()}
 
@@ -175,10 +193,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     )
 
     JsonRpc.show_message(:info, "Saved Elixir PLT to #{elixir_plt_path()}")
-    :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
+
+    if String.to_integer(System.otp_release()) < 26 do
+      :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
+    else
+      :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
+    end
   end
 
-  defp otp_vsn() do
+  def otp_vsn() do
     major = :erlang.system_info(:otp_release) |> List.to_string()
     vsn_file = Path.join([:code.root_dir(), "releases", major, "OTP_VERSION"])
 
@@ -204,8 +227,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     ])
   end
 
-  defp transfer_plt(active_plt, pid) do
-    # FIXME: matching against opaque type
+  def transfer_plt(active_plt, pid) do
     plt(
       info: info,
       types: types,

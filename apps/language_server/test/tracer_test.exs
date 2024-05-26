@@ -12,30 +12,38 @@ defmodule ElixirLS.LanguageServer.TracerTest do
     {:ok, context}
   end
 
-  test "project dir is nil" do
-    assert GenServer.call(Tracer, :get_project_dir) == nil
-  end
-
   test "set project dir" do
     project_path = FixtureHelpers.get_path("")
+    :persistent_term.put(:language_server_project_dir, project_path)
 
-    Tracer.set_project_dir(project_path)
+    Tracer.notify_settings_stored()
 
     assert GenServer.call(Tracer, :get_project_dir) == project_path
   end
 
   test "saves DETS" do
-    Tracer.set_project_dir(FixtureHelpers.get_path(""))
+    project_path = FixtureHelpers.get_path("")
+    :persistent_term.put(:language_server_project_dir, project_path)
+    Tracer.notify_settings_stored()
 
     Tracer.save()
+    GenServer.call(Tracer, :get_project_dir)
 
     assert File.exists?(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
     assert File.exists?(FixtureHelpers.get_path(".elixir_ls/modules.dets"))
   end
 
+  test "skips save if project dir not set" do
+    Tracer.save()
+    GenServer.call(Tracer, :get_project_dir)
+  end
+
   describe "call trace" do
     setup context do
-      Tracer.set_project_dir(FixtureHelpers.get_path(""))
+      project_path = FixtureHelpers.get_path("")
+      :persistent_term.put(:language_server_project_dir, project_path)
+      Tracer.notify_settings_stored()
+      GenServer.call(Tracer, :get_project_dir)
 
       {:ok, context}
     end
@@ -156,7 +164,7 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       project_path = FixtureHelpers.get_path("")
       Tracer.write_manifest(project_path)
 
-      assert 2 == Tracer.read_manifest(project_path)
+      assert 3 == Tracer.read_manifest(project_path)
     end
   end
 end

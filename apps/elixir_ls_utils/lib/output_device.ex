@@ -1,21 +1,19 @@
 defmodule ElixirLS.Utils.OutputDevice do
   @moduledoc """
   Intercepts IO request messages and forwards them to the Output server to be sent as events to
-  the IDE. Implements Erlang I/O Protocol https://erlang.org/doc/apps/stdlib/io_protocol.html
-
-  In order to send console output to Visual Studio Code, the debug adapter needs to send events
-  using the usual wire protocol. In order to intercept the debugged code's output, we replace the
-  registered processes `:user` and `:standard_error` and the process's group leader with instances
-  of this server. When it receives a message containing output, it sends an event via the `Output`
-  server with the correct category ("stdout" or "stderr").
+  the IDE. Implements [Erlang I/O Protocol](https://erlang.org/doc/apps/stdlib/io_protocol.html)
   """
 
-  @opts binary: true, encoding: :unicode
+  @opts binary: true, encoding: :latin1
 
   ## Client API
 
   def start_link(device, output_fn) do
-    Task.start_link(fn -> loop({device, output_fn}) end)
+    Task.start_link(fn ->
+      # Trap exit to make sure the process completes :io_request handling before exiting
+      Process.flag(:trap_exit, true)
+      loop({device, output_fn})
+    end)
   end
 
   def child_spec(arguments) do
@@ -28,12 +26,13 @@ defmodule ElixirLS.Utils.OutputDevice do
     }
   end
 
-  def get_opts, do: @opts
-
   ## Implementation
 
   defp loop(state) do
     receive do
+      {:EXIT, _from, reason} ->
+        exit(reason)
+
       {:io_request, from, reply_as, request} ->
         result = io_request(request, state, reply_as)
         send(from, {:io_reply, reply_as, result})
@@ -88,6 +87,8 @@ defmodule ElixirLS.Utils.OutputDevice do
   end
 
   defp io_request({:setopts, new_opts}, _state, _reply_as) do
+    # we do not support changing opts
+    # only validate that the passed ones match defaults
     validate_otps(new_opts, {:ok, 0})
   end
 

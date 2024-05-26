@@ -161,7 +161,7 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
     end
   end
 
-  def get_chars_list("abc"), do: 'some'
+  def get_chars_list("abc"), do: ~c"some"
   def get_chars_binary("abc"), do: "some"
   def get_chars_invalid("abc"), do: :some
   def get_chars_raise("abc"), do: raise(ArgumentError)
@@ -241,7 +241,7 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
     test "unicode list", %{
       output_device: output_device
     } do
-      request = {:put_chars, :unicode, 'sąme👨‍👩‍👦'}
+      request = {:put_chars, :unicode, ~c"sąme👨‍👩‍👦"}
       send(output_device, {:io_request, self(), 123, request})
       assert_receive({:io_reply, 123, :ok})
 
@@ -261,7 +261,7 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
     test "latin1 list", %{
       output_device: output_device
     } do
-      request = {:put_chars, :latin1, 'some'}
+      request = {:put_chars, :latin1, ~c"some"}
       send(output_device, {:io_request, self(), 123, request})
       assert_receive({:io_reply, 123, :ok})
 
@@ -271,7 +271,7 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
     test "latin1 list with chars > 255", %{
       output_device: output_device
     } do
-      request = {:put_chars, :latin1, 'sąme👨‍👩‍👦'}
+      request = {:put_chars, :latin1, ~c"sąme👨‍👩‍👦"}
       send(output_device, {:io_request, self(), 123, request})
       assert_receive({:io_reply, 123, {:error, :put_chars}})
 
@@ -284,7 +284,7 @@ defmodule ElixirLS.Utils.OutputDeviceTest do
       output_device: output_device
     } do
       send(output_device, {:io_request, self(), 123, :getopts})
-      assert_receive({:io_reply, 123, [binary: true, encoding: :unicode]})
+      assert_receive({:io_reply, 123, [binary: true, encoding: :latin1]})
     end
 
     test "valid can be set", %{

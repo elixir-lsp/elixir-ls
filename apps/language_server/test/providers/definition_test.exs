@@ -5,11 +5,13 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   alias ElixirLS.LanguageServer.Protocol.Location
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+  alias ElixirLS.LanguageServer.Test.ParserContextBuilder
   require ElixirLS.Test.TextLoc
 
   test "find definition remote function call" do
     file_path = FixtureHelpers.get_path("references_remote.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
+
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -22,18 +24,21 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
                                 ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
-             "start" => %{"line" => 1, "character" => 6},
-             "end" => %{"line" => 1, "character" => 6}
+             "start" => %{"line" => 1, "character" => 2},
+             "end" => %{"line" => 1, "character" => 2}
            }
   end
 
   test "find definition remote macro call" do
     file_path = FixtureHelpers.get_path("references_remote.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -46,18 +51,21 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
                                 ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
-             "start" => %{"line" => 8, "character" => 11},
-             "end" => %{"line" => 8, "character" => 11}
+             "start" => %{"line" => 8, "character" => 2},
+             "end" => %{"line" => 8, "character" => 2}
            }
   end
 
   test "find definition imported function call" do
     file_path = FixtureHelpers.get_path("references_imported.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -70,18 +78,21 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
-             "start" => %{"line" => 1, "character" => 6},
-             "end" => %{"line" => 1, "character" => 6}
+             "start" => %{"line" => 1, "character" => 2},
+             "end" => %{"line" => 1, "character" => 2}
            }
   end
 
   test "find definition imported macro call" do
     file_path = FixtureHelpers.get_path("references_imported.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -94,18 +105,21 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
-             "start" => %{"line" => 8, "character" => 11},
-             "end" => %{"line" => 8, "character" => 11}
+             "start" => %{"line" => 8, "character" => 2},
+             "end" => %{"line" => 8, "character" => 2}
            }
   end
 
   test "find definition local function call" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -118,18 +132,21 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
-             "start" => %{"line" => 1, "character" => 6},
-             "end" => %{"line" => 1, "character" => 6}
+             "start" => %{"line" => 1, "character" => 2},
+             "end" => %{"line" => 1, "character" => 2}
            }
   end
 
   test "find definition local macro call" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -142,18 +159,21 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
-             "start" => %{"line" => 8, "character" => 11},
-             "end" => %{"line" => 8, "character" => 11}
+             "start" => %{"line" => 8, "character" => 2},
+             "end" => %{"line" => 8, "character" => 2}
            }
   end
 
   test "find definition variable" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -166,8 +186,11 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
                  ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 2, "character" => 4},
@@ -177,7 +200,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
   test "find definition attribute" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
-    text = File.read!(file_path)
+    parser_context = ParserContextBuilder.from_path(file_path)
     uri = SourceFile.Path.to_uri(file_path)
 
     b_file_path = FixtureHelpers.get_path("references_referenced.ex")
@@ -190,8 +213,11 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
          ^
     """)
 
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
     assert {:ok, %Location{uri: ^b_uri, range: range}} =
-             Definition.definition(uri, text, line, char)
+             Definition.definition(uri, parser_context, line, char, File.cwd!())
 
     assert range == %{
              "start" => %{"line" => 24, "character" => 2},

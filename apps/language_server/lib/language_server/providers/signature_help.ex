@@ -1,13 +1,19 @@
 defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
-  alias ElixirLS.LanguageServer.SourceFile
+  @moduledoc """
+  Provider handling textDocument/signatureHelp
+  """
+  alias ElixirLS.LanguageServer.{SourceFile, Parser}
+  alias ElixirLS.LanguageServer.Providers.SignatureHelp.Signature
 
   def trigger_characters(), do: ["(", ","]
 
-  def signature(%SourceFile{} = source_file, line, character) do
-    {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
-
+  def signature(
+        %Parser.Context{source_file: %SourceFile{} = source_file, metadata: metadata},
+        line,
+        character
+      ) do
     response =
-      case ElixirSense.signature(source_file.text, line, character) do
+      case Signature.signature(source_file.text, line, character, metadata: metadata) do
         %{active_param: active_param, signatures: signatures} ->
           %{
             "activeSignature" => 0,
@@ -22,11 +28,22 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
     {:ok, response}
   end
 
-  defp signature_response(%{documentation: documentation, name: name, params: params, spec: spec}) do
+  defp signature_response(
+         %{documentation: documentation, name: name, params: params, spec: spec} = signature
+       ) do
     params_info = for param <- params, do: %{"label" => param}
 
     label = "#{name}(#{Enum.join(params, ", ")})"
     response = %{"label" => label, "parameters" => params_info}
+
+    response =
+      case signature do
+        %{active_param: active_param} ->
+          Map.put(response, "activeParameter", active_param)
+
+        _ ->
+          response
+      end
 
     case {spec, documentation} do
       {"", ""} ->

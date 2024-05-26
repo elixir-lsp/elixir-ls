@@ -1,10 +1,20 @@
-defmodule ElixirLS.LanguageServer.Mixfile do
+defmodule ElixirLS.LanguageServer.MixProject do
   use Mix.Project
+
+  @version __DIR__
+           |> Path.join("../../VERSION")
+           |> File.read!()
+           |> String.trim()
+
+  @dep_versions __DIR__
+                |> Path.join("../../dep_versions.exs")
+                |> Code.eval_file()
+                |> elem(0)
 
   def project do
     [
       app: :language_server,
-      version: "0.13.0",
+      version: @version,
       elixir: ">= 1.12.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
@@ -21,19 +31,20 @@ defmodule ElixirLS.LanguageServer.Mixfile do
   end
 
   def application do
-    [mod: {ElixirLS.LanguageServer, []}, extra_applications: [:mix, :logger]]
+    [mod: {ElixirLS.LanguageServer.Application, []}, extra_applications: [:logger, :eex]]
   end
 
   defp deps do
     [
       {:elixir_ls_utils, in_umbrella: true},
-      {:elixir_sense, github: "elixir-lsp/elixir_sense"},
-      {:erl2ex, github: "dazuma/erl2ex"},
-      {:sourceror, "0.11.2"},
-      {:dialyxir_vendored, github: "elixir-lsp/dialyxir", branch: "vendored", runtime: false},
-      {:jason_vendored, github: "elixir-lsp/jason", branch: "vendored"},
+      {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
+      {:erl2ex_vendored, github: "elixir-lsp/erl2ex", ref: @dep_versions[:erl2ex_vendored]},
+      {:dialyxir_vendored,
+       github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false},
+      {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:stream_data, "~> 0.5", only: [:dev, :test], runtime: false},
-      {:path_glob_vendored, github: "elixir-lsp/path_glob", branch: "vendored"},
+      {:path_glob_vendored,
+       github: "elixir-lsp/path_glob", ref: @dep_versions[:path_glob_vendored]},
       {:patch, "~> 0.12.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev, runtime: false}
     ]

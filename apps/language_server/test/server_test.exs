@@ -1,9 +1,19 @@
 defmodule ElixirLS.LanguageServer.ServerTest do
-  alias ElixirLS.LanguageServer.{Server, Protocol, SourceFile, Tracer, Build}
+  alias ElixirLS.LanguageServer.{
+    Server,
+    SourceFile,
+    Tracer,
+    Build,
+    JsonRpc,
+    MixProjectCache,
+    Parser
+  }
+
   alias ElixirLS.Utils.PacketCapture
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+  import ElixirLS.LanguageServer.Test.ServerTestHelpers
   use ElixirLS.Utils.MixTest.Case, async: false
-  use Protocol
+  use ElixirLS.LanguageServer.Protocol
 
   doctest(Server)
 
@@ -13,513 +23,1068 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end)
   end
 
-  defp initialize(server, config \\ nil) do
-    Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-    Server.receive_packet(server, notification("initialized"))
-
-    config = (config || %{}) |> Map.merge(%{"dialyzerEnabled" => false})
-
-    Server.receive_packet(
-      server,
-      did_change_configuration(%{"elixirLS" => config})
-    )
-
-    wait_until_compiled(server)
-  end
-
-  defp fake_initialize(server) do
-    :sys.replace_state(server, fn state ->
-      %{state | server_instance_id: "123", project_dir: "/fake_dir"}
-    end)
-  end
-
-  defp root_uri do
-    SourceFile.Path.to_uri(File.cwd!())
-  end
-
-  describe "initialize" do
-    test "returns error -32002 ServerNotInitialized when not initialized", %{server: server} do
-      uri = "file:///file.ex"
-      Server.receive_packet(server, completion_req(1, uri, 2, 25))
-
-      assert_receive(
-        %{
-          "id" => 1,
-          "error" => %{
-            "code" => -32002
-          }
-        },
-        1000
-      )
-    end
-
-    test "initializes", %{server: server} do
-      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-    end
-
-    test "Execute commands should include the server instance id", %{server: server} do
-      # If a command does not include the server instance id then it will cause
-      # vscode-elixir-ls to fail to start up on multi-root workspaces.
-      # Example: https://github.com/elixir-lsp/elixir-ls/pull/505
-
-      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-      assert_receive(%{"id" => 1, "result" => result}, 1000)
-
-      commands = get_in(result, ["capabilities", "executeCommandProvider", "commands"])
-      server_instance_id = :sys.get_state(server).server_instance_id
-
-      Enum.each(commands, fn command ->
-        assert String.contains?(command, server_instance_id)
-      end)
-
-      refute Enum.empty?(commands)
-    end
-
-    test "returns -32600 InvalidRequest when already initialized", %{server: server} do
-      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-
-      assert_receive(
-        %{
-          "id" => 1,
-          "error" => %{
-            "code" => -32600
-          }
-        },
-        1000
-      )
-    end
-
-    test "skips notifications when not initialized", %{server: server} do
-      uri = "file:///file.ex"
-      code = ~S(
-        defmodule MyModule do
-          use GenServer
-        end
-      )
-
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      assert :sys.get_state(server).source_files == %{}
-    end
-  end
-
-  describe "exit" do
-    test "exit notifications when not initialized", %{server: server} do
-      Process.monitor(server)
-      Server.receive_packet(server, notification("exit"))
-      assert_receive({:DOWN, _, :process, ^server, {:exit_code, 1}})
-    end
-
-    test "exit notifications after shutdown", %{server: server} do
-      Process.monitor(server)
-      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-      Server.receive_packet(server, request(2, "shutdown", %{}))
-      assert_receive(%{"id" => 2, "result" => nil}, 1000)
-      Server.receive_packet(server, notification("exit"))
-      assert_receive({:DOWN, _, :process, ^server, {:exit_code, 0}})
-    end
-
-    test "returns -32600 InvalidRequest when shutting down", %{server: server} do
-      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-      Server.receive_packet(server, request(2, "shutdown", %{}))
-      assert_receive(%{"id" => 2, "result" => nil}, 1000)
-
-      Server.receive_packet(server, hover_req(1, "file:///file.ex", 2, 17))
-
-      assert_receive(
-        %{
-          "id" => 1,
-          "error" => %{
-            "code" => -32600
-          }
-        },
-        1000
-      )
-    end
-
-    test "skips notifications when not shutting down", %{server: server} do
-      Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
-      assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-      Server.receive_packet(server, request(2, "shutdown", %{}))
-      assert_receive(%{"id" => 2, "result" => nil}, 1000)
-
-      uri = "file:///file.ex"
-      code = ~S(
-        defmodule MyModule do
-          use GenServer
-        end
-      )
-
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      assert :sys.get_state(server).source_files == %{}
-    end
-  end
-
-  describe "not matched messages" do
-    test "not supported $/ notifications are skipped", %{server: server} do
-      fake_initialize(server)
-      Server.receive_packet(server, notification("$/not_supported"))
-      :sys.get_state(server)
-      refute_receive(%{"method" => "window/logMessage"})
-    end
-
-    test "not matched notifications log warning", %{server: server} do
-      fake_initialize(server)
-      Server.receive_packet(server, notification("not_matched"))
-      :sys.get_state(server)
-
-      assert_receive(%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Received unmatched notification" <> _, "type" => 2}
-      })
-    end
-
-    test "not supported $/ requests return -32601 MethodNotFound", %{server: server} do
-      fake_initialize(server)
-      Server.receive_packet(server, request(1, "$/not_supported"))
-
-      assert_receive(
-        %{
-          "id" => 1,
-          "error" => %{
-            "code" => -32601
-          }
-        },
-        1000
-      )
-
-      refute_receive(%{"method" => "window/logMessage"})
-    end
-
-    test "not matched requests return -32600 InvalidRequest and log warning", %{server: server} do
-      fake_initialize(server)
-      Server.receive_packet(server, request(1, "not_matched"))
-
-      assert_receive(
-        %{
-          "id" => 1,
-          "error" => %{
-            "code" => -32600
-          }
-        },
-        1000
-      )
-
-      assert_receive(%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
-      })
-    end
-
-    test "not matched executeCommand requests return -32600 InvalidRequest and log warning", %{
-      server: server
-    } do
-      fake_initialize(server)
-      Server.receive_packet(server, execute_command_req(1, "not_matched", ["a", "bc"]))
-
-      assert_receive(
-        %{
-          "id" => 1,
-          "error" => %{
-            "code" => -32600
-          }
-        },
-        1000
-      )
-
-      assert_receive(%{
-        "method" => "window/logMessage",
-        "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
-      })
-    end
-  end
-
   setup context do
     if context[:skip_server] do
       :ok
     else
-      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
+      {:ok, server} = Server.start_link()
+      start_server(server)
+
       {:ok, tracer} = start_supervised(Tracer)
+      {:ok, _} = start_supervised(MixProjectCache)
+      {:ok, _} = start_supervised(Parser)
+
+      on_exit(fn ->
+        if Process.alive?(server) do
+          Process.monitor(server)
+          GenServer.stop(server)
+
+          receive do
+            {:DOWN, _, _, ^server, _} ->
+              :ok
+          end
+        else
+          :ok
+        end
+      end)
 
       {:ok, %{server: server, tracer: tracer}}
     end
   end
 
-  describe "text synchronization" do
-    test "textDocument/didOpen", %{server: server} do
-      uri = "file:///file.ex"
-      code = ~S(
+  describe "initialize" do
+    test "returns error -32002 ServerNotInitialized when not initialized", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        Server.receive_packet(server, completion_req(1, uri, 2, 25))
+
+        assert_receive(
+          %{
+            "id" => 1,
+            "error" => %{
+              "code" => -32002
+            }
+          },
+          1000
+        )
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "initializes", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "gets configuration after initialized notification if client supports it", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(
+          server,
+          initialize_req(1, root_uri(), %{
+            "workspace" => %{
+              "configuration" => true
+            }
+          })
+        )
+
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        Server.receive_packet(server, notification("initialized"))
+        uri = root_uri()
+
+        assert_receive(
+          %{
+            "id" => 1,
+            "method" => "workspace/configuration",
+            "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
+          },
+          1000
+        )
+
+        JsonRpc.receive_packet(
+          response(1, [
+            %{
+              "mixEnv" => "dev",
+              "autoBuild" => false,
+              "dialyzerEnabled" => false
+            }
+          ])
+        )
+
+        assert :sys.get_state(server).mix_env == "dev"
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "gets configuration after workspace/didChangeConfiguration notification if client supports it",
+         %{
+           server: server
+         } do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(
+          server,
+          initialize_req(1, root_uri(), %{
+            "workspace" => %{
+              "configuration" => true
+            }
+          })
+        )
+
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        Server.receive_packet(server, notification("initialized"))
+        uri = root_uri()
+
+        assert_receive(
+          %{
+            "id" => id,
+            "method" => "workspace/configuration",
+            "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
+          },
+          1000
+        )
+
+        config = %{
+          "mixEnv" => "dev",
+          "autoBuild" => false,
+          "dialyzerEnabled" => false
+        }
+
+        JsonRpc.receive_packet(response(id, [config]))
+
+        assert_receive(
+          %{
+            "method" => "window/logMessage",
+            "params" => %{
+              "message" => "Received client configuration via workspace/configuration" <> _
+            }
+          },
+          1000
+        )
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(nil)
+        )
+
+        assert_receive(
+          %{
+            "id" => id,
+            "method" => "workspace/configuration"
+          },
+          3000
+        )
+
+        JsonRpc.receive_packet(response(id, [config]))
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "handles deprecated push based configuration", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(
+          server,
+          initialize_req(1, root_uri(), %{
+            "workspace" => %{
+              "configuration" => false
+            }
+          })
+        )
+
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        Server.receive_packet(server, notification("initialized"))
+        uri = root_uri()
+
+        refute_receive(
+          %{
+            "id" => 1,
+            "method" => "workspace/configuration",
+            "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
+          },
+          1000
+        )
+
+        config = %{
+          "mixEnv" => "dev",
+          "autoBuild" => false,
+          "dialyzerEnabled" => false
+        }
+
+        Server.receive_packet(
+          server,
+          did_change_configuration(%{"elixirLS" => config})
+        )
+
+        assert :sys.get_state(server).mix_env == "dev"
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "falls back do default configuration", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "formatter", fn ->
+        :sys.replace_state(server, fn state ->
+          %{
+            state
+            | default_settings: %{
+                "dialyzerEnabled" => false
+              }
+          }
+        end)
+
+        Server.receive_packet(
+          server,
+          initialize_req(1, root_uri(), %{
+            "workspace" => %{
+              "configuration" => false
+            }
+          })
+        )
+
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        Server.receive_packet(server, notification("initialized"))
+
+        assert_receive(
+          %{
+            "method" => "window/logMessage",
+            "params" => %{
+              "message" =>
+                "Did not receive workspace/didChangeConfiguration notification after 3 seconds. The server will use default config."
+            }
+          },
+          4000
+        )
+
+        assert :sys.get_state(server).mix_env == "test"
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "execute commands should include the server instance id", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        # If a command does not include the server instance id then it will cause
+        # vscode-elixir-ls to fail to start up on multi-root workspaces.
+        # Example: https://github.com/elixir-lsp/elixir-ls/pull/505
+
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => result}, 1000)
+
+        commands = get_in(result, ["capabilities", "executeCommandProvider", "commands"])
+        server_instance_id = :sys.get_state(server).server_instance_id
+
+        Enum.each(commands, fn command ->
+          assert String.contains?(command, server_instance_id)
+        end)
+
+        refute Enum.empty?(commands)
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "returns -32600 InvalidRequest when already initialized", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+
+        assert_receive(
+          %{
+            "id" => 1,
+            "error" => %{
+              "code" => -32600
+            }
+          },
+          1000
+        )
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "skips notifications when not initialized", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        code = ~S(
         defmodule MyModule do
           use GenServer
         end
       )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
-      state = :sys.get_state(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        assert :sys.get_state(server).source_files == %{}
+        wait_until_compiled(server)
+      end)
+    end
+  end
 
-      assert %SourceFile{dirty?: false, text: ^code, version: 1} =
-               Server.get_source_file(state, uri)
+  describe "exit" do
+    test "exit notifications when not initialized", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        wait_until_compiled(server)
+        Server.receive_packet(server, notification("exit"))
 
-      assert_receive notification("textDocument/publishDiagnostics", %{
-                       "uri" => ^uri,
-                       "diagnostics" => []
-                     }),
-                     1000
+        assert_receive(%{
+          "method" => "window/logMessage",
+          "params" => %{"message" => "Received exit with code 1"}
+        })
+      end)
+    end
+
+    test "exit notifications after shutdown", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(2, "shutdown", %{}))
+        assert_receive(%{"id" => 2, "result" => nil}, 1000)
+        Server.receive_packet(server, notification("exit"))
+
+        assert_receive(%{
+          "method" => "window/logMessage",
+          "params" => %{"message" => "Received exit with code 0"}
+        })
+      end)
+    end
+
+    test "returns -32600 InvalidRequest when shutting down", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(2, "shutdown", %{}))
+        assert_receive(%{"id" => 2, "result" => nil}, 1000)
+
+        Server.receive_packet(server, hover_req(1, "file:///file.ex", 2, 17))
+
+        assert_receive(
+          %{
+            "id" => 1,
+            "error" => %{
+              "code" => -32600
+            }
+          },
+          1000
+        )
+      end)
+    end
+
+    test "skips notifications when not shutting down", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        Server.receive_packet(server, initialize_req(1, root_uri(), %{}))
+        assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(2, "shutdown", %{}))
+        assert_receive(%{"id" => 2, "result" => nil}, 1000)
+
+        uri = "file:///file.ex"
+        code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+      )
+
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        assert :sys.get_state(server).source_files == %{}
+      end)
+    end
+  end
+
+  describe "not matched messages" do
+    test "not supported $/ notifications are skipped", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        Server.receive_packet(server, notification("$/not_supported"))
+        :sys.get_state(server)
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "not matched notifications log warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        Server.receive_packet(server, notification("not_matched"))
+        :sys.get_state(server)
+
+        assert_receive(%{
+          "method" => "window/logMessage",
+          "params" => %{"message" => "Received unmatched notification" <> _, "type" => 2}
+        })
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "not supported $/ requests return -32601 MethodNotFound", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        Server.receive_packet(server, request(1, "$/not_supported"))
+
+        assert_receive(
+          %{
+            "id" => 1,
+            "error" => %{
+              "code" => -32601
+            }
+          },
+          1000
+        )
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "not matched requests return -32600 InvalidRequest and log warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        Server.receive_packet(server, request(1, "not_matched"))
+
+        assert_receive(
+          %{
+            "id" => 1,
+            "error" => %{
+              "code" => -32600
+            }
+          },
+          1000
+        )
+
+        assert_receive(%{
+          "method" => "window/logMessage",
+          "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
+        })
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "not matched executeCommand requests return -32600 InvalidRequest and log warning", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        Server.receive_packet(server, execute_command_req(1, "not_matched", ["a", "bc"]))
+
+        assert_receive(
+          %{
+            "id" => 1,
+            "error" => %{
+              "code" => -32600
+            }
+          },
+          1000
+        )
+
+        assert_receive(%{
+          "method" => "window/logMessage",
+          "params" => %{"message" => "Unmatched request" <> _, "type" => 2}
+        })
+
+        wait_until_compiled(server)
+      end)
+    end
+  end
+
+  describe "text synchronization" do
+    test "textDocument/didOpen no parse errors", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        code = ~S(
+        defmodule MyModule do
+          use GenServer
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => []
+                       }),
+                       1000
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen with parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        code = ~S(
+        defmodule MyModule do
+          use GenServer{
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic],
+                         "version" => 1
+                       }),
+                       1000
+
+        assert diagnostic["severity"] == 1
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen with parse warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        code = ~S(
+        defmodule MyModule do
+          :"asd"
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, language_id: "elixir", version: 1} =
+                 Server.get_source_file(state, uri)
+
+        # Code.with_diagnostics is broken on elixir < 1.15.3
+        if Version.match?(System.version(), ">= 1.15.3") do
+          assert_receive notification("textDocument/publishDiagnostics", %{
+                           "uri" => ^uri,
+                           "diagnostics" => [diagnostic],
+                           "version" => 1
+                         }),
+                         1000
+
+          assert diagnostic["severity"] == 2
+        end
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.eex")
+        code = ~S(
+        <%= :asd
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic]
+                       }),
+                       1000
+
+        assert diagnostic["severity"] == 1
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse tokenizer error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.eex")
+        code = ~S(
+        <%= as{ %>
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic]
+                       }),
+                       1000
+
+        assert diagnostic["severity"] == 1
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.eex")
+        code = ~S(
+        foo <%= if true do %>true<%= else %>false<% end %>
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        # Code.with_diagnostics is broken on elixir < 1.15.3
+        if Version.match?(System.version(), ">= 1.15.3") do
+          assert_receive notification("textDocument/publishDiagnostics", %{
+                           "uri" => ^uri,
+                           "diagnostics" => [diagnostic]
+                         }),
+                         1000
+
+          assert diagnostic["severity"] == 2
+        end
+
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didOpen eex with parse tokenizer warning", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.eex")
+        code = ~S(
+        <% :'bar' %>
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        state = :sys.get_state(server)
+
+        assert %SourceFile{dirty?: false, text: ^code, version: 1} =
+                 Server.get_source_file(state, uri)
+
+        # Code.with_diagnostics is broken on elixir < 1.15.3
+        if Version.match?(System.version(), ">= 1.15.3") do
+          # elixir 1.15.5 emits duplicated warnings
+          # https://github.com/elixir-lang/elixir/issues/12961
+          assert_receive notification("textDocument/publishDiagnostics", %{
+                           "uri" => ^uri,
+                           "diagnostics" => [diagnostic | _]
+                         }),
+                         1000
+
+          assert diagnostic["severity"] == 2
+        end
+
+        wait_until_compiled(server)
+      end)
     end
 
     test "textDocument/didOpen already open", %{server: server} do
-      uri = "file:///file.ex"
-      code = ~S(
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        code = ~S(
         defmodule MyModule do
           use GenServer
         end
-      )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
-      assert_receive %{
-                       "method" => "window/logMessage",
-                       "params" => %{
-                         "message" =>
-                           "Received textDocument/didOpen for file that is already open" <> _,
-                         "type" => 2
-                       }
-                     },
-                     1000
+        assert_receive %{
+                         "method" => "window/logMessage",
+                         "params" => %{
+                           "message" =>
+                             "Received textDocument/didOpen for file that is already open" <> _,
+                           "type" => 2
+                         }
+                       },
+                       1000
+
+        wait_until_compiled(server)
+      end)
     end
 
-    test "textDocument/didClose", %{server: server} do
-      uri = "file:///file.ex"
-      code = ~S(
+    test "textDocument/didClose no parse errors", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        code = ~S(
         defmodule MyModule do
           use GenServer
         end
-      )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, did_close(uri))
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_close(uri))
 
-      state = :sys.get_state(server)
-      assert_raise Server.InvalidParamError, fn -> Server.get_source_file(state, uri) end
+        refute_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => _
+                       }),
+                       1000
+
+        state = :sys.get_state(server)
+        assert_raise Server.InvalidParamError, fn -> Server.get_source_file(state, uri) end
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didClose parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        code = ~S(
+        defmodule MyModule do
+          use GenServer{
+        end
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [_diagnostic]
+                       }),
+                       1000
+
+        Server.receive_packet(server, did_close(uri))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => []
+                       }),
+                       1000
+
+        state = :sys.get_state(server)
+        assert_raise Server.InvalidParamError, fn -> Server.get_source_file(state, uri) end
+        wait_until_compiled(server)
+      end)
     end
 
     test "textDocument/didClose not open", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_close(uri))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        fake_initialize(server)
+        Server.receive_packet(server, did_close(uri))
 
-      assert_receive %{
-                       "method" => "window/logMessage",
-                       "params" => %{
-                         "message" =>
-                           "Received textDocument/didClose for file that is not open" <> _,
-                         "type" => 2
-                       }
-                     },
-                     1000
+        assert_receive %{
+                         "method" => "window/logMessage",
+                         "params" => %{
+                           "message" =>
+                             "Received textDocument/didClose for file that is not open" <> _,
+                           "type" => 2
+                         }
+                       },
+                       1000
+
+        wait_until_compiled(server)
+      end)
     end
 
-    test "textDocument/didChange", %{server: server} do
-      uri = "file:///file.ex"
+    test "textDocument/didChange no parse error to parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
 
-      content_changes = [
-        %{
-          "range" => %{
-            "end" => %{"character" => 2, "line" => 1},
-            "start" => %{"character" => 0, "line" => 2}
-          },
-          "rangeLength" => 1,
-          "text" => ""
-        }
-      ]
+        content_changes = [
+          %{
+            "range" => %{
+              "end" => %{"character" => 2, "line" => 1},
+              "start" => %{"character" => 0, "line" => 2}
+            },
+            "rangeLength" => 1,
+            "text" => ""
+          }
+        ]
 
-      code = ~S(
+        code = ~S(
         defmodule MyModule do
           use GenServer
         end
-      )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, did_change(uri, 1, content_changes))
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
 
-      state = :sys.get_state(server)
-      assert %SourceFile{dirty?: true, version: 2} = Server.get_source_file(state, uri)
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => []
+                       }),
+                       1000
+
+        Server.receive_packet(server, did_change(uri, 2, content_changes))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [_],
+                         "version" => 2
+                       }),
+                       1000
+
+        state = :sys.get_state(server)
+        assert %SourceFile{dirty?: true, version: 2} = Server.get_source_file(state, uri)
+        wait_until_compiled(server)
+      end)
+    end
+
+    test "textDocument/didChange parse error to no parse error", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+
+        content_changes = [
+          %{
+            "range" => %{
+              "end" => %{"character" => 24, "line" => 2},
+              "start" => %{"character" => 23, "line" => 2}
+            },
+            "rangeLength" => 1,
+            "text" => ""
+          }
+        ]
+
+        code = ~S(
+        defmodule MyModule do
+          use GenServer{
+        end
+        )
+
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 0, code))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [_],
+                         "version" => 0
+                       }),
+                       1000
+
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [],
+                         "version" => 1
+                       }),
+                       1000
+
+        state = :sys.get_state(server)
+        assert %SourceFile{dirty?: true, version: 1} = Server.get_source_file(state, uri)
+
+        wait_until_compiled(server)
+      end)
     end
 
     test "textDocument/didChange not open", %{server: server} do
-      uri = "file:///file.ex"
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
 
-      content_changes = [
-        %{
-          "range" => %{
-            "end" => %{"character" => 2, "line" => 1},
-            "start" => %{"character" => 0, "line" => 2}
-          },
-          "rangeLength" => 1,
-          "text" => ""
-        }
-      ]
+        content_changes = [
+          %{
+            "range" => %{
+              "end" => %{"character" => 2, "line" => 1},
+              "start" => %{"character" => 0, "line" => 2}
+            },
+            "rangeLength" => 1,
+            "text" => ""
+          }
+        ]
 
-      fake_initialize(server)
-      Server.receive_packet(server, did_change(uri, 1, content_changes))
+        fake_initialize(server)
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
 
-      assert_receive %{
-                       "method" => "window/logMessage",
-                       "params" => %{
-                         "message" =>
-                           "Received textDocument/didChange for file that is not open" <> _,
-                         "type" => 2
-                       }
-                     },
-                     1000
+        assert_receive %{
+                         "method" => "window/logMessage",
+                         "params" => %{
+                           "message" =>
+                             "Received textDocument/didChange for file that is not open" <> _,
+                           "type" => 2
+                         }
+                       },
+                       1000
 
-      state = :sys.get_state(server)
-      refute Map.has_key?(state.source_files, uri)
+        state = :sys.get_state(server)
+        refute Map.has_key?(state.source_files, uri)
+        wait_until_compiled(server)
+      end)
     end
 
     test "textDocument/didSave", %{server: server} do
-      uri = "file:///file.ex"
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
 
-      content_changes = [
-        %{
-          "range" => %{
-            "end" => %{"character" => 2, "line" => 1},
-            "start" => %{"character" => 0, "line" => 2}
-          },
-          "rangeLength" => 1,
-          "text" => ""
-        }
-      ]
+        content_changes = [
+          %{
+            "range" => %{
+              "end" => %{"character" => 2, "line" => 1},
+              "start" => %{"character" => 0, "line" => 2}
+            },
+            "rangeLength" => 1,
+            "text" => ""
+          }
+        ]
 
-      code = ~S(
+        code = ~S(
         defmodule MyModule do
           use GenServer
         end
-      )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, did_change(uri, 1, content_changes))
-      Server.receive_packet(server, did_save(uri))
+        )
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
+        Server.receive_packet(server, did_save(uri))
 
-      state = :sys.get_state(server)
-      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
-      assert state.needs_build? || state.build_running?
+        state = :sys.get_state(server)
+        assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
+      end)
     end
 
     test "textDocument/didSave not open", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_save(uri))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = SourceFile.Path.to_uri("file.ex")
+        fake_initialize(server)
+        Server.receive_packet(server, did_save(uri))
 
-      assert_receive %{
-                       "method" => "window/logMessage",
-                       "params" => %{
-                         "message" =>
-                           "Received textDocument/didSave for file that is not open" <> _,
-                         "type" => 2
-                       }
-                     },
-                     1000
+        assert_receive %{
+                         "method" => "window/logMessage",
+                         "params" => %{
+                           "message" =>
+                             "Received textDocument/didSave for file that is not open" <> _,
+                           "type" => 2
+                         }
+                       },
+                       1000
 
-      state = :sys.get_state(server)
-      refute Map.has_key?(state.source_files, uri)
+        state = :sys.get_state(server)
+        refute Map.has_key?(state.source_files, uri)
+        wait_until_compiled(server)
+      end)
     end
   end
 
   describe "workspace/didChangeWatchedFiles" do
     test "not watched file changed outside", %{server: server} do
-      uri = "file:///file.txt"
-      fake_initialize(server)
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.txt"
+        fake_initialize(server)
 
-      for change_type <- 1..3 do
-        Server.receive_packet(
-          server,
-          did_change_watched_files([%{"uri" => uri, "type" => change_type}])
-        )
+        for change_type <- 1..3 do
+          Server.receive_packet(
+            server,
+            did_change_watched_files([%{"uri" => uri, "type" => change_type}])
+          )
 
-        state = :sys.get_state(server)
-        refute state.needs_build?
-      end
+          state = :sys.get_state(server)
+          refute state.needs_build?
+        end
+
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched file created outside", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched file updated outside", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched file deleted outside", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched open file created in editor", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
-      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        wait_until_compiled(server)
+      end)
     end
 
     # this case compiles 2 times but cannot be easily fixed without breaking other cases
     test "watched open file created in editor, didSave sent", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, did_save(uri))
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_save(uri))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build?
-      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        state = :sys.get_state(server)
+        assert state.needs_build?
+        assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched open file saved in editor", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, did_save(uri))
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_save(uri))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
-      assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched open file deleted in editor", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, did_close(uri))
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_close(uri))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
+      end)
     end
 
     @tag :fixture
@@ -554,6 +1119,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         state = :sys.get_state(server)
         assert state.needs_build? || state.build_running?
         assert %SourceFile{dirty?: false} = Server.get_source_file(state, uri)
+        wait_until_compiled(server)
       end)
     end
 
@@ -586,341 +1152,400 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         state = :sys.get_state(server)
         assert state.needs_build? || state.build_running?
         assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
+        wait_until_compiled(server)
       end)
     end
 
     test "watched open file created outside, read error", %{server: server} do
-      uri = "file:///file.ex"
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
 
-      content_changes = [
-        %{
-          "range" => %{
-            "end" => %{"character" => 2, "line" => 1},
-            "start" => %{"character" => 0, "line" => 2}
-          },
-          "rangeLength" => 1,
-          "text" => ""
-        }
-      ]
+        content_changes = [
+          %{
+            "range" => %{
+              "end" => %{"character" => 2, "line" => 1},
+              "start" => %{"character" => 0, "line" => 2}
+            },
+            "rangeLength" => 1,
+            "text" => ""
+          }
+        ]
 
-      code = ~S(
+        code = ~S(
         defmodule MyModule do
           use GenServer
         end
       )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, did_change(uri, 1, content_changes))
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 1}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
-      assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
 
-      assert_receive %{
-                       "method" => "window/logMessage",
-                       "params" => %{"message" => "Unable to read file" <> _, "type" => 2}
-                     },
-                     1000
+        assert_receive %{
+                         "method" => "window/logMessage",
+                         "params" => %{"message" => "Unable to read file" <> _, "type" => 2}
+                       },
+                       1000
+
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched open file updated outside, read error", %{server: server} do
-      uri = "file:///file.ex"
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
 
-      content_changes = [
-        %{
-          "range" => %{
-            "end" => %{"character" => 2, "line" => 1},
-            "start" => %{"character" => 0, "line" => 2}
-          },
-          "rangeLength" => 1,
-          "text" => ""
-        }
-      ]
+        content_changes = [
+          %{
+            "range" => %{
+              "end" => %{"character" => 2, "line" => 1},
+              "start" => %{"character" => 0, "line" => 2}
+            },
+            "rangeLength" => 1,
+            "text" => ""
+          }
+        ]
 
-      code = ~S(
+        code = ~S(
         defmodule MyModule do
           use GenServer
         end
       )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, did_change(uri, 1, content_changes))
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_change(uri, 1, content_changes))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
 
-      state = :sys.get_state(server)
-      assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
-      assert state.needs_build? || state.build_running?
+        state = :sys.get_state(server)
+        assert %SourceFile{dirty?: true} = Server.get_source_file(state, uri)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
+      end)
     end
 
     test "watched open file deleted outside", %{server: server} do
-      uri = "file:///file.ex"
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 3}]))
 
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
+      end)
     end
 
     # https://github.com/elixir-lsp/elixir-ls/pull/569
     @tag :additional_extension
     test "watched file updated outside, non-default extension", %{server: server} do
-      uri = "file:///file.veex"
-      fake_initialize(server)
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.veex"
+        fake_initialize(server)
 
-      # Simulate settings related to this test
-      :sys.replace_state(server, fn state ->
-        %{state | settings: %{"additionalWatchedExtensions" => [".veex"]}}
+        # Simulate settings related to this test
+        :sys.replace_state(server, fn state ->
+          %{state | settings: %{"additionalWatchedExtensions" => [".veex"]}}
+        end)
+
+        # Check if *.veex file triggers build
+        Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
+
+        state = :sys.get_state(server)
+        assert state.needs_build? || state.build_running?
+        wait_until_compiled(server)
       end)
-
-      # Check if *.veex file triggers build
-      Server.receive_packet(server, did_change_watched_files([%{"uri" => uri, "type" => 2}]))
-
-      state = :sys.get_state(server)
-      assert state.needs_build? || state.build_running?
     end
 
     test "gracefully skip not supported URI scheme", %{server: server} do
-      uri = "git://github.com/user/repo.git"
-      fake_initialize(server)
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "git://github.com/user/repo.git"
+        fake_initialize(server)
 
-      Server.receive_packet(
-        server,
-        did_change_watched_files([%{"uri" => uri, "type" => 2}])
-      )
+        Server.receive_packet(
+          server,
+          did_change_watched_files([%{"uri" => uri, "type" => 2}])
+        )
 
-      :sys.get_state(server)
+        wait_until_compiled(server)
+      end)
     end
   end
 
   test "hover", %{server: server} do
-    uri = "file:///file.ex"
-    code = ~S(
+    in_fixture(__DIR__, "clean", fn ->
+      uri = "file:///file.ex"
+      code = ~S(
       defmodule MyModule do
         use GenServer
       end
     )
-    fake_initialize(server)
-    Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, hover_req(1, uri, 2, 17))
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, hover_req(1, uri, 2, 17))
 
-    resp = assert_receive(%{"id" => 1}, 1000)
+      resp = assert_receive(%{"id" => 1}, 1000)
 
-    assert response(1, %{
-             "contents" => %{
-               "kind" => "markdown",
-               "value" => "> GenServer" <> _
-             },
-             "range" => %{
-               "start" => %{"line" => 2, "character" => 12},
-               "end" => %{"line" => 2, "character" => 21}
-             }
-           }) = resp
+      assert response(1, %{
+               "contents" => %{
+                 "kind" => "markdown",
+                 "value" => "```elixir\nGenServer" <> _
+               },
+               "range" => %{
+                 "start" => %{"line" => 2, "character" => 12},
+                 "end" => %{"line" => 2, "character" => 21}
+               }
+             }) = resp
+
+      wait_until_compiled(server)
+    end)
   end
 
   test "auto complete", %{server: server} do
-    uri = "file:///file.ex"
-    code = ~S(
+    in_fixture(__DIR__, "clean", fn ->
+      uri = "file:///file.ex"
+      code = ~S(
     defmodule MyModule do
       def my_fn, do: GenSer
     end
     )
-    fake_initialize(server)
-    Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, completion_req(1, uri, 2, 25))
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, completion_req(1, uri, 2, 25))
 
-    resp = assert_receive(%{"id" => 1}, 10000)
+      resp = assert_receive(%{"id" => 1}, 10000)
 
-    assert response(1, %{
-             "isIncomplete" => true,
-             "items" => [
-               %{
-                 "detail" => "behaviour",
-                 "documentation" => _,
-                 "kind" => 8,
-                 "label" => "GenServer"
-               }
-               | _
-             ]
-           }) = resp
+      assert response(1, %{
+               "isIncomplete" => true,
+               "items" => [
+                 %{
+                   "detail" => "behaviour",
+                   "documentation" => _,
+                   "kind" => 8,
+                   "label" => "GenServer"
+                 }
+                 | _
+               ]
+             }) = resp
+
+      wait_until_compiled(server)
+    end)
   end
 
   describe "textDocument/definition" do
     test "definition found", %{server: server} do
-      uri = "file:///file.ex"
-      code = ~S(
+      in_fixture(__DIR__, "clean", fn ->
+        uri = "file:///file.ex"
+        code = ~S(
         defmodule MyModule do
           @behaviour ElixirLS.LanguageServer.Fixtures.ExampleBehaviour
         end
       )
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, definition_req(1, uri, 2, 58))
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, definition_req(1, uri, 2, 58))
 
-      uri =
-        ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
-        |> to_string
-        |> SourceFile.Path.to_uri()
+        uri =
+          ElixirLS.LanguageServer.Fixtures.ExampleBehaviour.module_info()[:compile][:source]
+          |> to_string
+          |> SourceFile.Path.to_uri()
 
-      assert_receive(
-        response(1, %{
-          "range" => %{
-            "end" => %{"character" => column, "line" => 0},
-            "start" => %{"character" => column, "line" => 0}
-          },
-          "uri" => ^uri
-        }),
-        3000
-      )
+        assert_receive(
+          response(1, %{
+            "range" => %{
+              "end" => %{"character" => 0, "line" => 0},
+              "start" => %{"character" => 0, "line" => 0}
+            },
+            "uri" => ^uri
+          }),
+          3000
+        )
 
-      assert column > 0
+        wait_until_compiled(server)
+      end)
     end
 
     test "definition not found", %{server: server} do
-      fake_initialize(server)
-      uri = "file:///file.ex"
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, definition_req(1, uri, 0, 43))
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        uri = "file:///file.ex"
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, definition_req(1, uri, 0, 43))
 
-      assert_receive(
-        response(1, nil),
-        3000
-      )
+        assert_receive(
+          response(1, nil),
+          3000
+        )
+
+        wait_until_compiled(server)
+      end)
     end
   end
 
   describe "textDocument/implementation" do
     test "implementations found", %{server: server} do
-      file_path = FixtureHelpers.get_path("example_behaviour.ex")
-      text = File.read!(file_path)
-      uri = SourceFile.Path.to_uri(file_path)
-      fake_initialize(server)
-      Server.receive_packet(server, did_open(uri, "elixir", 1, text))
+      in_fixture(__DIR__, "clean", fn ->
+        file_path = FixtureHelpers.get_path("example_behaviour.ex")
+        text = File.read!(file_path)
+        uri = SourceFile.Path.to_uri(file_path)
+        fake_initialize(server)
+        Server.receive_packet(server, did_open(uri, "elixir", 1, text))
 
-      # force load as currently only loaded or loadable modules that are a part
-      # of an application are found
-      Code.ensure_loaded?(ElixirLS.LanguageServer.Fixtures.ExampleBehaviourImpl)
+        # force load as currently only loaded or loadable modules that are a part
+        # of an application are found
+        Code.ensure_loaded?(ElixirLS.LanguageServer.Fixtures.ExampleBehaviourImpl)
 
-      Server.receive_packet(server, implementation_req(1, uri, 0, 43))
+        Server.receive_packet(server, implementation_req(1, uri, 0, 43))
 
-      assert_receive(
-        response(1, [
-          %{
-            "range" => %{
-              "end" => %{"character" => _, "line" => _},
-              "start" => %{"character" => _, "line" => _}
-            },
-            "uri" => ^uri
-          }
-        ]),
-        15000
-      )
+        assert_receive(
+          response(1, [
+            %{
+              "range" => %{
+                "end" => %{"character" => _, "line" => _},
+                "start" => %{"character" => _, "line" => _}
+              },
+              "uri" => ^uri
+            }
+          ]),
+          15000
+        )
+
+        wait_until_compiled(server)
+      end)
     end
 
     test "implementations not found", %{server: server} do
-      fake_initialize(server)
-      uri = "file:///file.ex"
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, implementation_req(1, uri, 0, 43))
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        uri = "file:///file.ex"
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, implementation_req(1, uri, 0, 43))
 
-      assert_receive(
-        response(1, []),
-        15000
-      )
+        assert_receive(
+          response(1, []),
+          15000
+        )
+
+        wait_until_compiled(server)
+      end)
     end
   end
 
   describe "requests cancellation" do
     test "known request", %{server: server} do
-      fake_initialize(server)
-      uri = "file:///file.ex"
-      Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
-      Server.receive_packet(server, hover_req(1, uri, 1, 1))
-      Server.receive_packet(server, cancel_request(1))
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        uri = "file:///file.ex"
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, hover_req(1, uri, 1, 1))
+        Server.receive_packet(server, cancel_request(1))
 
-      state = :sys.get_state(server)
-      refute Map.has_key?(state.requests, 1)
+        state = :sys.get_state(server)
+        refute Map.has_key?(state.requests, 1)
 
-      assert_receive %{
-        "error" => %{"code" => -32800, "message" => "Request cancelled"},
-        "id" => 1,
-        "jsonrpc" => "2.0"
-      }
+        assert_receive %{
+          "error" => %{"code" => -32800, "message" => "Request cancelled"},
+          "id" => 1,
+          "jsonrpc" => "2.0"
+        }
+
+        wait_until_compiled(server)
+      end)
     end
 
     test "unknown request", %{server: server} do
-      fake_initialize(server)
-      Process.monitor(server)
-      Server.receive_packet(server, cancel_request(1))
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        Process.monitor(server)
+        Server.receive_packet(server, cancel_request(1))
 
-      assert_receive %{
-                       "method" => "window/logMessage",
-                       "params" => %{
-                         "message" => "Received $/cancelRequest for unknown request" <> _,
-                         "type" => 2
-                       }
-                     },
-                     1000
+        assert_receive %{
+                         "method" => "window/logMessage",
+                         "params" => %{
+                           "message" => "Received $/cancelRequest for unknown request" <> _,
+                           "type" => 4
+                         }
+                       },
+                       1000
 
-      refute_receive {:DOWN, _, _, _, _}
+        refute_receive {:DOWN, _, _, _, _}
+        wait_until_compiled(server)
+      end)
     end
   end
 
   describe "requests shutdown" do
     test "without params", %{server: server} do
-      fake_initialize(server)
-      Server.receive_packet(server, request(1, "shutdown"))
-      assert %{received_shutdown?: true} = :sys.get_state(server)
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(1, "shutdown"))
+        assert %{received_shutdown?: true} = :sys.get_state(server)
+      end)
     end
 
     test "with params", %{server: server} do
-      fake_initialize(server)
-      Server.receive_packet(server, request(1, "shutdown", nil))
-      assert %{received_shutdown?: true} = :sys.get_state(server)
+      in_fixture(__DIR__, "clean", fn ->
+        fake_initialize(server)
+        wait_until_compiled(server)
+        Server.receive_packet(server, request(1, "shutdown", nil))
+        assert %{received_shutdown?: true} = :sys.get_state(server)
+      end)
     end
   end
 
   test "uri request when the source file is not open returns -32602",
        %{server: server} do
-    fake_initialize(server)
+    in_fixture(__DIR__, "clean", fn ->
+      fake_initialize(server)
 
-    Server.receive_packet(server, document_symbol_req(1, "file:///file.ex"))
+      Server.receive_packet(server, document_symbol_req(1, "file:///file.ex"))
 
-    assert_receive(
-      %{
-        "id" => 1,
-        "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}
-      },
-      1000
-    )
+      assert_receive(
+        %{
+          "id" => 1,
+          "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}
+        },
+        1000
+      )
+
+      wait_until_compiled(server)
+    end)
   end
 
   test "uri async request when the source file is not open returns -32602",
        %{server: server} do
-    fake_initialize(server)
+    in_fixture(__DIR__, "clean", fn ->
+      fake_initialize(server)
 
-    Server.receive_packet(
-      server,
-      execute_command_req(1, "spec:1", [
+      Server.receive_packet(
+        server,
+        execute_command_req(1, "spec:1", [
+          %{
+            "uri" => "file:///file.ex",
+            "mod" => "Mod",
+            "fun" => "fun",
+            "arity" => 1,
+            "spec" => "",
+            "line" => 1
+          }
+        ])
+      )
+
+      assert_receive(
         %{
-          "uri" => "file:///file.ex",
-          "mod" => "Mod",
-          "fun" => "fun",
-          "arity" => 1,
-          "spec" => "",
-          "line" => 1
-        }
-      ])
-    )
+          "id" => 1,
+          "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}
+        },
+        1000
+      )
 
-    assert_receive(
-      %{
-        "id" => 1,
-        "error" => %{"code" => -32602, "message" => "invalid URI: \"file:///file.ex\""}
-      },
-      1000
-    )
+      wait_until_compiled(server)
+    end)
   end
 
   @tag :fixture
@@ -942,6 +1567,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      wait_until_compiled(server)
       Server.receive_packet(server, formatting_req(2, uri, %{}))
 
       resp = assert_receive(%{"id" => 2}, 1000)
@@ -972,64 +1598,66 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       # File is already formatted
       assert response(3, []) == resp
+      wait_until_compiled(server)
     end)
   end
 
   test "signature help", %{server: server} do
-    uri = "file:///file.ex"
-    code = ~S[
+    in_fixture(__DIR__, "clean", fn ->
+      uri = "file:///file.ex"
+      code = ~S[
     defmodule MyModule do
       def my_fn do
         IO.inspect()
       end
     end
     ]
-    fake_initialize(server)
-    Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-    Server.receive_packet(server, signature_help_req(1, uri, 3, 19))
+      fake_initialize(server)
+      Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+      Server.receive_packet(server, signature_help_req(1, uri, 3, 19))
 
-    resp = assert_receive(%{"id" => 1}, 1000)
+      resp = assert_receive(%{"id" => 1}, 1000)
 
-    assert response(1, %{
-             "activeParameter" => 0,
-             "activeSignature" => 0,
-             "signatures" => [
-               %{
-                 "documentation" => %{
-                   "kind" => "markdown",
-                   "value" =>
-                     """
-                     Inspects and writes the given `item` to the device.
+      assert response(1, %{
+               "activeParameter" => 0,
+               "activeSignature" => 0,
+               "signatures" => [
+                 %{
+                   "documentation" => %{
+                     "kind" => "markdown",
+                     "value" =>
+                       """
+                       Inspects and writes the given `item`\
+                       """ <> _
+                   },
+                   "label" => "inspect(item, opts \\\\ [])",
+                   "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
+                 },
+                 %{
+                   "documentation" => %{
+                     "kind" => "markdown",
+                     "value" => """
+                     Inspects `item` according to the given options using the IO `device`.
 
+                     ```elixir
+                     @spec inspect(device(), item, keyword()) ::
+                             item
+                           when item: var
                      ```
-                     @spec inspect\
-                     """ <> _
-                 },
-                 "label" => "inspect(item, opts \\\\ [])",
-                 "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
-               },
-               %{
-                 "documentation" => %{
-                   "kind" => "markdown",
-                   "value" => """
-                   Inspects `item` according to the given options using the IO `device`.
+                     """
+                   },
+                   "label" => "inspect(device, item, opts)",
+                   "parameters" => [
+                     %{"label" => "device"},
+                     %{"label" => "item"},
+                     %{"label" => "opts"}
+                   ]
+                 }
+               ]
+             }) = resp
 
-                   ```
-                   @spec inspect(device, item, keyword) ::
-                     item
-                   when item: var
-                   ```
-                   """
-                 },
-                 "label" => "inspect(device, item, opts)",
-                 "parameters" => [
-                   %{"label" => "device"},
-                   %{"label" => "item"},
-                   %{"label" => "opts"}
-                 ]
-               }
-             ]
-           }) = resp
+      wait_until_compiled(server)
+    end)
   end
 
   @tag :fixture
@@ -1039,17 +1667,45 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       initialize(server)
 
-      assert_receive notification("textDocument/publishDiagnostics", %{
-                       "uri" => ^error_file,
-                       "diagnostics" => [
-                         %{
-                           "message" => "(CompileError) undefined function does_not_exist" <> _,
-                           "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
-                           "severity" => 1
-                         }
-                       ]
-                     }),
-                     1000
+      if Version.match?(System.version(), ">= 1.15.0") do
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^error_file,
+                         "diagnostics" => [
+                           %{
+                             "message" =>
+                               "** (CompileError) lib/has_error.ex: cannot compile module" <> _,
+                             "range" => %{"end" => %{"line" => 0}, "start" => %{"line" => 0}},
+                             "severity" => 1
+                           },
+                           %{
+                             "message" => "undefined function does_not_exist/0" <> _,
+                             "range" => %{
+                               "end" => %{"character" => _, "line" => 3},
+                               "start" => %{"character" => _, "line" => 3}
+                             },
+                             "severity" => 1,
+                             "source" => "Elixir"
+                           }
+                         ]
+                       }),
+                       1000
+      else
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^error_file,
+                         "diagnostics" => [
+                           %{
+                             "message" =>
+                               "** (CompileError) lib/has_error.ex:4: undefined function does_not_exist" <>
+                                 _,
+                             "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
+                             "severity" => 1
+                           }
+                         ]
+                       }),
+                       1000
+      end
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1064,13 +1720,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" => "(TokenMissingError) missing terminator: end" <> _,
-                           "range" => %{"end" => %{"line" => 5}, "start" => %{"line" => 5}},
+                           "message" => "** (TokenMissingError)" <> _,
+                           "range" => %{"end" => %{"line" => _}, "start" => %{"line" => _}},
                            "severity" => 1
                          }
                        ]
                      }),
                      1000
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1085,13 +1743,15 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        "uri" => ^error_file,
                        "diagnostics" => [
                          %{
-                           "message" => "(SyntaxError) syntax error before: ','" <> _,
+                           "message" => "** (SyntaxError)" <> _,
                            "range" => %{"end" => %{"line" => 1}, "start" => %{"line" => 1}},
                            "severity" => 1
                          }
                        ]
                      }),
                      2000
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1122,6 +1782,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   after
     Code.put_compiler_option(:tracers, [])
@@ -1154,6 +1816,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  "uri" => ^reference_uri
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   after
     Code.put_compiler_option(:tracers, [])
@@ -1162,10 +1826,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   @tag fixture: true, skip_server: true
   test "loading of umbrella app dependencies" do
     in_fixture(__DIR__, "umbrella", fn ->
+      packet_capture = start_supervised!({PacketCapture, self()})
+      replace_logger(packet_capture)
       # We test this by opening the umbrella project twice.
       # First to compile the applications and build the cache.
       # Second time to see if loads modules
-      with_new_server(fn server ->
+      with_new_server(packet_capture, fn server ->
         {:ok, _pid} = Tracer.start_link([])
         initialize(server)
       end)
@@ -1174,7 +1840,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       purge([App2.Foo])
 
       # re-visiting the same project
-      with_new_server(fn server ->
+      with_new_server(packet_capture, fn server ->
+        {:ok, _pid} = Parser.start_link([])
         initialize(server)
 
         file_path = "apps/app1/lib/bar.ex"
@@ -1188,9 +1855,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         """
 
         Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        wait_until_compiled(server)
         Server.receive_packet(server, completion_req(3, uri, 1, 23))
 
-        resp = assert_receive(%{"id" => 3}, 5000)
+        resp = assert_receive(%{"id" => 3}, 10000)
 
         assert response(3, %{
                  "isIncomplete" => true,
@@ -1220,7 +1888,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
-      initialize(server, %{"enableTestLenses" => true})
+      initialize(server, %{"enableTestLenses" => true, "dialyzerEnabled" => false})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
@@ -1267,6 +1935,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1282,7 +1952,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       project_dir = SourceFile.Path.absolute_from_uri("#{root_uri()}/apps/app1")
 
-      initialize(server, %{"enableTestLenses" => true})
+      initialize(server, %{"enableTestLenses" => true, "dialyzerEnabled" => false})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
@@ -1329,6 +1999,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1353,6 +2025,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       resp = assert_receive(%{"id" => 4}, 5000)
 
       assert response(4, []) = resp
+      wait_until_compiled(server)
     end)
   end
 
@@ -1367,7 +2040,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       text = File.read!(file_path)
       project_dir = SourceFile.Path.absolute_from_uri(root_uri())
 
-      initialize(server, %{"enableTestLenses" => true})
+      initialize(server, %{"enableTestLenses" => true, "dialyzerEnabled" => false})
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
 
@@ -1414,6 +2087,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1432,7 +2107,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       initialize(server, %{
         "enableTestLenses" => true,
         "testPaths" => %{"app1" => ["custom_path"]},
-        "testPattern" => %{"app1" => "*_custom_test.exs"}
+        "testPattern" => %{"app1" => "*_custom_test.exs"},
+        "dialyzerEnabled" => false
       })
 
       Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
@@ -1480,6 +2156,8 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                  }
                }
              ]) = resp
+
+      wait_until_compiled(server)
     end)
   end
 
@@ -1501,6 +2179,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert_receive notification("window/logMessage", %{
                          "message" => "Compile took" <> _
                        })
+
+        uri = SourceFile.Path.to_uri("a.ex")
+        Server.receive_packet(server, did_open(uri, "elixir", 1, ""))
+        Server.receive_packet(server, did_save(uri))
+
+        assert_receive notification("window/logMessage", %{
+                         "message" => "Compile took" <> _
+                       })
+
+        wait_until_compiled(server)
       end)
     end
 
@@ -1521,21 +2209,43 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                        1000
 
         wait_until_compiled(server)
+        uri = SourceFile.Path.to_uri("a.ex")
+        code = ~S(
+        defmodule MyModule do
+          use GenServer{
+        end
+        )
+        Server.receive_packet(server, did_open(uri, "elixir", 1, code))
+        Server.receive_packet(server, did_save(uri))
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "diagnostics" => _,
+                         "uri" => ^uri
+                       }),
+                       1000
+
+        wait_until_compiled(server)
       end)
     end
   end
 
-  defp with_new_server(func) do
+  defp with_new_server(packet_capture, func) do
     server = start_supervised!({Server, nil})
-    packet_capture = start_supervised!({PacketCapture, self()})
+    {:ok, mix_project} = start_supervised(MixProjectCache)
+
     Process.group_leader(server, packet_capture)
+    Process.group_leader(mix_project, packet_capture)
+
+    json_rpc = start_supervised!({JsonRpc, name: JsonRpc})
+    Process.group_leader(json_rpc, packet_capture)
 
     try do
       func.(server)
     after
       wait_until_compiled(server)
       stop_supervised(Server)
-      stop_supervised(PacketCapture)
+      stop_supervised(JsonRpc)
+      stop_supervised(MixProjectCache)
       flush_mailbox()
     end
   end
@@ -1545,15 +2255,6 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       _ -> flush_mailbox()
     after
       0 -> :ok
-    end
-  end
-
-  defp wait_until_compiled(pid) do
-    state = :sys.get_state(pid)
-
-    if state.build_running? do
-      Process.sleep(500)
-      wait_until_compiled(pid)
     end
   end
 end

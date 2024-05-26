@@ -177,7 +177,7 @@ defmodule ElixirLS.Utils.PacketStreamTest do
                    |> Enum.to_list()
         end
 
-      assert error.message =~ "Unable to read from device: %JasonVendored.DecodeError"
+      assert error.message =~ "Unable to read from device: %JasonV.DecodeError"
 
       File.close(pid)
     end
@@ -194,7 +194,7 @@ defmodule ElixirLS.Utils.PacketStreamTest do
                    |> Enum.to_list()
         end
 
-      assert error.message =~ "Unable to read from device: %JasonVendored.DecodeError"
+      assert error.message =~ "Unable to read from device: %JasonV.DecodeError"
 
       File.close(pid)
     end

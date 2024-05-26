@@ -1,8 +1,13 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
+  alias ElixirLS.LanguageServer.Protocol.TextEdit
+
   import ElixirLS.LanguageServer.Protocol
+  require ElixirSense.Core.Introspection, as: Introspection
   require Logger
 
-  defstruct [:text, :version, dirty?: false]
+  @type t :: %__MODULE__{}
+
+  defstruct [:text, :version, :language_id, dirty?: false]
 
   @endings ["\r\n", "\r", "\n"]
 
@@ -38,13 +43,37 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     do_lines_with_endings(rest, line <> <<char::utf8>>)
   end
 
+  def text_before(text, position_line, position_character) do
+    text
+    |> lines
+    |> Enum.with_index()
+    |> Enum.reduce_while([], fn
+      {line, count}, acc when count < position_line ->
+        {:cont, [line, ?\n | acc]}
+
+      {line, count}, acc when count == position_line ->
+        slice =
+          characters_to_binary!(line, :utf8, :utf16)
+          |> (&binary_part(
+                &1,
+                0,
+                min(position_character * 2, byte_size(&1))
+              )).()
+          |> characters_to_binary!(:utf16, :utf8)
+
+        {:halt, [slice, ?\n | acc]}
+    end)
+    |> Enum.reverse()
+    |> IO.iodata_to_binary()
+  end
+
   def apply_content_changes(%__MODULE__{} = source_file, []) do
     source_file
   end
 
   def apply_content_changes(%__MODULE__{} = source_file, [edit | rest]) do
     source_file =
-      case edit do
+      case maybe_convert_text_edit(edit) do
         %{"range" => edited_range, "text" => new_text} when not is_nil(edited_range) ->
           update_in(source_file.text, fn text ->
             apply_edit(text, edited_range, new_text)
@@ -54,17 +83,19 @@ defmodule ElixirLS.LanguageServer.SourceFile do
           put_in(source_file.text, new_text)
       end
 
-    source_file =
-      update_in(source_file.version, fn
-        v when is_integer(v) -> v + 1
-        _ -> 1
-      end)
-
     apply_content_changes(source_file, rest)
   end
 
+  defp maybe_convert_text_edit(%TextEdit{range: range, newText: new_text}) do
+    %{"range" => range, "text" => new_text}
+  end
+
+  defp maybe_convert_text_edit(edit) do
+    edit
+  end
+
   def full_range(source_file) do
-    lines = lines(source_file)
+    [_ | _] = lines = lines(source_file)
 
     utf16_size =
       lines
@@ -153,27 +184,22 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     end
   end
 
-  def module_line(module) do
-    # TODO: Don't call into here directly
-    case ElixirSense.Core.Normalized.Code.get_docs(module, :moduledoc) do
-      nil ->
-        nil
-
-      {line, _docs, _metadata} ->
-        line
-    end
-  end
-
-  def function_line(mod, fun, arity) do
-    # TODO: Don't call into here directly
-    case ElixirSense.Core.Normalized.Code.get_docs(mod, :docs) do
+  def function_line(mod, fun, arity, docs \\ nil) do
+    case docs || ElixirSense.Core.Normalized.Code.get_docs(mod, :docs) do
       nil ->
         nil
 
       docs ->
         Enum.find_value(docs, fn
-          {{^fun, ^arity}, line, _, _, _, _metadata} -> line
-          _ -> nil
+          {{^fun, a}, line, _, _, _, metadata} ->
+            default_args = Map.get(metadata, :defaults, 0)
+
+            if Introspection.matches_arity_with_defaults?(a, default_args, arity) do
+              line
+            end
+
+          _ ->
+            nil
         end)
     end
   end
@@ -217,9 +243,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         {:ok, code} ->
           code
           |> to_string()
-          |> lines()
-          |> remove_indentation(String.length("@spec "))
-          |> Enum.join("\n")
 
         {:error, _} ->
           spec
@@ -227,37 +250,53 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
     """
 
-    ```
+    ```elixir
     #{spec_str}
     ```
     """
   end
 
-  @spec formatter_for(String.t()) :: {:ok, {function | nil, keyword()}} | :error
-  def formatter_for(uri = "file:" <> _) do
+  @spec formatter_for(String.t(), String.t() | nil, boolean) ::
+          {:ok, {function | nil, keyword(), String.t()}} | {:error, any}
+  def formatter_for(uri = "file:" <> _, project_dir, mix_project?) when is_binary(project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
-      true = Code.ensure_loaded?(Mix.Tasks.Format)
+      alias ElixirLS.LanguageServer.MixProjectCache
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        {:ok, apply(Mix.Tasks.Format, :formatter_for_file, [path])}
+      if mix_project? do
+        if MixProjectCache.loaded?() do
+          opts = [
+            deps_paths: MixProjectCache.deps_paths(),
+            manifest_path: MixProjectCache.manifest_path(),
+            config_mtime: MixProjectCache.config_mtime(),
+            mix_project: MixProjectCache.get(),
+            root: project_dir
+          ]
+
+          {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
+        else
+          {:error, :project_not_loaded}
+        end
       else
-        {:ok, {nil, apply(Mix.Tasks.Format, :formatter_opts_for_file, [path])}}
+        opts = [
+          root: project_dir
+        ]
+
+        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
       end
-    rescue
-      e ->
-        message = Exception.message(e)
+    catch
+      kind, payload ->
+        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        message = Exception.format(kind, payload, stacktrace)
 
-        Logger.warn(
-          "Unable to get formatter options for #{path}: #{inspect(e.__struct__)} #{message}"
-        )
+        Logger.warning("Unable to get formatter options for #{path}: #{message}")
 
-        :error
+        {:error, message}
     end
   end
 
-  def formatter_for(_), do: :error
+  def formatter_for(_, _, _), do: {:error, :project_dir_not_set}
 
   defp format_code(code, opts) do
     try do
@@ -267,12 +306,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         {:error, e}
     end
   end
-
-  defp remove_indentation([line | rest], length) do
-    [line | Enum.map(rest, &String.slice(&1, length..-1))]
-  end
-
-  defp remove_indentation(lines, _), do: lines
 
   def lsp_character_to_elixir(_utf8_line, lsp_character) when lsp_character <= 0, do: 1
 
@@ -296,24 +329,29 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     utf8_character + 1
   end
 
-  def lsp_position_to_elixir(_urf8_text, {lsp_line, _lsp_character}) when lsp_line < 0,
+  def lsp_position_to_elixir(_urf8_text_or_lines, {lsp_line, _lsp_character}) when lsp_line < 0,
     do: {1, 1}
 
-  def lsp_position_to_elixir(_urf8_text, {lsp_line, lsp_character}) when lsp_character <= 0,
-    do: {max(lsp_line + 1, 1), 1}
+  def lsp_position_to_elixir(_urf8_text_or_lines, {lsp_line, lsp_character})
+      when lsp_character <= 0,
+      do: {max(lsp_line + 1, 1), 1}
 
-  def lsp_position_to_elixir(urf8_text, {lsp_line, lsp_character}) do
-    source_file_lines = lines(urf8_text)
-    total_lines = length(source_file_lines)
+  def lsp_position_to_elixir(urf8_text, {lsp_line, lsp_character}) when is_binary(urf8_text) do
+    lsp_position_to_elixir(lines(urf8_text), {lsp_line, lsp_character})
+  end
+
+  def lsp_position_to_elixir([_ | _] = urf8_lines, {lsp_line, lsp_character})
+      when lsp_line >= 0 do
+    total_lines = length(urf8_lines)
 
     if lsp_line > total_lines - 1 do
       # sanitize to position after last char in last line
-      {total_lines, String.length(source_file_lines |> Enum.at(total_lines - 1)) + 1}
+      last_line = Enum.at(urf8_lines, total_lines - 1)
+      elixir_last_character = String.length(last_line) + 1
+      {total_lines, elixir_last_character}
     else
-      utf8_character =
-        source_file_lines
-        |> Enum.at(lsp_line)
-        |> lsp_character_to_elixir(lsp_character)
+      line = Enum.at(urf8_lines, lsp_line)
+      utf8_character = lsp_character_to_elixir(line, lsp_character)
 
       {lsp_line + 1, utf8_character}
     end
@@ -329,17 +367,35 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     |> div(2)
   end
 
-  def elixir_position_to_lsp(_urf8_text, {elixir_line, elixir_character})
+  def elixir_position_to_lsp(_urf8_text_or_lines, {elixir_line, _elixir_character})
+      when elixir_line < 1,
+      do: {0, 0}
+
+  def elixir_position_to_lsp(_urf8_text_or_lines, {elixir_line, elixir_character})
       when elixir_character <= 1,
       do: {max(elixir_line - 1, 0), 0}
 
-  def elixir_position_to_lsp(urf8_text, {elixir_line, elixir_character}) do
-    line =
-      lines(urf8_text)
-      |> Enum.at(max(elixir_line - 1, 0))
+  def elixir_position_to_lsp(urf8_text, {elixir_line, elixir_character})
+      when is_binary(urf8_text) do
+    elixir_position_to_lsp(lines(urf8_text), {elixir_line, elixir_character})
+  end
 
-    utf16_character = elixir_character_to_lsp(line || "", elixir_character)
+  def elixir_position_to_lsp([_ | _] = urf8_lines, {elixir_line, elixir_character})
+      when elixir_line >= 1 do
+    total_lines = length(urf8_lines)
 
-    {elixir_line - 1, utf16_character}
+    if elixir_line > total_lines do
+      # sanitize to position after last char in last line
+      last_line = Enum.at(urf8_lines, total_lines - 1)
+      elixir_last_character = String.length(last_line) + 1
+
+      utf16_character = elixir_character_to_lsp(last_line, elixir_last_character)
+      {total_lines - 1, utf16_character}
+    else
+      line = Enum.at(urf8_lines, max(elixir_line - 1, 0))
+      utf16_character = elixir_character_to_lsp(line, elixir_character)
+
+      {elixir_line - 1, utf16_character}
+    end
   end
 end

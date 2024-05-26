@@ -52,17 +52,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
       {:ok, nil}
     else
       {:error, :pipe_not_found} ->
-        {:error, :parse_error, "Pipe operator not found at cursor"}
+        {:error, :request_failed, "Pipe operator not found at cursor", false}
 
       {:error, :function_call_not_found} ->
-        {:error, :parse_error, "Function call not found at cursor"}
+        {:error, :request_failed, "Function call not found at cursor", false}
 
       {:error, :invalid_code} ->
-        {:error, :parse_error, "Malformed code"}
+        {:error, :request_failed, "Malformed code", false}
 
       error ->
-        {:error, :server_error,
-         "Cannot execute pipe conversion, workspace/applyEdit returned #{inspect(error)}"}
+        {:error, :request_failed,
+         "Cannot execute pipe conversion, workspace/applyEdit returned #{inspect(error)}", true}
     end
   end
 
@@ -337,7 +337,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     |> String.reverse()
     |> String.graphemes()
     |> Enum.reduce_while([], fn c, acc ->
-      if String.match?(c, ~r/[\s\(\[\{]/) do
+      if String.match?(c, ~r/[\s\(\[\{]/u) do
         {:halt, acc}
       else
         {:cont, [c | acc]}

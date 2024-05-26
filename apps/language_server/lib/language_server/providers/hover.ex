@@ -1,35 +1,27 @@
 defmodule ElixirLS.LanguageServer.Providers.Hover do
-  alias ElixirLS.LanguageServer.SourceFile
+  alias ElixirLS.LanguageServer.{SourceFile, DocLinks, Parser}
   import ElixirLS.LanguageServer.Protocol
+  alias ElixirLS.LanguageServer.MarkdownUtils
+  alias ElixirLS.LanguageServer.Providers.Hover.Docs
+  require Logger
 
   @moduledoc """
-  Hover provider utilizing Elixir Sense
+  textDocument/hover provider utilizing Elixir Sense
   """
 
-  @hex_base_url "https://hexdocs.pm"
-  @builtin_flag [
-                  "elixir",
-                  "eex",
-                  "ex_unit",
-                  "iex",
-                  "logger",
-                  "mix"
-                ]
-                |> Enum.map(fn x -> "lib/#{x}/lib" end)
-
-  def hover(text, line, character, project_dir) do
-    {line, character} = SourceFile.lsp_position_to_elixir(text, {line, character})
-
+  def hover(%Parser.Context{source_file: source_file, metadata: metadata}, line, character) do
     response =
-      case ElixirSense.docs(text, line, character) do
-        %{subject: ""} ->
+      case Docs.docs(source_file.text, line, character, metadata: metadata) do
+        nil ->
           nil
 
-        %{subject: subject, docs: docs, actual_subject: actual_subject} ->
-          line_text = Enum.at(SourceFile.lines(text), line - 1)
-          range = highlight_range(line_text, line - 1, character - 1, subject)
+        %{docs: docs, range: es_range} ->
+          lines = SourceFile.lines(source_file.text)
 
-          %{"contents" => contents(docs, actual_subject, project_dir), "range" => range}
+          %{
+            "contents" => contents(docs),
+            "range" => build_range(lines, es_range)
+          }
       end
 
     {:ok, response}
@@ -37,157 +29,206 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
 
   ## Helpers
 
-  defp highlight_range(line_text, line, character, substr) do
-    regex_ranges =
-      Regex.scan(
-        Regex.recompile!(~r/\b#{Regex.escape(substr)}\b/),
-        line_text,
-        capture: :first,
-        return: :index
-      )
-
-    Enum.find_value(regex_ranges, fn
-      [{start, length}] when start <= character and character <= start + length ->
-        range(
-          line,
-          SourceFile.elixir_character_to_lsp(line_text, start + 1),
-          line,
-          SourceFile.elixir_character_to_lsp(line_text, start + 1 + length)
-        )
-
-      _ ->
-        nil
-    end)
+  def build_range(lines, %{begin: {begin_line, begin_char}, end: {end_line, end_char}}) do
+    range(
+      begin_line - 1,
+      SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1), begin_char),
+      end_line - 1,
+      SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1), end_char)
+    )
   end
 
-  defp contents(%{docs: "No documentation available\n"}, _subject, _project_dir) do
-    []
-  end
+  defp contents(docs) do
+    markdown_value =
+      docs
+      |> Enum.map(&format_doc/1)
+      |> MarkdownUtils.join_with_horizontal_rule()
 
-  defp contents(%{docs: markdown}, subject, project_dir) do
     %{
       kind: "markdown",
-      value: add_hexdocs_link(markdown, subject, project_dir)
+      value: markdown_value
     }
   end
 
-  defp add_hexdocs_link(markdown, subject, project_dir) do
-    [hd | tail] = markdown |> String.split("\n\n", parts: 2)
+  defp build_module_link(module) do
+    if ElixirSense.Core.Introspection.elixir_module?(module) do
+      url = DocLinks.hex_docs_module_link(module)
 
-    link = hexdocs_link(hd, subject, project_dir)
-
-    case link do
-      "" ->
-        markdown
-
-      _ ->
-        ["#{hd}  [view on hexdocs](#{link})" | tail] |> Enum.join("\n\n")
-    end
-  end
-
-  defp hexdocs_link(hd, subject, project_dir) do
-    title = hd |> String.replace(">", "") |> String.trim() |> URI.encode()
-
-    cond do
-      erlang_module?(subject) ->
-        # TODO erlang module is currently not supported
+      if url do
+        "[View on hexdocs](#{url})\n\n"
+      else
         ""
-
-      true ->
-        dep = subject |> root_module_name() |> dep_name(project_dir) |> URI.encode()
-
-        cond do
-          func?(title) ->
-            if dep != "" do
-              "#{@hex_base_url}/#{dep}/#{module_name(subject)}.html##{func_name(subject)}/#{params_cnt(title)}"
-            else
-              ""
-            end
-
-          true ->
-            if dep != "" do
-              "#{@hex_base_url}/#{dep}/#{title}.html"
-            else
-              ""
-            end
-        end
-    end
-  end
-
-  defp func?(s) do
-    s =~ ~r/.*\..*\(.*\)/
-  end
-
-  defp module_name(s) do
-    [_ | tail] = s |> String.split(".") |> Enum.reverse()
-    tail |> Enum.reverse() |> Enum.join(".") |> URI.encode()
-  end
-
-  defp func_name(s) do
-    s |> String.split(".") |> Enum.at(-1) |> URI.encode()
-  end
-
-  defp params_cnt(s) do
-    cond do
-      s =~ ~r/\(\)/ -> 0
-      not String.contains?(s, ",") -> 1
-      true -> s |> String.split(",") |> length()
-    end
-  end
-
-  defp dep_name(root_mod_name, project_dir) do
-    if not elixir_mod_exported?(root_mod_name) do
-      ""
-    else
-      s = root_mod_name |> source()
-
-      cond do
-        third_dep?(s, project_dir) -> third_dep_name(s, project_dir)
-        builtin?(s) -> builtin_dep_name(s)
-        true -> ""
       end
+    else
+      ""
     end
   end
 
-  defp root_module_name(subject) do
-    subject |> String.split(".") |> hd()
+  defp build_function_link(module, function, arity) do
+    if ElixirSense.Core.Introspection.elixir_module?(module) do
+      url = DocLinks.hex_docs_function_link(module, function, arity)
+
+      if url do
+        "[View on hexdocs](#{url})\n\n"
+      else
+        ""
+      end
+    else
+      ""
+    end
   end
 
-  defp source(mod_name) do
-    dep = ("Elixir." <> mod_name) |> String.to_atom()
-    dep.__info__(:compile) |> Keyword.get(:source) |> List.to_string()
+  defp build_type_link(module, type, arity) do
+    if module != nil and ElixirSense.Core.Introspection.elixir_module?(module) do
+      url = DocLinks.hex_docs_type_link(module, type, arity)
+
+      if url do
+        "[View on hexdocs](#{url})\n\n"
+      else
+        ""
+      end
+    else
+      ""
+    end
   end
 
-  defp elixir_mod_exported?(mod_name) do
-    ("Elixir." <> mod_name) |> String.to_atom() |> function_exported?(:__info__, 1)
+  defp format_doc(info = %{kind: :module}) do
+    mod_str = inspect(info.module)
+
+    """
+    ```elixir
+    #{mod_str}
+    ```
+
+    *module* #{build_module_link(info.module)}
+
+    #{MarkdownUtils.get_metadata_md(info.metadata)}
+
+    #{documentation_section(info.docs) |> MarkdownUtils.transform_ex_doc_links(info.module)}
+    """
   end
 
-  defp third_dep?(_source, nil), do: false
+  defp format_doc(info = %{kind: kind}) when kind in [:function, :macro] do
+    mod_str = inspect(info.module)
+    fun_str = Atom.to_string(info.function)
 
-  defp third_dep?(source, project_dir) do
-    prefix = deps_path(project_dir)
-    String.starts_with?(source, prefix)
+    spec_text =
+      if info.specs != [] do
+        joined = Enum.join(info.specs, "\n")
+
+        """
+        ### Specs
+
+        ```elixir
+        #{joined}
+        ```
+
+        """
+      else
+        ""
+      end
+
+    function_name =
+      "#{mod_str}.#{fun_str}(#{Enum.join(info.args, ", ")})"
+      |> format_header
+
+    """
+    ```elixir
+    #{function_name}
+    ```
+
+    *#{kind}* #{build_function_link(info.module, info.function, info.arity)}
+
+    #{MarkdownUtils.get_metadata_md(info.metadata)}
+
+    #{spec_text}
+
+    #{documentation_section(info.docs) |> MarkdownUtils.transform_ex_doc_links(info.module)}
+    """
   end
 
-  defp third_dep_name(source, project_dir) do
-    prefix = deps_path(project_dir) <> "/"
-    String.replace_prefix(source, prefix, "") |> String.split("/") |> hd()
+  defp format_doc(info = %{kind: :type}) do
+    formatted_spec = "```elixir\n#{info.spec}\n```"
+
+    mod_formatted =
+      case info.module do
+        nil -> ""
+        atom -> inspect(atom) <> "."
+      end
+
+    type_name =
+      "#{mod_formatted}#{info.type}(#{Enum.join(info.args, ", ")})"
+      |> format_header
+
+    """
+    ```elixir
+    #{type_name}
+    ```
+
+    *type* #{build_type_link(info.module, info.type, info.arity)}
+
+    #{MarkdownUtils.get_metadata_md(info.metadata)}
+
+    ### Definition
+
+    #{formatted_spec}
+
+    #{documentation_section(info.docs) |> MarkdownUtils.transform_ex_doc_links(info.module)}
+    """
   end
 
-  defp deps_path(project_dir) do
-    project_dir |> Path.expand() |> Path.join("deps")
+  defp format_doc(info = %{kind: :variable}) do
+    """
+    ```elixir
+    #{info.name}
+    ```
+
+    *variable*
+    """
   end
 
-  defp builtin?(source) do
-    @builtin_flag |> Enum.any?(fn y -> String.contains?(source, y) end)
+  defp format_doc(info = %{kind: :attribute}) do
+    """
+    ```elixir
+    @#{info.name}
+    ```
+
+    *module attribute*
+
+    #{documentation_section(info.docs)}
+    """
   end
 
-  defp builtin_dep_name(source) do
-    [_, name | _] = String.split(source, "/lib/")
-    name
+  defp format_doc(info = %{kind: :keyword}) do
+    """
+    ```elixir
+    #{info.name}
+    ```
+
+    *reserved word*
+
+    #{documentation_section(info.docs)}
+    """
   end
 
-  defp erlang_module?(subject) do
-    subject |> root_module_name() |> String.starts_with?(":")
+  defp documentation_section(""), do: ""
+
+  defp documentation_section(docs) do
+    """
+    ### Documentation
+
+    #{MarkdownUtils.adjust_headings(docs, 3)}
+    """
+  end
+
+  defp format_header(text) do
+    text
+    |> Code.format_string!(line_length: 40)
+    |> to_string
+  rescue
+    _ ->
+      # Code.format_string! can raise SyntaxError e.g.
+      # for Kernel...(first, last)
+      text
   end
 end

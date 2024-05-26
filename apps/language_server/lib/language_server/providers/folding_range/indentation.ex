@@ -53,7 +53,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
     {:ok, ranges}
   end
 
-  defp extract_cell({_line, cell, _first}), do: cell
+  def extract_cell({_line, cell, _first}), do: cell
 
   @doc """
   Pairs cells into {start, end} tuples of regions

@@ -6,7 +6,7 @@ Install the official [ElixirLS extension](https://github.com/elixir-lsp/vscode-e
 
 ## Debugger
 
-ElixirLS includes debugger support adhering to the [VS Code debugger protocol](https://code.visualstudio.com/docs/extensionAPI/api-debugging) which is closely related to the Language Server Protocol. At the moment, only line breakpoints are supported.
+ElixirLS includes debug adapter support adhering to the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) which is closely related to the Language Server Protocol.
 
 When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and dependencies prior to launching the Mix task, so you can set breakpoints anywhere in your project or dependency modules.
 

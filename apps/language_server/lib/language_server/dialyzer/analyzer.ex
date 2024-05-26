@@ -1,6 +1,7 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   require Record
   require Logger
+  alias ElixirLS.LanguageServer.JsonRpc
 
   # warn_race_condition is unsupported because it greatly increases analysis time
   # OTP 25 dropped support for warn_race_condition
@@ -8,33 +9,41 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   # TODO remove this comment when OTP >= 25 is required
 
   # default warns taken from
-  # https://github.com/erlang/otp/blob/4ed7957623e5ccbd420a09a506bd6bc9930fe93c/lib/dialyzer/src/dialyzer_options.erl#L34
-  # macros defined in https://github.com/erlang/otp/blob/4ed7957623e5ccbd420a09a506bd6bc9930fe93c/lib/dialyzer/src/dialyzer.hrl#L36
-  # as of OTP 25
+  # https://github.com/erlang/otp/blob/928d03e6da416208fce7b9a7dbbfbb4f25d26c37/lib/dialyzer/src/dialyzer_options.erl#L34
+  # macros defined in https://github.com/erlang/otp/blob/928d03e6da416208fce7b9a7dbbfbb4f25d26c37/lib/dialyzer/src/dialyzer.hrl#L36
+  # as of OTP 26
   @default_warns [
-    :warn_behaviour,
-    :warn_bin_construction,
-    :warn_callgraph,
-    :warn_contract_range,
-    :warn_contract_syntax,
-    :warn_contract_types,
-    :warn_failing_call,
-    :warn_fun_app,
-    :warn_map_construction,
-    :warn_matching,
-    :warn_non_proper_list,
-    :warn_not_called,
-    :warn_opaque,
-    :warn_return_no_exit,
-    :warn_undefined_callbacks
-  ]
+                   :warn_behaviour,
+                   :warn_bin_construction,
+                   :warn_callgraph,
+                   :warn_contract_range,
+                   :warn_contract_syntax,
+                   :warn_contract_types,
+                   :warn_failing_call,
+                   :warn_fun_app,
+                   :warn_map_construction,
+                   :warn_matching,
+                   :warn_non_proper_list,
+                   :warn_not_called,
+                   :warn_opaque,
+                   :warn_return_no_exit,
+                   :warn_undefined_callbacks
+                 ] ++
+                   (if String.to_integer(System.otp_release()) >= 26 do
+                      [
+                        # warn_unknown is enabled by default since OTP 26
+                        :warn_unknown
+                      ]
+                    else
+                      []
+                    end)
+
   @non_default_warns [
                        :warn_contract_not_equal,
                        :warn_contract_subtype,
                        :warn_contract_supertype,
                        :warn_return_only_exit,
-                       :warn_umatched_return,
-                       :warn_unknown
+                       :warn_umatched_return
                      ] ++
                        (if String.to_integer(System.otp_release()) >= 25 do
                           [
@@ -44,6 +53,17 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
                           ]
                         else
                           []
+                        end) ++
+                       (if String.to_integer(System.otp_release()) >= 26 do
+                          [
+                            # OTP >= 26 options
+                            :warn_overlapping_contract
+                          ]
+                        else
+                          [
+                            # warn_unknown is enabled by default since OTP 26
+                            :warn_unknown
+                          ]
                         end)
   @log_cache_length 10
 
@@ -96,6 +116,26 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     solvers: :undefined
   )
 
+  Record.defrecordp(
+    :analysis_26,
+    :analysis,
+    analysis_pid: :undefined,
+    type: :succ_typings,
+    defines: [],
+    doc_plt: :undefined,
+    files: [],
+    include_dirs: [],
+    start_from: :byte_code,
+    plt: :undefined,
+    use_contracts: true,
+    behaviours_chk: false,
+    timing: false,
+    timing_server: :none,
+    callgraph_file: [],
+    mod_deps_file: [],
+    solvers: :undefined
+  )
+
   def analyze(active_plt, []) do
     {active_plt, %{}, []}
   end
@@ -110,8 +150,15 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
             solvers: []
           )
 
-        _ ->
+        25 ->
           analysis_25(
+            plt: active_plt,
+            files: files,
+            solvers: []
+          )
+
+        _ ->
+          analysis_26(
             plt: active_plt,
             files: files,
             solvers: []
@@ -133,8 +180,19 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
     main_loop(state)
   end
 
+  def all_warns, do: @default_warns ++ @non_default_warns
+
   def matching_tags(warn_opts) do
-    :dialyzer_options.build_warnings(warn_opts, @default_warns)
+    default_warns =
+      unless :persistent_term.get(:language_server_test_mode, false) do
+        @default_warns
+      else
+        # do not include warn_unknown in tests
+        # we build small PLT and this results in lots of warnings
+        @default_warns -- [:warn_unknown]
+      end
+
+    :dialyzer_options.build_warnings(warn_opts, default_warns)
   end
 
   defp main_loop(%__MODULE__{backend_pid: backend_pid} = state) do
@@ -183,5 +241,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
       "Analysis failed: " <> Exception.format_exit(reason) <> "\n" <> Enum.join(log_cache, "\n")
 
     Logger.error(message)
+    JsonRpc.telemetry("dialyzer_error", %{"elixir_ls.dialyzer_error" => message}, %{})
   end
 end

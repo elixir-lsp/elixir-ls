@@ -3,22 +3,11 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
 
   import ElixirLS.LanguageServer.Test.PlatformTestHelpers
   alias ElixirLS.LanguageServer.Providers.CodeLens
+  alias ElixirLS.LanguageServer.Test.ParserContextBuilder
 
   @project_dir "/project"
 
-  setup context do
-    unless context[:skip_server] do
-      server = ElixirLS.LanguageServer.Test.ServerTestHelpers.start_server()
-
-      {:ok, %{server: server}}
-    else
-      :ok
-    end
-  end
-
   test "returns all module code lenses" do
-    uri = "file:///project/file.ex"
-
     text = """
     defmodule MyModule do
       use ExUnit.Case
@@ -29,22 +18,117 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
     assert lenses ==
              [
-               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               build_code_lens(0, :module, maybe_convert_path_separators("nofile"), %{
                  "module" => MyModule
                }),
-               build_code_lens(4, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               build_code_lens(4, :module, maybe_convert_path_separators("nofile"), %{
                  "module" => MyModule2
                })
              ]
   end
 
-  test "returns all nested module code lenses" do
-    uri = "file:///project/file.ex"
+  test "returns all separate code lenses in different modules" do
+    text = """
+    defmodule MyModule do
+      use ExUnit.Case
 
+      doctest MyModule
+
+      test "test1" do
+      end
+    end
+
+    defmodule MyModule2 do
+      use ExUnit.Case
+
+      doctest MyModule2
+
+      test "test1" do
+      end
+
+      describe "nested" do
+        doctest MyModule
+        test "test2" do
+        end
+      end
+    end
+    """
+
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(0, :module, maybe_convert_path_separators("nofile"), %{
+               "module" => MyModule
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(9, :module, maybe_convert_path_separators("nofile"), %{
+               "module" => MyModule2
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(3, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule",
+               "testName" => "doctest MyModule"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(5, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule",
+               "testName" => "test1"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(14, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule2",
+               "testName" => "test1"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(12, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule2",
+               "testName" => "doctest MyModule2"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(18, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule2",
+               "testName" => "doctest MyModule",
+               "describe" => "nested"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(17, :describe, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule2",
+               "describe" => "nested"
+             })
+           )
+  end
+
+  test "returns all nested module code lenses" do
     text = """
     defmodule MyModule do
       use ExUnit.Case
@@ -55,22 +139,119 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
     assert lenses ==
              [
-               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               build_code_lens(0, :module, maybe_convert_path_separators("nofile"), %{
                  "module" => MyModule
                }),
-               build_code_lens(3, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               build_code_lens(3, :module, maybe_convert_path_separators("nofile"), %{
                  "module" => MyModule.MyModule2
                })
              ]
   end
 
-  test "returns lenses for all describe blocks" do
-    uri = "file:///project/file.ex"
+  test "returns all code lenses in nested modules" do
+    text = """
+    defmodule MyModule do
+      use ExUnit.Case
 
+      doctest MyModule
+
+      test "test1" do
+      end
+
+      defmodule MyModule2 do
+        use ExUnit.Case
+
+        doctest MyModule2
+
+        test "test1" do
+        end
+
+        describe "nested" do
+          doctest MyModule
+          test "test2" do
+          end
+        end
+      end
+    end
+
+
+    """
+
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(0, :module, maybe_convert_path_separators("nofile"), %{
+               "module" => MyModule
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(8, :module, maybe_convert_path_separators("nofile"), %{
+               "module" => MyModule.MyModule2
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(3, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule",
+               "testName" => "doctest MyModule"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(5, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule",
+               "testName" => "test1"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(13, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule.MyModule2",
+               "testName" => "test1"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(11, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule.MyModule2",
+               "testName" => "doctest MyModule2"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(17, :test, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule.MyModule2",
+               "testName" => "doctest MyModule",
+               "describe" => "nested"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(16, :describe, maybe_convert_path_separators("nofile"), %{
+               "module" => "MyModule.MyModule2",
+               "describe" => "nested"
+             })
+           )
+  end
+
+  test "returns lenses for all describe blocks" do
     text = """
     defmodule MyModule do
       use ExUnit.Case
@@ -83,26 +264,28 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
     assert Enum.member?(
              lenses,
-             build_code_lens(3, :describe, maybe_convert_path_separators("/project/file.ex"), %{
-               "describe" => "describe1"
+             build_code_lens(3, :describe, maybe_convert_path_separators("nofile"), %{
+               "describe" => "describe1",
+               "module" => "MyModule"
              })
            )
 
     assert Enum.member?(
              lenses,
-             build_code_lens(6, :describe, maybe_convert_path_separators("/project/file.ex"), %{
-               "describe" => "describe2"
+             build_code_lens(6, :describe, maybe_convert_path_separators("nofile"), %{
+               "describe" => "describe2",
+               "module" => "MyModule"
              })
            )
   end
 
   test "returns lenses for all test blocks" do
-    uri = "file:///project/file.ex"
-
     text = """
     defmodule MyModule do
       use ExUnit.Case
@@ -115,26 +298,72 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
     assert Enum.member?(
              lenses,
-             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
-               "testName" => "test1"
+             build_code_lens(3, :test, maybe_convert_path_separators("nofile"), %{
+               "testName" => "test1",
+               "module" => "MyModule"
              })
            )
 
     assert Enum.member?(
              lenses,
-             build_code_lens(6, :test, maybe_convert_path_separators("/project/file.ex"), %{
-               "testName" => "test2"
+             build_code_lens(6, :test, maybe_convert_path_separators("nofile"), %{
+               "testName" => "test2",
+               "module" => "MyModule"
+             })
+           )
+  end
+
+  test "returns lenses for all test blocks including doctests" do
+    text = """
+    defmodule MyModuleTest do
+      use ExUnit.Case
+
+      doctest MyModule
+
+      test "test1" do
+      end
+
+      test "test2" do
+      end
+    end
+    """
+
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(3, :test, maybe_convert_path_separators("nofile"), %{
+               "testName" => "doctest MyModule",
+               "module" => "MyModuleTest"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(5, :test, maybe_convert_path_separators("nofile"), %{
+               "testName" => "test1",
+               "module" => "MyModuleTest"
+             })
+           )
+
+    assert Enum.member?(
+             lenses,
+             build_code_lens(8, :test, maybe_convert_path_separators("nofile"), %{
+               "testName" => "test2",
+               "module" => "MyModuleTest"
              })
            )
   end
 
   test "given test blocks inside describe blocks, should return code lenses with the test and describe name" do
-    uri = "file:///project/file.ex"
-
     text = """
     defmodule MyModule do
       use ExUnit.Case
@@ -146,13 +375,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
     assert Enum.member?(
              lenses,
-             build_code_lens(4, :test, maybe_convert_path_separators("/project/file.ex"), %{
+             build_code_lens(4, :test, maybe_convert_path_separators("nofile"), %{
                "testName" => "test1",
-               "describe" => "describe1"
+               "describe" => "describe1",
+               "module" => "MyModule"
              })
            )
   end
@@ -285,28 +517,29 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
 
     test "returns module lens on the module declaration line", %{text: text} do
-      uri = "file:///project/file.ex"
+      parser_context = ParserContextBuilder.from_string(text)
 
-      {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+      {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
       assert Enum.member?(
                lenses,
-               build_code_lens(0, :module, maybe_convert_path_separators("/project/file.ex"), %{
+               build_code_lens(0, :module, maybe_convert_path_separators("nofile"), %{
                  "module" => ElixirLS.LanguageServer.DiagnosticsTest
                })
              )
     end
 
     test "returns test lenses with describe info", %{text: text} do
-      uri = "file:///project/file.ex"
+      parser_context = ParserContextBuilder.from_string(text)
 
-      {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+      {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
       assert Enum.member?(
                lenses,
-               build_code_lens(5, :test, maybe_convert_path_separators("/project/file.ex"), %{
+               build_code_lens(5, :test, maybe_convert_path_separators("nofile"), %{
                  "testName" => "extract the stacktrace from the message and format it",
-                 "describe" => "normalize/2"
+                 "describe" => "normalize/2",
+                 "module" => "ElixirLS.LanguageServer.DiagnosticsTest"
                })
              )
     end
@@ -323,14 +556,15 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
     end
     """
 
-    uri = "file:///project/file.ex"
+    parser_context = ParserContextBuilder.from_string(text)
 
-    {:ok, lenses} = CodeLens.Test.code_lens(uri, text, @project_dir)
+    {:ok, lenses} = CodeLens.Test.code_lens(parser_context, @project_dir)
 
     assert Enum.member?(
              lenses,
-             build_code_lens(3, :test, maybe_convert_path_separators("/project/file.ex"), %{
-               "testName" => "test1"
+             build_code_lens(3, :test, maybe_convert_path_separators("nofile"), %{
+               "testName" => "test1",
+               "module" => "MyModule"
              })
            )
   end
