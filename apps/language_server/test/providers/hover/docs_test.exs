@@ -184,7 +184,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                By convention,\
                """
 
-        assert %{name: "erlang", otp_doc_vsn: {1, 0, 0}} = doc.metadata
+        assert %{app: :erts, otp_doc_vsn: {1, 0, 0}} = doc.metadata
       end
     end
 
@@ -724,8 +724,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              } = doc
 
       if System.otp_release() |> String.to_integer() >= 23 do
-        assert doc.docs =~
-                 "this function is called by"
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "Whenever" <> _ = doc.docs
+        else
+          assert doc.docs =~
+                   "this function is called by"
+        end
 
         assert %{since: "OTP 19.0", implementing: :gen_statem} = doc.metadata
       end
@@ -933,18 +937,22 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       } = Docs.docs(buffer, 3, 12)
 
       assert %{
-               args: ["deepList"],
+               args: params,
                function: :flatten,
                module: :lists,
                kind: :function
              } = doc
 
       if System.otp_release() |> String.to_integer() >= 23 do
-        assert doc.docs =~ """
-               Returns a flattened version of `DeepList`\\.
-               """
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert params == ["DeepList"]
+        else
+          assert params == ["deepList"]
+        end
 
-        assert %{signature: _} = doc.metadata
+        assert doc.docs =~ "Returns a flattened version of `DeepList`"
+
+        assert %{app: :stdlib} = doc.metadata
       end
     end
 
@@ -1628,7 +1636,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                Supported time unit representations:
                """
 
-        assert %{signature: _} = doc.metadata
+        assert %{app: :erts} = doc.metadata
       end
     end
 

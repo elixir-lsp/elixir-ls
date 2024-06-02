@@ -74,8 +74,14 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   defp get_metadata_entry_md({:types, _text}), do: nil
 
   # erlang :equiv
+  # OTP < 27
   defp get_metadata_entry_md({:equiv, {:function, name, arity}}) do
-    "**Equivalent** #{name}/#{arity}"
+    "**Equivalent to** #{name}/#{arity}"
+  end
+
+  # OTP >= 27
+  defp get_metadata_entry_md({:equiv, text}) when is_binary(text) do
+    "**Equivalent to** #{text}"
   end
 
   defp get_metadata_entry_md({:deprecated, text}) when is_binary(text) do

@@ -682,7 +682,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ] = list
 
     if System.otp_release() |> String.to_integer() >= 23 do
-      assert "- OldVsn = Vsn" <> _ = summary
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "This function is called" <> _ = summary
+      else
+        assert "- OldVsn = Vsn" <> _ = summary
+      end
     end
   end
 
@@ -1256,11 +1260,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                  name: "init",
                  origin: "MyLocalModule",
                  spec: "@callback init(args :: term()) ::" <> _,
-                 summary: "- Args = term" <> _,
+                 summary: documentation,
                  type: :function,
                  visibility: :public
                }
              ] = list
+
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Whenever" <> _ = documentation
+      else
+        assert "- Args = " <> _ = documentation
+      end
     end
   end
 
@@ -1370,11 +1380,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     if System.otp_release() |> String.to_integer() >= 23 do
       assert %{
-               summary: "- InitArgs = Args" <> _,
+               summary: documentation,
                metadata: %{implementing: :gen_event},
                spec: "@callback init(initArgs :: term()) ::" <> _,
                args_list: ["arg"]
              } = init_res
+
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Whenever a new event" <> _ = documentation
+      else
+        assert "- InitArgs = Args" <> _ = documentation
+      end
     end
   end
 
@@ -1455,11 +1471,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                  origin: "ElixirSenseExample.ExampleBehaviourWithDocCallbackErlang",
                  snippet: nil,
                  spec: "@callback init(args :: term()) :: init_result(state())",
-                 summary: "- Args = term" <> _,
+                 summary: documentation,
                  type: :function,
                  visibility: :public
                }
              ] = list
+
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Whenever" <> _ = documentation
+      else
+        assert "- Args = " <> _ = documentation
+      end
     end
   end
 
@@ -1484,11 +1506,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                  origin: ":file_server",
                  snippet: nil,
                  spec: "@callback init(args :: term()) ::" <> _,
-                 summary: "- Args = term" <> _,
+                 summary: documentation,
                  type: :function,
                  visibility: :public
                }
              ] = list
+
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Whenever" <> _ = documentation
+      else
+        assert "- Args = " <> _ = documentation
+      end
     end
   end
 
@@ -4212,12 +4240,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              ] = suggestions
 
       if System.otp_release() |> String.to_integer() >= 23 do
-        assert summary =~ "Supported time unit representations:"
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "The time unit used" <> _ = summary
+        else
+          assert "Supported time unit representations:" <> _ = summary
+        end
       end
     end
 
     test "no erlang private types" do
-      buffer = "defmodule My, do: @type my_type :: :erlang.cpu_topo"
+      buffer = "defmodule My, do: @type my_type :: :dialyzer_plt.dialyzer_p"
 
       suggestions = suggestions_by_type(:type_spec, buffer)
 

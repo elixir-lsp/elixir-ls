@@ -244,7 +244,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
              } = Signature.signature(code, 2, 32)
 
       if System.otp_release() |> String.to_integer() >= 23 do
-        assert summary =~ "Supported time unit representations:"
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "The time unit" <> _ = summary
+        else
+          assert "Supported time unit representations" <> _ = summary
+        end
       end
     end
 
@@ -328,14 +332,14 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                  %{
                    documentation: summary1,
                    name: "flatten",
-                   params: ["deepList"],
+                   params: [_],
                    spec:
                      "@spec flatten(deepList) :: list when deepList: [term() | deepList], list: [term()]"
                  },
                  %{
                    documentation: summary2,
                    name: "flatten",
-                   params: ["deepList", "tail"],
+                   params: params,
                    spec:
                      "@spec flatten(deepList, tail) :: list when deepList: [term() | deepList], tail: [term()], list: [term()]"
                  }
@@ -343,9 +347,15 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
              } = Signature.signature(code, 2, 24)
 
       if System.otp_release() |> String.to_integer() >= 23 do
-        assert "Returns a flattened version of `DeepList`\\." <> _ = summary1
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert params == ["DeepList", "Tail"]
+        else
+          assert params == ["deepList", "tail"]
+        end
 
-        assert "Returns a flattened version of `DeepList` with tail `Tail` appended\\." <> _ =
+        assert "Returns a flattened version of `DeepList`" <> _ = summary1
+
+        assert "Returns a flattened version of `DeepList` with tail `Tail` appended" <> _ =
                  summary2
       end
     end
@@ -1013,7 +1023,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
              } = Signature.signature(code, 5, 10)
 
       if System.otp_release() |> String.to_integer() >= 23 do
-        assert "- Args = term\\(\\)\n- Result" <> _ = summary
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "Whenever" <> _ = summary
+        else
+          assert "- Args = " <> _ = summary
+        end
       end
     end
 
@@ -1048,13 +1062,19 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                  active_param: 0,
                  signatures: [
                    %{
-                     documentation: "- Args = " <> _,
+                     documentation: documentation,
                      name: "init",
                      params: ["_"],
                      spec: "@callback init(args :: term()) :: init_result(state())"
                    }
                  ]
                } = res
+
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "Whenever" <> _ = documentation
+        else
+          assert "- Args = " <> _ = documentation
+        end
       end
     end
 
@@ -1070,13 +1090,19 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                  active_param: 0,
                  signatures: [
                    %{
-                     documentation: "- Args = " <> _,
+                     documentation: summary,
                      name: "init",
                      params: ["args"],
                      spec: "@callback init(args :: term()) ::" <> _
                    }
                  ]
                } = res
+
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "Whenever a" <> _ = summary
+        else
+          assert "- Args = " <> _ = summary
+        end
       end
     end
 
@@ -1251,13 +1277,19 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                  active_param: 0,
                  signatures: [
                    %{
-                     documentation: "- Args = term" <> _,
+                     documentation: summary,
                      name: "init",
                      params: ["list"],
                      spec: "@callback init(args :: term()) :: init_result(state())"
                    }
                  ]
                } = res
+
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "Whenever a" <> _ = summary
+        else
+          assert "- Args = term" <> _ = summary
+        end
       end
     end
 
@@ -1577,21 +1609,28 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                  %{
                    documentation: summary1,
                    name: "cancel_timer",
-                   params: ["timerRef"],
+                   params: [_],
                    spec: "@spec cancel_timer(timerRef) :: result" <> _
                  },
                  %{
                    documentation: summary2,
                    name: "cancel_timer",
-                   params: ["timerRef", "options"],
+                   params: params,
                    spec: "@spec cancel_timer(timerRef, options) :: result" <> _
                  }
                ]
              } = Signature.signature(buffer, 4, 24)
 
       if System.otp_release() |> String.to_integer() >= 23 do
-        assert "Cancels a timer\\." <> _ = summary1
         assert "Cancels a timer that has been created by" <> _ = summary2
+
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "" == summary1
+          assert params == ["TimerRef", "Options"]
+        else
+          assert "Cancels a timer\\." <> _ = summary1
+          assert params == ["timerRef", "options"]
+        end
       end
     end
   end

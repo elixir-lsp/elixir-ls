@@ -149,7 +149,7 @@ defmodule ElixirLS.LanguageServer.Location do
       |> Atom.to_string()
       |> Regex.escape()
 
-    case find_line_by_regex(file, ~r/^#{escaped}\b/u) do
+    case find_line_by_regex(file, ~r/^#{escaped}\b\(/u) do
       nil -> nil
       position -> {position, :function}
     end

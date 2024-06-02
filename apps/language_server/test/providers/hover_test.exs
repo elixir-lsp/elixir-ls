@@ -139,7 +139,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
-    assert String.starts_with?(v, "```elixir\n:timer.sleep(time)\n```\n\n*function*")
+    assert String.starts_with?(v, "```elixir\n:timer.sleep(")
     # TODO hexdocs and standard lib docs
     assert not String.contains?(
              v,

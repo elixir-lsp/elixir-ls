@@ -2019,7 +2019,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                type: :function,
                args: "timerRef",
                origin: ":erlang",
-               summary: summary1
+               summary: summary1,
+               metadata: meta1
              },
              %{
                arity: 2,
@@ -2033,8 +2034,14 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c":erlang.cancel_time")
 
     if System.otp_release() |> String.to_integer() >= 23 do
-      assert "Cancels a timer\\." <> _ = summary1
       assert "Cancels a timer that has been created by" <> _ = summary2
+
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "" == summary1
+        assert %{group: :time, equiv: "erlang:cancel_timer(TimerRef, [])", app: :erts} == meta1
+      else
+        assert "Cancels a timer\\." <> _ = summary1
+      end
     end
   end
 
