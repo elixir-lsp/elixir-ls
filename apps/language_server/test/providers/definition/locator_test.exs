@@ -105,6 +105,26 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert read_line(file, {line, column}) =~ "function_arity_zero"
   end
 
+  test "find definition of functions from current buffer imports" do
+    buffer = """
+    defmodule MyModuleExports do
+      def exported(a), do: a
+    end
+
+    defmodule MyModule do
+      import MyModuleExports
+      exported(1)
+      #^
+    end
+    """
+
+    %Location{type: :function, file: file, line: line, column: column} =
+      Locator.definition(buffer, 7, 4)
+
+    assert file == nil
+    assert {line, column} == {2, 3}
+  end
+
   test "find definition of functions from aliased modules" do
     buffer = """
     defmodule MyModule do
@@ -121,6 +141,26 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert read_line(file, {line, column}) =~ "function_arity_one"
   end
 
+  test "find definition of functions from current buffer aliases" do
+    buffer = """
+    defmodule MyModuleExports do
+      def exported(a), do: a
+    end
+
+    defmodule MyModule do
+      alias MyModuleExports, as: Foo
+      Foo.exported(1)
+      #    ^
+    end
+    """
+
+    %Location{type: :function, file: file, line: line, column: column} =
+      Locator.definition(buffer, 7, 8)
+
+    assert file == nil
+    assert {line, column} == {2, 3}
+  end
+
   test "find definition of macros from required modules" do
     buffer = """
     defmodule MyModule do
@@ -135,6 +175,28 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
 
     assert file =~ "language_server/test/support/behaviour_with_macrocallbacks.ex"
     assert read_line(file, {line, column}) =~ "some"
+  end
+
+  test "find definition of macros from current buffer requires" do
+    buffer = """
+    defmodule MyModuleExports do
+      defmacro exported(a) do
+        quote do: unquote(a)
+      end
+    end
+
+    defmodule MyModule do
+      require MyModuleExports, as: Foo
+      Foo.exported(1)
+      #    ^
+    end
+    """
+
+    %Location{type: :macro, file: file, line: line, column: column} =
+      Locator.definition(buffer, 9, 8)
+
+    assert file == nil
+    assert {line, column} == {2, 3}
   end
 
   test "find definition of functions piped from aliased modules" do
