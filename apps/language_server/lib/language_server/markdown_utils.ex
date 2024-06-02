@@ -73,6 +73,9 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   # erlang :types
   defp get_metadata_entry_md({:types, _text}), do: nil
 
+  # erlang :group
+  defp get_metadata_entry_md({:group, _group}), do: nil
+
   # erlang :equiv
   # OTP < 27
   defp get_metadata_entry_md({:equiv, {:function, name, arity}}) do
