@@ -1,5 +1,4 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Supervisor do
-  alias ElixirLS.LanguageServer.{Dialyzer, DialyzerIncremental}
   use Supervisor
 
   def start_link(parent \\ self(), name \\ nil, root_path, dialyzer_module) do

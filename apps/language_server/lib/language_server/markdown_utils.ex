@@ -95,10 +95,6 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     "**Since** #{text}"
   end
 
-  defp get_metadata_entry_md({:group, text}) when is_binary(text) do
-    "**Group** #{text}"
-  end
-
   defp get_metadata_entry_md({:guard, true}) do
     "**Guard**"
   end
@@ -249,13 +245,21 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
                       {key, url}
                     end)
 
+  @erlang_ex_doc? System.otp_release() |> String.to_integer() >= 27
+
   def transform_ex_doc_link("t:" <> rest, current_module) do
     case @builtin_type_url[rest] do
       nil ->
         case get_module_fun_arity(rest) do
           {module, type, arity} ->
             if match?(":" <> _, rest) do
-              "https://www.erlang.org/doc/man/#{module}.html#type-#{type}"
+              if @erlang_ex_doc? do
+                # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+                {app, _vsn} = DocLinks.get_app(module)
+                "https://www.erlang.org/doc/apps/#{app}/#{module}.html#t:#{type}/#{arity}"
+              else
+                "https://www.erlang.org/doc/man/#{module}.html#type-#{type}"
+              end
             else
               DocLinks.hex_docs_type_link(module || current_module, type, arity)
             end
@@ -270,7 +274,13 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     case get_module_fun_arity(rest) do
       {module, callback, arity} ->
         if match?(":" <> _, rest) do
-          "https://www.erlang.org/doc/man/#{module}.html#Module:#{callback}-#{arity}"
+          if @erlang_ex_doc? do
+            # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+            {app, _vsn} = DocLinks.get_app(module)
+            "https://www.erlang.org/doc/apps/#{app}/#{module}.html#c:#{callback}/#{arity}"
+          else
+            "https://www.erlang.org/doc/man/#{module}.html#Module:#{callback}-#{arity}"
+          end
         else
           DocLinks.hex_docs_callback_link(module || current_module, callback, arity)
         end
@@ -279,6 +289,32 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
 
   def transform_ex_doc_link("e:http://" <> rest, _current_module), do: "http://" <> rest
   def transform_ex_doc_link("e:https://" <> rest, _current_module), do: "https://" <> rest
+
+  otp_apps_dir =
+    :code.get_object_code(:erlang) |> elem(2) |> Path.join("../../..") |> Path.expand()
+
+  @all_otp_apps otp_apps_dir
+                |> File.ls!()
+                |> Enum.map(&(&1 |> String.split("-") |> hd() |> String.to_atom()))
+
+  if @erlang_ex_doc? do
+    def transform_ex_doc_link("e:system:" <> rest, _current_module) do
+      {page, anchor} = split(rest)
+
+      page =
+        page
+        |> String.replace(~r/\.(md|livemd|cheatmd|txt)$/, ".html")
+        |> String.replace(" ", "-")
+        |> String.downcase()
+
+      "https://www.erlang.org/doc/system/#{page}" <>
+        if anchor do
+          "#" <> anchor
+        else
+          ""
+        end
+    end
+  end
 
   def transform_ex_doc_link("e:" <> rest, current_module) do
     {page, anchor} = split(rest)
@@ -291,7 +327,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
 
     page =
       page
-      |> String.replace(~r/\.(md|livemd|txt)$/, ".html")
+      |> String.replace(~r/\.(md|livemd|cheatmd|txt)$/, ".html")
       |> String.replace(" ", "-")
       |> String.downcase()
 
@@ -321,7 +357,14 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
       end
 
     if app_vsn do
-      DocLinks.hex_docs_extra_link(app_vsn, page) <>
+      {app, _vsn} = app_vsn
+
+      if app in @all_otp_apps and @erlang_ex_doc? do
+        # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+        "https://www.erlang.org/doc/apps/#{app}/#{page}"
+      else
+        DocLinks.hex_docs_extra_link(app_vsn, page)
+      end <>
         if anchor do
           "#" <> anchor
         else
@@ -344,7 +387,13 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
 
       {module, function, arity} ->
         if match?(":" <> _, prefix) and module != Kernel.SpecialForms do
-          "https://www.erlang.org/doc/man/#{module}.html##{function}-#{arity}"
+          if @erlang_ex_doc? do
+            # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+            {app, _vsn} = DocLinks.get_app(module)
+            "https://www.erlang.org/doc/apps/#{app}/#{module}.html##{function}/#{arity}"
+          else
+            "https://www.erlang.org/doc/man/#{module}.html##{function}-#{arity}"
+          end
         else
           DocLinks.hex_docs_function_link(module || current_module, function, arity)
         end

@@ -167,8 +167,14 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
     end
 
     test "erlang type" do
-      assert MarkdownUtils.transform_ex_doc_links("`t::array.array/0`") ==
-               "[`:array.array/0`](https://www.erlang.org/doc/man/array.html#type-array)"
+      expected =
+        if System.otp_release() |> String.to_integer() >= 27 do
+          "[`:array.array/0`](https://www.erlang.org/doc/apps/stdlib/array.html#t:array/0)"
+        else
+          "[`:array.array/0`](https://www.erlang.org/doc/man/array.html#type-array)"
+        end
+
+      assert MarkdownUtils.transform_ex_doc_links("`t::array.array/0`") == expected
     end
 
     test "elixir callback link with prefix" do
@@ -177,8 +183,14 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
     end
 
     test "erlang callback" do
-      assert MarkdownUtils.transform_ex_doc_links("`c::gen_server.handle_call/3`") ==
-               "[`:gen_server.handle_call/3`](https://www.erlang.org/doc/man/gen_server.html#Module:handle_call-3)"
+      expected =
+        if System.otp_release() |> String.to_integer() >= 27 do
+          "[`:gen_server.handle_call/3`](https://www.erlang.org/doc/apps/stdlib/gen_server.html#c:handle_call/3)"
+        else
+          "[`:gen_server.handle_call/3`](https://www.erlang.org/doc/man/gen_server.html#Module:handle_call-3)"
+        end
+
+      assert MarkdownUtils.transform_ex_doc_links("`c::gen_server.handle_call/3`") == expected
     end
 
     test "elixir callback link without module" do
@@ -237,8 +249,14 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
     end
 
     test "erlang stdlib function link" do
-      assert MarkdownUtils.transform_ex_doc_links("`:lists.all/2`") ==
-               "[`:lists.all/2`](https://www.erlang.org/doc/man/lists.html#all-2)"
+      expected =
+        if System.otp_release() |> String.to_integer() >= 27 do
+          "[`:lists.all/2`](https://www.erlang.org/doc/apps/stdlib/lists.html#all/2)"
+        else
+          "[`:lists.all/2`](https://www.erlang.org/doc/man/lists.html#all-2)"
+        end
+
+      assert MarkdownUtils.transform_ex_doc_links("`:lists.all/2`") == expected
     end
 
     test "extra page" do
@@ -274,6 +292,21 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
                "[Up and running](http://example.com/foo.md)",
                Kernel
              ) == "[Up and running](http://example.com/foo.md)"
+    end
+
+    test "erlang extra page" do
+      assert MarkdownUtils.transform_ex_doc_links(
+               "[Up and running](e:erts_alloc.md)",
+               :erlang
+             ) == "[Up and running](https://www.erlang.org/doc/apps/erts/erts_alloc.html)"
+    end
+
+    test "erlang extra page with app" do
+      assert MarkdownUtils.transform_ex_doc_links(
+               "[Up and running](e:system:expressions.md#term-comparisons)",
+               :lists
+             ) ==
+               "[Up and running](https://www.erlang.org/doc/system/expressions.html#term-comparisons)"
     end
 
     test "expression" do
