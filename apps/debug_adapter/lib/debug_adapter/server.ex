@@ -2278,13 +2278,27 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp process_name(process_info) do
-    registered_name = Keyword.get(process_info, :registered_name)
+    # if present registered_name is na atom
+    registered_name = Keyword.fetch(process_info, :registered_name)
+    # OTP 27+ process label may be any term
+    # it's not documented but :proc_lib.get_label reads `:$process_label` key from process dictionary
+    # https://github.com/erlang/otp/blob/601a012837ea0a5c8095bf24223132824177124d/lib/stdlib/src/proc_lib.erl#L876
+    # we have already read it so can get it directly
+    label = process_info |> Keyword.fetch!(:dictionary) |> Keyword.fetch(:"$process_label")
 
-    if registered_name do
-      inspect(registered_name)
-    else
-      {mod, func, arity} = Keyword.fetch!(process_info, :initial_call)
-      "#{inspect(mod)}.#{to_string(func)}/#{arity}"
+    case {registered_name, label} do
+      {{:ok, registered_name}, {:ok, label}} ->
+        "#{registered_name}: #{inspect(label)}"
+
+      {{:ok, registered_name}, _} ->
+        to_string(registered_name)
+
+      {_, {:ok, label}} ->
+        inspect(label)
+
+      _ ->
+        {mod, func, arity} = Keyword.fetch!(process_info, :initial_call)
+        "#{inspect(mod)}.#{to_string(func)}/#{arity}"
     end
   end
 
