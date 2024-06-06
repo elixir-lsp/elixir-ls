@@ -1787,25 +1787,28 @@ defmodule ElixirLS.LanguageServer.Server do
         else
           IO.warn("Invalid `dialyzerWarnOpts` #{inspect(dialyzer_warn_opts)}")
         end
+      end
 
-        all_warns =
-          ElixirLS.LanguageServer.Dialyzer.Analyzer.all_warns() |> Enum.map(&to_string/1)
-
-        for opt <- dialyzer_warn_opts, opt not in all_warns do
-          Logger.error("Invalid `dialyzerWarnOpts`: unknown warning option `#{opt}`")
+      try do
+        ElixirLS.LanguageServer.Dialyzer.Analyzer.matching_tags(
+          dialyzer_warn_opts
+          |> Enum.map(&String.to_atom/1)
+        )
+      catch
+        {:dialyzer_options_error, message} ->
+          Logger.error("Invalid `dialyzerWarnOpts`: #{message}")
 
           JsonRpc.show_message(
             :error,
-            "Invalid `dialyzerWarnOpts` in configuration. Unknown warning option `#{opt}`."
+            "Invalid `dialyzerWarnOpts` in configuration. #{message}."
           )
 
           unless :persistent_term.get(:language_server_test_mode, false) do
             Process.sleep(2000)
             System.halt(1)
           else
-            IO.warn("Invalid `dialyzerWarnOpts`: unknown warning option `#{opt}`")
+            IO.warn("Invalid `dialyzerWarnOpts`: #{message}")
           end
-        end
       end
 
       dialyzer_formats = [
