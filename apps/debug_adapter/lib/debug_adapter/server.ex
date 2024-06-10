@@ -102,7 +102,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         env = unquote(env_with_line_from_asts(first_ast_chunk))
 
-        next? = unquote(__MODULE__).pry_with_next(true, binding(), env)
+        next? = unquote(__MODULE__).__next__(true, binding(), env)
         value = unquote(pipe_chunk_of_asts(first_ast_chunk))
 
         unquote(__MODULE__).__dbg_pipe_step__(
@@ -121,7 +121,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         quote do
           unquote(ast_acc)
           env = unquote(env_with_line_from_asts(asts_chunk))
-          next? = unquote(__MODULE__).pry_with_next(next?, binding(), env)
+          next? = unquote(__MODULE__).__next__(next?, binding(), env)
           value = unquote(piped_asts)
 
           unquote(__MODULE__).__dbg_pipe_step__(
@@ -142,7 +142,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
   end
 
-  def pry_with_next(next?, binding, opts_or_env) when is_boolean(next?) do
+  def __next__(next?, binding, opts_or_env) when is_boolean(next?) do
     if next? do
       {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
 
