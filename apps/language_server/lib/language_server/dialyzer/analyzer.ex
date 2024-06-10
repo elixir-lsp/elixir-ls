@@ -11,7 +11,9 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   # default warns taken from
   # https://github.com/erlang/otp/blob/928d03e6da416208fce7b9a7dbbfbb4f25d26c37/lib/dialyzer/src/dialyzer_options.erl#L34
   # macros defined in https://github.com/erlang/otp/blob/928d03e6da416208fce7b9a7dbbfbb4f25d26c37/lib/dialyzer/src/dialyzer.hrl#L36
-  # as of OTP 26
+  # as of OTP 27
+
+  # NOTE the allowed options in vscode extension need to be updated basing on https://github.com/erlang/otp/blob/412bff5196fc0ab88a61fe37ca30e5226fc7872d/lib/dialyzer/src/dialyzer_options.erl#L495
   @default_warns [
                    :warn_behaviour,
                    :warn_bin_construction,
