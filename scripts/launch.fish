@@ -39,6 +39,15 @@ else
       "$rtx" env -s fish | source
     else
       echo "rtx not found" >&2
+
+      set vfox (which vfox)
+      if test -n "$vfox"
+        echo "vfox executable found in $vfox, activating" >&2
+
+        "$vfox" activate fish | source
+      else
+        echo "vfox not found" >&2
+      end
     end
   end
 end

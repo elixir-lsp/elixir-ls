@@ -3,7 +3,7 @@
 Incomplete installations is a frequent cause of ElixirLS failures. Generally
 this is resolved by:
 
-* Installing elixir and erlang via [ASDF](https://github.com/asdf-vm/asdf) or [MISE](https://github.com/jdx/mise)
+* Installing elixir and erlang via [ASDF](https://github.com/asdf-vm/asdf) or [vfox (version-fox)](https://github.com/version-fox/vfox) or [MISE](https://github.com/jdx/mise)
   (recommended)
 * Installing a full version of Erlang/OTP via the package manager
 

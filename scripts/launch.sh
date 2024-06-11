@@ -64,6 +64,15 @@ else
       eval "$($(which rtx) env -s "$preferred_shell")"
     else
       >&2 echo "rtx not found"
+
+      >&2 echo "Looking for vfox executable"
+      if which vfox >/dev/null
+      then
+        >&2 echo "vfox executable found in $(which vfox), activating"
+        eval "$($(which vfox) activate "$preferred_shell")"
+      else
+        >&2 echo "vfox not found"
+      fi
     fi
   fi
 fi
