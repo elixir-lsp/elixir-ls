@@ -1,5 +1,24 @@
 ### Unreleased
 
+### v0.22.0: 11 June 2024
+
+#### Highlights
+
+- Support for elixir 1.17
+- Support for OTP 27
+
+#### Improvements
+
+- Related information with inferred type is added on diagnostics origination from elixir 1.17 type system
+- Added support for ExDoc autolinking in OTP 27 markdown documentation
+- Debug adapter can display OTP 27 process labels
+- Dialyzer is more strict with option validation
+- Updated vendored dialyxir to 1.4.3
+
+#### Fixes
+
+- Fixed a crash in metadata builder when recovering from AST parse error
+
 ### v0.21.3: 22 May 2024
 
 #### Improvements
