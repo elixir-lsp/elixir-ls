@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
 
-  alias ElixirLS.LanguageServer.AstUtils
+  alias ElixirLS.LanguageServer.CodeFragmentUtils
 
   @type markdown :: String.t()
 
@@ -73,7 +73,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
                      |> Kernel.--([:exception, :message])
 
   def docs(code, line, column, options \\ []) do
-    case AstUtils.surround_context_with_fallback(code, {line, column}) do
+    case CodeFragmentUtils.surround_context_with_fallback(code, {line, column}) do
       {:none, _} ->
         nil
 

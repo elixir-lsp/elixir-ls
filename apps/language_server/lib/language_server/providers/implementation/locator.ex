@@ -19,12 +19,12 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
-  alias ElixirLS.LanguageServer.AstUtils
+  alias ElixirLS.LanguageServer.CodeFragmentUtils
 
   require ElixirSense.Core.Introspection, as: Introspection
 
   def implementations(code, line, column, options \\ []) do
-    case AstUtils.surround_context_with_fallback(code, {line, column}) do
+    case CodeFragmentUtils.surround_context_with_fallback(code, {line, column}) do
       {:none, _} ->
         []
 

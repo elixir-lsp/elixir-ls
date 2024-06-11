@@ -19,10 +19,10 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.Parser
 
-  alias ElixirLS.LanguageServer.AstUtils
+  alias ElixirLS.LanguageServer.CodeFragmentUtils
 
   def references(code, line, column, trace, options \\ []) do
-    case AstUtils.surround_context_with_fallback(code, {line, column}) do
+    case CodeFragmentUtils.surround_context_with_fallback(code, {line, column}) do
       {:none, _} ->
         []
 
