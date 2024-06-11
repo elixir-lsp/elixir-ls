@@ -4243,7 +4243,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
         if System.otp_release() |> String.to_integer() >= 27 do
           assert "The time unit used" <> _ = summary
         else
-          assert "Supported time unit representations:" <> _ = summary
+          assert summary =~ "Supported time unit representations:"
         end
       end
     end

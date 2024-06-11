@@ -294,19 +294,21 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
              ) == "[Up and running](http://example.com/foo.md)"
     end
 
-    test "erlang extra page" do
-      assert MarkdownUtils.transform_ex_doc_links(
-               "[Up and running](e:erts_alloc.md)",
-               :erlang
-             ) == "[Up and running](https://www.erlang.org/doc/apps/erts/erts_alloc.html)"
-    end
+    if System.otp_release() |> String.to_integer() >= 27 do
+      test "erlang extra page" do
+        assert MarkdownUtils.transform_ex_doc_links(
+                 "[Up and running](e:erts_alloc.md)",
+                 :erlang
+               ) == "[Up and running](https://www.erlang.org/doc/apps/erts/erts_alloc.html)"
+      end
 
-    test "erlang extra page with app" do
-      assert MarkdownUtils.transform_ex_doc_links(
-               "[Up and running](e:system:expressions.md#term-comparisons)",
-               :lists
-             ) ==
-               "[Up and running](https://www.erlang.org/doc/system/expressions.html#term-comparisons)"
+      test "erlang extra page with app" do
+        assert MarkdownUtils.transform_ex_doc_links(
+                 "[Up and running](e:system:expressions.md#term-comparisons)",
+                 :lists
+               ) ==
+                 "[Up and running](https://www.erlang.org/doc/system/expressions.html#term-comparisons)"
+      end
     end
 
     test "expression" do
