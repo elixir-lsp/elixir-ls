@@ -14,6 +14,7 @@
 - Debug adapter can display OTP 27 process labels
 - Dialyzer is more strict with option validation
 - Updated vendored dialyxir to 1.4.3
+- Added support for vfox package manager [yeshan333](https://github.com/yeshan333)
 
 #### Fixes
 
