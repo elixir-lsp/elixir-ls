@@ -453,6 +453,44 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
   defp build_related_information(diagnostic, uri, source_file) do
     case diagnostic.details do
+      %{typing_traces: typing_traces} ->
+        # %{
+        #   name: :a,
+        #   type: :variable,
+        #   context: nil,
+        #   traces: [
+        #     %{
+        #       meta: [line: 16, column: 7],
+        #       file: "lib/type_errors.ex",
+        #       formatted_type: ":asd",
+        #       formatted_expr: "a = :asd",
+        #       formatted_hints: []
+        #     }
+        #   ]
+        # }
+
+        for typing_trace <- typing_traces, trace <- typing_trace.traces do
+          case typing_trace.type do
+            :variable ->
+              line = trace.meta |> Keyword.get(:line, 1)
+              column = trace.meta |> Keyword.get(:column, 1)
+
+              message = "given type: #{trace.formatted_type}"
+
+              %{
+                "location" => %{
+                  "uri" => uri,
+                  "range" =>
+                    range(
+                      {line, column},
+                      source_file
+                    )
+                },
+                "message" => message
+              }
+          end
+        end
+
       # for backwards compatibility with elixir < 1.16
       {:error, %kind{} = payload} when kind == MismatchedDelimiterError ->
         [
