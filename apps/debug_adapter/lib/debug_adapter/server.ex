@@ -2288,10 +2288,10 @@ defmodule ElixirLS.DebugAdapter.Server do
 
     case {registered_name, label} do
       {{:ok, registered_name}, {:ok, label}} ->
-        "#{registered_name}: #{inspect(label)}"
+        "#{inspect(registered_name)}: #{inspect(label)}"
 
       {{:ok, registered_name}, _} ->
-        to_string(registered_name)
+        inspect(registered_name)
 
       {_, {:ok, label}} ->
         inspect(label)
