@@ -1730,9 +1730,6 @@ defmodule ElixirLS.DebugAdapter.Server do
       Mix.Task.run("loadconfig")
     end
 
-    # make sure ANSI is disabled
-    Application.put_env(:elixir, :ansi_enabled, false)
-
     unless "--no-compile" in task_args or "--no-mix-exs" in task_args do
       case Mix.Task.run("compile", ["--ignore-module-conflict", "--return-errors"]) do
         {:error, diagnostics} ->

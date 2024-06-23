@@ -7,6 +7,7 @@ defmodule ElixirLS.DebugAdapter do
     Application.load(:erts)
     Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&Output.debuggee_out/1, &Output.debuggee_err/1)
+    Application.put_env(:elixir, :ansi_enabled, true)
     Launch.start_mix()
 
     if Version.match?(System.version(), ">= 1.15.0-dev") do
