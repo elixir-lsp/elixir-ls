@@ -21,6 +21,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
 
+  alias ElixirLS.LanguageServer.CodeFragmentUtils
+
   @type markdown :: String.t()
 
   @type module_doc :: %{kind: :module, docs: markdown, metadata: map, module: module()}
@@ -71,11 +73,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
                      |> Kernel.--([:exception, :message])
 
   def docs(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case CodeFragmentUtils.surround_context_with_fallback(code, {line, column}) do
+      {:none, _} ->
         nil
 
-      %{begin: begin_pos, end: end_pos} = context ->
+      {%{begin: begin_pos, end: end_pos} = context, column} ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
             Parser.parse_string(code, true, true, {line, column})
