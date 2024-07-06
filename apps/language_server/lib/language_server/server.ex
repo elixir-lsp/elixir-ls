@@ -1305,7 +1305,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "referencesProvider" => true,
       "documentFormattingProvider" => true,
       "signatureHelpProvider" => %{"triggerCharacters" => SignatureHelp.trigger_characters()},
-      "documentSymbolProvider" => true,
+      "documentSymbolProvider" => %{"label" => "Elixir outline"},
       "workspaceSymbolProvider" => true,
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
@@ -1888,6 +1888,8 @@ defmodule ElixirLS.LanguageServer.Server do
       },
       %{}
     )
+
+    # :observer.start()
 
     trigger_build(state)
   end
