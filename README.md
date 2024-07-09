@@ -369,36 +369,9 @@ If you get an error like the following immediately on startup:
     ** (EXIT) no process: the process is not alive or there's no process currently associated with the given name, possibly because its application isn't started
 ```
 
-and you installed Elixir and Erlang from the Erlang Solutions repository, you may not have a full installation of Erlang. This can be solved with `sudo apt-get install esl-erlang`. (This was originally reported in [#208](https://github.com/elixir-lsp/elixir-ls/issues/208).)
+and you installed Elixir and Erlang from the Erlang Solutions repository, you may not have a full installation of Erlang. This can be solved with `sudo apt-get install esl-erlang`. (This was originally reported in [#208](https://github.com/elixir-lsp/elixir-ls/issues/208)).
 
-On Fedora Linux, if you only install the Elixir package you will not have a full Erlang installation. This can be fixed by running `sudo dnf install erlang` (This was reported in [#231](https://github.com/elixir-lsp/elixir-ls/issues/231).)
-
-If you are seeing the message "Invalid beam file or no abstract code", you need to make sure that your Mix project is set to use the `elixirc` compiler option `--debug-info`, which can be done by adding the following line to your `mix.exs` `project` section:
-
-```elixir
-elixirc_options: [debug_info: Mix.env() == :dev]
-```
-
-For example:
-
-```elixir
-defmodule MyApp.MixProject do
-  use Mix.Project
-
-  def project do
-    [
-      app: :my_app,
-      version: "0.1.0",
-      elixir: "~> 1.11",
-      elixirc_paths: elixirc_paths(Mix.env()),
-      elixirc_options: [debug_info: Mix.env() == :dev],
-    ...
-```
-
-If you are using Emacs with `lsp-mode`, there's a possibility that you have set the
-wrong directory as the project root (especially if that directory does not have
-a `mix.exs` file). To fix that, you should remove the project and re-initialize:
-https://github.com/elixir-lsp/elixir-ls/issues/364#issuecomment-829589139
+On Fedora Linux, if you only install the Elixir package you will not have a full Erlang installation. This can be fixed by running `sudo dnf install erlang` (This was reported in [#231](https://github.com/elixir-lsp/elixir-ls/issues/231)).
 
 ## Known Issues/Limitations
 
