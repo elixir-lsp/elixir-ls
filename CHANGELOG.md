@@ -1,5 +1,12 @@
 ### Unreleased
 
+### v0.22.1: 10 July 2024
+
+#### Improvements
+
+- Improvements to symbol presentation in document symbols
+- ANSI colors enabled in Debug Adapter
+
 ### v0.22.0: 11 June 2024
 
 #### Highlights
