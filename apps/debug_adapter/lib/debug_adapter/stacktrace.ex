@@ -36,52 +36,78 @@ defmodule ElixirLS.DebugAdapter.Stacktrace do
   def get(pid) do
     case :dbg_iserver.safe_call({:get_meta, pid}) do
       {:ok, meta_pid} ->
-        [{level, {module, function, args}} | backtrace_rest] =
-          :int.meta(meta_pid, :backtrace, :all)
+        parent = self()
+        ref = Process.monitor(meta_pid)
 
-        messages = :int.meta(meta_pid, :messages)
+        meta_query_pid =
+          spawn(fn ->
+            [{level, {module, function, args}} | backtrace_rest] =
+              :int.meta(meta_pid, :backtrace, :all)
 
-        first_frame = %Frame{
-          level: level,
-          module: module,
-          function: {function, get_arity(args)},
-          args: args,
-          file: get_file(module),
-          # vscode raises invalid request when line is nil
-          line: break_line(pid) || 1,
-          bindings: get_bindings(meta_pid, level),
-          messages: messages
-        }
+            messages = :int.meta(meta_pid, :messages)
 
-        # If backtrace_rest is empty, calling stack_frames causes an exception
-        other_frames =
-          case backtrace_rest do
-            [] ->
-              []
+            first_frame = %Frame{
+              level: level,
+              module: module,
+              function: {function, get_arity(args)},
+              args: args,
+              file: get_file(module),
+              # vscode raises invalid request when line is nil
+              line: break_line(pid) || 1,
+              bindings: get_bindings(meta_pid, level),
+              messages: messages
+            }
 
-            _ ->
-              frames = List.zip([backtrace_rest, stack_frames(meta_pid, level)])
+            # If backtrace_rest is empty, calling stack_frames causes an exception
+            other_frames =
+              case backtrace_rest do
+                [] ->
+                  []
 
-              for {{level, {mod, function, args}}, {level, {mod, line}, bindings}} <- frames do
-                %Frame{
-                  level: level,
-                  module: mod,
-                  function: {function, get_arity(args)},
-                  args: args,
-                  file: get_file(mod),
-                  # vscode raises invalid request when line is nil
-                  line: line || 1,
-                  bindings: Enum.into(bindings, %{}),
-                  messages: messages
-                }
+                _ ->
+                  frames = List.zip([backtrace_rest, stack_frames(meta_pid, level)])
+
+                  for {{level, {mod, function, args}}, {level, {mod, line}, bindings}} <- frames do
+                    %Frame{
+                      level: level,
+                      module: mod,
+                      function: {function, get_arity(args)},
+                      args: args,
+                      file: get_file(mod),
+                      # vscode raises invalid request when line is nil
+                      line: line || 1,
+                      bindings: Enum.into(bindings, %{}),
+                      messages: messages
+                    }
+                  end
               end
-          end
 
-        [first_frame | other_frames]
+            send(parent, {:ok, [first_frame | other_frames]})
+          end)
+
+        receive do
+          {:ok, trace} ->
+            trace
+
+          {:DOWN, _, :process, ^meta_pid, reason} ->
+            Process.exit(meta_query_pid, :kill)
+
+            Output.debugger_console(
+              "Meta process down fo pid #{inspect(pid)}: #{inspect(reason)}\n"
+            )
+
+            []
+        after
+          5000 ->
+            Process.exit(meta_query_pid, :kill)
+            Process.demonitor(ref, false)
+            Output.debugger_console("Timed out while obtaining meta for pid #{inspect(pid)}\n")
+            []
+        end
 
       error ->
-        Output.debugger_important(
-          "Failed to obtain meta for pid #{inspect(pid)}: #{inspect(error)}"
+        Output.debugger_console(
+          "Failed to obtain meta for pid #{inspect(pid)}: #{inspect(error)}\n"
         )
 
         []
