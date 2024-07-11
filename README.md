@@ -254,6 +254,47 @@ It may be useful to connect to a running debug adapter node via OTP distribution
 }
 ```
 
+### Attaching to remote nodes
+
+ElixirLS debug adapter is capable of remote debugging OTP cluster nodes. This functionality relies on OTP debugger. In order to attach to a remote node `some@host` a special launch config with request `attach` is needed. The launch config must specify `remoteNode` as well as `cookie` and `name` or `sname` for local DAP node.
+
+```json
+{
+  "type": "mix_task",
+  "name": "attach",
+  "request": "attach",
+  "projectDir": "${workspaceRoot}",
+  "remoteNode": "some@host",
+  "debugAutoInterpretAllModules": false,
+  "debugInterpretModulesPatterns": ["MyApp.*"],
+  "env": {
+    "ELS_ELIXIR_OPTS": "--sname elixir_ls_dap --cookie mysecret"
+  }
+}
+```
+
+#### Troubleshooting
+
+- Ensure that the remote node is accessible and accepting connections
+- Ensure that erlang cookie is correct
+- Ensure that OTP `debugger` application is loadable on remote node. This may require including it in `extra_applications`
+- If connecting to an OTP release, ensure that it is built with `strip_beams` set to `false`. Note that it defaults to `true`
+- Ensure that remote node application has not been compiled with `debug_info` set to `false` via `elixirc_options` or `@compile` attribute
+- Ensure that both source files and compiled beams are available in the project directory
+
+#### Limitations
+
+Remote debugger has several limitations compared to local debugger:
+
+- `dbg` macro breakpoints are not supported
+- conditional breakpoints, hit conditional breakpoints and log points are not supported
+- pausing non interpreted processes is not supported
+- expressions are evaluated on local node
+
+#### Warning
+
+ElixirLS debug adapter interprets modules with [`:int.ni/1`](https://www.erlang.org/doc/apps/debugger/int.html#ni/1) on all connected nodes. It attempts to uninterpret all modules on debug session end but that may not be possible due to loss of connectivity. This may affect production workloads. Use remote debugging with caution.
+
 ## Automatic builds and error reporting
 
 ElixirLS provides automatic builds and error reporting. By default, builds are triggered automatically when files are saved, but you can also enable "autosave" in your IDE to trigger builds as you type. If you prefer to disable automatic builds, you can set the `elixirLS.autoBuild` configuration option to `false`.
