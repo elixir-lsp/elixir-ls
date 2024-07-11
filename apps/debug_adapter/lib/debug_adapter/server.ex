@@ -630,12 +630,28 @@ defmodule ElixirLS.DebugAdapter.Server do
     {:noreply, state}
   end
 
+  def handle_info({:nodeup, node, %{node_type: node_type}}, state = %__MODULE__{}) do
+    Output.debugger_console("#{node_type} node #{node} connected\n")
+    {:noreply, state}
+  end
+
+  def handle_info(
+        {:nodedown, node, %{node_type: node_type, nodedown_reason: nodedown_reason}},
+        state = %__MODULE__{}
+      ) do
+    Output.debugger_console(
+      "#{node_type} node #{node} disconnected: #{inspect(nodedown_reason)}\n"
+    )
+
+    {:noreply, state}
+  end
+
   # If we get the disconnect request from the client, we continue with :disconnect so the server will
   # die right after responding to the request
   @impl GenServer
   def handle_continue(:disconnect, state = %__MODULE__{}) do
     unless :persistent_term.get(:debug_adapter_test_mode, false) do
-      Output.debugger_console("Received disconnect request")
+      Output.debugger_console("Received disconnect request\n")
       Process.sleep(200)
       System.stop(0)
     else
@@ -805,6 +821,12 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp handle_request(attach_req(_, config), state = %__MODULE__{}) do
     server = self()
+
+    :net_kernel.monitor_nodes(true, %{
+      connection_id: false,
+      node_type: :all,
+      nodedown_reason: true
+    })
 
     {_, ref} = spawn_monitor(fn -> attach(config, server) end)
 
