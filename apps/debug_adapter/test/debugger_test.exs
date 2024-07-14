@@ -3865,4 +3865,43 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       assert Process.alive?(server)
     end)
   end
+
+  test "source", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(server, initialize_req(1, %{}))
+      assert_receive(response(_, 1, "initialize", _))
+
+      Server.receive_packet(
+        server,
+        %{
+          "arguments" => %{
+            "sourceReference" => 0,
+            "source" => %{"path" => "lib/crash.ex"}
+          },
+          "command" => "source",
+          "seq" => 1,
+          "type" => "request"
+        }
+      )
+
+      assert_receive(%{"body" => %{"content" => "defmodule MixProject.Crash do" <> _}}, 10000)
+
+      Server.receive_packet(
+        server,
+        %{
+          "arguments" => %{
+            "sourceReference" => 0,
+            "source" => %{"path" => "replinput"}
+          },
+          "command" => "source",
+          "seq" => 1,
+          "type" => "request"
+        }
+      )
+
+      assert_receive(%{"body" => %{"content" => ""}}, 10000)
+
+      assert Process.alive?(server)
+    end)
+  end
 end

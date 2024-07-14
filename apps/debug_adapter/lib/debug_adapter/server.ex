@@ -886,6 +886,24 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp handle_request(
+         source_req(_, args),
+         state = %__MODULE__{}
+       ) do
+    path = args["source"]["path"]
+
+    content =
+      if path == "replinput" do
+        # this is a special path that VSCode uses for debugger console
+        # return an empty string as we do not need anything there
+        ""
+      else
+        File.read!(path)
+      end
+
+    {%{"content" => content}, state}
+  end
+
+  defp handle_request(
          set_breakpoints_req(_, %{"path" => _path}, _breakpoints),
          %__MODULE__{config: %{"noDebug" => true}}
        ) do
