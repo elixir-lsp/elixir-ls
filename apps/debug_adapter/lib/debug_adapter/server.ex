@@ -929,7 +929,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     breakpoints_json =
       Enum.map(result, fn
         {:ok, _, _} -> %{"verified" => true}
-        {:error, error} -> %{"verified" => false, "message" => error}
+        {:error, error} -> %{"verified" => false, "message" => error, "reason" => "failed"}
       end)
 
     {%{"breakpoints" => breakpoints_json}, state}
@@ -1043,12 +1043,15 @@ defmodule ElixirLS.DebugAdapter.Server do
       Enum.map(mfas, fn
         {{:ok, mfa}, _} ->
           case results[mfa] do
-            {:ok, _} -> %{"verified" => true}
-            {:error, error} -> %{"verified" => false, "message" => inspect(error)}
+            {:ok, _} ->
+              %{"verified" => true}
+
+            {:error, error} ->
+              %{"verified" => false, "message" => inspect(error), "reason" => "failed"}
           end
 
         {{:error, error}, _} ->
-          %{"verified" => false, "message" => error}
+          %{"verified" => false, "message" => error, "reason" => "failed"}
       end)
 
     {%{"breakpoints" => breakpoints_json}, state}
