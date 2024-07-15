@@ -2353,13 +2353,24 @@ defmodule ElixirLS.DebugAdapter.Server do
         end
       end)
 
-    for {module_charlist, _beam_path, _loaded} <- :code.all_available(),
-        module = List.to_atom(module_charlist),
-        module_name = inspect(module),
-        Enum.any?(regexes, fn regex ->
+    if String.to_integer(System.otp_release()) >= 23 do
+      for {module_charlist, _beam_path, _loaded} <- :code.all_available(),
+          module = List.to_atom(module_charlist),
+          module_name = inspect(module),
+          Enum.any?(regexes, fn regex ->
+            Regex.match?(regex, module_name)
+          end) do
+        module
+      end
+    else
+      # TODO remove when we drop OTP 22 and elixir 1.13 support
+      ElixirSense.all_modules()
+      |> Enum.filter(fn module_name ->
+        Enum.find(regexes, fn regex ->
           Regex.match?(regex, module_name)
-        end) do
-      module
+        end)
+      end)
+      |> Enum.map(fn module_name -> Module.concat(Elixir, module_name) end)
     end
     |> interpret_modules(exclude_module_pattern)
   end
