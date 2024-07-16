@@ -1193,6 +1193,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           vars_scope = %{
             "name" => "variables",
+            "presentationHint" => "locals",
             "variablesReference" => bindings_id,
             "namedVariables" => Enum.count(frame.bindings),
             "indexedVariables" => 0,
@@ -1232,6 +1233,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           vars_scope = %{
             "name" => "variables",
+            "presentationHint" => "locals",
             "variablesReference" => vars_id,
             "namedVariables" => map_size(variables),
             "indexedVariables" => 0,
@@ -1240,6 +1242,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           versioned_vars_scope = %{
             "name" => "versioned variables",
+            "presentationHint" => "locals",
             "variablesReference" => versioned_vars_id,
             "namedVariables" => Enum.count(frame.bindings),
             "indexedVariables" => 0,
@@ -1250,6 +1253,7 @@ defmodule ElixirLS.DebugAdapter.Server do
             if frame.args != :undefined do
               %{
                 "name" => "arguments",
+                "presentationHint" => "arguments",
                 "variablesReference" => args_id,
                 "namedVariables" => 0,
                 "indexedVariables" => Enum.count(frame.args),
@@ -1267,6 +1271,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           process_info_scope = %{
             "name" => "process info",
+            "presentationHint" => "registers",
             "variablesReference" => process_info_id,
             "namedVariables" => length(process_info),
             "indexedVariables" => 0,
