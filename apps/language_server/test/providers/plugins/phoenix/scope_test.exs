@@ -91,7 +91,6 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.ScopeTest do
               name: :web_prefix,
               positions: [{5, 5}],
               scope_id: 2,
-              is_definition: true,
               type: {:atom, ExampleWeb}
             }
           ],
