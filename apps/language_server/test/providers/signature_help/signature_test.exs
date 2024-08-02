@@ -629,7 +629,6 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
              }
     end
 
-    @tag :type_inference
     test "find signatures from variable" do
       code = """
       defmodule MyMod do
