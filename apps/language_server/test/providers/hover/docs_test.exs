@@ -510,7 +510,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                kind: :function,
                metadata: %{implementing: BB, since: "1.2.3"},
                module: BB.String,
-               specs: ["@callback go(t) :: integer()"],
+               specs: ["@callback go(t()) :: integer()"],
                docs: "asdf"
              }
     end

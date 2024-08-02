@@ -133,14 +133,15 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
           docs: docs
         }
 
-      {:variable, variable} ->
+      {:variable, variable, version} ->
         {line, column} = context.begin
 
         var_info =
           vars
           |> Enum.find(fn
-            %VarInfo{name: name, positions: positions} ->
-              name == variable and {line, column} in positions
+            %VarInfo{} = info ->
+              info.name == variable and (info.version == version or version == :any) and
+                {line, column} in info.positions
           end)
 
         if var_info != nil do
@@ -150,7 +151,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
           }
         else
           mod_fun_docs(
-            type,
+            {nil, variable},
             context,
             binding_env,
             env,

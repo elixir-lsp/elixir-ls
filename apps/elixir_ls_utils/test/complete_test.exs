@@ -475,6 +475,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :mod,
+          version: 1,
           type: {:atom, String}
         }
       ]
@@ -489,6 +490,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :map,
+          version: 1,
           type: {:map, [foo: 1, bar_1: 23, bar_2: 14], nil}
         }
       ]
@@ -575,27 +577,33 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :struct,
+          version: 1,
           type: {:struct, [], {:atom, DateTime}, nil}
         },
         %VarInfo{
           name: :other,
+          version: 1,
           type: {:call, {:atom, DateTime}, :utc_now, []}
         },
         %VarInfo{
           name: :from_metadata,
+          version: 1,
           type: {:struct, [], {:atom, MyStruct}, nil}
         },
         %VarInfo{
           name: :var,
-          type: {:variable, :struct}
+          version: 1,
+          type: {:variable, :struct, 1}
         },
         %VarInfo{
           name: :yyyy,
+          version: 1,
           type: {:map, [date: {:struct, [], {:atom, DateTime}, nil}], []}
         },
         %VarInfo{
           name: :xxxx,
-          type: {:call, {:atom, Map}, :fetch!, [{:variable, :yyyy}, {:atom, :date}]}
+          version: 1,
+          type: {:call, {:atom, Map}, :fetch!, [{:variable, :yyyy, 1}, {:atom, :date}]}
         }
       ]
     }
@@ -766,6 +774,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :map,
+          version: 1,
           type:
             {:map,
              [
@@ -911,6 +920,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :map,
+          version: 1,
           type: {:map, [{"foo", 124}], nil}
         }
       ]
@@ -924,6 +934,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :map,
+          version: 1,
           type: {:map, [nested: {:map, [num: 23], nil}], nil}
         }
       ]
@@ -939,11 +950,13 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :map,
+          version: 1,
           type: {:map, [{:foo, {:atom, String}}], nil}
         },
         %VarInfo{
           name: :call,
-          type: {:call, {:variable, :map}, :foo, []}
+          version: 1,
+          type: {:call, {:variable, :map, 1}, :foo, []}
         }
       ]
     }
@@ -956,6 +969,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :call,
+          version: 1,
           type: {:call, {:atom, DateTime}, :utc_now, []}
         }
       ]
@@ -1059,13 +1073,16 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     env = %Env{
       vars: [
         %VarInfo{
-          name: :numeral
+          name: :numeral,
+          version: 1
         },
         %VarInfo{
-          name: :number
+          name: :number,
+          version: 1
         },
         %VarInfo{
-          name: :nothing
+          name: :nothing,
+          version: 1
         }
       ]
     }
@@ -1082,7 +1099,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     env = %Env{
       vars: [
         %VarInfo{
-          name: :number
+          name: :number,
+          version: 1
         }
       ]
     }
@@ -1605,6 +1623,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       vars: [
         %VarInfo{
           name: :struct,
+          version: 1,
           type:
             {:struct,
              [

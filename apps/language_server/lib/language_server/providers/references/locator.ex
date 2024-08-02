@@ -192,12 +192,15 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
       {:keyword, _} ->
         []
 
-      {:variable, variable} ->
+      {:variable, variable, version} ->
         {line, column} = context.begin
 
         var_info =
-          Enum.find(vars, fn %VarInfo{name: name, positions: positions} ->
-            name == variable and {line, column} in positions
+          Enum.find_value(vars, fn {{_name, _version}, %VarInfo{} = info} ->
+            if info.name == variable and (info.version == version or version == :any) and
+                 {line, column} in info.positions do
+              info
+            end
           end)
 
         if var_info != nil do

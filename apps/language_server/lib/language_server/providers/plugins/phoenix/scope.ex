@@ -98,8 +98,10 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.Scope do
     get_mod(scope_alias, binding_env)
   end
 
-  defp get_mod({name, _, nil}, binding_env) when is_atom(name) do
-    case Binding.expand(binding_env, {:variable, name}) do
+  defp get_mod({name, meta, context}, binding_env)
+       when is_atom(name) and is_atom(context) and
+              name not in [:__MODULE__, :__DIR__, :__ENV__, :__CALLER__, :__STACKTRACE__, :_] do
+    case Binding.expand(binding_env, {:variable, name, Keyword.get(meta, :version, :any)}) do
       {:atom, atom} ->
         atom
 

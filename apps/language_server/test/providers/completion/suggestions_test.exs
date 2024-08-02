@@ -503,13 +503,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     assert [
              %{
-               args: "t",
-               args_list: ["t"],
+               args: "t()",
+               args_list: ["t()"],
                arity: 1,
                metadata: %{since: "1.2.3"},
                name: "my_fun",
                origin: "MyProto",
-               spec: "@callback my_fun(t) :: term",
+               spec: "@callback my_fun(t()) :: term",
                summary: "Some callback",
                type: :protocol_function
              },
@@ -773,7 +773,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                metadata: %{since: "1.2.3", overridable: true},
                name: "test",
                origin: "ElixirSenseExample.OverridableFunctions",
-               spec: "@spec test(number, number) :: number",
+               spec: "@spec test(number(), number()) :: number()",
                summary: "Some overridable",
                type: :callback,
                subtype: :callback
@@ -1135,14 +1135,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                metadata: %{implementing: BB},
                name: "go",
                origin: "BB.String",
-               spec: "@callback go(t) :: integer()",
+               spec: "@callback go(t()) :: integer()",
                summary: "asdf",
                type: :function,
                visibility: :public
              }
            ] = list
-
-    #  TODO docs and metadata
   end
 
   test "list metadata macro - fallback to macrocallback in metadata" do
@@ -4300,7 +4298,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                signature: "my_local_t()",
                args_list: [],
                doc: "",
-               spec: "@typep my_local_t :: integer",
+               spec: "@typep my_local_t() :: integer()",
                metadata: %{}
              } == suggestion2
 
@@ -4377,7 +4375,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                signature: "my_local_t()",
                args_list: [],
                doc: "",
-               spec: "@type my_local_t :: integer",
+               spec: "@type my_local_t() :: integer()",
                metadata: %{}
              } == suggestion1
     end

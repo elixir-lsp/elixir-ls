@@ -312,7 +312,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp expand_dot_path({:var, var}, %State.Env{} = env, %Metadata{} = metadata) do
-    value_from_binding({:variable, List.to_atom(var)}, env, metadata)
+    value_from_binding({:variable, List.to_atom(var), :any}, env, metadata)
   end
 
   defp expand_dot_path({:module_attribute, attribute}, %State.Env{} = env, %Metadata{} = metadata) do
