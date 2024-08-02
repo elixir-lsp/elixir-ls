@@ -892,7 +892,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "sum",
                    params: ["a", "b \\\\ 0"],
                    documentation: "",
-                   spec: "@spec sum(integer, integer) :: integer"
+                   spec: "@spec sum(integer(), integer()) :: integer()"
                  }
                ]
              }
@@ -927,7 +927,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    ],
                    documentation: "",
                    spec:
-                     "@spec sum(integer, integer, integer, integer, integer, integer) :: integer",
+                     "@spec sum(integer(), integer(), integer(), integer(), integer(), integer()) :: integer()",
                    active_param: 2
                  }
                ]
@@ -1173,7 +1173,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    documentation: "asdf",
                    name: "go",
                    params: ["t"],
-                   spec: "@callback go(t) :: integer()"
+                   spec: "@callback go(t()) :: integer()"
                  }
                ]
              } = res
