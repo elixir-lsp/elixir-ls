@@ -1,5 +1,18 @@
 ### Unreleased
 
+### v0.23.0: 3 August 2024
+
+#### Improvements
+
+- Added support for attaching with the debug adapter to remote nodes
+- Debug Adapter protocol `source` request implemented
+- Added presentation hints to debug scopes
+- Breakpoints are now annotated as failed if setting them fails
+
+#### Fixes
+
+- Fixed a deadlock in debug adapter when meta process is not alive
+
 ### v0.22.1: 10 July 2024
 
 #### Improvements
