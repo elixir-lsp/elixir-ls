@@ -25,14 +25,14 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   alias ElixirSense.Core.Parser
 
   alias ElixirLS.LanguageServer.Plugins.Phoenix.Scope
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
+  alias ElixirLS.LanguageServer.CodeFragmentUtils
 
   def definition(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case CodeFragmentUtils.surround_context_with_fallback(code, {line, column}) do
+      {:none, _} ->
         nil
 
-      context ->
+      {context, column} ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
             Parser.parse_string(code, true, true, {line, column})

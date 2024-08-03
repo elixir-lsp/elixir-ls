@@ -19,15 +19,16 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
+  alias ElixirLS.LanguageServer.CodeFragmentUtils
 
   require ElixirSense.Core.Introspection, as: Introspection
 
   def implementations(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case CodeFragmentUtils.surround_context_with_fallback(code, {line, column}) do
+      {:none, _} ->
         []
 
-      context ->
+      {context, column} ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
             Parser.parse_string(code, true, true, {line, column})
