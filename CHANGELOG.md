@@ -12,6 +12,7 @@
 #### Fixes
 
 - Fixed a deadlock in debug adapter when meta process is not alive
+- Removed no longer needed workaround for `:gen_statem` callbacks
 
 ### v0.22.1: 10 July 2024
 
