@@ -36,7 +36,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           %State.Env{
             module: module
           } =
-          Metadata.get_env(metadata, {line, column})
+          Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
           |> Metadata.add_scope_vars(metadata, {line, column})
 
         # find last env of current module

@@ -38,13 +38,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
             Parser.parse_string(code, true, true, {line, column})
           end)
 
-        env =
-          Metadata.get_env(metadata, {line, column})
-          |> Metadata.add_scope_vars(metadata, {line, column})
+        env = Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
 
         find(
           context,
-          env,
+          env
+          |> Metadata.add_scope_vars(metadata, {line, column}),
           metadata
         )
     end
@@ -78,13 +77,17 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
       {:keyword, _} ->
         nil
 
-      {:variable, variable} ->
+      {:variable, variable, version} ->
+        dbg(context)
+
         var_info =
           vars
           |> Enum.find(fn
-            %VarInfo{name: name, positions: positions} ->
-              name == variable and context.begin in positions
+            %VarInfo{} = info ->
+              info.name == variable and (info.version == version or version == :any) and
+                context.begin in info.positions
           end)
+          |> dbg
 
         if var_info != nil do
           {definition_line, definition_column} = Enum.min(var_info.positions)
