@@ -78,7 +78,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         nil
 
       {:variable, variable, version} ->
-        dbg(context)
 
         var_info =
           vars
@@ -87,7 +86,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
               info.name == variable and (info.version == version or version == :any) and
                 context.begin in info.positions
           end)
-          |> dbg
 
         if var_info != nil do
           {definition_line, definition_column} = Enum.min(var_info.positions)
@@ -146,14 +144,37 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   end
 
   defp do_find_function_or_module(
-         {{kind, _} = type, function},
+         {{:variable, _, _} = type, function},
          context,
          env,
          metadata,
          binding_env,
          visited
-       )
-       when kind in [:attribute, :variable] do
+       ) do
+    case Binding.expand(binding_env, type) do
+      {:atom, module} ->
+        do_find_function_or_module(
+          {{:atom, module}, function},
+          context,
+          env,
+          metadata,
+          binding_env,
+          visited
+        )
+
+      _ ->
+        nil
+    end
+  end
+
+  defp do_find_function_or_module(
+         {{:attribute, _} = type, function},
+         context,
+         env,
+         metadata,
+         binding_env,
+         visited
+       ) do
     case Binding.expand(binding_env, type) do
       {:atom, module} ->
         do_find_function_or_module(

@@ -32,6 +32,9 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
             Parser.parse_string(code, true, true, {line, column})
           end)
 
+        # if context is var try to find env by scope_id
+        # find scopes that contain this variable
+
         env =
           %State.Env{
             module: module

@@ -820,7 +820,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
   end
 
-  test "find definition of functions when name same as variable - parens preferes function" do
+  test "find definition of functions when name same as variable - parens prefers function" do
     buffer = """
     defmodule MyModule do
       def my_fun(), do: :ok
@@ -840,7 +840,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
   end
 
-  test "find definition of variables when name same as function - no parens preferes variable" do
+  test "find definition of variables when name same as function - no parens prefers variable" do
     buffer = """
     defmodule MyModule do
       def my_fun(), do: :ok

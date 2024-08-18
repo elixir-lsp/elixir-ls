@@ -154,7 +154,14 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
     |> Enum.reject(&is_nil/1)
   end
 
-  defp expand({kind, _attr} = type, binding_env) when kind in [:attribute, :variable] do
+  defp expand({:attribute, _attr} = type, binding_env) do
+    case Binding.expand(binding_env, type) do
+      {:atom, atom} -> atom
+      _ -> nil
+    end
+  end
+
+  defp expand({:variable, _, _} = type, binding_env) do
     case Binding.expand(binding_env, type) do
       {:atom, atom} -> atom
       _ -> nil
@@ -226,14 +233,37 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   end
 
   defp do_find_delegatee(
-         {{kind, _} = type, function},
+         {{:attribute, _} = type, function},
          arity,
          env,
          metadata,
          binding_env,
          visited
-       )
-       when kind in [:attribute, :variable] do
+       ) do
+    case Binding.expand(binding_env, type) do
+      {:atom, module} ->
+        do_find_delegatee(
+          {module, function},
+          arity,
+          env,
+          metadata,
+          binding_env,
+          visited
+        )
+
+      _ ->
+        nil
+    end
+  end
+
+  defp do_find_delegatee(
+         {{:variable, _, _} = type, function},
+         arity,
+         env,
+         metadata,
+         binding_env,
+         visited
+       ) do
     case Binding.expand(binding_env, type) do
       {:atom, module} ->
         do_find_delegatee(

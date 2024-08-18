@@ -1439,8 +1439,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     expected_references = [
       %{uri: nil, range: %{start: %{line: 3, column: 5}, end: %{line: 3, column: 8}}},
       %{uri: nil, range: %{start: %{line: 5, column: 12}, end: %{line: 5, column: 15}}},
-      %{uri: nil, range: %{start: %{line: 6, column: 11}, end: %{line: 6, column: 14}}},
-      %{uri: nil, range: %{start: %{line: 8, column: 23}, end: %{line: 8, column: 26}}}
+      %{uri: nil, range: %{start: %{line: 8, column: 23}, end: %{line: 8, column: 26}}},
+      %{uri: nil, range: %{start: %{line: 6, column: 11}, end: %{line: 6, column: 14}}}
     ]
 
     Enum.each([{3, 5}, {5, 12}, {6, 11}, {8, 23}], fn {line, column} ->

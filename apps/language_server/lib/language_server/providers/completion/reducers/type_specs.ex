@@ -67,7 +67,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
     {:cont, acc}
   end
 
-  defp expand({{kind, _} = type, hint}, env, aliases) when kind in [:attribute, :variable] do
+  defp expand({{:attribute, _} = type, hint}, env, aliases) do
+    # TODO Binding should return expanded aliases
+    case Binding.expand(env, type) do
+      {:atom, module} -> {Introspection.expand_alias(module, aliases), hint}
+      _ -> {nil, ""}
+    end
+  end
+
+  defp expand({{:variable, _, _} = type, hint}, env, aliases) do
     # TODO Binding should return expanded aliases
     case Binding.expand(env, type) do
       {:atom, module} -> {Introspection.expand_alias(module, aliases), hint}

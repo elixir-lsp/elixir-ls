@@ -82,6 +82,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
           end)
 
         env = Metadata.get_cursor_env(metadata, {line, column}, {begin_pos, end_pos})
+        |> Metadata.add_scope_vars(metadata, {line, column})
 
         case all(context, env, metadata) do
           [] ->
