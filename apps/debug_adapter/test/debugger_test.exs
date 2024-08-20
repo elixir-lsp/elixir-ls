@@ -1151,7 +1151,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        500
 
         assert_receive event(_, "output", %{
-                         "category" => "important",
+                         "category" => "console",
                          "output" => "Failed to obtain meta for pid" <> _
                        })
       end)
