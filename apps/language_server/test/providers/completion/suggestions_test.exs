@@ -498,7 +498,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     """
 
     list =
-      Suggestion.suggestions(buffer, 11, 3)
+      Suggestion.suggestions(buffer, 12, 3)
       |> Enum.filter(fn s -> s.type == :protocol_function end)
 
     assert [
@@ -509,7 +509,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                metadata: %{since: "1.2.3"},
                name: "my_fun",
                origin: "MyProto",
-               spec: "@callback my_fun(t()) :: term",
+               spec: "@callback my_fun(t()) :: term()",
                summary: "Some callback",
                type: :protocol_function
              },
@@ -969,7 +969,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert list == [
              %{
                description: "{:ok, term()}",
-               snippet: "{:ok, term()}",
+               snippet: "{:ok, \"${1:term()}$\"}",
                spec: "{:ok, term()}",
                type: :return
              },
@@ -993,13 +993,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert [
              %{
                description: "{:ok, non_neg_integer()}",
-               snippet: "{:ok, non_neg_integer()}",
+               snippet: "{:ok, \"${1:non_neg_integer()}$\"}",
                spec: "{:ok, non_neg_integer()}",
                type: :return
              },
              %{
                description: "{:error, module()}",
-               snippet: "{:error, module()}",
+               snippet: "{:error, \"${1:module()}$\"}",
                spec: "{:error, module()}",
                type: :return
              }
@@ -1027,7 +1027,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert [
              %{
                description: "{:ok, term()}",
-               snippet: "{:ok, term()}",
+               snippet: "{:ok, \"${1:term()}$\"}",
                spec: "{:ok, term()}",
                type: :return
              },
@@ -1052,9 +1052,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert [
              %{description: ":ok", snippet: ":ok", spec: ":ok", type: :return},
              %{
-               description: "{:error, any}",
-               snippet: "{:error, \"${1:any}$\"}",
-               spec: "{:error, any}",
+               description: "{:error, any()}",
+               snippet: "{:error, \"${1:any()}$\"}",
+               spec: "{:error, any()}",
                type: :return
              }
            ] == list
@@ -1851,9 +1851,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert_received {:result, list}
 
     assert list == [
-             %{name: "arg", type: :variable},
-             # FIXME my is not defined, should not be in the list
-             %{name: "my", type: :variable}
+             %{name: "arg", type: :variable}
            ]
   end
 
@@ -2097,7 +2095,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       """
 
       list =
-        Suggestion.suggestions(buffer, 2, 5)
+        Suggestion.suggestions(buffer, 3, 5)
         |> Enum.filter(fn s -> s.type == :attribute end)
         |> Enum.map(fn %{name: name} -> name end)
 
@@ -2498,7 +2496,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :function,
                args: "a",
                args_list: ["a"],
-               spec: "@spec test_fun_pub(integer) :: atom",
+               spec: "@spec test_fun_pub(integer()) :: atom()",
                summary: "",
                metadata: %{},
                snippet: nil,

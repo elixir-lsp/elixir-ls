@@ -53,6 +53,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Source
   alias ElixirLS.LanguageServer.Providers.Completion.Reducers
+  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   @type generic :: %{
           type: :generic,
@@ -109,7 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
   @spec suggestions(String.t(), pos_integer, pos_integer, keyword()) :: [Suggestion.suggestion()]
   def suggestions(code, line, column, options \\ []) do
-    hint = Source.prefix(code, line, column)
+    {prefix = hint, suffix} = Source.prefix_suffix(code, line, column)
 
     metadata =
       Keyword.get_lazy(options, :metadata, fn ->
@@ -126,8 +127,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
         {line, column}
       )
 
+    # TODO test surround_context
+    # surround = case NormalizedCode.Fragment.surround_context(code, {line, column}) do
+    #   :none ->
+    #     nil
+
+    #   context ->
+    #     {context.begin, context.end}
+    #   end
+
+    surround = case {prefix, suffix} do
+      {"", ""} -> nil
+      _ ->
+        {{line, column - String.length(prefix)}, {line, column + String.length(suffix)}}
+    end
+
     env =
-      Metadata.get_env(metadata, {line, column})
+      Metadata.get_cursor_env(metadata, {line, column}, surround)
       |> Metadata.add_scope_vars(
         metadata,
         {line, column},
