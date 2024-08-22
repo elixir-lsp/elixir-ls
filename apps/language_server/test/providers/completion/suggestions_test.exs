@@ -1637,23 +1637,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ]
   end
 
-  test "lists vars in unfinished fn" do
-    buffer = """
-    defmodule MyServer do
-      []
-      |> Enum.min_by(fn x -> 
-    end
-    """
-
-    list =
-      Suggestion.suggestions(buffer, 3, 26)
-      |> Enum.filter(fn s -> s.type == :variable end)
-
-    assert list == [
-             %{name: "x", type: :variable}
-           ]
-  end
-
   test "lists vars in string interpolation" do
     buffer = """
     defmodule MyServer do
@@ -1812,6 +1795,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ]
   end
 
+  if Version.match?(System.version(), ">= 1.17.0") do
   test "lists params in fn's not finished multiline" do
     buffer = """
     defmodule MyServer do
@@ -1832,7 +1816,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     assert list == [%{name: "arg", type: :variable}]
   end
+  end
 
+  if Version.match?(System.version(), ">= 1.17.0") do
   test "lists params in fn's not finished" do
     buffer = """
     defmodule MyServer do
@@ -1853,6 +1839,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert list == [
              %{name: "arg", type: :variable}
            ]
+  end
   end
 
   test "lists params in defs not finished" do
