@@ -1094,22 +1094,20 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
     references = Locator.references(buffer, 3, 59, trace)
 
-    if Version.match?(System.version(), ">= 1.13.0") do
-      assert references == [
-               %{
-                 range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
-                 uri: nil
-               },
-               %{
-                 uri: "test/support/modules_with_references.ex",
-                 range: %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}}
-               },
-               %{
-                 range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
-                 uri: "test/support/modules_with_references.ex"
-               }
-             ]
-    end
+    assert references == [
+             %{
+               range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
+               uri: nil
+             },
+             %{
+               uri: "test/support/modules_with_references.ex",
+               range: %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}}
+             },
+             %{
+               range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
+               uri: "test/support/modules_with_references.ex"
+             }
+           ]
   end
 
   test "find references from remote calls with the function in the next line", %{trace: trace} do
@@ -1124,22 +1122,20 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
     references = Locator.references(buffer, 3, 59, trace)
 
-    if Version.match?(System.version(), ">= 1.13.0") do
-      assert [
-               %{
-                 range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
-                 uri: nil
-               },
-               %{
-                 range: %{end: %{column: 51, line: 65}, start: %{column: 47, line: 65}},
-                 uri: "test/support/modules_with_references.ex"
-               },
-               %{
-                 range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
-                 uri: "test/support/modules_with_references.ex"
-               }
-             ] = references
-    end
+    assert [
+             %{
+               range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
+               uri: nil
+             },
+             %{
+               range: %{end: %{column: 51, line: 65}, start: %{column: 47, line: 65}},
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
+               uri: "test/support/modules_with_references.ex"
+             }
+           ] = references
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
@@ -1897,16 +1893,9 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
          start: %{column: column_start, line: line_start},
          end: %{column: column_end, line: line_end}
        }) do
-    if Version.match?(System.version(), ">= 1.13.0") do
-      %{
-        start: %{column: column_start, line: line_start},
-        end: %{column: column_end, line: line_end}
-      }
-    else
-      %{
-        start: %{column: column_start - 1, line: line_start},
-        end: %{column: column_end - 1, line: line_end}
-      }
-    end
+    %{
+      start: %{column: column_start, line: line_start},
+      end: %{column: column_end, line: line_end}
+    }
   end
 end

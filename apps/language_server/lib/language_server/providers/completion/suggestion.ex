@@ -136,11 +136,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
     #     {context.begin, context.end}
     #   end
 
-    surround = case {prefix, suffix} do
-      {"", ""} -> nil
-      _ ->
-        {{line, column - String.length(prefix)}, {line, column + String.length(suffix)}}
-    end
+    surround =
+      case {prefix, suffix} do
+        {"", ""} ->
+          nil
+
+        _ ->
+          {{line, column - String.length(prefix)}, {line, column + String.length(suffix)}}
+      end
 
     env =
       Metadata.get_cursor_env(metadata, {line, column}, surround)

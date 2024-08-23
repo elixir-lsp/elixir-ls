@@ -1796,50 +1796,50 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
   end
 
   if Version.match?(System.version(), ">= 1.17.0") do
-  test "lists params in fn's not finished multiline" do
-    buffer = """
-    defmodule MyServer do
-      my = fn arg ->
+    test "lists params in fn's not finished multiline" do
+      buffer = """
+      defmodule MyServer do
+        my = fn arg ->
 
+      end
+      """
+
+      assert capture_io(:stderr, fn ->
+               list =
+                 Suggestion.suggestions(buffer, 3, 5)
+                 |> Enum.filter(fn s -> s.type == :variable end)
+
+               send(self(), {:result, list})
+             end) =~ "an expression is always required on the right side of ->"
+
+      assert_received {:result, list}
+
+      assert list == [%{name: "arg", type: :variable}]
     end
-    """
-
-    assert capture_io(:stderr, fn ->
-             list =
-               Suggestion.suggestions(buffer, 3, 5)
-               |> Enum.filter(fn s -> s.type == :variable end)
-
-             send(self(), {:result, list})
-           end) =~ "an expression is always required on the right side of ->"
-
-    assert_received {:result, list}
-
-    assert list == [%{name: "arg", type: :variable}]
-  end
   end
 
   if Version.match?(System.version(), ">= 1.17.0") do
-  test "lists params in fn's not finished" do
-    buffer = """
-    defmodule MyServer do
-      my = fn arg ->
+    test "lists params in fn's not finished" do
+      buffer = """
+      defmodule MyServer do
+        my = fn arg ->
+      end
+      """
+
+      assert capture_io(:stderr, fn ->
+               list =
+                 Suggestion.suggestions(buffer, 2, 19)
+                 |> Enum.filter(fn s -> s.type == :variable end)
+
+               send(self(), {:result, list})
+             end) =~ "an expression is always required on the right side of ->"
+
+      assert_received {:result, list}
+
+      assert list == [
+               %{name: "arg", type: :variable}
+             ]
     end
-    """
-
-    assert capture_io(:stderr, fn ->
-             list =
-               Suggestion.suggestions(buffer, 2, 19)
-               |> Enum.filter(fn s -> s.type == :variable end)
-
-             send(self(), {:result, list})
-           end) =~ "an expression is always required on the right side of ->"
-
-    assert_received {:result, list}
-
-    assert list == [
-             %{name: "arg", type: :variable}
-           ]
-  end
   end
 
   test "lists params in defs not finished" do

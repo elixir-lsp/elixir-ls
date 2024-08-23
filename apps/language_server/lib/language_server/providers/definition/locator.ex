@@ -78,7 +78,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         nil
 
       {:variable, variable, version} ->
-
         var_info =
           vars
           |> Enum.find(fn

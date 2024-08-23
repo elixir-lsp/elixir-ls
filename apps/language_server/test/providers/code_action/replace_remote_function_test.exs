@@ -125,10 +125,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify(suggestion: "Enum.concat")
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result ==
-                 "for x <- Enum.concat([[1], [2], [3]]), do: Enum.concat([[1], [2], [3], [x]])"
-      end
+      assert result ==
+               "for x <- Enum.concat([[1], [2], [3]]), do: Enum.concat([[1], [2], [3], [x]])"
     end
 
     test "applied in a with block" do
@@ -138,9 +136,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result == "with x <- Enum.count([1, 2, 3]), do: x"
-      end
+      assert result == "with x <- Enum.count([1, 2, 3]), do: x"
     end
 
     test "applied in a with block, preserves comment" do
@@ -150,9 +146,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result == "with x <- Enum.count([1, 2, 3]), do: x # TODO: Fix this"
-      end
+      assert result == "with x <- Enum.count([1, 2, 3]), do: x # TODO: Fix this"
     end
 
     test "applied in a with block with started do end" do
@@ -162,9 +156,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result == "with x <- Enum.count([1, 2, 3]) do"
-      end
+      assert result == "with x <- Enum.count([1, 2, 3]) do"
     end
 
     test "preserving the leading indent" do

@@ -217,13 +217,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
-    if Version.match?(System.version(), ">= 1.13.0-dev") do
-      assert length(list) == 2
-      assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
-      assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
-    else
-      assert length(list) == 3
-    end
+    assert length(list) == 2
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
   end
 
   test "finds remote references to erlang module" do
@@ -243,13 +239,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
-    if Version.match?(System.version(), ">= 1.13.0-dev") do
-      assert length(list) == 2
-      assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
-      assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
-    else
-      assert length(list) == 3
-    end
+    assert length(list) == 2
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
+    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
   end
 
   test "finds alias references" do
