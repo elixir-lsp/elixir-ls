@@ -25,8 +25,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
     assert res == %{
              "expand" => "\n",
              "expandAll" => "\n",
-             "expandOnce" => "\n",
-             "expandPartial" => "\n"
+             "expandOnce" => "\n"
            }
 
     assert {:ok, res} =
@@ -41,8 +40,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
     assert res == %{
              "expand" => "abc\n",
              "expandAll" => "abc\n",
-             "expandOnce" => "abc\n",
-             "expandPartial" => "abc\n"
+             "expandOnce" => "abc\n"
            }
   end
 
@@ -70,30 +68,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
              ElixirLS.Test.MacroA.__using__([])
              """,
              "expandAll" => """
-             require ElixirLS.Test.MacroA
+             ElixirLS.Test.MacroA
 
              (
-               import ElixirLS.Test.MacroA
-
-               def macro_a_func do
-                 :ok
-               end
+               ElixirLS.Test.MacroA
+               {:macro_a_func, 0}
              )
              """,
              "expandOnce" => """
              require ElixirLS.Test.MacroA
              ElixirLS.Test.MacroA.__using__([])
-             """,
-             "expandPartial" => """
-             require ElixirLS.Test.MacroA
-
-             (
-               import ElixirLS.Test.MacroA
-
-               def macro_a_func do
-                 :ok
-               end
-             )
              """
            }
   end
@@ -107,7 +91,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
       """
 
       code = "use Application"
-      result = ExpandMacro.expand_full(buffer, code, 2)
+      result = ExpandMacro.expand_full(buffer, code, "nofile", 2)
 
       assert result.expand_once =~
                """
@@ -127,39 +111,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                """
                |> String.trim()
 
-      assert result.expand_partial =~
-               """
-               (
-                 require Application
-
-                 (
-                   @behaviour Application
-                   @doc false
-                   def stop(_state) do
-                     :ok
-                   end
-
-                   defoverridable Application
-                 )
-               )
-               """
-               |> String.trim()
-
       assert result.expand_all =~
                (if Version.match?(System.version(), ">= 1.14.0") do
                   """
+                  Application
+
                   (
-                    require Application
-
-                    (
-                      Module.__put_attribute__(MyModule, :behaviour, Application, nil, [])
-                      Module.__put_attribute__(MyModule, :doc, {0, false}, nil, [])
-
-                      def stop(_state) do
-                        :ok
-                      end
-
-                      Module.make_overridable(MyModule, Application)
+                    Application
+                    @doc false
+                    {:stop, 1}
+                    nil
+                  )
                   """
                 else
                   """
@@ -168,7 +130,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
 
                     (
                       Module.__put_attribute__(MyModule, :behaviour, Application, nil)
-                      Module.__put_attribute__(MyModule, :doc, {0, false}, nil)
+                      Module.__put_attribute__(MyModule, :doc, {2, false}, nil)
 
                       def stop(_state) do
                         :ok
@@ -188,7 +150,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
       """
 
       code = "{"
-      result = ExpandMacro.expand_full(buffer, code, 2)
+      result = ExpandMacro.expand_full(buffer, code, "nofile", 2)
 
       assert result.expand_once =~
                """
@@ -197,12 +159,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                |> String.trim()
 
       assert result.expand =~
-               """
-               "missing terminator: }\
-               """
-               |> String.trim()
-
-      assert result.expand_partial =~
                """
                "missing terminator: }\
                """
