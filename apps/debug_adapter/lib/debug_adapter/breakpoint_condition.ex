@@ -16,27 +16,27 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   @spec register_condition(
           module,
           module,
-          [non_neg_integer],
+          non_neg_integer,
           String.t(),
           String.t() | nil,
-          non_neg_integer
+          String.t()
         ) ::
           {:ok, {module, atom}} | {:error, :limit_reached}
-  def register_condition(name \\ __MODULE__, module, lines, condition, log_message, hit_count) do
+  def register_condition(name \\ __MODULE__, module, line, env, condition, log_message, hit_count) do
     GenServer.call(
       name,
-      {:register_condition, {module, lines}, condition, log_message, hit_count}
+      {:register_condition, {module, line}, env, condition, log_message, hit_count}
     )
   end
 
-  @spec unregister_condition(module, module, [non_neg_integer]) :: :ok
-  def unregister_condition(name \\ __MODULE__, module, lines) do
-    GenServer.cast(name, {:unregister_condition, {module, lines}})
+  @spec unregister_condition(module, module, non_neg_integer) :: :ok
+  def unregister_condition(name \\ __MODULE__, module, line) do
+    GenServer.cast(name, {:unregister_condition, {module, line}})
   end
 
-  @spec has_condition?(module, module, [non_neg_integer]) :: boolean
-  def has_condition?(name \\ __MODULE__, module, lines) do
-    GenServer.call(name, {:has_condition?, {module, lines}})
+  @spec has_condition?(module, module, non_neg_integer) :: boolean
+  def has_condition?(name \\ __MODULE__, module, line) do
+    GenServer.call(name, {:has_condition?, {module, line}})
   end
 
   @spec get_condition(module, non_neg_integer) ::
@@ -96,7 +96,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
 
   @impl GenServer
   def handle_call(
-        {:register_condition, key, condition, log_message, hit_count},
+        {:register_condition, key, env, condition, log_message, hit_count},
         _from,
         %{free: free, conditions: conditions} = state
       ) do
@@ -111,7 +111,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
               state
               | free: rest,
                 conditions:
-                  conditions |> Map.put(key, {number, {condition, log_message, hit_count}})
+                  conditions |> Map.put(key, {number, {env, condition, log_message, hit_count}})
             }
 
             {:reply, {:ok, {__MODULE__, :"check_#{number}"}}, state}
@@ -120,7 +120,8 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
       {number, _old_condition} ->
         state = %{
           state
-          | conditions: conditions |> Map.put(key, {number, {condition, log_message, hit_count}})
+          | conditions:
+              conditions |> Map.put(key, {number, {env, condition, log_message, hit_count}})
         }
 
         {:reply, {:ok, {__MODULE__, :"check_#{number}"}}, state}
@@ -132,11 +133,11 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   end
 
   def handle_call({:get_condition, number}, _from, %{conditions: conditions, hits: hits} = state) do
-    {condition, log_message, hit_count} =
+    {env, condition, log_message, hit_count} =
       conditions |> Map.values() |> Enum.find(fn {n, _c} -> n == number end) |> elem(1)
 
     hits = hits |> Map.get(number, 0)
-    {:reply, {condition, log_message, hit_count, hits}, state}
+    {:reply, {env, condition, log_message, hit_count, hits}, state}
   end
 
   def handle_call(:clear, _from, _state) do
@@ -177,14 +178,20 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   for i <- @range do
     @spec unquote(:"check_#{i}")(term) :: boolean
     def unquote(:"check_#{i}")(binding) do
-      {condition, log_message, hit_count, hits} = get_condition(unquote(i))
+      {env, condition, log_message, hit_count_condition, hits} = get_condition(unquote(i))
       elixir_binding = binding |> ElixirLS.DebugAdapter.Binding.to_elixir_variable_names()
-      result = eval_condition(condition, elixir_binding)
+      result = eval_condition(condition, elixir_binding, env)
 
       result =
         if result do
           register_hit(unquote(i))
           # do not break if hit count not reached
+          # the spec requires:
+          # If both this property and `condition` are specified, `hitCondition` should
+          # be evaluated only if the `condition` is met, and the debug adapter should
+          # stop only if both conditions are met.
+
+          hit_count = eval_hit_condition(hit_count_condition, elixir_binding, env)
           hits + 1 > hit_count
         else
           result
@@ -194,7 +201,9 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
         # Debug Adapter Protocol:
         # If this attribute exists and is non-empty, the backend must not 'break' (stop)
         # but log the message instead. Expressions within {} are interpolated.
-        Output.debugger_console(interpolate(log_message, elixir_binding))
+        # If either `hitCondition` or `condition` is specified, then the message
+        # should only be logged if those conditions are met.
+        Output.debugger_console(interpolate(log_message, elixir_binding, env))
         false
       else
         result
@@ -202,12 +211,12 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
     end
   end
 
-  @spec eval_condition(String.t(), keyword) :: boolean
-  def eval_condition("true", _binding), do: true
+  @spec eval_condition(String.t(), keyword, Macro.Env.t()) :: boolean
+  def eval_condition("true", _binding, _env), do: true
 
-  def eval_condition(condition, elixir_binding) do
+  def eval_condition(condition, elixir_binding, env) do
     try do
-      {term, _bindings} = Code.eval_string(condition, elixir_binding)
+      {term, _bindings} = Code.eval_string(condition, elixir_binding, env)
       if term, do: true, else: false
     catch
       kind, error ->
@@ -219,9 +228,29 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
     end
   end
 
-  def eval_string(expression, elixir_binding) do
+  @spec eval_hit_condition(String.t(), keyword, Macro.Env.t()) :: number
+  def eval_hit_condition("0", _binding, _env), do: 0
+
+  def eval_hit_condition(condition, elixir_binding, env) do
     try do
-      {term, _bindings} = Code.eval_string(expression, elixir_binding)
+      {term, _bindings} = Code.eval_string(condition, elixir_binding, env)
+
+      if is_number(term) do
+        term
+      else
+        raise "Hit count evaluated to non number #{inspect(term)}"
+      end
+    catch
+      kind, error ->
+        Output.debugger_important("Error in hit count: " <> Exception.format_banner(kind, error))
+
+        0
+    end
+  end
+
+  def eval_string(expression, elixir_binding, env) do
+    try do
+      {term, _bindings} = Code.eval_string(expression, elixir_binding, env)
       to_string(term)
     catch
       kind, error ->
@@ -233,21 +262,21 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
     end
   end
 
-  def interpolate(format_string, elixir_binding) do
-    interpolate(format_string, [], elixir_binding)
+  def interpolate(format_string, elixir_binding, env) do
+    interpolate(format_string, [], elixir_binding, env)
     |> Enum.reverse()
     |> IO.iodata_to_binary()
   end
 
-  def interpolate(<<>>, acc, _elixir_binding), do: acc
+  def interpolate(<<>>, acc, _elixir_binding, _env), do: acc
 
-  def interpolate(<<"\\{", rest::binary>>, acc, elixir_binding),
-    do: interpolate(rest, ["{" | acc], elixir_binding)
+  def interpolate(<<"\\{", rest::binary>>, acc, elixir_binding, env),
+    do: interpolate(rest, ["{" | acc], elixir_binding, env)
 
-  def interpolate(<<"\\}", rest::binary>>, acc, elixir_binding),
-    do: interpolate(rest, ["}" | acc], elixir_binding)
+  def interpolate(<<"\\}", rest::binary>>, acc, elixir_binding, env),
+    do: interpolate(rest, ["}" | acc], elixir_binding, env)
 
-  def interpolate(<<"{", rest::binary>>, acc, elixir_binding) do
+  def interpolate(<<"{", rest::binary>>, acc, elixir_binding, env) do
     case parse_expression(rest, []) do
       {:ok, expression_iolist, expression_rest} ->
         expression =
@@ -255,8 +284,8 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
           |> Enum.reverse()
           |> IO.iodata_to_binary()
 
-        eval_result = eval_string(expression, elixir_binding)
-        interpolate(expression_rest, [eval_result | acc], elixir_binding)
+        eval_result = eval_string(expression, elixir_binding, env)
+        interpolate(expression_rest, [eval_result | acc], elixir_binding, env)
 
       :error ->
         Output.debugger_important("Log message has unpaired or nested `{}`")
@@ -264,8 +293,8 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
     end
   end
 
-  def interpolate(<<char::binary-size(1), rest::binary>>, acc, elixir_binding),
-    do: interpolate(rest, [char | acc], elixir_binding)
+  def interpolate(<<char::binary-size(1), rest::binary>>, acc, elixir_binding, env),
+    do: interpolate(rest, [char | acc], elixir_binding, env)
 
   def parse_expression(<<>>, _acc), do: :error
   def parse_expression(<<"\\{", rest::binary>>, acc), do: parse_expression(rest, ["{" | acc])

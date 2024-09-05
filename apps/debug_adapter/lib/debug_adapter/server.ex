@@ -973,7 +973,9 @@ defmodule ElixirLS.DebugAdapter.Server do
 
     for {{m, f, a}, lines} <- state.function_breakpoints,
         not Map.has_key?(parsed_mfas_conditions, {m, f, a}) do
-      BreakpointCondition.unregister_condition(m, lines)
+      for line <- lines do
+        BreakpointCondition.unregister_condition(m, line)
+      end
 
       case :int.del_break_in(m, f, a) do
         :ok ->
@@ -993,6 +995,14 @@ defmodule ElixirLS.DebugAdapter.Server do
           into: %{},
           do:
             (
+              path =
+                try do
+                  module_info = ModuleInfoCache.get(m) || m.module_info()
+                  Path.expand(to_string(module_info[:compile][:source]))
+                rescue
+                  _ -> "nofile"
+                end
+
               result =
                 case current[{m, f, a}] do
                   nil ->
@@ -1011,6 +1021,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
                             # pass nil as log_message - not supported on function breakpoints as of DAP 1.63
                             update_break_condition(
+                              path,
                               m,
                               lines,
                               condition,
@@ -1038,7 +1049,15 @@ defmodule ElixirLS.DebugAdapter.Server do
 
                   lines ->
                     # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
-                    update_break_condition(m, lines, condition, nil, hit_count, state.config)
+                    update_break_condition(
+                      path,
+                      m,
+                      lines,
+                      condition,
+                      nil,
+                      hit_count,
+                      state.config
+                    )
 
                     {:ok, lines}
                 end
@@ -2461,7 +2480,7 @@ defmodule ElixirLS.DebugAdapter.Server do
             Output.debugger_console("Setting breakpoint in #{inspect(module)} #{path}:#{line}")
             # no need to handle errors here, it can fail only with {:error, :break_exists}
             :int.break(module, line)
-            update_break_condition(module, line, condition, log_message, hit_count, config)
+            update_break_condition(path, module, line, condition, log_message, hit_count, config)
 
             [module | added]
 
@@ -2524,38 +2543,49 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
   end
 
-  def update_break_condition(module, lines, condition, log_message, hit_count, config) do
+  def update_break_condition(path, module, lines, condition, log_message, hit_count, config) do
     lines = List.wrap(lines)
 
-    condition = parse_condition(condition)
+    condition = parse_condition(condition, "true")
 
-    hit_count = eval_hit_count(hit_count)
+    hit_count = parse_condition(hit_count, "0")
 
     log_message = if log_message not in ["", nil], do: log_message
 
-    register_break_condition(module, lines, condition, log_message, hit_count, config)
+    register_break_condition(path, module, lines, condition, log_message, hit_count, config)
   end
 
-  defp register_break_condition(module, lines, condition, log_message, hit_count, %{
+  defp register_break_condition(file, module, lines, condition, log_message, hit_count, %{
          "request" => "launch"
        }) do
-    case BreakpointCondition.register_condition(module, lines, condition, log_message, hit_count) do
-      {:ok, mf} ->
-        for line <- lines do
-          :int.test_at_break(module, line, mf)
-        end
+    for line <- lines do
+      {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
+      # TODO use Code.env_for_eval when we require elixir 1.14
+      env = ElixirLS.DebugAdapter.Code.env_for_eval(macro_env_or_opts)
 
-      {:error, reason} ->
-        Output.debugger_important(
-          "Unable to set condition on a breakpoint in #{module}:#{inspect(lines)}: #{inspect(reason)}"
-        )
+      case BreakpointCondition.register_condition(
+             module,
+             line,
+             env,
+             condition,
+             log_message,
+             hit_count
+           ) do
+        {:ok, mf} ->
+          :int.test_at_break(module, line, mf)
+
+        {:error, reason} ->
+          Output.debugger_important(
+            "Unable to set condition on a breakpoint in #{module}:#{inspect(line)}: #{inspect(reason)}"
+          )
+      end
     end
   end
 
-  defp register_break_condition(_module, _lines, condition, log_message, hit_count, %{
+  defp register_break_condition(_file, _module, _lines, condition, log_message, hit_count, %{
          "request" => "attach"
        }) do
-    if condition != "true" || log_message || hit_count != 0 do
+    if condition != "true" || log_message || hit_count != "0" do
       # Module passed to :int.test_at_break has to be available on remote nodes. Otherwise break condition will
       # always evaluate to false. We cannot easily distribute BreakpointCondition to remote nodes.
       Output.debugger_important(
@@ -2564,39 +2594,16 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
   end
 
-  defp parse_condition(condition) when condition in [nil, ""], do: "true"
+  defp parse_condition(condition, default) when condition in [nil, ""], do: default
 
-  defp parse_condition(condition) do
+  defp parse_condition(condition, default) do
     case Code.string_to_quoted(condition) do
       {:ok, _} ->
         condition
 
       {:error, reason} ->
         Output.debugger_important("Cannot parse breakpoint condition: #{inspect(reason)}")
-        "true"
-    end
-  end
-
-  defp eval_hit_count(hit_count) when hit_count in [nil, ""], do: 0
-
-  defp eval_hit_count(hit_count) do
-    try do
-      # TODO binding?
-      {term, _bindings} = Code.eval_string(hit_count, [])
-
-      if is_integer(term) do
-        term
-      else
-        Output.debugger_important("Hit condition must evaluate to integer")
-        0
-      end
-    catch
-      kind, error ->
-        Output.debugger_important(
-          "Error while evaluating hit condition: " <> Exception.format_banner(kind, error)
-        )
-
-        0
+        default
     end
   end
 
@@ -2920,8 +2927,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         buffer_file_metadata = ElixirSense.Core.Parser.parse_string(code, false, true, {line, 1})
 
         env = ElixirSense.Core.Metadata.get_env(buffer_file_metadata, {line, 1})
-        # TODO env_for_eval?
-        # should we clear versioned_vars?
+
         {buffer_file_metadata, env, ElixirSense.Core.State.Env.to_macro_env(env, file, line)}
       else
         # do not try to parse non elixir files
