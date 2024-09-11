@@ -1908,6 +1908,45 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ]
   end
 
+  test "lists write vars in match context" do
+    buffer = """
+    defmodule MyServer do
+      def my(arg = 1, a), do: :ok
+    end
+    """
+
+    list =
+      Suggestion.suggestions(buffer, 2, 20)
+      |> Enum.filter(fn s -> s.type == :variable end)
+
+    assert list == [
+             %{name: "arg", type: :variable}
+           ]
+  end
+
+  test "does not list write vars" do
+    buffer = """
+    defmodule MyServer do
+      [arg = 1, a]
+      a
+    end
+    """
+
+    list =
+      Suggestion.suggestions(buffer, 2, 14)
+      |> Enum.filter(fn s -> s.type == :variable end)
+
+    # arg is a write var and is not available for read in the cursor context
+    assert list == []
+
+    list =
+      Suggestion.suggestions(buffer, 3, 4)
+      |> Enum.filter(fn s -> s.type == :variable end)
+
+    # arg is a read var here
+    assert list == [%{name: "arg", type: :variable}]
+  end
+
   test "lists params and vars in cond clauses" do
     buffer = """
     defmodule MyServer do

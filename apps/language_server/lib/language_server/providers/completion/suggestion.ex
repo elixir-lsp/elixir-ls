@@ -145,32 +145,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
           {{line, column - String.length(prefix)}, {line, column + String.length(suffix)}}
       end
 
-    env =
-      Metadata.get_cursor_env(metadata, {line, column}, surround)
-      |> Metadata.add_scope_vars(
-        metadata,
-        {line, column},
-        &(to_string(&1.name) != hint)
-      )
-
-    # if variable is rebound then in env there are many variables with the same name
-    # find the one defined closest to cursor
-    vars =
-      env.vars
-      |> Enum.group_by(fn %State.VarInfo{name: name} -> name end)
-      |> Enum.map(fn {_name, list} ->
-        list
-        |> Enum.max_by(fn
-          %State.VarInfo{positions: [_position]} ->
-            # variable is being defined - it's not a good candidate
-            {0, 0}
-
-          %State.VarInfo{positions: positions} ->
-            Enum.min(positions)
-        end)
-      end)
-
-    env = %{env | vars: vars}
+    env = Metadata.get_cursor_env(metadata, {line, column}, surround)
 
     module_store = ModuleStore.build()
 

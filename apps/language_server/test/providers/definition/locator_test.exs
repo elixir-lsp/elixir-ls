@@ -921,19 +921,19 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    # assert Locator.definition(buffer, 2, 32) == %Location{
-    #          type: :variable,
-    #          file: nil,
-    #          line: 2,
-    #          column: 14
-    #        }
+    assert Locator.definition(buffer, 2, 32) == %Location{
+             type: :variable,
+             file: nil,
+             line: 2,
+             column: 14
+           }
 
-    # assert Locator.definition(buffer, 4, 16) == %Location{
-    #          type: :variable,
-    #          file: nil,
-    #          line: 4,
-    #          column: 7
-    #        }
+    assert Locator.definition(buffer, 4, 16) == %Location{
+             type: :variable,
+             file: nil,
+             line: 4,
+             column: 7
+           }
 
     assert Locator.definition(buffer, 7, 32) == %Location{
              type: :variable,
@@ -1057,6 +1057,106 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              file: nil,
              line: 4,
              column: 14
+           }
+  end
+
+  # TODO not supported in Code.Fragment.surround_context
+  # test "find definition of &1 capture variable" do
+  #   buffer = """
+  #   defmodule MyModule do
+  #     def go() do
+  #       abc = 5
+  #       & [
+  #         &1,
+  #         abc,
+  #         cde = 1,
+  #         record_env()  
+  #       ]
+  #     end
+  #   end
+  #   """
+
+  #   assert Locator.definition(buffer, 4, 8) == %Location{
+  #            type: :variable,
+  #            file: nil,
+  #            line: 4,
+  #            column: 7
+  #          }
+  # end
+
+  test "find definition of write variable on definition" do
+    buffer = """
+    defmodule MyModule do
+      def go() do
+        abc = 5
+        & [
+          &1,
+          abc,
+          cde = 1,
+          record_env()  
+        ]
+      end
+    end
+    """
+
+    assert Locator.definition(buffer, 7, 8) == %Location{
+             type: :variable,
+             file: nil,
+             line: 7,
+             column: 7
+           }
+  end
+
+  test "does not find definition of write variable on read" do
+    buffer = """
+    defmodule MyModule do
+      def go() do
+        abc = 5
+        & [
+          &1,
+          abc,
+          cde = 1,
+          record_env(cde)  
+        ]
+      end
+    end
+    """
+
+    assert Locator.definition(buffer, 8, 19) == nil
+  end
+
+  test "find definition of write variable in match context" do
+    buffer = """
+    defmodule MyModule do
+      def go(asd = 3, asd) do
+        :ok
+      end
+
+      def go(asd = 3, [2, asd]) do
+        :ok
+      end
+    end
+    """
+
+    assert Locator.definition(buffer, 2, 11) == %Location{
+             type: :variable,
+             file: nil,
+             line: 2,
+             column: 10
+           }
+
+    assert Locator.definition(buffer, 2, 20) == %Location{
+             type: :variable,
+             file: nil,
+             line: 2,
+             column: 10
+           }
+
+    assert Locator.definition(buffer, 6, 24) == %Location{
+             type: :variable,
+             file: nil,
+             line: 6,
+             column: 10
            }
   end
 

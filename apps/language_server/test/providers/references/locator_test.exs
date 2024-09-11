@@ -1574,6 +1574,84 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     assert Locator.references(buffer, 8, 21, trace) == expected_references
   end
 
+  test "find references of write variable on definition", %{trace: trace} do
+    buffer = """
+    defmodule MyModule do
+      def go() do
+        abc = 5
+        & [
+          &1,
+          abc,
+          cde = 1,
+          record_env()  
+        ]
+      end
+    end
+    """
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 7, column: 7}, end: %{line: 7, column: 10}}}
+    ]
+
+    assert Locator.references(buffer, 7, 8, trace) == expected_references
+  end
+
+  test "does not find references of write variable on read", %{trace: trace} do
+    buffer = """
+    defmodule MyModule do
+      def go() do
+        abc = 5
+        & [
+          &1,
+          abc,
+          cde = 1,
+          record_env(cde)  
+        ]
+      end
+    end
+    """
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 7, column: 7}, end: %{line: 7, column: 10}}}
+    ]
+
+    # cde in cde = 1 is defined
+    assert Locator.references(buffer, 7, 8, trace) == expected_references
+
+    # cde in record_env(cde) is undefined
+    assert Locator.references(buffer, 8, 19, trace) == []
+  end
+
+  test "find definition of write variable in match context", %{trace: trace} do
+    buffer = """
+    defmodule MyModule do
+      def go(asd = 3, asd) do
+        :ok
+      end
+
+      def go(asd = 3, [2, asd]) do
+        :ok
+      end
+    end
+    """
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 2, column: 10}, end: %{line: 2, column: 13}}},
+      %{uri: nil, range: %{start: %{line: 2, column: 19}, end: %{line: 2, column: 22}}}
+    ]
+
+    assert Locator.references(buffer, 2, 11, trace) == expected_references
+
+    assert Locator.references(buffer, 2, 20, trace) == expected_references
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 6, column: 10}, end: %{line: 6, column: 13}}},
+      %{uri: nil, range: %{start: %{line: 6, column: 23}, end: %{line: 6, column: 26}}}
+    ]
+
+    assert Locator.references(buffer, 6, 24, trace) == expected_references
+  end
+
   test "find references of attributes", %{trace: trace} do
     buffer = """
     defmodule MyModule do

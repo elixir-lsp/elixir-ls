@@ -1846,6 +1846,70 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                docs: [%{kind: :variable}]
              } = Docs.docs(buffer, 8, 21)
     end
+
+    test "find docs for write variable on definition" do
+      buffer = """
+      defmodule MyModule do
+        def go() do
+          abc = 5
+          & [
+            &1,
+            abc,
+            cde = 1,
+            record_env()  
+          ]
+        end
+      end
+      """
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 7, 8)
+    end
+
+    test "does not find docs for write variable on read" do
+      buffer = """
+      defmodule MyModule do
+        def go() do
+          abc = 5
+          & [
+            &1,
+            abc,
+            cde = 1,
+            record_env(cde)  
+          ]
+        end
+      end
+      """
+
+      assert Docs.docs(buffer, 8, 19) == nil
+    end
+
+    test "finds docs for write variable in match context" do
+      buffer = """
+      defmodule MyModule do
+        def go(asd = 3, asd) do
+          :ok
+        end
+
+        def go(asd = 3, [2, asd]) do
+          :ok
+        end
+      end
+      """
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 2, 11)
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 2, 20)
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 6, 24)
+    end
   end
 
   test "find local type in typespec local def elsewhere" do

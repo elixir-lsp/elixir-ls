@@ -91,6 +91,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
 
           %Location{type: :variable, file: nil, line: definition_line, column: definition_column}
         else
+          # find local call
           find_function_or_module(
             {nil, variable},
             context,
