@@ -8,7 +8,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
   require ElixirLS.LanguageServer.Protocol, as: Protocol
-  alias ElixirSense.Core.Normalized.Module, as: NormalizedModule
 
   defmodule Info do
     defstruct [:type, :name, :detail, :location, :children, :selection_location, :symbol]
@@ -173,13 +172,13 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
               not is_nil(type_expression) do
     type_name_location =
       case type_expression do
-        [{:"::", _, [{name, type_head_location, args} = type_head | _]}] ->
+        [{:"::", _, [{name, type_head_location, args} = _type_head | _]}] ->
           {{name, args}, type_head_location}
 
-        [{:when, _, [{:"::", _, [{name, type_head_location, args} = type_head, _]}, _]}] ->
+        [{:when, _, [{:"::", _, [{name, type_head_location, args} = _type_head, _]}, _]}] ->
           {{name, args}, type_head_location}
 
-        [{name, type_head_location, args} = type_head | _] ->
+        [{name, type_head_location, args} = _type_head | _] ->
           {{name, args}, type_head_location}
 
         _ ->
@@ -218,16 +217,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   # Function, macro, guard with when
   defp extract_symbol(
          _current_module,
-         {defname, location, [{:when, _, [{name, head_location, args} = fn_head, _]} | _]}
+         {defname, location, [{:when, _, [{name, head_location, args} = _fn_head, _]} | _]}
        )
        when defname in @defs do
-    head =
-      Macro.to_string(fn_head)
-      |> String.replace(~r/,*\n\s*/u, fn
-        "," <> _ -> ", "
-        _ -> ""
-      end)
-
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: to_string(name),
@@ -242,16 +234,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   # Function, macro, delegate
   defp extract_symbol(
          _current_module,
-         {defname, location, [{name, head_location, args} = fn_head | _]}
+         {defname, location, [{name, head_location, args} = _fn_head | _]}
        )
        when defname in @defs do
-    head =
-      Macro.to_string(fn_head)
-      |> String.replace(~r/,*\n\s*/u, fn
-        "," <> _ -> ", "
-        _ -> ""
-      end)
-
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: to_string(name),

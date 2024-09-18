@@ -17,7 +17,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.State.ModFunInfo
-  alias ElixirSense.Core.State.VarInfo
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
 
@@ -83,7 +82,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
 
         env =
           Metadata.get_cursor_env(metadata, {line, column}, {begin_pos, end_pos})
-          |> Metadata.add_scope_vars(metadata, {line, column})
 
         case all(context, env, metadata) do
           [] ->
@@ -104,8 +102,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   defp all(
          context,
          %State.Env{
-           module: module,
-           vars: vars
+           module: module
          } = env,
          metadata
        ) do
@@ -136,15 +133,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
         }
 
       {:variable, variable, version} ->
-        {line, column} = context.begin
-
-        var_info =
-          vars
-          |> Enum.find(fn
-            %VarInfo{} = info ->
-              info.name == variable and (info.version == version or version == :any) and
-                {line, column} in info.positions
-          end)
+        var_info = Metadata.find_var(metadata, variable, version, context.begin)
 
         if var_info != nil do
           %{

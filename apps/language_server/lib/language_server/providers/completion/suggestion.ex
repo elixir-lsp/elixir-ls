@@ -53,7 +53,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Source
   alias ElixirLS.LanguageServer.Providers.Completion.Reducers
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   @type generic :: %{
           type: :generic,

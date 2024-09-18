@@ -5,7 +5,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
   """
 
   alias ElixirLS.LanguageServer.Server
-  alias ElixirSense.Core.Ast
   alias ElixirSense.Core.State
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Metadata

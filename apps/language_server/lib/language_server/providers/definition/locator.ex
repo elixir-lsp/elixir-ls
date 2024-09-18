@@ -18,7 +18,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.State.ModFunInfo
   alias ElixirSense.Core.State.TypeInfo
-  alias ElixirSense.Core.State.VarInfo
   alias ElixirSense.Core.Source
   alias ElixirSense.Core.SurroundContext
   alias ElixirLS.LanguageServer.Location
@@ -42,8 +41,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
 
         find(
           context,
-          env
-          |> Metadata.add_scope_vars(metadata, {line, column}),
+          env,
           metadata
         )
     end
@@ -61,7 +59,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         context,
         %State.Env{
           module: module,
-          vars: vars,
           attributes: attributes
         } = env,
         metadata
@@ -78,13 +75,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         nil
 
       {:variable, variable, version} ->
-        var_info =
-          vars
-          |> Enum.find(fn
-            %VarInfo{} = info ->
-              info.name == variable and (info.version == version or version == :any) and
-                context.begin in info.positions
-          end)
+        var_info = Metadata.find_var(metadata, variable, version, context.begin)
 
         if var_info != nil do
           {definition_line, definition_column} = Enum.min(var_info.positions)

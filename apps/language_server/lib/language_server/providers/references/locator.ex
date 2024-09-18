@@ -24,9 +24,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
       :none ->
         []
 
-      %{
-        begin: {begin_line, begin_col}
-      } = context ->
+      context ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
             Parser.parse_string(code, true, true, {line, column})
@@ -40,34 +38,13 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
             module: module
           } =
           Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
-          |> Metadata.add_scope_vars(metadata, {line, column})
 
         # find last env of current module
         attributes = get_attributes(metadata, module)
 
-        # one line can contain variables from many scopes
-        # if the cursor is over variable take variables from the scope as it will
-        # be more correct than the env scope
-        vars =
-          case Enum.find(env.vars, fn %VarInfo{positions: positions} ->
-                 {begin_line, begin_col} in positions
-               end) do
-            %VarInfo{scope_id: scope_id} ->
-              # in (h|l)?eex templates vars_info_per_scope_id[scope_id] is nil
-              if metadata.vars_info_per_scope_id[scope_id] do
-                metadata.vars_info_per_scope_id[scope_id]
-              else
-                []
-              end
-
-            nil ->
-              []
-          end
-
         find(
           context,
           env,
-          vars,
           attributes,
           metadata,
           trace
@@ -101,7 +78,6 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           aliases: aliases,
           module: module
         } = env,
-        vars,
         attributes,
         %Metadata{
           mods_funs_to_positions: mods_funs,
@@ -196,15 +172,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
         []
 
       {:variable, variable, version} ->
-        {line, column} = context.begin
-
-        var_info =
-          Enum.find_value(vars, fn {{_name, _version}, %VarInfo{} = info} ->
-            if info.name == variable and (info.version == version or version == :any) and
-                 {line, column} in info.positions do
-              info
-            end
-          end)
+        var_info = Metadata.find_var(metadata, variable, version, context.begin)
 
         if var_info != nil do
           %VarInfo{positions: positions} = var_info
