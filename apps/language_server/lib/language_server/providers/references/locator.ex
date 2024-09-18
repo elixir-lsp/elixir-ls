@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
       context ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, true, {line, column})
+            Parser.parse_string(code, true, false, {line, column})
           end)
 
         # if context is var try to find env by scope_id

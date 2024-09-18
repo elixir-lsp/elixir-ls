@@ -113,7 +113,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
     metadata =
       Keyword.get_lazy(options, :metadata, fn ->
-        Parser.parse_string(code, true, true, {line, column})
+        Parser.parse_string(code, true, false, {line, column})
       end)
 
     {text_before, text_after} = Source.split_at(code, line, column)
@@ -192,17 +192,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
     # TODO this may no longer be needed
     # only fix_incomplete_call has some tests depending on it
+    # on 1.17 no tests depend on those hacks
     fixers = [
-      fix_incomplete_call,
-      fix_incomplete_kw,
-      fix_incomplete_kw_key
+      # fix_incomplete_call,
+      # fix_incomplete_kw,
+      # fix_incomplete_kw_key
     ]
 
-    Enum.reduce_while(fixers, nil, fn fun, _ ->
+    Enum.reduce_while(fixers, metadata, fn fun, metadata ->
       new_buffer = fun.(text_before, text_after)
 
       with true <- new_buffer != nil,
-           meta <- Parser.parse_string(new_buffer, false, true, {line, column}),
+           meta <- Parser.parse_string(new_buffer, false, false, {line, column}),
            %Metadata{error: error} <- meta,
            true <- error == nil do
         {:halt, meta}

@@ -77,7 +77,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
       %{begin: begin_pos, end: end_pos} = context ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, true, {line, column})
+            Parser.parse_string(code, true, false, {line, column})
           end)
 
         env =

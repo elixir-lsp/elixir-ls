@@ -12,6 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
   alias ElixirLS.LanguageServer.Providers.CodeMod.Text
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.Parser
+  alias ElixirSense.Core.Metadata
 
   import ElixirLS.LanguageServer.Providers.CodeAction.Helpers
 
@@ -180,12 +181,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
   defp aliases_at(source_file, line_number) do
     one_based_line = line_number + 1
 
-    metadata = Parser.parse_string(source_file.text, true, true, {one_based_line, 1})
-
-    case metadata.lines_to_env[one_based_line] do
-      %ElixirSense.Core.State.Env{aliases: aliases} -> {:ok, aliases}
-      _ -> :error
-    end
+    metadata = Parser.parse_string(source_file.text, true, false, {one_based_line, 1})
+    env = Metadata.get_cursor_env(metadata, {one_based_line, 1})
+    {:ok, env.aliases}
   end
 
   defp module_to_alias(module) do

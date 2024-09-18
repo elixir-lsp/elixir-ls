@@ -52,9 +52,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
   end
 
   def expand_full(buffer, code, file, line) do
-    buffer_file_metadata = Parser.parse_string(buffer, true, true, {line, 1})
-
-    env = Metadata.get_env(buffer_file_metadata, {line, 1})
+    buffer_file_metadata = Parser.parse_string(buffer, true, false, {line, 1})
+    env = Metadata.get_cursor_env(buffer_file_metadata, {line, 1})
 
     do_expand_full(code, env, file, line)
   end

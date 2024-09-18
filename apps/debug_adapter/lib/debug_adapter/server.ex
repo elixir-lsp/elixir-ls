@@ -2925,8 +2925,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       if String.ends_with?(file, ".ex") or String.ends_with?(file, ".exs") do
         code = File.read!(file)
         buffer_file_metadata = ElixirSense.Core.Parser.parse_string(code, false, true, {line, 1})
-
-        env = ElixirSense.Core.Metadata.get_env(buffer_file_metadata, {line, 1})
+        env = Metadata.get_cursor_env(buffer_file_metadata, {line, 1})
 
         {buffer_file_metadata, env, ElixirSense.Core.State.Env.to_macro_env(env, file, line)}
       else
