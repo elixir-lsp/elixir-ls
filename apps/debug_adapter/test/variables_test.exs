@@ -49,8 +49,6 @@ defmodule ElixirLS.DebugAdapter.VariablesTest do
 
     assert Variables.type(%Date{year: 2022, month: 1, day: 1}) == "%Date{}"
     assert Variables.type(%ArgumentError{}) == "%ArgumentError{}"
-    # TODO MapSet
-    # TODO :array
   end
 
   test "num_children" do
