@@ -28,7 +28,7 @@ defmodule ElixirLS.DebugAdapter.Code do
     end
 
     def env_for_eval(opts) when is_list(opts) do
-      env = elixir_env.new()
+      env = :elixir_env.new()
 
       line =
         case Keyword.get(opts, :line) do
