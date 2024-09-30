@@ -2089,59 +2089,59 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "retrieves documentation for all matching type arities with incomplete code" do
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(
+      test "retrieves documentation for all matching type arities with incomplete code" do
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(
+        end
+        """
+
+        assert %{docs: docs} =
+                 Docs.docs(buffer, 3, 20)
+
+        assert length(docs) == 3
+        assert Enum.at(docs, 0).docs =~ "no params version"
+        assert Enum.at(docs, 1).docs =~ "one param version"
+        assert Enum.at(docs, 2).docs =~ "two params version"
+
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(integer
+        end
+        """
+
+        assert %{docs: docs} =
+                 Docs.docs(buffer, 3, 20)
+
+        assert length(docs) == 2
+        assert Enum.at(docs, 0).docs =~ "one param version"
+        assert Enum.at(docs, 1).docs =~ "two params version"
+
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(integer, integer
+        end
+        """
+
+        assert %{docs: docs} =
+                 Docs.docs(buffer, 3, 20)
+
+        assert length(docs) == 1
+        assert Enum.at(docs, 0).docs =~ "two params version"
+
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(integer, integer,
+        end
+        """
+
+        # too many arguments
+        assert nil == Docs.docs(buffer, 3, 20)
       end
-      """
-
-      assert %{docs: docs} =
-               Docs.docs(buffer, 3, 20)
-
-      assert length(docs) == 3
-      assert Enum.at(docs, 0).docs =~ "no params version"
-      assert Enum.at(docs, 1).docs =~ "one param version"
-      assert Enum.at(docs, 2).docs =~ "two params version"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer
-      end
-      """
-
-      assert %{docs: docs} =
-               Docs.docs(buffer, 3, 20)
-
-      assert length(docs) == 2
-      assert Enum.at(docs, 0).docs =~ "one param version"
-      assert Enum.at(docs, 1).docs =~ "two params version"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer, integer
-      end
-      """
-
-      assert %{docs: docs} =
-               Docs.docs(buffer, 3, 20)
-
-      assert length(docs) == 1
-      assert Enum.at(docs, 0).docs =~ "two params version"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer, integer,
-      end
-      """
-
-      # too many arguments
-      assert nil == Docs.docs(buffer, 3, 20)
-    end
     end
   end
 end

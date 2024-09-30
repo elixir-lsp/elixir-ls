@@ -2004,24 +2004,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
   end
 
   if Version.match?(System.version(), ">= 1.15.0") do
-  test "list vars in multiline struct" do
-    buffer = """
-    defmodule MyServer do
-      def go do
-        %Some{
-          filed: my_var,
-          other: my
-        } = abc()
+    test "list vars in multiline struct" do
+      buffer = """
+      defmodule MyServer do
+        def go do
+          %Some{
+            filed: my_var,
+            other: my
+          } = abc()
+        end
       end
+      """
+
+      list =
+        Suggestion.suggestions(buffer, 5, 16)
+        |> Enum.filter(fn s -> s.type in [:variable] end)
+
+      assert list == [%{name: "my_var", type: :variable}]
     end
-    """
-
-    list =
-      Suggestion.suggestions(buffer, 5, 16)
-      |> Enum.filter(fn s -> s.type in [:variable] end)
-
-    assert list == [%{name: "my_var", type: :variable}]
-  end
   end
 
   test "tuple destructuring" do
@@ -4015,47 +4015,47 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
   describe "suggestions for typespecs" do
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "remote types - filter list of typespecs" do
-      buffer = """
-      defmodule My do
-        @type a :: Remote.remote_t\
-      """
+      test "remote types - filter list of typespecs" do
+        buffer = """
+        defmodule My do
+          @type a :: Remote.remote_t\
+        """
 
-      list = suggestions_by_type(:type_spec, buffer)
-      assert length(list) == 4
-    end
+        list = suggestions_by_type(:type_spec, buffer)
+        assert length(list) == 4
+      end
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "remote types - retrieve info from typespecs" do
-      buffer = """
-      defmodule My do
-        @type a :: Remote.\
-      """
+      test "remote types - retrieve info from typespecs" do
+        buffer = """
+        defmodule My do
+          @type a :: Remote.\
+        """
 
-      suggestion = suggestion_by_name("remote_list_t", buffer)
+        suggestion = suggestion_by_name("remote_list_t", buffer)
 
-      assert suggestion.spec == """
-             @type remote_list_t() :: [
-               remote_t()
-             ]\
-             """
+        assert suggestion.spec == """
+               @type remote_list_t() :: [
+                 remote_t()
+               ]\
+               """
 
-      assert suggestion.signature == "remote_list_t()"
-      assert suggestion.arity == 0
-      assert suggestion.doc == "Remote list type"
-      assert suggestion.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
-    end
+        assert suggestion.signature == "remote_list_t()"
+        assert suggestion.arity == 0
+        assert suggestion.doc == "Remote list type"
+        assert suggestion.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+      end
     end
 
     test "on specs" do
       if Version.match?(System.version(), ">= 1.15.0") do
-      buffer = """
-      defmodule My do
-        @spec a() :: Remote.\
-      """
+        buffer = """
+        defmodule My do
+          @spec a() :: Remote.\
+        """
 
-      assert %{name: "remote_list_t"} = suggestion_by_name("remote_list_t", buffer)
+        assert %{name: "remote_list_t"} = suggestion_by_name("remote_list_t", buffer)
       end
 
       buffer = """
@@ -4102,55 +4102,55 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "remote types - by attribute" do
-      buffer = """
-      defmodule My do
-        @type my_type :: integer
-        @attr My
-        @type some :: @attr.my\
-      """
+      test "remote types - by attribute" do
+        buffer = """
+        defmodule My do
+          @type my_type :: integer
+          @attr My
+          @type some :: @attr.my\
+        """
 
-      [suggestion_1] = suggestions_by_name("my_type", buffer)
+        [suggestion_1] = suggestions_by_name("my_type", buffer)
 
-      assert suggestion_1.signature == "my_type()"
-    end
-    end
-
-    if Version.match?(System.version(), ">= 1.15.0") do
-    test "remote types - by __MODULE__" do
-      buffer = """
-      defmodule My do
-        @type my_type :: integer
-        @type some :: __MODULE__.my\
-      """
-
-      [suggestion_1] = suggestions_by_name("my_type", buffer)
-
-      assert suggestion_1.signature == "my_type()"
-    end
+        assert suggestion_1.signature == "my_type()"
+      end
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "remote types - retrieve info from typespecs with params" do
-      buffer = """
-      defmodule My do
-        @type a :: Remote.\
-      """
+      test "remote types - by __MODULE__" do
+        buffer = """
+        defmodule My do
+          @type my_type :: integer
+          @type some :: __MODULE__.my\
+        """
 
-      [suggestion_1, suggestion_2] = suggestions_by_name("remote_t", buffer)
+        [suggestion_1] = suggestions_by_name("my_type", buffer)
 
-      assert suggestion_1.spec == "@type remote_t() :: atom()"
-      assert suggestion_1.signature == "remote_t()"
-      assert suggestion_1.arity == 0
-      assert suggestion_1.doc == "Remote type"
-      assert suggestion_1.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
-
-      assert suggestion_2.spec =~ "@type remote_t(a, b) ::"
-      assert suggestion_2.signature == "remote_t(a, b)"
-      assert suggestion_2.arity == 2
-      assert suggestion_2.doc == "Remote type with params"
-      assert suggestion_2.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+        assert suggestion_1.signature == "my_type()"
+      end
     end
+
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "remote types - retrieve info from typespecs with params" do
+        buffer = """
+        defmodule My do
+          @type a :: Remote.\
+        """
+
+        [suggestion_1, suggestion_2] = suggestions_by_name("remote_t", buffer)
+
+        assert suggestion_1.spec == "@type remote_t() :: atom()"
+        assert suggestion_1.signature == "remote_t()"
+        assert suggestion_1.arity == 0
+        assert suggestion_1.doc == "Remote type"
+        assert suggestion_1.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+
+        assert suggestion_2.spec =~ "@type remote_t(a, b) ::"
+        assert suggestion_2.signature == "remote_t(a, b)"
+        assert suggestion_2.arity == 2
+        assert suggestion_2.doc == "Remote type with params"
+        assert suggestion_2.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+      end
     end
 
     test "local types - filter list of typespecs" do
