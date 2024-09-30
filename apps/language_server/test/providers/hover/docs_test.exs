@@ -2088,6 +2088,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       assert nil == Docs.docs(buffer, 3, 68)
     end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "retrieves documentation for all matching type arities with incomplete code" do
       buffer = """
       defmodule MyModule do
@@ -2140,6 +2141,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
 
       # too many arguments
       assert nil == Docs.docs(buffer, 3, 20)
+    end
     end
   end
 end

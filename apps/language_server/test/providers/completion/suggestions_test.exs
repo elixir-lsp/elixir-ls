@@ -2003,6 +2003,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert list == [%{name: "my_var", type: :variable}]
   end
 
+  if Version.match?(System.version(), ">= 1.15.0") do
   test "list vars in multiline struct" do
     buffer = """
     defmodule MyServer do
@@ -2020,6 +2021,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       |> Enum.filter(fn s -> s.type in [:variable] end)
 
     assert list == [%{name: "my_var", type: :variable}]
+  end
   end
 
   test "tuple destructuring" do
@@ -4012,6 +4014,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
   end
 
   describe "suggestions for typespecs" do
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "remote types - filter list of typespecs" do
       buffer = """
       defmodule My do
@@ -4021,7 +4024,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       list = suggestions_by_type(:type_spec, buffer)
       assert length(list) == 4
     end
+    end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "remote types - retrieve info from typespecs" do
       buffer = """
       defmodule My do
@@ -4041,14 +4046,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert suggestion.doc == "Remote list type"
       assert suggestion.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
     end
+    end
 
     test "on specs" do
+      if Version.match?(System.version(), ">= 1.15.0") do
       buffer = """
       defmodule My do
         @spec a() :: Remote.\
       """
 
       assert %{name: "remote_list_t"} = suggestion_by_name("remote_list_t", buffer)
+      end
 
       buffer = """
       defmodule My do
@@ -4093,6 +4101,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert [_, _] = suggestions_by_name("nonempty_list", buffer, 2, 19)
     end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "remote types - by attribute" do
       buffer = """
       defmodule My do
@@ -4105,7 +4114,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
       assert suggestion_1.signature == "my_type()"
     end
+    end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "remote types - by __MODULE__" do
       buffer = """
       defmodule My do
@@ -4117,7 +4128,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
       assert suggestion_1.signature == "my_type()"
     end
+    end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "remote types - retrieve info from typespecs with params" do
       buffer = """
       defmodule My do
@@ -4137,6 +4150,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert suggestion_2.arity == 2
       assert suggestion_2.doc == "Remote type with params"
       assert suggestion_2.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+    end
     end
 
     test "local types - filter list of typespecs" do

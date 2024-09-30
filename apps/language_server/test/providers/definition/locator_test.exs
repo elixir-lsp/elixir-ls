@@ -1779,6 +1779,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert read_line(file, {line, column}) =~ "my_type(a)"
   end
 
+  if Version.match?(System.version(), ">= 1.15.0") do
   test "find remote type for lowest matching arity in incomplete code" do
     buffer = """
     defmodule MyModule do
@@ -1830,6 +1831,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
 
     assert nil == Locator.definition(buffer, 3, 20)
   end
+  end
 
   @tag capture_log: true
   test "find remote type for the correct arity - fallback to docs" do
@@ -1847,6 +1849,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert read_line(file, {line, column}) =~ "@typedoc \"one param version\""
   end
 
+  if Version.match?(System.version(), ">= 1.15.0") do
   @tag capture_log: true
   test "find remote type for lowest matching arity in incomplete code - fallback to docs" do
     buffer = """
@@ -1898,6 +1901,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     # too many arguments
 
     assert nil == Locator.definition(buffer, 3, 20)
+  end
   end
 
   test "find super inside overridable function" do

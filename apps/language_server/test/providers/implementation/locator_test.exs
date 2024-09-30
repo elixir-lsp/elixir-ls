@@ -562,6 +562,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
     assert read_line(file, {line, column}) =~ "delegated_function do"
   end
 
+  if Version.match?(System.version(), ">= 1.15.0") do
   test "find implementation of delegated functions in incomplete code" do
     buffer = """
     defmodule MyModule do
@@ -616,6 +617,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
     # too many arguments
 
     assert [] = Locator.implementations(buffer, 3, 11)
+  end
   end
 
   test "find implementation of delegated functions via @attr" do
