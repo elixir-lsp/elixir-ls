@@ -243,7 +243,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}} |> maybe_shift
   end
 
-  # TODO crashes metadata builder
+  # TODO attributes not supported yet
   # test "find references with cursor over a function called via @attr.Submodule.call", %{trace: trace} do
   #   buffer = """
   #   defmodule Caller do

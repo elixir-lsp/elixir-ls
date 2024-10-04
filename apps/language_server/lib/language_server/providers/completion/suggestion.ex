@@ -126,15 +126,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
         {line, column}
       )
 
-    # TODO test surround_context
-    # surround = case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-    #   :none ->
-    #     nil
-
-    #   context ->
-    #     {context.begin, context.end}
-    #   end
-
+    # This works better than Code.Fragment.surround_context
     surround =
       case {prefix, suffix} do
         {"", ""} ->

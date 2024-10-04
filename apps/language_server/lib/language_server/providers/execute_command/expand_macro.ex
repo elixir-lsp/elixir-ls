@@ -20,7 +20,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
     path = get_path(uri)
     cur_text = source_file.text
 
-    # TODO change/move this
     if String.trim(text) != "" do
       formatted =
         expand_full(cur_text, text, path, line + 1)

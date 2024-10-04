@@ -41,7 +41,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
   end
 
   test "find definition of aliased modules in `use`" do
-    # TODO this test fails if there's no newline between alias and use
     buffer = """
     defmodule MyModule do
       alias ElixirSenseExample.UseExample
@@ -1060,7 +1059,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
   end
 
-  # TODO not supported in Code.Fragment.surround_context
+  # TODO not supported in Code.Fragment.surround_context as of elixir 1.17
   # test "find definition of &1 capture variable" do
   #   buffer = """
   #   defmodule MyModule do
@@ -1202,7 +1201,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
 
     # `a` redefined in a case clause
-    # TODO cursor lands in the wrong clause
+    # TODO cursor lands in the wrong clause on 1.17
     # defmodule MyModule do
     #   def my_fun(a, b) do
     #     case a do
