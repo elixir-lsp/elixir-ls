@@ -8,6 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Metadata
+  alias ElixirSense.Core.MetadataBuilder
   alias ElixirSense.Core.Compiler
   alias ElixirLS.LanguageServer.SourceFile
 
@@ -63,7 +64,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
     try do
       expr = code |> Code.string_to_quoted!()
 
-      {ast, _state, _env} = Compiler.expand(expr, %State{}, env)
+      {ast, _state, _env} = Compiler.expand(expr, MetadataBuilder.initial_state({line, 1}), env)
 
       %{
         expand_once: expr |> Macro.expand_once(env) |> Macro.to_string(),

@@ -683,7 +683,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     if System.otp_release() |> String.to_integer() >= 23 do
       if System.otp_release() |> String.to_integer() >= 27 do
-        assert "This function is called" <> _ = summary
+        assert "Update the [state]" <> _ = summary
       else
         assert "- OldVsn = Vsn" <> _ = summary
       end
@@ -1265,7 +1265,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              ] = list
 
       if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Whenever" <> _ = documentation
+        assert "Initialize the state machine" <> _ = documentation
       else
         assert "- Args = " <> _ = documentation
       end
@@ -1385,7 +1385,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              } = init_res
 
       if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Whenever a new event" <> _ = documentation
+        assert "Initialize the event handler" <> _ = documentation
       else
         assert "- InitArgs = Args" <> _ = documentation
       end
@@ -1476,7 +1476,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              ] = list
 
       if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Whenever" <> _ = documentation
+        assert "Initialize the state machine" <> _ = documentation
       else
         assert "- Args = " <> _ = documentation
       end
@@ -1511,7 +1511,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              ] = list
 
       if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Whenever" <> _ = documentation
+        assert "Initialize the server" <> _ = documentation
       else
         assert "- Args = " <> _ = documentation
       end

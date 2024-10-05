@@ -725,7 +725,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
 
       if System.otp_release() |> String.to_integer() >= 23 do
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever" <> _ = doc.docs
+          assert "Initialize the state machine" <> _ = doc.docs
         else
           assert doc.docs =~
                    "this function is called by"

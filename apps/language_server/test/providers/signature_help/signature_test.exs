@@ -1023,7 +1023,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
 
       if System.otp_release() |> String.to_integer() >= 23 do
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever" <> _ = summary
+          assert "Initialize the server" <> _ = summary
         else
           assert "- Args = " <> _ = summary
         end
@@ -1070,7 +1070,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                } = res
 
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever" <> _ = documentation
+          assert "Initialize the state machine" <> _ = documentation
         else
           assert "- Args = " <> _ = documentation
         end
@@ -1098,7 +1098,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                } = res
 
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever a" <> _ = summary
+          assert "Initialize the server" <> _ = summary
         else
           assert "- Args = " <> _ = summary
         end
@@ -1285,7 +1285,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                } = res
 
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever a" <> _ = summary
+          assert "Initialize the state machine" <> _ = summary
         else
           assert "- Args = term" <> _ = summary
         end

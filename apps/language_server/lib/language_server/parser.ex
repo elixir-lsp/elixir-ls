@@ -266,7 +266,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     queue =
       Enum.reduce(state.queue, [], fn
-        {{^uri, ^parsed_file_version, position}, from}, acc ->
+        {{^uri, ^parsed_file_version, _position}, from}, acc ->
           GenServer.reply(from, updated_file)
           acc
 
