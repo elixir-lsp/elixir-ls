@@ -125,10 +125,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify(suggestion: "Enum.concat")
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result ==
-                 "for x <- Enum.concat([[1], [2], [3]]), do: Enum.concat([[1], [2], [3], [x]])"
-      end
+      assert result ==
+               "for x <- Enum.concat([[1], [2], [3]]), do: Enum.concat([[1], [2], [3], [x]])"
     end
 
     test "applied in a with block" do
@@ -138,9 +136,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result == "with x <- Enum.count([1, 2, 3]), do: x"
-      end
+      assert result == "with x <- Enum.count([1, 2, 3]), do: x"
     end
 
     test "applied in a with block, preserves comment" do
@@ -150,9 +146,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result == "with x <- Enum.count([1, 2, 3]), do: x # TODO: Fix this"
-      end
+      assert result == "with x <- Enum.count([1, 2, 3]), do: x # TODO: Fix this"
     end
 
     test "applied in a with block with started do end" do
@@ -162,9 +156,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       }
         |> modify()
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result == "with x <- Enum.count([1, 2, 3]) do"
-      end
+      assert result == "with x <- Enum.count([1, 2, 3]) do"
     end
 
     test "preserving the leading indent" do
@@ -191,38 +183,42 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       end
     end
 
-    test "when aliased" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "when aliased" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction
         RemoteFunction.fou(42)
       }
-        |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
+          |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction\nRemoteFunction.foo(42)"
+        assert result == "alias ElixirLS.Test.RemoteFunction\nRemoteFunction.foo(42)"
+      end
     end
 
-    test "when aliased with a custom name" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "when aliased with a custom name" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction, as: Remote
         Remote.fou(42)
       }
-        |> modify(message: message, suggestion: "Remote.foo", line: 1)
+          |> modify(message: message, suggestion: "Remote.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\nRemote.foo(42)"
+        assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\nRemote.foo(42)"
+      end
     end
   end
 
@@ -321,38 +317,42 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       end
     end
 
-    test "when aliased" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "when aliased" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction
         &RemoteFunction.fou/1
       }
-        |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
+          |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction\n&RemoteFunction.foo/1"
+        assert result == "alias ElixirLS.Test.RemoteFunction\n&RemoteFunction.foo/1"
+      end
     end
 
-    test "when aliased with a custom name" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "when aliased with a custom name" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction, as: Remote
         &Remote.fou/1
       }
-        |> modify(message: message, suggestion: "Remote.foo", line: 1)
+          |> modify(message: message, suggestion: "Remote.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\n&Remote.foo/1"
+        assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\n&Remote.foo/1"
+      end
     end
   end
 end

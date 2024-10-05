@@ -358,20 +358,16 @@ defmodule ElixirLS.LanguageServer.Tracer do
   defp build_module_info(module, file, line) do
     defs =
       for {name, arity} <- Module.definitions_in(module) do
-        def_info = apply(Module, :get_definition, [module, {name, arity}])
+        def_info = Module.get_definition(module, {name, arity})
         {{name, arity}, build_def_info(def_info)}
       end
 
     attributes =
-      if Version.match?(System.version(), ">= 1.13.0-dev") do
-        for name <- apply(Module, :attributes_in, [module]) do
-          # reading attribute value here breaks unused attributes warnings
-          # https://github.com/elixir-lang/elixir/issues/13168
-          # {name, Module.get_attribute(module, name)}
-          {name, nil}
-        end
-      else
-        []
+      for name <- Module.attributes_in(module) do
+        # reading attribute value here breaks unused attributes warnings
+        # https://github.com/elixir-lang/elixir/issues/13168
+        # {name, Module.get_attribute(module, name)}
+        {name, nil}
       end
 
     %{

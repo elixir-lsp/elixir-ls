@@ -21,10 +21,10 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
 
     metadata =
       Keyword.get_lazy(options, :metadata, fn ->
-        Parser.parse_string(code, true, true, {line, column})
+        Parser.parse_string(code, true, false, {line, column})
       end)
 
-    env = Metadata.get_env(metadata, {line, column})
+    env = Metadata.get_cursor_env(metadata, {line, column})
 
     find(prefix, {line, column}, env, metadata)
   end

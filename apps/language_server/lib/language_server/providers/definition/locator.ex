@@ -18,7 +18,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.State.ModFunInfo
   alias ElixirSense.Core.State.TypeInfo
-  alias ElixirSense.Core.State.VarInfo
   alias ElixirSense.Core.Source
   alias ElixirSense.Core.SurroundContext
   alias ElixirLS.LanguageServer.Location
@@ -35,12 +34,10 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
       context ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, true, {line, column})
+            Parser.parse_string(code, true, false, {line, column})
           end)
 
-        env =
-          Metadata.get_env(metadata, {line, column})
-          |> Metadata.add_scope_vars(metadata, {line, column})
+        env = Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
 
         find(
           context,
@@ -62,7 +59,6 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         context,
         %State.Env{
           module: module,
-          vars: vars,
           attributes: attributes
         } = env,
         metadata
@@ -78,19 +74,15 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
       {:keyword, _} ->
         nil
 
-      {:variable, variable} ->
-        var_info =
-          vars
-          |> Enum.find(fn
-            %VarInfo{name: name, positions: positions} ->
-              name == variable and context.begin in positions
-          end)
+      {:variable, variable, version} ->
+        var_info = Metadata.find_var(metadata, variable, version, context.begin)
 
         if var_info != nil do
           {definition_line, definition_column} = Enum.min(var_info.positions)
 
           %Location{type: :variable, file: nil, line: definition_line, column: definition_column}
         else
+          # find local call
           find_function_or_module(
             {nil, variable},
             context,
@@ -143,14 +135,37 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   end
 
   defp do_find_function_or_module(
-         {{kind, _} = type, function},
+         {{:variable, _, _} = type, function},
          context,
          env,
          metadata,
          binding_env,
          visited
-       )
-       when kind in [:attribute, :variable] do
+       ) do
+    case Binding.expand(binding_env, type) do
+      {:atom, module} ->
+        do_find_function_or_module(
+          {{:atom, module}, function},
+          context,
+          env,
+          metadata,
+          binding_env,
+          visited
+        )
+
+      _ ->
+        nil
+    end
+  end
+
+  defp do_find_function_or_module(
+         {{:attribute, _} = type, function},
+         context,
+         env,
+         metadata,
+         binding_env,
+         visited
+       ) do
     case Binding.expand(binding_env, type) do
       {:atom, module} ->
         do_find_function_or_module(

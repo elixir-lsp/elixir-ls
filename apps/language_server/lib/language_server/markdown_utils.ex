@@ -151,7 +151,6 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   of ExDoc autolinker https://hexdocs.pm/ex_doc/readme.html#auto-linking
   """
   def transform_ex_doc_links(string, current_module \\ nil) do
-    # TODO add support for OTP 27
     string
     |> String.split(~r/(`.*?`)|(\[.*?\]\(.*?\))/u, include_captures: true)
     |> Enum.map(fn segment ->

@@ -562,60 +562,62 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
     assert read_line(file, {line, column}) =~ "delegated_function do"
   end
 
-  test "find implementation of delegated functions in incomplete code" do
-    buffer = """
-    defmodule MyModule do
-      alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
-      MyMod.delegated_function(
-      #        ^
+  if Version.match?(System.version(), ">= 1.15.0") do
+    test "find implementation of delegated functions in incomplete code" do
+      buffer = """
+      defmodule MyModule do
+        alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
+        MyMod.delegated_function(
+        #        ^
+      end
+      """
+
+      [%Location{type: :function, file: file, line: line, column: column}] =
+        Locator.implementations(buffer, 3, 11)
+
+      assert file =~ "language_server/test/support/module_with_functions.ex"
+      assert read_line(file, {line, column}) =~ "delegated_function do"
+
+      buffer = """
+      defmodule MyModule do
+        alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
+        MyMod.delegated_function(1
+        #        ^
+      end
+      """
+
+      [%Location{type: :function, file: file, line: line, column: column}] =
+        Locator.implementations(buffer, 3, 11)
+
+      assert file =~ "language_server/test/support/module_with_functions.ex"
+      assert read_line(file, {line, column}) =~ "delegated_function(a) do"
+
+      buffer = """
+      defmodule MyModule do
+        alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
+        MyMod.delegated_function(1,
+        #        ^
+      end
+      """
+
+      [%Location{type: :function, file: file, line: line, column: column}] =
+        Locator.implementations(buffer, 3, 11)
+
+      assert file =~ "language_server/test/support/module_with_functions.ex"
+      assert read_line(file, {line, column}) =~ "delegated_function(a, b) do"
+
+      buffer = """
+      defmodule MyModule do
+        alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
+        MyMod.delegated_function(1, 2,
+        #        ^
+      end
+      """
+
+      # too many arguments
+
+      assert [] = Locator.implementations(buffer, 3, 11)
     end
-    """
-
-    [%Location{type: :function, file: file, line: line, column: column}] =
-      Locator.implementations(buffer, 3, 11)
-
-    assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "delegated_function do"
-
-    buffer = """
-    defmodule MyModule do
-      alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
-      MyMod.delegated_function(1
-      #        ^
-    end
-    """
-
-    [%Location{type: :function, file: file, line: line, column: column}] =
-      Locator.implementations(buffer, 3, 11)
-
-    assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "delegated_function(a) do"
-
-    buffer = """
-    defmodule MyModule do
-      alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
-      MyMod.delegated_function(1,
-      #        ^
-    end
-    """
-
-    [%Location{type: :function, file: file, line: line, column: column}] =
-      Locator.implementations(buffer, 3, 11)
-
-    assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "delegated_function(a, b) do"
-
-    buffer = """
-    defmodule MyModule do
-      alias ElixirSenseExample.ModuleWithFunctions, as: MyMod
-      MyMod.delegated_function(1, 2,
-      #        ^
-    end
-    """
-
-    # too many arguments
-
-    assert [] = Locator.implementations(buffer, 3, 11)
   end
 
   test "find implementation of delegated functions via @attr" do

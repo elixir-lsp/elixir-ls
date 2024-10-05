@@ -629,7 +629,6 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
              }
     end
 
-    @tag :type_inference
     test "find signatures from variable" do
       code = """
       defmodule MyMod do
@@ -892,7 +891,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "sum",
                    params: ["a", "b \\\\ 0"],
                    documentation: "",
-                   spec: "@spec sum(integer, integer) :: integer"
+                   spec: "@spec sum(integer(), integer()) :: integer()"
                  }
                ]
              }
@@ -927,7 +926,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    ],
                    documentation: "",
                    spec:
-                     "@spec sum(integer, integer, integer, integer, integer, integer) :: integer",
+                     "@spec sum(integer(), integer(), integer(), integer(), integer(), integer()) :: integer()",
                    active_param: 2
                  }
                ]
@@ -1024,7 +1023,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
 
       if System.otp_release() |> String.to_integer() >= 23 do
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever" <> _ = summary
+          assert "Initialize the server" <> _ = summary
         else
           assert "- Args = " <> _ = summary
         end
@@ -1071,7 +1070,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                } = res
 
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever" <> _ = documentation
+          assert "Initialize the state machine" <> _ = documentation
         else
           assert "- Args = " <> _ = documentation
         end
@@ -1099,7 +1098,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                } = res
 
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever a" <> _ = summary
+          assert "Initialize the server" <> _ = summary
         else
           assert "- Args = " <> _ = summary
         end
@@ -1173,7 +1172,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    documentation: "asdf",
                    name: "go",
                    params: ["t"],
-                   spec: "@callback go(t) :: integer()"
+                   spec: "@callback go(t()) :: integer()"
                  }
                ]
              } = res
@@ -1286,7 +1285,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                } = res
 
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever a" <> _ = summary
+          assert "Initialize the state machine" <> _ = summary
         else
           assert "- Args = term" <> _ = summary
         end

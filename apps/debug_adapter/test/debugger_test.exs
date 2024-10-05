@@ -1579,9 +1579,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
-        assert BreakpointCondition.has_condition?(MixProject, [3])
+        assert BreakpointCondition.has_condition?(MixProject, 3)
 
-        assert BreakpointCondition.get_condition(0) == {"a == b", nil, 0, 0}
+        assert {%Macro.Env{}, "a == b", nil, "0", 0} = BreakpointCondition.get_condition(0)
 
         # modify
 
@@ -1604,9 +1604,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
-        assert BreakpointCondition.has_condition?(MixProject, [3])
+        assert BreakpointCondition.has_condition?(MixProject, 3)
 
-        assert BreakpointCondition.get_condition(0) == {"x == y", nil, 0, 0}
+        assert {%Macro.Env{}, "x == y", nil, "0", 0} = BreakpointCondition.get_condition(0)
 
         # unset
 
@@ -1674,9 +1674,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
-        assert BreakpointCondition.has_condition?(MixProject, [3])
+        assert BreakpointCondition.has_condition?(MixProject, 3)
 
-        assert BreakpointCondition.get_condition(0) == {"true", nil, 25, 0}
+        assert {%Macro.Env{}, "true", nil, "25", 0} = BreakpointCondition.get_condition(0)
 
         # modify
 
@@ -1699,9 +1699,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
-        assert BreakpointCondition.has_condition?(MixProject, [3])
+        assert BreakpointCondition.has_condition?(MixProject, 3)
 
-        assert BreakpointCondition.get_condition(0) == {"true", nil, 55, 0}
+        assert {%Macro.Env{}, "true", nil, "55", 0} = BreakpointCondition.get_condition(0)
 
         # unset
 
@@ -1769,9 +1769,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
-        assert BreakpointCondition.has_condition?(MixProject, [3])
+        assert BreakpointCondition.has_condition?(MixProject, 3)
 
-        assert BreakpointCondition.get_condition(0) == {"true", "breakpoint hit", 0, 0}
+        assert {%Macro.Env{}, "true", "breakpoint hit", "0", 0} =
+                 BreakpointCondition.get_condition(0)
 
         # modify
 
@@ -1794,9 +1795,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{^abs_path => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
-        assert BreakpointCondition.has_condition?(MixProject, [3])
+        assert BreakpointCondition.has_condition?(MixProject, 3)
 
-        assert BreakpointCondition.get_condition(0) == {"true", "abc", 0, 0}
+        assert {%Macro.Env{}, "true", "abc", "0", 0} = BreakpointCondition.get_condition(0)
 
         # unset
 
@@ -2207,9 +2208,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
-        assert BreakpointCondition.has_condition?(:hello, [5])
+        assert BreakpointCondition.has_condition?(:hello, 5)
 
-        assert BreakpointCondition.get_condition(0) == {"a == b", nil, 0, 0}
+        assert {%Macro.Env{}, "a == b", nil, "0", 0} = BreakpointCondition.get_condition(0)
 
         # update
 
@@ -2233,9 +2234,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
-        assert BreakpointCondition.has_condition?(:hello, [5])
+        assert BreakpointCondition.has_condition?(:hello, 5)
 
-        assert BreakpointCondition.get_condition(0) == {"x == y", nil, 0, 0}
+        assert {%Macro.Env{}, "x == y", nil, "0", 0} = BreakpointCondition.get_condition(0)
 
         # unset
 
@@ -2300,9 +2301,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
-        assert BreakpointCondition.has_condition?(:hello, [5])
+        assert BreakpointCondition.has_condition?(:hello, 5)
 
-        assert BreakpointCondition.get_condition(0) == {"true", nil, 25, 0}
+        assert {%Macro.Env{}, "true", nil, "25", 0} = BreakpointCondition.get_condition(0)
 
         # update
 
@@ -2326,9 +2327,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{{:hello, :hello_world, 0} => [5]} = :sys.get_state(server).function_breakpoints
 
-        assert BreakpointCondition.has_condition?(:hello, [5])
+        assert BreakpointCondition.has_condition?(:hello, 5)
 
-        assert BreakpointCondition.get_condition(0) == {"true", nil, 55, 0}
+        assert {%Macro.Env{}, "true", nil, "55", 0} = BreakpointCondition.get_condition(0)
 
         # unset
 

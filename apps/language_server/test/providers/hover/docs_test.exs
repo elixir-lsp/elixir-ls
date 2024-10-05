@@ -510,7 +510,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                kind: :function,
                metadata: %{implementing: BB, since: "1.2.3"},
                module: BB.String,
-               specs: ["@callback go(t) :: integer()"],
+               specs: ["@callback go(t()) :: integer()"],
                docs: "asdf"
              }
     end
@@ -725,7 +725,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
 
       if System.otp_release() |> String.to_integer() >= 23 do
         if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Whenever" <> _ = doc.docs
+          assert "Initialize the state machine" <> _ = doc.docs
         else
           assert doc.docs =~
                    "this function is called by"
@@ -1846,6 +1846,70 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                docs: [%{kind: :variable}]
              } = Docs.docs(buffer, 8, 21)
     end
+
+    test "find docs for write variable on definition" do
+      buffer = """
+      defmodule MyModule do
+        def go() do
+          abc = 5
+          & [
+            &1,
+            abc,
+            cde = 1,
+            record_env()  
+          ]
+        end
+      end
+      """
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 7, 8)
+    end
+
+    test "does not find docs for write variable on read" do
+      buffer = """
+      defmodule MyModule do
+        def go() do
+          abc = 5
+          & [
+            &1,
+            abc,
+            cde = 1,
+            record_env(cde)  
+          ]
+        end
+      end
+      """
+
+      assert Docs.docs(buffer, 8, 19) == nil
+    end
+
+    test "finds docs for write variable in match context" do
+      buffer = """
+      defmodule MyModule do
+        def go(asd = 3, asd) do
+          :ok
+        end
+
+        def go(asd = 3, [2, asd]) do
+          :ok
+        end
+      end
+      """
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 2, 11)
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 2, 20)
+
+      assert %{
+               docs: [%{kind: :variable}]
+             } = Docs.docs(buffer, 6, 24)
+    end
   end
 
   test "find local type in typespec local def elsewhere" do
@@ -2024,58 +2088,60 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       assert nil == Docs.docs(buffer, 3, 68)
     end
 
-    test "retrieves documentation for all matching type arities with incomplete code" do
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "retrieves documentation for all matching type arities with incomplete code" do
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(
+        end
+        """
+
+        assert %{docs: docs} =
+                 Docs.docs(buffer, 3, 20)
+
+        assert length(docs) == 3
+        assert Enum.at(docs, 0).docs =~ "no params version"
+        assert Enum.at(docs, 1).docs =~ "one param version"
+        assert Enum.at(docs, 2).docs =~ "two params version"
+
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(integer
+        end
+        """
+
+        assert %{docs: docs} =
+                 Docs.docs(buffer, 3, 20)
+
+        assert length(docs) == 2
+        assert Enum.at(docs, 0).docs =~ "one param version"
+        assert Enum.at(docs, 1).docs =~ "two params version"
+
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(integer, integer
+        end
+        """
+
+        assert %{docs: docs} =
+                 Docs.docs(buffer, 3, 20)
+
+        assert length(docs) == 1
+        assert Enum.at(docs, 0).docs =~ "two params version"
+
+        buffer = """
+        defmodule MyModule do
+          alias ElixirSenseExample.TypesWithMultipleArity, as: T
+          @type some :: T.my_type(integer, integer,
+        end
+        """
+
+        # too many arguments
+        assert nil == Docs.docs(buffer, 3, 20)
       end
-      """
-
-      assert %{docs: docs} =
-               Docs.docs(buffer, 3, 20)
-
-      assert length(docs) == 3
-      assert Enum.at(docs, 0).docs =~ "no params version"
-      assert Enum.at(docs, 1).docs =~ "one param version"
-      assert Enum.at(docs, 2).docs =~ "two params version"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer
-      end
-      """
-
-      assert %{docs: docs} =
-               Docs.docs(buffer, 3, 20)
-
-      assert length(docs) == 2
-      assert Enum.at(docs, 0).docs =~ "one param version"
-      assert Enum.at(docs, 1).docs =~ "two params version"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer, integer
-      end
-      """
-
-      assert %{docs: docs} =
-               Docs.docs(buffer, 3, 20)
-
-      assert length(docs) == 1
-      assert Enum.at(docs, 0).docs =~ "two params version"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer, integer,
-      end
-      """
-
-      # too many arguments
-      assert nil == Docs.docs(buffer, 3, 20)
     end
   end
 end

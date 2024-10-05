@@ -17,7 +17,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.State.ModFunInfo
-  alias ElixirSense.Core.State.VarInfo
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
 
@@ -78,10 +77,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
       %{begin: begin_pos, end: end_pos} = context ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, true, {line, column})
+            Parser.parse_string(code, true, false, {line, column})
           end)
 
-        env = Metadata.get_env(metadata, {line, column})
+        env =
+          Metadata.get_cursor_env(metadata, {line, column}, {begin_pos, end_pos})
 
         case all(context, env, metadata) do
           [] ->
@@ -102,8 +102,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   defp all(
          context,
          %State.Env{
-           module: module,
-           vars: vars
+           module: module
          } = env,
          metadata
        ) do
@@ -133,15 +132,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
           docs: docs
         }
 
-      {:variable, variable} ->
-        {line, column} = context.begin
-
-        var_info =
-          vars
-          |> Enum.find(fn
-            %VarInfo{name: name, positions: positions} ->
-              name == variable and {line, column} in positions
-          end)
+      {:variable, variable, version} ->
+        var_info = Metadata.find_var(metadata, variable, version, context.begin)
 
         if var_info != nil do
           %{
@@ -150,7 +142,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
           }
         else
           mod_fun_docs(
-            type,
+            {nil, variable},
             context,
             binding_env,
             env,

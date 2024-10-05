@@ -312,7 +312,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp expand_dot_path({:var, var}, %State.Env{} = env, %Metadata{} = metadata) do
-    value_from_binding({:variable, List.to_atom(var)}, env, metadata)
+    value_from_binding({:variable, List.to_atom(var), :any}, env, metadata)
   end
 
   defp expand_dot_path({:module_attribute, attribute}, %State.Env{} = env, %Metadata{} = metadata) do
@@ -856,19 +856,20 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   ## Helpers
 
-  # Version.match? is slow, we need to avoid it in a hot loop
-  if Version.match?(System.version(), ">= 1.14.0-dev") do
-    defp usable_as_unquoted_module?(name) do
-      # Conversion to atom is not a problem because
-      # it is only called with existing modules names.
-      # credo:disable-for-lines:7
-      Macro.classify_atom(String.to_atom(name)) in [:identifier, :unquoted] and
-        not String.starts_with?(name, "Elixir.")
-    end
-  else
-    defp usable_as_unquoted_module?(name) do
-      Code.Identifier.classify(String.to_atom(name)) != :other and
-        not String.starts_with?(name, "Elixir.")
+  defp usable_as_unquoted_module?(name) do
+    unquoted_atom_or_identifier?(String.to_atom(name)) and
+      not String.starts_with?(name, "Elixir.")
+  end
+
+  defp unquoted_atom_or_identifier?(atom) when is_atom(atom) do
+    # Version.match? is slow, we need to avoid it in a hot loop
+    # TODO remove this when we require elixir 1.14
+    # Macro.classify_atom/1 was introduced in 1.14.0. If it's not available,
+    # assume we're on an older version and fall back to a private API.
+    if function_exported?(Macro, :classify_atom, 1) do
+      apply(Macro, :classify_atom, [atom]) in [:identifier, :unquoted]
+    else
+      apply(Code.Identifier, :classify, [atom]) != :other
     end
   end
 

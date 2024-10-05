@@ -25,8 +25,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
     assert res == %{
              "expand" => "\n",
              "expandAll" => "\n",
-             "expandOnce" => "\n",
-             "expandPartial" => "\n"
+             "expandOnce" => "\n"
            }
 
     assert {:ok, res} =
@@ -38,12 +37,19 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                }
              })
 
-    assert res == %{
-             "expand" => "abc\n",
-             "expandAll" => "abc\n",
-             "expandOnce" => "abc\n",
-             "expandPartial" => "abc\n"
-           }
+    if Version.match?(System.version(), ">= 1.15.0") do
+      assert res == %{
+               "expand" => "abc\n",
+               "expandAll" => "abc\n",
+               "expandOnce" => "abc\n"
+             }
+    else
+      assert res == %{
+               "expand" => "abc\n",
+               "expandAll" => "abc()\n",
+               "expandOnce" => "abc\n"
+             }
+    end
   end
 
   test "expands macro" do
@@ -64,73 +70,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                }
              })
 
-    if Version.match?(System.version(), "< 1.13.0") do
-      assert res == %{
-               "expand" => """
-               require(ElixirLS.Test.MacroA)
-               ElixirLS.Test.MacroA.__using__([])
-               """,
-               "expandAll" => """
-               require(ElixirLS.Test.MacroA)
+    assert res == %{
+             "expand" => """
+             require ElixirLS.Test.MacroA
+             ElixirLS.Test.MacroA.__using__([])
+             """,
+             "expandAll" => """
+             ElixirLS.Test.MacroA
 
-               (
-                 import(ElixirLS.Test.MacroA)
-
-                 def(macro_a_func) do
-                   :ok
-                 end
-               )
-               """,
-               "expandOnce" => """
-               require(ElixirLS.Test.MacroA)
-               ElixirLS.Test.MacroA.__using__([])
-               """,
-               "expandPartial" => """
-               require(ElixirLS.Test.MacroA)
-
-               (
-                 import(ElixirLS.Test.MacroA)
-
-                 def(macro_a_func) do
-                   :ok
-                 end
-               )
-               """
-             }
-    else
-      assert res == %{
-               "expand" => """
-               require ElixirLS.Test.MacroA
-               ElixirLS.Test.MacroA.__using__([])
-               """,
-               "expandAll" => """
-               require ElixirLS.Test.MacroA
-
-               (
-                 import ElixirLS.Test.MacroA
-
-                 def macro_a_func do
-                   :ok
-                 end
-               )
-               """,
-               "expandOnce" => """
-               require ElixirLS.Test.MacroA
-               ElixirLS.Test.MacroA.__using__([])
-               """,
-               "expandPartial" => """
-               require ElixirLS.Test.MacroA
-
-               (
-                 import ElixirLS.Test.MacroA
-
-                 def macro_a_func do
-                   :ok
-                 end
-               )
-               """
-             }
-    end
+             (
+               ElixirLS.Test.MacroA
+               {:macro_a_func, 0}
+             )
+             """,
+             "expandOnce" => """
+             require ElixirLS.Test.MacroA
+             ElixirLS.Test.MacroA.__using__([])
+             """
+           }
   end
 
   describe "expand full" do
@@ -142,61 +99,41 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
       """
 
       code = "use Application"
-      result = ExpandMacro.expand_full(buffer, code, 2)
+      result = ExpandMacro.expand_full(buffer, code, "nofile", 2)
 
-      if Version.match?(System.version(), ">= 1.13.0") do
-        assert result.expand_once =~
-                 """
-                 (
-                   require Application
-                   Application.__using__([])
-                 )
-                 """
-                 |> String.trim()
+      assert result.expand_once =~
+               """
+               (
+                 require Application
+                 Application.__using__([])
+               )
+               """
+               |> String.trim()
 
-        assert result.expand =~
-                 """
-                 (
-                   require Application
-                   Application.__using__([])
-                 )
-                 """
-                 |> String.trim()
+      assert result.expand =~
+               """
+               (
+                 require Application
+                 Application.__using__([])
+               )
+               """
+               |> String.trim()
 
-        assert result.expand_partial =~
-                 """
-                 (
-                   require Application
+      assert result.expand_all =~
+               (if Version.match?(System.version(), ">= 1.14.0") do
+                  """
+                  Application
 
-                   (
-                     @behaviour Application
-                     @doc false
-                     def stop(_state) do
-                       :ok
-                     end
-
-                     defoverridable Application
-                   )
-                 )
-                 """
-                 |> String.trim()
-
-        assert result.expand_all =~
-                 (if Version.match?(System.version(), ">= 1.14.0") do
-                    """
-                    (
-                      require Application
-
-                      (
-                        Module.__put_attribute__(MyModule, :behaviour, Application, nil, [])
-                        Module.__put_attribute__(MyModule, :doc, {0, false}, nil, [])
-
-                        def stop(_state) do
-                          :ok
-                        end
-
-                        Module.make_overridable(MyModule, Application)
-                    """
+                  (
+                    Application
+                    @doc false
+                    {:stop, 1}
+                    nil
+                  )
+                  """
+                else
+                  if Version.match?(System.version(), "< 1.14.0") do
+                    "Application\n\n(\n  Application\n  @doc false\n  {:stop, 1}\n  nil\n)"
                   else
                     """
                     (
@@ -204,7 +141,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
 
                       (
                         Module.__put_attribute__(MyModule, :behaviour, Application, nil)
-                        Module.__put_attribute__(MyModule, :doc, {0, false}, nil)
+                        Module.__put_attribute__(MyModule, :doc, {2, false}, nil)
 
                         def stop(_state) do
                           :ok
@@ -212,18 +149,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
 
                         Module.make_overridable(MyModule, Application)
                     """
-                  end)
-                 |> String.trim()
-      else
-        assert result.expand_once =~
-                 """
-                 (
-                   require(Application)
-                   Application.__using__([])
-                 )
-                 """
-                 |> String.trim()
-      end
+                  end
+                end)
+               |> String.trim()
     end
 
     test "with errors" do
@@ -234,7 +162,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
       """
 
       code = "{"
-      result = ExpandMacro.expand_full(buffer, code, 2)
+      result = ExpandMacro.expand_full(buffer, code, "nofile", 2)
 
       assert result.expand_once =~
                """
@@ -243,12 +171,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                |> String.trim()
 
       assert result.expand =~
-               """
-               "missing terminator: }\
-               """
-               |> String.trim()
-
-      assert result.expand_partial =~
                """
                "missing terminator: }\
                """

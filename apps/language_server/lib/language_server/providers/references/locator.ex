@@ -24,47 +24,27 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
       :none ->
         []
 
-      %{
-        begin: {begin_line, begin_col}
-      } = context ->
+      context ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, true, {line, column})
+            Parser.parse_string(code, true, false, {line, column})
           end)
+
+        # if context is var try to find env by scope_id
+        # find scopes that contain this variable
 
         env =
           %State.Env{
             module: module
           } =
-          Metadata.get_env(metadata, {line, column})
-          |> Metadata.add_scope_vars(metadata, {line, column})
+          Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
 
         # find last env of current module
         attributes = get_attributes(metadata, module)
 
-        # one line can contain variables from many scopes
-        # if the cursor is over variable take variables from the scope as it will
-        # be more correct than the env scope
-        vars =
-          case Enum.find(env.vars, fn %VarInfo{positions: positions} ->
-                 {begin_line, begin_col} in positions
-               end) do
-            %VarInfo{scope_id: scope_id} ->
-              # in (h|l)?eex templates vars_info_per_scope_id[scope_id] is nil
-              if metadata.vars_info_per_scope_id[scope_id] do
-                metadata.vars_info_per_scope_id[scope_id]
-              else
-                []
-              end
-
-            nil ->
-              []
-          end
-
         find(
           context,
           env,
-          vars,
           attributes,
           metadata,
           trace
@@ -98,7 +78,6 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           aliases: aliases,
           module: module
         } = env,
-        vars,
         attributes,
         %Metadata{
           mods_funs_to_positions: mods_funs,
@@ -134,7 +113,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
             |> List.flatten()
             |> Enum.filter(fn call -> function == nil or call.func == function end)
             |> Enum.map(fn call ->
-              env = Metadata.get_env(metadata, call.position)
+              env = Metadata.get_cursor_env(metadata, call.position)
 
               binding_env = Binding.from_env(env, metadata)
 
@@ -192,13 +171,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
       {:keyword, _} ->
         []
 
-      {:variable, variable} ->
-        {line, column} = context.begin
-
-        var_info =
-          Enum.find(vars, fn %VarInfo{name: name, positions: positions} ->
-            name == variable and {line, column} in positions
-          end)
+      {:variable, variable, version} ->
+        var_info = Metadata.find_var(metadata, variable, version, context.begin)
 
         if var_info != nil do
           %VarInfo{positions: positions} = var_info

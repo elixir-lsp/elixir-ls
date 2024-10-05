@@ -75,7 +75,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                 end
 
               lines = SourceFile.lines(literal)
-              # meta[:indentation] is nil on 1.12
+              # TODO meta[:indentation] is nil on 1.12, not sure this is needed in 1.13+
               indentation = Keyword.get(meta, :indentation, 0)
 
               {line + length(lines), indentation + get_delimiter_length(delimiter)}
@@ -224,7 +224,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
 
               {last[:line] - 1, last[:column] - 1 + last_length}
             else
-              # last is nil on 1.12
+              # TODO last is nil on 1.12, not sure this is needed in 1.13+
               get_eoe_by_formatting(ast, {line, column}, options)
             end
 
@@ -389,17 +389,13 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     line_length = Keyword.get(formatter_opts, :line_length, 98)
 
     code =
-      if Version.match?(System.version(), ">= 1.13.0-dev") do
-        ast
-        |> Code.quoted_to_algebra(
-          escape: false,
-          locals_without_parens: locals_without_parens
-        )
-        |> Inspect.Algebra.format(line_length)
-        |> IO.iodata_to_binary()
-      else
-        Macro.to_string(ast)
-      end
+      ast
+      |> Code.quoted_to_algebra(
+        escape: false,
+        locals_without_parens: locals_without_parens
+      )
+      |> Inspect.Algebra.format(line_length)
+      |> IO.iodata_to_binary()
 
     lines = code |> SourceFile.lines()
 

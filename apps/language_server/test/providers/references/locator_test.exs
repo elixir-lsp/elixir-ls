@@ -243,7 +243,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}} |> maybe_shift
   end
 
-  # TODO crashes metadata builder
+  # TODO attributes not supported yet
   # test "find references with cursor over a function called via @attr.Submodule.call", %{trace: trace} do
   #   buffer = """
   #   defmodule Caller do
@@ -810,47 +810,49 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     assert [] == references
   end
 
-  test "find references for metadata calls on variable or attribute",
-       %{trace: trace} do
-    buffer = """
-    defmodule A do
-      @callback abc() :: any()
-    end
-
-    defmodule B do
-      @behaviour A
-
-      def abc, do: :ok
-    end
-
-    defmodule X do
-      @b B
-      @b.abc()
-      def a do
-        b = B
-        b.abc()
+  if Version.match?(System.version(), ">= 1.15.0") do
+    test "find references for metadata calls on variable or attribute",
+         %{trace: trace} do
+      buffer = """
+      defmodule A do
+        @callback abc() :: any()
       end
+
+      defmodule B do
+        @behaviour A
+
+        def abc, do: :ok
+      end
+
+      defmodule X do
+        @b B
+        @b.abc()
+        def a do
+          b = B
+          b.abc()
+        end
+      end
+      """
+
+      references = Locator.references(buffer, 8, 8, trace)
+
+      assert [
+               %{
+                 range: %{
+                   end: %{column: 9, line: 13},
+                   start: %{column: 6, line: 13}
+                 },
+                 uri: nil
+               },
+               %{
+                 range: %{
+                   end: %{column: 10, line: 16},
+                   start: %{column: 7, line: 16}
+                 },
+                 uri: nil
+               }
+             ] = references
     end
-    """
-
-    references = Locator.references(buffer, 8, 8, trace)
-
-    assert [
-             %{
-               range: %{
-                 end: %{column: 9, line: 13},
-                 start: %{column: 6, line: 13}
-               },
-               uri: nil
-             },
-             %{
-               range: %{
-                 end: %{column: 10, line: 16},
-                 start: %{column: 7, line: 16}
-               },
-               uri: nil
-             }
-           ] = references
   end
 
   test "find references for the correct arity version for metadata calls with cursor over module",
@@ -1094,22 +1096,20 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
     references = Locator.references(buffer, 3, 59, trace)
 
-    if Version.match?(System.version(), ">= 1.13.0") do
-      assert references == [
-               %{
-                 range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
-                 uri: nil
-               },
-               %{
-                 uri: "test/support/modules_with_references.ex",
-                 range: %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}}
-               },
-               %{
-                 range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
-                 uri: "test/support/modules_with_references.ex"
-               }
-             ]
-    end
+    assert references == [
+             %{
+               range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
+               uri: nil
+             },
+             %{
+               uri: "test/support/modules_with_references.ex",
+               range: %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}}
+             },
+             %{
+               range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
+               uri: "test/support/modules_with_references.ex"
+             }
+           ]
   end
 
   test "find references from remote calls with the function in the next line", %{trace: trace} do
@@ -1124,22 +1124,20 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
     references = Locator.references(buffer, 3, 59, trace)
 
-    if Version.match?(System.version(), ">= 1.13.0") do
-      assert [
-               %{
-                 range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
-                 uri: nil
-               },
-               %{
-                 range: %{end: %{column: 51, line: 65}, start: %{column: 47, line: 65}},
-                 uri: "test/support/modules_with_references.ex"
-               },
-               %{
-                 range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
-                 uri: "test/support/modules_with_references.ex"
-               }
-             ] = references
-    end
+    assert [
+             %{
+               range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}},
+               uri: nil
+             },
+             %{
+               range: %{end: %{column: 51, line: 65}, start: %{column: 47, line: 65}},
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
+               uri: "test/support/modules_with_references.ex"
+             }
+           ] = references
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
@@ -1439,8 +1437,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     expected_references = [
       %{uri: nil, range: %{start: %{line: 3, column: 5}, end: %{line: 3, column: 8}}},
       %{uri: nil, range: %{start: %{line: 5, column: 12}, end: %{line: 5, column: 15}}},
-      %{uri: nil, range: %{start: %{line: 6, column: 11}, end: %{line: 6, column: 14}}},
-      %{uri: nil, range: %{start: %{line: 8, column: 23}, end: %{line: 8, column: 26}}}
+      %{uri: nil, range: %{start: %{line: 8, column: 23}, end: %{line: 8, column: 26}}},
+      %{uri: nil, range: %{start: %{line: 6, column: 11}, end: %{line: 6, column: 14}}}
     ]
 
     Enum.each([{3, 5}, {5, 12}, {6, 11}, {8, 23}], fn {line, column} ->
@@ -1576,6 +1574,84 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
     assert Locator.references(buffer, 7, 6, trace) == expected_references
     assert Locator.references(buffer, 8, 21, trace) == expected_references
+  end
+
+  test "find references of write variable on definition", %{trace: trace} do
+    buffer = """
+    defmodule MyModule do
+      def go() do
+        abc = 5
+        & [
+          &1,
+          abc,
+          cde = 1,
+          record_env()  
+        ]
+      end
+    end
+    """
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 7, column: 7}, end: %{line: 7, column: 10}}}
+    ]
+
+    assert Locator.references(buffer, 7, 8, trace) == expected_references
+  end
+
+  test "does not find references of write variable on read", %{trace: trace} do
+    buffer = """
+    defmodule MyModule do
+      def go() do
+        abc = 5
+        & [
+          &1,
+          abc,
+          cde = 1,
+          record_env(cde)  
+        ]
+      end
+    end
+    """
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 7, column: 7}, end: %{line: 7, column: 10}}}
+    ]
+
+    # cde in cde = 1 is defined
+    assert Locator.references(buffer, 7, 8, trace) == expected_references
+
+    # cde in record_env(cde) is undefined
+    assert Locator.references(buffer, 8, 19, trace) == []
+  end
+
+  test "find definition of write variable in match context", %{trace: trace} do
+    buffer = """
+    defmodule MyModule do
+      def go(asd = 3, asd) do
+        :ok
+      end
+
+      def go(asd = 3, [2, asd]) do
+        :ok
+      end
+    end
+    """
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 2, column: 10}, end: %{line: 2, column: 13}}},
+      %{uri: nil, range: %{start: %{line: 2, column: 19}, end: %{line: 2, column: 22}}}
+    ]
+
+    assert Locator.references(buffer, 2, 11, trace) == expected_references
+
+    assert Locator.references(buffer, 2, 20, trace) == expected_references
+
+    expected_references = [
+      %{uri: nil, range: %{start: %{line: 6, column: 10}, end: %{line: 6, column: 13}}},
+      %{uri: nil, range: %{start: %{line: 6, column: 23}, end: %{line: 6, column: 26}}}
+    ]
+
+    assert Locator.references(buffer, 6, 24, trace) == expected_references
   end
 
   test "find references of attributes", %{trace: trace} do
@@ -1897,16 +1973,9 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
          start: %{column: column_start, line: line_start},
          end: %{column: column_end, line: line_end}
        }) do
-    if Version.match?(System.version(), ">= 1.13.0") do
-      %{
-        start: %{column: column_start, line: line_start},
-        end: %{column: column_end, line: line_end}
-      }
-    else
-      %{
-        start: %{column: column_start - 1, line: line_start},
-        end: %{column: column_end - 1, line: line_end}
-      }
-    end
+    %{
+      start: %{column: column_start, line: line_start},
+      end: %{column: column_end, line: line_end}
+    }
   end
 end

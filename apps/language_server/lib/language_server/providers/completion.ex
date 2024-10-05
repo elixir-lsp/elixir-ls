@@ -142,7 +142,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     prefix = get_prefix(text_before_cursor)
 
-    env = ElixirSense.Core.Metadata.get_env(metadata, {line, character})
+    env = ElixirSense.Core.Metadata.get_cursor_env(metadata, {line, character})
 
     scope =
       case env do

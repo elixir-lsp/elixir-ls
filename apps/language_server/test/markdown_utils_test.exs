@@ -105,7 +105,6 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
   describe "ex_doc links" do
     # The test cases here base on autolink documentation from https://hexdocs.pm/ex_doc/readme.html#auto-linking
     # and test cases from https://github.com/elixir-lang/ex_doc/blob/v0.31.1/test/ex_doc/language/elixir_test.exs
-    # TODO add support for OTP 27
 
     @version System.version()
     test "elixir module link with prefix" do

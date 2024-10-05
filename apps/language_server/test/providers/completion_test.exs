@@ -1448,32 +1448,34 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
              } = first
     end
 
-    test "will suggest remote quoted calls" do
-      text = """
-      alias ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs, as: Quoted
-      Quoted.
-      #      ^
-      """
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "will suggest remote quoted calls" do
+        text = """
+        alias ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs, as: Quoted
+        Quoted.
+        #      ^
+        """
 
-      {line, char} = {1, 7}
+        {line, char} = {1, 7}
 
-      TestUtils.assert_has_cursor_char(text, line, char)
-      {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-      parser_context = ParserContextBuilder.from_string(text, {line, char})
+        TestUtils.assert_has_cursor_char(text, line, char)
+        {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
+        parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      assert {:ok, %{"items" => items}} =
-               Completion.completion(
-                 parser_context,
-                 line,
-                 char,
-                 @supports
-               )
+        assert {:ok, %{"items" => items}} =
+                 Completion.completion(
+                   parser_context,
+                   line,
+                   char,
+                   @supports
+                 )
 
-      assert item = Enum.find(items, fn item -> item["label"] == "\"0abc\\\"asd\"" end)
-      assert item["insertText"] == "\"0abc\\\"asd\"($1)$0"
+        assert item = Enum.find(items, fn item -> item["label"] == "\"0abc\\\"asd\"" end)
+        assert item["insertText"] == "\"0abc\\\"asd\"($1)$0"
 
-      assert item["labelDetails"]["description"] ==
-               "ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs.\"0abc\\\"asd\"/2"
+        assert item["labelDetails"]["description"] ==
+                 "ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs.\"0abc\\\"asd\"/2"
+      end
     end
   end
 

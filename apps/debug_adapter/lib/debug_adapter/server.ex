@@ -249,7 +249,7 @@ defmodule ElixirLS.DebugAdapter.Server do
             first_frame
             | bindings: Map.new(binding),
               dbg_frame?: true,
-              dbg_env: Code.env_for_eval(env),
+              dbg_env: env,
               module: env.module,
               function: env.function,
               file: env.file,
@@ -276,7 +276,7 @@ defmodule ElixirLS.DebugAdapter.Server do
             messages: [],
             bindings: Map.new(binding),
             dbg_frame?: true,
-            dbg_env: Code.env_for_eval(env),
+            dbg_env: env,
             line: env.line || 1
           }
 
@@ -294,11 +294,7 @@ defmodule ElixirLS.DebugAdapter.Server do
                 messages: [],
                 bindings: %{},
                 dbg_frame?: true,
-                dbg_env:
-                  Code.env_for_eval(
-                    file: file,
-                    line: line
-                  ),
+                dbg_env: nil,
                 line: line
               }
             end
@@ -977,7 +973,9 @@ defmodule ElixirLS.DebugAdapter.Server do
 
     for {{m, f, a}, lines} <- state.function_breakpoints,
         not Map.has_key?(parsed_mfas_conditions, {m, f, a}) do
-      BreakpointCondition.unregister_condition(m, lines)
+      for line <- lines do
+        BreakpointCondition.unregister_condition(m, line)
+      end
 
       case :int.del_break_in(m, f, a) do
         :ok ->
@@ -997,6 +995,14 @@ defmodule ElixirLS.DebugAdapter.Server do
           into: %{},
           do:
             (
+              path =
+                try do
+                  module_info = ModuleInfoCache.get(m) || m.module_info()
+                  Path.expand(to_string(module_info[:compile][:source]))
+                rescue
+                  _ -> "nofile"
+                end
+
               result =
                 case current[{m, f, a}] do
                   nil ->
@@ -1015,6 +1021,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
                             # pass nil as log_message - not supported on function breakpoints as of DAP 1.63
                             update_break_condition(
+                              path,
                               m,
                               lines,
                               condition,
@@ -1042,7 +1049,15 @@ defmodule ElixirLS.DebugAdapter.Server do
 
                   lines ->
                     # pass nil as log_message - not supported on function breakpoints as of DAP 1.51
-                    update_break_condition(m, lines, condition, nil, hit_count, state.config)
+                    update_break_condition(
+                      path,
+                      m,
+                      lines,
+                      condition,
+                      nil,
+                      hit_count,
+                      state.config
+                    )
 
                     {:ok, lines}
                 end
@@ -1335,7 +1350,8 @@ defmodule ElixirLS.DebugAdapter.Server do
       end
 
     async_fn = fn ->
-      {binding, env_for_eval} = binding_and_env(state.paused_processes, args["frameId"])
+      frame = frame_for_eval(state.paused_processes, args["frameId"])
+      {_metadata, _env, binding, env_for_eval} = binding_and_env(state.paused_processes, frame)
       value = evaluate_code_expression(expr, binding, env_for_eval)
 
       child_type = Variables.child_type(value)
@@ -1449,23 +1465,18 @@ defmodule ElixirLS.DebugAdapter.Server do
       column = Utils.dap_character_to_elixir(line, column)
       prefix = String.slice(line, 0, column)
 
-      {binding, _env_for_eval} =
-        binding_and_env(state.paused_processes, args["arguments"]["frameId"])
+      frame = frame_for_eval(state.paused_processes, args["arguments"]["frameId"])
 
-      vars =
-        binding
-        |> Enum.map(fn {name, value} ->
-          %ElixirSense.Core.State.VarInfo{
-            name: name,
-            type: ElixirSense.Core.Binding.from_var(value)
-          }
-        end)
+      {metadata, env, _binding, _env_for_eval} = binding_and_env(state.paused_processes, frame)
 
-      env = %ElixirSense.Core.State.Env{vars: vars}
-      metadata = %ElixirSense.Core.Metadata{}
+      cursor_position =
+        case frame do
+          nil -> {1, 1}
+          frame -> {frame.line, 1}
+        end
 
       results =
-        ElixirLS.Utils.CompletionEngine.complete(prefix, env, metadata, {1, 1})
+        ElixirLS.Utils.CompletionEngine.complete(prefix, env, metadata, cursor_position)
         |> Enum.map(&ElixirLS.DebugAdapter.Completions.map/1)
 
       %{"targets" => results}
@@ -1609,7 +1620,9 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp evaluate_code_expression(expr, binding, env_or_opts) do
     try do
-      {term, _bindings} = Code.eval_string(expr, binding, env_or_opts)
+      # TODO use Code.env_for_eval when we require elixir 1.14
+      env = ElixirLS.DebugAdapter.Code.env_for_eval(env_or_opts)
+      {term, _bindings} = Code.eval_string(expr, binding, env)
       term
     catch
       kind, error ->
@@ -1625,6 +1638,22 @@ defmodule ElixirLS.DebugAdapter.Server do
           },
           stacktrace
         )
+    end
+  end
+
+  defp frame_for_eval(_paused_processes, nil), do: nil
+
+  defp frame_for_eval(paused_processes, frame_id) do
+    case find_frame(paused_processes, frame_id) do
+      {_pid, %Frame{} = frame} ->
+        frame
+
+      _ ->
+        raise ServerError,
+          message: "argumentError",
+          format: "Unable to find frame {frameId}",
+          variables: %{"frameId" => frame_id},
+          send_telemetry: false
     end
   end
 
@@ -1647,35 +1676,38 @@ defmodule ElixirLS.DebugAdapter.Server do
         Binding.to_elixir_variable_names(bindings)
       end)
 
-    {binding, []}
+    {%ElixirSense.Core.Metadata{},
+     update_env_vars_from_binding(%ElixirSense.Core.State.Env{}, binding), binding, []}
   end
 
-  defp binding_and_env(paused_processes, frame_id) do
-    case find_frame(paused_processes, frame_id) do
-      {_pid, %Frame{bindings: bindings, dbg_frame?: dbg_frame?} = frame} when is_map(bindings) ->
-        if dbg_frame? do
-          {bindings |> Enum.to_list(), frame.dbg_env}
-        else
-          {Binding.to_elixir_variable_names(bindings),
-           [
-             file: frame.file,
-             line: frame.line
-           ]}
-        end
+  defp binding_and_env(
+         _paused_processes,
+         %Frame{bindings: bindings, dbg_frame?: dbg_frame?} = frame
+       )
+       when is_map(bindings) do
+    {metadata, env, macro_env} = parse_file(frame.file, frame.line)
 
-      {_pid, %Frame{} = frame} ->
-        {[],
-         [
-           file: frame.file,
-           line: frame.line
-         ]}
-
-      _ ->
-        raise ServerError,
-          message: "argumentError",
-          format: "Unable to find frame {frameId}",
-          variables: %{"frameId" => frame_id},
-          send_telemetry: false
+    if dbg_frame? do
+      if frame.dbg_env do
+        # we are evaluating an expression in dbg breakpoint - take dbg macro env as env for eval
+        # we have exact elixir bindings here
+        env = ElixirSense.Core.State.Env.update_from_macro_env(env, frame.dbg_env)
+        binding = bindings |> Enum.to_list()
+        {metadata, update_env_vars_from_binding(env, binding), binding, frame.dbg_env}
+      else
+        # we are evaluating an expression in dbg breakpoint but frame is upper in the stacktrace
+        # we don't have any bindings here
+        # take env from metadata builder as env for eval
+        {metadata, env, [], macro_env}
+      end
+    else
+      # we are evaluating an expression in OTP debugger breakpoint
+      # take env from metadata builder as env for eval
+      # bindings come from OTP debugger
+      # unfortunately there is no way to select right versions of variables in binding
+      # translation in :elixir_erl_var.translate is one way
+      binding = Binding.to_elixir_variable_names(bindings)
+      {metadata, update_env_vars_from_binding(env, binding), binding, macro_env}
     end
   end
 
@@ -2405,7 +2437,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       metadata = ElixirSense.Core.Parser.parse_file(path, false, false, nil)
 
       for line <- lines do
-        env = ElixirSense.Core.Metadata.get_env(metadata, {line |> elem(0), 1})
+        env = ElixirSense.Core.Metadata.get_cursor_env(metadata, {line |> elem(0), 1})
         metadata_module = env.module
 
         modules_to_break =
@@ -2448,7 +2480,7 @@ defmodule ElixirLS.DebugAdapter.Server do
             Output.debugger_console("Setting breakpoint in #{inspect(module)} #{path}:#{line}")
             # no need to handle errors here, it can fail only with {:error, :break_exists}
             :int.break(module, line)
-            update_break_condition(module, line, condition, log_message, hit_count, config)
+            update_break_condition(path, module, line, condition, log_message, hit_count, config)
 
             [module | added]
 
@@ -2511,38 +2543,49 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
   end
 
-  def update_break_condition(module, lines, condition, log_message, hit_count, config) do
+  def update_break_condition(path, module, lines, condition, log_message, hit_count, config) do
     lines = List.wrap(lines)
 
-    condition = parse_condition(condition)
+    condition = parse_condition(condition, "true")
 
-    hit_count = eval_hit_count(hit_count)
+    hit_count = parse_condition(hit_count, "0")
 
     log_message = if log_message not in ["", nil], do: log_message
 
-    register_break_condition(module, lines, condition, log_message, hit_count, config)
+    register_break_condition(path, module, lines, condition, log_message, hit_count, config)
   end
 
-  defp register_break_condition(module, lines, condition, log_message, hit_count, %{
+  defp register_break_condition(file, module, lines, condition, log_message, hit_count, %{
          "request" => "launch"
        }) do
-    case BreakpointCondition.register_condition(module, lines, condition, log_message, hit_count) do
-      {:ok, mf} ->
-        for line <- lines do
-          :int.test_at_break(module, line, mf)
-        end
+    for line <- lines do
+      {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
+      # TODO use Code.env_for_eval when we require elixir 1.14
+      env = ElixirLS.DebugAdapter.Code.env_for_eval(macro_env_or_opts)
 
-      {:error, reason} ->
-        Output.debugger_important(
-          "Unable to set condition on a breakpoint in #{module}:#{inspect(lines)}: #{inspect(reason)}"
-        )
+      case BreakpointCondition.register_condition(
+             module,
+             line,
+             env,
+             condition,
+             log_message,
+             hit_count
+           ) do
+        {:ok, mf} ->
+          :int.test_at_break(module, line, mf)
+
+        {:error, reason} ->
+          Output.debugger_important(
+            "Unable to set condition on a breakpoint in #{module}:#{inspect(line)}: #{inspect(reason)}"
+          )
+      end
     end
   end
 
-  defp register_break_condition(_module, _lines, condition, log_message, hit_count, %{
+  defp register_break_condition(_file, _module, _lines, condition, log_message, hit_count, %{
          "request" => "attach"
        }) do
-    if condition != "true" || log_message || hit_count != 0 do
+    if condition != "true" || log_message || hit_count != "0" do
       # Module passed to :int.test_at_break has to be available on remote nodes. Otherwise break condition will
       # always evaluate to false. We cannot easily distribute BreakpointCondition to remote nodes.
       Output.debugger_important(
@@ -2551,39 +2594,16 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
   end
 
-  defp parse_condition(condition) when condition in [nil, ""], do: "true"
+  defp parse_condition(condition, default) when condition in [nil, ""], do: default
 
-  defp parse_condition(condition) do
+  defp parse_condition(condition, default) do
     case Code.string_to_quoted(condition) do
       {:ok, _} ->
         condition
 
       {:error, reason} ->
         Output.debugger_important("Cannot parse breakpoint condition: #{inspect(reason)}")
-        "true"
-    end
-  end
-
-  defp eval_hit_count(hit_count) when hit_count in [nil, ""], do: 0
-
-  defp eval_hit_count(hit_count) do
-    try do
-      # TODO binding?
-      {term, _bindings} = Code.eval_string(hit_count, [])
-
-      if is_integer(term) do
-        term
-      else
-        Output.debugger_important("Hit condition must evaluate to integer")
-        0
-      end
-    catch
-      kind, error ->
-        Output.debugger_important(
-          "Error while evaluating hit condition: " <> Exception.format_banner(kind, error)
-        )
-
-        0
+        default
     end
   end
 
@@ -2597,6 +2617,16 @@ defmodule ElixirLS.DebugAdapter.Server do
         status not in [:exit, :no_conn],
         into: %{},
         do: {pid, {function, status, info}}
+  rescue
+    e in MatchError ->
+      if Exception.message(e) =~ ":already_started" do
+        # workaround for a crash in tests (probably caused by race conditions)
+        # ** (MatchError) no match of right hand side value: {:error, {:already_started, #PID<0.385.0>}}
+        # (debugger 5.3.4) dbg_iserver.erl:75: :dbg_iserver.safe_call/1
+        %{}
+      else
+        reraise(e, __STACKTRACE__)
+      end
   end
 
   defp update_threads(state = %__MODULE__{}, snapshot_by_pid \\ get_snapshot_by_pid()) do
@@ -2888,5 +2918,60 @@ defmodule ElixirLS.DebugAdapter.Server do
 
       GenServer.call(parent, {:request_finished, packet, start_time, result}, :infinity)
     end)
+  end
+
+  defp parse_file(file, line) do
+    try do
+      if String.ends_with?(file, ".ex") or String.ends_with?(file, ".exs") do
+        code = File.read!(file)
+        buffer_file_metadata = ElixirSense.Core.Parser.parse_string(code, false, true, {line, 1})
+        env = ElixirSense.Core.Metadata.get_cursor_env(buffer_file_metadata, {line, 1})
+
+        {buffer_file_metadata, env, ElixirSense.Core.State.Env.to_macro_env(env, file, line)}
+      else
+        # do not try to parse non elixir files
+        {%ElixirSense.Core.Metadata{}, %ElixirSense.Core.State.Env{}, [file: file, line: line]}
+      end
+    rescue
+      error ->
+        {payload, stacktrace} = Exception.blame(:error, error, __STACKTRACE__)
+        message = Exception.format(:error, payload, stacktrace)
+
+        Output.debugger_console(
+          "Unable to parse file #{file}: #{message}; Using stub evaluator environment."
+        )
+
+        {%ElixirSense.Core.Metadata{}, %ElixirSense.Core.State.Env{}, [file: file, line: line]}
+    end
+  end
+
+  defp update_env_vars_from_binding(env, binding) do
+    env_vars = env.vars |> Map.new(&{&1.name, &1})
+    env_var_names = env_vars |> Map.keys()
+    binding_var_names = binding |> Keyword.keys()
+
+    vars =
+      for var_name <- Enum.uniq(env_var_names ++ binding_var_names) do
+        case {Keyword.fetch(binding, var_name), Map.fetch(env_vars, var_name)} do
+          {{:ok, binding_value}, {:ok, env_var}} ->
+            # var both in env and in binding - prefer type from binding
+            type = ElixirSense.Core.Binding.from_var(binding_value)
+            %ElixirSense.Core.State.VarInfo{env_var | type: type}
+
+          {_, {:ok, env_var}} ->
+            # var only in env - keep it, binding may not have everything
+            env_var
+
+          {{:ok, binding_value}, _} ->
+            # var only in binding - add var to env
+            %ElixirSense.Core.State.VarInfo{
+              name: var_name,
+              type: ElixirSense.Core.Binding.from_var(binding_value)
+            }
+        end
+        |> IO.inspect()
+      end
+
+    %{env | vars: vars}
   end
 end

@@ -109,11 +109,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
   @spec suggestions(String.t(), pos_integer, pos_integer, keyword()) :: [Suggestion.suggestion()]
   def suggestions(code, line, column, options \\ []) do
-    hint = Source.prefix(code, line, column)
+    {prefix = hint, suffix} = Source.prefix_suffix(code, line, column)
 
     metadata =
       Keyword.get_lazy(options, :metadata, fn ->
-        Parser.parse_string(code, true, true, {line, column})
+        Parser.parse_string(code, true, false, {line, column})
       end)
 
     {text_before, text_after} = Source.split_at(code, line, column)
@@ -126,32 +126,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
         {line, column}
       )
 
-    env =
-      Metadata.get_env(metadata, {line, column})
-      |> Metadata.add_scope_vars(
-        metadata,
-        {line, column},
-        &(to_string(&1.name) != hint)
-      )
+    # This works better than Code.Fragment.surround_context
+    surround =
+      case {prefix, suffix} do
+        {"", ""} ->
+          nil
 
-    # if variable is rebound then in env there are many variables with the same name
-    # find the one defined closest to cursor
-    vars =
-      env.vars
-      |> Enum.group_by(fn %State.VarInfo{name: name} -> name end)
-      |> Enum.map(fn {_name, list} ->
-        list
-        |> Enum.max_by(fn
-          %State.VarInfo{positions: [_position]} ->
-            # variable is being defined - it's not a good candidate
-            {0, 0}
+        _ ->
+          {{line, column - String.length(prefix)}, {line, column + String.length(suffix)}}
+      end
 
-          %State.VarInfo{positions: positions} ->
-            Enum.min(positions)
-        end)
-      end)
-
-    env = %{env | vars: vars}
+    env = Metadata.get_cursor_env(metadata, {line, column}, surround)
 
     module_store = ModuleStore.build()
 
@@ -199,17 +184,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
     # TODO this may no longer be needed
     # only fix_incomplete_call has some tests depending on it
+    # on 1.17 no tests depend on those hacks
     fixers = [
-      fix_incomplete_call,
-      fix_incomplete_kw,
-      fix_incomplete_kw_key
+      # fix_incomplete_call,
+      # fix_incomplete_kw,
+      # fix_incomplete_kw_key
     ]
 
-    Enum.reduce_while(fixers, nil, fn fun, _ ->
+    Enum.reduce_while(fixers, metadata, fn fun, metadata ->
       new_buffer = fun.(text_before, text_after)
 
       with true <- new_buffer != nil,
-           meta <- Parser.parse_string(new_buffer, false, true, {line, column}),
+           meta <- Parser.parse_string(new_buffer, false, false, {line, column}),
            %Metadata{error: error} <- meta,
            true <- error == nil do
         {:halt, meta}

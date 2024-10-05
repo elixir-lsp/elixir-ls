@@ -1627,59 +1627,56 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     result = DocumentSymbols.symbols(uri, parser_context, true)
 
-    # earlier elixir versions return different ranges
-    if Version.match?(System.version(), ">= 1.13.0") do
-      assert {:ok,
-              [
-                %Protocol.DocumentSymbol{
-                  children: [
-                    %Protocol.DocumentSymbol{
-                      children: [
-                        %Protocol.DocumentSymbol{
-                          children: [],
-                          kind: 7,
-                          name: "name",
-                          range: %{
-                            "end" => %{"character" => 55, "line" => 3},
-                            "start" => %{"character" => 15, "line" => 3}
-                          },
-                          selectionRange: %{
-                            "end" => %{"character" => 55, "line" => 3},
-                            "start" => %{"character" => 15, "line" => 3}
-                          }
+    assert {:ok,
+            [
+              %Protocol.DocumentSymbol{
+                children: [
+                  %Protocol.DocumentSymbol{
+                    children: [
+                      %Protocol.DocumentSymbol{
+                        children: [],
+                        kind: 7,
+                        name: "name",
+                        range: %{
+                          "end" => %{"character" => 55, "line" => 3},
+                          "start" => %{"character" => 15, "line" => 3}
                         },
-                        %Protocol.DocumentSymbol{
-                          children: [],
-                          kind: 7,
-                          name: "age",
-                          range: %{
-                            "end" => %{"character" => 55, "line" => 3},
-                            "start" => %{"character" => 15, "line" => 3}
-                          },
-                          selectionRange: %{
-                            "end" => %{"character" => 55, "line" => 3},
-                            "start" => %{"character" => 15, "line" => 3}
-                          }
+                        selectionRange: %{
+                          "end" => %{"character" => 55, "line" => 3},
+                          "start" => %{"character" => 15, "line" => 3}
                         }
-                      ],
-                      kind: 5,
-                      name: ":user",
-                      detail: :defrecord,
-                      range: %{
-                        "end" => %{"character" => 55, "line" => 3},
-                        "start" => %{"character" => 8, "line" => 3}
                       },
-                      selectionRange: %{
-                        "end" => %{"character" => 55, "line" => 3},
-                        "start" => %{"character" => 8, "line" => 3}
+                      %Protocol.DocumentSymbol{
+                        children: [],
+                        kind: 7,
+                        name: "age",
+                        range: %{
+                          "end" => %{"character" => 55, "line" => 3},
+                          "start" => %{"character" => 15, "line" => 3}
+                        },
+                        selectionRange: %{
+                          "end" => %{"character" => 55, "line" => 3},
+                          "start" => %{"character" => 15, "line" => 3}
+                        }
                       }
+                    ],
+                    kind: 5,
+                    name: ":user",
+                    detail: :defrecord,
+                    range: %{
+                      "end" => %{"character" => 55, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
+                    },
+                    selectionRange: %{
+                      "end" => %{"character" => 55, "line" => 3},
+                      "start" => %{"character" => 8, "line" => 3}
                     }
-                  ],
-                  kind: 2,
-                  name: "MyModule"
-                }
-              ]} = result
-    end
+                  }
+                ],
+                kind: 2,
+                name: "MyModule"
+              }
+            ]} = result
   end
 
   test "[flat] handles records" do
@@ -1695,51 +1692,48 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     result = DocumentSymbols.symbols(uri, parser_context, false)
 
-    # earlier elixir versions return different ranges
-    if Version.match?(System.version(), ">= 1.13.0") do
-      assert {:ok,
-              [
-                %Protocol.SymbolInformation{
-                  name: "MyModule",
-                  kind: 2,
-                  location: %{
-                    range: %{
-                      "end" => %{"character" => 9, "line" => 4},
-                      "start" => %{"character" => 6, "line" => 1}
-                    }
+    assert {:ok,
+            [
+              %Protocol.SymbolInformation{
+                name: "MyModule",
+                kind: 2,
+                location: %{
+                  range: %{
+                    "end" => %{"character" => 9, "line" => 4},
+                    "start" => %{"character" => 6, "line" => 1}
                   }
-                },
-                %Protocol.SymbolInformation{
-                  name: ":user",
-                  kind: 5,
-                  containerName: "MyModule"
-                },
-                %Protocol.SymbolInformation{
-                  containerName: ":user",
-                  kind: 7,
-                  location: %{
-                    range: %{
-                      "end" => %{"character" => 55, "line" => 3},
-                      "start" => %{"character" => 15, "line" => 3}
-                    },
-                    uri: "file:///project/file.ex"
-                  },
-                  name: "name"
-                },
-                %Protocol.SymbolInformation{
-                  containerName: ":user",
-                  kind: 7,
-                  location: %{
-                    range: %{
-                      "end" => %{"character" => 55, "line" => 3},
-                      "start" => %{"character" => 15, "line" => 3}
-                    },
-                    uri: "file:///project/file.ex"
-                  },
-                  name: "age"
                 }
-              ]} = result
-    end
+              },
+              %Protocol.SymbolInformation{
+                name: ":user",
+                kind: 5,
+                containerName: "MyModule"
+              },
+              %Protocol.SymbolInformation{
+                containerName: ":user",
+                kind: 7,
+                location: %{
+                  range: %{
+                    "end" => %{"character" => 55, "line" => 3},
+                    "start" => %{"character" => 15, "line" => 3}
+                  },
+                  uri: "file:///project/file.ex"
+                },
+                name: "name"
+              },
+              %Protocol.SymbolInformation{
+                containerName: ":user",
+                kind: 7,
+                location: %{
+                  range: %{
+                    "end" => %{"character" => 55, "line" => 3},
+                    "start" => %{"character" => 15, "line" => 3}
+                  },
+                  uri: "file:///project/file.ex"
+                },
+                name: "age"
+              }
+            ]} = result
   end
 
   test "[nested] skips docs attributes" do

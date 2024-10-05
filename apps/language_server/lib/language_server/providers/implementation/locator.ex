@@ -30,10 +30,10 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
       context ->
         metadata =
           Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, true, {line, column})
+            Parser.parse_string(code, true, false, {line, column})
           end)
 
-        env = Metadata.get_env(metadata, {line, column})
+        env = Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
 
         find(
           context,
@@ -69,6 +69,10 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
       {kind, _} when kind in [:attribute, :keyword] ->
         []
 
+      {:variable, name, _} ->
+        # treat variable name as local function call
+        do_find(nil, name, context, env, metadata, binding_env)
+
       {module_type, function} ->
         module =
           case Binding.expand(binding_env, module_type) do
@@ -79,32 +83,36 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
               env.module
           end
 
-        {line, column} = context.end
-        call_arity = Metadata.get_call_arity(metadata, module, function, line, column) || :any
+        do_find(module, function, context, env, metadata, binding_env)
+    end
+  end
 
-        behaviour_implementations =
-          find_behaviour_implementations(
-            module,
-            function,
-            call_arity,
-            module,
-            env,
-            metadata,
-            binding_env
-          )
+  defp do_find(module, function, context, env, metadata, binding_env) do
+    {line, column} = context.end
+    call_arity = Metadata.get_call_arity(metadata, module, function, line, column) || :any
 
-        if behaviour_implementations == [] do
-          find_delegatee(
-            {module, function},
-            call_arity,
-            env,
-            metadata,
-            binding_env
-          )
-          |> List.wrap()
-        else
-          behaviour_implementations
-        end
+    behaviour_implementations =
+      find_behaviour_implementations(
+        module,
+        function,
+        call_arity,
+        module,
+        env,
+        metadata,
+        binding_env
+      )
+
+    if behaviour_implementations == [] do
+      find_delegatee(
+        {module, function},
+        call_arity,
+        env,
+        metadata,
+        binding_env
+      )
+      |> List.wrap()
+    else
+      behaviour_implementations
     end
   end
 
@@ -146,7 +154,14 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
     |> Enum.reject(&is_nil/1)
   end
 
-  defp expand({kind, _attr} = type, binding_env) when kind in [:attribute, :variable] do
+  defp expand({:attribute, _attr} = type, binding_env) do
+    case Binding.expand(binding_env, type) do
+      {:atom, atom} -> atom
+      _ -> nil
+    end
+  end
+
+  defp expand({:variable, _, _} = type, binding_env) do
     case Binding.expand(binding_env, type) do
       {:atom, atom} -> atom
       _ -> nil
@@ -218,14 +233,37 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   end
 
   defp do_find_delegatee(
-         {{kind, _} = type, function},
+         {{:attribute, _} = type, function},
          arity,
          env,
          metadata,
          binding_env,
          visited
-       )
-       when kind in [:attribute, :variable] do
+       ) do
+    case Binding.expand(binding_env, type) do
+      {:atom, module} ->
+        do_find_delegatee(
+          {module, function},
+          arity,
+          env,
+          metadata,
+          binding_env,
+          visited
+        )
+
+      _ ->
+        nil
+    end
+  end
+
+  defp do_find_delegatee(
+         {{:variable, _, _} = type, function},
+         arity,
+         env,
+         metadata,
+         binding_env,
+         visited
+       ) do
     case Binding.expand(binding_env, type) do
       {:atom, module} ->
         do_find_delegatee(

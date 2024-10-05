@@ -163,8 +163,6 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     case {files[uri], Map.has_key?(state.parse_pids, {uri, current_version})} do
       {%Context{parsed_version: ^current_version} = file, _} ->
-        file = maybe_fix_missing_env(file, position)
-
         {:reply, file, state}
 
       {_, true} ->
@@ -268,9 +266,8 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     queue =
       Enum.reduce(state.queue, [], fn
-        {{^uri, ^parsed_file_version, position}, from}, acc ->
-          file = maybe_fix_missing_env(updated_file, position)
-          GenServer.reply(from, file)
+        {{^uri, ^parsed_file_version, _position}, from}, acc ->
+          GenServer.reply(from, updated_file)
           acc
 
         {request, from}, acc ->
@@ -311,49 +308,6 @@ defmodule ElixirLS.LanguageServer.Parser do
       source_file.language_id in ["elixir", "eex", "html-eex", "phoenix-heex"]
   end
 
-  defp maybe_fix_missing_env(%Context{} = file, nil), do: file
-
-  defp maybe_fix_missing_env(
-         %Context{metadata: metadata, flag: flag, source_file: source_file = %SourceFile{}} =
-           file,
-         {line, _character} = cursor_position
-       ) do
-    if Map.has_key?(metadata.lines_to_env, line) do
-      file
-    else
-      case flag do
-        {_, ^cursor_position} ->
-          # give up - we already tried
-          file
-
-        {:exact, _} ->
-          # file does not have parse errors, try to parse again with marker
-          metadata =
-            case ElixirSense.Core.Parser.try_fix_line_not_found_by_inserting_marker(
-                   source_file.text,
-                   cursor_position
-                 ) do
-              {:ok, acc} ->
-                ElixirSense.Core.Metadata.fill(source_file.text, acc)
-
-              _ ->
-                metadata
-            end
-
-          %Context{file | metadata: metadata, flag: {:exact, cursor_position}}
-
-        :not_parsable ->
-          # give up - no support in fault tolerant parser
-          file
-
-        {f, _cursor_position} when f in [:not_parsable, :fixed] ->
-          # reparse with cursor position
-          {flag, ast, metadata} = fault_tolerant_parse(source_file, cursor_position)
-          %Context{file | ast: ast, metadata: metadata, flag: flag}
-      end
-    end
-  end
-
   def do_parse(
         %Context{source_file: source_file = %SourceFile{}, path: path} = file,
         cursor_position \\ nil
@@ -363,9 +317,8 @@ defmodule ElixirLS.LanguageServer.Parser do
     {flag, ast, metadata} =
       if ast do
         # no syntax errors
-        metadata =
-          MetadataBuilder.build(ast)
-          |> fix_missing_env(source_file.text, cursor_position)
+        acc = MetadataBuilder.build(ast)
+        metadata = ElixirSense.Core.Metadata.fill(source_file.text, acc)
 
         {{:exact, cursor_position}, ast, metadata}
       else
@@ -397,9 +350,8 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     case ElixirSense.Core.Parser.string_to_ast(source_file.text, options) do
       {:ok, ast, modified_source, _error} ->
-        metadata =
-          MetadataBuilder.build(ast)
-          |> fix_missing_env(modified_source, cursor_position)
+        acc = MetadataBuilder.build(ast)
+        metadata = ElixirSense.Core.Metadata.fill(modified_source, acc)
 
         {{:fixed, cursor_position}, ast, metadata}
 
@@ -425,28 +377,6 @@ defmodule ElixirLS.LanguageServer.Parser do
       )
 
       {{:not_parsable, cursor_position}, @dummy_ast, @dummy_metadata}
-  end
-
-  defp fix_missing_env(acc, source, nil), do: ElixirSense.Core.Metadata.fill(source, acc)
-
-  defp fix_missing_env(acc, source, {line, _} = cursor_position) do
-    acc =
-      if Map.has_key?(acc.lines_to_env, line) do
-        acc
-      else
-        case ElixirSense.Core.Parser.try_fix_line_not_found_by_inserting_marker(
-               source,
-               cursor_position
-             ) do
-          {:ok, acc} ->
-            acc
-
-          _ ->
-            acc
-        end
-      end
-
-    ElixirSense.Core.Metadata.fill(source, acc)
   end
 
   defp get_path(uri) do
