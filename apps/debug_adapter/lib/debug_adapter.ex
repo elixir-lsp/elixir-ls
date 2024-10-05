@@ -49,12 +49,30 @@ defmodule ElixirLS.DebugAdapter do
   end
 
   defp warn_if_unsupported_version do
-    with {:error, message} <- Utils.MinimumVersion.check_elixir_version() do
-      Output.debugger_important("WARNING: " <> message)
+    case Utils.MinimumVersion.check_elixir_version() do
+      {:error, message} ->
+        Output.debugger_important(message)
+        Process.sleep(5000)
+        System.halt(1)
+
+      {:warning, message} ->
+        Output.debugger_important(message)
+
+      :ok ->
+        :ok
     end
 
-    with {:error, message} <- Utils.MinimumVersion.check_otp_version() do
-      Output.debugger_important("WARNING: " <> message)
+    case Utils.MinimumVersion.check_otp_version() do
+      {:error, message} ->
+        Output.debugger_important(message)
+        Process.sleep(5000)
+        System.halt(1)
+
+      {:warning, message} ->
+        Output.debugger_important(message)
+
+      :ok ->
+        :ok
     end
   end
 end

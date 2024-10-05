@@ -1730,12 +1730,30 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp show_version_warnings do
-    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_elixir_version() do
-      JsonRpc.show_message(:warning, message)
+    case ElixirLS.Utils.MinimumVersion.check_elixir_version() do
+      {:error, message} ->
+        JsonRpc.show_message(:error, message)
+        Process.sleep(5000)
+        System.halt(1)
+
+      {:warning, message} ->
+        JsonRpc.show_message(:warning, message)
+
+      :ok ->
+        :ok
     end
 
-    with {:error, message} <- ElixirLS.Utils.MinimumVersion.check_otp_version() do
-      JsonRpc.show_message(:warning, message)
+    case ElixirLS.Utils.MinimumVersion.check_otp_version() do
+      {:error, message} ->
+        JsonRpc.show_message(:error, message)
+        Process.sleep(5000)
+        System.halt(1)
+
+      {:warning, message} ->
+        JsonRpc.show_message(:warning, message)
+
+      :ok ->
+        :ok
     end
 
     case Dialyzer.check_support() do
