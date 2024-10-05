@@ -14,7 +14,6 @@
 
 #### Fixes
 
-- fixed plugin detection issue affecting Ash plugin
 - fixed crash when analyzing types in guard with map
 
 #### Breaking changes
