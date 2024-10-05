@@ -5,7 +5,7 @@
   "elixir_sense": {:git, "https://github.com/elixir-lsp/elixir_sense.git", "1a23c9c570c7e2344728aaedf9a79204601672d8", [ref: "1a23c9c570c7e2344728aaedf9a79204601672d8"]},
   "erl2ex_vendored": {:git, "https://github.com/elixir-lsp/erl2ex.git", "073ac6b9a44282e718b6050c7b27cedf9217a12a", [ref: "073ac6b9a44282e718b6050c7b27cedf9217a12a"]},
   "erlex_vendored": {:git, "https://github.com/elixir-lsp/erlex.git", "c0e448db27bcbb3f369861d13e3b0607ed37048d", [ref: "c0e448db27bcbb3f369861d13e3b0607ed37048d"]},
-  "jason_v": {:git, "https://github.com/elixir-lsp/jason.git", "c81537e2a5e1acacb915cf339fe400357e3c2aaa", [ref: "c81537e2a5e1acacb915cf339fe400357e3c2aaa"]},
+  "jason_v": {:git, "https://github.com/elixir-lsp/jason.git", "f1c10fa9c445cb9f300266122ef18671054b2330", [ref: "f1c10fa9c445cb9f300266122ef18671054b2330"]},
   "mix_task_archive_deps": {:git, "https://github.com/elixir-lsp/mix_task_archive_deps.git", "30fa76221def649286835685fec5d151be83c354", []},
   "nimble_parsec": {:hex, :nimble_parsec, "1.1.0", "3a6fca1550363552e54c216debb6a9e95bd8d32348938e13de5eda962c0d7f89", [:mix], [], "hexpm", "08eb32d66b706e913ff748f11694b17981c0b04a33ef470e33e11b3d3ac8f54b"},
   "patch": {:hex, :patch, "0.12.0", "2da8967d382bade20344a3e89d618bfba563b12d4ac93955468e830777f816b0", [:mix], [], "hexpm", "ffd0e9a7f2ad5054f37af84067ee88b1ad337308a1cb227e181e3967127b0235"},
