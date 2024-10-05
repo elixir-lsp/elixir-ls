@@ -811,48 +811,48 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
   end
 
   if Version.match?(System.version(), ">= 1.15.0") do
-  test "find references for metadata calls on variable or attribute",
-       %{trace: trace} do
-    buffer = """
-    defmodule A do
-      @callback abc() :: any()
-    end
-
-    defmodule B do
-      @behaviour A
-
-      def abc, do: :ok
-    end
-
-    defmodule X do
-      @b B
-      @b.abc()
-      def a do
-        b = B
-        b.abc()
+    test "find references for metadata calls on variable or attribute",
+         %{trace: trace} do
+      buffer = """
+      defmodule A do
+        @callback abc() :: any()
       end
+
+      defmodule B do
+        @behaviour A
+
+        def abc, do: :ok
+      end
+
+      defmodule X do
+        @b B
+        @b.abc()
+        def a do
+          b = B
+          b.abc()
+        end
+      end
+      """
+
+      references = Locator.references(buffer, 8, 8, trace)
+
+      assert [
+               %{
+                 range: %{
+                   end: %{column: 9, line: 13},
+                   start: %{column: 6, line: 13}
+                 },
+                 uri: nil
+               },
+               %{
+                 range: %{
+                   end: %{column: 10, line: 16},
+                   start: %{column: 7, line: 16}
+                 },
+                 uri: nil
+               }
+             ] = references
     end
-    """
-
-    references = Locator.references(buffer, 8, 8, trace)
-
-    assert [
-             %{
-               range: %{
-                 end: %{column: 9, line: 13},
-                 start: %{column: 6, line: 13}
-               },
-               uri: nil
-             },
-             %{
-               range: %{
-                 end: %{column: 10, line: 16},
-                 start: %{column: 7, line: 16}
-               },
-               uri: nil
-             }
-           ] = references
-  end
   end
 
   test "find references for the correct arity version for metadata calls with cursor over module",

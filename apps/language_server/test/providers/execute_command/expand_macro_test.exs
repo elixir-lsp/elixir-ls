@@ -39,16 +39,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
 
     if Version.match?(System.version(), ">= 1.15.0") do
       assert res == %{
-              "expand" => "abc\n",
-              "expandAll" => "abc\n",
-              "expandOnce" => "abc\n"
-            }
+               "expand" => "abc\n",
+               "expandAll" => "abc\n",
+               "expandOnce" => "abc\n"
+             }
     else
       assert res == %{
-              "expand" => "abc\n",
-              "expandAll" => "abc()\n",
-              "expandOnce" => "abc\n"
-            }
+               "expand" => "abc\n",
+               "expandAll" => "abc()\n",
+               "expandOnce" => "abc\n"
+             }
     end
   end
 
@@ -135,20 +135,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                   if Version.match?(System.version(), "< 1.14.0") do
                     "Application\n\n(\n  Application\n  @doc false\n  {:stop, 1}\n  nil\n)"
                   else
-                  """
-                  (
-                    require Application
-
+                    """
                     (
-                      Module.__put_attribute__(MyModule, :behaviour, Application, nil)
-                      Module.__put_attribute__(MyModule, :doc, {2, false}, nil)
+                      require Application
 
-                      def stop(_state) do
-                        :ok
-                      end
+                      (
+                        Module.__put_attribute__(MyModule, :behaviour, Application, nil)
+                        Module.__put_attribute__(MyModule, :doc, {2, false}, nil)
 
-                      Module.make_overridable(MyModule, Application)
-                  """
+                        def stop(_state) do
+                          :ok
+                        end
+
+                        Module.make_overridable(MyModule, Application)
+                    """
                   end
                 end)
                |> String.trim()

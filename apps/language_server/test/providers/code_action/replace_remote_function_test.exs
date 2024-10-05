@@ -184,41 +184,41 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "when aliased" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+      test "when aliased" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction
         RemoteFunction.fou(42)
       }
-        |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
+          |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction\nRemoteFunction.foo(42)"
-    end
+        assert result == "alias ElixirLS.Test.RemoteFunction\nRemoteFunction.foo(42)"
+      end
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "when aliased with a custom name" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+      test "when aliased with a custom name" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction, as: Remote
         Remote.fou(42)
       }
-        |> modify(message: message, suggestion: "Remote.foo", line: 1)
+          |> modify(message: message, suggestion: "Remote.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\nRemote.foo(42)"
-    end
+        assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\nRemote.foo(42)"
+      end
     end
   end
 
@@ -318,41 +318,41 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "when aliased" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+      test "when aliased" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction
         &RemoteFunction.fou/1
       }
-        |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
+          |> modify(message: message, suggestion: "RemoteFunction.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction\n&RemoteFunction.foo/1"
-    end
+        assert result == "alias ElixirLS.Test.RemoteFunction\n&RemoteFunction.foo/1"
+      end
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
-    test "when aliased with a custom name" do
-      message = """
-      ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+      test "when aliased with a custom name" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
 
-            * foo/1
-      """
+              * foo/1
+        """
 
-      {:ok, [result]} =
-        ~q{
+        {:ok, [result]} =
+          ~q{
         alias ElixirLS.Test.RemoteFunction, as: Remote
         &Remote.fou/1
       }
-        |> modify(message: message, suggestion: "Remote.foo", line: 1)
+          |> modify(message: message, suggestion: "Remote.foo", line: 1)
 
-      assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\n&Remote.foo/1"
+        assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\n&Remote.foo/1"
+      end
     end
-  end
   end
 end
