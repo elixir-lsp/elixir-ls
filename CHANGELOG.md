@@ -1,5 +1,27 @@
 ### Unreleased
 
+### v0.24.0: 6 October 2024
+
+#### Highlights
+
+- Local file code intelligence engine provided by `elixir_sense` library has been rewritten from scratch using new elixir 1.17 `Macro.Env` APIs. Those APIs has been backported to earlier elixir versions 1.13 - 1.16. This change means that ElixirLS is able to more accurately infer aliases/imports/requires, track variable/attribute definitions and usage, track calls, defined functions, modules and typespecs. It is now also able to expand some macros. All that information is used for completions, navigation to definition, finding references and other LSP operations requiring understanding of elixir code. Limitations of the new engine: local macros are not expanded, dynamically defined functions/modules/typespecs (including unquote fragments) are only partially supported.
+
+#### Improvements
+
+- vendored dialyxir updated to v1.4.4
+- vendored jason updated to v1.4.4
+- guard type inference is now smarter and better handle various guard expressions
+
+#### Fixes
+
+- fixed plugin detection issue affecting Ash plugin
+- fixed crash when analyzing types in guard with map
+
+#### Breaking changes
+
+- elixir 1.12 reached end of life and is no longer supported. ElixirLS will fail to start on versions lower than 1.13. Consider updating to 1.13+ or use v0.23
+- Deprecated ez archives release mode is no longer supported. It never worked with elixir 1.16+
+
 ### v0.23.0: 3 August 2024
 
 #### Improvements
