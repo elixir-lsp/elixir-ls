@@ -244,7 +244,7 @@ Additionally, although all bound variables are accessible in the expression eval
 
 ### Connecting to debug adapter
 
-It may be useful to connect to a running debug adapter node via OTP distribution. This enables inspecting the running application and remotely triggering debugged functions. In order to do so, set `ELS_ELIXIR_OPTS` in the launch configuration and pass in the appropriate node `name/sname` and `cookie`.
+It may be useful to connect to a running debug adapter node via OTP distribution. This enables inspecting the running application and remotely triggering debugged functions. In order to do so, set `ELS_ELIXIR_OPTS` environment variable in the launch configuration (VSCode only) or **Local setup script** and pass in the appropriate node `name/sname` and `cookie`.
 
 ```json
 {
@@ -256,7 +256,7 @@ It may be useful to connect to a running debug adapter node via OTP distribution
 
 ### Attaching to remote nodes
 
-ElixirLS debug adapter is capable of remote debugging OTP cluster nodes. This functionality relies on OTP debugger. In order to attach to a remote node `some@host` a special launch config with request `attach` is needed. The launch config must specify `remoteNode` as well as `cookie` and `name` or `sname` for local DAP node.
+ElixirLS debug adapter is capable of remote debugging OTP cluster nodes. This functionality relies on OTP debugger. In order to attach to a remote node `some@host` a special launch config with request `attach` is needed. The launch config must specify `remoteNode`. Remember to provide `ELS_ELIXIR_OPTS` environment variable in the launch configuration (VSCode only) or **Local setup script** with `cookie` and `name` or `sname` for local DAP node.
 
 ```json
 {
