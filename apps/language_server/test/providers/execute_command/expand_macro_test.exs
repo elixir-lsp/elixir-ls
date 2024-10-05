@@ -132,6 +132,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                   )
                   """
                 else
+                  if Version.match?(System.version(), "< 1.14.0") do
+                    "Application\n\n(\n  Application\n  @doc false\n  {:stop, 1}\n  nil\n)"
+                  else
                   """
                   (
                     require Application
@@ -146,6 +149,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
 
                       Module.make_overridable(MyModule, Application)
                   """
+                  end
                 end)
                |> String.trim()
     end
