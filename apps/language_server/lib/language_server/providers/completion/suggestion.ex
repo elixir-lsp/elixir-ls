@@ -118,14 +118,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
     {text_before, text_after} = Source.split_at(code, line, column)
 
-    metadata =
-      maybe_fix_autocomple_on_cursor(
-        metadata,
-        text_before,
-        text_after,
-        {line, column}
-      )
-
     # This works better than Code.Fragment.surround_context
     surround =
       case {prefix, suffix} do
@@ -148,62 +140,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
     }
 
     find(hint, env, metadata, cursor_context, module_store, options)
-  end
-
-  # Provides a last attempt to fix a couple of parse errors that
-  # commonly appear when working with autocomplete on functions
-  # without parens.
-  #
-  # Note: This will be removed after refactoring the parser to
-  # allow unparsable nodes in the AST.
-  defp maybe_fix_autocomple_on_cursor(%Metadata{error: nil} = meta, _, _, _) do
-    meta
-  end
-
-  defp maybe_fix_autocomple_on_cursor(metadata, text_before, text_after, {line, column}) do
-    # Fix incomplete call, e.g. cursor after `var.`
-    fix_incomplete_call = fn text_before, text_after ->
-      if String.ends_with?(text_before, ".") do
-        text_before <> "__fake_call__" <> text_after
-      end
-    end
-
-    # Fix incomplete kw, e.g. cursor after `option1: 1,`
-    fix_incomplete_kw = fn text_before, text_after ->
-      if Regex.match?(~r/\,\s*$/u, text_before) do
-        text_before <> "__fake_key__: :__fake_value__" <> text_after
-      end
-    end
-
-    # Fix incomplete kw key, e.g. cursor after `option1: 1, opt`
-    fix_incomplete_kw_key = fn text_before, text_after ->
-      if Regex.match?(~r/\,\s*([\p{L}_][\p{L}\p{N}_@]*[?!]?)?$/u, text_before) do
-        text_before <> ": :__fake_value__" <> text_after
-      end
-    end
-
-    # TODO this may no longer be needed
-    # only fix_incomplete_call has some tests depending on it
-    # on 1.17 no tests depend on those hacks
-    fixers = [
-      # fix_incomplete_call,
-      # fix_incomplete_kw,
-      # fix_incomplete_kw_key
-    ]
-
-    Enum.reduce_while(fixers, metadata, fn fun, metadata ->
-      new_buffer = fun.(text_before, text_after)
-
-      with true <- new_buffer != nil,
-           meta <- Parser.parse_string(new_buffer, false, false, {line, column}),
-           %Metadata{error: error} <- meta,
-           true <- error == nil do
-        {:halt, meta}
-      else
-        _ ->
-          {:cont, metadata}
-      end
-    end)
   end
 
   @doc """
