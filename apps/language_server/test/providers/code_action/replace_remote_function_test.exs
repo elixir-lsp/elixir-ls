@@ -183,6 +183,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       end
     end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "when aliased" do
       message = """
       ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
@@ -199,7 +200,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
 
       assert result == "alias ElixirLS.Test.RemoteFunction\nRemoteFunction.foo(42)"
     end
+    end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "when aliased with a custom name" do
       message = """
       ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
@@ -215,6 +218,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
         |> modify(message: message, suggestion: "Remote.foo", line: 1)
 
       assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\nRemote.foo(42)"
+    end
     end
   end
 
@@ -313,6 +317,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       end
     end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "when aliased" do
       message = """
       ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
@@ -329,7 +334,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
 
       assert result == "alias ElixirLS.Test.RemoteFunction\n&RemoteFunction.foo/1"
     end
+    end
 
+    if Version.match?(System.version(), ">= 1.15.0") do
     test "when aliased with a custom name" do
       message = """
       ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
@@ -346,5 +353,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
 
       assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\n&Remote.foo/1"
     end
+  end
   end
 end

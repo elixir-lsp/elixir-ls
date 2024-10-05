@@ -37,11 +37,19 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                }
              })
 
-    assert res == %{
-             "expand" => "abc\n",
-             "expandAll" => "abc\n",
-             "expandOnce" => "abc\n"
-           }
+    if Version.match?(System.version(), ">= 1.15.0") do
+      assert res == %{
+              "expand" => "abc\n",
+              "expandAll" => "abc\n",
+              "expandOnce" => "abc\n"
+            }
+    else
+      assert res == %{
+              "expand" => "abc\n",
+              "expandAll" => "abc()\n",
+              "expandOnce" => "abc\n"
+            }
+    end
   end
 
   test "expands macro" do

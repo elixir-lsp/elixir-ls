@@ -2127,7 +2127,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
         |> Enum.filter(fn s -> s.type == :attribute end)
         |> Enum.map(fn %{name: name} -> name end)
 
-      assert list == ["@macrocallback", "@moduledoc", "@myattr"]
+      if Version.match?(System.version(), ">= 1.15.0") do
+        assert list == ["@macrocallback", "@moduledoc", "@myattr"]
+      else
+        assert list == ["@macrocallback", "@moduledoc"]
+      end
 
       list =
         Suggestion.suggestions(buffer, 5, 7)

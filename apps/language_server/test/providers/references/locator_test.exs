@@ -810,6 +810,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     assert [] == references
   end
 
+  if Version.match?(System.version(), ">= 1.15.0") do
   test "find references for metadata calls on variable or attribute",
        %{trace: trace} do
     buffer = """
@@ -851,6 +852,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
                uri: nil
              }
            ] = references
+  end
   end
 
   test "find references for the correct arity version for metadata calls with cursor over module",
