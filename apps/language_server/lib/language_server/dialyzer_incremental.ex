@@ -226,7 +226,6 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
           :language_server,
           :debug_adapter,
           :elixir_ls_utils,
-          :mix_task_archive_deps,
           :jason_v,
           :dialyxir_vendored,
           :path_glob_vendored,

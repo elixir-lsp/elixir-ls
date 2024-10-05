@@ -67,7 +67,7 @@ defmodule ElixirLS.LanguageServer do
 
     Mix.shell(ElixirLS.LanguageServer.MixShell)
 
-    Launch.unload_not_needed_apps([:nimble_parsec, :mix_task_archive_deps, :debug_adapter])
+    Launch.unload_not_needed_apps([:nimble_parsec, :debug_adapter])
 
     :persistent_term.put(
       :language_server_lib_dir,

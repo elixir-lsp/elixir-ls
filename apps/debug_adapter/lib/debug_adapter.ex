@@ -38,7 +38,6 @@ defmodule ElixirLS.DebugAdapter do
 
     Launch.unload_not_needed_apps([
       :nimble_parsec,
-      :mix_task_archive_deps,
       :language_server,
       :dialyxir_vendored,
       :path_glob_vendored,

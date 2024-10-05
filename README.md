@@ -436,18 +436,6 @@ MIX_ENV=prod mix elixir_ls.release2 -o <release_dir>
 
 This copies language server and debugger adapter launch scripts to the `<release_dir>` and includes a `VERSION` manifest file. The launch scripts install a release specified by the version manifest via `Mix.install` and then launch it. This ensures that ElixirLS is built with the correct combination of Elixir and OTP.
 
-### Deprecated `.ez` archives release
-
-```bash
-mix deps.get
-MIX_ENV=prod mix compile
-MIX_ENV=prod mix elixir_ls.release -o <release_dir>
-```
-
-This builds the language server and debugger as a set of `.ez` archives and creates `.sh` and `.bat` scripts to launch them.
-
-If you're packaging these archives in an IDE plugin, be sure to build using the minimum supported OTP version. This will provide the best backwards compatibility.
-
 ### Local setup
 
 This section provides additional information on how to set up the ElixirLS locally.
