@@ -2969,7 +2969,6 @@ defmodule ElixirLS.DebugAdapter.Server do
               type: ElixirSense.Core.Binding.from_var(binding_value)
             }
         end
-        |> IO.inspect()
       end
 
     %{env | vars: vars}
