@@ -4,7 +4,8 @@
 
 #### Highlights
 
-- Local file code intelligence engine provided by `elixir_sense` library has been rewritten from scratch using new elixir 1.17 `Macro.Env` APIs. Those APIs has been backported to earlier elixir versions 1.13 - 1.16. This change means that ElixirLS is able to more accurately infer aliases/imports/requires, track variable/attribute definitions and usage, track calls, defined functions, modules and typespecs. It is now also able to expand some macros. All that information is used for completions, navigation to definition, finding references and other LSP operations requiring understanding of elixir code. Limitations of the new engine: local macros are not expanded, dynamically defined functions/modules/typespecs (including unquote fragments) are only partially supported.
+- Local file code intelligence engine provided by `elixir_sense` library has been rewritten from scratch using new elixir 1.17 `Macro.Env` APIs. The new APIs has been backported to earlier elixir versions 1.13 - 1.16. The new engine expands and traverses elixir AST in a way that mirrors the elixir compiler behavior. As a result, ElixirLS is able to more accurately infer aliases/imports/requires, track variable/attribute definitions and usage, track calls, defined functions, modules and typespecs. It is now also able to expand some macros. All that information is used for completions, navigation to definition, finding references and other LSP operations requiring understanding of elixir code.  
+**Limitations**: The new engine does not expand local macros, and support for dynamically defined functions, modules, and typespecs (including those with unquote fragments) is partial.
 
 #### Improvements
 
