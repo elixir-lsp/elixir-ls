@@ -157,6 +157,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
 
   @spec expand_alias(SourceFile.t(), [atom()], non_neg_integer()) :: {:ok, atom()} | :error
   defp expand_alias(source_file, module_alias, line_number) do
+    # TODO use Macro.Env
     with {:ok, aliases} <- aliases_at(source_file, line_number) do
       aliases
       |> Enum.map(fn {module, aliased} ->

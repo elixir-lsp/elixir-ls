@@ -69,6 +69,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
 
   defp expand({{:attribute, _} = type, hint}, env, aliases) do
     # TODO Binding should return expanded aliases
+    # TODO use Macro.Env
     case Binding.expand(env, type) do
       {:atom, module} -> {Introspection.expand_alias(module, aliases), hint}
       _ -> {nil, ""}
@@ -77,6 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
 
   defp expand({{:variable, _, _} = type, hint}, env, aliases) do
     # TODO Binding should return expanded aliases
+    # TODO use Macro.Env
     case Binding.expand(env, type) do
       {:atom, module} -> {Introspection.expand_alias(module, aliases), hint}
       _ -> {nil, ""}

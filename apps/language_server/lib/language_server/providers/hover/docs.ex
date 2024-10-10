@@ -657,6 +657,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   end
 
   def expand({{:atom, module}, func}, aliases) do
+    # TODO use Macro.Env
     {Introspection.expand_alias(module, aliases), func}
   end
 

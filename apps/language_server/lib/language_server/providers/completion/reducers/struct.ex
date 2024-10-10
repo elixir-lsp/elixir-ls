@@ -83,6 +83,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
           case {type, elixir_prefix} do
             {{:atom, mod}, false} ->
               # which_struct returns not expanded aliases
+              # TODO use Macro.Env
               {:atom, Introspection.expand_alias(mod, aliases)}
 
             _ ->

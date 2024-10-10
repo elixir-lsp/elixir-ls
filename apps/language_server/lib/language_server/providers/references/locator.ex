@@ -269,7 +269,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
       uri: nil,
       range: %{
         start: %{line: line, column: column},
-        end: %{line: line, column: column + String.length(subject)}
+        end: %{line: line, column: if(column != nil, do: column + String.length(subject))}
       }
     }
   end
@@ -279,6 +279,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
 
   defp expand({type, func}, env, _module, aliases) do
     case Binding.expand(env, type) do
+      # TODO use Macro.Env
       {:atom, module} -> {Introspection.expand_alias(module, aliases), func}
       _ -> {nil, nil}
     end

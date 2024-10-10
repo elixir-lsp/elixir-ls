@@ -77,6 +77,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
         module =
           case Binding.expand(binding_env, module_type) do
             {:atom, module} ->
+              # TODO use Macro.Env
               Introspection.expand_alias(module, env.aliases)
 
             _ ->
