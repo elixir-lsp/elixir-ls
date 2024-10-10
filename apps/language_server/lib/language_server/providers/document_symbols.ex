@@ -190,13 +190,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
       type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
 
+      name_str =
+        try do
+          to_string(name)
+        rescue
+          _ -> "__unknown__"
+        end
+
       %Info{
         type: type,
-        name: "#{name}/#{length(args || [])}",
+        name: "#{name_str}/#{length(args || [])}",
         detail: "@#{type_kind}",
         location: location,
         selection_location: type_head_location,
-        symbol: to_string(name),
+        symbol: name_str,
         children: []
       }
     end
@@ -220,10 +227,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
          {defname, location, [{:when, _, [{name, head_location, args} = _fn_head, _]} | _]}
        )
        when defname in @defs do
+    name_str =
+      try do
+        to_string(name)
+      rescue
+        _ -> "__unknown__"
+      end
+
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
-      symbol: to_string(name),
-      name: "#{to_string(name)}/#{length(args || [])}",
+      symbol: name_str,
+      name: "#{name_str}/#{length(args || [])}",
       detail: defname,
       location: location,
       selection_location: head_location,
@@ -237,10 +251,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
          {defname, location, [{name, head_location, args} = _fn_head | _]}
        )
        when defname in @defs do
+    name_str =
+      try do
+        to_string(name)
+      rescue
+        _ -> "__unknown__"
+      end
+
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
-      symbol: to_string(name),
-      name: "#{to_string(name)}/#{length(args || [])}",
+      symbol: name_str,
+      name: "#{name_str}/#{length(args || [])}",
       detail: defname,
       location: location,
       selection_location: head_location,
