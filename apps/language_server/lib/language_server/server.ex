@@ -1270,10 +1270,10 @@ defmodule ElixirLS.LanguageServer.Server do
           func.()
         rescue
           e in InvalidParamError ->
-            {:error, :invalid_params, e.message, true}
+            {:error, :invalid_params, e.message, false}
 
           e in ContentModifiedError ->
-            {:error, :content_modified, e.message, true}
+            {:error, :content_modified, e.message, false}
         end
 
       GenServer.call(parent, {:request_finished, id, result}, :infinity)
