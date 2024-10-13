@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.JsonRpc
+  require Logger
 
   def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir, mix_project?)
       when is_binary(project_dir) do
@@ -77,8 +78,20 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     file_path = SourceFile.Path.absolute_from_uri(file_uri, project_dir)
 
     Enum.any?(inputs, fn input_glob ->
-      glob = Path.join(formatter_exs_dir, input_glob)
-      PathGlobVendored.match?(file_path, glob, match_dot: true)
+      try do
+        glob = Path.join(formatter_exs_dir, input_glob)
+        PathGlobVendored.match?(file_path, glob, match_dot: true)
+      rescue
+        error ->
+          # Path.join crashes in case there is junk in input
+          error_msg = Exception.format(:error, error, __STACKTRACE__)
+
+          Logger.error(
+            "Unable to expand .formatter.exs input #{inspect(input_glob)}: #{error_msg}"
+          )
+
+          false
+      end
     end)
   end
 
