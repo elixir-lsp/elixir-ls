@@ -298,6 +298,20 @@ defmodule ElixirLS.LanguageServer.Parser do
       GenServer.reply(from, :error)
     end
 
+    if reason != :normal do
+      ElixirLS.LanguageServer.Server.do_sanity_check()
+      message = Exception.format_exit(reason)
+
+      JsonRpc.telemetry(
+        "lsp_server_error",
+        %{
+          "elixir_ls.lsp_process" => inspect(__MODULE__),
+          "elixir_ls.lsp_server_error" => "do_parse crashed: " <> message
+        },
+        %{}
+      )
+    end
+
     state = %{state | parse_pids: updated_parse_pids, parse_uris: updated_parse_uris}
 
     {:noreply, state}
