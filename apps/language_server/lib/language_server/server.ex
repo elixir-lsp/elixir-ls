@@ -887,16 +887,6 @@ defmodule ElixirLS.LanguageServer.Server do
       e in InvalidParamError ->
         JsonRpc.respond_with_error(id, :invalid_params, e.message)
 
-        JsonRpc.telemetry(
-          "lsp_request_error",
-          %{
-            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-            "elixir_ls.lsp_error" => :invalid_params,
-            "elixir_ls.lsp_error_message" => e.message
-          },
-          %{}
-        )
-
         state
     catch
       kind, payload ->
