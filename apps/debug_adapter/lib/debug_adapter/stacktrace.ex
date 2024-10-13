@@ -93,7 +93,7 @@ defmodule ElixirLS.DebugAdapter.Stacktrace do
             Process.exit(meta_query_pid, :kill)
 
             Output.debugger_console(
-              "Meta process down fo pid #{inspect(pid)}: #{inspect(reason)}\n"
+              "Meta process down for pid #{inspect(pid)}: #{inspect(reason)}\n"
             )
 
             []
