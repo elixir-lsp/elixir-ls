@@ -100,7 +100,7 @@ defmodule ElixirLS.DebugAdapter.Stacktrace do
         after
           5000 ->
             Process.exit(meta_query_pid, :kill)
-            Process.demonitor(ref, false)
+            Process.demonitor(ref, [:flush])
             Output.debugger_console("Timed out while obtaining meta for pid #{inspect(pid)}\n")
             []
         end
