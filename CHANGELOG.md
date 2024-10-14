@@ -1,5 +1,14 @@
 ### Unreleased
 
+### v0.24.1: 14 October 2024
+
+#### Fixes
+
+- Fixed references crash on variables used in macro
+- Improved document symbols stability on code with unquote fragments
+- Fixed DAP crash when obtaining meta PID timeouts
+- Fixed crash when rendering markdown docs from edoc
+
 ### v0.24.0: 6 October 2024
 
 #### Highlights
