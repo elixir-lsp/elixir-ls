@@ -431,6 +431,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
     end
   end
 
+  def get_stop_tokens_in_token_pairs([], _token_pairs), do: %{}
   def get_stop_tokens_in_token_pairs(tokens, token_pairs) do
     tokens_next = tl(tokens) ++ [nil]
     tokens_prev = [nil | Enum.slice(tokens, 0..-2//1)]
