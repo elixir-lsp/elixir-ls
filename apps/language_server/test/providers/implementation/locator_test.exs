@@ -709,7 +709,16 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
     end
     """
 
-    assert [%Location{type: :function, file: nil, line: 2, column: 3}] ==
+    assert [
+             %Location{
+               type: :function,
+               file: nil,
+               line: 2,
+               column: 3,
+               end_line: 2,
+               end_column: 34
+             }
+           ] ==
              Locator.implementations(buffer, 6, 15)
   end
 

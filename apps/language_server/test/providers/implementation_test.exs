@@ -33,7 +33,7 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
     assert range ==
              %{
                "start" => %{"line" => 5, "character" => 0},
-               "end" => %{"line" => 5, "character" => 0}
+               "end" => %{"line" => 13, "character" => 3}
              }
   end
 end

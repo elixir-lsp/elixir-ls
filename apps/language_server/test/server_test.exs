@@ -1357,7 +1357,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert_receive(
           response(1, %{
             "range" => %{
-              "end" => %{"character" => 0, "line" => 0},
+              "end" => %{"character" => 3, "line" => 3},
               "start" => %{"character" => 0, "line" => 0}
             },
             "uri" => ^uri

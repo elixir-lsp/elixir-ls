@@ -11,18 +11,20 @@ defmodule ElixirLS.LanguageServer.Location do
 
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Parser
-  alias ElixirSense.Core.Source
-  alias ElixirSense.Core.State.ModFunInfo
+  alias ElixirSense.Core.State.{ModFunInfo, TypeInfo}
   alias ElixirSense.Core.Normalized.Code, as: CodeNormalized
   require ElixirSense.Core.Introspection, as: Introspection
+  alias ElixirLS.LanguageServer.Location.Erl
 
   @type t :: %__MODULE__{
           type: :module | :function | :variable | :typespec | :macro | :attribute,
           file: String.t() | nil,
           line: pos_integer,
-          column: pos_integer
+          column: pos_integer,
+          end_line: pos_integer,
+          end_column: pos_integer
         }
-  defstruct [:type, :file, :line, :column]
+  defstruct [:type, :file, :line, :column, :end_line, :end_column]
 
   @spec find_mod_fun_source(module, atom, non_neg_integer | {:gte, non_neg_integer} | :any) ::
           t() | nil
@@ -111,69 +113,58 @@ defmodule ElixirLS.LanguageServer.Location do
         # module docs point to the begin of a file
         # we get better results by regex
         # the downside is we don't handle arity well
-        find_fun_position_in_erl_file(file, fun)
+        # TODO check if this is still the case on OTP 27+
+        if fun != nil do
+          range = Erl.find_fun_range(file, fun)
+
+          if range do
+            {range, :function}
+          end
+        else
+          range = Erl.find_module_range(file, mod)
+
+          if range do
+            {range, :module}
+          end
+        end
       else
         %Metadata{mods_funs_to_positions: mods_funs_to_positions} =
           Parser.parse_file(file, false, false, nil)
 
         case get_function_position_using_metadata(mod, fun, arity, mods_funs_to_positions) do
-          %ModFunInfo{} = mi ->
-            # assume function head or first clause is last in metadata
-            {List.last(mi.positions), ModFunInfo.get_category(mi)}
-
           nil ->
             # not found in metadata, fall back to docs
             get_function_position_using_docs(mod, fun, arity)
+
+          %ModFunInfo{} = info ->
+            {info_to_range(info), ModFunInfo.get_category(info)}
         end
       end
 
     case result do
+      {{{line, column}, {end_line, end_column}}, category} ->
+        %__MODULE__{
+          type: category,
+          file: file,
+          line: line,
+          column: column,
+          end_line: end_line,
+          end_column: end_column
+        }
+
+      # TODO remove
       {{line, column}, category} ->
-        %__MODULE__{type: category, file: file, line: line, column: column}
+        %__MODULE__{
+          type: category,
+          file: file,
+          line: line,
+          column: column,
+          end_line: line,
+          end_column: column
+        }
 
       _ ->
         nil
-    end
-  end
-
-  defp find_fun_position_in_erl_file(file, nil) do
-    case find_line_by_regex(file, ~r/^-module/u) do
-      nil -> nil
-      position -> {position, :module}
-    end
-  end
-
-  defp find_fun_position_in_erl_file(file, name) do
-    escaped =
-      name
-      |> Atom.to_string()
-      |> Regex.escape()
-
-    case find_line_by_regex(file, ~r/^#{escaped}\b\(/u) do
-      nil -> nil
-      position -> {position, :function}
-    end
-  end
-
-  defp find_type_position_in_erl_file(file, name) do
-    escaped =
-      name
-      |> Atom.to_string()
-      |> Regex.escape()
-
-    find_line_by_regex(file, ~r/^-(typep?|opaque)\s#{escaped}\b/u)
-  end
-
-  defp find_line_by_regex(file, regex) do
-    index =
-      file
-      |> File.read!()
-      |> Source.split_lines()
-      |> Enum.find_index(&String.match?(&1, regex))
-
-    case index do
-      nil -> nil
-      i -> {i + 1, 1}
     end
   end
 
@@ -182,15 +173,33 @@ defmodule ElixirLS.LanguageServer.Location do
   defp find_type_position({mod, file}, name, arity) do
     result =
       if String.ends_with?(file, ".erl") do
-        find_type_position_in_erl_file(file, name)
+        Erl.find_type_range(file, name)
       else
         file_metadata = Parser.parse_file(file, false, false, nil)
         get_type_position(file_metadata, mod, name, arity)
       end
 
     case result do
+      {{line, column}, {end_line, end_column}} ->
+        %__MODULE__{
+          type: :typespec,
+          file: file,
+          line: line,
+          column: column,
+          end_line: end_line,
+          end_column: end_column
+        }
+
+      # TODO remove
       {line, column} ->
-        %__MODULE__{type: :typespec, file: file, line: line, column: column}
+        %__MODULE__{
+          type: :typespec,
+          file: file,
+          line: line,
+          column: column,
+          end_line: line,
+          end_column: column
+        }
 
       _ ->
         nil
@@ -242,27 +251,26 @@ defmodule ElixirLS.LanguageServer.Location do
             false
         end)
         |> Enum.map(fn
-          {{category, _function, _arity}, line, _, _, _} when is_integer(line) ->
-            {{line, 1}, category}
-
-          {{category, _function, _arity}, keyword, _, _, _} when is_list(keyword) ->
-            {{Keyword.get(keyword, :location, 1), 1}, category}
+          {{category, _function, _arity}, anno, _, _, _} ->
+            {anno_to_range(anno), category}
         end)
-        |> Enum.min_by(fn {{line, 1}, _category} -> line end, &<=/2, fn -> nil end)
+        |> Enum.min_by(fn {{position, _end_position}, _category} -> position end, &<=/2, fn ->
+          nil
+        end)
     end
   end
 
-  def get_type_position(metadata, module, type, arity) do
+  defp get_type_position(metadata, module, type, arity) do
     case get_type_position_using_metadata(module, type, arity, metadata.types) do
       nil ->
         get_type_position_using_docs(module, type, arity)
 
-      %ElixirSense.Core.State.TypeInfo{positions: positions} ->
-        List.last(positions)
+      %TypeInfo{} = info ->
+        info_to_range(info)
     end
   end
 
-  def get_type_position_using_docs(module, type_name, arity) do
+  defp get_type_position_using_docs(module, type_name, arity) do
     case CodeNormalized.fetch_docs(module) do
       {:error, _} ->
         nil
@@ -270,44 +278,31 @@ defmodule ElixirLS.LanguageServer.Location do
       {_, _, _, _, _, _, docs} ->
         docs
         |> Enum.filter(fn
-          {{:type, ^type_name, doc_arity}, _line, _, _, _meta} ->
+          {{:type, ^type_name, doc_arity}, _, _, _, _meta} ->
             Introspection.matches_arity?(doc_arity, arity)
 
           _ ->
             false
         end)
         |> Enum.map(fn
-          {{_category, _function, _arity}, line, _, _, _} when is_integer(line) ->
-            {line, 1}
-
-          {{_category, _function, _arity}, keyword, _, _, _} when is_list(keyword) ->
-            {Keyword.get(keyword, :location, 1), 1}
+          {{_category, _function, _arity}, anno, _, _, _} ->
+            anno_to_range(anno)
         end)
-        |> Enum.min_by(fn {line, 1} -> line end, &<=/2, fn -> nil end)
+        |> Enum.min_by(fn {position, _end_position} -> position end, &<=/2, fn -> nil end)
     end
   end
 
-  def get_function_position_using_metadata(
-        mod,
-        fun,
-        call_arity,
-        mods_funs_to_positions,
-        predicate \\ fn _ -> true end
-      )
-
+  # TODO move to Metadata
   def get_function_position_using_metadata(
         mod,
         nil,
         _call_arity,
-        mods_funs_to_positions,
-        predicate
+        mods_funs_to_positions
       ) do
     mods_funs_to_positions
     |> Enum.find_value(fn
       {{^mod, nil, nil}, fun_info} ->
-        if predicate.(fun_info) do
-          fun_info
-        end
+        fun_info
 
       _ ->
         false
@@ -318,8 +313,7 @@ defmodule ElixirLS.LanguageServer.Location do
         mod,
         fun,
         call_arity,
-        mods_funs_to_positions,
-        predicate
+        mods_funs_to_positions
       ) do
     mods_funs_to_positions
     |> Enum.filter(fn
@@ -327,8 +321,7 @@ defmodule ElixirLS.LanguageServer.Location do
         # assume function head is first in code and last in metadata
         default_args = fun_info.params |> Enum.at(-1) |> Introspection.count_defaults()
 
-        Introspection.matches_arity_with_defaults?(fn_arity, default_args, call_arity) and
-          predicate.(fun_info)
+        Introspection.matches_arity_with_defaults?(fn_arity, default_args, call_arity)
 
       _ ->
         false
@@ -336,12 +329,13 @@ defmodule ElixirLS.LanguageServer.Location do
     |> min_by_line
   end
 
-  def get_type_position_using_metadata(mod, fun, call_arity, types, predicate \\ fn _ -> true end) do
+  # TODO move to Metadata
+  def get_type_position_using_metadata(mod, fun, call_arity, types) do
     types
     |> Enum.filter(fn
-      {{^mod, ^fun, type_arity}, type_info}
+      {{^mod, ^fun, type_arity}, _type_info}
       when not is_nil(type_arity) and Introspection.matches_arity?(type_arity, call_arity) ->
-        predicate.(type_info)
+        true
 
       _ ->
         false
@@ -364,5 +358,31 @@ defmodule ElixirLS.LanguageServer.Location do
       {_, info} -> info
       nil -> nil
     end
+  end
+
+  defp anno_to_range(anno) do
+    line = :erl_anno.line(anno)
+
+    column =
+      case :erl_anno.column(anno) do
+        :undefined -> 1
+        column -> column
+      end
+
+    {end_line, end_column} =
+      case :erl_anno.end_location(anno) do
+        :undefined -> {line, column}
+        {line, column} -> {line, column}
+        line -> {line, 1}
+      end
+
+    {{line, column}, {end_line, end_column}}
+  end
+
+  def info_to_range(%{positions: positions, end_positions: end_positions}) do
+    begin_position = List.last(positions)
+    end_position = List.last(end_positions) || begin_position
+
+    {begin_position, end_position}
   end
 end

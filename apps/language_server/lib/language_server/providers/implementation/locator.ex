@@ -181,27 +181,39 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
     metadata_implementations_locations =
       metadata_implementations
       |> Enum.map(fn module ->
-        {{line, column}, info} =
+        info =
           metadata.mods_funs_to_positions
           |> Enum.find_value(fn
             {{^module, ^maybe_callback, _}, info} when is_nil(maybe_callback) ->
-              {List.last(info.positions), info}
+              info
 
             {{^module, ^maybe_callback, a}, info} when not is_nil(a) ->
               defaults = info.params |> List.last() |> Introspection.count_defaults()
 
               if Introspection.matches_arity_with_defaults?(a, defaults, arity) do
-                {List.last(info.positions), info}
+                info
               end
 
             _ ->
               nil
           end)
 
-        kind = ModFunInfo.get_category(info)
+        if info do
+          kind = ModFunInfo.get_category(info)
+          {{line, column}, {end_line, end_column}} = Location.info_to_range(info)
 
-        {module, %Location{type: kind, file: nil, line: line, column: column}}
+          {module,
+           %Location{
+             type: kind,
+             file: nil,
+             line: line,
+             column: column,
+             end_line: end_line,
+             end_column: end_column
+           }}
+        end
       end)
+      |> Enum.reject(&is_nil/1)
 
     introspection_implementations_locations =
       Behaviours.get_all_behaviour_implementations(behaviour)
@@ -322,11 +334,19 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
               visited
             )
 
-          %ModFunInfo{positions: positions, type: :def} ->
+          %ModFunInfo{type: :def} = info ->
             # find_delegatee_location(mod, fun, arity, visited)
             if length(visited) > 1 do
-              {line, column} = List.last(positions)
-              %Location{type: :function, file: nil, line: line, column: column}
+              {{line, column}, {end_line, end_column}} = Location.info_to_range(info)
+
+              %Location{
+                type: :function,
+                file: nil,
+                line: line,
+                column: column,
+                end_line: end_line,
+                end_column: end_column
+              }
             end
 
           _ ->

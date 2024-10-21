@@ -11,7 +11,13 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
   require ElixirLS.LanguageServer.Protocol, as: Protocol
 
   def new(
-        %ElixirLS.LanguageServer.Location{file: file, line: line, column: column},
+        %ElixirLS.LanguageServer.Location{
+          file: file,
+          line: line,
+          column: column,
+          end_line: end_line,
+          end_column: end_column
+        },
         current_file_uri,
         current_file_text,
         project_dir
@@ -29,10 +35,11 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
       end
 
     {line, column} = SourceFile.elixir_position_to_lsp(text, {line, column})
+    {end_line, end_column} = SourceFile.elixir_position_to_lsp(text, {end_line, end_column})
 
     %Protocol.Location{
       uri: uri,
-      range: Protocol.range(line, column, line, column)
+      range: Protocol.range(line, column, end_line, end_column)
     }
   end
 end

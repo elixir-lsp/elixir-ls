@@ -32,11 +32,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      %Location{type: :module, file: file, line: line, column: column} =
+      %Location{type: :module, file: file} =
+        location =
         Locator.definition(buffer, 5, 15)
 
       assert file =~ "language_server/test/support/plugins/phoenix/page_controller.ex"
-      assert read_line(file, {line, column}) =~ "ExampleWeb.PageController"
+      assert read_range(location) =~ "ExampleWeb.PageController"
     end
   end
 
@@ -50,11 +51,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :module, file: file, line: line, column: column} =
+    %Location{type: :module, file: file} =
+      location =
       Locator.definition(buffer, 4, 12)
 
     assert file =~ "language_server/test/support/use_example.ex"
-    assert read_line(file, {line, column}) =~ "ElixirSenseExample.UseExample"
+    assert read_range(location) =~ "ElixirSenseExample.UseExample"
   end
 
   @tag requires_source: true
@@ -65,11 +67,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :macro, file: file, line: line, column: column} =
+    %Location{type: :macro, file: file} =
+      location =
       Locator.definition(buffer, 1, 2)
 
     assert file =~ "lib/elixir/lib/kernel.ex"
-    assert read_line(file, {line, column}) =~ "defmodule("
+    assert read_range(location) =~ "defmodule("
   end
 
   @tag requires_source: true
@@ -81,11 +84,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :macro, file: file, line: line, column: column} =
+    %Location{type: :macro, file: file} =
+      location =
       Locator.definition(buffer, 2, 4)
 
     assert file =~ "lib/elixir/lib/kernel/special_forms.ex"
-    assert read_line(file, {line, column}) =~ "import"
+    assert read_range(location) =~ "import"
   end
 
   test "find definition of functions from imports" do
@@ -97,11 +101,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 4)
 
     assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "function_arity_zero"
+    assert read_range(location) =~ "function_arity_zero"
   end
 
   test "find definition of functions from current buffer imports" do
@@ -133,11 +138,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 11)
 
     assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "function_arity_one"
+    assert read_range(location) =~ "function_arity_one"
   end
 
   test "find definition of functions from current buffer aliases" do
@@ -169,11 +175,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :macro, file: file, line: line, column: column} =
+    %Location{type: :macro, file: file} =
+      location =
       Locator.definition(buffer, 3, 13)
 
     assert file =~ "language_server/test/support/behaviour_with_macrocallbacks.ex"
-    assert read_line(file, {line, column}) =~ "some"
+    assert read_range(location) =~ "some"
   end
 
   test "find definition of macros from current buffer requires" do
@@ -207,11 +214,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 17)
 
     assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "function_arity_one"
+    assert read_range(location) =~ "function_arity_one"
   end
 
   test "find definition of functions captured from aliased modules" do
@@ -223,11 +231,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 17)
 
     assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "function_arity_one"
+    assert read_range(location) =~ "function_arity_one"
   end
 
   test "find function definition macro generated" do
@@ -239,11 +248,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 12)
 
     assert file =~ "language_server/test/support/macro_generated.ex"
-    assert read_line(file, {line, column}) =~ "ElixirSenseExample.Macros.go"
+    assert read_range(location) =~ "ElixirSenseExample.Macros.go"
   end
 
   test "find metadata module" do
@@ -272,12 +282,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :module, file: file, line: line, column: column} =
+    assert %Location{type: :module, file: file} =
+             location =
              Locator.definition(buffer, 3, 19)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
 
-    assert read_line(file, {line, column}) =~
+    assert read_range(location) =~
              "defmodule ElixirSenseExample.FunctionsWithDefaultArgs do"
   end
 
@@ -291,11 +302,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :module, file: file, line: line, column: column} =
+    assert %Location{type: :module, file: file} =
+             location =
              Locator.definition(buffer, 3, 19)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "@moduledoc \"example module\""
+    assert read_range(location) =~ "@moduledoc \"example module\""
   end
 
   test "find definition for the correct arity of function - on fn call" do
@@ -352,11 +364,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 34)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "my_func(a, b \\\\ \"\")"
+    assert read_range(location) =~ "my_func(a, b \\\\ \"\")"
   end
 
   @tag capture_log: true
@@ -368,11 +381,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 20)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "def my_func,"
+    assert read_range(location) =~ "def my_func,"
 
     buffer = """
     defmodule MyModule do
@@ -381,11 +395,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 20)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "def my_func(a, b \\\\ \"\")"
+    assert read_range(location) =~ "def my_func(a, b \\\\ \"\")"
 
     buffer = """
     defmodule MyModule do
@@ -394,11 +409,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 20)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "def my_func(1, 2, 3)"
+    assert read_range(location) =~ "def my_func(1, 2, 3)"
 
     buffer = """
     defmodule MyModule do
@@ -421,11 +437,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 34)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "@doc \"2 params version\""
+    assert read_range(location) =~ "@doc \"2 params version\""
   end
 
   @tag capture_log: true
@@ -437,11 +454,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 20)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "@doc \"no params version\""
+    assert read_range(location) =~ "@doc \"no params version\""
 
     buffer = """
     defmodule MyModule do
@@ -450,11 +468,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 20)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "@doc \"2 params version\""
+    assert read_range(location) =~ "@doc \"2 params version\""
 
     buffer = """
     defmodule MyModule do
@@ -463,11 +482,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 20)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "@doc \"3 params version\""
+    assert read_range(location) =~ "@doc \"3 params version\""
 
     buffer = """
     defmodule MyModule do
@@ -490,11 +510,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :function, file: file, line: line, column: column} =
+    assert %Location{type: :function, file: file} =
+             location =
              Locator.definition(buffer, 3, 21)
 
     assert file =~ "language_server/test/support/functions_with_default_args.ex"
-    assert read_line(file, {line, column}) =~ "my_func(a, b \\\\ \"\")"
+    assert read_range(location) =~ "my_func(a, b \\\\ \"\")"
   end
 
   test "find definition for the correct arity of function - on fn call with pipe" do
@@ -553,11 +574,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 11)
 
     assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "delegated_function"
+    assert read_range(location) =~ "delegated_function"
   end
 
   test "find definition of modules" do
@@ -569,11 +591,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :module, file: file, line: line, column: column} =
+    %Location{type: :module, file: file} =
+      location =
       Locator.definition(buffer, 3, 23)
 
     assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "ElixirSenseExample.ModuleWithFunctions do"
+    assert read_range(location) =~ "ElixirSenseExample.ModuleWithFunctions do"
   end
 
   test "find definition of modules in multi alias syntax" do
@@ -602,10 +625,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :module, file: file, line: 20, column: 1} =
+    %Location{type: :module, file: file} =
+      location =
       Locator.definition(buffer, 3, 7)
 
     assert file =~ "/src/lists.erl"
+
+    assert read_range(location) =~ "lists"
   end
 
   test "find definition of remote erlang functions" do
@@ -618,11 +644,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 15)
 
     assert file =~ "/src/lists.erl"
-    assert read_line(file, {line, column}) =~ "duplicate(N, X)"
+    assert read_range(location) =~ "duplicate"
   end
 
   test "find definition of remote erlang functions from preloaded module" do
@@ -635,11 +662,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :function, file: file, line: line, column: column} =
+    %Location{type: :function, file: file} =
+      location =
       Locator.definition(buffer, 3, 15)
 
     assert file =~ "/src/erlang.erl"
-    assert read_line(file, {line, column}) =~ "start_timer(_Time, _Dest, _Msg)"
+    assert read_range(location) =~ "start_timer"
   end
 
   test "non existing modules" do
@@ -683,7 +711,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{line: 20, column: 1, type: :module, file: file} =
+    assert %Location{line: 20, column: 9, end_line: 20, end_column: 15, type: :module, file: file} =
              Locator.definition(buffer, 2, 5)
 
     assert file =~ "/src/erlang.erl"
@@ -704,11 +732,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %{column: column, file: file, line: line, type: :function} =
+    assert %Location{file: file} =
+             location =
              Locator.definition(buffer, 2, 42)
 
     assert file =~ "language_server/test/support/module_with_functions.ex"
-    assert read_line(file, {line, column}) =~ "ElixirSenseExample.ModuleWithFunctions do"
+    assert read_range(location) =~ "ElixirSenseExample.ModuleWithFunctions do"
 
     assert %Location{type: :function} = Locator.definition(buffer, 4, 42)
 
@@ -770,14 +799,18 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 5,
-             column: 5
+             column: 5,
+             end_line: 5,
+             end_column: 9
            }
 
     assert Locator.definition(buffer, 6, 21) == %Location{
              type: :variable,
              file: nil,
              line: 4,
-             column: 5
+             column: 5,
+             end_line: 4,
+             end_column: 9
            }
   end
 
@@ -795,7 +828,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 3,
-             column: 5
+             column: 5,
+             end_line: 3,
+             end_column: 9
            }
   end
 
@@ -815,7 +850,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :function,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 2,
+             end_column: 24
            }
   end
 
@@ -835,7 +872,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :function,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 2,
+             end_column: 24
            }
   end
 
@@ -855,7 +894,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 5,
-             column: 5
+             column: 5,
+             end_line: 5,
+             end_column: 11
            }
   end
 
@@ -875,7 +916,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 5,
-             column: 5
+             column: 5,
+             end_line: 5,
+             end_column: 11
            }
   end
 
@@ -895,7 +938,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 14
+             column: 14,
+             end_line: 2,
+             end_column: 17
            }
 
     # `var` redefined in the function body
@@ -903,7 +948,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 3,
-             column: 5
+             column: 5,
+             end_line: 3,
+             end_column: 8
            }
   end
 
@@ -924,21 +971,27 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 14
+             column: 14,
+             end_line: 2,
+             end_column: 17
            }
 
     assert Locator.definition(buffer, 4, 16) == %Location{
              type: :variable,
              file: nil,
              line: 4,
-             column: 7
+             column: 7,
+             end_line: 4,
+             end_column: 10
            }
 
     assert Locator.definition(buffer, 7, 32) == %Location{
              type: :variable,
              file: nil,
              line: 7,
-             column: 25
+             column: 25,
+             end_line: 7,
+             end_column: 26
            }
   end
 
@@ -963,14 +1016,18 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 15
+             column: 15,
+             end_line: 2,
+             end_column: 16
            }
 
     assert Locator.definition(buffer, 6, 7) == %Location{
              type: :variable,
              file: nil,
              line: 2,
-             column: 15
+             column: 15,
+             end_line: 2,
+             end_column: 16
            }
 
     # `h` from the if-else scope
@@ -978,7 +1035,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 8,
-             column: 7
+             column: 7,
+             end_line: 8,
+             end_column: 8
            }
 
     # `t`
@@ -986,7 +1045,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 19
+             column: 19,
+             end_line: 2,
+             end_column: 20
            }
 
     # `sum`
@@ -994,7 +1055,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 3,
-             column: 5
+             column: 5,
+             end_line: 3,
+             end_column: 8
            }
   end
 
@@ -1012,7 +1075,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 14
+             column: 14,
+             end_line: 2,
+             end_column: 15
            }
 
     # `y` from the `my_fun` function header
@@ -1020,7 +1085,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 17
+             column: 17,
+             end_line: 2,
+             end_column: 18
            }
 
     # `x` from the anonymous function
@@ -1028,7 +1095,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 3,
-             column: 24
+             column: 24,
+             end_line: 3,
+             end_column: 25
            }
 
     # redefined `x`
@@ -1036,7 +1105,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 3,
-             column: 5
+             column: 5,
+             end_line: 3,
+             end_column: 6
            }
   end
 
@@ -1055,7 +1126,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 4,
-             column: 14
+             column: 14,
+             end_line: 4,
+             end_column: 17
            }
   end
 
@@ -1102,7 +1175,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 7,
-             column: 7
+             column: 7,
+             end_line: 7,
+             end_column: 10
            }
   end
 
@@ -1141,21 +1216,27 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 10
+             column: 10,
+             end_line: 2,
+             end_column: 13
            }
 
     assert Locator.definition(buffer, 2, 20) == %Location{
              type: :variable,
              file: nil,
              line: 2,
-             column: 10
+             column: 10,
+             end_line: 2,
+             end_column: 13
            }
 
     assert Locator.definition(buffer, 6, 24) == %Location{
              type: :variable,
              file: nil,
              line: 6,
-             column: 10
+             column: 10,
+             end_line: 6,
+             end_column: 13
            }
   end
 
@@ -1176,28 +1257,36 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 17
+             column: 17,
+             end_line: 2,
+             end_column: 18
            }
 
     assert Locator.definition(buffer, 4, 13) == %Location{
              type: :variable,
              file: nil,
              line: 2,
-             column: 17
+             column: 17,
+             end_line: 2,
+             end_column: 18
            }
 
     assert Locator.definition(buffer, 5, 13) == %Location{
              type: :variable,
              file: nil,
              line: 2,
-             column: 17
+             column: 17,
+             end_line: 2,
+             end_column: 18
            }
 
     assert Locator.definition(buffer, 5, 23) == %Location{
              type: :variable,
              file: nil,
              line: 2,
-             column: 17
+             column: 17,
+             end_line: 2,
+             end_column: 18
            }
 
     # `a` redefined in a case clause
@@ -1215,7 +1304,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 5,
-             column: 18
+             column: 18,
+             end_line: 5,
+             end_column: 19
            }
   end
 
@@ -1235,14 +1326,18 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :attribute,
              file: nil,
              line: 3,
-             column: 5
+             column: 5,
+             end_line: 3,
+             end_column: 10
            }
 
     assert Locator.definition(buffer, 6, 24) == %Location{
              type: :attribute,
              file: nil,
              line: 4,
-             column: 5
+             column: 5,
+             end_line: 4,
+             end_column: 10
            }
   end
 
@@ -1261,7 +1356,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :function,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 2,
+             end_column: 40
            }
   end
 
@@ -1281,7 +1378,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :module,
              file: nil,
              line: 1,
-             column: 1
+             column: 1,
+             end_line: 8,
+             end_column: 4
            }
   end
 
@@ -1301,7 +1400,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :function,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 2,
+             end_column: 24
            }
   end
 
@@ -1324,7 +1425,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
                type: :function,
                file: nil,
                line: 3,
-               column: 5
+               column: 5,
+               end_line: 3,
+               end_column: 26
              }
     end
   end
@@ -1348,7 +1451,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
                type: :module,
                file: nil,
                line: 2,
-               column: 3
+               column: 3,
+               end_line: 4,
+               end_column: 6
              }
     end
   end
@@ -1370,7 +1475,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
                type: :function,
                file: nil,
                line: 2,
-               column: 3
+               column: 3,
+               end_line: 2,
+               end_column: 24
              }
     end
   end
@@ -1391,7 +1498,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :function,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 2,
+             end_column: 24
            }
   end
 
@@ -1410,7 +1519,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :macro,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 2,
+             end_column: 57
            }
   end
 
@@ -1429,7 +1540,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :macro,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 2,
+             end_column: 57
            }
   end
 
@@ -1462,7 +1575,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :function,
              file: nil,
              line: 6,
-             column: 3
+             column: 3,
+             end_line: 6,
+             end_column: 26
            }
   end
 
@@ -1484,7 +1599,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :function,
              file: nil,
              line: 3,
-             column: 3
+             column: 3,
+             end_line: 3,
+             end_column: 24
            }
   end
 
@@ -1521,7 +1638,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :module,
              file: nil,
              line: 2,
-             column: 3
+             column: 3,
+             end_line: 4,
+             end_column: 6
            }
   end
 
@@ -1540,7 +1659,9 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              type: :variable,
              file: nil,
              line: 2,
-             column: 18
+             column: 18,
+             end_line: 2,
+             end_column: 22
            }
   end
 
@@ -1553,11 +1674,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :typespec, file: file, line: line, column: column} =
+    %Location{type: :typespec, file: file} =
+      location =
       Locator.definition(buffer, 3, 24)
 
     assert file =~ "language_server/test/support/module_with_typespecs.ex"
-    assert read_line(file, {line, column}) =~ ~r/^@type remote_t/
+    assert read_range(location) =~ ~r/^@type remote_t/
   end
 
   test "find type definition without @typedoc" do
@@ -1569,11 +1691,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :typespec, file: file, line: line, column: column} =
+    %Location{type: :typespec, file: file} =
+      location =
       Locator.definition(buffer, 3, 24)
 
     assert file =~ "language_server/test/support/module_with_typespecs.ex"
-    assert read_line(file, {line, column}) =~ ~r/@type remote_option_t ::/
+    assert read_range(location) =~ ~r/@type remote_option_t ::/
   end
 
   test "find opaque type definition" do
@@ -1585,11 +1708,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :typespec, file: file, line: line, column: column} =
+    %Location{type: :typespec, file: file} =
+      location =
       Locator.definition(buffer, 3, 23)
 
     assert file =~ "language_server/test/support/module_with_typespecs.ex"
-    assert read_line(file, {line, column}) =~ ~r/@opaque opaque_t/
+    assert read_range(location) =~ ~r/@opaque opaque_t/
   end
 
   test "find type definition macro generated" do
@@ -1601,11 +1725,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :typespec, file: file, line: line, column: column} =
+    %Location{type: :typespec, file: file} =
+      location =
       Locator.definition(buffer, 3, 23)
 
     assert file =~ "language_server/test/support/macro_generated.ex"
-    assert read_line(file, {line, column}) =~ "ElixirSenseExample.Macros.go"
+    assert read_range(location) =~ "ElixirSenseExample.Macros.go"
   end
 
   test "find erlang type definition" do
@@ -1616,11 +1741,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :typespec, file: file, line: line, column: column} =
+    %Location{type: :typespec, file: file} =
+      location =
       Locator.definition(buffer, 2, 20)
 
     assert file =~ "/src/ets.erl"
-    assert read_line(file, {line, column}) =~ "-type tab()"
+    assert read_range(location) =~ "tab"
   end
 
   test "find erlang type definition from preloaded module" do
@@ -1631,11 +1757,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    %Location{type: :typespec, file: file, line: line, column: column} =
+    %Location{type: :typespec, file: file} =
+      location =
       Locator.definition(buffer, 2, 23)
 
     assert file =~ "/src/erlang.erl"
-    assert read_line(file, {line, column}) =~ "-type time_unit()"
+    assert read_range(location) =~ "time_unit"
   end
 
   test "do not find erlang private type" do
@@ -1771,11 +1898,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :typespec, file: file, line: line, column: column} =
+    assert %Location{type: :typespec, file: file} =
+             location =
              Locator.definition(buffer, 3, 32)
 
     assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-    assert read_line(file, {line, column}) =~ "my_type(a)"
+    assert read_range(location) =~ "my_type(a)"
   end
 
   if Version.match?(System.version(), ">= 1.15.0") do
@@ -1787,11 +1915,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      assert %Location{type: :typespec, file: file, line: line, column: column} =
+      assert %Location{type: :typespec, file: file} =
+               location =
                Locator.definition(buffer, 3, 20)
 
       assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_line(file, {line, column}) =~ "@type my_type :: integer"
+      assert read_range(location) =~ "@type my_type :: integer"
 
       buffer = """
       defmodule MyModule do
@@ -1800,11 +1929,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      assert %Location{type: :typespec, file: file, line: line, column: column} =
+      assert %Location{type: :typespec, file: file} =
+               location =
                Locator.definition(buffer, 3, 20)
 
       assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_line(file, {line, column}) =~ "@type my_type(a) :: {integer, a}"
+      assert read_range(location) =~ "@type my_type(a) :: {integer, a}"
 
       buffer = """
       defmodule MyModule do
@@ -1813,11 +1943,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      assert %Location{type: :typespec, file: file, line: line, column: column} =
+      assert %Location{type: :typespec, file: file} =
+               location =
                Locator.definition(buffer, 3, 20)
 
       assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_line(file, {line, column}) =~ "@type my_type(a, b) :: {integer, a, b}"
+      assert read_range(location) =~ "@type my_type(a, b) :: {integer, a, b}"
 
       buffer = """
       defmodule MyModule do
@@ -1841,11 +1972,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :typespec, file: file, line: line, column: column} =
+    assert %Location{type: :typespec, file: file} =
+             location =
              Locator.definition(buffer, 3, 32)
 
     assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-    assert read_line(file, {line, column}) =~ "@typedoc \"one param version\""
+    assert read_range(location) =~ "@typedoc \"one param version\""
   end
 
   if Version.match?(System.version(), ">= 1.15.0") do
@@ -1858,11 +1990,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      assert %Location{type: :typespec, file: file, line: line, column: column} =
+      assert %Location{type: :typespec, file: file} =
+               location =
                Locator.definition(buffer, 3, 20)
 
       assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_line(file, {line, column}) =~ "@typedoc \"no params version\""
+      assert read_range(location) =~ "@typedoc \"no params version\""
 
       buffer = """
       defmodule MyModule do
@@ -1871,11 +2004,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      assert %Location{type: :typespec, file: file, line: line, column: column} =
+      assert %Location{type: :typespec, file: file} =
+               location =
                Locator.definition(buffer, 3, 20)
 
       assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_line(file, {line, column}) =~ "@typedoc \"one param version\""
+      assert read_range(location) =~ "@typedoc \"one param version\""
 
       buffer = """
       defmodule MyModule do
@@ -1884,11 +2018,12 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      assert %Location{type: :typespec, file: file, line: line, column: column} =
+      assert %Location{type: :typespec, file: file} =
+               location =
                Locator.definition(buffer, 3, 20)
 
       assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_line(file, {line, column}) =~ "@typedoc \"two params version\""
+      assert read_range(location) =~ "@typedoc \"two params version\""
 
       buffer = """
       defmodule MyModule do
@@ -1918,17 +2053,19 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :macro, file: file, line: line, column: column} =
+    assert %Location{type: :macro, file: file} =
+             location =
              Locator.definition(buffer, 5, 6)
 
     assert file =~ "language_server/test/support/overridable_function.ex"
-    assert read_line(file, {line, column}) =~ "__using__(_opts)"
+    assert read_range(location) =~ "__using__(_opts)"
 
-    assert %Location{type: :macro, file: file, line: line, column: column} =
+    assert %Location{type: :macro, file: file} =
+             location =
              Locator.definition(buffer, 9, 6)
 
     assert file =~ "language_server/test/support/overridable_function.ex"
-    assert read_line(file, {line, column}) =~ "__using__(_opts)"
+    assert read_range(location) =~ "__using__(_opts)"
   end
 
   test "find super inside overridable callback" do
@@ -1946,17 +2083,19 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :macro, file: file, line: line, column: column} =
+    assert %Location{type: :macro, file: file} =
+             location =
              Locator.definition(buffer, 5, 6)
 
     assert file =~ "language_server/test/support/overridable_function.ex"
-    assert read_line(file, {line, column}) =~ "__using__(_opts)"
+    assert read_range(location) =~ "__using__(_opts)"
 
-    assert %Location{type: :macro, file: file, line: line, column: column} =
+    assert %Location{type: :macro, file: file} =
+             location =
              Locator.definition(buffer, 9, 6)
 
     assert file =~ "language_server/test/support/overridable_function.ex"
-    assert read_line(file, {line, column}) =~ "__using__(_opts)"
+    assert read_range(location) =~ "__using__(_opts)"
   end
 
   test "find super inside overridable callback when module is compiled" do
@@ -1974,17 +2113,19 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{type: :macro, file: file, line: line, column: column} =
+    assert %Location{type: :macro, file: file} =
+             location =
              Locator.definition(buffer, 5, 6)
 
     assert file =~ "language_server/test/support/overridable_function.ex"
-    assert read_line(file, {line, column}) =~ "__using__(_opts)"
+    assert read_range(location) =~ "__using__(_opts)"
 
-    assert %Location{type: :macro, file: file, line: line, column: column} =
+    assert %Location{type: :macro, file: file} =
+             location =
              Locator.definition(buffer, 9, 6)
 
     assert file =~ "language_server/test/support/overridable_function.ex"
-    assert read_line(file, {line, column}) =~ "__using__(_opts)"
+    assert read_range(location) =~ "__using__(_opts)"
   end
 
   test "find local type in typespec local def elsewhere" do
@@ -2020,11 +2161,27 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert %Location{type: :variable, file: nil, line: 3} = Locator.definition(buffer, 4, 10)
   end
 
-  defp read_line(file, {line, column}) do
-    file
+  defp read_range(
+         %Location{line: line, column: column, end_line: line, end_column: column} = location
+       ) do
+    location.file
     |> File.read!()
     |> Source.split_lines()
     |> Enum.at(line - 1)
     |> String.slice((column - 1)..-1//1)
+  end
+
+  defp read_range(%Location{} = location) do
+    text =
+      location.file
+      |> File.read!()
+
+    [_, text_in_range, _] =
+      Source.split_at(text, [
+        {location.line, location.column},
+        {location.end_line, location.end_column}
+      ])
+
+    text_in_range
   end
 end

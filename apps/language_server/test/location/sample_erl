@@ -1,0 +1,12 @@
+%%
+%% %CopyrightBegin%
+%%
+%% %CopyrightEnd%
+%%
+
+-module(sample_erl).
+
+-opaque my_type() :: integer().
+
+my_function(X) ->
+    X + 1.

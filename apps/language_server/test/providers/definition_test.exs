@@ -32,7 +32,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 1, "character" => 2},
-             "end" => %{"line" => 1, "character" => 2}
+             "end" => %{"line" => 6, "character" => 5}
            }
   end
 
@@ -59,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 8, "character" => 2},
-             "end" => %{"line" => 8, "character" => 2}
+             "end" => %{"line" => 12, "character" => 5}
            }
   end
 
@@ -86,7 +86,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 1, "character" => 2},
-             "end" => %{"line" => 1, "character" => 2}
+             "end" => %{"line" => 6, "character" => 5}
            }
   end
 
@@ -113,7 +113,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 8, "character" => 2},
-             "end" => %{"line" => 8, "character" => 2}
+             "end" => %{"line" => 12, "character" => 5}
            }
   end
 
@@ -140,7 +140,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 1, "character" => 2},
-             "end" => %{"line" => 1, "character" => 2}
+             "end" => %{"line" => 6, "character" => 5}
            }
   end
 
@@ -167,7 +167,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 8, "character" => 2},
-             "end" => %{"line" => 8, "character" => 2}
+             "end" => %{"line" => 12, "character" => 5}
            }
   end
 
@@ -194,7 +194,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 2, "character" => 4},
-             "end" => %{"line" => 2, "character" => 4}
+             "end" => %{"line" => 2, "character" => 23}
            }
   end
 
@@ -221,7 +221,7 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
 
     assert range == %{
              "start" => %{"line" => 24, "character" => 2},
-             "end" => %{"line" => 24, "character" => 2}
+             "end" => %{"line" => 24, "character" => 23}
            }
   end
 end

@@ -17,11 +17,11 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.State
   alias ElixirSense.Core.State.ModFunInfo
-  alias ElixirSense.Core.State.TypeInfo
   alias ElixirSense.Core.Source
   alias ElixirSense.Core.SurroundContext
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
+  alias ElixirSense.Core.State.{ModFunInfo, TypeInfo}
 
   alias ElixirLS.LanguageServer.Plugins.Phoenix.Scope
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
@@ -80,7 +80,14 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         if var_info != nil do
           {definition_line, definition_column} = Enum.min(var_info.positions)
 
-          %Location{type: :variable, file: nil, line: definition_line, column: definition_column}
+          %Location{
+            type: :variable,
+            file: nil,
+            line: definition_line,
+            column: definition_column,
+            end_line: definition_line,
+            end_column: definition_column + String.length(to_string(variable))
+          }
         else
           # find local call
           find_function_or_module(
@@ -100,7 +107,15 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
 
         if attribute_info != nil do
           %State.AttributeInfo{positions: [{line, column} | _]} = attribute_info
-          %Location{type: :attribute, file: nil, line: line, column: column}
+
+          %Location{
+            type: :attribute,
+            file: nil,
+            line: line,
+            column: column,
+            end_line: line,
+            end_column: column + 1 + String.length(to_string(attribute))
+          }
         end
 
       {module, function} ->
@@ -244,15 +259,16 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
           nil ->
             Location.find_mod_fun_source(mod, fun, call_arity)
 
-          %ModFunInfo{positions: positions} = mi ->
-            # for simplicity take last position here as positions are reversed
-            {line, column} = positions |> Enum.at(-1)
+          %ModFunInfo{} = info ->
+            {{line, column}, {end_line, end_column}} = Location.info_to_range(info)
 
             %Location{
               file: nil,
-              type: ModFunInfo.get_category(mi),
+              type: ModFunInfo.get_category(info),
               line: line,
-              column: column
+              column: column,
+              end_line: end_line,
+              end_column: end_column
             }
         end
 
@@ -267,15 +283,16 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
           nil ->
             Location.find_type_source(mod, fun, call_arity)
 
-          %TypeInfo{positions: positions} ->
-            # for simplicity take last position here as positions are reversed
-            {line, column} = positions |> Enum.at(-1)
+          %TypeInfo{} = info ->
+            {{line, column}, {end_line, end_column}} = Location.info_to_range(info)
 
             %Location{
               file: nil,
               type: :typespec,
               line: line,
-              column: column
+              column: column,
+              end_line: end_line,
+              end_column: end_column
             }
         end
     end
