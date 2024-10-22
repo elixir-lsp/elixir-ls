@@ -52,12 +52,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
     end
   end
 
-  defp get_attributes(_metadata, nil), do: []
-
   defp get_attributes(metadata, module) do
-    %State.Env{attributes: attributes} = Metadata.get_last_module_env(metadata, module)
-
-    attributes
+    case Metadata.get_last_module_env(metadata, module) do
+      %State.Env{attributes: attributes} -> attributes
+      nil -> []
+    end
   end
 
   @type position :: %{line: pos_integer, column: pos_integer}
