@@ -268,8 +268,11 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
     %{
       uri: nil,
       range: %{
-        start: %{line: line, column: column},
-        end: %{line: line, column: if(column != nil, do: column + String.length(subject))}
+        start: %{line: line || 1, column: column || 1},
+        end: %{
+          line: line || 1,
+          column: if(column != nil, do: column + String.length(subject), else: 1)
+        }
       }
     }
   end
