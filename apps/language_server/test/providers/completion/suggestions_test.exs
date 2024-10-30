@@ -4800,6 +4800,83 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ] = suggestions |> Enum.filter(&(&1.name == "user"))
   end
 
+  test "records from metadata fields" do
+    buffer = """
+    defmodule SomeSchema do
+      require Record
+      Record.defrecord(:user, name: "john", age: 25)
+      @type user :: record(:user, name: String.t(), age: integer)
+
+      def d() do
+        w = user()
+        w = user(n)
+        user(w, n)
+        user(w, name: "1", a)
+      end
+    end
+    """
+
+    suggestions = Suggestion.suggestions(buffer, 7, 14)
+
+    assert [
+             %{
+               name: "age",
+               origin: "SomeSchema.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "integer()"
+             },
+             %{
+               name: "name",
+               origin: "SomeSchema.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "String.t()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+
+    suggestions = Suggestion.suggestions(buffer, 8, 15)
+
+    assert [
+             %{
+               name: "name",
+               origin: "SomeSchema.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "String.t()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+
+    suggestions = Suggestion.suggestions(buffer, 9, 14)
+
+    assert [
+             %{
+               name: "name",
+               origin: "SomeSchema.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "String.t()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+
+    suggestions = Suggestion.suggestions(buffer, 10, 25)
+
+    assert [
+             %{
+               name: "age",
+               origin: "SomeSchema.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "integer()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+  end
+
   defp suggestions_by_type(type, buffer) do
     {line, column} = get_last_line_and_column(buffer)
     suggestions_by_type(type, buffer, line, column)

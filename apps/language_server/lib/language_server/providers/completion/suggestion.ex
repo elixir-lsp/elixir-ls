@@ -71,6 +71,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
           generic()
           | Reducers.CompleteEngine.t()
           | Reducers.Struct.field()
+          | Reducers.Record.field()
           | Reducers.Returns.return()
           | Reducers.Callbacks.callback()
           | Reducers.Protocol.protocol_function()
@@ -88,6 +89,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
   @reducers [
     structs_fields: &Reducers.Struct.add_fields/5,
+    record_fields: &Reducers.Record.add_fields/5,
     returns: &Reducers.Returns.add_returns/5,
     callbacks: &Reducers.Callbacks.add_callbacks/5,
     protocol_functions: &Reducers.Protocol.add_functions/5,

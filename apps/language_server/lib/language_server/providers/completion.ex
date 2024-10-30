@@ -723,6 +723,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         {:map_key, _} -> "map key"
         {:struct_field, nil} -> "struct field"
         {:struct_field, module_name} -> "#{module_name} struct field"
+        {:record_field, module_and_record} -> "#{module_and_record} record field"
       end
 
     formatted_spec =
