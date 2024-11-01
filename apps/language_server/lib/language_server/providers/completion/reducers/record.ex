@@ -138,7 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
          {:ok, ast} <- Code.string_to_quoted(spec),
          {:@, _,
           [
-            {:type, _,
+            {kind, _,
              [
                {:"::", _,
                 [
@@ -150,7 +150,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
                    ]}
                 ]}
              ]}
-          ]} <- ast do
+          ]}
+         when kind in [:type, :typep, :opaque] <- ast do
       field_types
     else
       _ -> []
