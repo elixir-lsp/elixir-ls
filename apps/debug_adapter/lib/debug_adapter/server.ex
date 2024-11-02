@@ -888,12 +888,19 @@ defmodule ElixirLS.DebugAdapter.Server do
     path = args["source"]["path"]
 
     content =
-      if path == "replinput" do
-        # this is a special path that VSCode uses for debugger console
-        # return an empty string as we do not need anything there
-        ""
-      else
-        File.read!(path)
+      cond do
+        path == "replinput" ->
+          # this is a special path that VSCode uses for debugger console
+          # return an empty string as we do not need anything there
+          ""
+
+        String.starts_with?(path, "vs.editor.ICodeEditor:") ->
+          # some undocumented VSCode behavior related to Monaco editor
+          # vs.editor.ICodeEditor:1%3Abreakpointinput
+          ""
+
+        true ->
+          File.read!(path)
       end
 
     {%{"content" => content}, state}
