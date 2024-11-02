@@ -1478,6 +1478,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       results =
         ElixirLS.Utils.CompletionEngine.complete(prefix, env, metadata, cursor_position)
         |> Enum.map(&ElixirLS.DebugAdapter.Completions.map/1)
+        |> Enum.reject(&is_nil/1)
 
       %{"targets" => results}
     end

@@ -64,4 +64,7 @@ defmodule ElixirLS.DebugAdapter.Completions do
       label: name
     }
   end
+
+  # reject attributes as expansion will fail anyway
+  def map(%{type: :attribute}), do: nil
 end
