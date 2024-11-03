@@ -214,11 +214,17 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp documentation_section(""), do: ""
 
   defp documentation_section(docs) do
-    """
-    ### Documentation
+    if String.valid?(docs) do
+      """
+      ### Documentation
 
-    #{MarkdownUtils.adjust_headings(docs, 3)}
-    """
+      #{MarkdownUtils.adjust_headings(docs, 3)}
+      """
+    else
+      # some people have weird docs that are not valid UTF-8
+      Logger.warning("Invalid docs for hover: #{inspect(docs)}")
+      ""
+    end
   end
 
   defp format_header(text) do
