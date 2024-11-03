@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto do
   alias ElixirLS.LanguageServer.Plugins.Ecto.Query
   alias ElixirLS.LanguageServer.Plugins.Ecto.Schema
   alias ElixirLS.LanguageServer.Plugins.Ecto.Types
+  require Logger
 
   @behaviour ElixirLS.LanguageServer.Plugin
   use ElixirLS.LanguageServer.Providers.Completion.GenericReducer
@@ -131,6 +132,19 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto do
   end
 
   defp after_in?(hint, text_before) do
-    Regex.match?(~r/\s+in\s+#{Regex.escape(hint)}$/u, text_before)
+    try do
+      Regex.match?(~r/\s+in\s+#{Regex.escape(hint)}$/u, text_before)
+    rescue
+      e in ErlangError ->
+        # Generating regex from client code is generally unsafe. One way it can fail is
+        # (ErlangError) Erlang error: :internal_error
+        # unexpected response code from PCRE engine
+
+        Logger.warning(
+          "Unable to determine if cursor is after `in` in #{inspect(hint)}: #{Exception.format(:error, e, __STACKTRACE__)}"
+        )
+
+        false
+    end
   end
 end
