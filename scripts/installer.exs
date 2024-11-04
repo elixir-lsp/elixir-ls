@@ -504,7 +504,7 @@ defmodule ElixirLS.Installer do
 
   defp get_release do
     version =
-      Path.expand("#{__DIR__}/VERSION")
+      Path.expand("../#{__DIR__}/VERSION")
       |> File.read!()
       |> String.trim()
 
