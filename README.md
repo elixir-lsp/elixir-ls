@@ -46,6 +46,7 @@ Note: On its first run, Dialyzer will build a PLT cache.  This will take a consi
 | Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                                               | Does not support debug adapter                                                  |
 | VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls)                      | Supports all ElixirLS features                                        |
 | Helix        | [elixir-lsp](https://github.com/helix-editor/helix/wiki/How-to-install-the-default-language-servers#elixir)| Supports all ElixirLS features |
+| Zed        | [elixir language support](https://zed.dev/docs/languages/elixir)| Supports all ElixirLS features |
 
 Please feel free to create and publish your own client packages and add them to this list!
 
