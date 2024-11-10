@@ -1028,7 +1028,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
       needed_requires =
         for func_kind <- func_kinds do
           if func_kind in [:macro, :defmacro, :defguard] and mod not in env.requires and
-               mod != Kernel.SpecialForms do
+               mod != Kernel.SpecialForms and mod != env.module do
             mod
           end
         end
