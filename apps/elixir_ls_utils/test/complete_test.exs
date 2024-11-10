@@ -2208,6 +2208,32 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"unquote", %Env{requires: []})
   end
 
+
+  test "macros from the same module should not add needed_require" do
+    macro_info = %ElixirSense.Core.State.ModFunInfo{
+      type: :defmacro,
+      params: [[:_]]
+    }
+
+    metadata = %Metadata{
+      mods_funs_to_positions: %{
+        {MyModule, nil, nil} => %ElixirSense.Core.State.ModFunInfo{},
+        {MyModule, :info, 1} => macro_info
+      }
+    }
+
+    assert [
+             %{
+               name: "info",
+               arity: 1,
+               type: :macro,
+               origin: "MyModule",
+               needed_require: nil,
+               visibility: :public
+             }
+           ] = expand(~c"inf", %Env{requires: [], module: MyModule}, metadata)
+  end
+
   if Version.match?(System.version(), ">= 1.14.0") do
     test "Application.compile_env classified as macro" do
       assert [
