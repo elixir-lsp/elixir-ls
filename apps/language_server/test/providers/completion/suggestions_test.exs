@@ -4015,6 +4015,22 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                     atom(), node()}\
              """
     end
+
+    test "metadata params" do
+      buffer = """
+      defmodule Foo do
+        @spec some([{:foo, integer()} | {:bar, String.t()}]) :: :ok
+        def some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 6, 10)
+      assert [%{name: "remote_with_params_o"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
   end
 
   describe "suggestions for typespecs" do
