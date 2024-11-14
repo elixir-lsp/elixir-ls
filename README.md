@@ -29,24 +29,24 @@ Note: On its first run, Dialyzer will build a PLT cache.  This will take a consi
 
 ## IDE plugins
 
-| IDE          | Plugin                                                                                             | Support                                                               |
+| IDE          | Plugin                                                                                             | Support                                                                    |
 | ------------ | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | BBEdit       | [bbpackage](https://github.com/chipotle/Elixir.bbpackage)                                          |                                                                            |
 | Emacs        | [eglot](https://github.com/joaotavora/eglot)                                                       |                                                                            |
 | Emacs        | [lsp-mode](https://github.com/emacs-lsp/lsp-mode)                                                  | Supports debug adapter via [dap-mode](https://github.com/yyoncho/dap-mode) |
-| Kakoune      | [kak-lsp](https://github.com/kak-lsp/kak-lsp)                                                      | [Limitations](https://github.com/kak-lsp/kak-lsp/#limitations)        |
-| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debug adapter                                                  |
-| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                                                   | Does not support debug adapter                                                  |
+| Kakoune      | [kak-lsp](https://github.com/kak-lsp/kak-lsp)                                                      | [Limitations](https://github.com/kak-lsp/kak-lsp/#limitations)             |
+| Kate         | [built-in LSP Client plugin](https://kate-editor.org/post/2020/2020-01-01-kate-lsp-client-status/) | Does not support debug adapter                                             |
+| Neovim       | [coc.nvim](https://github.com/neoclide/coc.nvim)                                                   | Does not support debug adapter                                             |
 | Neovim       | [nvim-dap](https://github.com/mfussenegger/nvim-dap)                                               | Supports debug adapter only                                                |
-| Neovim       | [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)                                         | Does not support debug adapter                                                  |
+| Neovim       | [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)                                         | Does not support debug adapter                                             |
 | Nova         | [nova-elixir-ls](https://github.com/raulchedrese/nova-elixir-ls)                                   |                                                                            |
-| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                                             | Does not support debug adapter                                                  |
-| Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                                                 | Does not support debug adapter or @spec suggestions                             |
-| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)                                  | Does not support debug adapter                                                  |
-| Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                                               | Does not support debug adapter                                                  |
-| VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls)                      | Supports all ElixirLS features                                        |
-| Helix        | [elixir-lsp](https://github.com/helix-editor/helix/wiki/How-to-install-the-default-language-servers#elixir)| Supports all ElixirLS features |
-| Zed        | [elixir language support](https://zed.dev/docs/languages/elixir)| Supports all ElixirLS features |
+| Sublime Text | [LSP-elixir](https://github.com/sublimelsp/LSP-elixir)                                             | Does not support debug adapter                                             |
+| Vim/Neovim   | [ALE](https://github.com/w0rp/ale)                                                                 | Does not support debug adapter or @spec suggestions                        |
+| Vim/Neovim   | [elixir-lsp/coc-elixir](https://github.com/elixir-lsp/coc-elixir)                                  | Does not support debug adapter                                             |
+| Vim/Neovim   | [vim-lsp](https://github.com/prabirshrestha/vim-lsp)                                               | Does not support debug adapter                                             |
+| VS Code      | [elixir-lsp/vscode-elixir-ls](https://github.com/elixir-lsp/vscode-elixir-ls)                      | Supports all ElixirLS features                                             |
+| Helix        | [elixir-lsp](https://github.com/helix-editor/helix/wiki/Language-Server-Configurations#elixir)     | Supports all ElixirLS features                                             |
+| Zed          | [elixir language support](https://zed.dev/docs/languages/elixir)                                   | Supports all ElixirLS features                                             |
 
 Please feel free to create and publish your own client packages and add them to this list!
 
@@ -379,7 +379,7 @@ Below is a list of configuration options supported by the ElixirLS Debug Adapter
   <dt>taskArgs</dt><dd>A list of arguments to mix task</dd>
   <dt>debugAutoInterpretAllModules</dt><dd>Auto interpret all modules from project build path. Defaults to <code>true</code>.</dd>
   <dt>env</dt><dd>An object with environment variables - To set Object keys, specify environment variables; values should be strings.</dd>
-  <dt>stackTraceMode</dt><dd>Option passed to <code>:int.stack_trace/1</code>. See <a href='https://www.erlang.org/doc/man/int#stack_trace-1'>:int.stack_trace/1</a> for details. Allowed values are <code>all</code>, <code>no_tail</code>, and <code>false</code>.</dd>
+  <dt>stackTraceMode</dt><dd>Option passed to <code>:int.stack_trace/1</code>. See <a href='https://www.erlang.org/doc/man/int#stack_trace/1'>:int.stack_trace/1</a> for details. Allowed values are <code>all</code>, <code>no_tail</code>, and <code>false</code>.</dd>
   <dt>requireFiles</dt><dd>A list of additional files that should be required and interpreted - This is especially useful for debugging tests.</dd>
   <dt>debugInterpretModulesPatterns</dt><dd>A list of globs specifying modules that should be interpreted</dd>
   <dt>projectDir</dt><dd>An absolute path to the directory where `mix.exs` is located - In VSCode, <code>${workspaceRoot}</code> can be used.</dd>
