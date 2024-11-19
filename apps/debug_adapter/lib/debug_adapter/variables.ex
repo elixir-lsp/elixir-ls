@@ -24,9 +24,15 @@ defmodule ElixirLS.DebugAdapter.Variables do
   def child_type(var) when is_function(var), do: :named
 
   def child_type(var) when is_pid(var) do
-    case :erlang.process_info(var) do
-      :undefined -> :indexed
-      _results -> :named
+    try do
+      case :erlang.process_info(var) do
+        :undefined -> :indexed
+        _results -> :named
+      end
+    rescue
+      ArgumentError ->
+        # remote pid
+        :indexed
     end
   end
 
@@ -111,9 +117,15 @@ defmodule ElixirLS.DebugAdapter.Variables do
   end
 
   def children(var, start, count) when is_pid(var) do
-    case :erlang.process_info(var) do
-      :undefined -> ["process is not alive"]
-      results -> results
+    try do
+      case :erlang.process_info(var) do
+        :undefined -> ["process is not alive"]
+        results -> results
+      end
+    rescue
+      ArgumentError ->
+        # remote pid
+        ["remote process"]
     end
     |> children(start, count)
   end
@@ -159,9 +171,15 @@ defmodule ElixirLS.DebugAdapter.Variables do
   end
 
   def num_children(var) when is_pid(var) do
-    case :erlang.process_info(var) do
-      :undefined -> 1
-      results -> results |> Enum.count()
+    try do
+      case :erlang.process_info(var) do
+        :undefined -> 1
+        results -> results |> Enum.count()
+      end
+    rescue
+      ArgumentError ->
+        # remote pid
+        1
     end
   end
 
