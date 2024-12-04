@@ -267,14 +267,19 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       if mix_project? do
         if MixProjectCache.loaded?() do
           opts = [
-            deps_paths: MixProjectCache.deps_paths(),
-            manifest_path: MixProjectCache.manifest_path(),
-            config_mtime: MixProjectCache.config_mtime(),
-            mix_project: MixProjectCache.get(),
+            # deps_paths: MixProjectCache.deps_paths(),
+            # manifest_path: MixProjectCache.manifest_path(),
+            # config_mtime: MixProjectCache.config_mtime(),
+            # mix_project: MixProjectCache.get(),
             root: project_dir
           ]
 
-          {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
+          case Mix.Tasks.Format.formatter_for_file(path, opts) do
+            {formatter, opts} ->
+              {:ok, {formatter, opts, opts[:root]}}
+          end
+
+          # {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
         else
           {:error, :project_not_loaded}
         end

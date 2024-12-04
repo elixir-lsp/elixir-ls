@@ -3996,10 +3996,35 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
 
     test "atom only options" do
-      buffer = ":ets.new(:name,"
+      # only keyword in shorthand keyword list
+      buffer = ":ets.new(:name, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      assert suggestion_by_name("duplicate_bag", buffer).type_spec == ""
-      assert suggestion_by_name("named_table", buffer).doc == ""
+      buffer = ":ets.new(:name, heir: pid, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+
+      # suggest atom options in list
+      buffer = ":ets.new(:name, ["
+      assert list = suggestions_by_type(:param_option, buffer)
+      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "set"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+
+      buffer = ":ets.new(:name, [:set, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+      # refute Enum.any?(list, &match?(%{name: "set"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+
+      # no atoms after keyword pair
+      buffer = ":ets.new(:name, [:set, heir: pid, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
     end
 
     test "format type spec" do
@@ -4029,7 +4054,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       """
 
       list = Suggestion.suggestions(buffer, 6, 10)
-      assert [%{name: "remote_with_params_o"}] = list |> Enum.filter(&(&1.type == :param_option))
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
     end
   end
 

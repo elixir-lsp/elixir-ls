@@ -744,8 +744,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
   end
 
-  defp from_completion_item(%{type: :param_option} = suggestion, _context, _options) do
-    %{name: name, origin: _origin, doc: doc, type_spec: type_spec, expanded_spec: expanded_spec} =
+  defp from_completion_item(%{type: :param_option} = suggestion, context, _options) do
+    %{name: name, origin: _origin, doc: doc, type_spec: type_spec, expanded_spec: expanded_spec, subtype: subtype} =
       suggestion
 
     formatted_spec =
@@ -755,11 +755,33 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         ""
       end
 
+    {insert_text, text_edit} = cond do
+      subtype == :keyword and not String.ends_with?(context.prefix, ":") -> 
+        {"#{name}: ", nil}
+      subtype == :keyword ->
+        {"", %{
+          "range" => %{
+            "start" => %{
+              "line" => context.line,
+              "character" =>
+                context.character - String.length(context.prefix)
+            },
+            "end" => %{"line" => context.line, "character" => context.character}
+          },
+          "newText" => "#{name}: "
+        }}
+      match?(":" <> _, context.prefix) ->
+        {name, nil}
+      true ->
+        {":#{name}", nil}
+    end
+
     %__MODULE__{
       label: to_string(name),
       detail: "#{type_spec}",
       documentation: "#{doc}#{formatted_spec}",
-      insert_text: "#{name}: ",
+      insert_text: insert_text,
+      text_edit: text_edit,
       priority: 10,
       kind: :field,
       tags: []

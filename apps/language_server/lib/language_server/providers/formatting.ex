@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     # file_path and project_dir are absolute paths with universal separators
     if SourceFile.Path.path_in_dir?(file_path, project_dir) do
       # file in project_dir we find formatter and options for file
-      case SourceFile.formatter_for(uri, project_dir, mix_project?) do
+      case SourceFile.formatter_for(uri, project_dir, mix_project?) |> dbg do
         {:ok, {formatter, opts, formatter_exs_dir}} ->
           if should_format?(uri, formatter_exs_dir, opts[:inputs], project_dir) do
             do_format(source_file, formatter, opts)
