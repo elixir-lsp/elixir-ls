@@ -258,7 +258,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       )
       |> maybe_reject_derived_functions(context, options)
       |> Enum.map(&from_completion_item(&1, context, options))
-      |> maybe_add_do(context)
+      |> maybe_add_do(context, options)
       |> maybe_add_keywords(context)
       |> Enum.reject(&is_nil/1)
       |> sort_items()
@@ -296,7 +296,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
   end
 
-  defp maybe_add_do(completion_items, context) do
+  defp maybe_add_do(completion_items, context, options) do
     hint =
       case Regex.scan(~r/(?<=\s|^)[a-z]+$/u, context.text_before_cursor) do
         [] -> ""
@@ -309,7 +309,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         kind: :keyword,
         detail: "reserved word",
         insert_text:
-          if(String.trim(context.text_after_cursor) == "", do: "do\n  $0\nend", else: "do: "),
+          if String.trim(context.text_after_cursor) == "" do
+            if Keyword.get(options, :snippets_supported, false) do
+              "do\n  $0\nend"
+            else
+              "do"
+            end
+          else
+            "do: "
+          end,
         tags: [],
         priority: 0,
         # force selection over other longer not exact completions
