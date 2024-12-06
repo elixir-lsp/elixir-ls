@@ -189,5 +189,8 @@ defmodule ElixirSenseExample.ModuleWithTypespecs do
       IO.inspect(options)
       {:asd, [], nil}
     end
+
+    @spec fun_with_default(atom, [{:foo, integer()} | {:bar, String.t()}]) :: :ok
+    def fun_with_default(a \\ nil, options), do: :ok
   end
 end

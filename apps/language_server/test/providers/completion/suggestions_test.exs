@@ -4041,11 +4041,62 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              """
     end
 
+    test "params with default args" do
+      buffer = """
+      ElixirSenseExample.ModuleWithTypespecs.Local.fun_with_default()
+      """
+
+      list = Suggestion.suggestions(buffer, 1, 63)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "params with multiple specs" do
+      buffer = """
+      ElixirSenseExample.ModuleWithTypespecs.Local.fun_with_multiple_specs()
+      """
+
+      list = Suggestion.suggestions(buffer, 1, 70)
+      assert [%{name: "opt_name"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
     test "metadata params" do
       buffer = """
       defmodule Foo do
         @spec some([{:foo, integer()} | {:bar, String.t()}]) :: :ok
         def some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 6, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params multiple specs" do
+      buffer = """
+      defmodule Foo do
+        @spec some([{:foo, integer()} | {:bar, String.t()}]) :: :ok
+        @spec some(nil) :: :ok
+        def some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 7, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params with default args" do
+      buffer = """
+      defmodule Foo do
+        @spec some(atom, [{:foo, integer()} | {:bar, String.t()}]) :: :ok
+        def some(a \\\\ nil, options), do: :ok
 
         def go do
           some()
