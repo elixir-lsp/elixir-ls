@@ -11,7 +11,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
   alias ElixirSense.Core.Introspection
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Source
-  alias ElixirSense.Core.TypeInfo
   alias ElixirLS.Utils.Matcher
 
   @type param_option :: %{
@@ -51,75 +50,48 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
              cursor_context.cursor_position,
              not elixir_prefix
            ) do
-      list = for opt <- ElixirSense.Core.Options.get_param_options(mod, fun, npar + 1, env, buffer_metadata) do
-        case opt do
-          {name, type} ->
-            # match on atom: 
-            if Matcher.match?(to_string(name) <> ":", hint) do
-              expanded_spec = Introspection.to_string_with_parens(type)
-              %{
-                doc: "",
-                expanded_spec: expanded_spec,
-                name: name |> Atom.to_string(),
-                origin: inspect(mod),
-                type: :param_option,
-                subtype: :keyword,
-                type_spec: expanded_spec
-              }
-            end
-          name ->
-            # match on :atom
-            if options_so_far == [] and cursor_at_option == true and Matcher.match?(inspect(name), hint) do
-              %{
-                doc: "",
-                expanded_spec: "",
-                name: name |> Atom.to_string(),
-                origin: inspect(mod),
-                type: :param_option,
-                subtype: :atom,
-                type_spec: ""
-              }
-            end
+      list =
+        for opt <-
+              ElixirSense.Core.Options.get_param_options(mod, fun, npar + 1, env, buffer_metadata) do
+          case opt do
+            {name, type} ->
+              # match on atom: 
+              if Matcher.match?(to_string(name) <> ":", hint) do
+                expanded_spec = Introspection.to_string_with_parens(type)
+
+                %{
+                  doc: "",
+                  expanded_spec: expanded_spec,
+                  name: name |> Atom.to_string(),
+                  origin: inspect(mod),
+                  type: :param_option,
+                  subtype: :keyword,
+                  type_spec: expanded_spec
+                }
+              end
+
+            name ->
+              # match on :atom
+              if options_so_far == [] and cursor_at_option == true and
+                   Matcher.match?(inspect(name), hint) do
+                %{
+                  doc: "",
+                  expanded_spec: "",
+                  name: name |> Atom.to_string(),
+                  origin: inspect(mod),
+                  type: :param_option,
+                  subtype: :atom,
+                  type_spec: ""
+                }
+              end
+          end
         end
-      end
-      |> Enum.reject(&is_nil/1)
+        |> Enum.reject(&is_nil/1)
 
       {:cont, %{acc | result: acc.result ++ list}}
     else
       _ ->
         {:cont, acc}
     end
-  end
-
-  defp extract_options({:|, _, [{atom, type}, rest]}, acc) when is_atom(atom) do
-    extract_options(rest, [{atom, type} | acc])
-  end
-
-  defp extract_options({:|, _, [_other, rest]}, acc) do
-    extract_options(rest, acc)
-  end
-
-  defp extract_options({atom, type}, acc) when is_atom(atom) do
-    [{atom, type} | acc]
-  end
-
-  defp extract_options(_other, acc), do: acc
-
-  defp options_to_suggestions(options, original_module) do
-    Enum.map(options, fn
-      {mod, name, type} ->
-        TypeInfo.get_type_info(mod, type, original_module)
-        |> Map.merge(%{type: :param_option, name: name |> Atom.to_string()})
-
-      {mod, name} ->
-        %{
-          doc: "",
-          expanded_spec: "",
-          name: name |> Atom.to_string(),
-          origin: inspect(mod),
-          type: :param_option,
-          type_spec: ""
-        }
-    end)
   end
 end
