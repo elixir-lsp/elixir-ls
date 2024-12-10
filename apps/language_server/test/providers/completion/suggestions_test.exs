@@ -3996,10 +3996,35 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
 
     test "atom only options" do
-      buffer = ":ets.new(:name,"
+      # only keyword in shorthand keyword list
+      buffer = ":ets.new(:name, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      assert suggestion_by_name("duplicate_bag", buffer).type_spec == ""
-      assert suggestion_by_name("named_table", buffer).doc == ""
+      buffer = ":ets.new(:name, heir: pid, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+
+      # suggest atom options in list
+      buffer = ":ets.new(:name, ["
+      assert list = suggestions_by_type(:param_option, buffer)
+      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "set"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+
+      buffer = ":ets.new(:name, [:set, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+      # refute Enum.any?(list, &match?(%{name: "set"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+
+      # no atoms after keyword pair
+      buffer = ":ets.new(:name, [:set, heir: pid, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
     end
 
     test "format type spec" do
@@ -4014,6 +4039,216 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                | {registered_name ::
                     atom(), node()}\
              """
+    end
+
+    test "params with default args" do
+      buffer = """
+      ElixirSenseExample.ModuleWithTypespecs.Local.fun_with_default()
+      """
+
+      list = Suggestion.suggestions(buffer, 1, 63)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "params with multiple specs" do
+      buffer = """
+      ElixirSenseExample.ModuleWithTypespecs.Local.fun_with_multiple_specs()
+      """
+
+      list = Suggestion.suggestions(buffer, 1, 70)
+      assert [%{name: "opt_name"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "params with multiple functions" do
+      buffer = """
+      ElixirSenseExample.ModuleWithTypespecs.Local.multiple_functions()
+      """
+
+      list = Suggestion.suggestions(buffer, 1, 65)
+      assert [%{name: "foo"}, %{name: "bar"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "params from callback" do
+      buffer = """
+      ElixirSenseExample.ModuleWithTypespecs.Impl.some()
+      """
+
+      list = Suggestion.suggestions(buffer, 1, 50)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "params from macrocallback" do
+      buffer = """
+      require ElixirSenseExample.ModuleWithTypespecs.MacroImpl
+      ElixirSenseExample.ModuleWithTypespecs.MacroImpl.some()
+      """
+
+      list = Suggestion.suggestions(buffer, 2, 55)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params" do
+      buffer = """
+      defmodule Foo do
+        @spec some([{:foo, integer()} | {:bar, String.t()}]) :: :ok
+        def some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 6, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params macro" do
+      buffer = """
+      defmodule Foo do
+        @spec some([{:foo, integer()} | {:bar, String.t()}]) :: Macro.t()
+        defmacro some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 6, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params multiple specs" do
+      buffer = """
+      defmodule Foo do
+        @spec some([{:foo, integer()} | {:bar, String.t()}]) :: :ok
+        @spec some(nil) :: :ok
+        def some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 7, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params multiple functions" do
+      buffer = """
+      defmodule Foo do
+        @spec some([{:foo, integer()}]) :: :ok
+        def some(options), do: :ok
+
+        @spec some([{:bar, String.t()}]) :: :ok
+        def some(options, a), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 9, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params with default args" do
+      buffer = """
+      defmodule Foo do
+        @spec some(atom, [{:foo, integer()} | {:bar, String.t()}]) :: :ok
+        def some(a \\\\ nil, options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 6, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params from callback" do
+      buffer = """
+      defmodule Foo do
+        @callback some([{:foo, integer()} | {:bar, String.t()}]) :: :ok
+      end
+
+      defmodule Bar do
+        @behaviour Foo
+
+        @impl true
+        def some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 12, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params from macrocallback" do
+      buffer = """
+      defmodule Foo do
+        @macrocallback some([{:foo, integer()} | {:bar, String.t()}]) :: Macro.t()
+      end
+
+      defmodule Bar do
+        @behaviour Foo
+
+        @impl true
+        defmacro some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 12, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params from compiled module callback" do
+      buffer = """
+      defmodule Bar do
+        @behaviour ElixirSenseExample.ModuleWithTypespecs.Behaviour
+
+        @impl true
+        def some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 8, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
+    end
+
+    test "metadata params from compiled module macrocallback" do
+      buffer = """
+      defmodule Bar do
+        @behaviour ElixirSenseExample.ModuleWithTypespecs.MacroBehaviour
+
+        @impl true
+        defmacro some(options), do: :ok
+
+        def go do
+          some()
+        end
+      end
+      """
+
+      list = Suggestion.suggestions(buffer, 8, 10)
+      assert [%{name: "bar"}, %{name: "foo"}] = list |> Enum.filter(&(&1.type == :param_option))
     end
   end
 

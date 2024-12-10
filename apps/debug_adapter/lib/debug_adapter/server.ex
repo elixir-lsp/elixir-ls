@@ -642,6 +642,12 @@ defmodule ElixirLS.DebugAdapter.Server do
     {:noreply, state}
   end
 
+  def handle_info({:ok, [%Frame{} | _]}, state = %__MODULE__{}) do
+    # timed out response from Stacktrace.get/1
+    # we already emitted a warning
+    {:noreply, state}
+  end
+
   # If we get the disconnect request from the client, we continue with :disconnect so the server will
   # die right after responding to the request
   @impl GenServer
