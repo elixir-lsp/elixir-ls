@@ -51,7 +51,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
              cursor_context.cursor_position,
              not elixir_prefix
            ) do
-      list = for opt <- ElixirSense.Core.Options.get_param_options(mod, fun, npar + 1, buffer_metadata) do
+      list = for opt <- ElixirSense.Core.Options.get_param_options(mod, fun, npar + 1, env, buffer_metadata) do
         case opt do
           {name, type} ->
             # match on atom: 

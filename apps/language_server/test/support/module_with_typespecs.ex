@@ -192,5 +192,29 @@ defmodule ElixirSenseExample.ModuleWithTypespecs do
 
     @spec fun_with_default(atom, [{:foo, integer()} | {:bar, String.t()}]) :: :ok
     def fun_with_default(a \\ nil, options), do: :ok
+
+    @spec multiple_functions([{:foo, integer()}]) :: :ok
+    def multiple_functions(options), do: :ok
+
+    @spec multiple_functions([{:bar, String.t()}]) :: :ok
+    def multiple_functions(options, a), do: :ok
+  end
+
+  defmodule Behaviour do
+    @callback some([{:foo, integer()} | {:bar, String.t()}]) :: :ok
+  end
+
+  defmodule Impl do
+    @behaviour Behaviour
+    def some(a), do: :ok
+  end
+
+  defmodule MacroBehaviour do
+    @macrocallback some([{:foo, integer()} | {:bar, String.t()}]) :: Macro.t()
+  end
+
+  defmodule MacroImpl do
+    @behaviour MacroBehaviour
+    defmacro some(a), do: :ok
   end
 end
