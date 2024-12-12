@@ -93,6 +93,12 @@ For `eglot`, use:
 (add-to-list 'eglot-server-programs '(elixir-mode "path-to-elixir-ls/release/language_server.sh"))
 ```
 
+If you access any projects via symlinks, and the lsp crashes immediately on startup in those projects, you might need this:
+
+```elisp
+(setq find-file-visit-truename t)
+```
+
 </details>
 
 ## Supported Elixir and OTP versions
