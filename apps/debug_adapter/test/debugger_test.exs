@@ -1228,6 +1228,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
 
+        Process.sleep(100)
+
         refute :hello in :int.interpreted()
         abs_path = Path.absname("src/hello.erl")
 
@@ -1240,6 +1242,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
           5000
         )
+
+        Process.sleep(100)
 
         assert :hello in :int.interpreted()
         assert [{{:hello, 5}, [:active, :enable, :null, _]}] = :int.all_breaks(:hello)
@@ -1310,6 +1314,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
 
+        Process.sleep(100)
+
         refute :hello in :int.interpreted()
         abs_path = Path.absname("src/hello.erl1")
 
@@ -1357,6 +1363,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
+
+        Process.sleep(100)
 
         refute MixProject in :int.interpreted()
         refute MixProject.Some in :int.interpreted()
@@ -1462,6 +1470,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
 
+        Process.sleep(100)
+
         refute MixProject in :int.interpreted()
         refute :hello in :int.interpreted()
 
@@ -1497,6 +1507,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           response(_, 3, "setBreakpoints", %{"breakpoints" => [%{"verified" => true}]}),
           5000
         )
+
+        Process.sleep(100)
 
         assert :hello in :int.interpreted()
         assert [{{:hello, 5}, _}] = :int.all_breaks(:hello)
@@ -1553,6 +1565,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
+
+        Process.sleep(100)
 
         refute MixProject in :int.interpreted()
 
@@ -1649,6 +1663,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
 
+        Process.sleep(100)
+
         refute MixProject in :int.interpreted()
 
         # set
@@ -1743,6 +1759,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
+
+        Process.sleep(100)
 
         refute MixProject in :int.interpreted()
 
@@ -2066,6 +2084,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
 
+        Process.sleep(100)
+
         refute :hello in :int.interpreted()
 
         Server.receive_packet(
@@ -2140,6 +2160,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
 
+        Process.sleep(100)
+
         refute :hello in :int.interpreted()
 
         Server.receive_packet(
@@ -2183,6 +2205,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
+
+        Process.sleep(100)
 
         refute :hello in :int.interpreted()
 
@@ -2276,6 +2300,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert_receive(response(_, 2, "launch", _), 3000)
         assert_receive(event(_, "initialized", %{}), 5000)
+
+        Process.sleep(100)
 
         refute :hello in :int.interpreted()
 
@@ -2708,6 +2734,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           assert_receive(response(_, 2, "launch", _), 3000)
           assert_receive(event(_, "initialized", %{}), 5000)
 
+          Process.sleep(100)
+
           assert MixProject.Dbg in :int.interpreted()
 
           Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -2894,6 +2922,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           assert_receive(response(_, 2, "launch", _), 3000)
           assert_receive(event(_, "initialized", %{}), 5000)
 
+          Process.sleep(100)
+
           assert MixProject.Dbg in :int.interpreted()
 
           Server.receive_packet(server, request(5, "configurationDone", %{}))
@@ -3061,6 +3091,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
           assert_receive(response(_, 2, "launch", _), 3000)
           assert_receive(event(_, "initialized", %{}), 5000)
+
+          Process.sleep(100)
 
           refute MixProject.Dbg in :int.interpreted()
 
