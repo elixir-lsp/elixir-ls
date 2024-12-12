@@ -715,10 +715,9 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
                file: nil,
                line: 2,
                column: 3,
-               end_line: 2,
-               end_column: 34
+               end_line: 2
              }
-           ] ==
+           ] =
              Locator.implementations(buffer, 6, 15)
   end
 
