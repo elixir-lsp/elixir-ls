@@ -3752,7 +3752,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert suggestion.type_spec == type_spec
       assert suggestion.origin == origin
 
-      origin = "ElixirSenseExample.ModuleWithTypespecs.Local.func_with_options_var_defined_in_when"
+      origin =
+        "ElixirSenseExample.ModuleWithTypespecs.Local.func_with_options_var_defined_in_when"
 
       buffer = "Local.func_with_options_var_defined_in_when("
       suggestion = suggestion_by_name("local_o", buffer)
@@ -3866,7 +3867,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert suggestion.type_spec ==
                "pos_integer()\n| :second\n| :millisecond\n| :microsecond\n| :nanosecond\n| :native\n| :perf_counter\n| :seconds\n| :milli_seconds\n| :micro_seconds\n| :nano_seconds"
 
-      assert suggestion.origin == "ElixirSenseExample.ModuleWithTypespecs.Local.func_with_erlang_type_options"
+      assert suggestion.origin ==
+               "ElixirSenseExample.ModuleWithTypespecs.Local.func_with_erlang_type_options"
     end
 
     test "remote aliased type" do
@@ -3970,7 +3972,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     test "format type spec" do
       buffer = "Local.func_with_options("
 
-      assert suggestion_by_name("large_o", buffer).type_spec == "pid() | port() | (registered_name :: atom()) | {registered_name :: atom(), node()}"
+      assert suggestion_by_name("large_o", buffer).type_spec ==
+               "pid() | port() | (registered_name :: atom()) | {registered_name :: atom(), node()}"
     end
 
     test "params with default args" do
