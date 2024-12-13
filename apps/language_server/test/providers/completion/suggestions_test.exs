@@ -3937,36 +3937,38 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert suggestion.type_spec == "atom()"
     end
 
-    test "atom only options" do
-      # only keyword in shorthand keyword list
-      buffer = ":ets.new(:name, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+    if System.otp_release() |> String.to_integer() >= 25 do
+      test "atom only options" do
+        # only keyword in shorthand keyword list
+        buffer = ":ets.new(:name, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      buffer = ":ets.new(:name, heir: pid, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        buffer = ":ets.new(:name, heir: pid, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      # suggest atom options in list
-      buffer = ":ets.new(:name, ["
-      assert list = suggestions_by_type(:param_option, buffer)
-      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "set"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        # suggest atom options in list
+        buffer = ":ets.new(:name, ["
+        assert list = suggestions_by_type(:param_option, buffer)
+        assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "set"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      buffer = ":ets.new(:name, [:set, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
-      # refute Enum.any?(list, &match?(%{name: "set"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        buffer = ":ets.new(:name, [:set, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+        # refute Enum.any?(list, &match?(%{name: "set"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      # no atoms after keyword pair
-      buffer = ":ets.new(:name, [:set, heir: pid, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        # no atoms after keyword pair
+        buffer = ":ets.new(:name, [:set, heir: pid, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+      end
     end
 
     test "format type spec" do
