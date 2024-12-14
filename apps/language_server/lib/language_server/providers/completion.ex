@@ -1480,7 +1480,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp snippet?(item) do
-    item.kind == :snippet || (item.insert_text != nil and String.match?(item.insert_text, ~r/\${?\d/u))
+    item.kind == :snippet ||
+      (item.insert_text != nil and String.match?(item.insert_text, ~r/\${?\d/u))
   end
 
   # As defined by CompletionItemTag in https://microsoft.github.io/language-server-protocol/specifications/specification-current/
