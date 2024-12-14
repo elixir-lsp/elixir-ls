@@ -2208,7 +2208,6 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"unquote", %Env{requires: []})
   end
 
-
   test "macros from the same module should not add needed_require" do
     macro_info = %ElixirSense.Core.State.ModFunInfo{
       type: :defmacro,

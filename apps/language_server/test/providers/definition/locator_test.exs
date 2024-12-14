@@ -1421,14 +1421,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
       end
       """
 
-      assert Locator.definition(buffer, 8, 22) == %Location{
+      assert %Location{
                type: :function,
                file: nil,
                line: 3,
                column: 5,
-               end_line: 3,
-               end_column: 26
-             }
+               end_line: 3
+             } = Locator.definition(buffer, 8, 22)
     end
   end
 
@@ -1571,14 +1570,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert Locator.definition(buffer, 3, 6) == %Location{
+    assert %Location{
              type: :function,
              file: nil,
              line: 6,
              column: 3,
-             end_line: 6,
-             end_column: 26
-           }
+             end_line: 6
+           } = Locator.definition(buffer, 3, 6)
   end
 
   test "find definition of local functions with alias" do

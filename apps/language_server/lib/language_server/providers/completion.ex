@@ -752,22 +752,53 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     }
   end
 
-  defp from_completion_item(%{type: :param_option} = suggestion, _context, _options) do
-    %{name: name, origin: _origin, doc: doc, type_spec: type_spec, expanded_spec: expanded_spec} =
+  defp from_completion_item(%{type: :param_option} = suggestion, context, _options) do
+    %{
+      name: name,
+      type_spec: type_spec,
+      origin: origin,
+      subtype: subtype
+    } =
       suggestion
 
     formatted_spec =
-      if expanded_spec != "" do
-        "\n\n```elixir\n#{expanded_spec}\n```\n"
+      if type_spec != "" do
+        "\n\n```elixir\n#{type_spec}\n```\n"
       else
         ""
       end
 
+    {insert_text, text_edit} =
+      cond do
+        subtype == :keyword and not String.ends_with?(context.prefix, ":") ->
+          {"#{name}: ", nil}
+
+        subtype == :keyword ->
+          {"",
+           %{
+             "range" => %{
+               "start" => %{
+                 "line" => context.line,
+                 "character" => context.character - String.length(context.prefix)
+               },
+               "end" => %{"line" => context.line, "character" => context.character}
+             },
+             "newText" => "#{name}: "
+           }}
+
+        match?(":" <> _, context.prefix) ->
+          {name, nil}
+
+        true ->
+          {":#{name}", nil}
+      end
+
     %__MODULE__{
       label: to_string(name),
-      detail: "#{type_spec}",
-      documentation: "#{doc}#{formatted_spec}",
-      insert_text: "#{name}: ",
+      detail: "#{origin} option",
+      documentation: formatted_spec,
+      insert_text: insert_text,
+      text_edit: text_edit,
       priority: 10,
       kind: :field,
       tags: []
