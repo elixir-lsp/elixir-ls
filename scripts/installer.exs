@@ -352,12 +352,21 @@ defmodule ElixirLS.Mix do
                 new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
                 if old_md5 != new_md5 do
-                  lockfile = Path.join(install_dir, "mix.lock")
-                  old_lock = Mix.Dep.Lock.read(lockfile)
-                  new_lock = Mix.Dep.Lock.read(external_lockfile)
-                  Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
-                  File.write!(md5_path, Base.encode64(new_md5))
-                  Mix.Task.rerun("deps.get")
+                  if Version.match?(System.version(), ">= 1.14.0-dev") do
+                    lockfile = Path.join(install_dir, "mix.lock")
+                    old_lock = Mix.Dep.Lock.read(lockfile)
+                    new_lock = Mix.Dep.Lock.read(external_lockfile)
+                    Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
+                    File.write!(md5_path, Base.encode64(new_md5))
+                    Mix.Task.rerun("deps.get")
+                  else
+                    IO.puts(
+                      :stderr,
+                      "Lockfile conflict. Please clean up your mix install directory #{install_dir}"
+                    )
+
+                    System.halt(1)
+                  end
                 end
 
               first_build? ->
