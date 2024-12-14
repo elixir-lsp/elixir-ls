@@ -1,5 +1,32 @@
 ### Unreleased
 
+### v0.25.0: 6 October 2024
+
+#### Improvements
+
+- Definition, implementations and references providers now return ranges. This means that editors will highlight the symbols in code and in case of VSCode finding references will work when the cursor is in side a definition
+- Complete provider will now return record fields when the cursor is inside a record macro call (currently only for locally defined records)
+- Completions provider will now emit keyword list options for defs with typespec including all the options. Previously this worked only for remote modules. Improvements were also made to make sure keyword list options are returned only when cursor is on the last argument of a call
+- Better call trancing in AST processing engine
+- Silenced warnings when AST processing engine is unable to expand macros
+
+#### Fixes
+
+- Fixed crash in selection ranges when handling an empty token list
+- Fixed crash in references provider when a symbol has no column position
+- Fixed crash in references provider when unable to find environment
+- Fixed a crash in debug adapter completions provider related to module attributes. Module attributes are now correctly filtered out from the result set
+- Completions provider will no longer insert import statements when accepting a completion with local macro [Jean Klingler](https://github.com/sabiwara)
+- Silenced an error when handling an unsupported source DAP request
+- Fixed completions crash in Ecto schemas when an invalid regex would be generated
+- Fixed crash when doc chunks returns an invalid UTF8 string
+- Fixed debug adapter crash when inspecting a remote node pid
+- Fixed a crash in debug adapter caused by timed out response from meta process with a stacktrace
+- Completions provider will no longer emit `do` snippet if the client does not support snippets [Rogach](https://github.com/Rogach)
+- Fixed a crash in completions when no snippet is returned [Rogach](https://github.com/Rogach)
+- Fixed a crash in installer on elixir 1.13
+- Fixed formatting of `...` in typespecs on older elixir versions
+
 ### v0.24.1: 14 October 2024
 
 #### Fixes
