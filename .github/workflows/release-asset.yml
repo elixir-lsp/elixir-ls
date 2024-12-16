@@ -8,7 +8,7 @@ on:
 jobs:
   release:
     name: Create draft release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       upload_url: ${{steps.create_release.outputs.upload_url}}
 
@@ -26,7 +26,7 @@ jobs:
 
   build:
     name: Build and publish release asset
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: release
     steps:
       - uses: actions/checkout@v4
@@ -42,8 +42,8 @@ jobs:
       - name: Set up BEAM
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: 1.15.x
-          otp-version: 26.x
+          elixir-version: 1.17.x
+          otp-version: 27.x
 
       - name: Install dependencies
         run: mix deps.get
