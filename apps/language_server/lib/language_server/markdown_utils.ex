@@ -142,6 +142,8 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     "**Delegates to** #{inspect(m)}.#{f}/#{a}"
   end
 
+  defp get_metadata_entry_md({:spark_opts, _}), do: nil
+
   defp get_metadata_entry_md({key, value}) do
     "**#{key}** #{inspect(value)}"
   end
