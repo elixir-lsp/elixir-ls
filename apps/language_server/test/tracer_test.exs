@@ -14,9 +14,8 @@ defmodule ElixirLS.LanguageServer.TracerTest do
 
   test "set project dir" do
     project_path = FixtureHelpers.get_path("")
-    :persistent_term.put(:language_server_project_dir, project_path)
 
-    Tracer.notify_settings_stored()
+    Tracer.notify_settings_stored(project_path)
 
     assert GenServer.call(Tracer, :get_project_dir) == project_path
   end
@@ -24,8 +23,7 @@ defmodule ElixirLS.LanguageServer.TracerTest do
   describe "call trace" do
     setup context do
       project_path = FixtureHelpers.get_path("")
-      :persistent_term.put(:language_server_project_dir, project_path)
-      Tracer.notify_settings_stored()
+      Tracer.notify_settings_stored(project_path)
       GenServer.call(Tracer, :get_project_dir)
 
       {:ok, context}

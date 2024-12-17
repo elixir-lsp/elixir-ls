@@ -20,8 +20,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def notify_settings_stored() do
-    GenServer.cast(__MODULE__, :notify_settings_stored)
+  def notify_settings_stored(project_dir) do
+    GenServer.cast(__MODULE__, {:notify_settings_stored, project_dir})
   end
 
   defp get_project_dir() do
@@ -53,8 +53,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
       ])
     end
 
-    project_dir = :persistent_term.get(:language_server_project_dir, nil)
-    state = %{project_dir: project_dir}
+    state = %{project_dir: nil}
 
     {:ok, state}
   end
@@ -65,9 +64,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   @impl true
-  def handle_cast(:notify_settings_stored, state) do
-    project_dir = :persistent_term.get(:language_server_project_dir)
-
+  def handle_cast({:notify_settings_stored, project_dir}, state) do
     for table <- @tables do
       table_name = table_name(table)
       :ets.delete_all_objects(table_name)
