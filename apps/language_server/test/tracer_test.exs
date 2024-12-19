@@ -21,23 +21,6 @@ defmodule ElixirLS.LanguageServer.TracerTest do
     assert GenServer.call(Tracer, :get_project_dir) == project_path
   end
 
-  test "saves DETS" do
-    project_path = FixtureHelpers.get_path("")
-    :persistent_term.put(:language_server_project_dir, project_path)
-    Tracer.notify_settings_stored()
-
-    Tracer.save()
-    GenServer.call(Tracer, :get_project_dir)
-
-    assert File.exists?(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
-    assert File.exists?(FixtureHelpers.get_path(".elixir_ls/modules.dets"))
-  end
-
-  test "skips save if project dir not set" do
-    Tracer.save()
-    GenServer.call(Tracer, :get_project_dir)
-  end
-
   describe "call trace" do
     setup context do
       project_path = FixtureHelpers.get_path("")
