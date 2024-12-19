@@ -1187,7 +1187,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         {state, frame_ids} = ensure_frame_ids(state, pid, stack_frames)
 
         stack_frames_json =
-          for {%Frame{} = stack_frame, frame_id} <- List.zip([stack_frames, frame_ids]) do
+          for {%Frame{} = stack_frame, frame_id} <- Enum.zip([stack_frames, frame_ids]) do
             %{
               "id" => frame_id,
               "name" => Stacktrace.Frame.name(stack_frame),
