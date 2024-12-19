@@ -4,9 +4,6 @@ defmodule ElixirLS.LanguageServer.TracerTest do
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
 
   setup context do
-    File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/tracer_db.manifest"))
-    File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
-    File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/modules.dets"))
     {:ok, _pid} = start_supervised(Tracer)
 
     {:ok, context}
@@ -14,35 +11,16 @@ defmodule ElixirLS.LanguageServer.TracerTest do
 
   test "set project dir" do
     project_path = FixtureHelpers.get_path("")
-    :persistent_term.put(:language_server_project_dir, project_path)
 
-    Tracer.notify_settings_stored()
+    Tracer.notify_settings_stored(project_path)
 
     assert GenServer.call(Tracer, :get_project_dir) == project_path
-  end
-
-  test "saves DETS" do
-    project_path = FixtureHelpers.get_path("")
-    :persistent_term.put(:language_server_project_dir, project_path)
-    Tracer.notify_settings_stored()
-
-    Tracer.save()
-    GenServer.call(Tracer, :get_project_dir)
-
-    assert File.exists?(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
-    assert File.exists?(FixtureHelpers.get_path(".elixir_ls/modules.dets"))
-  end
-
-  test "skips save if project dir not set" do
-    Tracer.save()
-    GenServer.call(Tracer, :get_project_dir)
   end
 
   describe "call trace" do
     setup context do
       project_path = FixtureHelpers.get_path("")
-      :persistent_term.put(:language_server_project_dir, project_path)
-      Tracer.notify_settings_stored()
+      Tracer.notify_settings_stored(project_path)
       GenServer.call(Tracer, :get_project_dir)
 
       {:ok, context}
@@ -151,20 +129,6 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       Tracer.delete_calls_by_file("calling_module.ex")
 
       assert [] == sorted_calls()
-    end
-  end
-
-  describe "manifest" do
-    test "return nil when not found" do
-      project_path = FixtureHelpers.get_path("")
-      assert nil == Tracer.read_manifest(project_path)
-    end
-
-    test "reads manifest" do
-      project_path = FixtureHelpers.get_path("")
-      Tracer.write_manifest(project_path)
-
-      assert 3 == Tracer.read_manifest(project_path)
     end
   end
 end

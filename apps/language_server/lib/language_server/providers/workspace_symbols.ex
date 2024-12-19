@@ -67,8 +67,8 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     GenServer.start_link(__MODULE__, :ok, opts |> Keyword.put_new(:name, __MODULE__))
   end
 
-  def notify_settings_stored() do
-    GenServer.cast(__MODULE__, :notify_settings_stored)
+  def notify_settings_stored(project_dir) do
+    GenServer.cast(__MODULE__, {:notify_settings_stored, project_dir})
   end
 
   def notify_build_complete(server \\ __MODULE__) do
@@ -150,9 +150,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   end
 
   @impl GenServer
-  def handle_cast(:notify_settings_stored, state) do
-    project_dir = :persistent_term.get(:language_server_project_dir)
-
+  def handle_cast({:notify_settings_stored, project_dir}, state) do
     # as of LSP 3.17 only one tag is defined and clients are required to silently ignore unknown tags
     # so there's no need to pass the list
     tag_support =

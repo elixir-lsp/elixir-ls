@@ -1865,9 +1865,8 @@ defmodule ElixirLS.LanguageServer.Server do
     state = create_gitignore(state)
 
     if state.mix_project? do
-      :persistent_term.put(:language_server_project_dir, state.project_dir)
-      WorkspaceSymbols.notify_settings_stored()
-      Tracer.notify_settings_stored()
+      WorkspaceSymbols.notify_settings_stored(state.project_dir)
+      Tracer.notify_settings_stored(state.project_dir)
     end
 
     JsonRpc.telemetry(

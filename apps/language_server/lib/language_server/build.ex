@@ -140,7 +140,6 @@ defmodule ElixirLS.LanguageServer.Build do
             end)
 
           if Keyword.get(opts, :compile?) do
-            Tracer.save()
             Logger.info("Compile took #{div(us, 1000)} milliseconds")
           else
             Logger.info("Mix project load took #{div(us, 1000)} milliseconds")
