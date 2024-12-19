@@ -10,7 +10,6 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   require ElixirLS.Test.TextLoc
 
   setup_all context do
-    File.rm_rf!(FixtureHelpers.get_path(".elixir_ls/calls.dets"))
     {:ok, pid} = Tracer.start_link([])
     project_path = FixtureHelpers.get_path("")
 
