@@ -120,8 +120,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
       sync(table_name)
     end
 
-    write_manifest(project_dir)
-
     {:noreply, state}
   end
 
@@ -485,38 +483,5 @@ defmodule ElixirLS.LanguageServer.Tracer do
     after
       :ets.safe_fixtable(table, false)
     end
-  end
-
-  defp manifest_path(project_dir) do
-    Path.join([project_dir, ".elixir_ls", "tracer_db.manifest"])
-  end
-
-  def write_manifest(project_dir) do
-    path = manifest_path(project_dir)
-    File.rm_rf!(path)
-
-    File.write!(path, "#{@version}", [:write])
-  end
-
-  def read_manifest(project_dir) do
-    with {:ok, text} <- File.read(manifest_path(project_dir)),
-         {version, ""} <- Integer.parse(text) do
-      version
-    else
-      other ->
-        IO.warn("Manifest: #{inspect(other)}")
-        nil
-    end
-  end
-
-  def manifest_version_current?(project_dir) do
-    read_manifest(project_dir) == @version
-  end
-
-  def clean_dets(project_dir) do
-    for path <-
-          Path.join([SourceFile.Path.escape_for_wildcard(project_dir), ".elixir_ls/*.dets"])
-          |> Path.wildcard(),
-        do: File.rm_rf!(path)
   end
 end

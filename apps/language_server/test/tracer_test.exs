@@ -153,18 +153,4 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       assert [] == sorted_calls()
     end
   end
-
-  describe "manifest" do
-    test "return nil when not found" do
-      project_path = FixtureHelpers.get_path("")
-      assert nil == Tracer.read_manifest(project_path)
-    end
-
-    test "reads manifest" do
-      project_path = FixtureHelpers.get_path("")
-      Tracer.write_manifest(project_path)
-
-      assert 3 == Tracer.read_manifest(project_path)
-    end
-  end
 end
