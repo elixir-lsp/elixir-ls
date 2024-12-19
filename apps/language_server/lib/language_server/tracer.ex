@@ -24,10 +24,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
     GenServer.cast(__MODULE__, :notify_settings_stored)
   end
 
-  def save() do
-    GenServer.cast(__MODULE__, :save)
-  end
-
   defp get_project_dir() do
     case Process.get(:elixir_ls_project_dir) do
       nil ->
@@ -60,17 +56,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
     project_dir = :persistent_term.get(:language_server_project_dir, nil)
     state = %{project_dir: project_dir}
 
-    if project_dir != nil do
-      {us, _} =
-        :timer.tc(fn ->
-          for table <- @tables do
-            init_table(table, project_dir)
-          end
-        end)
-
-      Logger.info("Loaded DETS databases in #{div(us, 1000)}ms")
-    end
-
     {:ok, state}
   end
 
@@ -82,22 +67,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
   @impl true
   def handle_cast(:notify_settings_stored, state) do
     project_dir = :persistent_term.get(:language_server_project_dir)
-    maybe_close_tables(state)
 
     for table <- @tables do
       table_name = table_name(table)
       :ets.delete_all_objects(table_name)
-    end
-
-    if project_dir != nil do
-      {us, _} =
-        :timer.tc(fn ->
-          for table <- @tables do
-            init_table(table, project_dir)
-          end
-        end)
-
-      Logger.info("Loaded DETS databases in #{div(us, 1000)}ms")
     end
 
     {:noreply, %{state | project_dir: project_dir}}
@@ -113,20 +86,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
     {:noreply, state}
   end
 
-  def handle_cast(:save, %{project_dir: project_dir} = state) do
-    for table <- @tables do
-      table_name = table_name(table)
-
-      sync(table_name)
-    end
-
-    {:noreply, state}
-  end
-
   @impl true
   def terminate(reason, state) do
-    maybe_close_tables(state)
-
     case reason do
       :normal ->
         :ok
@@ -164,112 +125,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
           IO.warn("Terminating #{__MODULE__}: #{message}")
         end
     end
-  end
-
-  defp maybe_close_tables(%{project_dir: nil}), do: :ok
-
-  defp maybe_close_tables(_state) do
-    for table <- @tables do
-      close_table(table)
-    end
-
-    :ok
-  end
-
-  defp dets_path(project_dir, table) do
-    Path.join([project_dir, ".elixir_ls", "#{table}.dets"])
-  end
-
-  def init_table(table, project_dir) do
-    table_name = table_name(table)
-    path = dets_path(project_dir, table)
-
-    opts = [file: path |> String.to_charlist(), auto_save: 60_000, repair: true]
-
-    :ok = path |> Path.dirname() |> File.mkdir_p()
-
-    case :dets.open_file(table_name, opts) do
-      {:ok, _} ->
-        :ok
-
-      {:error, {:needs_repair, _} = reason} ->
-        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
-        File.rm_rf!(path)
-
-        {:ok, _} = :dets.open_file(table_name, opts)
-
-      {:error, {:repair_failed, _} = reason} ->
-        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
-        File.rm_rf!(path)
-
-        {:ok, _} = :dets.open_file(table_name, opts)
-
-      {:error, {:cannot_repair, _} = reason} ->
-        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
-        File.rm_rf!(path)
-
-        {:ok, _} = :dets.open_file(table_name, opts)
-
-      {:error, {:not_a_dets_file, _} = reason} ->
-        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
-        File.rm_rf!(path)
-
-        {:ok, _} = :dets.open_file(table_name, opts)
-
-      {:error, {:format_8_no_longer_supported, _} = reason} ->
-        Logger.warning("Unable to open DETS #{path}: #{inspect(reason)}")
-        File.rm_rf!(path)
-
-        {:ok, _} = :dets.open_file(table_name, opts)
-    end
-
-    case :dets.to_ets(table_name, table_name) do
-      ^table_name ->
-        :ok
-
-      {:error, reason} ->
-        Logger.warning("Unable to read DETS #{path}: #{inspect(reason)}")
-        File.rm_rf!(path)
-
-        {:ok, _} = :dets.open_file(table_name, opts)
-        ^table_name = :dets.to_ets(table_name, table_name)
-    end
-  catch
-    kind, payload ->
-      {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
-      error_msg = Exception.format(kind, payload, stacktrace)
-
-      Logger.error(
-        "Unable to init tracer table #{table} in directory #{project_dir}: #{error_msg}"
-      )
-
-      JsonRpc.show_message(
-        :error,
-        "Unable to init tracer tables in #{project_dir}"
-      )
-
-      JsonRpc.telemetry(
-        "lsp_server_error",
-        %{
-          "elixir_ls.lsp_process" => inspect(__MODULE__),
-          "elixir_ls.lsp_server_error" => error_msg
-        },
-        %{}
-      )
-
-      unless :persistent_term.get(:language_server_test_mode, false) do
-        Process.sleep(2000)
-        System.halt(1)
-      else
-        IO.warn("Unable to init tracer table #{table} in directory #{project_dir}: #{error_msg}")
-      end
-  end
-
-  def close_table(table) do
-    table_name = table_name(table)
-    sync(table_name)
-
-    :ok = :dets.close(table_name)
   end
 
   defp modules_by_file_matchspec(file, return) do
@@ -430,11 +285,6 @@ defmodule ElixirLS.LanguageServer.Tracer do
     after
       :ets.safe_fixtable(table, false)
     end
-  end
-
-  defp sync(table_name) do
-    :ok = :dets.from_ets(table_name, table_name)
-    :ok = :dets.sync(table_name)
   end
 
   defp in_project_sources?(path) do
