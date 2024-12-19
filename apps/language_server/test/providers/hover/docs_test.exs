@@ -26,12 +26,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs("ElixirSenseExample.ModuleWithDocFalse", 1, 22)
 
-      assert doc == %{
+      assert %{
                module: ElixirSenseExample.ModuleWithDocFalse,
                metadata: %{hidden: true, app: :language_server},
                docs: "",
                kind: :module
-             }
+             } = doc
     end
 
     test "module with no @moduledoc" do
@@ -39,12 +39,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs("ElixirSenseExample.ModuleWithNoDocs", 1, 22)
 
-      assert doc == %{
+      assert %{
                module: ElixirSenseExample.ModuleWithNoDocs,
                metadata: %{app: :language_server},
                docs: "",
                kind: :module
-             }
+             } = doc
     end
 
     test "retrieve documentation from modules" do
@@ -59,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       } = Docs.docs(buffer, 2, 8)
 
       assert doc.module == GenServer
-      assert doc.metadata == %{app: :elixir}
+      assert %{app: :elixir} = doc.metadata
       assert doc.kind == :module
 
       assert doc.docs =~ """
@@ -278,7 +278,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs("ElixirSenseExample.ModuleWithDocs.some_fun_doc_false(1)", 1, 40)
 
-      assert doc == %{
+      assert %{
                module: ElixirSenseExample.ModuleWithDocs,
                metadata: %{hidden: true, defaults: 1, app: :language_server},
                docs: "",
@@ -287,7 +287,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                arity: 2,
                function: :some_fun_doc_false,
                specs: []
-             }
+             } = doc
     end
 
     test "function no @doc" do
@@ -295,7 +295,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs("ElixirSenseExample.ModuleWithDocs.some_fun_no_doc(1)", 1, 40)
 
-      assert doc == %{
+      assert %{
                docs: "",
                kind: :function,
                metadata: %{defaults: 1, app: :language_server},
@@ -304,7 +304,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                arity: 2,
                function: :some_fun_no_doc,
                specs: []
-             }
+             } = doc
     end
 
     test "retrieve function documentation" do
@@ -640,7 +640,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 12, 20)
 
-      assert doc == %{
+      assert %{
                args: ["list"],
                function: :flatten,
                arity: 1,
@@ -654,7 +654,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                module: MyLocalModule,
                specs: ["@callback flatten(list()) :: list()"],
                docs: "Sample doc"
-             }
+             } = doc
     end
 
     test "retrieve metadata function documentation - fallback to callback no @impl" do
@@ -678,7 +678,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 11, 20)
 
-      assert doc == %{
+      assert %{
                args: ["list"],
                function: :flatten,
                arity: 1,
@@ -691,7 +691,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                module: MyLocalModule,
                specs: ["@callback flatten(list()) :: list()"],
                docs: "Sample doc"
-             }
+             } = doc
     end
 
     test "retrieve metadata function documentation - fallback to erlang callback" do
@@ -758,7 +758,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 13, 20)
 
-      assert doc == %{
+      assert %{
                args: ["list"],
                arity: 1,
                function: :bar,
@@ -772,7 +772,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                specs: ["@macrocallback bar(integer()) :: Macro.t()"],
                docs: "Docs for bar",
                kind: :macro
-             }
+             } = doc
     end
 
     test "retrieve local private metadata function documentation on __MODULE__ call" do
@@ -1017,7 +1017,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 12)
 
-      assert doc == %{
+      assert %{
                args: ["var"],
                function: :some,
                arity: 1,
@@ -1028,7 +1028,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                ],
                docs: "some macro\n",
                kind: :macro
-             }
+             } = doc
     end
 
     if Version.match?(System.version(), ">= 1.14.0") do
@@ -1206,7 +1206,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 5)
 
-      assert doc == %{
+      assert %{
                args: [],
                function: :foo,
                arity: 0,
@@ -1219,7 +1219,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                specs: ["@callback foo() :: :ok"],
                docs: "Docs for foo",
                kind: :function
-             }
+             } = doc
     end
 
     test "retrieve function documentation from behaviour even if @doc is set to false vie @impl" do
@@ -1234,7 +1234,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 5)
 
-      assert doc == %{
+      assert %{
                args: ["a"],
                function: :baz,
                arity: 1,
@@ -1248,7 +1248,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                },
                docs: "Docs for baz",
                kind: :function
-             }
+             } = doc
     end
 
     test "retrieve function documentation from behaviour when callback has @doc false" do
@@ -1263,7 +1263,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 5)
 
-      assert doc == %{
+      assert %{
                args: [],
                function: :foo,
                arity: 0,
@@ -1277,7 +1277,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                specs: ["@callback foo() :: :ok"],
                docs: "",
                kind: :function
-             }
+             } = doc
     end
 
     test "retrieve macro documentation from behaviour if available" do
@@ -1292,7 +1292,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 5)
 
-      assert doc == %{
+      assert %{
                args: ["b"],
                arity: 1,
                function: :bar,
@@ -1305,7 +1305,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                specs: ["@macrocallback bar(integer()) :: Macro.t()"],
                docs: "Docs for bar",
                kind: :macro
-             }
+             } = doc
     end
 
     if System.otp_release() |> String.to_integer() >= 25 do
@@ -1375,7 +1375,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 31)
 
-      assert doc == %{
+      assert %{
                args: [],
                arity: 0,
                docs: "",
@@ -1384,7 +1384,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                module: ElixirSenseExample.ModuleWithDocs,
                spec: "@type some_type_doc_false() :: integer()",
                type: :some_type_doc_false
-             }
+             } = doc
     end
 
     test "type no @typedoc" do
@@ -1400,7 +1400,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 31)
 
-      assert doc == %{
+      assert %{
                args: [],
                arity: 0,
                docs: "",
@@ -1409,7 +1409,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                module: ElixirSenseExample.ModuleWithDocs,
                spec: "@type some_type_no_doc() :: integer()",
                type: :some_type_no_doc
-             }
+             } = doc
     end
 
     test "retrieve type documentation" do
@@ -1425,7 +1425,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 31)
 
-      assert doc == %{
+      assert %{
                args: [],
                arity: 0,
                docs: "Remote type",
@@ -1434,7 +1434,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                module: ElixirSenseExample.ModuleWithTypespecs.Remote,
                spec: "@type remote_t() :: atom()",
                type: :remote_t
-             }
+             } = doc
     end
 
     test "retrieve metadata type documentation" do
@@ -1598,7 +1598,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 3, 35)
 
-      assert doc == %{
+      assert %{
                args: ["x"],
                type: :t,
                arity: 1,
@@ -1607,7 +1607,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                metadata: %{opaque: true, app: :language_server},
                docs: "Opaque type\n",
                kind: :type
-             }
+             } = doc
     end
 
     test "retrieve erlang type documentation" do

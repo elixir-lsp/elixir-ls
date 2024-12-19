@@ -637,7 +637,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :callback,
                metadata: %{optional: false, app: :language_server}
              }
-           ] == list
+           ] = list
   end
 
   test "lists macrocallbacks + def macros after defma" do
