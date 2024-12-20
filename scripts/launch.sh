@@ -53,7 +53,7 @@ else
   if which mise >/dev/null
   then
     >&2 echo "mise executable found in $(which mise), activating"
-    eval "$($(which mise) env -s "$preferred_shell")"
+    eval "$($(which mise) activate "$preferred_shell")"
   else
     >&2 echo "mise not found"
     >&2 echo "Looking for rtx executable"
