@@ -69,6 +69,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Protocol do
       else
         for {{name, arity}, {_type, args, docs, metadata, spec}} <-
               Introspection.module_functions_info(protocol),
+              not match?(%{implementing: Protocol}, metadata),
             hint == "" or String.starts_with?("def", hint) or Matcher.match?("#{name}", hint) do
           %{
             type: :protocol_function,
