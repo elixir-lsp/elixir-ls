@@ -89,7 +89,10 @@ defmodule ElixirLS.Utils.MixTest.Case do
 
   defmacro in_fixture(dir, which, block) do
     module = inspect(__CALLER__.module)
-    function = Atom.to_string(elem(__CALLER__.function, 0))
+    function = case __CALLER__.function do
+      {f, _a} -> Atom.to_string(f)
+      nil -> nil
+    end
     tmp = Path.join(module, function)
 
     quote do
