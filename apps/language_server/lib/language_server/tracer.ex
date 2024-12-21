@@ -3,10 +3,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   """
   use GenServer
   alias ElixirLS.LanguageServer.JsonRpc
-  alias ElixirLS.LanguageServer.SourceFile
   require Logger
-
-  @version 3
 
   @tables ~w(modules calls)a
 
@@ -84,7 +81,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
   end
 
   @impl true
-  def terminate(reason, state) do
+  def terminate(reason, _state) do
     case reason do
       :normal ->
         :ok
