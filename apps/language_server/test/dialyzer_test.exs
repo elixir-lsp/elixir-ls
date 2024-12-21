@@ -73,8 +73,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message1,
                  "range" => %{
-                   "end" => %{"character" => 2, "line" => 1},
-                   "start" => %{"character" => 2, "line" => 1}
+                   "end" => %{"line" => 1},
+                   "start" => %{"line" => 1}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -82,8 +82,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message2,
                  "range" => %{
-                   "end" => %{"character" => 4, "line" => 2},
-                   "start" => %{"character" => 4, "line" => 2}
+                   "end" => %{"line" => 2},
+                   "start" => %{"line" => 2}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -189,8 +189,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message1,
                  "range" => %{
-                   "end" => %{"character" => 2, "line" => 1},
-                   "start" => %{"character" => 2, "line" => 1}
+                   "end" => %{"line" => 1},
+                   "start" => %{"line" => 1}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -198,8 +198,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message2,
                  "range" => %{
-                   "end" => %{"character" => 4, "line" => 2},
-                   "start" => %{"character" => 4, "line" => 2}
+                   "end" => %{"line" => 2},
+                   "start" => %{"line" => 2}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -239,8 +239,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message1,
                  "range" => %{
-                   "end" => %{"character" => 2, "line" => 1},
-                   "start" => %{"character" => 2, "line" => 1}
+                   "end" => %{"line" => 1},
+                   "start" => %{"line" => 1}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -248,8 +248,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message2,
                  "range" => %{
-                   "end" => %{"character" => 4, "line" => 2},
-                   "start" => %{"character" => 4, "line" => 2}
+                   "end" => %{"line" => 2},
+                   "start" => %{"line" => 2}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -279,8 +279,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message1,
                  "range" => %{
-                   "end" => %{"character" => 2, "line" => 1},
-                   "start" => %{"character" => 2, "line" => 1}
+                   "end" => %{"line" => 1},
+                   "start" => %{"line" => 1}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -288,8 +288,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => _error_message2,
                  "range" => %{
-                   "end" => %{"character" => 4, "line" => 2},
-                   "start" => %{"character" => 4, "line" => 2}
+                   "end" => %{"line" => 2},
+                   "start" => %{"line" => 2}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -320,8 +320,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message1,
                  "range" => %{
-                   "end" => %{"character" => 2, "line" => 1},
-                   "start" => %{"character" => 2, "line" => 1}
+                   "end" => %{"line" => 1},
+                   "start" => %{"line" => 1}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
@@ -329,8 +329,8 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
                %{
                  "message" => error_message2,
                  "range" => %{
-                   "end" => %{"character" => 4, "line" => 2},
-                   "start" => %{"character" => 4, "line" => 2}
+                   "end" => %{"line" => 2},
+                   "start" => %{"line" => 2}
                  },
                  "severity" => 2,
                  "source" => "ElixirLS Dialyzer"
