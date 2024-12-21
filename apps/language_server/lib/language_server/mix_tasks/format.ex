@@ -435,7 +435,11 @@ defmodule Mix.Tasks.ElixirLSFormat do
 
     formatter_opts_and_subs = load_plugins(formatter_opts_and_subs, opts)
 
-    find_formatter_and_opts_for_file(Path.expand(file, cwd), cwd, formatter_opts_and_subs)
+    find_formatter_and_opts_for_file(
+      SourceFile.Path.expand(file, cwd),
+      cwd,
+      formatter_opts_and_subs
+    )
   end
 
   @doc false
@@ -558,7 +562,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
   defp eval_subs_opts(subs, cwd, sources, opts) do
     {subs, sources} =
       Enum.flat_map_reduce(subs, sources, fn sub, sources ->
-        cwd = Path.expand(sub, cwd)
+        cwd = SourceFile.Path.expand(sub, cwd)
         {Path.wildcard(cwd), [Path.join(cwd, ".formatter.exs") | sources]}
       end)
 
@@ -637,7 +641,8 @@ defmodule Mix.Tasks.ElixirLSFormat do
 
     for file <- files do
       if file == :stdin do
-        stdin_filename = Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
+        stdin_filename =
+          SourceFile.Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
 
         {formatter, _opts} =
           find_formatter_and_opts_for_file(stdin_filename, cwd, {formatter_opts, subs})
@@ -657,7 +662,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
 
     map =
       for input <- List.wrap(formatter_opts[:inputs]),
-          file <- Path.wildcard(Path.expand(input, cwd), match_dot: true),
+          file <- Path.wildcard(SourceFile.Path.expand(input, cwd), match_dot: true),
           do: {file, {dot_formatter, formatter_opts}},
           into: %{}
 
@@ -737,7 +742,11 @@ defmodule Mix.Tasks.ElixirLSFormat do
   defp stdin_or_wildcard("-"), do: [:stdin]
 
   defp stdin_or_wildcard(path),
-    do: path |> Path.expand() |> Path.wildcard(match_dot: true) |> Enum.filter(&File.regular?/1)
+    do:
+      path
+      |> SourceFile.Path.expand()
+      |> Path.wildcard(match_dot: true)
+      |> Enum.filter(&File.regular?/1)
 
   defp elixir_format(content, formatter_opts) do
     case Code.format_string!(content, formatter_opts) do
