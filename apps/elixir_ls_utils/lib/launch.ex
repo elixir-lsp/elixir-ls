@@ -28,7 +28,7 @@ defmodule ElixirLS.Utils.Launch do
 
     load_dot_config()
 
-    # as of 1.15 mix supports two environment variables MIX_QUIET and MIX_DEBUG
+    # as of 1.18 mix supports environment variables MIX_QUIET, MIX_DEBUG, MIX_PROFILE
     # that are not important for our use cases
 
     :ok
