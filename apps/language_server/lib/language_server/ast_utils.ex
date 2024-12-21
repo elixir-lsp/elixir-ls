@@ -92,10 +92,10 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     line = Keyword.get(meta, :line) - 1
     column = Keyword.get(meta, :column) - 1
     {end_line, end_column} = get_eoe_by_formatting(ast, {line, column}, options)
-    # on elixir 1.15+ formatter changes charlist '' to ~c"" sigil so we need to correct columns
+    # on elixir 1.15-1.17 formatter changes charlist '' to ~c"" sigil so we need to correct columns
     # if charlist is single line
     correction =
-      if end_line == line and Version.match?(System.version(), ">= 1.15.0-dev") do
+      if end_line == line and Version.match?(System.version(), ">= 1.15.0-dev") and Version.match?(System.version(), "< 1.18.0-dev") do
         2
       else
         0
