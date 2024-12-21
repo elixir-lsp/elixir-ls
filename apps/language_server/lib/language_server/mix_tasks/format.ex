@@ -368,15 +368,6 @@ defmodule Mix.Tasks.ElixirLSFormat do
     )
   end
 
-  @doc """
-  Returns formatter options to be used for the given file.
-  """
-  @doc deprecated: "Use formatter_for_file/2 instead"
-  def formatter_opts_for_file(file, opts \\ []) do
-    {_, formatter_opts} = formatter_for_file(file, opts)
-    formatter_opts
-  end
-
   defp eval_dot_formatter(cwd, opts) do
     cond do
       dot_formatter = opts[:dot_formatter] ->
