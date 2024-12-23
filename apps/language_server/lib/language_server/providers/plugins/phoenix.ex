@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix do
     ModuleStore.ensure_compiled(context, Phoenix.Router)
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
+  if Version.match?(System.version(), ">= 1.14.0-dev") do
     @impl true
     def suggestions(hint, {Phoenix.Router, func, 1, _info}, _list, opts)
         when func in @phoenix_route_funcs do

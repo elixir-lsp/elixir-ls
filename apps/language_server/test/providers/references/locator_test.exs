@@ -411,7 +411,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    if Version.match?(System.version(), ">= 1.14.0-rc.0") do
+    if Version.match?(System.version(), ">= 1.14.0") do
       # before 1.14 tracer reports invalid positions for captures
       # https://github.com/elixir-lang/elixir/issues/12023
       assert range == %{start: %{line: 55, column: 72}, end: %{line: 55, column: 83}}

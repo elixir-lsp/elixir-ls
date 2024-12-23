@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
   alias ElixirLS.LanguageServer.Diagnostics
   use ExUnit.Case
 
-  if Version.match?(System.version(), "< 1.16.0-dev") do
+  if Version.match?(System.version(), "< 1.16.0") do
     describe "pre 1.16 Mix.Task.Compiler.Diagnostic normalization" do
       test "extract the stacktrace from the message and format it" do
         root_path = Path.join(__DIR__, "fixtures/build_errors")

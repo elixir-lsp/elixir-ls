@@ -228,7 +228,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(1, 0, 2, 4))
     end
 
-    if Version.match?(System.version(), ">= 1.14.0-dev") do
+    if Version.match?(System.version(), ">= 1.14.0") do
       test "left from do" do
         text = """
         do
@@ -262,7 +262,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 0, 3, 3))
     end
 
-    if Version.match?(System.version(), ">= 1.14.0-dev") do
+    if Version.match?(System.version(), ">= 1.14.0") do
       test "left from end" do
         text = """
         do
@@ -1030,7 +1030,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 8, 0, 12))
     end
 
-    if Version.match?(System.version(), ">= 1.14.0-dev") do
+    if Version.match?(System.version(), ">= 1.14.0") do
       test "left side of | near" do
         text = """
         %{state | 1 => 1, counter: counter + to_dispatch, demand: demand - to_dispatch}
