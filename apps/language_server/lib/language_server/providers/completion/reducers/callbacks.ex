@@ -82,6 +82,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Callbacks do
                   metadata: metadata
                 } <-
                   Introspection.get_callbacks_with_docs(mod),
+                mod != Protocol or {name, arity} not in [impl_for!: 1, impl_for: 1, __protocol__: 1],
                 hint == "" or def_prefix?(hint, spec) or Matcher.match?("#{name}", hint) do
               desc = Introspection.extract_summary_from_docs(doc)
 
