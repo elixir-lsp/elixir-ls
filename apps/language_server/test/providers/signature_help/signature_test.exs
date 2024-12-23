@@ -1392,7 +1392,16 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 8) == :none
+      if Version.match?(System.version(), "< 1.18.0") do
+        assert Signature.signature(code, 2, 8) == :none
+      else
+        assert %{
+          signatures: [
+            %{name: "defmodule"}
+          ],
+          active_param: 1
+        } = Signature.signature(code, 2, 8)
+      end
     end
 
     test "return :none when no signature is found" do
