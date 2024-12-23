@@ -144,13 +144,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
     cond do
       Code.ensure_loaded?(mod) and function_exported?(mod, :__protocol__, 1) ->
         # defprotocol
-        case ast do
-          {:"::", [], [{:foo, [], [_ | rest_args]}, res]} ->
+        case {ast, fun} do
+          {ast, :__deriving__} ->
+            # do not change __deriving__ macrocallback
+            ast
+          {{:"::", [], [{:foo, [], [_ | rest_args]}, res]}, _} ->
             # ordinary defs in defprotocol do not have when and have at least 1 arg
             # first arg in defprotocol defs is always of type t
             {:"::", [], [{:foo, [], [{:t, [], []} | rest_args]}, res]}
 
-          {:"::", [], [{:foo, [], []}, _]} ->
+          {{:"::", [], [{:foo, [], []}, _]}, _} ->
             # def with default arg
             ast
         end
