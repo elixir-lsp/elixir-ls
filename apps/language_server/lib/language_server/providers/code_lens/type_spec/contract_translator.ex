@@ -148,6 +148,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
           {ast, :__deriving__} ->
             # do not change __deriving__ macrocallback
             ast
+
           {{:"::", [], [{:foo, [], [_ | rest_args]}, res]}, _} ->
             # ordinary defs in defprotocol do not have when and have at least 1 arg
             # first arg in defprotocol defs is always of type t

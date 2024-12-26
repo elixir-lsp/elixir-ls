@@ -14,6 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
       case SourceFile.formatter_for(uri, project_dir, mix_project?) do
         {:ok, {formatter, opts}} ->
           formatter_exs_dir = opts[:root]
+
           if should_format?(uri, formatter_exs_dir, opts[:inputs], project_dir) do
             do_format(source_file, formatter, opts)
           else

@@ -408,7 +408,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   @kernel_special_forms_exports Kernel.SpecialForms.__info__(:macros)
   @kernel_exports Kernel.__info__(:macros) ++ Kernel.__info__(:functions)
 
-  defp get_module_fun_arity("..///3"), do: {Kernel, :"..//", 3}
+  defp get_module_fun_arity("..///3"), do: {Kernel, :..//, 3}
   defp get_module_fun_arity("../2"), do: {Kernel, :.., 2}
   defp get_module_fun_arity("../0"), do: {Kernel, :.., 0}
   defp get_module_fun_arity("./2"), do: {Kernel.SpecialForms, :., 2}

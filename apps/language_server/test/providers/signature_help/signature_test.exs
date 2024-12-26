@@ -1396,11 +1396,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
         assert Signature.signature(code, 2, 8) == :none
       else
         assert %{
-          signatures: [
-            %{name: "defmodule"}
-          ],
-          active_param: 1
-        } = Signature.signature(code, 2, 8)
+                 signatures: [
+                   %{name: "defmodule"}
+                 ],
+                 active_param: 1
+               } = Signature.signature(code, 2, 8)
       end
     end
 
