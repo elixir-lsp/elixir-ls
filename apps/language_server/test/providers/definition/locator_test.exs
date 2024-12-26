@@ -1290,7 +1290,8 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
 
     # `a` redefined in a case clause
-    # TODO cursor lands in the wrong clause on 1.17
+    # cursor lands in the wrong clause on 1.18
+    # fortunately __cursor__ inserting hacks in ElixirSense.Metadata are able to work around this
     # defmodule MyModule do
     #   def my_fun(a, b) do
     #     case a do
