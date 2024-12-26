@@ -142,6 +142,13 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     "**Delegates to** #{inspect(m)}.#{f}/#{a}"
   end
 
+  defp get_metadata_entry_md({:behaviours, []}), do: nil
+
+  defp get_metadata_entry_md({:behaviours, list})
+       when is_list(list) do
+    "**Implements** #{Enum.map_join(list, ", ", &inspect/1)}"
+  end
+
   defp get_metadata_entry_md({:source_annos, _}), do: nil
 
   defp get_metadata_entry_md({:source_path, _}), do: nil
