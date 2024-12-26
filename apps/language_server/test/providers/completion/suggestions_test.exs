@@ -4972,6 +4972,81 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ] = suggestions |> Enum.filter(&(&1.name == "user"))
   end
 
+  test "records fields" do
+    buffer = """
+    defmodule SomeSchema do
+      require ElixirSenseExample.ModuleWithRecord, as: R
+
+      def d() do
+        w = R.user()
+        w = R.user(n)
+        R.user(w, n)
+        R.user(w, name: "1", a)
+      end
+    end
+    """
+
+    suggestions = Suggestion.suggestions(buffer, 5, 16)
+
+    assert [
+             %{
+               name: "age",
+               origin: "ElixirSenseExample.ModuleWithRecord.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "integer()"
+             },
+             %{
+               name: "name",
+               origin: "ElixirSenseExample.ModuleWithRecord.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "String.t()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+
+    suggestions = Suggestion.suggestions(buffer, 6, 17)
+
+    assert [
+             %{
+               name: "name",
+               origin: "ElixirSenseExample.ModuleWithRecord.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "String.t()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+
+    suggestions = Suggestion.suggestions(buffer, 7, 16)
+
+    assert [
+             %{
+               name: "name",
+               origin: "ElixirSenseExample.ModuleWithRecord.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "String.t()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+
+    suggestions = Suggestion.suggestions(buffer, 8, 27)
+
+    assert [
+             %{
+               name: "age",
+               origin: "ElixirSenseExample.ModuleWithRecord.user",
+               type: :field,
+               call?: false,
+               subtype: :record_field,
+               type_spec: "integer()"
+             }
+           ] = suggestions |> Enum.filter(&(&1.type == :field))
+  end
+
   test "records from metadata fields" do
     buffer = """
     defmodule SomeSchema do
