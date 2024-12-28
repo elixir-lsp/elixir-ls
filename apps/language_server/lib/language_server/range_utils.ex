@@ -180,4 +180,34 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
   defp do_deduplicate([range | rest], acc) do
     do_deduplicate(rest, [range | acc])
   end
+
+  def fix_properties(ranges) do
+    ranges
+    |> Enum.reverse()
+    |> Enum.reduce([], fn
+      r, [] ->
+        [r]
+
+      range(start_line, start_character, end_line, end_character),
+      [range(last_start_line, last_start_character, last_end_line, last_end_character) | _] = acc ->
+        new_start_line = min(start_line, last_start_line)
+        new_end_line = max(end_line, last_end_line)
+
+        new_start_character =
+          if start_line < last_start_line do
+            start_character
+          else
+            min(start_character, last_start_character)
+          end
+
+        new_end_character =
+          if end_line > last_end_line do
+            end_character
+          else
+            max(end_character, last_end_character)
+          end
+
+        [range(new_start_line, new_start_character, new_end_line, new_end_character) | acc]
+    end)
+  end
 end

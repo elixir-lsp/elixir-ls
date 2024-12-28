@@ -10,23 +10,39 @@ defmodule ElixirLS.LanguageServer.AstUtils do
   def node_range(node, options \\ [])
   def node_range(atom, _options) when is_atom(atom), do: nil
 
-  def node_range([{{:__block__, _, [_]} = first, _} | _] = list, _options) do
-    case List.last(list) do
-      {_, last} ->
-        case {node_range(first), node_range(last)} do
-          {range(start_line, start_character, _, _), range(_, _, end_line, end_character)} ->
-            range(start_line, start_character, end_line, end_character)
+  def node_range([{{:__block__, meta, [_]} = first, _} | _] = list, _options) do
+    if Keyword.get(meta, :format) == :keyword or Keyword.has_key?(meta, :assoc) or
+         Version.match?(System.version(), "< 1.18.0-dev") do
+      case List.last(list) do
+        {_, last} ->
+          case {node_range(first), node_range(last)} do
+            {range(start_line, start_character, _, _), range(_, _, end_line, end_character)} ->
+              range(start_line, start_character, end_line, end_character)
 
-          _ ->
-            nil
-        end
+            _ ->
+              nil
+          end
 
-      _ ->
-        nil
+        _ ->
+          nil
+      end
     end
   end
 
   def node_range(list, _options) when is_list(list), do: nil
+
+  def node_range({{:__block__, meta, [_]} = first, last}, _options) do
+    if Keyword.get(meta, :format) == :keyword or Keyword.has_key?(meta, :assoc) or
+         Version.match?(System.version(), "< 1.18.0-dev") do
+      case {node_range(first), node_range(last)} do
+        {range(start_line, start_character, _, _), range(_, _, end_line, end_character)} ->
+          range(start_line, start_character, end_line, end_character)
+
+        _ ->
+          nil
+      end
+    end
+  end
 
   def node_range({:__block__, meta, args} = _ast, _options) do
     line = Keyword.get(meta, :line)
@@ -57,6 +73,18 @@ defmodule ElixirLS.LanguageServer.AstUtils do
           end_location = meta[:closing] ->
             # 2 element tuple
             {end_location[:line] - 1, end_location[:column] - 1 + 1}
+
+          match?(kind when kind in [:atom, :keyword], Keyword.get(meta, :format)) ->
+            [literal] = args
+
+            modifier =
+              if literal in [true, false, nil] do
+                1
+              else
+                0
+              end
+
+            get_literal_end(literal, {line, column + modifier}, nil)
 
           match?([_], args) ->
             [literal] = args
@@ -163,18 +191,24 @@ defmodule ElixirLS.LanguageServer.AstUtils do
                 nil
             end
 
-          match?({:., _, [Kernel, :to_string]}, form) ->
-            {line, column}
+          match?({:., _meta, [Kernel, :to_string]}, form) ->
+            if Keyword.get(meta, :from_interpolation) or
+                 Version.match?(System.version(), "< 1.16.0-dev") do
+              {line, column}
+            end
 
-          match?({:., _, [Access, :get]}, form) and match?([_ | _], args) ->
-            [arg | _] = args
+          match?({:., _meta, [Access, :get]}, form) and match?([_ | _], args) ->
+            if Keyword.get(meta, :from_brackets) or
+                 Version.match?(System.version(), "< 1.16.0-dev") do
+              [arg | _] = args
 
-            case node_range(arg) do
-              range(line, column, _, _) ->
-                {line, column}
+              case node_range(arg) do
+                range(line, column, _, _) ->
+                  {line, column}
 
-              nil ->
-                nil
+                nil ->
+                  nil
+              end
             end
 
           match?({:., _, [_ | _]}, form) ->

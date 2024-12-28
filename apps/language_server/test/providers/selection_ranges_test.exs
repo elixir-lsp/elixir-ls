@@ -767,6 +767,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 0, 1, 0))
       # full for
       assert_range(ranges, range(0, 0, 0, 56))
+
+      if Version.match?(System.version(), ">= 1.18.0") do
+        # do: x + y expression
+        assert_range(ranges, range(0, 47, 0, 56))
+      end
+
       # x + y expression
       assert_range(ranges, range(0, 51, 0, 56))
     end
@@ -994,6 +1000,14 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 0, 3, 1))
       # full keyword
       assert_range(ranges, range(0, 6, 2, 6))
+
+      if Version.match?(System.version(), ">= 1.18.0") do
+        # key and value
+        assert_range(ranges, range(1, 2, 1, 6))
+
+        # key
+        assert_range(ranges, range(1, 2, 1, 4))
+      end
     end
   end
 
@@ -1061,5 +1075,32 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       # | expression
       assert_range(ranges, range(0, 2, 0, 78))
     end
+  end
+
+  test "expression with parens" do
+    text = """
+    1 + (2 * (3 + (s + x)) / 1)
+    """
+
+    ranges = get_ranges(text, 0, 15)
+
+    # full range
+    assert_range(ranges, range(0, 0, 1, 0))
+    # full line
+    assert_range(ranges, range(0, 0, 0, 27))
+    # outside outermost parens
+    assert_range(ranges, range(0, 4, 0, 27))
+    # inside outermost parens
+    assert_range(ranges, range(0, 5, 0, 26))
+    # outside middle parens
+    assert_range(ranges, range(0, 9, 0, 22))
+    # inside middle parens
+    assert_range(ranges, range(0, 10, 0, 21))
+    # outside innermost parens
+    assert_range(ranges, range(0, 14, 0, 21))
+    # inside innermost parens
+    assert_range(ranges, range(0, 15, 0, 20))
+    # s variable
+    assert_range(ranges, range(0, 15, 0, 16))
   end
 end

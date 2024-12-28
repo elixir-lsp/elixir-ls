@@ -397,6 +397,53 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
                 acc
               end
 
+            ranges_acc =
+              case ast do
+                {_, meta, _} ->
+                  parens_ranges =
+                    for {:parens, parens_meta} <- meta,
+                        parens_start_line = Keyword.fetch!(parens_meta, :line) - 1,
+                        parens_start_character = Keyword.fetch!(parens_meta, :column) - 1,
+                        parens_meta_closing = Keyword.fetch!(parens_meta, :closing),
+                        parens_end_line = Keyword.fetch!(parens_meta_closing, :line) - 1,
+                        parens_end_character = Keyword.fetch!(parens_meta_closing, :column),
+                        (parens_start_line < line or
+                           (parens_start_line == line and parens_start_character <= character)) and
+                          (parens_end_line > line or
+                             (parens_end_line == line and parens_end_character >= character)) do
+                      # NOTE there may be multiple parens keys
+                      outer_range =
+                        range(
+                          parens_start_line,
+                          parens_start_character,
+                          parens_end_line,
+                          parens_end_character
+                        )
+
+                      if (parens_start_line < line or
+                            (parens_start_line == line and parens_start_character + 1 <= character)) and
+                           (parens_end_line > line or
+                              (parens_end_line == line and parens_end_character - 1 >= character)) do
+                        inner_range =
+                          range(
+                            parens_start_line,
+                            parens_start_character + 1,
+                            parens_end_line,
+                            parens_end_character - 1
+                          )
+
+                        [outer_range, inner_range]
+                      else
+                        [outer_range]
+                      end
+                    end
+
+                  List.flatten(parens_ranges) ++ ranges_acc
+
+                _ ->
+                  ranges_acc
+              end
+
             parent_acc =
               if match?({_, _, _}, ast) do
                 [ast | parent_ast]
@@ -417,6 +464,8 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
     acc
     |> sort_ranges_widest_to_narrowest()
+    |> deduplicate
+    |> fix_properties
   end
 
   def ast_node_ranges(_, _, _, _), do: []
