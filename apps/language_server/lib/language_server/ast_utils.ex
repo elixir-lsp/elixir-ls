@@ -198,7 +198,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
             end
 
           match?({:., _meta, [Access, :get]}, form) and match?([_ | _], args) ->
-            if Keyword.get(meta, :from_brackets) or
+            if Keyword.get(meta, :from_brackets) ||
                  Version.match?(System.version(), "< 1.16.0-dev") do
               [arg | _] = args
 
