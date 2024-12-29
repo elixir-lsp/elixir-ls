@@ -85,12 +85,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 9, 15)
 
-      assert doc == %{
+      assert %{
                module: MyLocalModule,
                metadata: %{since: "1.2.3"},
                docs: "Some example doc",
                kind: :module
-             }
+             } = doc
     end
 
     test "retrieve documentation from metadata modules on __MODULE__" do
@@ -109,12 +109,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 6, 6)
 
-      assert doc == %{
+      assert %{
                module: MyLocalModule,
                metadata: %{since: "1.2.3"},
                docs: "Some example doc",
                kind: :module
-             }
+             } = doc
     end
 
     if Version.match?(System.version(), ">= 1.14.0") do
@@ -136,12 +136,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
           docs: [doc]
         } = Docs.docs(buffer, 8, 17)
 
-        assert doc == %{
+        assert %{
                  module: MyLocalModule.Sub,
                  metadata: %{since: "1.2.3"},
                  docs: "Some example doc",
                  kind: :module
-               }
+               } = doc
       end
     end
 
@@ -162,7 +162,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         docs: [doc]
       } = Docs.docs(buffer, 8, 15)
 
-      assert doc == %{module: MyLocalModule, metadata: %{hidden: true}, docs: "", kind: :module}
+      assert %{module: MyLocalModule, metadata: %{hidden: true}, docs: "", kind: :module} = doc
     end
 
     test "retrieve documentation from erlang modules" do
