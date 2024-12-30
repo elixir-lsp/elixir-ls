@@ -1,5 +1,25 @@
 ### Unreleased
 
+### v0.26.0: 30 December 2024
+
+#### Highlights
+
+- Support for elixir 1.18
+
+#### Improvements
+
+- Ash framework spark_opts metadata is no longer rendered in function docs [Jesse Williams](https://github.com/fr-joseph)
+- Added a workaround for OTP 27 crash on Windows related to persistent_term https://github.com/erlang/otp/issues/9222
+- Removed DETS backend from tracer. It turned out to be too unstable. Now tracer uses only ETS
+- Completions provider is now able to return record fields from remote records on elixir 1.18+
+- Behaviours implemented by a module are now rendered in docs on hover/complete
+- Selection ranges provider is now able to return correct ranges for expressions with parens on elixir 1.18+
+- Definition/References providers are now working correctly with `&1` capture variables on elixir 1.18+
+
+#### Fixes
+
+- Fixed a crash in AST processing on elixir <= 1.14 when `end_of_expression` metadata does not define column
+
 ### v0.25.0: 15 December 2024
 
 #### Improvements
