@@ -2,50 +2,50 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://elixir-ls.github.io/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/features/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/known-issues-limitations/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/troubleshooting/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/emacs/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/kakoune/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/kate/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/neovim/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/nova/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/overview/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/sublime/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
     <url>
          <loc>https://elixir-ls.github.io/getting-started/vscode/</loc>
-         <lastmod>2024-12-15</lastmod>
+         <lastmod>2024-12-30</lastmod>
     </url>
 </urlset>
