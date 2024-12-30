@@ -2,6 +2,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
 
   import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.JsonRpc
   require ElixirSense.Core.Introspection, as: Introspection
   require Logger
 
@@ -272,10 +273,33 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             config_mtime: MixProjectCache.config_mtime(),
             mix_project: MixProjectCache.get(),
             root: project_dir,
-            plugin_loader: fn _plugins ->
+            plugin_loader: fn plugins ->
+              for plugin <- plugins do
+                cond do
+                  not Code.ensure_loaded?(plugin) ->
+                    JsonRpc.show_message(
+                      :warning,
+                      "Formatter plugin #{inspect(plugin)} is not loaded and will be skipped. Please compile the project."
+                    )
+
+                    nil
+
+                  not function_exported?(plugin, :features, 1) ->
+                    JsonRpc.show_message(
+                      :error,
+                      "Formatter plugin #{inspect(plugin)} does not define features/1 and will be skipped."
+                    )
+
+                    nil
+
+                  true ->
+                    plugin
+                end
+              end
+              |> Enum.reject(&is_nil/1)
+
               # we don't do any plugin loading as this may trigger compile
               # TODO it may be safe to compile on 1.18+
-              :ok
             end
           ]
 

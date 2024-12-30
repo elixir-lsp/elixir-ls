@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.26.1: 30 December 2024
+
+#### Fixes
+
+- Fixed regression in formatter plugin loader
+
 ### v0.26.0: 30 December 2024
 
 #### Highlights
