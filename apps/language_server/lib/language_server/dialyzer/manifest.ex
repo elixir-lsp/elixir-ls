@@ -167,7 +167,10 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
     modules_to_paths =
       for app <- @erlang_apps ++ @elixir_apps,
           path <-
-            Path.join([SourceFile.Path.escape_for_wildcard(Application.app_dir(app)), "**/*.beam"])
+            Path.join([
+              SourceFile.Path.escape_for_wildcard(Application.app_dir(app)),
+              "**/*.beam"
+            ])
             |> Path.wildcard(),
           into: %{},
           do: {pathname_to_module(path), path |> String.to_charlist()}

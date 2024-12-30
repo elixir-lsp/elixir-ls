@@ -472,8 +472,14 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         for typing_trace <- typing_traces, trace <- typing_trace.traces do
           case typing_trace.type do
             :variable ->
-              line = trace.meta |> Keyword.get(:line, 1)
-              column = trace.meta |> Keyword.get(:column, 1)
+              {line, column} =
+                case trace do
+                  %{meta: meta} ->
+                    {Keyword.get(meta, :line, 1), Keyword.get(meta, :column, 1)}
+
+                  _ ->
+                    {Keyword.get(trace, :line, 1), Keyword.get(trace, :column, 1)}
+                end
 
               message = "given type: #{trace.formatted_type}"
 

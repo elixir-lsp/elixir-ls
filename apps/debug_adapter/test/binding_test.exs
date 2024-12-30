@@ -28,7 +28,11 @@ defmodule ElixirLS.DebugAdapter.BindingTest do
 
     test "multiple versions" do
       assert [{:asd, "b"}] ==
-               Binding.to_elixir_variable_names([{:_asd@1, "a"}, {:_asd@12, "b"}, {:_asd@11, "c"}])
+               Binding.to_elixir_variable_names([
+                 {:_asd@1, "a"},
+                 {:_asd@12, "b"},
+                 {:_asd@11, "c"}
+               ])
     end
 
     test "filter _" do

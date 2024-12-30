@@ -257,7 +257,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   @spec formatter_for(String.t(), String.t() | nil, boolean) ::
-          {:ok, {function | nil, keyword(), String.t()}} | {:error, any}
+          {:ok, {function | nil, keyword()}} | {:error, any}
   def formatter_for(uri = "file:" <> _, project_dir, mix_project?) when is_binary(project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
@@ -271,7 +271,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             manifest_path: MixProjectCache.manifest_path(),
             config_mtime: MixProjectCache.config_mtime(),
             mix_project: MixProjectCache.get(),
-            root: project_dir
+            root: project_dir,
+            plugin_loader: fn _plugins ->
+              # we don't do any plugin loading as this may trigger compile
+              # TODO it may be safe to compile on 1.18+
+              :ok
+            end
           ]
 
           {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}

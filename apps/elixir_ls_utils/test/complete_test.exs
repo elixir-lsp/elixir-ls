@@ -1029,7 +1029,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
     # local call on var
 
-    if Version.match?(System.version(), "< 1.16.0-dev") do
+    if Version.match?(System.version(), "< 1.16.0") do
       assert [] == expand(~c"asd.(")
       assert [] == expand(~c"@asd.(")
     else

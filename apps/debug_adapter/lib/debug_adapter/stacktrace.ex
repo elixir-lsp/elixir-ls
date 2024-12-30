@@ -65,7 +65,7 @@ defmodule ElixirLS.DebugAdapter.Stacktrace do
                   []
 
                 _ ->
-                  frames = List.zip([backtrace_rest, stack_frames(meta_pid, level)])
+                  frames = Enum.zip([backtrace_rest, stack_frames(meta_pid, level)])
 
                   for {{level, {mod, function, args}}, {level, {mod, line}, bindings}} <- frames do
                     %Frame{

@@ -1096,7 +1096,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     locals_without_parens =
       case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
-        {:ok, {_, opts, _formatter_exs_dir}} ->
+        {:ok, {_, opts}} ->
           locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
 
           if List.improper?(locals_without_parens) do
@@ -1226,7 +1226,7 @@ defmodule ElixirLS.LanguageServer.Server do
       if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
         formatter_opts =
           case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
-            {:ok, {_, opts, _formatter_exs_dir}} -> opts
+            {:ok, {_, opts}} -> opts
             {:error, _} -> []
           end
 

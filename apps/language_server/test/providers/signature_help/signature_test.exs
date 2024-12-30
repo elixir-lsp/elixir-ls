@@ -697,7 +697,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 14) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -705,7 +705,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    params: ["fun", "args"],
                    documentation:
                      "Invokes the given anonymous function `fun` with the list of\narguments `args`.",
-                   spec: "@spec apply((... -> any()), [any()]) :: any()"
+                   spec: "@spec apply(" <> _
                  },
                  %{
                    name: "apply",
@@ -715,7 +715,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    spec: "@spec apply(module(), function_name :: atom(), [any()]) :: any()"
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 14)
     end
 
     test "finds signatures from local functions" do
@@ -1392,7 +1392,16 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 8) == :none
+      if Version.match?(System.version(), "< 1.18.0") do
+        assert Signature.signature(code, 2, 8) == :none
+      else
+        assert %{
+                 signatures: [
+                   %{name: "defmodule"}
+                 ],
+                 active_param: 1
+               } = Signature.signature(code, 2, 8)
+      end
     end
 
     test "return :none when no signature is found" do

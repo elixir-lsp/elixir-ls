@@ -142,6 +142,17 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     "**Delegates to** #{inspect(m)}.#{f}/#{a}"
   end
 
+  defp get_metadata_entry_md({:behaviours, []}), do: nil
+
+  defp get_metadata_entry_md({:behaviours, list})
+       when is_list(list) do
+    "**Implements** #{Enum.map_join(list, ", ", &inspect/1)}"
+  end
+
+  defp get_metadata_entry_md({:source_annos, _}), do: nil
+
+  defp get_metadata_entry_md({:source_path, _}), do: nil
+
   defp get_metadata_entry_md({:spark_opts, _}), do: nil
 
   defp get_metadata_entry_md({key, value}) do
@@ -404,7 +415,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   @kernel_special_forms_exports Kernel.SpecialForms.__info__(:macros)
   @kernel_exports Kernel.__info__(:macros) ++ Kernel.__info__(:functions)
 
-  defp get_module_fun_arity("..///3"), do: {Kernel, :"..//", 3}
+  defp get_module_fun_arity("..///3"), do: {Kernel, :..//, 3}
   defp get_module_fun_arity("../2"), do: {Kernel, :.., 2}
   defp get_module_fun_arity("../0"), do: {Kernel, :.., 0}
   defp get_module_fun_arity("./2"), do: {Kernel.SpecialForms, :., 2}

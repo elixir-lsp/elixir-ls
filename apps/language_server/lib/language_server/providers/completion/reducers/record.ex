@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.State.{RecordInfo, TypeInfo}
   alias ElixirLS.Utils.Matcher
+  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   @type field :: %{
           type: :field,
@@ -95,13 +96,34 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
              cursor_position,
              not elixir_prefix
            ),
-         %RecordInfo{} = info <- records[{mod, fun}] do
-      fields = get_fields(hint, mod, fun, info.fields, options_so_far, metadata_types)
+         fields_info when is_list(fields_info) <- get_record_info(mod, fun, records) do
+      fields = get_fields(hint, mod, fun, fields_info, options_so_far, metadata_types)
 
       {fields, if(npar == 0 and cursor_at_option in [false, :maybe], do: :maybe_record_update)}
     else
       _o ->
         {[], nil}
+    end
+  end
+
+  defp get_record_info(mod, fun, records) do
+    case records[{mod, fun}] do
+      %RecordInfo{} = info ->
+        info.fields
+
+      nil ->
+        if Version.match?(System.version(), ">= 1.18.0-dev") do
+          case NormalizedCode.get_docs(mod, :docs) do
+            nil ->
+              nil
+
+            docs ->
+              Enum.find_value(docs, fn
+                {{^fun, 1}, _, :macro, _, _, %{record: {_tag, fields}}} -> fields
+                _ -> nil
+              end)
+          end
+        end
     end
   end
 
@@ -154,7 +176,47 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
          when kind in [:type, :typep, :opaque] <- ast do
       field_types
     else
-      _ -> []
+      _ ->
+        candidates =
+          if Version.match?(System.version(), ">= 1.18.0-dev") do
+            ElixirSense.Core.TypeInfo.find_all(module, fn info ->
+              info.name in [record, :"#{record}_t", :t] and info.arity == 0
+            end)
+          else
+            []
+          end
+
+        with [info | _] <- candidates,
+             {:ok, ast} <- Code.string_to_quoted(info.spec),
+             {:@, _,
+              [
+                {kind, _,
+                 [
+                   {:"::", _,
+                    [
+                      {_name, _, []},
+                      {:{}, _,
+                       [
+                         _tag
+                         | field_types
+                       ]}
+                    ]}
+                 ]}
+              ]}
+             when kind in [:type, :typep, :opaque] <- ast do
+          field_types
+          |> Enum.map(fn
+            {:"::", _, [{name, _, context}, type]} when is_atom(name) and is_atom(context) ->
+              {name, type}
+
+            _ ->
+              nil
+          end)
+          |> Enum.reject(&is_nil/1)
+        else
+          _ ->
+            []
+        end
     end
   end
 end

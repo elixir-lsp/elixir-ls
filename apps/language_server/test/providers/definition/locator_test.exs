@@ -1132,29 +1132,30 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
   end
 
-  # TODO not supported in Code.Fragment.surround_context as of elixir 1.17
-  # test "find definition of &1 capture variable" do
-  #   buffer = """
-  #   defmodule MyModule do
-  #     def go() do
-  #       abc = 5
-  #       & [
-  #         &1,
-  #         abc,
-  #         cde = 1,
-  #         record_env()  
-  #       ]
-  #     end
-  #   end
-  #   """
+  if Version.match?(System.version(), ">= 1.18.0") do
+    test "find definition of &1 capture variable" do
+      buffer = """
+      defmodule MyModule do
+        def go() do
+          abc = 5
+          & [
+            &1,
+            abc,
+            cde = 1,
+            record_env()  
+          ]
+        end
+      end
+      """
 
-  #   assert Locator.definition(buffer, 4, 8) == %Location{
-  #            type: :variable,
-  #            file: nil,
-  #            line: 4,
-  #            column: 7
-  #          }
-  # end
+      assert %Location{
+               type: :variable,
+               file: nil,
+               line: 5,
+               column: 7
+             } = Locator.definition(buffer, 5, 8)
+    end
+  end
 
   test "find definition of write variable on definition" do
     buffer = """
@@ -1290,7 +1291,8 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
 
     # `a` redefined in a case clause
-    # TODO cursor lands in the wrong clause on 1.17
+    # cursor lands in the wrong clause on 1.18
+    # fortunately __cursor__ inserting hacks in ElixirSense.Metadata are able to work around this
     # defmodule MyModule do
     #   def my_fun(a, b) do
     #     case a do

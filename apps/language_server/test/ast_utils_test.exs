@@ -32,8 +32,17 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
       assert get_range("nil") == range(0, 0, 0, 3)
     end
 
+    if Version.match?(System.version(), ">= 1.18.0") do
+      test "true as atom" do
+        assert get_range(":true") == range(0, 0, 0, 5)
+      end
+    end
+
     test "integer" do
       assert get_range("1234") == range(0, 0, 0, 4)
+
+      assert node_range({:__block__, [token: "2", line: 1, column: 10], [2]}) ==
+               range(0, 9, 0, 10)
     end
 
     test "float" do
@@ -246,8 +255,9 @@ defmodule ElixirLS.LanguageServer.AstUtilsTest do
     end
 
     # Parser is simplifying the expression and not including the parens
+    # we handle parens meta in selection ranges
     # test "nested binary operators with parens" do
-    #   assert get_range("var * 3 * (foo + x)") == range(0, 0, 0, 17)
+    #   assert get_range("var * 3 * (foo + x)") == range(0, 0, 0, 19)
     # end
 
     test "nested binary and unary operators" do

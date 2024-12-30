@@ -97,7 +97,7 @@ defmodule ElixirSense.Providers.ReferencesTest.Modules do
 
   defmodule Caller6 do
     def func() do
-      ElixirSense.Providers.ReferencesTest.Modules.Callee6.__info__(:function)
+      ElixirSense.Providers.ReferencesTest.Modules.Callee6.__info__(:functions)
       ElixirSense.Providers.ReferencesTest.Modules.Callee6.module_info()
     end
   end
