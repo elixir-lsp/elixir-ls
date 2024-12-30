@@ -192,7 +192,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
             end
 
           match?({:., _meta, [Kernel, :to_string]}, form) ->
-            if Keyword.get(meta, :from_interpolation) or
+            if Keyword.get(meta, :from_interpolation) ||
                  Version.match?(System.version(), "< 1.16.0-dev") do
               {line, column}
             end
