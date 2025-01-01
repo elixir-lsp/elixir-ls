@@ -179,9 +179,16 @@ To debug Phoenix applications using ElixirLS, you can use the following launch c
   "name": "phx.server",
   "request": "launch",
   "task": "phx.server",
-  "projectDir": "${workspaceRoot}"
+  "projectDir": "${workspaceRoot}",
+  "debugAutoInterpretAllModules": false,
+  "debugInterpretModulesPatterns": ["MyApp*", "MyAppWeb*"],
+  "exitAfterTaskReturns": false
 }
 ```
+
+In case of phoenix apps it is generally not advised to interpret all modules. Cowboy and ecto have known performance issues when run in interpreted mode. The example configuration disables auto interpreting and instead makes the DAP interpret only a subset of modules.
+
+Note that `exitAfterTaskReturns` is set to `false`. Otherwise DAP session will end immediately after starting because mix task `phx.server` returns control to the caller.
 
 Please make sure that `startApps` is not set to `true`. To clarify, `startApps` is a configuration option in the ElixirLS debug adapter. It controls whether or not to start the applications in the Mix project before running the task. In the case of Phoenix applications, setting `startApps` to `true` can interfere with the application's normal startup process and cause issues.
 
