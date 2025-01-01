@@ -8,7 +8,9 @@ defmodule ElixirLS.DebugAdapter do
     Application.put_env(:elixir, :ansi_enabled, false)
     WireProtocol.intercept_output(&Output.debuggee_out/1, &Output.debuggee_err/1)
     Application.put_env(:elixir, :ansi_enabled, true)
+
     Launch.start_mix()
+    Application.put_env(:mix, :listeners, [ElixirLS.DebugAdapter.CompilationListener])
 
     if Version.match?(System.version(), ">= 1.15.0-dev") do
       # make sue that OTP debugger modules are in code path

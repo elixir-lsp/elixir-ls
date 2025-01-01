@@ -1897,7 +1897,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     # we assume that mix is already started and has archives and tasks loaded
     Launch.reload_mix_env_and_target()
 
-    Mix.ProjectStack.post_config(build_path: ".elixir_ls/debug_adapter/build")
+    # Mix.ProjectStack.post_config(build_path: ".elixir_ls/debug_adapter/build")
 
     Mix.ProjectStack.post_config(
       test_elixirc_options: [
@@ -1905,6 +1905,8 @@ defmodule ElixirLS.DebugAdapter.Server do
         debug_info: true
       ]
     )
+
+    Mix.ProjectStack.post_config(listeners: [ElixirLS.DebugAdapter.CompilationListener])
 
     Mix.ProjectStack.post_config(prune_code_paths: false)
 

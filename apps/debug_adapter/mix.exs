@@ -20,6 +20,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       elixir: ">= 1.13.0",
+      listeners: [ElixirLS.DebugAdapter.CompilationListener],
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,

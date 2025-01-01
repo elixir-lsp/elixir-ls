@@ -5,7 +5,7 @@ defmodule ElixirLS.DebugAdapter.Application do
 
   use Application
   alias ElixirLS.DebugAdapter.Output
-  alias ElixirLS.DebugAdapter.{Server, BreakpointCondition, ModuleInfoCache}
+  alias ElixirLS.DebugAdapter.{Server, BreakpointCondition, ModuleInfoCache, CompilationListener}
 
   @impl Application
   def start(_type, _args) do
@@ -21,6 +21,7 @@ defmodule ElixirLS.DebugAdapter.Application do
       if Mix.env() != :test do
         [
           BreakpointCondition,
+          CompilationListener,
           {ModuleInfoCache, %{}},
           {Server, name: Server}
         ]
