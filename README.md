@@ -194,6 +194,12 @@ Please make sure that `startApps` is not set to `true`. To clarify, `startApps` 
 
 If you are running tests in the Phoenix application, you may need to set `startApps` to true. This will ensure that the necessary applications are started before the tests run.
 
+#### Known issues
+
+- Phoenix live reload and CodeReloader is not compatible with debug adapter. It will purge and recompile beams running in interpreted mode, unset breakpoints and corrupt the debug session [phoenix_live_reload issue](https://github.com/phoenixframework/phoenix_live_reload/issues/133)
+
+- When cowboy and/or ecto modules are interpreted the DAP server leaks enormous amount of heap memory on every request. The reason is unknown. [GH issue](https://github.com/elixir-lsp/elixir-ls/issues/1017)
+
 ### NIF modules limitation
 
 It's important to note that NIF (Native Implemented Function) modules cannot be interpreted due to limitations in `:int`. Therefore, these modules need to be excluded, using the `excludeModules` option. This option can also be used to disable interpretation for specific modules when it's not desirable, such as when performance is unsatisfactory.
