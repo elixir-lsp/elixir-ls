@@ -182,21 +182,23 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
         assert result == ":ets.insert(a, b)"
       end
 
-      test "handles erlang functions aliased" do
-        message = """
-        :ets.inserd/2 is undefined or private. Did you mean:
-              * insert/2
-              * insert_new/2
-        """
+      if Version.match?(System.version(), ">= 1.15.0") do
+        test "handles erlang functions aliased" do
+          message = """
+          :ets.inserd/2 is undefined or private. Did you mean:
+                * insert/2
+                * insert_new/2
+          """
 
-        {:ok, [result]} =
-          ~q{
+          {:ok, [result]} =
+            ~q{
           alias :ets, as: Foo
           Foo.inserd(a, b)
         }
-          |> modify(message: message, suggestion: "Foo.insert(a, b)", line: 1)
+            |> modify(message: message, suggestion: "Foo.insert(a, b)", line: 1)
 
-        assert result == "alias :ets, as: Foo\nFoo.insert(a, b)"
+          assert result == "alias :ets, as: Foo\nFoo.insert(a, b)"
+        end
       end
     end
 
