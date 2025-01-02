@@ -1,6 +1,6 @@
 ### Unreleased
 
-### v0.26.2: 1 January 2025
+### v0.26.2: 2 January 2025
 
 #### Improvements
 
