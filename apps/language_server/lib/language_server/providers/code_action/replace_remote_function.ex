@@ -13,6 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Metadata
+  alias ElixirSense.Core.Introspection
 
   import ElixirLS.LanguageServer.Providers.CodeAction.Helpers
 
@@ -157,17 +158,23 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
 
   @spec expand_alias(SourceFile.t(), [atom()], non_neg_integer()) :: {:ok, atom()} | :error
   defp expand_alias(source_file, module_alias, line_number) do
-    # TODO use Macro.Env
     with {:ok, aliases} <- aliases_at(source_file, line_number) do
       aliases
       |> Enum.map(fn {module, aliased} ->
         module = module |> module_to_alias() |> List.first()
-        aliased = module_to_alias(aliased)
 
-        {module, aliased}
+        if Introspection.elixir_module?(aliased) do
+          aliased = module_to_alias(aliased)
+          {module, aliased}
+        else
+          {module, aliased}
+        end
       end)
       |> Enum.find(fn {module, _aliased} -> List.starts_with?(module_alias, [module]) end)
       |> case do
+        {_module, aliased} when is_atom(aliased) ->
+          {:ok, aliased}
+
         {_module, aliased} ->
           module_alias = aliased ++ Enum.drop(module_alias, 1)
 
