@@ -1,5 +1,17 @@
 ### Unreleased
 
+### v0.26.2: 1 January 2025
+
+#### Improvements
+
+- Replace remote function code action now works when erlang modules are aliased
+
+#### Fixes
+
+- Fix crash when extracting data from diagnostics on elixir 1.18
+- Fixed crash in keyword options completions when docs cannot be found
+- Fixed crash in keyword options completions when remote type cannot be expanded
+
 ### v0.26.1: 30 December 2024
 
 #### Fixes
