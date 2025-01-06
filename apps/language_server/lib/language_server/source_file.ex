@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   alias ElixirLS.LanguageServer.Protocol.TextEdit
 
   import ElixirLS.LanguageServer.Protocol
-  import ElixirLS.LanguageServer.JsonRpc
+  alias ElixirLS.LanguageServer.JsonRpc
   require ElixirSense.Core.Introspection, as: Introspection
   require Logger
 
