@@ -467,8 +467,11 @@ defmodule ElixirLS.Utils.CompletionEngine do
         cursor_position
       )
 
-    current_module_locals =
+    current_module_locals = if env.module && env.function do
       match_module_funs(env.module, hint, exact?, false, :all, env, metadata, cursor_position)
+    else
+      []
+    end
 
     imported_locals =
       {env.functions, env.macros}
@@ -1070,11 +1073,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          cursor_position
        ) do
-    case metadata.mods_funs_to_positions[{mod, nil, nil}] do
-      nil ->
+    cond do
+      not Map.has_key?(metadata.mods_funs_to_positions, {mod, nil, nil}) ->
         []
+      # mod == env.module and is_nil(env.function) ->
+      #   # locals are not available in module body
+      #   []
 
-      _funs ->
+      true ->
         # local macros are available after definition
         # local functions are hoisted
         for {{^mod, f, a}, %State.ModFunInfo{} = info} <- metadata.mods_funs_to_positions,

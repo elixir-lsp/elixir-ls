@@ -1287,7 +1287,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       }
     }
 
-    assert [_ | _] = expand(~c"my_f", env, metadata)
+    assert [_ | _] = expand(~c"my_f", %{env | function: {:foo, 1}}, metadata)
 
     assert [
              %{
@@ -1297,31 +1297,34 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                type: :function,
                spec: "@spec my_fun_priv(atom, integer) :: boolean"
              }
-           ] = expand(~c"my_fun_pr", env, metadata)
+           ] = expand(~c"my_fun_pr", %{env | function: {:foo, 1}}, metadata)
 
     assert [
              %{name: "my_fun_pub", origin: "MyModule", type: :function}
-           ] = expand(~c"my_fun_pu", env, metadata)
+           ] = expand(~c"my_fun_pu", %{env | function: {:foo, 1}}, metadata)
 
     assert [
              %{name: "my_macro_priv", origin: "MyModule", type: :macro}
-           ] = expand(~c"my_macro_pr", env, metadata)
+           ] = expand(~c"my_macro_pr", %{env | function: {:foo, 1}}, metadata)
 
     assert [
              %{name: "my_macro_pub", origin: "MyModule", type: :macro}
-           ] = expand(~c"my_macro_pu", env, metadata)
+           ] = expand(~c"my_macro_pu", %{env | function: {:foo, 1}}, metadata)
 
     assert [
              %{name: "my_guard_priv", origin: "MyModule", type: :macro}
-           ] = expand(~c"my_guard_pr", env, metadata)
+           ] = expand(~c"my_guard_pr", %{env | function: {:foo, 1}}, metadata)
 
     assert [
              %{name: "my_guard_pub", origin: "MyModule", type: :macro}
-           ] = expand(~c"my_guard_pu", env, metadata)
+           ] = expand(~c"my_guard_pu", %{env | function: {:foo, 1}}, metadata)
 
     assert [
              %{name: "my_delegated", origin: "MyModule", type: :function}
-           ] = expand(~c"my_de", env, metadata)
+           ] = expand(~c"my_de", %{env | function: {:foo, 1}}, metadata)
+
+    # locals are not available in module body
+    assert [] == expand(~c"my_f", %{env | function: nil}, metadata)
   end
 
   test "complete remote funs from imported module" do
@@ -2230,7 +2233,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                needed_require: nil,
                visibility: :public
              }
-           ] = expand(~c"inf", %Env{requires: [], module: MyModule}, metadata)
+           ] = expand(~c"inf", %Env{requires: [], module: MyModule, function: {:foo, 1}}, metadata)
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
