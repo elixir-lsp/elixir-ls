@@ -45,32 +45,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
     end
   end
 
-  defp find_record_fields(hint, text_before, env, metadata, cursor_position) do
-    %State.Env{
-      module: module,
-      vars: vars,
-      attributes: attributes
-    } = env
+  defp find_record_fields(
+         hint,
+         text_before,
+         %State.Env{} = env,
+         %Metadata{
+           records: records,
+           types: metadata_types
+         } = metadata,
+         cursor_position
+       ) do
 
-    %Metadata{
-      structs: structs,
-      records: records,
-      mods_funs_to_positions: mods_funs,
-      types: metadata_types,
-      specs: specs
-    } = metadata
-
-    binding_env = %ElixirSense.Core.Binding{
-      attributes: attributes,
-      variables: vars,
-      structs: structs,
-      functions: env.functions,
-      macros: env.macros,
-      current_module: module,
-      specs: specs,
-      types: metadata_types,
-      mods_funs: mods_funs
-    }
+    binding_env = ElixirSense.Core.Binding.from_env(env, metadata)
 
     # check if we are inside local or remote call arguments and parameter is 0, 1 or 2
     # record fields can specified on 0, 1 and 2 position in the argument list

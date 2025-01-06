@@ -50,32 +50,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
     end
   end
 
-  defp find_struct_fields(hint, text_before, env, buffer_metadata) do
-    %State.Env{
-      module: module,
-      vars: vars,
-      attributes: attributes,
-      aliases: aliases
-    } = env
-
-    %Metadata{
-      structs: structs,
-      mods_funs_to_positions: mods_funs,
-      types: metadata_types,
-      specs: specs
-    } = buffer_metadata
-
-    env = %ElixirSense.Core.Binding{
-      attributes: attributes,
-      variables: vars,
-      structs: structs,
-      functions: env.functions,
-      macros: env.macros,
-      current_module: module,
-      specs: specs,
-      types: metadata_types,
-      mods_funs: mods_funs
-    }
+  defp find_struct_fields(
+         hint,
+         text_before,
+         %State.Env{
+           module: module,
+           aliases: aliases
+         } = env,
+         %Metadata{} = buffer_metadata
+       ) do
+    binding_env = ElixirSense.Core.Binding.from_env(env, buffer_metadata)
 
     case Source.which_struct(text_before, module) do
       {type, fields_so_far, elixir_prefix, var} ->
@@ -90,13 +74,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
               type
           end
 
-        type = Binding.expand(env, {:struct, [], type, var})
+        type = Binding.expand(binding_env, {:struct, [], type, var})
 
         result = get_fields(buffer_metadata, type, hint, fields_so_far)
         {result, if(fields_so_far == [], do: :maybe_struct_update)}
 
       {:map, fields_so_far, var} ->
-        var = Binding.expand(env, var)
+        var = Binding.expand(binding_env, var)
 
         result = get_fields(buffer_metadata, var, hint, fields_so_far)
         {result, if(fields_so_far == [], do: :maybe_struct_update)}
