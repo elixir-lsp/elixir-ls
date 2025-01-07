@@ -1076,9 +1076,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     cond do
       not Map.has_key?(metadata.mods_funs_to_positions, {mod, nil, nil}) ->
         []
-      # mod == env.module and is_nil(env.function) ->
-      #   # locals are not available in module body
-      #   []
 
       true ->
         # local macros are available after definition

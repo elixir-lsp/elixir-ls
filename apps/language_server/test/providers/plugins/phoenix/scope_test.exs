@@ -57,7 +57,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.ScopeTest do
 
         binding = %Binding{
           structs: %{},
-          variables: [],
+          vars: [],
           attributes: [
             %ElixirSense.Core.State.AttributeInfo{
               name: :web_prefix,
@@ -65,10 +65,10 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.ScopeTest do
               type: {:atom, ExampleWeb}
             }
           ],
-          current_module: ExampleWeb.Router,
+          module: ExampleWeb.Router,
           specs: %{},
           types: %{},
-          mods_funs: %{}
+          mods_funs_to_positions: %{}
         }
 
         assert {true, ExampleWeb} = Scope.within_scope(buffer, binding)
@@ -86,7 +86,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.ScopeTest do
 
         binding = %Binding{
           structs: %{},
-          variables: [
+          vars: [
             %ElixirSense.Core.State.VarInfo{
               name: :web_prefix,
               positions: [{5, 5}],
@@ -95,10 +95,10 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix.ScopeTest do
             }
           ],
           attributes: [],
-          current_module: ExampleWeb.Router,
+          module: ExampleWeb.Router,
           specs: %{},
           types: %{},
-          mods_funs: %{}
+          mods_funs_to_positions: %{}
         }
 
         assert {true, ExampleWeb} = Scope.within_scope(buffer, binding)
