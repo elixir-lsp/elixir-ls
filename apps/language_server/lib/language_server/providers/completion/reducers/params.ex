@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Params do
   def add_options(hint, env, buffer_metadata, cursor_context, acc) do
     prefix = cursor_context.text_before
 
-    binding_env = Binding.from_env(env, buffer_metadata)
+    binding_env = Binding.from_env(env, buffer_metadata, cursor_context.cursor_position)
 
     %Metadata{mods_funs_to_positions: mods_funs, types: metadata_types} = buffer_metadata
 

@@ -261,7 +261,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
        ) do
     filter = struct_module_filter(only_structs, env, metadata)
 
-    case expand_dot_path(path, env, metadata) do
+    case expand_dot_path(path, env, metadata, cursor_position) do
       {:ok, {:atom, mod}} when hint == "" ->
         expand_aliases(
           mod,
@@ -290,7 +290,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   # elixir >= 1.14
-  defp expand_dot_path({:var, ~c"__MODULE__"}, %State.Env{} = env, %Metadata{} = _metadata) do
+  defp expand_dot_path(
+         {:var, ~c"__MODULE__"},
+         %State.Env{} = env,
+         %Metadata{} = _metadata,
+         _cursor_position
+       ) do
     if env.module != nil and Introspection.elixir_module?(env.module) do
       {:ok, {:atom, env.module}}
     else
@@ -298,15 +303,25 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp expand_dot_path({:var, var}, %State.Env{} = env, %Metadata{} = metadata) do
-    value_from_binding({:variable, List.to_atom(var), :any}, env, metadata)
+  defp expand_dot_path({:var, var}, %State.Env{} = env, %Metadata{} = metadata, cursor_position) do
+    value_from_binding({:variable, List.to_atom(var), :any}, env, metadata, cursor_position)
   end
 
-  defp expand_dot_path({:module_attribute, attribute}, %State.Env{} = env, %Metadata{} = metadata) do
-    value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata)
+  defp expand_dot_path(
+         {:module_attribute, attribute},
+         %State.Env{} = env,
+         %Metadata{} = metadata,
+         cursor_position
+       ) do
+    value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position)
   end
 
-  defp expand_dot_path({:alias, hint}, %State.Env{} = env, %Metadata{} = metadata) do
+  defp expand_dot_path(
+         {:alias, hint},
+         %State.Env{} = env,
+         %Metadata{} = metadata,
+         _cursor_position
+       ) do
     alias = hint |> List.to_string() |> String.split(".") |> value_from_alias(env, metadata)
 
     case alias do
@@ -319,7 +334,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp expand_dot_path(
          {:alias, {:local_or_var, var}, hint},
          %State.Env{} = env,
-         %Metadata{} = metadata
+         %Metadata{} = metadata,
+         _cursor_position
        ) do
     case var do
       ~c"__MODULE__" ->
@@ -339,9 +355,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp expand_dot_path(
          {:alias, {:module_attribute, attribute}, hint},
          %State.Env{} = env,
-         %Metadata{} = metadata
+         %Metadata{} = metadata,
+         cursor_position
        ) do
-    case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata) do
+    case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position) do
       {:ok, {:atom, atom}} ->
         if Introspection.elixir_module?(atom) do
           alias_suffix = hint |> List.to_string() |> String.split(".")
@@ -360,18 +377,38 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp expand_dot_path({:alias, _, _hint}, %State.Env{} = _env, %Metadata{} = _metadata) do
+  defp expand_dot_path(
+         {:alias, _, _hint},
+         %State.Env{} = _env,
+         %Metadata{} = _metadata,
+         _cursor_position
+       ) do
     :error
   end
 
-  defp expand_dot_path({:unquoted_atom, var}, %State.Env{} = _env, %Metadata{} = _metadata) do
+  defp expand_dot_path(
+         {:unquoted_atom, var},
+         %State.Env{} = _env,
+         %Metadata{} = _metadata,
+         _cursor_position
+       ) do
     {:ok, {:atom, List.to_atom(var)}}
   end
 
-  defp expand_dot_path({:dot, parent, call}, %State.Env{} = env, %Metadata{} = metadata) do
-    case expand_dot_path(parent, env, metadata) do
+  defp expand_dot_path(
+         {:dot, parent, call},
+         %State.Env{} = env,
+         %Metadata{} = metadata,
+         cursor_position
+       ) do
+    case expand_dot_path(parent, env, metadata, cursor_position) do
       {:ok, expanded} ->
-        value_from_binding({:call, expanded, List.to_atom(call), []}, env, metadata)
+        value_from_binding(
+          {:call, expanded, List.to_atom(call), []},
+          env,
+          metadata,
+          cursor_position
+        )
 
       :error ->
         :error
@@ -379,7 +416,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   # elixir >= 1.15
-  defp expand_dot_path(:expr, %State.Env{} = _env, %Metadata{} = _metadata) do
+  defp expand_dot_path(:expr, %State.Env{} = _env, %Metadata{} = _metadata, _cursor_position) do
     # TODO expand expression
     :error
   end
@@ -467,11 +504,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
         cursor_position
       )
 
-    current_module_locals = if env.module && env.function do
-      match_module_funs(env.module, hint, exact?, false, :all, env, metadata, cursor_position)
-    else
-      []
-    end
+    current_module_locals =
+      if env.module && env.function do
+        match_module_funs(env.module, hint, exact?, false, :all, env, metadata, cursor_position)
+      else
+        []
+      end
 
     imported_locals =
       {env.functions, env.macros}
@@ -681,7 +719,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
          cursor_position,
          only_structs
        ) do
-    case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata) do
+    case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position) do
       {:ok, {:atom, atom}} ->
         if Introspection.elixir_module?(atom) do
           expand_aliases("#{atom}.#{hint}", env, metadata, cursor_position, only_structs, [])
@@ -1512,9 +1550,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp value_from_binding(binding_ast, %State.Env{} = env, %Metadata{} = metadata) do
+  defp value_from_binding(
+         binding_ast,
+         %State.Env{} = env,
+         %Metadata{} = metadata,
+         cursor_position
+       ) do
     case Binding.expand(
-           Binding.from_env(env, metadata),
+           Binding.from_env(env, metadata, cursor_position),
            binding_ast
          ) do
       :none -> :error

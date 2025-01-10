@@ -32,7 +32,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
   """
 
   # We only list type specs when inside typespec scope
-  def add_types(hint, env, file_metadata, %{at_module_body?: _}, acc) do
+  def add_types(
+        hint,
+        env,
+        file_metadata,
+        %{at_module_body?: _, cursor_position: cursor_position},
+        acc
+      ) do
     if match?({_, _}, env.typespec) do
       %State.Env{
         aliases: aliases,
@@ -41,7 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
 
       %Metadata{mods_funs_to_positions: mods_funs, types: metadata_types} = file_metadata
 
-      binding_env = Binding.from_env(env, file_metadata)
+      binding_env = Binding.from_env(env, file_metadata, cursor_position)
 
       {mod, hint} =
         hint

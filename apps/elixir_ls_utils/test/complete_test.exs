@@ -2233,7 +2233,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                needed_require: nil,
                visibility: :public
              }
-           ] = expand(~c"inf", %Env{requires: [], module: MyModule, function: {:foo, 1}}, metadata)
+           ] =
+             expand(~c"inf", %Env{requires: [], module: MyModule, function: {:foo, 1}}, metadata)
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do

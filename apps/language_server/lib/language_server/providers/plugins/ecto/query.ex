@@ -193,22 +193,37 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
     }
   end
 
-  defp infer_type({:__aliases__, _, [{:__MODULE__, _, _} | list]}, _vars, env, buffer_metadata) do
+  defp infer_type(
+         {:__aliases__, _, [{:__MODULE__, _, _} | list]},
+         _vars,
+         env,
+         buffer_metadata,
+         cursor_position
+       ) do
     mod = Module.concat(env.module, Module.concat(list))
-    {actual_mod, _, _, _} = Util.actual_mod_fun({mod, nil}, false, env, buffer_metadata)
+
+    {actual_mod, _, _, _} =
+      Util.actual_mod_fun({mod, nil}, false, env, buffer_metadata, cursor_position)
+
     actual_mod
   end
 
-  defp infer_type({:__aliases__, _, list}, _vars, env, buffer_metadata) do
+  defp infer_type({:__aliases__, _, list}, _vars, env, buffer_metadata, cursor_position) do
     mod = Module.concat(list)
 
     {actual_mod, _, _, _} =
-      Util.actual_mod_fun({mod, nil}, hd(list) == Elixir, env, buffer_metadata)
+      Util.actual_mod_fun({mod, nil}, hd(list) == Elixir, env, buffer_metadata, cursor_position)
 
     actual_mod
   end
 
-  defp infer_type({:assoc, _, [{var, _, _}, assoc]}, vars, _env, _buffer_metadata) do
+  defp infer_type(
+         {:assoc, _, [{var, _, _}, assoc]},
+         vars,
+         _env,
+         _buffer_metadata,
+         _cursor_position
+       ) do
     var_type = vars[to_string(var)][:type]
 
     if var_type && function_exported?(var_type, :__schema__, 2) do
@@ -216,7 +231,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
     end
   end
 
-  defp infer_type(_, _vars, _env, _buffer_metadata) do
+  defp infer_type(_, _vars, _env, _buffer_metadata, _cursor_position) do
     nil
   end
 
@@ -240,7 +255,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
     Enum.reduce(matches, %{}, fn [_, _, var, expr], bindings ->
       case Code.string_to_quoted(expr) do
         {:ok, expr_ast} ->
-          type = infer_type(expr_ast, bindings, env, buffer_metadata)
+          type = infer_type(expr_ast, bindings, env, buffer_metadata, {line, col})
           Map.put(bindings, var, %{type: type})
 
         _ ->

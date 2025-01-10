@@ -63,7 +63,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         } = env,
         metadata
       ) do
-    binding_env = Binding.from_env(env, metadata)
+    binding_env = Binding.from_env(env, metadata, context.begin)
 
     type = SurroundContext.to_binding(context.context, module)
 

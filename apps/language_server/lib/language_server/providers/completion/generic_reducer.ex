@@ -42,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.GenericReducer do
       module_store: acc.context.module_store
     }
 
-    case Util.func_call_chain(text_before, env, buffer_metadata) do
+    case Util.func_call_chain(text_before, env, buffer_metadata, cursor_context.cursor_position) do
       [func_call | _] = chain ->
         if function_exported?(reducer, :suggestions, 4) do
           try do

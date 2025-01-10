@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
          } = metadata,
          cursor_position
        ) do
-    binding_env = ElixirSense.Core.Binding.from_env(env, metadata)
+    binding_env = ElixirSense.Core.Binding.from_env(env, metadata, cursor_position)
 
     # check if we are inside local or remote call arguments and parameter is 0, 1 or 2
     # record fields can specified on 0, 1 and 2 position in the argument list

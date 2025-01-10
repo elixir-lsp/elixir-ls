@@ -28,7 +28,9 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix do
     @impl true
     def suggestions(hint, {Phoenix.Router, func, 1, _info}, _list, opts)
         when func in @phoenix_route_funcs do
-      binding = Binding.from_env(opts.env, opts.buffer_metadata)
+      binding =
+        Binding.from_env(opts.env, opts.buffer_metadata, opts.cursor_context.cursor_position)
+
       {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before, binding)
 
       case find_controllers(opts.module_store, opts.env, hint, scope_alias) do
@@ -44,7 +46,9 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix do
           opts
         )
         when func in @phoenix_route_funcs do
-      binding_env = Binding.from_env(opts.env, opts.buffer_metadata)
+      binding_env =
+        Binding.from_env(opts.env, opts.buffer_metadata, opts.cursor_context.cursor_position)
+
       {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before)
       {module, _} = Source.get_mod([module], binding_env)
 

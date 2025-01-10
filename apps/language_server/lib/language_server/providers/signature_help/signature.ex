@@ -35,7 +35,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
   @spec find(String.t(), {pos_integer, pos_integer}, State.Env.t(), Metadata.t()) ::
           signature_info | :none
   def find(prefix, cursor_position, env, metadata) do
-    binding_env = Binding.from_env(env, metadata)
+    binding_env = Binding.from_env(env, metadata, cursor_position)
 
     with %{candidate: {m, f}, npar: npar, elixir_prefix: elixir_prefix} <-
            Source.which_func(prefix, binding_env),
