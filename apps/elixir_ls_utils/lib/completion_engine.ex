@@ -184,6 +184,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
         expand_local_or_var(List.to_string(local_or_var), env, metadata, cursor_position)
 
+      # elixir >= 1.18
+      {:capture_arg, capture_arg} ->
+        expand_local_or_var(List.to_string(capture_arg), env, metadata, cursor_position)
+
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, env, metadata, cursor_position)
 
