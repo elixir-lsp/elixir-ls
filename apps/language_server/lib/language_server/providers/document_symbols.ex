@@ -199,7 +199,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
       %Info{
         type: type,
-        name: "#{name_str}/#{length(args || [])}",
+        name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
         detail: "@#{type_kind}",
         location: location,
         selection_location: type_head_location,
@@ -237,7 +237,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
-      name: "#{name_str}/#{length(args || [])}",
+      name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
       detail: defname,
       location: location,
       selection_location: head_location,
@@ -261,7 +261,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
-      name: "#{name_str}/#{length(args || [])}",
+      name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
       detail: defname,
       location: location,
       selection_location: head_location,
