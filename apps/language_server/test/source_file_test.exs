@@ -653,6 +653,12 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert {1, 2} == SourceFile.lsp_position_to_elixir("🏳️‍🌈abcde", {0, 6})
     end
 
+    test "lsp_position_to_elixir single line index inside high surrogate pair" do
+      assert {1, 7} == SourceFile.lsp_position_to_elixir("Hello 🙌 World", {0, 6})
+      assert {1, 7} == SourceFile.lsp_position_to_elixir("Hello 🙌 World", {0, 7})
+      assert {1, 8} == SourceFile.lsp_position_to_elixir("Hello 🙌 World", {0, 8})
+    end
+
     test "lsp_position_to_elixir multi line" do
       assert {2, 2} == SourceFile.lsp_position_to_elixir("abcde\n1234", {1, 1})
     end

@@ -62,5 +62,11 @@ defmodule ElixirLS.DebugAdapter.UtilsTest do
     test "dap_character_to_elixir utf8" do
       assert 1 == Utils.dap_character_to_elixir("🏳️‍🌈abcde", 6)
     end
+
+    test "dap_character_to_elixir index inside high surrogate pair" do
+      assert 6 == Utils.dap_character_to_elixir("Hello 🙌 World", 6)
+      assert 6 == Utils.dap_character_to_elixir("Hello 🙌 World", 7)
+      assert 7 == Utils.dap_character_to_elixir("Hello 🙌 World", 8)
+    end
   end
 end
