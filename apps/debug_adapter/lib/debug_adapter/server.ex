@@ -1471,7 +1471,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       line =
         text
         |> String.split(["\r\n", "\n", "\r"])
-        |> Enum.at(line)
+        |> Enum.at(line, "")
 
       # It is measured in UTF-16 code units and the client capability
       # `columnsStartAt1` determines whether it is 0- or 1-based.

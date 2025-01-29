@@ -126,7 +126,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         options
       ) do
     lines = SourceFile.lines(text)
-    line_text = Enum.at(lines, line - 1)
+    line_text = Enum.at(lines, line - 1, "")
 
     text_before_cursor = String.slice(line_text, 0, character - 1)
     text_after_cursor = String.slice(line_text, (character - 1)..-1//1)
@@ -187,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
               {_, meta, _} when is_list(meta) ->
                 if Keyword.has_key?(meta, :do) do
                   line = Keyword.fetch!(meta, :line)
-                  line_text = Enum.at(lines, line - 1)
+                  line_text = Enum.at(lines, line - 1, "")
                   String.length(line_text) - String.length(String.trim_leading(line_text))
                 end
 

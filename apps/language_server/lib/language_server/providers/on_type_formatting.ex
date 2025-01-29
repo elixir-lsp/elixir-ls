@@ -36,7 +36,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
         end
 
       # Apply the proposed change to the current text so we can see if it fixes terminators
-      insert_on_next_line? = blank?(Enum.at(lines, line)) and line != Enum.count(lines) - 1
+      insert_on_next_line? = blank?(Enum.at(lines, line, "")) and line != Enum.count(lines) - 1
       {range, new_text} = insert_end_edit(prev_indentation, line, character, insert_on_next_line?)
       edited_text = SourceFile.apply_edit(source_file.text, range, new_text)
 

@@ -157,7 +157,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
             # ^ 
             [outer_range | acc]
           else
-            line_length = lines |> Enum.at(end_line - 1) |> String.length()
+            line_length = lines |> Enum.at(end_line - 1, "") |> String.length()
             inner_range = range(start_line + 1, 0, end_line - 1, line_length)
 
             find_stop_token_range(stop_tokens_in_pair, pair, inner_range, line, character) ++
@@ -262,8 +262,8 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
           cell_pairs,
         (start_line < line or (start_line == line and start_character <= character)) and
           end_line > line do
-      line_length = lines |> Enum.at(end_line - 1) |> String.length()
-      second_line = lines |> Enum.at(start_line + 1)
+      line_length = lines |> Enum.at(end_line - 1, "") |> String.length()
+      second_line = lines |> Enum.at(start_line + 1, "")
 
       second_line_indent =
         String.length(second_line) - String.length(String.trim_leading(second_line))
@@ -308,19 +308,19 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
           (end_line > line or (end_line == line and end_line_start_character <= character)) do
       case group do
         [_] ->
-          line_length = lines |> Enum.at(start_line) |> String.length()
+          line_length = lines |> Enum.at(start_line, "") |> String.length()
           full_line_range = range(start_line, 0, start_line, line_length)
           [full_line_range, range(start_line, start_character, start_line, line_length)]
 
         _ ->
-          end_line_length = lines |> Enum.at(end_line) |> String.length()
+          end_line_length = lines |> Enum.at(end_line, "") |> String.length()
           full_block_full_line_range = range(start_line, 0, end_line, end_line_length)
           full_block_range = range(start_line, start_character, end_line, end_line_length)
 
           [full_block_full_line_range, full_block_range] ++
             Enum.find_value(group, fn {{cursor_line, cursor_line_character}, _} ->
               if cursor_line == line do
-                cursor_line_length = lines |> Enum.at(cursor_line) |> String.length()
+                cursor_line_length = lines |> Enum.at(cursor_line, "") |> String.length()
 
                 line_range =
                   range(

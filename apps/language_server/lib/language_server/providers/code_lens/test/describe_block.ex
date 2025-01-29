@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test.DescribeBlock do
   defp get_name(source_lines, declaration_line) do
     case Regex.named_captures(
            ~r/^\s*describe "(?<name>.*)" do/u,
-           Enum.at(source_lines, declaration_line - 1)
+           Enum.at(source_lines, declaration_line - 1, "")
          ) do
       %{"name" => name} ->
         name

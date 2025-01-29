@@ -92,7 +92,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
 
       test_name =
         source_lines
-        |> Enum.at(line - 1)
+        |> Enum.at(line - 1, "")
         |> String.trim()
         |> case do
           "test " <> rest ->

@@ -32,9 +32,9 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   def build_range(lines, %{begin: {begin_line, begin_char}, end: {end_line, end_char}}) do
     range(
       begin_line - 1,
-      SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1), begin_char),
+      SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1, ""), begin_char),
       end_line - 1,
-      SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1), end_char)
+      SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1, ""), end_char)
     )
   end
 

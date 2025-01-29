@@ -508,7 +508,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           if parent_end_line > parent_do_line do
             # take end location from parent and assume end_of_expression is last char in previous line
             end_of_expression =
-              (Enum.at(lines, max(parent_end_line - 2, 0)) || "")
+              Enum.at(lines, max(parent_end_line - 2, 0), "")
               |> String.length()
 
             SourceFile.elixir_position_to_lsp(
@@ -517,7 +517,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
             )
           else
             # take end location from parent and assume end_of_expression is last char before final ; trimmed
-            line = Enum.at(lines, parent_end_line - 1)
+            line = Enum.at(lines, parent_end_line - 1, "")
             parent_end_column = location[:parent_location][:end][:column]
 
             end_of_expression =
