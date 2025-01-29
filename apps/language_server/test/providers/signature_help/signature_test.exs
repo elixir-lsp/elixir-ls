@@ -1292,6 +1292,32 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
     end
 
+    test "retrieve metadata function signature - fallback to remote protocol callback" do
+      code = """
+      defimpl Enumerable, for: Date do
+        def count(a) do
+          :ok
+        end
+      end
+
+      Enumerable.impl_for()
+      """
+
+      res = Signature.signature(code, 7, 21)
+
+      assert %{
+               active_param: 0,
+               signatures: [
+                 %{
+                   documentation: "A function available in all protocol definitions" <> _,
+                   name: "impl_for",
+                   params: ["data"],
+                   spec: "@callback impl_for(term()) :: module() | nil"
+                 }
+               ]
+             } = res
+    end
+
     test "retrieve metadata macro signature - fallback to macrocallback" do
       code = """
       defmodule MyLocalModule do

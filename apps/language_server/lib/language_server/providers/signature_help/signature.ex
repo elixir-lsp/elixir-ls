@@ -138,15 +138,23 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
                     }
 
                   nil ->
-                    fun_info = Map.fetch!(metadata.mods_funs_to_positions, {mod, fun, arity})
-
-                    {spec, doc, _} =
-                      Metadata.get_doc_spec_from_behaviour(
-                        behaviour,
-                        fun,
-                        arity,
+                    category = case metadata.mods_funs_to_positions[{mod, fun, arity}] do
+                      nil ->
+                        if Code.ensure_loaded?(mod) and macro_exported?(mod, fun, arity) do
+                            :macro
+                        else
+                          :function
+                        end
+                      %State.ModFunInfo{} = fun_info ->
                         State.ModFunInfo.get_category(fun_info)
-                      )
+                    end
+
+                    {spec, doc, _} = Metadata.get_doc_spec_from_behaviour(
+                      behaviour,
+                      fun,
+                      arity,
+                      category
+                    )
 
                     %{
                       signature
