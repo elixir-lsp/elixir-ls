@@ -337,15 +337,16 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   defp clamp_offset_to_surrogate_boundary(_bin, offset, _max_bytes) when offset <= 0,
     do: 0
 
-  defp clamp_offset_to_surrogate_boundary(bin, offset, _max_bytes) do
+  defp clamp_offset_to_surrogate_boundary(bin, offset, _max_bytes) when offset >= 2 do
     # We know 0 < offset < max_bytes at this point
     # Look at the 2 bytes immediately before `offset`
-    <<_::binary-size(offset - 2), maybe_high::binary-size(2), _::binary>> = bin
+    prefix_offset = offset - 2
+    <<_::binary-size(prefix_offset), maybe_high::binary-size(2), _::binary>> = bin
     code_unit = :binary.decode_unsigned(maybe_high, :big)
 
     # If that 16-bit code_unit is a high surrogate, we've sliced in half
     if code_unit in 0xD800..0xDBFF do
-      offset - 2
+      prefix_offset
     else
       offset
     end
