@@ -1305,17 +1305,31 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
 
       res = Signature.signature(code, 7, 21)
 
-      assert %{
-               active_param: 0,
-               signatures: [
-                 %{
-                   documentation: "A function available in all protocol definitions" <> _,
-                   name: "impl_for",
-                   params: ["data"],
-                   spec: "@callback impl_for(term()) :: module() | nil"
-                 }
-               ]
-             } = res
+      if Version.match?(System.version(), ">= 1.18.0") do
+        assert %{
+                 active_param: 0,
+                 signatures: [
+                   %{
+                     documentation: "A function available in all protocol definitions" <> _,
+                     name: "impl_for",
+                     params: ["data"],
+                     spec: "@callback impl_for(term()) :: module() | nil"
+                   }
+                 ]
+               } = res
+      else
+        assert %{
+                 active_param: 0,
+                 signatures: [
+                   %{
+                     documentation: "Returns the module" <> _,
+                     name: "impl_for",
+                     params: ["data"],
+                     spec: "@spec impl_for(term()) :: atom | nil"
+                   }
+                 ]
+               } = res
+      end
     end
 
     test "retrieve metadata macro signature - fallback to macrocallback" do
