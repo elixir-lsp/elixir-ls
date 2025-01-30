@@ -1,5 +1,24 @@
 ### Unreleased
 
+### v0.26.3: 30 January 2025
+
+#### Improvements
+
+- Better handling of AST with cursor in defs and typespecs
+- ElixirLS will now respect that locals are not accessible in module body
+- Macro accessibility rules are now respected in type inference engine
+
+#### Fixes
+
+- Fixed completions crash in keyword options
+- Fixed completions crash when cursor line in request was outside document range
+- Fixed completions crash when unable to format spec
+- Fixed a crash when surround context around cursor is dynamic alias
+- Fixed a crash when elixir 1.18.0 emits diagnostics without column position
+- Fixed completions crash on capture arg
+- Fixed signature provider crash on protocol reflection functions
+- Fixed multiple provider crashes when LSP request position falls exactly in the middle of UTF16 high surrogate pair
+
 ### v0.26.2: 2 January 2025
 
 #### Improvements
