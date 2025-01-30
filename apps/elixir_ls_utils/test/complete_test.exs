@@ -470,18 +470,20 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [] == expand(~c"~r")
   end
 
-  test "function completion using a capture arg" do
-    env = %Env{
-      vars: [
-        %VarInfo{
-          name: :"&12",
-          version: 1
-        }
-      ]
-    }
+  if Version.match?(System.version(), ">= 1.18.0") do
+    test "function completion using a capture arg" do
+      env = %Env{
+        vars: [
+          %VarInfo{
+            name: :"&12",
+            version: 1
+          }
+        ]
+      }
 
-    assert [%{name: "&12", type: :variable}] =
-             expand(~c"&1", env)
+      assert [%{name: "&12", type: :variable}] =
+               expand(~c"&1", env)
+    end
   end
 
   test "function completion using a variable bound to a module" do
