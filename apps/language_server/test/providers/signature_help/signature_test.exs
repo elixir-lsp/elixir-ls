@@ -1325,7 +1325,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                      documentation: "Returns the module" <> _,
                      name: "impl_for",
                      params: ["data"],
-                     spec: "@spec impl_for(term()) :: atom | nil"
+                     spec: "@spec impl_for(term) :: atom | nil"
                    }
                  ]
                } = res
