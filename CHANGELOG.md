@@ -1,5 +1,12 @@
 ### Unreleased
 
+### v0.26.4: 31 January 2025
+
+#### Fixes
+
+- Fixed a crash when elixir 1.18.0 emits diagnostics without line position
+- Fixed a crash in type inference engine when expanding calls
+
 ### v0.26.3: 30 January 2025
 
 #### Improvements
