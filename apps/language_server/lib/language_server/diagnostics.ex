@@ -488,7 +488,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
                   "uri" => uri,
                   "range" =>
                     range(
-                      {line, column || 1},
+                      {line || 1, column || 1},
                       source_file
                     )
                 },
