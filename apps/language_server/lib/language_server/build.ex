@@ -249,22 +249,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
       Mix.Task.clear()
 
-      if Version.match?(System.version(), ">= 1.15.0-dev") do
-        if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
-          Logger.error("Build without intercepted logger #{inspect(:logger.get_handler_ids())}")
-
-          for handler_id <- :logger.get_handler_ids() do
-            :ok = :logger.remove_handler(handler_id)
-          end
-
-          :ok =
-            :logger.add_handler(
-              Logger.Backends.JsonRpc,
-              Logger.Backends.JsonRpc,
-              Logger.Backends.JsonRpc.handler_config()
-            )
-        end
-      end
+      ensure_logger_backend()
 
       # we need to reset compiler options
       # project may leave tracers after previous compilation and we don't want them interfering
@@ -272,10 +257,11 @@ defmodule ElixirLS.LanguageServer.Build do
       set_compiler_options()
 
       # Override build directory to avoid interfering with other dev tools
-      Mix.ProjectStack.post_config(build_path: ".elixir_ls/build")
-      Mix.ProjectStack.post_config(prune_code_paths: false)
-
+      # Disable elixir 1.15+ code path pruning as it would prune ElixirLS code paths
+      # Make sure docs and debug info is enabled even when MIX_ENV is test
       Mix.ProjectStack.post_config(
+        build_path: ".elixir_ls/build",
+        prune_code_paths: false,
         test_elixirc_options: [
           docs: true,
           debug_info: true
@@ -423,6 +409,25 @@ defmodule ElixirLS.LanguageServer.Build do
       {:error, kind, err, stacktrace} ->
         {:error,
          diagnostics ++ [Diagnostics.from_error(kind, err, stacktrace, config_path, root_path)]}
+    end
+  end
+
+  # Ensure that the JSON-RPC logger backend is installed.
+  defp ensure_logger_backend() do
+    if Version.match?(System.version(), ">= 1.15.0-dev") do
+      unless Logger.Backends.JsonRpc in :logger.get_handler_ids() do
+        Logger.error("Build without intercepted logger #{inspect(:logger.get_handler_ids())}")
+
+        for handler_id <- :logger.get_handler_ids() do
+          :logger.remove_handler(handler_id)
+        end
+
+        :logger.add_handler(
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc,
+          Logger.Backends.JsonRpc.handler_config()
+        )
+      end
     end
   end
 
