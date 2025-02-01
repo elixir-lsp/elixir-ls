@@ -19,83 +19,14 @@ defmodule ElixirLS.LanguageServer.Build do
 
               case reload_project(mixfile, root_path) do
                 {:ok, mixfile_diagnostics} ->
-                  {deps_result, deps_raw_diagnostics} =
-                    with_diagnostics([log: true], fn ->
-                      try do
-                        # this call can raise
-                        current_deps =
-                          if Version.match?(System.version(), "< 1.16.0-dev") do
-                            Mix.Dep.load_on_environment([])
-                          else
-                            Mix.Dep.Converger.converge([])
-                          end
-
-                        purge_changed_deps(current_deps, cached_deps)
-
-                        if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
-                          fetch_deps(current_deps)
-                        end
-
-                        state = %{
-                          get: Mix.Project.get(),
-                          # project_file: Mix.Project.project_file(),
-                          config: Mix.Project.config(),
-                          # config_files: Mix.Project.config_files(),
-                          config_mtime: Mix.Project.config_mtime(),
-                          umbrella?: Mix.Project.umbrella?(),
-                          apps_paths: Mix.Project.apps_paths(),
-                          # deps_path: Mix.Project.deps_path(),
-                          # deps_apps: Mix.Project.deps_apps(),
-                          # deps_scms: Mix.Project.deps_scms(),
-                          deps_paths: Mix.Project.deps_paths(),
-                          # build_path: Mix.Project.build_path(),
-                          manifest_path: Mix.Project.manifest_path()
-                        }
-
-                        ElixirLS.LanguageServer.MixProjectCache.store(state)
-
-                        :ok
-                      catch
-                        kind, err ->
-                          {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
-                          {:error, kind, payload, stacktrace}
-                      end
-                    end)
-
-                  deps_diagnostics =
-                    deps_raw_diagnostics
-                    |> Enum.map(&Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
-
-                  case deps_result do
-                    :ok ->
-                      handle_compile_phase(
-                        parent,
-                        mixfile,
-                        root_path,
-                        mixfile_diagnostics,
-                        deps_diagnostics,
-                        opts
-                      )
-
-                    {:error, kind, err, stacktrace} ->
-                      Server.build_finished(
-                        parent,
-                        {:error,
-                         mixfile_diagnostics ++
-                           deps_diagnostics ++
-                           [
-                             Diagnostics.from_error(
-                               kind,
-                               err,
-                               stacktrace,
-                               mixfile,
-                               root_path
-                             )
-                           ]}
-                      )
-
-                      :deps_error
-                  end
+                  handle_reloaded_project(
+                    parent,
+                    mixfile,
+                    root_path,
+                    mixfile_diagnostics,
+                    opts,
+                    cached_deps
+                  )
 
                 {:error, mixfile_diagnostics} ->
                   Server.build_finished(parent, {:error, mixfile_diagnostics})
@@ -153,6 +84,71 @@ defmodule ElixirLS.LanguageServer.Build do
 
   def with_build_lock(func) do
     :global.trans({__MODULE__, self()}, func)
+  end
+
+  # After reloading the project, update deps and (optionally) compile.
+  defp handle_reloaded_project(parent, mixfile, root_path, mixfile_diagnostics, opts, cached_deps) do
+    {deps_result, deps_raw_diagnostics} =
+      with_diagnostics([log: true], fn ->
+        try do
+          current_deps =
+            if Version.match?(System.version(), "< 1.16.0-dev") do
+              Mix.Dep.load_on_environment([])
+            else
+              Mix.Dep.Converger.converge([])
+            end
+
+          purge_changed_deps(current_deps, cached_deps)
+
+          if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
+            fetch_deps(current_deps)
+          end
+
+          state = %{
+            get: Mix.Project.get(),
+            config: Mix.Project.config(),
+            config_mtime: Mix.Project.config_mtime(),
+            umbrella?: Mix.Project.umbrella?(),
+            apps_paths: Mix.Project.apps_paths(),
+            deps_paths: Mix.Project.deps_paths(),
+            manifest_path: Mix.Project.manifest_path()
+          }
+
+          ElixirLS.LanguageServer.MixProjectCache.store(state)
+
+          :ok
+        catch
+          kind, err ->
+            {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+            {:error, kind, payload, stacktrace}
+        end
+      end)
+
+    deps_diagnostics =
+      Enum.map(deps_raw_diagnostics, &Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
+
+    case deps_result do
+      :ok ->
+        handle_compile_phase(
+          parent,
+          mixfile,
+          root_path,
+          mixfile_diagnostics,
+          deps_diagnostics,
+          opts
+        )
+
+      {:error, kind, err, stacktrace} ->
+        error_diag =
+          Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)
+
+        Server.build_finished(
+          parent,
+          {:error, mixfile_diagnostics ++ deps_diagnostics ++ [error_diag]}
+        )
+
+        :deps_error
+    end
   end
 
   # If compilation is enabled, run mix compile and report diagnostics;
