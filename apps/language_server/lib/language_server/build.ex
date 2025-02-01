@@ -191,51 +191,7 @@ defmodule ElixirLS.LanguageServer.Build do
     store_required_apps()
 
     if File.exists?(mixfile) do
-      if module = Mix.Project.get() do
-        if module != ElixirLS.LanguageServer.MixProject do
-          build_path = Mix.Project.config()[:build_path]
-
-          deps_paths =
-            try do
-              # this call can raise (RuntimeError) cannot retrieve dependencies information because dependencies
-              # were not loaded. Please invoke one of "deps.loadpaths", "loadpaths", or "compile" Mix task
-              Mix.Project.deps_paths()
-            catch
-              kind, payload ->
-                {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
-                message = Exception.format(kind, payload, stacktrace)
-                Logger.warning("Unable to prune mix project: #{message}")
-                []
-            end
-
-          for {app, path} <- deps_paths do
-            child_module =
-              try do
-                Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
-                  mix_project
-                end)
-              catch
-                kind, payload ->
-                  {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
-                  message = Exception.format(kind, payload, stacktrace)
-                  Logger.warning("Unable to prune mix project module for #{app}: #{message}")
-                  nil
-              end
-
-            if child_module do
-              purge_module(child_module)
-            end
-          end
-
-          unload_mix_project_apps()
-
-          Mix.Project.pop()
-          purge_module(module)
-        else
-          # don't do any pruning in language server tests
-          Mix.Project.pop()
-        end
-      end
+      prune_existing_mix_project()
 
       # We need to clear persistent cache, otherwise `deps.loadpaths` task fails with
       # (Mix.Error) Can't continue due to errors on dependencies
@@ -427,6 +383,55 @@ defmodule ElixirLS.LanguageServer.Build do
           Logger.Backends.JsonRpc,
           Logger.Backends.JsonRpc.handler_config()
         )
+      end
+    end
+  end
+
+  # If a project is already loaded, prune its modules so that we start fresh.
+  defp prune_existing_mix_project() do
+    if module = Mix.Project.get() do
+      if module != ElixirLS.LanguageServer.MixProject do
+        build_path = Mix.Project.config()[:build_path]
+
+        deps_paths =
+          try do
+            # this call can raise (RuntimeError) cannot retrieve dependencies information because dependencies
+            # were not loaded. Please invoke one of "deps.loadpaths", "loadpaths", or "compile" Mix task
+            Mix.Project.deps_paths()
+          catch
+            kind, payload ->
+              {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+              message = Exception.format(kind, payload, stacktrace)
+              Logger.warning("Unable to prune mix project: #{message}")
+              []
+          end
+
+        for {app, path} <- deps_paths do
+          child_module =
+            try do
+              Mix.Project.in_project(app, path, [build_path: build_path], fn mix_project ->
+                mix_project
+              end)
+            catch
+              kind, payload ->
+                {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+                message = Exception.format(kind, payload, stacktrace)
+                Logger.warning("Unable to prune mix project module for #{app}: #{message}")
+                nil
+            end
+
+          if child_module do
+            purge_module(child_module)
+          end
+        end
+
+        unload_mix_project_apps()
+
+        Mix.Project.pop()
+        purge_module(module)
+      else
+        # don't do any pruning in language server tests
+        Mix.Project.pop()
       end
     end
   end
