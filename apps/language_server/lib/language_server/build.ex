@@ -348,61 +348,10 @@ defmodule ElixirLS.LanguageServer.Build do
       Code.put_compiler_option(:no_warn_undefined, old_undefined)
 
       if mixfile_status == :ok do
-        # The project may override our logger config, so we reset it after loading their config
-        # store log config
-        logger_config = Application.get_all_env(:logger)
+        # mixfile compiled successfully, we may attempt to load config
+        {config_result, config_diagnostics} = load_mix_config_with_diagnostics(root_path)
 
-        {config_result, config_raw_diagnostics} =
-          with_diagnostics([log: true], fn ->
-            try do
-              Mix.Task.run("loadconfig")
-              :ok
-            catch
-              kind, err ->
-                {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
-                {:error, kind, payload, stacktrace}
-            after
-              # reset log config
-              Application.put_all_env(logger: logger_config)
-
-              if Version.match?(System.version(), ">= 1.15.0-dev") do
-                # remove all log handlers and restore our
-                for handler_id <- :logger.get_handler_ids(),
-                    handler_id != Logger.Backends.JsonRpc do
-                  :ok = :logger.remove_handler(handler_id)
-                end
-
-                if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
-                  :ok =
-                    :logger.add_handler(
-                      Logger.Backends.JsonRpc,
-                      Logger.Backends.JsonRpc,
-                      Logger.Backends.JsonRpc.handler_config()
-                    )
-                end
-              end
-
-              # make sure ANSI is disabled
-              Application.put_env(:elixir, :ansi_enabled, false)
-            end
-          end)
-
-        config_path = SourceFile.Path.absname(Mix.Project.config()[:config_path], root_path)
-
-        config_diagnostics =
-          config_raw_diagnostics
-          |> Enum.map(&Diagnostics.from_code_diagnostic(&1, config_path, root_path))
-
-        case config_result do
-          {:error, kind, err, stacktrace} ->
-            {:error,
-             mixfile_diagnostics ++
-               config_diagnostics ++
-               [Diagnostics.from_error(kind, err, stacktrace, config_path, root_path)]}
-
-          :ok ->
-            {:ok, mixfile_diagnostics ++ config_diagnostics}
-        end
+        {config_result, mixfile_diagnostics ++ config_diagnostics}
       else
         {mixfile_status, mixfile_diagnostics}
       end
@@ -414,6 +363,61 @@ defmodule ElixirLS.LanguageServer.Build do
       Logger.warning(msg <> ". Looked for mixfile at #{inspect(mixfile)}")
 
       :no_mixfile
+    end
+  end
+
+  # Runs the "loadconfig" task and resets logger/environment settings, collecting diagnostics.
+  defp load_mix_config_with_diagnostics(root_path) do
+    # The project may override our logger config, so we reset it after loading their config
+    # store log config
+    logger_config = Application.get_all_env(:logger)
+
+    {result, raw_diagnostics} =
+      with_diagnostics([log: true], fn ->
+        try do
+          Mix.Task.run("loadconfig")
+          :ok
+        catch
+          kind, err ->
+            {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+            {:error, kind, payload, stacktrace}
+        after
+          # reset log config
+          Application.put_all_env(logger: logger_config)
+
+          if Version.match?(System.version(), ">= 1.15.0-dev") do
+            # remove all log handlers and restore our
+            for handler_id <- :logger.get_handler_ids(),
+                handler_id != Logger.Backends.JsonRpc do
+              :logger.remove_handler(handler_id)
+            end
+
+            if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
+              :logger.add_handler(
+                Logger.Backends.JsonRpc,
+                Logger.Backends.JsonRpc,
+                Logger.Backends.JsonRpc.handler_config()
+              )
+            end
+          end
+
+          # make sure ANSI is disabled
+          Application.put_env(:elixir, :ansi_enabled, false)
+        end
+      end)
+
+    config_path = SourceFile.Path.absname(Mix.Project.config()[:config_path], root_path)
+
+    diagnostics =
+      Enum.map(raw_diagnostics, &Diagnostics.from_code_diagnostic(&1, config_path, root_path))
+
+    case result do
+      :ok ->
+        {:ok, diagnostics}
+
+      {:error, kind, err, stacktrace} ->
+        {:error,
+         diagnostics ++ [Diagnostics.from_error(kind, err, stacktrace, config_path, root_path)]}
     end
   end
 
