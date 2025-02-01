@@ -59,9 +59,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
 
     # check if we are inside local or remote call arguments and parameter is 0, 1 or 2
     # record fields can specified on 0, 1 and 2 position in the argument list
-    # TODO implement retrieval from docs chunks on 1.18
-    # right now only local buffer records are supported as there is no suitable API for introspection
-    # @__records__ is compile time only attribute and accessing it would require a tracer
     with %{
            candidate: {m, f},
            npar: npar,
