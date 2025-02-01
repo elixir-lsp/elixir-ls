@@ -3,6 +3,15 @@ defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.Utils.MixfileHelpers
   require Logger
 
+  ## Public API
+
+  @doc """
+  Starts the build process for the project at the given `root_path` with the
+  provided options.
+
+  This spawns a separate process (with a monitor on the caller) that performs
+  the build steps while holding a global build lock.
+  """
   def build(parent, root_path, opts) when is_binary(root_path) do
     Application.loaded_applications() |> Enum.map(&elem(&1, 0))
 
@@ -67,6 +76,10 @@ defmodule ElixirLS.LanguageServer.Build do
     build_pid_reference
   end
 
+  @doc """
+  Cleans the project build artifacts (and optionally dependency artifacts)
+  by reloading the Mix project and running the "clean" task.
+  """
   def clean(root_path, clean_deps? \\ false) when is_binary(root_path) do
     with_build_lock(fn ->
       mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs(), root_path)
@@ -82,9 +95,14 @@ defmodule ElixirLS.LanguageServer.Build do
     end)
   end
 
+  @doc """
+  Executes the given function `fun` while holding a global build lock.
+  """
   def with_build_lock(func) do
     :global.trans({__MODULE__, self()}, func)
   end
+
+  ## Build Process
 
   # After reloading the project, update deps and (optionally) compile.
   defp handle_reloaded_project(parent, mixfile, root_path, mixfile_diagnostics, opts, cached_deps) do
