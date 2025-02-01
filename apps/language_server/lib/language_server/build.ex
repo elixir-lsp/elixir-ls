@@ -286,66 +286,7 @@ defmodule ElixirLS.LanguageServer.Build do
       # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
       # TODO refactor to use a custom state loader when we require elixir 1.15?
 
-      # since elixir 1.10 mix disables undefined warnings for mix.exs
-      # see discussion in https://github.com/elixir-lang/elixir/issues/9676
-      # https://github.com/elixir-lang/elixir/blob/6f96693b355a9b670f2630fd8e6217b69e325c5a/lib/mix/lib/mix/cli.ex#L41
-      old_undefined = Code.get_compiler_option(:no_warn_undefined)
-      Code.put_compiler_option(:no_warn_undefined, :all)
-
-      # We can get diagnostics if Mixfile fails to load
-      {mixfile_status, mixfile_diagnostics} =
-        if Version.match?(System.version(), ">= 1.15.3") do
-          {result, raw_diagnostics} =
-            with_diagnostics([log: true], fn ->
-              try do
-                Code.compile_file(mixfile)
-                :ok
-              catch
-                kind, err ->
-                  {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
-                  {:error, kind, payload, stacktrace}
-              end
-            end)
-
-          diagnostics =
-            raw_diagnostics
-            |> Enum.map(&Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
-
-          case result do
-            :ok ->
-              {:ok, diagnostics}
-
-            {:error, kind, err, stacktrace} ->
-              {:error,
-               diagnostics ++
-                 [Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)]}
-          end
-        else
-          case Kernel.ParallelCompiler.compile([mixfile]) do
-            {:ok, _, warnings} ->
-              {:ok,
-               Enum.map(
-                 warnings,
-                 &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
-               )}
-
-            {:error, errors, warnings} ->
-              {
-                :error,
-                Enum.map(
-                  warnings,
-                  &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
-                ) ++
-                  Enum.map(
-                    errors,
-                    &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :error, mixfile)
-                  )
-              }
-          end
-        end
-
-      # restore warnings
-      Code.put_compiler_option(:no_warn_undefined, old_undefined)
+      {mixfile_status, mixfile_diagnostics} = compile_mixfile_with_diagnostics(mixfile, root_path)
 
       if mixfile_status == :ok do
         # mixfile compiled successfully, we may attempt to load config
@@ -363,6 +304,70 @@ defmodule ElixirLS.LanguageServer.Build do
       Logger.warning(msg <> ". Looked for mixfile at #{inspect(mixfile)}")
 
       :no_mixfile
+    end
+  end
+
+  # Compile the mixfile and collect diagnostics.
+  defp compile_mixfile_with_diagnostics(mixfile, root_path) do
+    # since elixir 1.10 mix disables undefined warnings for mix.exs
+    # see discussion in https://github.com/elixir-lang/elixir/issues/9676
+    # https://github.com/elixir-lang/elixir/blob/6f96693b355a9b670f2630fd8e6217b69e325c5a/lib/mix/lib/mix/cli.ex#L41
+    old_undefined = Code.get_compiler_option(:no_warn_undefined)
+    Code.put_compiler_option(:no_warn_undefined, :all)
+
+    try do
+      if Version.match?(System.version(), ">= 1.15.3") do
+        {result, raw_diagnostics} =
+          with_diagnostics([log: true], fn ->
+            try do
+              Code.compile_file(mixfile)
+              :ok
+            catch
+              kind, err ->
+                {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+                {:error, kind, payload, stacktrace}
+            end
+          end)
+
+        diagnostics =
+          Enum.map(raw_diagnostics, &Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
+
+        case result do
+          :ok ->
+            {:ok, diagnostics}
+
+          {:error, kind, err, stacktrace} ->
+            {:error,
+             diagnostics ++ [Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)]}
+        end
+      else
+        case Kernel.ParallelCompiler.compile([mixfile]) do
+          {:ok, _, warnings} ->
+            diagnostics =
+              Enum.map(
+                warnings,
+                &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
+              )
+
+            {:ok, diagnostics}
+
+          {:error, errors, warnings} ->
+            diagnostics =
+              Enum.map(
+                warnings,
+                &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
+              ) ++
+                Enum.map(
+                  errors,
+                  &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :error, mixfile)
+                )
+
+            {:error, diagnostics}
+        end
+      end
+    after
+      # restore warnings
+      Code.put_compiler_option(:no_warn_undefined, old_undefined)
     end
   end
 
