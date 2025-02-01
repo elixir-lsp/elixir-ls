@@ -68,39 +68,14 @@ defmodule ElixirLS.LanguageServer.Build do
 
                   case deps_result do
                     :ok ->
-                      if Keyword.get(opts, :compile?) do
-                        {status, compile_diagnostics} =
-                          run_mix_compile(Keyword.get(opts, :force?, false))
-
-                        compile_diagnostics =
-                          compile_diagnostics
-                          |> Enum.map(
-                            &Diagnostics.from_mix_task_compiler_diagnostic(&1, mixfile, root_path)
-                          )
-
-                        if status == :ok do
-                          # reload apps to make sure app controller has the correct list of modules
-                          # if we don't do that, workspace symbols and other providers relying on
-                          # `:application.get_key(app, :modules)` would not notice newly added modules
-                          # no need to do that on :noop and :error
-                          # workaround for https://github.com/elixir-lang/elixir/issues/13001
-                          unload_mix_project_apps(true)
-                        end
-
-                        Server.build_finished(
-                          parent,
-                          {status, mixfile_diagnostics ++ deps_diagnostics ++ compile_diagnostics}
-                        )
-
-                        :"mix_compile_#{status}"
-                      else
-                        Server.build_finished(
-                          parent,
-                          {:ok, mixfile_diagnostics ++ deps_diagnostics}
-                        )
-
-                        :mix_compile_disabled
-                      end
+                      handle_compile_phase(
+                        parent,
+                        mixfile,
+                        root_path,
+                        mixfile_diagnostics,
+                        deps_diagnostics,
+                        opts
+                      )
 
                     {:error, kind, err, stacktrace} ->
                       Server.build_finished(
@@ -178,6 +153,44 @@ defmodule ElixirLS.LanguageServer.Build do
 
   def with_build_lock(func) do
     :global.trans({__MODULE__, self()}, func)
+  end
+
+  # If compilation is enabled, run mix compile and report diagnostics;
+  # otherwise, simply report the project load diagnostics.
+  defp handle_compile_phase(
+         parent,
+         mixfile,
+         root_path,
+         mixfile_diagnostics,
+         deps_diagnostics,
+         opts
+       ) do
+    if Keyword.get(opts, :compile?) do
+      {status, compile_raw_diagnostics} = run_mix_compile(Keyword.get(opts, :force?, false))
+
+      compile_diagnostics =
+        Enum.map(compile_raw_diagnostics, fn diag ->
+          Diagnostics.from_mix_task_compiler_diagnostic(diag, mixfile, root_path)
+        end)
+
+      if status == :ok do
+        # reload apps to make sure app controller has the correct list of modules
+        # if we don't do that, workspace symbols and other providers relying on
+        # `:application.get_key(app, :modules)` would not notice newly added modules
+        # no need to do that on :noop and :error
+        # workaround for https://github.com/elixir-lang/elixir/issues/13001
+        unload_mix_project_apps(true)
+      end
+
+      diagnostics = mixfile_diagnostics ++ deps_diagnostics ++ compile_diagnostics
+
+      Server.build_finished(parent, {status, diagnostics})
+      :"mix_compile_#{status}"
+    else
+      diagnostics = mixfile_diagnostics ++ deps_diagnostics
+      Server.build_finished(parent, {:ok, diagnostics})
+      :mix_compile_disabled
+    end
   end
 
   ## Mix Project Reloading
