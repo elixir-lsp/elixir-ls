@@ -3,13 +3,6 @@ defmodule ElixirLS.LanguageServer.Build do
   alias ElixirLS.Utils.MixfileHelpers
   require Logger
 
-  defp store_required_apps() do
-    unless :persistent_term.get(:language_server_required_apps, false) do
-      apps = Application.loaded_applications() |> Enum.map(&elem(&1, 0))
-      :persistent_term.put(:language_server_required_apps, apps)
-    end
-  end
-
   def build(parent, root_path, opts) when is_binary(root_path) do
     Application.loaded_applications() |> Enum.map(&elem(&1, 0))
 
@@ -187,6 +180,19 @@ defmodule ElixirLS.LanguageServer.Build do
     :global.trans({__MODULE__, self()}, func)
   end
 
+  ## Mix Project Reloading
+
+  # Make sure we store the list of applications required by the language server.
+  defp store_required_apps() do
+    unless :persistent_term.get(:language_server_required_apps, false) do
+      apps = Application.loaded_applications() |> Enum.map(&elem(&1, 0))
+      :persistent_term.put(:language_server_required_apps, apps)
+    end
+  end
+
+  # Reloads the Mix project. This function prunes existing project modules,
+  # clears Mix caches, resets logger and compiler options, and finally
+  # compiles the mixfile (collecting any diagnostics).
   defp reload_project(mixfile, root_path) do
     store_required_apps()
 
@@ -436,6 +442,8 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
+  ## Compilation and Cleaning
+
   defp run_mix_compile(force?) do
     opts = [
       "--return-errors",
@@ -496,6 +504,8 @@ defmodule ElixirLS.LanguageServer.Build do
       {:error, :clean_failed}
     end
   end
+
+  ## Dependency Purging
 
   defp purge_module(module) do
     :code.purge(module)
@@ -673,6 +683,8 @@ defmodule ElixirLS.LanguageServer.Build do
     :ok
   end
 
+  ## Compiler Options and Diagnostics
+
   def set_compiler_options(options \\ [], parser_options \\ []) do
     parser_options =
       Keyword.merge(parser_options,
@@ -716,6 +728,8 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
+  # Wraps the given function in a diagnostics context (using Code.with_diagnostics
+  # on newer Elixir versions).
   def with_diagnostics(opts \\ [], fun) do
     # Code.with_diagnostics is broken on elixir < 1.15.3
     if Version.match?(System.version(), ">= 1.15.3") do
