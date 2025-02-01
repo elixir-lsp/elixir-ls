@@ -501,18 +501,18 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
 
   defp get_func_docs_from_typespec(mod, fun, call_arity) do
     # TypeInfo.get_function_specs does fallback to behaviours
-    {behaviour, specs} = TypeInfo.get_function_specs(mod, fun, call_arity)
+    function_specs = TypeInfo.get_function_specs(mod, fun, call_arity)
     app = ElixirSense.Core.Applications.get_application(mod)
 
-    meta =
-      if behaviour do
-        %{implementing: behaviour}
-      else
-        %{}
-      end
-
     results =
-      for {{_name, arity}, [params | _]} <- specs do
+      for {behaviour, specs} <- function_specs, {{_name, arity}, [params | _]} <- specs do
+        meta =
+          if behaviour do
+            %{implementing: behaviour}
+          else
+            %{}
+          end
+
         fun_args_text = TypeInfo.extract_params(params)
 
         %{
