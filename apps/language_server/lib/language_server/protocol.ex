@@ -101,6 +101,15 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro declaration_req(id, uri, line, character) do
+    quote do
+      request(unquote(id), "textDocument/declaration", %{
+        "textDocument" => %{"uri" => unquote(uri)},
+        "position" => %{"line" => unquote(line), "character" => unquote(character)}
+      })
+    end
+  end
+
   defmacro implementation_req(id, uri, line, character) do
     quote do
       request(unquote(id), "textDocument/implementation", %{

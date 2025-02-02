@@ -31,6 +31,30 @@ defmodule ElixirLS.LanguageServer.Location.Erl do
   end
 
   @doc """
+  Finds the position range of a callback definition in an Erlang `.erl` file.
+
+  ## Parameters
+
+    - `file`: The path to the Erlang file.
+    - `name`: The name of the type (as an atom).
+
+  ## Returns
+
+    - `{{line, start_column}, {line, end_column}}` if found.
+    - `nil` if not found.
+  """
+  def find_callback_range(file, name) do
+    escaped =
+      name
+      |> Atom.to_string()
+      |> Regex.escape()
+
+    regex = ~r/^-callback\s+(?<name>#{escaped})\b/u
+
+    find_range_by_regex(file, regex)
+  end
+
+  @doc """
   Finds the position range of a function definition in an Erlang `.erl` file.
 
   ## Parameters

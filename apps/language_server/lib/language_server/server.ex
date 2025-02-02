@@ -34,6 +34,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Completion,
     Hover,
     Definition,
+    Declaration,
     Implementation,
     References,
     Formatting,
@@ -979,6 +980,18 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(declaration_req(_id, uri, line, character), state = %__MODULE__{}) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+      Declaration.declaration(uri, parser_context, line, character, state.project_dir)
+    end
+
+    {:async, fun, state}
+  end
+
   defp handle_request(implementation_req(_id, uri, line, character), state = %__MODULE__{}) do
     source_file = get_source_file(state, uri)
 
@@ -1291,6 +1304,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "hoverProvider" => true,
       "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
       "definitionProvider" => true,
+      "declarationProvider" => true,
       "implementationProvider" => true,
       "referencesProvider" => true,
       "documentFormattingProvider" => true,

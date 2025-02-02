@@ -11,13 +11,13 @@ defmodule ElixirLS.LanguageServer.Location do
 
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Parser
-  alias ElixirSense.Core.State.{ModFunInfo, TypeInfo}
+  alias ElixirSense.Core.State.{ModFunInfo, TypeInfo, SpecInfo}
   alias ElixirSense.Core.Normalized.Code, as: CodeNormalized
   require ElixirSense.Core.Introspection, as: Introspection
   alias ElixirLS.LanguageServer.Location.Erl
 
   @type t :: %__MODULE__{
-          type: :module | :function | :variable | :typespec | :macro | :attribute,
+          type: :module | :function | :variable | :typespec | :macro | :attribute | :callback,
           file: String.t() | nil,
           line: pos_integer,
           column: pos_integer,
@@ -44,6 +44,18 @@ defmodule ElixirLS.LanguageServer.Location do
     case find_mod_file(mod) do
       file when is_binary(file) ->
         find_type_position({mod, file}, type, arity)
+
+      _ ->
+        nil
+    end
+  end
+
+  @spec find_callback_source(module, atom, non_neg_integer | {:gte, non_neg_integer} | :any) ::
+          t() | nil
+  def find_callback_source(mod, type, arity) do
+    case find_mod_file(mod) do
+      file when is_binary(file) ->
+        find_callback_position({mod, file}, type, arity)
 
       _ ->
         nil
@@ -343,6 +355,19 @@ defmodule ElixirLS.LanguageServer.Location do
     |> min_by_line
   end
 
+  def get_callback_position_using_metadata(mod, fun, call_arity, specs) do
+    specs
+    |> Enum.filter(fn
+      {{^mod, ^fun, spec_arity}, _type_info}
+      when not is_nil(spec_arity) and Introspection.matches_arity?(spec_arity, call_arity) ->
+        true
+
+      _ ->
+        false
+    end)
+    |> min_by_line
+  end
+
   defp min_by_line(list) do
     result =
       list
@@ -384,5 +409,74 @@ defmodule ElixirLS.LanguageServer.Location do
     end_position = List.last(end_positions) || begin_position
 
     {begin_position, end_position}
+  end
+
+  defp find_callback_position({mod, file}, fun, arity) do
+    result =
+      if String.ends_with?(file, ".erl") do
+        Erl.find_callback_range(file, fun)
+      else
+        file_metadata = Parser.parse_file(file, false, false, nil)
+        get_callback_position(file_metadata, mod, fun, arity)
+      end
+
+    case result do
+      {{line, column}, {end_line, end_column}} ->
+        %__MODULE__{
+          type: :callback,
+          file: file,
+          line: line,
+          column: column,
+          end_line: end_line,
+          end_column: end_column
+        }
+
+      # TODO remove
+      {line, column} ->
+        %__MODULE__{
+          type: :callback,
+          file: file,
+          line: line,
+          column: column,
+          end_line: line,
+          end_column: column
+        }
+
+      _ ->
+        nil
+    end
+  end
+
+  defp get_callback_position(metadata, module, callback, arity) do
+    case get_callback_position_using_metadata(module, callback, arity, metadata.specs) do
+      nil ->
+        get_callback_position_using_docs(module, callback, arity)
+
+      %SpecInfo{} = info ->
+        info_to_range(info)
+    end
+  end
+
+  defp get_callback_position_using_docs(module, callback_name, arity) do
+    case CodeNormalized.fetch_docs(module) do
+      {:error, _} ->
+        nil
+
+      {_, _, _, _, _, _, docs} ->
+        docs
+        |> Enum.filter(fn
+          {{category, ^callback_name, doc_arity}, _line, _arg3, _arg4, _meta}
+          when category in [:callback, :macrocallback] ->
+            Introspection.matches_arity?(doc_arity, arity)
+
+          _ ->
+            false
+        end)
+        |> Enum.map(fn
+          {{_category, _function, _arity}, anno, _, _, _} ->
+            anno_to_range(anno)
+        end)
+        |> Enum.min_by(fn {position, _end_position} -> position end, &<=/2, fn -> nil end)
+    end
   end
 end
