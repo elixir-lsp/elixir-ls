@@ -1343,6 +1343,24 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
   end
 
+  test "find definition of local functions on definition" do
+    buffer = """
+    defmodule MyModule do
+      def my_fun(abc), do: Asd.ASd
+      #    ^
+    end
+    """
+
+    assert Locator.definition(buffer, 2, 8) == %Location{
+             type: :function,
+             file: nil,
+             line: 2,
+             column: 3,
+             end_line: 2,
+             end_column: 31
+           }
+  end
+
   test "find definition of local functions with default args" do
     buffer = """
     defmodule MyModule do
@@ -1875,6 +1893,80 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
 
     assert %Location{type: :typespec, file: nil, line: 3, column: 3} =
              Locator.definition(buffer, 5, 28)
+  end
+
+  test "find definition of local type on definition" do
+    buffer = """
+    defmodule MyModule do
+      @type my_fun(abc) :: :ok
+      #      ^
+    end
+    """
+
+    assert Locator.definition(buffer, 2, 10) == %Location{
+             type: :typespec,
+             file: nil,
+             line: 2,
+             column: 3,
+             end_line: 2,
+             end_column: 27
+           }
+  end
+
+  test "find definition of local spec on definition" do
+    buffer = """
+    defmodule MyModule do
+      @spec my_fun(abc()) :: :ok
+      #      ^
+      def my_fun(abc), do: :ok
+    end
+    """
+
+    assert Locator.definition(buffer, 2, 10) == %Location{
+             type: :spec,
+             file: nil,
+             line: 2,
+             column: 3,
+             end_line: 2,
+             end_column: 29
+           }
+  end
+
+  test "find definition of local spec with guard on definition" do
+    buffer = """
+    defmodule MyModule do
+      @spec my_fun(abc) :: :ok when abc: atom()
+      #      ^
+      def my_fun(abc), do: :ok
+    end
+    """
+
+    assert Locator.definition(buffer, 2, 10) == %Location{
+             type: :spec,
+             file: nil,
+             line: 2,
+             column: 3,
+             end_line: 2,
+             end_column: 44
+           }
+  end
+
+  test "find definition of local callback on definition" do
+    buffer = """
+    defmodule MyModule do
+      @callback my_fun(abc) :: :ok
+      #          ^
+    end
+    """
+
+    assert Locator.definition(buffer, 2, 14) == %Location{
+             type: :spec,
+             file: nil,
+             line: 2,
+             column: 3,
+             end_line: 2,
+             end_column: 31
+           }
   end
 
   test "find metadata type for the correct arity - on type definition" do

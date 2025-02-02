@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   """
 
   alias ElixirSense.Core.Binding
-  alias ElixirSense.Core.Introspection
+  require ElixirSense.Core.Introspection, as: Introspection
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.State
   alias ElixirSense.Core.State.ModFunInfo
@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   alias ElixirSense.Core.SurroundContext
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
-  alias ElixirSense.Core.State.{ModFunInfo, TypeInfo}
+  alias ElixirSense.Core.State.{ModFunInfo, TypeInfo, SpecInfo}
 
   alias ElixirLS.LanguageServer.Plugins.Phoenix.Scope
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
@@ -240,8 +240,29 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
            context.begin,
            true
          ) do
-      {_, _, false, _} ->
-        nil
+      {_, f, false, _} ->
+        module = env.module
+        {line, column} = context.end
+        call_arity = Metadata.get_call_arity(metadata, env.module, f, line, column) || :any
+
+        Enum.find_value(metadata.specs, fn
+          {{^module, ^f, a}, spec_info = %SpecInfo{}} ->
+            if Introspection.matches_arity?(a, call_arity) do
+              {{line, column}, {end_line, end_column}} = Location.info_to_range(spec_info)
+
+              %Location{
+                file: nil,
+                type: :spec,
+                line: line,
+                column: column,
+                end_line: end_line,
+                end_column: end_column
+              }
+            end
+
+          _ ->
+            nil
+        end)
 
       {mod, fun, true, :mod_fun} ->
         {line, column} = context.end
