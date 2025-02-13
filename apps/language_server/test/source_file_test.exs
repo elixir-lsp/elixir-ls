@@ -659,6 +659,63 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert {1, 8} == SourceFile.lsp_position_to_elixir("Hello 🙌 World", {0, 8})
     end
 
+    test "lsp_position_to_elixir single line index inside supplementary variation selector surrogate pair" do
+      # Choose a byte ≥ 16 so that the variation selector is in the supplementary range.
+      # Byte 20 yields: 0xE0100 + (20 - 16) = 0xE0104.
+      #
+      # The encoder prepends a base character. Here the base "A" (a BMP character)
+      # is encoded in UTF16 as 2 bytes (one code unit). The supplementary variation selector
+      # will be encoded in UTF16 as a surrogate pair (4 bytes, or 2 code units).
+      encoded = VariationSelectorEncoder.encode("A", <<20>>) <> "B"
+
+      # In UTF16, the string consists of:
+      #   • code unit 0: "A"
+      #   • code units 1 & 2: variation selector (surrogate pair)
+      #   • code unit 3: "B"
+      #
+      # When converting to UTF8, "A" plus its variation selector form one grapheme cluster.
+      # Thus:
+      #   - Position {0, 1} (offset covering just "A") results in 1 complete grapheme → column = 1 + 1 = 2.
+      #   - Position {0, 2} (offset inside the surrogate pair) is clamped back to include only "A" → column 2.
+      #   - Position {0, 3} (offset covering the full surrogate pair) still forms one grapheme → column 2.
+      #   - Position {0, 4} (offset covering the full combined grapheme plus "B") gives 2 graphemes → column 3.
+      pos1 = SourceFile.lsp_position_to_elixir(encoded, {0, 1})
+      pos2 = SourceFile.lsp_position_to_elixir(encoded, {0, 2})
+      pos3 = SourceFile.lsp_position_to_elixir(encoded, {0, 3})
+      pos4 = SourceFile.lsp_position_to_elixir(encoded, {0, 4})
+
+      assert pos1 == {1, 2}
+      assert pos2 == {1, 2}
+      assert pos3 == {1, 2}
+      assert pos4 == {1, 3}
+    end
+
+    test "lsp_position_to_elixir with BMP variation selector" do
+      # Choose a byte < 16 so that the variation selector is in the BMP.
+      # Byte 10 yields: 0xFE00 + 10 = 0xFE0A.
+      # Both "A" and the variation selector will be encoded as single UTF16 code units.
+      encoded = VariationSelectorEncoder.encode("A", <<10>>) <> "B"
+
+      # UTF16 breakdown:
+      #   • code unit 0: "A"
+      #   • code unit 1: variation selector
+      #   • code unit 2: "B"
+      #
+      # "A" and its BMP variation selector form one grapheme cluster.
+      pos1 = SourceFile.lsp_position_to_elixir(encoded, {0, 1})
+      pos2 = SourceFile.lsp_position_to_elixir(encoded, {0, 2})
+      pos3 = SourceFile.lsp_position_to_elixir(encoded, {0, 3})
+
+      # In UTF8, since the BMP variation selector is a combining mark, "A" and its selector form one grapheme.
+      # - A partial covering just "A" (position {0,1}) yields one grapheme → column = 2.
+      # - A partial covering "A" and the variation selector (position {0,2}) is still one grapheme → column 2.
+      # - Only when "B" is also included (position {0,3}) does the grapheme count increase → column 3.
+
+      assert pos1 == {1, 2}
+      assert pos2 == {1, 2}
+      assert pos3 == {1, 3}
+    end
+
     test "lsp_position_to_elixir multi line" do
       assert {2, 2} == SourceFile.lsp_position_to_elixir("abcde\n1234", {1, 1})
     end
