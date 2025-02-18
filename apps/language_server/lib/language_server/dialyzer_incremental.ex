@@ -368,7 +368,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
           "Dialyzer error during incremental PLT build: #{message}\n#{Exception.format_stacktrace(stacktrace)}"
         )
 
-        []
+        {[], nil}
 
       kind, payload ->
         {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
@@ -377,7 +377,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
           "Unexpected error during incremental PLT build: #{Exception.format(kind, payload, stacktrace)}"
         )
 
-        []
+        {[], nil}
     end
   end
 end
