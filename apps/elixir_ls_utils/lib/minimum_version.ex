@@ -16,7 +16,7 @@ defmodule ElixirLS.Utils.MinimumVersion do
   end
 
   def check_elixir_version do
-    if Version.match?(System.version(), ">= 1.13.0") do
+    if Version.match?(System.version(), ">= 1.14.0") do
       if Regex.match?(~r/-/, System.version()) do
         {:warning,
          "Only official elixir releases are supported. (Currently running v#{System.version()})"}
@@ -24,8 +24,13 @@ defmodule ElixirLS.Utils.MinimumVersion do
         :ok
       end
     else
-      {:error,
-       "Elixir versions below 1.13.0 are not supported. (Currently running v#{System.version()})"}
+      if Version.match?(System.version(), ">= 1.13.0") do
+        {:warning,
+         "Elixir versions below 1.14.0 are not supported. (Currently running v#{System.version()})"}
+      else
+        {:error,
+         "Elixir versions below 1.13.0 are incompatible. (Currently running v#{System.version()})"}
+      end
     end
   end
 

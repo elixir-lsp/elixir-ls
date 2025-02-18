@@ -20,7 +20,7 @@ defmodule ElixirLS.Utils.MixProject do
       deps_path: "../../deps",
       elixirc_paths: elixirc_paths(Mix.env()),
       lockfile: "../../mix.lock",
-      elixir: ">= 1.13.0",
+      elixir: ">= 1.14.0",
       build_embedded: false,
       start_permanent: false,
       build_per_environment: false,
