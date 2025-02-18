@@ -67,10 +67,9 @@ jobs:
           - elixir: 1.17.x
             otp: 27.x
             tests_may_fail: false
-          # https://github.com/erlef/setup-beam/issues/314
-          # - elixir: 1.18.x
-          #   otp: 25.x
-          #   tests_may_fail: false
+          - elixir: 1.18.x
+            otp: 25.x
+            tests_may_fail: false
           - elixir: 1.18.x
             otp: 26.x
             tests_may_fail: false
@@ -137,10 +136,9 @@ jobs:
           - elixir: 1.17.x
             otp: 27.x
             tests_may_fail: false
-          # https://github.com/erlef/setup-beam/issues/314
-          # - elixir: 1.18.x
-          #   otp: 25.x
-          #   tests_may_fail: false
+          - elixir: 1.18.x
+            otp: 25.x
+            tests_may_fail: false
           - elixir: 1.18.x
             otp: 26.x
             tests_may_fail: false
