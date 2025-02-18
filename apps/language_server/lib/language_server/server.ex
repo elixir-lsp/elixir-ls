@@ -1787,7 +1787,8 @@ defmodule ElixirLS.LanguageServer.Server do
     :ok
   end
 
-  defp set_settings(state = %__MODULE__{}, settings) do
+  defp set_settings(state = %__MODULE__{settings: prev_settings}, settings)
+       when settings != prev_settings do
     enable_dialyzer =
       Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) and
         Map.get(settings, "dialyzerEnabled", true)
@@ -1913,6 +1914,10 @@ defmodule ElixirLS.LanguageServer.Server do
     # :observer.start()
 
     trigger_build(state)
+  end
+
+  defp set_settings(state = %__MODULE__{}, _settings) do
+    state
   end
 
   defp add_watched_extensions(_server_instance_id, []) do
