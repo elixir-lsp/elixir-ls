@@ -16,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.ReservedWords
   alias ElixirSense.Core.State
   alias ElixirSense.Core.SurroundContext
-  alias ElixirSense.Core.State.ModFunInfo
+  alias ElixirSense.Core.State.{ModFunInfo, SpecInfo}
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
 
@@ -181,6 +181,47 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
       )
 
     case actual do
+      {_, f, false, _} ->
+        module = env.module
+        {line, column} = context.end
+        call_arity = Metadata.get_call_arity(metadata, env.module, f, line, column) || :any
+
+        metadata.specs
+        |> Enum.filter(fn
+          {{^module, ^f, a}, %SpecInfo{}} ->
+            Introspection.matches_arity?(a, call_arity)
+
+          _ ->
+            false
+        end)
+        |> Enum.map(fn {{_module, _f, arity}, spec_info = %SpecInfo{}} ->
+          case spec_info do
+            %SpecInfo{kind: :spec} ->
+              # return def docs on on spec
+              get_all_docs({module, fun, arity}, metadata, env, :mod_fun)
+
+            %SpecInfo{kind: kind} when kind in [:callback, :macrocallback] ->
+              specs =
+                spec_info.specs
+                |> Enum.reject(&String.starts_with?(&1, "@spec"))
+                |> Enum.reverse()
+
+              [
+                %{
+                  kind: kind,
+                  module: module,
+                  callback: fun,
+                  arity: arity,
+                  args: spec_info.args |> List.last(),
+                  metadata: spec_info.meta,
+                  specs: specs,
+                  docs: spec_info.doc
+                }
+              ]
+          end
+        end)
+        |> List.flatten()
+
       {mod, fun, true, kind} ->
         {line, column} = context.end
         call_arity = Metadata.get_call_arity(metadata, mod, fun, line, column) || :any

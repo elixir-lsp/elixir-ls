@@ -531,7 +531,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              } = Docs.docs(buffer, 5, 6)
     end
 
-    test "find definition of local macro on definition" do
+    test "retrieve documentation of local macro on definition" do
       buffer = """
       defmodule MyModule do
         defmacrop some(var), do: Macro.expand(var, __CALLER__)
@@ -545,6 +545,56 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       assert %{
                docs: [_doc]
              } = Docs.docs(buffer, 2, 14)
+    end
+
+    test "retrieve documentation of local macro on spec" do
+      buffer = """
+      defmodule MyModule do
+        @doc "Some macro"
+        @spec some(integer()) :: Macro.t()
+        defmacro some(var), do: Macro.expand(var, __CALLER__)
+      end
+      """
+
+      assert %{
+               docs: [
+                 %{
+                   args: ["var"],
+                   arity: 1,
+                   function: :some,
+                   module: MyModule,
+                   metadata: %{},
+                   specs: ["@spec some(integer()) :: Macro.t()"],
+                   docs: "Some macro",
+                   kind: :macro
+                 }
+               ]
+             } = Docs.docs(buffer, 3, 10)
+    end
+
+    test "retrieve documentation of local function on spec" do
+      buffer = """
+      defmodule MyModule do
+        @doc "Some fun"
+        @spec some(integer()) :: atom()
+        def some(var), do: Macro.expand(var, __CALLER__)
+      end
+      """
+
+      assert %{
+               docs: [
+                 %{
+                   args: ["var"],
+                   arity: 1,
+                   function: :some,
+                   module: MyModule,
+                   metadata: %{},
+                   specs: ["@spec some(integer()) :: atom()"],
+                   docs: "Some fun",
+                   kind: :function
+                 }
+               ]
+             } = Docs.docs(buffer, 3, 10)
     end
 
     test "does not find definition of local macro if it's defined after the cursor" do
@@ -1358,6 +1408,58 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
         assert doc.docs == ""
         assert doc.metadata == %{app: :language_server}
       end
+    end
+  end
+
+  describe "callbacks" do
+    test "retrieve documentation of local callback" do
+      buffer = """
+      defmodule MyModule do
+        @doc "Some callback"
+        @doc since: "2.3"
+        @callback some(integer()) :: atom()
+      end
+      """
+
+      assert %{
+               docs: [
+                 %{
+                   args: ["integer()"],
+                   arity: 1,
+                   module: MyModule,
+                   callback: :some,
+                   metadata: %{since: "2.3"},
+                   specs: ["@callback some(integer()) :: atom()"],
+                   docs: "Some callback",
+                   kind: :callback
+                 }
+               ]
+             } = Docs.docs(buffer, 4, 14)
+    end
+
+    test "retrieve documentation of local macrocallback" do
+      buffer = """
+      defmodule MyModule do
+        @doc "Some macrocallback"
+        @doc since: "2.3"
+        @macrocallback some(integer()) :: Macro.t()
+      end
+      """
+
+      assert %{
+               docs: [
+                 %{
+                   args: ["integer()"],
+                   arity: 1,
+                   module: MyModule,
+                   callback: :some,
+                   metadata: %{since: "2.3"},
+                   specs: ["@macrocallback some(integer()) :: Macro.t()"],
+                   docs: "Some macrocallback",
+                   kind: :macrocallback
+                 }
+               ]
+             } = Docs.docs(buffer, 4, 19)
     end
   end
 

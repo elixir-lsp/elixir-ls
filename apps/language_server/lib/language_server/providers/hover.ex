@@ -92,6 +92,20 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     end
   end
 
+  defp build_callback_link(module, callback, arity) do
+    if module != nil and ElixirSense.Core.Introspection.elixir_module?(module) do
+      url = DocLinks.hex_docs_callback_link(module, callback, arity)
+
+      if url do
+        "[View on hexdocs](#{url})\n\n"
+      else
+        ""
+      end
+    else
+      ""
+    end
+  end
+
   defp format_doc(info = %{kind: :module}) do
     mod_str = inspect(info.module)
 
@@ -166,6 +180,37 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     ```
 
     *type* #{build_type_link(info.module, info.type, info.arity)}
+
+    #{MarkdownUtils.get_metadata_md(info.metadata)}
+
+    ### Definition
+
+    #{formatted_spec}
+
+    #{documentation_section(info.docs) |> MarkdownUtils.transform_ex_doc_links(info.module)}
+    """
+  end
+
+  defp format_doc(info = %{kind: kind}) when kind in [:callback, :macrocallback] do
+    joined = Enum.join(info.specs, "\n")
+    formatted_spec = "```elixir\n#{joined}\n```"
+
+    mod_formatted =
+      case info.module do
+        nil -> ""
+        atom -> inspect(atom) <> "."
+      end
+
+    callback_name =
+      "#{mod_formatted}#{info.callback}(#{Enum.join(info.args, ", ")})"
+      |> format_header
+
+    """
+    ```elixir
+    #{callback_name}
+    ```
+
+    *#{kind}* #{build_callback_link(info.module, info.callback, info.arity)}
 
     #{MarkdownUtils.get_metadata_md(info.metadata)}
 

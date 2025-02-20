@@ -7,8 +7,6 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.Locator do
   This is effectively the reverse of the "go to implementations" provider.
   """
 
-  alias ElixirSense.Core.Behaviours
-  alias ElixirSense.Core.Binding
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.State
@@ -43,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.Locator do
   end
 
   @doc false
-  def find(context, %State.Env{module: module} = env, metadata) do
+  def find(_context, %State.Env{module: module} = env, metadata) do
     # Get the binding environment as in the other providers.
     # binding_env = Binding.from_env(env, metadata, context.begin)
 

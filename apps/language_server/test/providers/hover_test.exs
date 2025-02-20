@@ -99,6 +99,28 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
            )
   end
 
+  test "callback hover" do
+    text = """
+    defmodule MyModule do
+      @callback some(integer()) :: atom()
+    end
+    """
+
+    {line, char} = {1, 13}
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(parser_context, line, char)
+
+    assert String.starts_with?(
+             v,
+             "```elixir\nMyModule.some(integer())\n```\n\n*callback*"
+           )
+  end
+
   test "elixir type hover" do
     text = """
     defmodule MyModule do
