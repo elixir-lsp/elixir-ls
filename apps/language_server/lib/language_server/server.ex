@@ -1849,6 +1849,11 @@ defmodule ElixirLS.LanguageServer.Server do
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
     additional_watched_extensions = Map.get(settings, "additionalWatchedExtensions", [])
+    stdlib_src_dir = to_string(Map.get(settings, "stdlibSrcDir", ""))
+
+    if stdlib_src_dir != "" do
+      Application.put_env(:language_server, :elixir_src, stdlib_src_dir)
+    end
 
     state =
       state
@@ -1887,6 +1892,7 @@ defmodule ElixirLS.LanguageServer.Server do
         "elixir_ls.envVariables" => to_string(Map.get(settings, "envVariables", %{}) != %{}),
         "elixir_ls.mixEnv" => to_string(Map.get(settings, "mixEnv", "test")),
         "elixir_ls.mixTarget" => to_string(Map.get(settings, "mixTarget", "host")),
+        "elixir_ls.stdlibSrcDir" => stdlib_src_dir,
         "elixir_ls.dialyzerFormat" =>
           if(Map.get(settings, "dialyzerEnabled", true),
             do: Map.get(settings, "dialyzerFormat", "dialyxir_long"),
