@@ -387,6 +387,7 @@ Below is a list of configuration options supported by the ElixirLS language serv
 <dt>elixirLS.enableTestLenses</dt><dd>Show code lenses to run tests in terminal.</dd>
 <dt>elixirLS.additionalWatchedExtensions</dt><dd>Additional file types capable of triggering a build on change</dd>
 <dt>elixirLS.languageServerOverridePath</dt><dd>Absolute path to an alternative ElixirLS release that will override the packaged release</dd>
+<dt>elixirLS.stdlibSrcDir</dt><dd>Path to Elixir's std lib source code. See [here](https://github.com/elixir-lsp/elixir_sense/pull/277) for more info</dd>
 </dl>
 
 ## Debug Adapter configuration options
