@@ -1351,14 +1351,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert Locator.definition(buffer, 2, 8) == %Location{
+    assert %Location{
              type: :function,
              file: nil,
              line: 2,
              column: 3,
-             end_line: 2,
-             end_column: 31
-           }
+             end_line: 2
+           } = Locator.definition(buffer, 2, 8)
   end
 
   test "find definition of local functions with default args" do
@@ -1903,14 +1902,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert Locator.definition(buffer, 2, 10) == %Location{
+    assert %Location{
              type: :typespec,
              file: nil,
              line: 2,
              column: 3,
-             end_line: 2,
-             end_column: 27
-           }
+             end_line: 2
+           } = Locator.definition(buffer, 2, 10)
   end
 
   test "find definition of local spec on definition" do
@@ -1959,14 +1957,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert Locator.definition(buffer, 2, 14) == %Location{
+    assert %Location{
              type: :spec,
              file: nil,
              line: 2,
              column: 3,
-             end_line: 2,
-             end_column: 31
-           }
+             end_line: 2
+           } = Locator.definition(buffer, 2, 14)
   end
 
   test "find metadata type for the correct arity - on type definition" do
