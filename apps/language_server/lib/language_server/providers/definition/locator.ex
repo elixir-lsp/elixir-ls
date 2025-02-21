@@ -250,14 +250,19 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
             if Introspection.matches_arity?(a, call_arity) do
               {{line, column}, {end_line, end_column}} = Location.info_to_range(spec_info)
 
-              %Location{
-                file: nil,
-                type: :spec,
-                line: line,
-                column: column,
-                end_line: end_line,
-                end_column: end_column
-              }
+              if spec_info.kind in [:callback, :macrocallback] do
+                %Location{
+                  file: nil,
+                  type: :spec,
+                  line: line,
+                  column: column,
+                  end_line: end_line,
+                  end_column: end_column
+                }
+              else
+                # find def location for spec
+                find_function(module, f, a, metadata)
+              end
             end
 
           _ ->
@@ -268,30 +273,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
         {line, column} = context.end
         call_arity = Metadata.get_call_arity(metadata, mod, fun, line, column) || :any
 
-        fn_definition =
-          Location.get_function_position_using_metadata(
-            mod,
-            fun,
-            call_arity,
-            metadata.mods_funs_to_positions
-          )
-
-        case fn_definition do
-          nil ->
-            Location.find_mod_fun_source(mod, fun, call_arity)
-
-          %ModFunInfo{} = info ->
-            {{line, column}, {end_line, end_column}} = Location.info_to_range(info)
-
-            %Location{
-              file: nil,
-              type: ModFunInfo.get_category(info),
-              line: line,
-              column: column,
-              end_line: end_line,
-              end_column: end_column
-            }
-        end
+        find_function(mod, fun, call_arity, metadata)
 
       {mod, fun, true, :type} ->
         {line, column} = context.end
@@ -316,6 +298,33 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
               end_column: end_column
             }
         end
+    end
+  end
+
+  def find_function(mod, fun, arity, metadata) do
+    fn_definition =
+      Location.get_function_position_using_metadata(
+        mod,
+        fun,
+        arity,
+        metadata.mods_funs_to_positions
+      )
+
+    case fn_definition do
+      nil ->
+        Location.find_mod_fun_source(mod, fun, arity)
+
+      %ModFunInfo{} = info ->
+        {{line, column}, {end_line, end_column}} = Location.info_to_range(info)
+
+        %Location{
+          file: nil,
+          type: ModFunInfo.get_category(info),
+          line: line,
+          column: column,
+          end_line: end_line,
+          end_column: end_column
+        }
     end
   end
 

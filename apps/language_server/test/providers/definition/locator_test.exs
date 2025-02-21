@@ -1920,14 +1920,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert Locator.definition(buffer, 2, 10) == %Location{
-             type: :spec,
+    assert %Location{
+             type: :function,
              file: nil,
-             line: 2,
+             line: 4,
              column: 3,
-             end_line: 2,
-             end_column: 29
-           }
+             end_line: 4
+           } = Locator.definition(buffer, 2, 10)
   end
 
   test "find definition of local spec with guard on definition" do
@@ -1939,14 +1938,13 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert Locator.definition(buffer, 2, 10) == %Location{
-             type: :spec,
+    assert %Location{
+             type: :function,
              file: nil,
-             line: 2,
+             line: 4,
              column: 3,
-             end_line: 2,
-             end_column: 44
-           }
+             end_line: 4
+           } = Locator.definition(buffer, 2, 10)
   end
 
   test "find definition of local callback on definition" do
