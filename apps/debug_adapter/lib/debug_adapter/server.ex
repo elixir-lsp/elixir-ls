@@ -208,7 +208,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         Output.debugger_important("Terminating #{__MODULE__}: #{message}")
 
         unless :persistent_term.get(:debug_adapter_test_mode, false) do
-          System.stop(1)
+          System.halt(1)
         end
     end
 
@@ -655,7 +655,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     unless :persistent_term.get(:debug_adapter_test_mode, false) do
       Output.debugger_console("Received disconnect request\n")
       Process.sleep(200)
-      System.stop(0)
+      System.halt(0)
     else
       Process.exit(self(), {:exit_code, 0})
     end

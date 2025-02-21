@@ -551,7 +551,7 @@ defmodule ElixirLS.LanguageServer.Server do
     code = if state.received_shutdown?, do: 0, else: 1
 
     unless :persistent_term.get(:language_server_test_mode, false) do
-      System.stop(code)
+      System.halt(code)
     else
       Logger.info("Received exit with code #{code}")
     end
