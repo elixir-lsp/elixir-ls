@@ -6,50 +6,55 @@
 # code simplicity instead of performance. Hence some potentially redundant
 # moves here.
 
-# First order of business, see whether we can setup asdf-vm
+# First order of business, see whether we can setup asdf
 
-set asdf_dir $ASDF_DIR
+echo "Looking for asdf install" >&2
+set ASDF_DIR (or $ASDF_DIR (set -q HOME; echo $HOME)/.asdf)
 
-test -z "$asdf_dir"; and set asdf_dir "$HOME/.asdf"
-
-set asdf_vm "$asdf_dir/asdf.fish"
-
-echo "Looking for ASDF install" >&2
-
-if test -f "$asdf_vm"
-  echo "ASDF install found in $asdf_vm, sourcing" >&2
-  source "$asdf_vm"
+# Check if we have the asdf binary for version >= 0.16.0
+set asdf (which asdf)
+if test -n "$asdf"
+    echo "asdf executable found at $asdf. Setting ASDF_DIR=${ASDF_DIR} and adding ${ASDF_DATA_DIR}/shims to PATH." >&2
+    # If the binary is found, set up environment for newer asdf versions
+    set -gx ASDF_DATA_DIR "$ASDF_DIR"
+    set -gx PATH "$ASDF_DATA_DIR/shims" $PATH
 else
-  echo "ASDF not found" >&2
-  echo "Looking for mise executable" >&2
-
-  set mise (which mise)
-  if test -n "$mise"
-    echo "mise executable found in $mise, activating" >&2
-
-    "$mise" env -s fish | source
-  else
-    echo "mise not found" >&2
-    echo "Looking for rtx executable" >&2
-
-    set rtx (which rtx)
-    if test -n "$rtx"
-      echo "rtx executable found in $rtx, activating" >&2
-
-      "$rtx" env -s fish | source
+    # Fallback to old method for asdf version <= 0.15.x
+    set ASDF_SH "$ASDF_DIR/asdf.fish"
+    if test -f "$ASDF_SH"
+        echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing" >&2
+        # Source the old asdf.sh script for versions <= 0.15.0
+        source "$ASDF_SH"
     else
-      echo "rtx not found" >&2
+        echo "asdf not found" >&2
+        echo "Looking for mise executable" >&2
 
-      set vfox (which vfox)
-      if test -n "$vfox"
-        echo "vfox executable found in $vfox, activating" >&2
+        set mise (which mise)
+        if test -n "$mise"
+            echo "mise executable found at $mise, activating" >&2
+            source ( "$mise" env -s fish )
+        else
+            echo "mise not found" >&2
+            echo "Looking for rtx executable" >&2
 
-        "$vfox" activate fish | source
-      else
-        echo "vfox not found" >&2
-      end
+            set rtx (which rtx)
+            if test -n "$rtx"
+                echo "rtx executable found at $rtx, activating" >&2
+                source ( "$rtx" env -s fish )
+            else
+                echo "rtx not found" >&2
+                echo "Looking for vfox executable" >&2
+
+                set vfox (which vfox)
+                if test -n "$vfox"
+                    echo "vfox executable found at $vfox, activating" >&2
+                    source ( "$vfox" activate fish )
+                else
+                    echo "vfox not found" >&2
+                end
+            end
+        end
     end
-  end
 end
 
 # In case that people want to tweak the path, which Elixir to use, or

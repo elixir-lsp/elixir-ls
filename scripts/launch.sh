@@ -6,7 +6,6 @@
 # code simplicity instead of performance. Hence some potentially redundant
 # moves here.
 
-# First order of business, see whether we can setup asdf-vm
 
 did_relaunch=$1
 
@@ -36,45 +35,53 @@ case "${did_relaunch}" in
     ;;
 esac
 
+# First order of business, see whether we can setup asdf
+echo "Looking for asdf install" >&2
 ASDF_DIR=${ASDF_DIR:-"${HOME}/.asdf"}
 
-asdf_vm="${ASDF_DIR}/asdf.sh"
-
->&2 echo "Looking for ASDF install"
-if test -f "${asdf_vm}"
-then
-  >&2 echo "ASDF install found in $asdf_vm, sourcing"
-  # shellcheck disable=SC1090
-  .  "${asdf_vm}"
+# Check if we have the asdf binary for version >= 0.16.0
+if command -v asdf >/dev/null 2>&1; then
+    >&2 echo "asdf executable found at $(command -v asdf). Setting ASDF_DIR=${ASDF_DIR} and adding ${ASDF_DATA_DIR}/shims to PATH."
+    # If the binary is found, set up environment for newer asdf versions
+    export ASDF_DATA_DIR="$ASDF_DIR"
+    export PATH="$ASDF_DATA_DIR/shims:$PATH"
 else
-  >&2 echo "ASDF not found"
-  >&2 echo "Looking for mise executable"
-
-  if which mise >/dev/null
-  then
-    >&2 echo "mise executable found in $(which mise), activating"
-    eval "$($(which mise) env -s "$preferred_shell")"
-  else
-    >&2 echo "mise not found"
-    >&2 echo "Looking for rtx executable"
-
-    if which rtx >/dev/null
-    then
-      >&2 echo "rtx executable found in $(which rtx), activating"
-      eval "$($(which rtx) env -s "$preferred_shell")"
+    # Fallback to old method for version <= 0.15.x
+    ASDF_SH="${ASDF_DIR}/asdf.sh"       # Path to the old shell script for version <= 0.15.x
+    if test -f "$ASDF_SH"; then
+        >&2 echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing"
+        # Source the old asdf.sh script for versions <= 0.15.0
+        . "$ASDF_SH"
     else
-      >&2 echo "rtx not found"
+        >&2 echo "asdf not found"
+        >&2 echo "Looking for mise executable"
 
-      >&2 echo "Looking for vfox executable"
-      if which vfox >/dev/null
-      then
-        >&2 echo "vfox executable found in $(which vfox), activating"
-        eval "$($(which vfox) activate "$preferred_shell")"
-      else
-        >&2 echo "vfox not found"
-      fi
+        # Look for mise executable
+        if command -v mise >/dev/null 2>&1; then
+            >&2 echo "mise executable found at $(command -v mise), activating"
+            eval "$($(command -v mise) env -s "$preferred_shell")"
+        else
+            >&2 echo "mise not found"
+            >&2 echo "Looking for rtx executable"
+
+            # Look for rtx executable
+            if command -v rtx >/dev/null 2>&1; then
+                >&2 echo "rtx executable found at $(command -v rtx), activating"
+                eval "$($(command -v rtx) env -s "$preferred_shell")"
+            else
+                >&2 echo "rtx not found"
+                >&2 echo "Looking for vfox executable"
+
+                # Look for vfox executable
+                if command -v vfox >/dev/null 2>&1; then
+                    >&2 echo "vfox executable found at $(command -v vfox), activating"
+                    eval "$($(command -v vfox) activate "$preferred_shell")"
+                else
+                    >&2 echo "vfox not found"
+                fi
+            fi
+        fi
     fi
-  fi
 fi
 
 # In case that people want to tweak the path, which Elixir to use, or
