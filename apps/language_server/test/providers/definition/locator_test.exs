@@ -1956,7 +1956,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     """
 
     assert %Location{
-             type: :spec,
+             type: :callback,
              file: nil,
              line: 2,
              column: 3,

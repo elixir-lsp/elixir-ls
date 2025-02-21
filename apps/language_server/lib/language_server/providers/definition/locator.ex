@@ -253,7 +253,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
               if spec_info.kind in [:callback, :macrocallback] do
                 %Location{
                   file: nil,
-                  type: :spec,
+                  type: spec_info.kind,
                   line: line,
                   column: column,
                   end_line: end_line,
