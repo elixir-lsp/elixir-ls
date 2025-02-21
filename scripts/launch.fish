@@ -116,4 +116,4 @@ end
 
 set erl_opts (string join ' ' -- $erl_opts)
 
-eval elixir $elixir_opts --erl \"$erl_opts \" \"$scriptpath/launch.exs\"
+exec elixir $elixir_opts --erl "$erl_opts" "$scriptpath/launch.exs"
