@@ -1921,11 +1921,11 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     """
 
     assert %Location{
-             type: :function,
+             type: :spec,
              file: nil,
-             line: 4,
+             line: 2,
              column: 3,
-             end_line: 4
+             end_line: 2
            } = Locator.definition(buffer, 2, 10)
   end
 
@@ -1939,11 +1939,11 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     """
 
     assert %Location{
-             type: :function,
+             type: :spec,
              file: nil,
-             line: 4,
+             line: 2,
              column: 3,
-             end_line: 4
+             end_line: 2
            } = Locator.definition(buffer, 2, 10)
   end
 

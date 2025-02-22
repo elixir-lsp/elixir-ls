@@ -250,19 +250,14 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
             if Introspection.matches_arity?(a, call_arity) do
               {{line, column}, {end_line, end_column}} = Location.info_to_range(spec_info)
 
-              if spec_info.kind in [:callback, :macrocallback] do
-                %Location{
-                  file: nil,
-                  type: spec_info.kind,
-                  line: line,
-                  column: column,
-                  end_line: end_line,
-                  end_column: end_column
-                }
-              else
-                # find def location for spec
-                find_function(module, f, a, metadata)
-              end
+              %Location{
+                file: nil,
+                type: spec_info.kind,
+                line: line,
+                column: column,
+                end_line: end_line,
+                end_column: end_column
+              }
             end
 
           _ ->
