@@ -123,12 +123,15 @@ defmodule ElixirLS.LanguageServer.Parser do
     state =
       update_in(state.debounce_refs[uri], fn
         nil ->
+          # schedule parse with debounce timeout
           {Process.send_after(self(), {:parse_file, uri}, @debounce_timeout), current_version}
 
-        {old_ref, ^current_version} ->
+        {old_ref, old_version} when old_version >= current_version ->
+          # already parsing this or newer version - ignore this request
           {old_ref, current_version}
 
         {old_ref, old_version} when old_version < current_version ->
+          # cancel previous parse and schedule new one with debounce timeout
           Process.cancel_timer(old_ref, info: false)
           {Process.send_after(self(), {:parse_file, uri}, @debounce_timeout), current_version}
       end)
@@ -136,6 +139,7 @@ defmodule ElixirLS.LanguageServer.Parser do
     state =
       update_in(state.files[uri], fn
         nil ->
+          # add new file
           %Context{
             source_file: source_file,
             path: get_path(uri)
@@ -143,9 +147,11 @@ defmodule ElixirLS.LanguageServer.Parser do
 
         %Context{source_file: %SourceFile{version: old_version}} = old_file
         when current_version > old_version ->
+          # replace updated file with new version
           %Context{old_file | source_file: source_file}
 
         %Context{} = old_file ->
+          # ignore this request - this or newer version already in state
           old_file
       end)
 
