@@ -1022,7 +1022,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp get_modules_from_metadata(%State.Env{} = _env, %Metadata{} = metadata) do
-    for {{k, nil, nil}, _} <- metadata.mods_funs_to_positions, do: Atom.to_string(k)
+    for {{k, nil, nil}, _} when is_atom(k) <- metadata.mods_funs_to_positions,
+        do: Atom.to_string(k)
   end
 
   defp match_module_funs(
@@ -1122,7 +1123,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
       true ->
         # local macros are available after definition
         # local functions are hoisted
-        for {{^mod, f, a}, %State.ModFunInfo{} = info} <- metadata.mods_funs_to_positions,
+        for {{^mod, f, a}, %State.ModFunInfo{} = info} when is_atom(f) <-
+              metadata.mods_funs_to_positions,
             a != nil,
             (mod == env.module and not include_builtin) or Introspection.is_pub(info.type),
             mod != env.module or State.ModFunInfo.get_category(info) != :macro or
