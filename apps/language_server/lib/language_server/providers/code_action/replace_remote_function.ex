@@ -30,7 +30,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
   end
 
   defp extract_function_and_line(diagnostic) do
-    with {:ok, module, function, arity} <- extract_function(diagnostic["message"]) do
+    message = diagnostic_to_message(diagnostic)
+
+    with {:ok, module, function, arity} <- extract_function(message) do
       {:ok, module, function, arity, diagnostic["range"]["start"]["line"]}
     end
   end

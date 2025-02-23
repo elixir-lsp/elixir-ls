@@ -28,7 +28,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
   end
 
   defp extract_variable_and_line(diagnostic) do
-    with {:ok, variable_name} <- extract_variable_name(diagnostic["message"]) do
+    message = diagnostic_to_message(diagnostic)
+
+    with {:ok, variable_name} <- extract_variable_name(message) do
       {:ok, variable_name, diagnostic["range"]["start"]["line"]}
     end
   end

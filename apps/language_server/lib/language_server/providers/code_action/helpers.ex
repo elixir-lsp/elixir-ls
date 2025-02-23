@@ -50,4 +50,14 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
   defp maybe_recover_one_line_do(updated_text, _updated_ast) do
     updated_text
   end
+
+  # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnostic
+  # message can be string or MarkupContent
+  # string
+  def diagnostic_to_message(diagnostic) when is_binary(diagnostic), do: diagnostic
+
+  # MarkupContent
+  def diagnostic_to_message(%{"kind" => kind, "value" => value})
+      when kind in ["plaintext", "markdown"],
+      do: value
 end
