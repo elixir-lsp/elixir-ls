@@ -21,6 +21,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
     GenServer.cast(__MODULE__, {:notify_settings_stored, project_dir})
   end
 
+  def notify_deps_path(deps_path) do
+    GenServer.cast(__MODULE__, {:notify_deps_path, deps_path})
+  end
+
   defp get_project_dir() do
     case Process.get(:elixir_ls_project_dir) do
       nil ->
@@ -30,6 +34,18 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
       project_dir ->
         project_dir
+    end
+  end
+
+  defp get_deps_path() do
+    case Process.get(:elixir_ls_deps_path) do
+      nil ->
+        deps_path = GenServer.call(__MODULE__, :get_deps_path)
+        Process.put(:elixir_ls_deps_path, deps_path)
+        deps_path
+
+      deps_path ->
+        deps_path
     end
   end
 
@@ -50,7 +66,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
       ])
     end
 
-    state = %{project_dir: nil}
+    state = %{project_dir: nil, deps_path: nil}
 
     {:ok, state}
   end
@@ -58,6 +74,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
   @impl true
   def handle_call(:get_project_dir, _from, %{project_dir: project_dir} = state) do
     {:reply, project_dir, state}
+  end
+
+  def handle_call(:get_deps_path, _from, %{deps_path: deps_path} = state) do
+    {:reply, deps_path, state}
   end
 
   @impl true
@@ -68,6 +88,10 @@ defmodule ElixirLS.LanguageServer.Tracer do
     end
 
     {:noreply, %{state | project_dir: project_dir}}
+  end
+
+  def handle_cast({:notify_deps_path, deps_path}, state) do
+    {:noreply, %{state | deps_path: deps_path}}
   end
 
   def handle_cast({:notify_file_deleted, file}, state) do
@@ -283,15 +307,21 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   defp in_project_sources?(path) do
     project_dir = get_project_dir()
+    deps_path = get_deps_path()
 
     if project_dir != nil do
-      topmost_path_segment =
-        path
-        |> Path.relative_to(project_dir)
-        |> Path.split()
-        |> hd
+      cond do
+        deps_path && Path.relative_to(path, deps_path) != path ->
+          # path is in deps_path
+          false
 
-      topmost_path_segment != "deps"
+        Path.relative_to(path, project_dir) == path ->
+          # path not in project_dir, probably a path dep
+          false
+
+        true ->
+          true
+      end
     else
       false
     end

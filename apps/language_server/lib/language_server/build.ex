@@ -133,6 +133,7 @@ defmodule ElixirLS.LanguageServer.Build do
           }
 
           ElixirLS.LanguageServer.MixProjectCache.store(state)
+          Tracer.notify_deps_path(Mix.Project.deps_path(state.config))
 
           :ok
         catch

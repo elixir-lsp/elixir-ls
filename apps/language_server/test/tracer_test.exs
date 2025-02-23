@@ -17,13 +17,23 @@ defmodule ElixirLS.LanguageServer.TracerTest do
     assert GenServer.call(Tracer, :get_project_dir) == project_path
   end
 
+  test "set deps path" do
+    project_path = FixtureHelpers.get_path("")
+    deps_path = Path.join(project_path, "deps")
+
+    Tracer.notify_deps_path(deps_path)
+
+    assert GenServer.call(Tracer, :get_deps_path) == deps_path
+  end
+
   describe "call trace" do
     setup context do
       project_path = FixtureHelpers.get_path("")
       Tracer.notify_settings_stored(project_path)
+      Tracer.notify_deps_path(Path.join(project_path, "deps"))
       GenServer.call(Tracer, :get_project_dir)
 
-      {:ok, context}
+      {:ok, context |> Map.put(:project_path, project_path)}
     end
 
     defp sorted_calls() do
@@ -34,12 +44,12 @@ defmodule ElixirLS.LanguageServer.TracerTest do
       assert sorted_calls() == []
     end
 
-    test "registers calls same function different files" do
+    test "registers calls same function different files", %{project_path: project_path} do
       Tracer.trace(
         {:remote_function, [line: 12, column: 2], CalledModule, :called, 1},
         %Macro.Env{
           module: CallingModule,
-          file: "calling_module.ex"
+          file: Path.join(project_path, "calling_module.ex")
         }
       )
 
@@ -47,22 +57,23 @@ defmodule ElixirLS.LanguageServer.TracerTest do
         {:remote_function, [line: 13, column: 3], CalledModule, :called, 1},
         %Macro.Env{
           module: OtherCallingModule,
-          file: "other_calling_module.ex"
+          file: Path.join(project_path, "other_calling_module.ex")
         }
       )
 
       assert [
-               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2},
-               {{CalledModule, :called, 1}, "other_calling_module.ex", 13, 3}
+               {{CalledModule, :called, 1}, Path.join(project_path, "calling_module.ex"), 12, 2},
+               {{CalledModule, :called, 1}, Path.join(project_path, "other_calling_module.ex"),
+                13, 3}
              ] == sorted_calls()
     end
 
-    test "registers calls same function in one file" do
+    test "registers calls same function in one file", %{project_path: project_path} do
       Tracer.trace(
         {:remote_function, [line: 12, column: 2], CalledModule, :called, 1},
         %Macro.Env{
           module: CallingModule,
-          file: "calling_module.ex"
+          file: Path.join(project_path, "calling_module.ex")
         }
       )
 
@@ -70,22 +81,22 @@ defmodule ElixirLS.LanguageServer.TracerTest do
         {:remote_function, [line: 13, column: 3], CalledModule, :called, 1},
         %Macro.Env{
           module: CallingModule,
-          file: "calling_module.ex"
+          file: Path.join(project_path, "calling_module.ex")
         }
       )
 
       assert [
-               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2},
-               {{CalledModule, :called, 1}, "calling_module.ex", 13, 3}
+               {{CalledModule, :called, 1}, Path.join(project_path, "calling_module.ex"), 12, 2},
+               {{CalledModule, :called, 1}, Path.join(project_path, "calling_module.ex"), 13, 3}
              ] == sorted_calls()
     end
 
-    test "registers calls different functions" do
+    test "registers calls different functions", %{project_path: project_path} do
       Tracer.trace(
         {:remote_function, [line: 12, column: 2], CalledModule, :called, 1},
         %Macro.Env{
           module: CallingModule,
-          file: "calling_module.ex"
+          file: Path.join(project_path, "calling_module.ex")
         }
       )
 
@@ -93,22 +104,23 @@ defmodule ElixirLS.LanguageServer.TracerTest do
         {:remote_function, [line: 13, column: 3], CalledModule, :other_called, 1},
         %Macro.Env{
           module: OtherCallingModule,
-          file: "other_calling_module.ex"
+          file: Path.join(project_path, "other_calling_module.ex")
         }
       )
 
       assert [
-               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2},
-               {{CalledModule, :other_called, 1}, "other_calling_module.ex", 13, 3}
+               {{CalledModule, :called, 1}, Path.join(project_path, "calling_module.ex"), 12, 2},
+               {{CalledModule, :other_called, 1},
+                Path.join(project_path, "other_calling_module.ex"), 13, 3}
              ] == sorted_calls()
     end
 
-    test "deletes calls by file" do
+    test "deletes calls by file", %{project_path: project_path} do
       Tracer.trace(
         {:remote_function, [line: 12, column: 2], CalledModule, :called, 1},
         %Macro.Env{
           module: CallingModule,
-          file: "calling_module.ex"
+          file: Path.join(project_path, "calling_module.ex")
         }
       )
 
@@ -116,17 +128,17 @@ defmodule ElixirLS.LanguageServer.TracerTest do
         {:remote_function, [line: 13, column: 3], CalledModule, :called, 1},
         %Macro.Env{
           module: OtherCallingModule,
-          file: "other_calling_module.ex"
+          file: Path.join(project_path, "other_calling_module.ex")
         }
       )
 
-      Tracer.delete_calls_by_file("other_calling_module.ex")
+      Tracer.delete_calls_by_file(Path.join(project_path, "other_calling_module.ex"))
 
       assert [
-               {{CalledModule, :called, 1}, "calling_module.ex", 12, 2}
+               {{CalledModule, :called, 1}, Path.join(project_path, "calling_module.ex"), 12, 2}
              ] == sorted_calls()
 
-      Tracer.delete_calls_by_file("calling_module.ex")
+      Tracer.delete_calls_by_file(Path.join(project_path, "calling_module.ex"))
 
       assert [] == sorted_calls()
     end
