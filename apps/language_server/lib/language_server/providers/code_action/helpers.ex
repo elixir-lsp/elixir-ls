@@ -54,10 +54,10 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
   # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnostic
   # message can be string or MarkupContent
   # string
-  def diagnostic_to_message(diagnostic) when is_binary(diagnostic), do: diagnostic
+  def diagnostic_to_message(%{"message" => message}) when is_binary(message), do: message
 
   # MarkupContent
-  def diagnostic_to_message(%{"kind" => kind, "value" => value})
+  def diagnostic_to_message(%{"message" => %{"kind" => kind, "value" => value}})
       when kind in ["plaintext", "markdown"],
       do: value
 end
