@@ -119,7 +119,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
 
       ast
       |> Macro.postwalk(fn
-        {:., function_meta, [{:__aliases__, module_meta, module_alias}, ^function_atom]} ->
+        {:., function_meta, [{:__aliases__, module_meta, module_alias = [h | _]}, ^function_atom]}
+        when is_atom(h) ->
           case expand_alias(source_file, module_alias, line_number) do
             {:ok, ^module} ->
               {:., function_meta, [{:__aliases__, module_meta, module_alias}, suggestion]}
@@ -128,9 +129,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
               {:., function_meta, [{:__aliases__, module_meta, module_alias}, function_atom]}
           end
 
-        # erlang call
-        {:., function_meta, [^module, ^function_atom]} ->
-          {:., function_meta, [module, suggestion]}
+        {:., function_meta, [remote, ^function_atom]} ->
+          {:., function_meta, [remote, suggestion]}
 
         other ->
           other

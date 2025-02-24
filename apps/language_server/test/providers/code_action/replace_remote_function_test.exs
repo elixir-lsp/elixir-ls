@@ -257,6 +257,36 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
 
         assert result == "alias ElixirLS.Test.RemoteFunction, as: Remote\nRemote.foo(42)"
       end
+
+      test "handles __MODULE__" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+              * foo/1
+        """
+
+        {:ok, [result]} =
+          ~q{
+          __MODULE__.fou(42)
+          }
+          |> modify(message: message, suggestion: "__MODULE__.foo", line: 0)
+
+        assert result == "__MODULE__.foo(42)"
+      end
+
+      test "handles __MODULE__.Submodule alias" do
+        message = """
+        ElixirLS.Test.RemoteFunction.fou/1 is undefined or private. Did you mean:
+              * foo/1
+        """
+
+        {:ok, [result]} =
+          ~q{
+          __MODULE__.RemoteFunction.fou(42)
+          }
+          |> modify(message: message, suggestion: "__MODULE__.RemoteFunction.foo", line: 0)
+
+        assert result == "__MODULE__.RemoteFunction.foo(42)"
+      end
     end
   end
 
