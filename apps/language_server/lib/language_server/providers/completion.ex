@@ -153,18 +153,22 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     def_before =
-      cond do
-        Regex.match?(~r/(defdelegate|defp?)\s*#{Regex.escape(prefix)}$/u, text_before_cursor) ->
-          :def
+      try do
+        cond do
+          Regex.match?(~r/(defdelegate|defp?)\s*#{Regex.escape(prefix)}$/u, text_before_cursor) ->
+            :def
 
-        Regex.match?(
-          ~r/(defguardp?|defmacrop?)\s*#{Regex.escape(prefix)}$/u,
-          text_before_cursor
-        ) ->
-          :defmacro
+          Regex.match?(
+            ~r/(defguardp?|defmacrop?)\s*#{Regex.escape(prefix)}$/u,
+            text_before_cursor
+          ) ->
+            :defmacro
 
-        true ->
-          nil
+          true ->
+            nil
+        end
+      rescue
+        Regex.CompileError -> nil
       end
 
     container_cursor_quoted =
@@ -221,6 +225,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     line_indent = String.length(line_text) - String.length(String.trim_leading(line_text))
 
+    pipe_before? =
+      try do
+        Regex.match?(~r/\|>\s*#{Regex.escape(prefix)}$/u, text_before_cursor)
+      rescue
+        Regex.CompileError -> false
+      end
+
+    capture_before? =
+      try do
+        Regex.match?(~r/&#{Regex.escape(prefix)}$/u, text_before_cursor)
+      rescue
+        Regex.CompileError -> false
+      end
+
     context = %{
       container_cursor_to_quoted: container_cursor_quoted,
       text_before_cursor: text_before_cursor,
@@ -228,8 +246,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       prefix: prefix,
       remote_calls?: match?({:dot, _, _}, NormalizedCode.Fragment.cursor_context(prefix)),
       def_before: def_before,
-      pipe_before?: Regex.match?(~r/\|>\s*#{Regex.escape(prefix)}$/u, text_before_cursor),
-      capture_before?: Regex.match?(~r/&#{Regex.escape(prefix)}$/u, text_before_cursor),
+      pipe_before?: pipe_before?,
+      capture_before?: capture_before?,
       scope: scope,
       module: env.module,
       line: line,
