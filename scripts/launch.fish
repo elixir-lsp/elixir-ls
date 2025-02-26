@@ -9,12 +9,12 @@
 # First order of business, see whether we can setup asdf
 
 echo "Looking for asdf install" >&2
-set ASDF_DIR (or $ASDF_DIR (set -q HOME; echo $HOME)/.asdf)
+test -n "$ASDF_DIR"; or set ASDF_DIR "$HOME/.asdf"
 
 # Check if we have the asdf binary for version >= 0.16.0
 set asdf (which asdf)
 if test -n "$asdf"
-    echo "asdf executable found at $asdf. Setting ASDF_DIR=${ASDF_DIR} and adding ${ASDF_DATA_DIR}/shims to PATH." >&2
+    echo "asdf executable found at $asdf. Setting ASDF_DIR=$ASDF_DIR and adding $ASDF_DATA_DIR/shims to PATH." >&2
     # If the binary is found, set up environment for newer asdf versions
     set -gx ASDF_DATA_DIR "$ASDF_DIR"
     set -gx PATH "$ASDF_DATA_DIR/shims" $PATH
