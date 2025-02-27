@@ -23,7 +23,7 @@ if test -n "$asdf"
         # Source the old asdf.sh script for versions <= 0.15.0
         source "$ASDF_SH"
     else
-        echo "asdf executable found at $asdf. Setting ASDF_DIR=$ASDF_DIR and adding $ASDF_DATA_DIR/shims to PATH." >&2
+        echo "asdf executable found at $asdf. Setting ASDF_DIR=$ASDF_DIR and adding $ASDF_DIR/shims to PATH." >&2
         # If the binary is found, set up environment for newer asdf versions
         set -gx ASDF_DATA_DIR "$ASDF_DIR"
         set -gx PATH "$ASDF_DATA_DIR/shims" $PATH

@@ -41,7 +41,7 @@ ASDF_DIR=${ASDF_DIR:-"${HOME}/.asdf"}
 
 # Check if we have the asdf binary for version >= 0.16.0
 if command -v asdf >/dev/null 2>&1; then
-    >&2 echo "asdf executable found at $(command -v asdf). Setting ASDF_DIR=${ASDF_DIR} and adding ${ASDF_DATA_DIR}/shims to PATH."
+    >&2 echo "asdf executable found at $(command -v asdf). Setting ASDF_DIR=${ASDF_DIR} and adding ${ASDF_DIR}/shims to PATH."
     # If the binary is found, set up environment for newer asdf versions
     export ASDF_DATA_DIR="$ASDF_DIR"
     export PATH="$ASDF_DATA_DIR/shims:$PATH"
