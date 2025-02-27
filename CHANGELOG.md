@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.27.1: 27 February 2025
+
+#### Fixes
+
+- Fixed regression in legacy asdf handling
+
 ### v0.27.0: 27 February 2025
 
 #### Highlights
