@@ -296,7 +296,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
     end
   end
 
-  def find_function(mod, fun, arity, metadata) do
+  defp find_function(mod, fun, arity, metadata) do
     fn_definition =
       Location.get_function_position_using_metadata(
         mod,

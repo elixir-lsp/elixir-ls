@@ -4,14 +4,6 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Source
 
-  defp read_line(file, {line, column}) do
-    file
-    |> File.read!()
-    |> Source.split_lines()
-    |> Enum.at(line - 1)
-    |> String.slice((column - 1)..-1//1)
-  end
-
   test "don't crash on empty buffer" do
     assert nil == Locator.declaration("", 1, 1)
   end
@@ -35,32 +27,6 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
     end
     """
 
-    # Since there is no callback declared in EmptyModule,
-    # the declaration provider should return nil.
-    assert nil == Locator.declaration(buffer, 2, 8)
-  end
-
-  test "return nil when cursor is not inside an implementation" do
-    # For example, if the cursor is outside of any function definition,
-    # there is no callback declaration to jump to.
-    buffer = """
-    defmodule Some do
-      def foo(), do: :ok
-    end
-    """
-
-    assert nil == Locator.declaration(buffer, 1, 1)
-  end
-
-  test "return nil when function does not implement any callback" do
-    # A module without any behaviour/callback relation.
-    buffer = """
-    defmodule Some do
-      def foo(), do: :ok
-    end
-    """
-
-    # Cursor inside the foo implementation should yield no declaration.
     assert nil == Locator.declaration(buffer, 2, 8)
   end
 
@@ -76,16 +42,23 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
     end
     """
 
-    # Place the cursor somewhere within the implementation of foo/0.
     location = Locator.declaration(buffer, 7, 7)
     assert %Location{} = location
     assert location.type == :callback
+    assert location.line == 2
+  end
 
-    # In our test code the callback is defined in the behaviour module.
-    # In this in‑buffer example we don’t have a file name so file is nil.
-    # But we can at least check that the line number is in the behaviour module
-    # (i.e. in the first half of the buffer).
-    assert location.line <= 3
+  test "find declaration for behaviour callback when cursor on callback" do
+    buffer = """
+    defmodule ElixirSenseExample.ExampleBehaviourWithCallback do
+      @callback foo() :: :ok
+    end
+    """
+
+    location = Locator.declaration(buffer, 2, 14)
+    assert %Location{} = location
+    assert location.type == :callback
+    assert location.line == 2
   end
 
   test "find declaration for remote behaviour callback with impl" do
@@ -97,17 +70,32 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
     end
     """
 
-    # Place the cursor somewhere within the implementation of foo/0.
     location = Locator.declaration(buffer, 4, 7)
     assert %Location{} = location
     assert location.type == :callback
     assert location.file =~ "support/example_behaviour.ex"
-
-    # In our test code the callback is defined in the behaviour module.
-    # In this in‑buffer example we don’t have a file name so file is nil.
-    # But we can at least check that the line number is in the behaviour module
-    # (i.e. in the first half of the buffer).
     assert location.line == 213
+    assert read_range(location) =~ "@callback foo()"
+  end
+
+  test "find declaration for behaviour callback when cursor on call" do
+    buffer = """
+    defmodule ElixirSenseExample.ExampleBehaviourWithCallback do
+      @callback foo() :: :ok
+    end
+
+    defmodule Some do
+      @behaviour ElixirSenseExample.ExampleBehaviourWithCallback
+      def foo(), do: :ok
+    end
+
+    Some.foo()
+    """
+
+    location = Locator.declaration(buffer, 10, 7)
+    assert %Location{} = location
+    assert location.type == :callback
+    assert location.line == 2
   end
 
   test "find declaration for remote behaviour callback" do
@@ -118,15 +106,9 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
     end
     """
 
-    # Place the cursor somewhere within the implementation of foo/0.
     location = Locator.declaration(buffer, 3, 7)
     assert %Location{} = location
     assert location.type == :callback
-
-    # In our test code the callback is defined in the behaviour module.
-    # In this in‑buffer example we don’t have a file name so file is nil.
-    # But we can at least check that the line number is in the behaviour module
-    # (i.e. in the first half of the buffer).
     assert location.line == 213
   end
 
@@ -141,13 +123,27 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
     end
     """
 
-    # Place the cursor inside the protocol implementation.
     location = Locator.declaration(buffer, 6, 7)
     assert %Location{} = location
-    # The protocol function declaration (the callback) should be in the protocol module.
-    # Since this is an in-buffer example, file is nil.
-    # We check that the declaration is on one of the first few lines.
-    assert location.line <= 3
+    assert location.line == 2
+  end
+
+  test "find declaration for protocol function when cursor on call" do
+    buffer = """
+    defprotocol ElixirSenseExample.ExampleProtocol do
+      def some(t)
+    end
+
+    defimpl ElixirSenseExample.ExampleProtocol, for: String do
+      def some(t), do: t
+    end
+
+    ElixirSenseExample.ExampleProtocol.String.some("foo")
+    """
+
+    location = Locator.declaration(buffer, 9, 44)
+    assert %Location{} = location
+    assert location.line == 2
   end
 
   test "find declaration for protocol function with spec" do
@@ -164,8 +160,32 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
 
     location = Locator.declaration(buffer, 7, 7)
     assert %Location{} = location
-    # The protocol specification should be defined in the protocol section.
-    assert location.line <= 3
+    assert location.line == 2
+  end
+
+  test "find declaration for protocol function when cursor on def" do
+    buffer = """
+    defprotocol ElixirSenseExample.ExampleProtocol do
+      def some(t)
+    end
+    """
+
+    location = Locator.declaration(buffer, 2, 8)
+    assert %Location{} = location
+    assert location.line == 2
+  end
+
+  test "find declaration for protocol function when cursor on spec" do
+    buffer = """
+    defprotocol ElixirSenseExample.ExampleProtocol do
+      @spec some(t) :: any
+      def some(t)
+    end
+    """
+
+    location = Locator.declaration(buffer, 2, 10)
+    assert %Location{} = location
+    assert location.line == 2
   end
 
   test "find declaration for remote protocol function" do
@@ -180,6 +200,7 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
 
     assert location.file =~ "test/support/example_protocol.ex"
     assert location.line == 2
+    assert read_range(location) =~ "@spec some"
   end
 
   test "chooses callback basing on arity" do
@@ -203,7 +224,80 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.LocatorTest do
     location = Locator.declaration(buffer, 13, 7)
 
     assert %Location{} = location
-    # The protocol specification should be defined in the protocol section.
     assert location.line == 2
+  end
+
+  test "find declaration for overridable def" do
+    buffer = """
+    defmodule MyModule do
+      use ElixirSenseExample.OverridableFunctions
+
+      def test(x, y) do
+        super(x, y)
+      end
+
+      defmacro required(v) do
+        super(v)
+      end
+    end
+    """
+
+    location = Locator.declaration(buffer, 4, 8)
+    assert %Location{} = location
+
+    # point to __using__ macro
+    assert location.file =~ "test/support/overridable_function.ex"
+    assert location.line == 2
+
+    assert read_range(location) =~ "defmacro __using__"
+  end
+
+  test "find declaration for overridable behaviour callback" do
+    buffer = """
+    defmodule MyModule do
+      use ElixirSenseExample.OverridableImplementation
+
+      def foo do
+        super()
+      end
+
+      defmacro bar(any) do
+        super(any)
+      end
+    end
+    """
+
+    location = Locator.declaration(buffer, 4, 8)
+    assert %Location{} = location
+
+    # point to callback definition
+    assert location.file =~ "test/support/overridable_function.ex"
+    assert location.line == 19
+
+    assert read_range(location) =~ "@callback foo"
+  end
+
+  defp read_range(
+         %Location{line: line, column: column, end_line: line, end_column: column} = location
+       ) do
+    location.file
+    |> File.read!()
+    |> Source.split_lines()
+    |> Enum.at(line - 1)
+    |> String.slice((column - 1)..-1//1)
+  end
+
+  defp read_range(%Location{} = location) do
+    text =
+      location.file
+      |> File.read!()
+
+    [_, text_in_range, _] =
+      Source.split_at(text, [
+        {location.line, location.column},
+        {location.end_line, location.end_column}
+      ])
+
+    text_in_range
   end
 end
