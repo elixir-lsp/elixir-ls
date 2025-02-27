@@ -29,31 +29,39 @@ if test -n "$asdf"
         set -gx PATH "$ASDF_DATA_DIR/shims" $PATH
     end
 else
-    echo "asdf not found" >&2
-    echo "Looking for mise executable" >&2
-
-    set mise (which mise)
-    if test -n "$mise"
-        echo "mise executable found at $mise, activating" >&2
-        source ( "$mise" env -s fish )
+    # Fallback to old method for asdf version <= 0.15.x
+    set ASDF_SH "$ASDF_DIR/asdf.fish"
+    if test -f "$ASDF_SH"
+        echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing" >&2
+        # Source the old asdf.sh script for versions <= 0.15.0
+        source "$ASDF_SH"
     else
-        echo "mise not found" >&2
-        echo "Looking for rtx executable" >&2
+        echo "asdf not found" >&2
+        echo "Looking for mise executable" >&2
 
-        set rtx (which rtx)
-        if test -n "$rtx"
-            echo "rtx executable found at $rtx, activating" >&2
-            source ( "$rtx" env -s fish )
+        set mise (which mise)
+        if test -n "$mise"
+            echo "mise executable found at $mise, activating" >&2
+            source ( "$mise" env -s fish )
         else
-            echo "rtx not found" >&2
-            echo "Looking for vfox executable" >&2
+            echo "mise not found" >&2
+            echo "Looking for rtx executable" >&2
 
-            set vfox (which vfox)
-            if test -n "$vfox"
-                echo "vfox executable found at $vfox, activating" >&2
-                source ( "$vfox" activate fish )
+            set rtx (which rtx)
+            if test -n "$rtx"
+                echo "rtx executable found at $rtx, activating" >&2
+                source ( "$rtx" env -s fish )
             else
-                echo "vfox not found" >&2
+                echo "rtx not found" >&2
+                echo "Looking for vfox executable" >&2
+
+                set vfox (which vfox)
+                if test -n "$vfox"
+                    echo "vfox executable found at $vfox, activating" >&2
+                    source ( "$vfox" activate fish )
+                else
+                    echo "vfox not found" >&2
+                end
             end
         end
     end
