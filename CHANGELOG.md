@@ -1,5 +1,39 @@
 ### Unreleased
 
+### v0.27.0: 27 February 2025
+
+#### Highlights
+
+- Added Go to declaration provider. It can be used to navigate from implementation to callback definition in behaviour module, from protocol implementation to protocol definition or from overriding def to the `__using__` macro.
+- Added support for asdf v0.16
+
+#### Improvements
+
+- Better handling of typespecs from behaviours
+- Definition provider returns spec and callback location
+- Hover provider returns documentation on spec and callbacks
+- Added a new setting `elixir_ls.stdlibSrcDir` to allow users to point to their elixir stdlib directory [cbecker](https://github.com/cbecker)
+- Better handling of non standard deps_path and path deps in tracer
+- Replace function code action now works with `__MODULE__` and attribute calls
+- Better macro expansion with cursor AST nodes
+
+#### Fixes
+
+- Fixed incremental dialyzer crash on error
+- Avoid triggering build on settings notification when settings are not changed. This caused a dialyzer crash in some clients
+- Fish sell launch script now uses exec instead of eval. This should resolve process leaks
+- Use System.halt/1 to exit the server, this is more reliable than System.stop/1 and should resolve issues with process leaks
+- Added a workaround for a common completions crash related to Ash
+- Fixed a rare parser crash on race conditions between document update and LSP request
+- Fixed crash in code action when diagnostic is a markdown document
+- Fixed completions crashing on too long regexes
+- Fixed a bug in inference engine on invalid pin AST nodes
+- Fixed a crash on invalid optional callbacks
+
+#### Breaking changes
+
+- elixir 1.13 reached end of life and is no longer supported. Consider updating to 1.14+
+
 ### v0.26.4: 31 January 2025
 
 #### Fixes
