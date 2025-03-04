@@ -1050,6 +1050,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       assert [] == expand(~c"@asd.(")
     else
       expr_suggestions = expand(~c"")
+      expand(~c"asd.(") |> dbg
+      assert false
       assert expr_suggestions == expand(~c"asd.(")
       assert expr_suggestions == expand(~c"@asd.(")
     end
@@ -1621,23 +1623,52 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     end
   end
 
-  # handled elsewhere
-  # TODO consider moving struct key completion here after elixir 1.13+ is required
-  # test "completion for struct keys" do
-  #   assert {:yes, '', entries} = expand('%URI{')
-  #   assert 'path:' in entries
-  #   assert 'query:' in entries
-
-  #   assert {:yes, '', entries} = expand('%URI{path: "foo",')
-  #   assert 'path:' not in entries
-  #   assert 'query:' in entries
-
-  #   assert {:yes, 'ry: ', []} = expand('%URI{path: "foo", que')
-  #   assert {:no, [], []} = expand('%URI{path: "foo", unkno')
-  #   assert {:no, [], []} = expand('%Unkown{path: "foo", unkno')
-  # end
-
   test "completion for struct keys" do
+    assert entries = expand(~c"%URI{") |> Enum.filter(& &1.type == :field)
+    assert %{
+      name: "path",
+      type: :field,
+      origin: "URI",
+      subtype: :struct_field,
+      call?: false,
+      type_spec: "nil | binary()"
+    } = entries |> Enum.find(& &1.name == "path")
+    assert entries |> Enum.any?(& &1.name == "query")
+
+    assert entries = expand(~c"%URI{path: \"foo\",") |> Enum.filter(& &1.type == :field)
+    refute entries |> Enum.any?(& &1.name == "path")
+    assert entries |> Enum.any?(& &1.name == "query")
+
+    assert [%{name: "query"}] = expand(~c"%URI{path: \"foo\", que")
+    assert [] == expand(~c"%URI{path: \"foo\", unkno")
+    assert [] == expand(~c"%Unkown{path: \"foo\", unkno")
+
+    metadata = %Metadata{
+      types: %{
+        {MyStruct, :t, 0} => %ElixirSense.Core.State.TypeInfo{
+          name: :t,
+          args: [[]],
+          specs: ["@type t :: %MyStruct{some: integer}"],
+          kind: :type
+        }
+      },
+      structs: %{
+        Elixir.MyStruct => %ElixirSense.Core.State.StructInfo{type: :defstruct, fields: [some: 1]}
+      }
+    }
+
+    assert entries = expand(~c"%MyStruct{", %Env{}, metadata) |> Enum.filter(& &1.type == :field)
+    assert %{
+      name: "some",
+      type: :field,
+      origin: "MyStruct",
+      subtype: :struct_field,
+      call?: false,
+      type_spec: nil
+    } = entries |> Enum.find(& &1.name == "some")
+  end
+
+  test "completion for struct var keys" do
     env = %Env{
       vars: [
         %VarInfo{

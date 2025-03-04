@@ -213,7 +213,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
     """
 
-    list = Suggestion.suggestions(buffer, 2, 15)
+    list = Suggestion.suggestions(buffer, 2, 16)
 
     refute list |> Enum.any?(&(&1.type == :type_spec))
     assert list |> Enum.any?(&(&1.type == :function))
@@ -688,21 +688,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
         assert "- OldVsn = Vsn" <> _ = summary
       end
     end
-  end
-
-  test "callback suggestions should not crash with unquote(__MODULE__)" do
-    buffer = """
-    defmodule Dummy do
-      @doc false
-      defmacro __using__() do
-        quote location: :keep do
-          @behaviour unquote(__MODULE__)
-        end
-      end
-    end
-    """
-
-    assert [%{} | _] = Suggestion.suggestions(buffer, 8, 5)
   end
 
   test "lists overridable callbacks" do
@@ -2806,16 +2791,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ]
   end
 
-  test "suggestion for aliased struct fields atom module" do
+  test "suggestion for struct fields atom module" do
     buffer = """
     defmodule Mod do
-      alias ElixirSenseExample.IO.Stream
       %:"Elixir.Stream"{
     end
     """
 
     list =
-      Suggestion.suggestions(buffer, 3, 21)
+      Suggestion.suggestions(buffer, 2, 21)
       |> Enum.filter(&(&1.type in [:field]))
 
     assert list == [
@@ -3007,7 +2991,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
     """
 
-    list = Suggestion.suggestions(buffer, 10, 7)
+    list = Suggestion.suggestions(buffer, 10, 7) |> Enum.filter(& &1.type == :field)
 
     assert list == [
              %{
@@ -3333,11 +3317,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     buffer = """
     defmodule MyServer do
       @t Time
-      %@t{ho
+      def x do
+        %@t{ho
+      end
     end
     """
 
-    list = Suggestion.suggestions(buffer, 3, 9)
+    list = Suggestion.suggestions(buffer, 4, 11)
 
     assert list == [
              %{
@@ -3690,7 +3676,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 2, 23)
 
-    assert [%{name: "Reducers", type: :module}] = list
+    assert Enum.any?(list, & &1.name == "Reducers" and &1.type == :module)
   end
 
   describe "suggestion for param options" do

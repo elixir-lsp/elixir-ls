@@ -63,22 +63,22 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
     binding_env = ElixirSense.Core.Binding.from_env(env, buffer_metadata, cursor_position)
 
     case Source.which_struct(text_before, module) do
-      {type, fields_so_far, elixir_prefix, var} ->
-        type =
-          case {type, elixir_prefix} do
-            {{:atom, mod}, false} ->
-              # which_struct returns not expanded aliases
-              # TODO use Macro.Env
-              {:atom, Introspection.expand_alias(mod, aliases)}
+      # {type, fields_so_far, elixir_prefix, var} ->
+      #   type =
+      #     case {type, elixir_prefix} do
+      #       {{:atom, mod}, false} ->
+      #         # which_struct returns not expanded aliases
+      #         # TODO use Macro.Env
+      #         {:atom, Introspection.expand_alias(mod, aliases)}
 
-            _ ->
-              type
-          end
+      #       _ ->
+      #         type
+      #     end
 
-        type = Binding.expand(binding_env, {:struct, [], type, var})
+      #   type = Binding.expand(binding_env, {:struct, [], type, var})
 
-        result = get_fields(buffer_metadata, type, hint, fields_so_far)
-        {result, if(fields_so_far == [], do: :maybe_struct_update)}
+      #   result = get_fields(buffer_metadata, type, hint, fields_so_far)
+      #   {result, if(fields_so_far == [], do: :maybe_struct_update)}
 
       {:map, fields_so_far, var} ->
         var = Binding.expand(binding_env, var)

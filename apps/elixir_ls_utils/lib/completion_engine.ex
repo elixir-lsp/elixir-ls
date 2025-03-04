@@ -128,7 +128,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   def do_expand(code, %State.Env{} = env, %Metadata{} = metadata, cursor_position, opts \\ []) do
-    case NormalizedCode.Fragment.cursor_context(code) do
+    case NormalizedCode.Fragment.cursor_context(code |> dbg) |> dbg do
       {:alias, hint} when is_list(hint) ->
         expand_aliases(List.to_string(hint), env, metadata, cursor_position, false, opts)
 
@@ -170,19 +170,24 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_expr(env, metadata, cursor_position, opts)
 
       :expr ->
-        # IEx calls expand_local_or_var("", env)
+        # IEx calls expand_struct_fields_or_local_or_var(code, "", env)
         # we choose to return more and handle some special cases
         # TODO expand_expr(env) after we require elixir 1.13
-        case code do
+
+        case code |> dbg do
           [?^] -> expand_var("", env, metadata)
-          [?%] -> expand_aliases("", env, metadata, cursor_position, true, opts)
-          _ -> expand_expr(env, metadata, cursor_position, opts)
+          [?%] ->
+            # expand_aliases("", env, metadata, cursor_position, true, opts)
+            expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
+          _ ->
+            # expand_expr(env, metadata, cursor_position, opts)
+            expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
         end
 
       {:local_or_var, local_or_var} ->
         # TODO consider suggesting struct fields here when we require elixir 1.13
         # expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
-        expand_local_or_var(List.to_string(local_or_var), env, metadata, cursor_position)
+        expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), env, metadata, cursor_position)
 
       # elixir >= 1.18
       {:capture_arg, capture_arg} ->
@@ -638,7 +643,68 @@ defmodule ElixirLS.Utils.CompletionEngine do
     fn _ -> true end
   end
 
-  ## Elixir modules
+  defp struct?(mod, metadata) do
+    Struct.is_struct(mod, metadata.structs)
+    # Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
+  end
+
+  defp expand_struct_fields_or_local_or_var(code, hint, env, metadata, cursor_position) do
+    with {:ok, quoted} <- NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg,
+         {aliases, pairs} <- find_struct_fields(quoted),
+         {:ok, alias} <- value_from_alias(aliases, env, metadata),
+         true <- struct?(alias, metadata) do
+
+      types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+
+      entries =
+        for key <- Struct.get_fields(alias, metadata.structs),
+            not Keyword.has_key?(pairs, key),
+            name = Atom.to_string(key),
+            Matcher.match?(name, hint),
+            [spec] = [case types[key] do
+                nil ->
+                  case key do
+                    :__struct__ -> inspect(alias) || "atom()"
+                    :__exception__ -> "true"
+                    _ -> nil
+                  end
+
+                some ->
+                  Introspection.to_string_with_parens(some)
+              end],
+            do: %{
+              kind: :field,
+              name: name,
+              subtype: :struct_field,
+              value_is_map: false,
+              origin: inspect(alias),
+              call?: false,
+              type_spec: spec
+            }
+            
+            # %{kind: :keyword, name: name}
+
+      format_expansion(entries|>Enum.sort_by(& &1.name))
+    else
+      _ -> expand_local_or_var(hint, env, metadata, cursor_position)
+    end
+  end
+
+  defp find_struct_fields(ast) do
+    ast
+    |> Macro.prewalker()
+    |> Enum.find_value(fn node ->
+      with {:%, _, [{:__aliases__, _, aliases}, {:%{}, _, pairs}]} <- node,
+           {pairs, [{:__cursor__, _, []}]} <- Enum.split(pairs, -1),
+           true <- Keyword.keyword?(pairs) do
+        {aliases, pairs}
+      else
+        _ -> nil
+      end
+    end)
+  end
+
+  ## Aliases and modules
 
   defp expand_aliases(
          all,
@@ -1410,7 +1476,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
         subtype: subtype,
         value_is_map: value_is_map,
         origin: origin,
-        type_spec: types[key]
+        call?: true,
+        # TODO make it use the same code
+        type_spec: if(types[key], do: Introspection.to_string_with_parens(types[key]))
       }
     end
     |> Enum.sort_by(& &1.name)
@@ -1423,6 +1491,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
          subtype: subtype,
          name: name,
          origin: origin,
+         call?: call?,
          type_spec: type_spec
        }) do
     [
@@ -1431,8 +1500,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
         name: name,
         subtype: subtype,
         origin: origin,
-        call?: true,
-        type_spec: if(type_spec, do: Macro.to_string(type_spec))
+        call?: call?,
+        type_spec: type_spec
       }
     ]
   end
