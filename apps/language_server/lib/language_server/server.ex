@@ -1864,7 +1864,9 @@ defmodule ElixirLS.LanguageServer.Server do
     mix_target = Map.get(settings, "mixTarget")
     project_dir = Map.get(settings, "projectDir")
     additional_watched_extensions = Map.get(settings, "additionalWatchedExtensions", [])
-    stdlib_src_dir = to_string(Map.get(settings, "stdlibSrcDir", ""))
+
+    stdlib_src_dir =
+      to_string(Map.get(settings, "stdlibSrcDir", System.get_env("ELX_STDLIB_PATH", "")))
 
     if stdlib_src_dir != "" do
       Application.put_env(:language_server, :elixir_src, stdlib_src_dir)
