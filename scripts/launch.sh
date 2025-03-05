@@ -38,6 +38,24 @@ esac
 # First order of business, see whether we can setup asdf
 echo "Looking for asdf install" >&2
 
+readlink_f () {
+  cd "$(dirname "$1")" > /dev/null || exit 1
+  filename="$(basename "$1")"
+  if [ -h "$filename" ]; then
+    readlink_f "$(readlink "$filename")"
+  else
+    echo "$(pwd -P)/$filename"
+  fi
+}
+
+export_stdlib_path () {
+  which_elixir_expr=$1
+  stdlib_path=$(eval "$which_elixir_expr")
+  stdlib_real_path=$(readlink_f "$stdlib_path")
+  ELX_STDLIB_PATH=$(echo "$stdlib_real_path" | sed "s/\(.*\)\/bin\/elixir/\1/")
+  export ELX_STDLIB_PATH
+}
+
 # Check if we have the asdf binary for version >= 0.16.0
 if command -v asdf >/dev/null 2>&1; then
     asdf_version=$(asdf --version 2>/dev/null)
@@ -58,6 +76,7 @@ if command -v asdf >/dev/null 2>&1; then
     else
         >&2 echo "asdf executable found at $(command -v asdf). Using ASDF_DIR=${ASDF_DIR}, ASDF_DATA_DIR=${ASDF_DATA_DIR}."
     fi
+    export_stdlib_path "asdf which elixir"
 else
     # Fallback to old method for version <= 0.15.x
     ASDF_DIR=${ASDF_DIR:-"${HOME}/.asdf"}
@@ -66,6 +85,7 @@ else
         >&2 echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing"
         # Source the old asdf.sh script for versions <= 0.15.0
         . "$ASDF_SH"
+        export_stdlib_path "asdf which elixir"
     else
         >&2 echo "asdf not found"
         >&2 echo "Looking for mise executable"
@@ -74,6 +94,7 @@ else
         if command -v mise >/dev/null 2>&1; then
             >&2 echo "mise executable found at $(command -v mise), activating"
             eval "$($(command -v mise) env -s "$preferred_shell")"
+            export_stdlib_path "mise which elixir"
         else
             >&2 echo "mise not found"
             >&2 echo "Looking for rtx executable"
@@ -82,6 +103,7 @@ else
             if command -v rtx >/dev/null 2>&1; then
                 >&2 echo "rtx executable found at $(command -v rtx), activating"
                 eval "$($(command -v rtx) env -s "$preferred_shell")"
+                export_stdlib_path "rtx which elixir"
             else
                 >&2 echo "rtx not found"
                 >&2 echo "Looking for vfox executable"
@@ -92,6 +114,7 @@ else
                     eval "$($(command -v vfox) activate "$preferred_shell")"
                 else
                     >&2 echo "vfox not found"
+                    export_stdlib_path "which elixir"
                 fi
             fi
         fi
@@ -114,16 +137,6 @@ fi
 # Setup done. Make sure that we have the proper actual path to this
 # script so we can correctly configure the Erlang library path to
 # include the local .ez files, and then do what we were asked to do.
-
-readlink_f () {
-  cd "$(dirname "$1")" > /dev/null || exit 1
-  filename="$(basename "$1")"
-  if [ -h "$filename" ]; then
-    readlink_f "$(readlink "$filename")"
-  else
-    echo "$(pwd -P)/$filename"
-  fi
-}
 
 if [ -z "${ELS_INSTALL_PREFIX}" ]; then
   SCRIPT=$(readlink_f "$0")

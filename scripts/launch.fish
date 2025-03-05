@@ -8,6 +8,26 @@
 
 # First order of business, see whether we can setup asdf
 
+function readlink_f
+  cd (dirname $argv[1]) || exit 1
+  set filename (basename $argv[1])
+  if test -L $filename
+    readlink_f (readlink $filename)
+  else
+    echo (pwd -P)"/$filename"
+  end
+end
+
+function export_stdlib_path
+  set -l current_dir (pwd)
+
+  set -l which_elixir_expr $argv[1]
+  set -gx ELX_STDLIB_PATH (readlink_f (eval $which_elixir_expr) | string replace -r '(.*)\/bin\/elixir' '$1')
+  # readlink_f changes the current directory (since fish doesn't have
+  # subshells), so it needs to be restored.
+  cd $current_dir
+end
+
 echo "Looking for asdf install" >&2
 
 # Check if we have the asdf binary for version >= 0.16.0
@@ -25,6 +45,7 @@ if test -n "$asdf"
     else
         echo "asdf executable found at $asdf. Using ASDF_DIR=$ASDF_DIR, ASDF_DATA_DIR=$ASDF_DATA_DIR." >&2
     end
+    export_stdlib_path "asdf which elixir"
 else
     # Fallback to old method for asdf version <= 0.15.x
     test -n "$ASDF_DIR"; or set ASDF_DIR "$HOME/.asdf"
@@ -33,6 +54,7 @@ else
         echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing" >&2
         # Source the old asdf.sh script for versions <= 0.15.0
         source "$ASDF_SH"
+        export_stdlib_path "asdf which elixir"
     else
         echo "asdf not found" >&2
         echo "Looking for mise executable" >&2
@@ -41,6 +63,7 @@ else
         if test -n "$mise"
             echo "mise executable found at $mise, activating" >&2
             source ( "$mise" env -s fish )
+            export_stdlib_path "mise which elixir"
         else
             echo "mise not found" >&2
             echo "Looking for rtx executable" >&2
@@ -49,6 +72,7 @@ else
             if test -n "$rtx"
                 echo "rtx executable found at $rtx, activating" >&2
                 source ( "$rtx" env -s fish )
+                export_stdlib_path "rtx which elixir"
             else
                 echo "rtx not found" >&2
                 echo "Looking for vfox executable" >&2
@@ -59,6 +83,7 @@ else
                     source ( "$vfox" activate fish )
                 else
                     echo "vfox not found" >&2
+                    export_stdlib_path "which elixir"
                 end
             end
         end
@@ -83,16 +108,6 @@ end
 # Setup done. Make sure that we have the proper actual path to this
 # script so we can correctly configure the Erlang library path to
 # include the local .ez files, and then do what we were asked to do.
-
-function readlink_f
-  cd (dirname $argv[1]) || exit 1
-  set filename (basename $argv[1])
-  if test -L $filename
-    readlink_f (readlink $filename)
-  else
-    echo (pwd -P)"/$filename"
-  end
-end
 
 if test -z "$ELS_INSTALL_PREFIX"
   set -l current_dir (pwd)
