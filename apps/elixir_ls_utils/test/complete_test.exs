@@ -1707,13 +1707,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
         }
       ]
     }
-    # eval("map = %{some: 1, other: :ok, another: \"qwe\"}")
-    # Code.Fragment.container_cursor_to_quoted returns
-    # {:%{}, [line: 1], [{:__cursor__, [line: 1], []}]}
-    # and `map` variable and map update AST is lost
-    # assert {:yes, ~c"", entries} = expand(~c"%{map | ")
-    # assert ~c"some:" in entries
-    # assert ~c"other:" in entries
+    assert entries = expand(~c"%{map | ", env) |> Enum.filter(& &1.type == :field)
+    assert %{call?: false, name: "some", origin: nil, subtype: :map_field, type: :field, type_spec: nil} = entries |> Enum.find(& &1.name == "some")
+    assert entries |> Enum.any?(& &1.name == "other")
 
     assert entries = expand(~c"%{map | some: \"foo\",", env) |> Enum.filter(& &1.type == :field)
     refute entries |> Enum.any?(& &1.name == "some")
@@ -1864,14 +1860,20 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   end
 
   test "completion for bitstring modifiers" do
-    assert entries = expand('<<foo::') |> Enum.filter(& &1[:kind] == :bitstring_option)
+    assert entries = expand('<<foo::') |> Enum.filter(& &1[:type] == :bitstring_option)
     assert Enum.any?(entries, & &1.name == "integer")
     assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
 
-    assert [%{name: "integer", kind: :bitstring_option}] = expand('<<foo::int')
+    assert [%{name: "integer", type: :bitstring_option}] = expand('<<foo::int')
 
-    assert entries = expand('<<foo::integer-') |> Enum.filter(& &1[:kind] == :bitstring_option)
-    refute Enum.any?(entries |> dbg, & &1.name == "integer")
+    assert entries = expand('<<foo::integer-') |> Enum.filter(& &1[:type] == :bitstring_option)
+    refute Enum.any?(entries, & &1.name == "integer")
+    assert Enum.any?(entries, & &1.name == "little")
+    assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
+
+    assert entries = expand('<<foo::integer-little-') |> Enum.filter(& &1[:type] == :bitstring_option)
+    refute Enum.any?(entries, & &1.name == "integer")
+    refute Enum.any?(entries, & &1.name == "little")
     assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
   end
 

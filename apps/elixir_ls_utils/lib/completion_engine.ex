@@ -726,9 +726,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         container_context_map_fields(pairs, nil, map, hint, metadata)
 
       {:struct, alias, pairs} when context == :expr ->
-        # TODO metadata
-        map = Map.from_struct(alias.__struct__())
-        container_context_map_fields(pairs, alias, map, hint, metadata)
+        container_context_map_fields(pairs, alias, %{}, hint, metadata)
 
       :bitstring_modifier ->
         existing =
@@ -748,15 +746,17 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp container_context_map_fields(pairs, alias, map, hint, metadata) do
-    pairs =
-      Enum.reduce(pairs, map, fn {key, _}, map ->
-        Map.delete(map, key)
-      end)
-
-    types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+    {keys, types} = if alias do
+      keys = Struct.get_fields(alias, metadata.structs)
+      types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+      {keys, types}
+    else
+      {Map.keys(map), %{}}
+    end
 
     entries =
-      for {key, _value} <- pairs,
+      for key <- keys,
+          not Keyword.has_key?(pairs |> dbg, key),
           name = Atom.to_string(key),
           Matcher.match?(name, hint) do
             spec = case types[key] do
@@ -789,7 +789,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) |> dbg do
           [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
-            container_context_struct(cursor, pairs, aliases, env, metadata)
+            container_context_struct(cursor, pairs |> dbg, aliases, env, metadata) |> dbg
 
           [
             cursor,
@@ -800,11 +800,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
           ] ->
             container_context_struct(cursor, pairs, aliases, env, metadata)
 
-          [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
-            container_context_map(cursor, pairs, variable, env, metadata, cursor_position)
+          [cursor, pairs, {:|, _, [expr | _]}, {:%{}, _, _} | _] ->
+            container_context_map(cursor, pairs, expr, env, metadata, cursor_position) |> dbg
 
-          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] ->
-            :bitstring_modifier
+          [cursor | tail] ->
+            case remove_operators(tail, cursor) do
+              [{:"::", _, [_, _]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
+              _ -> nil
+            end
 
           _ ->
             nil
@@ -814,6 +817,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
         nil
     end
   end
+
+  defp remove_operators([{op, _, [_, previous]} = head | tail], previous) when op in [:-],
+    do: remove_operators(tail, head)
+
+  defp remove_operators(tail, _previous),
+    do: tail
 
   defp container_context_struct(cursor, pairs, aliases, env, metadata) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
@@ -825,14 +834,52 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp container_context_map(cursor, pairs, variable, env, metadata, cursor_position) do
-    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-         {:ok, map} when is_map(map) <- value_from_binding([variable], env, metadata, cursor_position),
-         true <- Keyword.keyword?(pairs) do
-      {:map, map, pairs}
-    else
+  defp container_context_map(cursor, pairs, expr, env, metadata, cursor_position) do
+    # TODO extract to function
+    binding_ast = case expr do
+      {:@, _, [{atom, _, context}]} when is_atom(atom) and is_atom(context) -> {:attribute, atom}
+      {atom, _, context} when is_atom(atom) and is_atom(context) -> {:variable, atom, :any}
+      {atom, _, args} when is_atom(atom) and is_list(args) ->
+        # TODO filter special
+        # TODO map args
+        {:local_call, atom, cursor_position, (for a <- args, do: nil)}
+      {{:., _, [remote, fun]}, _, args} when is_atom(fun) and is_list(args) ->
+        remote = case remote do
+          atom when is_atom(atom) -> atom
+          {:__MODULE__, _, context} when is_atom(context) -> env.module
+          {:__aliases__, _, [:__MODULE__ | rest]} ->
+            # TODO check if it works
+            Module.concat([env.module | rest])
+          # TODO attribute submodule
+          {:__aliases__, _, list = [h | _]} when is_atom(h) ->
+            # TODO expand alias
+            Module.concat(list)
+          _ -> nil
+        end
+        if remote do
+          # TODO map args
+          {:call, {:atom, remote}, fun, (for a <- args, do: nil)}
+        end
       _ -> nil
     end
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         {:ok, type} <- value_from_binding(binding_ast, env, metadata, cursor_position),
+         true <- Keyword.keyword?(pairs) do
+      case type do
+        {:map, all, _} ->
+          {:map, Map.new(all), pairs}
+        {:struct, origin, all, _} ->
+          case origin do
+            {:atom, alias} -> {:struct, alias, pairs}
+            _ ->
+              # TODO maybe add __struct__
+              {:map, Map.new(all), pairs}
+          end
+        _ -> nil
+      end
+    else
+      _ -> nil
+    end |> dbg
   end
 
   ## Aliases and modules
