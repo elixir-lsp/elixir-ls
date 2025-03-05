@@ -1807,6 +1807,18 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              ]
   end
 
+  test "completion for bitstring modifiers" do
+    assert entries = expand('<<foo::') |> Enum.filter(& &1[:kind] == :bitstring_option)
+    assert Enum.any?(entries, & &1.name == "integer")
+    assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
+
+    assert [%{name: "integer", kind: :bitstring_option}] = expand('<<foo::int')
+
+    assert entries = expand('<<foo::integer-') |> Enum.filter(& &1[:kind] == :bitstring_option)
+    refute Enum.any?(entries |> dbg, & &1.name == "integer")
+    assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
+  end
+
   test "ignore invalid Elixir module literals" do
     defmodule :"ElixirSense.Providers.Suggestion.CompleteTest.Unicodé", do: nil
     assert expand(~c"ElixirLS.Utils.CompletionEngineTest.Unicod") == []

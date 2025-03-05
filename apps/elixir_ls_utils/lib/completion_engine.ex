@@ -68,6 +68,23 @@ defmodule ElixirLS.Utils.CompletionEngine do
   @elixir_module_builtin_functions [{:__info__, 1}]
   @builtin_functions @erlang_module_builtin_functions ++ @elixir_module_builtin_functions
 
+  @bitstring_modifiers [
+    %{type: :bitstring_option, name: "big"},
+    %{type: :bitstring_option, name: "binary"},
+    %{type: :bitstring_option, name: "bitstring"},
+    %{type: :bitstring_option, name: "integer"},
+    %{type: :bitstring_option, name: "float"},
+    %{type: :bitstring_option, name: "little"},
+    %{type: :bitstring_option, name: "native"},
+    %{type: :bitstring_option, name: "signed"},
+    %{type: :bitstring_option, name: "size", arity: 1},
+    %{type: :bitstring_option, name: "unit", arity: 1},
+    %{type: :bitstring_option, name: "unsigned"},
+    %{type: :bitstring_option, name: "utf8"},
+    %{type: :bitstring_option, name: "utf16"},
+    %{type: :bitstring_option, name: "utf32"}
+  ]
+
   @type attribute :: %{
           type: :attribute,
           name: String.t(),
@@ -113,6 +130,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
           call?: boolean,
           type_spec: String.t() | nil
         }
+
+  @type bitstring_option :: %{
+          type: :bitstring_option,
+          name: String.t(),
+          arity: non_neg_integer,
+   }
 
   @type t() ::
           mod()
@@ -174,20 +197,20 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # we choose to return more and handle some special cases
         # TODO expand_expr(env) after we require elixir 1.13
 
-        case code |> dbg do
-          [?^] -> expand_var("", env, metadata)
-          [?%] ->
-            # expand_aliases("", env, metadata, cursor_position, true, opts)
-            expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
-          _ ->
-            # expand_expr(env, metadata, cursor_position, opts)
-            expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
-        end
+        # case code |> dbg do
+        #   [?^] -> expand_var("", env, metadata)
+        #   [?%] ->
+        #     # expand_aliases("", env, metadata, cursor_position, true, opts)
+        #     expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
+        #   _ ->
+        #     # expand_expr(env, metadata, cursor_position, opts)
+        #     expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
+        # end
+        expand_container_context(code, :expr, "", env, metadata, cursor_position) || expand_local_or_var("", env, metadata, cursor_position)
 
       {:local_or_var, local_or_var} ->
-        # TODO consider suggesting struct fields here when we require elixir 1.13
-        # expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
-        expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), env, metadata, cursor_position)
+        hint = List.to_string(local_or_var)
+        expand_container_context(code, :expr, hint, env, metadata, cursor_position) || expand_local_or_var(hint, env, metadata, cursor_position)
 
       # elixir >= 1.18
       {:capture_arg, capture_arg} ->
@@ -203,6 +226,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # expand_dot_call(path, List.to_atom(hint), env)
         # to provide signatures and falls back to expand_local_or_var
         expand_expr(env, metadata, cursor_position, opts)
+
+      {:operator, operator} when operator in ~w(:: -)c ->
+        expand_container_context(code, :operator, "", env, metadata, cursor_position) |> dbg ||
+          expand_local(List.to_string(operator), false, env, metadata, cursor_position) |> dbg
 
       {:operator, operator} ->
         case operator do
@@ -648,60 +675,110 @@ defmodule ElixirLS.Utils.CompletionEngine do
     # Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
   end
 
-  defp expand_struct_fields_or_local_or_var(code, hint, env, metadata, cursor_position) do
-    with {:ok, quoted} <- NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg,
-         {aliases, pairs} <- find_struct_fields(quoted),
-         {:ok, alias} <- value_from_alias(aliases, env, metadata),
-         true <- struct?(alias, metadata) do
+  # defp expand_struct_fields_or_local_or_var(code, hint, env, metadata, cursor_position) do
+  #   with {:ok, quoted} <- NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg,
+  #        {aliases, pairs} <- find_struct_fields(quoted),
+  #        {:ok, alias} <- value_from_alias(aliases, env, metadata),
+  #        true <- struct?(alias, metadata) do
 
-      types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+  #     types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
 
-      entries =
-        for key <- Struct.get_fields(alias, metadata.structs),
-            not Keyword.has_key?(pairs, key),
-            name = Atom.to_string(key),
-            Matcher.match?(name, hint),
-            [spec] = [case types[key] do
-                nil ->
-                  case key do
-                    :__struct__ -> inspect(alias) || "atom()"
-                    :__exception__ -> "true"
-                    _ -> nil
-                  end
+  #     entries =
+  #       for key <- Struct.get_fields(alias, metadata.structs),
+  #           not Keyword.has_key?(pairs, key),
+  #           name = Atom.to_string(key),
+  #           Matcher.match?(name, hint),
+  #           [spec] = [case types[key] do
+  #               nil ->
+  #                 case key do
+  #                   :__struct__ -> inspect(alias) || "atom()"
+  #                   :__exception__ -> "true"
+  #                   _ -> nil
+  #                 end
 
-                some ->
-                  Introspection.to_string_with_parens(some)
-              end],
-            do: %{
-              kind: :field,
-              name: name,
-              subtype: :struct_field,
-              value_is_map: false,
-              origin: inspect(alias),
-              call?: false,
-              type_spec: spec
-            }
+  #               some ->
+  #                 Introspection.to_string_with_parens(some)
+  #             end],
+  #           do: %{
+  #             kind: :field,
+  #             name: name,
+  #             subtype: :struct_field,
+  #             value_is_map: false,
+  #             origin: inspect(alias),
+  #             call?: false,
+  #             type_spec: spec
+  #           }
             
-            # %{kind: :keyword, name: name}
+  #           # %{kind: :keyword, name: name}
 
-      format_expansion(entries|>Enum.sort_by(& &1.name))
-    else
-      _ -> expand_local_or_var(hint, env, metadata, cursor_position)
+  #     format_expansion(entries|>Enum.sort_by(& &1.name))
+  #   else
+  #     _ -> expand_local_or_var(hint, env, metadata, cursor_position)
+  #   end
+  # end
+
+  defp expand_container_context(code, context, hint, env, metadata, cursor_position) do
+    case container_context(code, env, metadata) |> dbg do
+      {:struct, alias, pairs} when context == :expr ->
+        pairs =
+          Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
+            Map.delete(map, key)
+          end)
+
+        entries =
+          for {key, _value} <- pairs,
+              name = Atom.to_string(key),
+              if(hint == "",
+                do: not String.starts_with?(name, "_"),
+                else: String.starts_with?(name, hint)
+              ),
+              do: %{kind: :keyword, name: name}
+
+        format_expansion(entries)
+
+      :bitstring_modifier ->
+        existing =
+          code
+          |> List.to_string()
+          |> String.split("::")
+          |> List.last()
+          |> String.split("-")
+          |> dbg
+
+        @bitstring_modifiers
+        |> Enum.filter(&(String.starts_with?(&1.name, hint) and &1.name not in existing))
+        |>dbg
+        |> format_expansion()
+        |> dbg
+
+      _ ->
+        nil
     end
   end
 
-  defp find_struct_fields(ast) do
-    ast
-    |> Macro.prewalker()
-    |> Enum.find_value(fn node ->
-      with {:%, _, [{:__aliases__, _, aliases}, {:%{}, _, pairs}]} <- node,
-           {pairs, [{:__cursor__, _, []}]} <- Enum.split(pairs, -1),
-           true <- Keyword.keyword?(pairs) do
-        {aliases, pairs}
-      else
-        _ -> nil
-      end
-    end)
+  defp container_context(code, env, metadata) do
+    case NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg do
+      {:ok, quoted} ->
+        case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) |> dbg do
+          [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
+            with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+                 alias = value_from_alias(aliases, env, metadata),
+                 true <- Keyword.keyword?(pairs) and struct?(alias, metadata) do
+              {:struct, alias, pairs}
+            else
+              _ -> nil
+            end
+
+          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] ->
+            :bitstring_modifier
+
+          _ ->
+            nil
+        end
+
+      {:error, _} ->
+        nil
+    end
   end
 
   ## Aliases and modules
@@ -1486,6 +1563,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   ## Ad-hoc conversions
   @spec to_entries(map) :: [t()]
+
+  defp to_entries(%{type: :bitstring_option} = option) do
+    [option]
+  end
   defp to_entries(%{
          kind: :field,
          subtype: subtype,
