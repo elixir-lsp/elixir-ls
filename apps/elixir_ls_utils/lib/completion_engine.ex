@@ -241,6 +241,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:operator_arity, operator} ->
         expand_local(List.to_string(operator), true, env, metadata, cursor_position)
 
+      {:operator_call, operator} when operator in ~w(|)c ->
+        expand_container_context(code, :expr, "", env, metadata, cursor_position) || expand_local_or_var("", env, metadata, cursor_position)
+
       {:operator_call, _operator} ->
         expand_local_or_var("", env, metadata, cursor_position)
 
@@ -718,23 +721,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
   # end
 
   defp expand_container_context(code, context, hint, env, metadata, cursor_position) do
-    case container_context(code, env, metadata) |> dbg do
+    case container_context(code, env, metadata, cursor_position) |> dbg do
+      {:map, map, pairs} when context == :expr ->
+        container_context_map_fields(pairs, nil, map, hint, metadata)
+
       {:struct, alias, pairs} when context == :expr ->
-        pairs =
-          Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
-            Map.delete(map, key)
-          end)
-
-        entries =
-          for {key, _value} <- pairs,
-              name = Atom.to_string(key),
-              if(hint == "",
-                do: not String.starts_with?(name, "_"),
-                else: String.starts_with?(name, hint)
-              ),
-              do: %{kind: :keyword, name: name}
-
-        format_expansion(entries)
+        # TODO metadata
+        map = Map.from_struct(alias.__struct__())
+        container_context_map_fields(pairs, alias, map, hint, metadata)
 
       :bitstring_modifier ->
         existing =
@@ -743,31 +737,71 @@ defmodule ElixirLS.Utils.CompletionEngine do
           |> String.split("::")
           |> List.last()
           |> String.split("-")
-          |> dbg
 
         @bitstring_modifiers
-        |> Enum.filter(&(String.starts_with?(&1.name, hint) and &1.name not in existing))
-        |>dbg
+        |> Enum.filter(&(Matcher.match?(&1.name, hint) and &1.name not in existing))
         |> format_expansion()
-        |> dbg
 
       _ ->
         nil
     end
   end
 
-  defp container_context(code, env, metadata) do
+  defp container_context_map_fields(pairs, alias, map, hint, metadata) do
+    pairs =
+      Enum.reduce(pairs, map, fn {key, _}, map ->
+        Map.delete(map, key)
+      end)
+
+    types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+
+    entries =
+      for {key, _value} <- pairs,
+          name = Atom.to_string(key),
+          Matcher.match?(name, hint) do
+            spec = case types[key] do
+                            nil ->
+                              case key do
+                                :__struct__ -> inspect(alias) || "atom()"
+                                :__exception__ -> "true"
+                                _ -> nil
+                              end
+            
+                            some ->
+                              Introspection.to_string_with_parens(some)
+                          end
+            %{
+                        kind: :field,
+                        name: name,
+                        subtype: if(alias, do: :struct_field, else: :map_field),
+                        value_is_map: false,
+                        origin: if(alias, do: inspect(alias)),
+                        call?: false,
+                        type_spec: spec
+                      }
+                    end
+
+    format_expansion(entries)
+  end
+
+  defp container_context(code, env, metadata, cursor_position) do
     case NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) |> dbg do
           [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
-            with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-                 alias = value_from_alias(aliases, env, metadata),
-                 true <- Keyword.keyword?(pairs) and struct?(alias, metadata) do
-              {:struct, alias, pairs}
-            else
-              _ -> nil
-            end
+            container_context_struct(cursor, pairs, aliases, env, metadata)
+
+          [
+            cursor,
+            pairs,
+            {:|, _, _},
+            {:%{}, _, _},
+            {:%, _, [{:__aliases__, _, aliases}, _map]} | _
+          ] ->
+            container_context_struct(cursor, pairs, aliases, env, metadata)
+
+          [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
+            container_context_map(cursor, pairs, variable, env, metadata, cursor_position)
 
           [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] ->
             :bitstring_modifier
@@ -778,6 +812,26 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       {:error, _} ->
         nil
+    end
+  end
+
+  defp container_context_struct(cursor, pairs, aliases, env, metadata) do
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         {:ok, alias} <- value_from_alias(aliases, env, metadata),
+         true <- Keyword.keyword?(pairs) and struct?(alias, metadata) do
+      {:struct, alias, pairs}
+    else
+      _ -> nil
+    end
+  end
+
+  defp container_context_map(cursor, pairs, variable, env, metadata, cursor_position) do
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         {:ok, map} when is_map(map) <- value_from_binding([variable], env, metadata, cursor_position),
+         true <- Keyword.keyword?(pairs) do
+      {:map, map, pairs}
+    else
+      _ -> nil
     end
   end
 

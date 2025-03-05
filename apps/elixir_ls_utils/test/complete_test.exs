@@ -1668,6 +1668,62 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     } = entries |> Enum.find(& &1.name == "some")
   end
 
+  test "completion for struct keys in update syntax" do
+    assert entries = expand(~c"%URI{var | ") |> Enum.filter(& &1.type == :field)
+    assert %{
+      name: "path",
+      type: :field,
+      origin: "URI",
+      subtype: :struct_field,
+      call?: false,
+      type_spec: "nil | binary()"
+    } = entries |> Enum.find(& &1.name == "path")
+    assert entries |> Enum.any?(& &1.name == "query")
+
+    assert entries = expand(~c"%URI{var | path: \"foo\",") |> Enum.filter(& &1.type == :field)
+    refute entries |> Enum.any?(& &1.name == "path")
+    assert entries |> Enum.any?(& &1.name == "query")
+
+    assert [%{name: "query"}] = expand(~c"%URI{var | path: \"foo\", que")
+    assert [] == expand(~c"%URI{var | path: \"foo\", unkno")
+    assert [] = expand(~c"%Unkown{var | path: \"foo\", unkno")
+
+    # TODO metadata
+  end
+
+  test "completion for map keys in update syntax" do
+    env = %Env{
+      vars: [
+        %VarInfo{
+          name: :map,
+          version: 1,
+          type:
+            {:map,
+             [
+               some: {:atom, String},
+               other: {:map, [asdf: 1], nil},
+               another: {:struct, [], {:atom, MyStruct}, nil}
+             ], nil}
+        }
+      ]
+    }
+    # eval("map = %{some: 1, other: :ok, another: \"qwe\"}")
+    # Code.Fragment.container_cursor_to_quoted returns
+    # {:%{}, [line: 1], [{:__cursor__, [line: 1], []}]}
+    # and `map` variable and map update AST is lost
+    # assert {:yes, ~c"", entries} = expand(~c"%{map | ")
+    # assert ~c"some:" in entries
+    # assert ~c"other:" in entries
+
+    assert entries = expand(~c"%{map | some: \"foo\",", env) |> Enum.filter(& &1.type == :field)
+    refute entries |> Enum.any?(& &1.name == "some")
+    assert entries |> Enum.any?(& &1.name == "other")
+
+    assert [%{name: "other"}] = expand(~c"%{map | some: \"foo\", oth", env)
+    assert [] = expand(~c"%{map | some: \"foo\", unkno", env)
+    assert [] = expand(~c"%{unknown | some: \"foo\", unkno", env)
+  end
+
   test "completion for struct var keys" do
     env = %Env{
       vars: [
