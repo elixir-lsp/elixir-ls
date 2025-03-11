@@ -77,4 +77,14 @@ defmodule ElixirLS.DebugAdapter.Protocol.Basic do
       }
     end
   end
+
+  defmacro event(seq, event) do
+    quote do
+      %{
+        "type" => "event",
+        "event" => unquote(event),
+        "seq" => unquote(seq)
+      }
+    end
+  end
 end

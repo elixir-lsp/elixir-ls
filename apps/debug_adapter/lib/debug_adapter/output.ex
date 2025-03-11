@@ -42,27 +42,31 @@ defmodule ElixirLS.DebugAdapter.Output do
     GenServer.call(server, {:send_event, event, body}, :infinity)
   end
 
+  def send_event_(server \\ __MODULE__, body) do
+    GenServer.call(server, {:send_event_, body}, :infinity)
+  end
+
   def debugger_console(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "console", "output" => maybe_append_newline(str)})
+    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "console", output: maybe_append_newline(str)}})
   end
 
   def debugger_important(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{
-      "category" => "important",
-      "output" => maybe_append_newline(str)
-    })
+    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{
+      category: "important",
+      output: maybe_append_newline(str)
+    }})
   end
 
   def debuggee_out(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "stdout", "output" => maybe_append_newline(str)})
+    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "stdout", output: maybe_append_newline(str)}})
   end
 
   def debuggee_err(server \\ __MODULE__, str) when is_binary(str) do
-    send_event(server, "output", %{"category" => "stderr", "output" => maybe_append_newline(str)})
+    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "stderr", output: maybe_append_newline(str)}})
   end
 
   def ex_unit_event(server \\ __MODULE__, data) when is_map(data) do
-    send_event(server, "output", %{"category" => "ex_unit", "output" => "", "data" => data})
+    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "ex_unit", output: "", data: data}})
   end
 
   def telemetry(server \\ __MODULE__, event, properties, measurements)
@@ -82,15 +86,15 @@ defmodule ElixirLS.DebugAdapter.Output do
       "elixir_ls.mix_target" => Mix.target()
     }
 
-    send_event(server, "output", %{
-      "category" => "telemetry",
-      "output" => event,
-      "data" => %{
+    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{
+      category: "telemetry",
+      output: event,
+      data: %{
         "name" => event,
         "properties" => Map.merge(common_properties, properties),
         "measurements" => measurements
       }
-    })
+    }})
   end
 
   defp maybe_append_newline(message) do
@@ -138,7 +142,17 @@ defmodule ElixirLS.DebugAdapter.Output do
   end
 
   def handle_call({:send_event, event, body}, _from, seq) do
-    res = WireProtocol.send(event(seq, event, body))
+    dumped_event = event(seq, event, body)
+    IO.warn(inspect(dumped_event))
+    res = WireProtocol.send(dumped_event)
+    {:reply, res, seq + 1}
+  end
+
+  def handle_call({:send_event_, body = %struct{seq: _}}, _from, seq) do
+    # IO.warn(inspect(%{body | seq: seq}))
+    {:ok, dumped_event} = Schematic.dump(struct.schematic(), %{body | seq: seq})
+    # IO.warn(inspect(dumped_event))
+    res = WireProtocol.send(dumped_event)
     {:reply, res, seq + 1}
   end
 end

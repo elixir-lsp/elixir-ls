@@ -38,6 +38,8 @@ defmodule ElixirLS.DebugAdapter.MixProject do
   defp deps do
     [
       {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
+      {:schematic, "~> 0.2"},
+      {:typed_struct, "~> 0.3"},
       {:elixir_ls_utils, in_umbrella: true},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:dialyxir_vendored,

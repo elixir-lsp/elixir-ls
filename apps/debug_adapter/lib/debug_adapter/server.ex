@@ -305,8 +305,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     paused_process = %PausedProcess{stack: stacktrace, ref: ref}
     state = put_in(state.paused_processes[pid], paused_process)
 
-    body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
-    Output.send_event("stopped", body)
+    Output.send_event_(%GenDAP.Events.StoppedEvent{seq: nil, body: %{reason: "breakpoint", thread_id: thread_id, all_threads_stopped: false}})
 
     {:noreply, %{state | dbg_session: from}}
   end
@@ -328,8 +327,8 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         updated_progresses =
           if MapSet.member?(state.progresses, seq) do
-            Output.send_event("progressEnd", %{
-              "progressId" => seq
+            Output.send_event_(%GenDAP.Events.ProgressEndEvent{seq: nil, body: %{
+              progress_id: to_string(seq)}
             })
 
             MapSet.delete(state.progresses, seq)
@@ -390,7 +389,18 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   @impl GenServer
-  def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state = %__MODULE__{}) do
+  def handle_cast({:receive_packet, request(seq, "disconnect" = command) = packet}, state = %__MODULE__{}) do
+    case GenDAP.Requests.new(packet) do
+      {:ok, _} -> :ok
+      {:error, "unexpected request payload"} -> :ok
+      {:error, e} ->
+        e |> IO.inspect(label: "#{command}: #{seq}")
+        # Process.sleep(200)
+        System.halt(1)
+        # raise "#{command}: #{seq}"
+        e |> IO.inspect(label: "#{command}: #{seq}")
+    end
+
     Output.debugger_console("Received disconnect request\n")
 
     Output.telemetry("dap_request", %{"elixir_ls.dap_command" => "disconnect"}, %{
@@ -420,6 +430,16 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   def handle_cast({:receive_packet, request(seq, command) = packet}, state = %__MODULE__{}) do
     start_time = System.monotonic_time(:millisecond)
+    case GenDAP.Requests.new(packet) do
+      {:ok, _} -> :ok
+      {:error, "unexpected request payload"} -> :ok
+      {:error, e} ->
+        e |> IO.inspect(label: "#{command}: #{seq}")
+        # Process.sleep(200)
+        System.halt(1)
+        # raise "#{command}: #{seq}"
+        e |> IO.inspect(label: "#{command}: #{seq}")
+    end
 
     try do
       if state.client_info == nil do
@@ -536,8 +556,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         reason = get_stop_reason(state, event, paused_process.stack)
 
-        body = %{"reason" => reason, "threadId" => thread_id, "allThreadsStopped" => false}
-        Output.send_event("stopped", body)
+        Output.send_event_(%GenDAP.Events.StoppedEvent{seq: nil, body: %{reason: reason, thread_id: thread_id, all_threads_stopped: false}})
         state
       else
         Process.monitor(pid)
@@ -578,8 +597,8 @@ defmodule ElixirLS.DebugAdapter.Server do
       )
     end
 
-    Output.send_event("terminated", %{"restart" => false})
-    Output.send_event("exited", %{"exitCode" => exit_code})
+    Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+    Output.send_event_(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
 
     {:noreply, %{state | task_ref: nil}}
   end
@@ -615,8 +634,8 @@ defmodule ElixirLS.DebugAdapter.Server do
         # no MapSet.pop...
         updated_progresses =
           if MapSet.member?(state.progresses, seq) do
-            Output.send_event("progressEnd", %{
-              "progressId" => seq
+            Output.send_event_(%GenDAP.Events.ProgressEndEvent{seq: nil, body: %{
+              progress_id: to_string(seq)}
             })
 
             MapSet.delete(state.progresses, seq)
@@ -724,6 +743,11 @@ defmodule ElixirLS.DebugAdapter.Server do
   defp handle_request(cancel_req(_, args), %__MODULE__{requests: requests} = state) do
     # in or case progressId is requestId so choose first not null
     request_or_progress_id = args["requestId"] || args["progressId"]
+    request_or_progress_id = if is_binary(request_or_progress_id) do
+      String.to_integer(request_or_progress_id)
+    else
+      request_or_progress_id
+    end
 
     {request, updated_requests} = Map.pop(requests, request_or_progress_id)
 
@@ -738,8 +762,8 @@ defmodule ElixirLS.DebugAdapter.Server do
         # send progressEnd if cancelling a progress
         updated_progresses =
           if MapSet.member?(state.progresses, request_or_progress_id) do
-            Output.send_event("progressEnd", %{
-              "progressId" => request_or_progress_id
+            Output.send_event_(%GenDAP.Events.ProgressEndEvent{seq: nil, body: %{
+              progress_id: to_string(request_or_progress_id)}
             })
 
             MapSet.delete(state.progresses, request_or_progress_id)
@@ -778,7 +802,8 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:ok, config} ->
           # sending `initialized` signals that we are ready to receive configuration requests
           # setBreakpoints, setFunctionBreakpoints and configurationDone
-          Output.send_event("initialized", %{})
+          Output.send_event_(%GenDAP.Events.InitializedEvent{seq: nil})
+          # Process.sleep(30000)
           send(self(), :update_threads)
 
           Output.telemetry(
@@ -813,8 +838,8 @@ defmodule ElixirLS.DebugAdapter.Server do
 
             {%ServerError{} = error, stack} ->
               exit_code = 1
-              Output.send_event("terminated", %{"restart" => false})
-              Output.send_event("exited", %{"exitCode" => exit_code})
+              Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+              Output.send_event_(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
 
               reraise error, stack
 
@@ -824,8 +849,8 @@ defmodule ElixirLS.DebugAdapter.Server do
               Output.debugger_console(message)
 
               exit_code = 1
-              Output.send_event("terminated", %{"restart" => false})
-              Output.send_event("exited", %{"exitCode" => exit_code})
+              Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+              Output.send_event_(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
 
               raise ServerError,
                 message: "launchError",
@@ -855,7 +880,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:ok, config} ->
           # sending `initialized` signals that we are ready to receive configuration requests
           # setBreakpoints, setFunctionBreakpoints and configurationDone
-          Output.send_event("initialized", %{})
+          Output.send_event_(%GenDAP.Events.InitializedEvent{seq: nil})
           send(self(), :update_threads)
 
           Output.telemetry(
@@ -882,7 +907,7 @@ defmodule ElixirLS.DebugAdapter.Server do
               :ok
 
             {%ServerError{} = error, stack} ->
-              Output.send_event("terminated", %{"restart" => false})
+              Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
 
               reraise error, stack
 
@@ -891,7 +916,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
               Output.debugger_console(message)
 
-              Output.send_event("terminated", %{"restart" => false})
+              Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
 
               raise ServerError,
                 message: "attachError",
@@ -1367,12 +1392,12 @@ defmodule ElixirLS.DebugAdapter.Server do
        ) do
     state =
       if state.client_info["supportsProgressReporting"] do
-        Output.send_event("progressStart", %{
-          "progressId" => seq,
-          "title" => "Evaluating expression",
-          "message" => expr,
-          "requestId" => seq,
-          "cancellable" => true
+        Output.send_event_(%GenDAP.Events.ProgressStartEvent{seq: nil, body: %{
+          progress_id: to_string(seq),
+          title: "Evaluating expression",
+          message: expr,
+          request_id: seq,
+          cancellable: true}
         })
 
         %{state | progresses: MapSet.put(state.progresses, seq)}
@@ -2696,9 +2721,9 @@ defmodule ElixirLS.DebugAdapter.Server do
     {state, thread_ids, new_ids} = ensure_thread_ids(state, pids)
 
     for thread_id <- new_ids do
-      Output.send_event("thread", %{
-        "reason" => "started",
-        "threadId" => thread_id
+      Output.send_event_(%GenDAP.Events.ThreadEvent{seq: nil, body: %{
+        reason: "started",
+        thread_id: thread_id}
       })
     end
 
@@ -2723,9 +2748,9 @@ defmodule ElixirLS.DebugAdapter.Server do
     }
 
     if thread_id do
-      Output.send_event("thread", %{
-        "reason" => "exited",
-        "threadId" => thread_id
+      Output.send_event_(%GenDAP.Events.ThreadEvent{seq: nil, body: %{
+        reason: "exited",
+        thread_id: thread_id}
       })
     end
 
