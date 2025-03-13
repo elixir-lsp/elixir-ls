@@ -17,6 +17,7 @@ defmodule GenDAP.Structures.SourceArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure SourceArguments"
     field :source, GenDAP.Structures.Source.t()
     field :source_reference, integer(), enforce: true
   end

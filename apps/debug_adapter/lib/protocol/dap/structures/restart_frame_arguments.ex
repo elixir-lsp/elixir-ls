@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.RestartFrameArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure RestartFrameArguments"
     field :frame_id, integer(), enforce: true
   end
 

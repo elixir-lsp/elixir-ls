@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.ExceptionInfoArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure ExceptionInfoArguments"
     field :thread_id, integer(), enforce: true
   end
 

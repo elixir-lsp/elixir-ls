@@ -12,36 +12,37 @@ defmodule GenDAP.Structures.GotoTarget do
   @doc """
   ## Fields
   
+  * column: The column of the goto target.
+  * end_column: The end column of the range covered by the goto target.
+  * end_line: The end line of the range covered by the goto target.
   * id: Unique identifier for a goto target. This is used in the `goto` request.
+  * instruction_pointer_reference: A memory reference for the instruction pointer value represented by this target.
   * label: The name of the goto target (shown in the UI).
   * line: The line of the goto target.
-  * column: The column of the goto target.
-  * end_line: The end line of the range covered by the goto target.
-  * end_column: The end column of the range covered by the goto target.
-  * instruction_pointer_reference: A memory reference for the instruction pointer value represented by this target.
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure GotoTarget"
+    field :column, integer()
+    field :end_column, integer()
+    field :end_line, integer()
     field :id, integer(), enforce: true
+    field :instruction_pointer_reference, String.t()
     field :label, String.t(), enforce: true
     field :line, integer(), enforce: true
-    field :column, integer()
-    field :end_line, integer()
-    field :end_column, integer()
-    field :instruction_pointer_reference, String.t()
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
+      optional({"column", :column}) => int(),
+      optional({"endColumn", :end_column}) => int(),
+      optional({"endLine", :end_line}) => int(),
       {"id", :id} => int(),
+      optional({"instructionPointerReference", :instruction_pointer_reference}) => str(),
       {"label", :label} => str(),
       {"line", :line} => int(),
-      optional({"column", :column}) => int(),
-      optional({"endLine", :end_line}) => int(),
-      optional({"endColumn", :end_column}) => int(),
-      optional({"instructionPointerReference", :instruction_pointer_reference}) => str(),
     })
   end
 end

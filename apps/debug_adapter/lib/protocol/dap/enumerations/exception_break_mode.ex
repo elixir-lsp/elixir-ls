@@ -8,6 +8,7 @@ defmodule GenDAP.Enumerations.ExceptionBreakMode do
   userUnhandled: breaks if the exception is not handled by user code.
   """
 
+  @typedoc "A type defining DAP enumeration ExceptionBreakMode"
   @type t :: String.t()
 
   import Schematic, warn: false
@@ -32,7 +33,6 @@ defmodule GenDAP.Enumerations.ExceptionBreakMode do
       "never",
       "always",
       "unhandled",
-      "userUnhandled",
-    ])
+      "userUnhandled",])
   end
 end

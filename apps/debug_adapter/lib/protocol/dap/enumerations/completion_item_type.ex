@@ -4,6 +4,7 @@ defmodule GenDAP.Enumerations.CompletionItemType do
   Some predefined types for the CompletionItem. Please note that not all clients have specific icons for all of them.
   """
 
+  @typedoc "A type defining DAP enumeration CompletionItemType"
   @type t :: String.t()
 
   import Schematic, warn: false
@@ -88,7 +89,6 @@ defmodule GenDAP.Enumerations.CompletionItemType do
       "color",
       "file",
       "reference",
-      "customcolor",
-    ])
+      "customcolor",])
   end
 end

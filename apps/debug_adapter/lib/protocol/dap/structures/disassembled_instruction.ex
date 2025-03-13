@@ -11,49 +11,50 @@ defmodule GenDAP.Structures.DisassembledInstruction do
   @doc """
   ## Fields
   
-  * line: The line within the source location that corresponds to this instruction, if any.
   * address: The address of the instruction. Treated as a hex value if prefixed with `0x`, or as a decimal value otherwise.
+  * column: The column within the line that corresponds to this instruction, if any.
+  * end_column: The end column of the range that corresponds to this instruction, if any.
+  * end_line: The end line of the range that corresponds to this instruction, if any.
+  * instruction: Text representing the instruction and its operands, in an implementation-defined format.
+  * instruction_bytes: Raw bytes representing the instruction and its operands, in an implementation-defined format.
+  * line: The line within the source location that corresponds to this instruction, if any.
   * location: Source location that corresponds to this instruction, if any.
     Should always be set (if available) on the first instruction returned,
     but can be omitted afterwards if this instruction maps to the same source file as the previous instruction.
-  * column: The column within the line that corresponds to this instruction, if any.
-  * symbol: Name of the symbol that corresponds with the location of this instruction, if any.
-  * end_line: The end line of the range that corresponds to this instruction, if any.
-  * end_column: The end column of the range that corresponds to this instruction, if any.
   * presentation_hint: A hint for how to present the instruction in the UI.
     
     A value of `invalid` may be used to indicate this instruction is 'filler' and cannot be reached by the program. For example, unreadable memory addresses may be presented is 'invalid.'
-  * instruction_bytes: Raw bytes representing the instruction and its operands, in an implementation-defined format.
-  * instruction: Text representing the instruction and its operands, in an implementation-defined format.
+  * symbol: Name of the symbol that corresponds with the location of this instruction, if any.
   """
   @derive JasonV.Encoder
   typedstruct do
-    field :line, integer()
+    @typedoc "A type defining DAP structure DisassembledInstruction"
     field :address, String.t(), enforce: true
-    field :location, GenDAP.Structures.Source.t()
     field :column, integer()
-    field :symbol, String.t()
-    field :end_line, integer()
     field :end_column, integer()
-    field :presentation_hint, String.t()
-    field :instruction_bytes, String.t()
+    field :end_line, integer()
     field :instruction, String.t(), enforce: true
+    field :instruction_bytes, String.t()
+    field :line, integer()
+    field :location, GenDAP.Structures.Source.t()
+    field :presentation_hint, String.t()
+    field :symbol, String.t()
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"line", :line}) => int(),
       {"address", :address} => str(),
-      optional({"location", :location}) => GenDAP.Structures.Source.schematic(),
       optional({"column", :column}) => int(),
-      optional({"symbol", :symbol}) => str(),
-      optional({"endLine", :end_line}) => int(),
       optional({"endColumn", :end_column}) => int(),
-      optional({"presentationHint", :presentation_hint}) => oneof(["normal", "invalid"]),
-      optional({"instructionBytes", :instruction_bytes}) => str(),
+      optional({"endLine", :end_line}) => int(),
       {"instruction", :instruction} => str(),
+      optional({"instructionBytes", :instruction_bytes}) => str(),
+      optional({"line", :line}) => int(),
+      optional({"location", :location}) => GenDAP.Structures.Source.schematic(),
+      optional({"presentationHint", :presentation_hint}) => oneof(["normal", "invalid"]),
+      optional({"symbol", :symbol}) => str(),
     })
   end
 end

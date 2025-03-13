@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.SetFunctionBreakpointsArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure SetFunctionBreakpointsArguments"
     field :breakpoints, list(GenDAP.Structures.FunctionBreakpoint.t()), enforce: true
   end
 

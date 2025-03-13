@@ -16,6 +16,7 @@ defmodule GenDAP.Structures.Thread do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure Thread"
     field :id, integer(), enforce: true
     field :name, String.t(), enforce: true
   end

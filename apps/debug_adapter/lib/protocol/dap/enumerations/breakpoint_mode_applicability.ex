@@ -4,6 +4,7 @@ defmodule GenDAP.Enumerations.BreakpointModeApplicability do
   Describes one or more type of breakpoint a `BreakpointMode` applies to. This is a non-exhaustive enumeration and may expand as future breakpoint types are added.
   """
 
+  @typedoc "A type defining DAP enumeration BreakpointModeApplicability"
   @type t :: String.t()
 
   import Schematic, warn: false
@@ -36,7 +37,6 @@ defmodule GenDAP.Enumerations.BreakpointModeApplicability do
       "source",
       "exception",
       "data",
-      "instruction",
-    ])
+      "instruction", str()])
   end
 end

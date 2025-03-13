@@ -13,30 +13,31 @@ defmodule GenDAP.Structures.ColumnDescriptor do
   @doc """
   ## Fields
   
+  * attribute_name: Name of the attribute rendered in this column.
+  * format: Format to use for the rendered values in this column. TBD how the format strings looks like.
   * label: Header UI label of column.
   * type: Datatype of values in this column. Defaults to `string` if not specified.
-  * format: Format to use for the rendered values in this column. TBD how the format strings looks like.
   * width: Width of this column in characters (hint only).
-  * attribute_name: Name of the attribute rendered in this column.
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure ColumnDescriptor"
+    field :attribute_name, String.t(), enforce: true
+    field :format, String.t()
     field :label, String.t(), enforce: true
     field :type, String.t()
-    field :format, String.t()
     field :width, integer()
-    field :attribute_name, String.t(), enforce: true
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
+      {"attributeName", :attribute_name} => str(),
+      optional({"format", :format}) => str(),
       {"label", :label} => str(),
       optional({"type", :type}) => oneof(["string", "number", "boolean", "unixTimestampUTC"]),
-      optional({"format", :format}) => str(),
       optional({"width", :width}) => int(),
-      {"attributeName", :attribute_name} => str(),
     })
   end
 end

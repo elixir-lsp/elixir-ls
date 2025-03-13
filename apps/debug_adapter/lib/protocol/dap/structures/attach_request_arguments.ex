@@ -17,6 +17,7 @@ defmodule GenDAP.Structures.AttachRequestArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure AttachRequestArguments"
     field :__restart, list() | boolean() | integer() | nil | number() | map() | String.t()
   end
 

@@ -13,12 +13,22 @@ defmodule GenDAP.Events.ProgressStartEvent do
 
   use TypedStruct
 
+  @doc """
+  ## Fields
+  
+  * body: Event-specific information.
+  * event: Type of event.
+  * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
+  * type: Message type.
+  """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP event progressStart"
+
     field :seq, integer(), enforce: true
     field :type, String.t(), default: "event"
     field :event, String.t(), default: "progressStart"
-    field :body, %{message: String.t(), title: String.t(), request_id: integer(), progress_id: String.t(), cancellable: boolean(), percentage: number()}, enforce: true
+    field :body, %{optional(:message) => String.t(), required(:title) => String.t(), optional(:request_id) => integer(), required(:progress_id) => String.t(), optional(:cancellable) => boolean(), optional(:percentage) => number()}, enforce: true
   end
 
   @doc false
@@ -29,12 +39,12 @@ defmodule GenDAP.Events.ProgressStartEvent do
       :type => "event",
       :event => "progressStart",
       :body => map(%{
-        optional(:message) => str(),
-        :title => str(),
-        optional({:requestId, :request_id}) => int(),
-        {:progressId, :progress_id} => str(),
-        optional(:cancellable) => bool(),
-        optional(:percentage) => oneof([int(), float()])
+        optional({"message", :message}) => str(),
+        {"title", :title} => str(),
+        optional({"requestId", :request_id}) => int(),
+        {"progressId", :progress_id} => str(),
+        optional({"cancellable", :cancellable}) => bool(),
+        optional({"percentage", :percentage}) => oneof([int(), float()])
       })
     })
   end

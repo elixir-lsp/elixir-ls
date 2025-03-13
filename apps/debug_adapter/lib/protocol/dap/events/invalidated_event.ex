@@ -13,12 +13,22 @@ defmodule GenDAP.Events.InvalidatedEvent do
 
   use TypedStruct
 
+  @doc """
+  ## Fields
+  
+  * body: Event-specific information.
+  * event: Type of event.
+  * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
+  * type: Message type.
+  """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP event invalidated"
+
     field :seq, integer(), enforce: true
     field :type, String.t(), default: "event"
     field :event, String.t(), default: "invalidated"
-    field :body, %{thread_id: integer(), areas: list(GenDAP.Enumerations.InvalidatedAreas.t()), stack_frame_id: integer()}, enforce: true
+    field :body, %{optional(:thread_id) => integer(), optional(:areas) => list(GenDAP.Enumerations.InvalidatedAreas.t()), optional(:stack_frame_id) => integer()}, enforce: true
   end
 
   @doc false
@@ -29,9 +39,9 @@ defmodule GenDAP.Events.InvalidatedEvent do
       :type => "event",
       :event => "invalidated",
       :body => map(%{
-        optional({:threadId, :thread_id}) => int(),
-        optional(:areas) => list(GenDAP.Enumerations.InvalidatedAreas.schematic()),
-        optional({:stackFrameId, :stack_frame_id}) => int()
+        optional({"threadId", :thread_id}) => int(),
+        optional({"areas", :areas}) => list(GenDAP.Enumerations.InvalidatedAreas.schematic()),
+        optional({"stackFrameId", :stack_frame_id}) => int()
       })
     })
   end

@@ -17,6 +17,7 @@ defmodule GenDAP.Structures.ExceptionPathSegment do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure ExceptionPathSegment"
     field :names, list(String.t()), enforce: true
     field :negate, boolean()
   end

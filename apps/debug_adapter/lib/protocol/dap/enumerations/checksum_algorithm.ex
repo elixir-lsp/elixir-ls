@@ -4,6 +4,7 @@ defmodule GenDAP.Enumerations.ChecksumAlgorithm do
   Names of checksum algorithms that may be supported by a debug adapter.
   """
 
+  @typedoc "A type defining DAP enumeration ChecksumAlgorithm"
   @type t :: String.t()
 
   import Schematic, warn: false
@@ -28,7 +29,6 @@ defmodule GenDAP.Enumerations.ChecksumAlgorithm do
       "MD5",
       "SHA1",
       "SHA256",
-      "timestamp",
-    ])
+      "timestamp",])
   end
 end

@@ -11,27 +11,28 @@ defmodule GenDAP.Structures.SetExpressionArguments do
   @doc """
   ## Fields
   
-  * value: The value expression to assign to the l-value expression.
+  * expression: The l-value expression to assign to.
   * format: Specifies how the resulting value should be formatted.
   * frame_id: Evaluate the expressions in the scope of this stack frame. If not specified, the expressions are evaluated in the global scope.
-  * expression: The l-value expression to assign to.
+  * value: The value expression to assign to the l-value expression.
   """
   @derive JasonV.Encoder
   typedstruct do
-    field :value, String.t(), enforce: true
+    @typedoc "A type defining DAP structure SetExpressionArguments"
+    field :expression, String.t(), enforce: true
     field :format, GenDAP.Structures.ValueFormat.t()
     field :frame_id, integer()
-    field :expression, String.t(), enforce: true
+    field :value, String.t(), enforce: true
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"value", :value} => str(),
+      {"expression", :expression} => str(),
       optional({"format", :format}) => GenDAP.Structures.ValueFormat.schematic(),
       optional({"frameId", :frame_id}) => int(),
-      {"expression", :expression} => str(),
+      {"value", :value} => str(),
     })
   end
 end

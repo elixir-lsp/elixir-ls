@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.PauseArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure PauseArguments"
     field :thread_id, integer(), enforce: true
   end
 

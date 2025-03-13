@@ -4,6 +4,7 @@ defmodule GenDAP.Enumerations.DataBreakpointAccessType do
   This enumeration defines all possible access types for data breakpoints.
   """
 
+  @typedoc "A type defining DAP enumeration DataBreakpointAccessType"
   @type t :: String.t()
 
   import Schematic, warn: false
@@ -24,7 +25,6 @@ defmodule GenDAP.Enumerations.DataBreakpointAccessType do
     oneof([
       "read",
       "write",
-      "readWrite",
-    ])
+      "readWrite",])
   end
 end

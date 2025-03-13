@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.RestartArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure RestartArguments"
     field :arguments, GenDAP.Structures.LaunchRequestArguments.t() | GenDAP.Structures.AttachRequestArguments.t()
   end
 

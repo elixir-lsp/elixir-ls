@@ -14,6 +14,7 @@ defmodule GenDAP.Structures.ConfigurationDoneArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure ConfigurationDoneArguments"
   end
 
   @doc false

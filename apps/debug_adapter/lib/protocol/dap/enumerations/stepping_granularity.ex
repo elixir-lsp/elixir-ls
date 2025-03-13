@@ -4,6 +4,7 @@ defmodule GenDAP.Enumerations.SteppingGranularity do
   The granularity of one 'step' in the stepping requests `next`, `stepIn`, `stepOut`, and `stepBack`.
   """
 
+  @typedoc "A type defining DAP enumeration SteppingGranularity"
   @type t :: String.t()
 
   import Schematic, warn: false
@@ -32,7 +33,6 @@ defmodule GenDAP.Enumerations.SteppingGranularity do
     oneof([
       "statement",
       "line",
-      "instruction",
-    ])
+      "instruction",])
   end
 end

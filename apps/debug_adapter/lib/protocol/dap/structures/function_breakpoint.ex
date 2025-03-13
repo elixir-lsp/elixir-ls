@@ -11,27 +11,28 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
   @doc """
   ## Fields
   
-  * name: The name of the function.
   * condition: An expression for conditional breakpoints.
     It is only honored by a debug adapter if the corresponding capability `supportsConditionalBreakpoints` is true.
   * hit_condition: An expression that controls how many hits of the breakpoint are ignored.
     The debug adapter is expected to interpret the expression as needed.
     The attribute is only honored by a debug adapter if the corresponding capability `supportsHitConditionalBreakpoints` is true.
+  * name: The name of the function.
   """
   @derive JasonV.Encoder
   typedstruct do
-    field :name, String.t(), enforce: true
+    @typedoc "A type defining DAP structure FunctionBreakpoint"
     field :condition, String.t()
     field :hit_condition, String.t()
+    field :name, String.t(), enforce: true
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"name", :name} => str(),
       optional({"condition", :condition}) => str(),
       optional({"hitCondition", :hit_condition}) => str(),
+      {"name", :name} => str(),
     })
   end
 end

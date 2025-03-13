@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.TerminateThreadsArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure TerminateThreadsArguments"
     field :thread_ids, list(integer())
   end
 

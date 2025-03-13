@@ -41,11 +41,34 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
   end
 
   defp initialize_req_args() do
-    %GenDAP.Structures.InitializeRequestArguments{client_i_d: "some_client_id", client_name: "My client", adapter_i_d: "some_id", locale: "", lines_start_at1: true, columns_start_at1: true, path_format: "path", supports_variable_type: false, supports_variable_paging: false, supports_run_in_terminal_request: false, supports_memory_references: false, supports_progress_reporting: false, supports_invalidated_event: false, supports_memory_event: false, supports_args_can_be_interpreted_by_shell: false, supports_start_debugging_request: false, supports_a_n_s_i_styling: false}
+    %GenDAP.Structures.InitializeRequestArguments{
+      client_i_d: "some_client_id",
+      client_name: "My client",
+      adapter_i_d: "some_id",
+      locale: "",
+      lines_start_at1: true,
+      columns_start_at1: true,
+      path_format: "path",
+      supports_variable_type: false,
+      supports_variable_paging: false,
+      supports_run_in_terminal_request: false,
+      supports_memory_references: false,
+      supports_progress_reporting: false,
+      supports_invalidated_event: false,
+      supports_memory_event: false,
+      supports_args_can_be_interpreted_by_shell: false,
+      supports_start_debugging_request: false,
+      supports_a_n_s_i_styling: false
+    }
   end
 
   defp initialize_req_(seq, arguments \\ initialize_req_args()) do
-    {:ok, rex} = Schematic.dump(GenDAP.Requests.Initialize.schematic(), %GenDAP.Requests.Initialize{seq: seq, arguments: arguments})
+    {:ok, rex} =
+      Schematic.dump(
+        GenDAP.Requests.InitializeRequest.schematic(),
+        %GenDAP.Requests.InitializeRequest{seq: seq, arguments: arguments}
+      )
+
     rex
   end
 
@@ -58,7 +81,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true})
         )
 
-        assert %{"clientID" => "some_client_id"} = :sys.get_state(server).client_info
+        assert %GenDAP.Structures.InitializeRequestArguments{client_i_d: "some_client_id"} =
+                 :sys.get_state(server).client_info
       end)
     end
 
@@ -136,8 +160,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     test "succeeds when not initialized", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Process.flag(:trap_exit, true)
-        Server.receive_packet(server, request(1, "disconnect") |> IO.inspect)
-        assert_receive(response(_, 1, "disconnect", %{}))
+        Server.receive_packet(server, request(1, "disconnect"))
+        assert_receive(response(_, 1, "disconnect"))
         assert_receive({:EXIT, ^server, {:exit_code, 0}})
       end)
     after
@@ -154,7 +178,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         )
 
         Server.receive_packet(server, request(2, "disconnect"))
-        assert_receive(response(_, 2, "disconnect", %{}))
+        assert_receive(response(_, 2, "disconnect"))
         assert_receive({:EXIT, ^server, {:exit_code, 0}})
       end)
     after
@@ -167,9 +191,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
         server,
-        initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
         })
       )
 
@@ -186,7 +211,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
       abs_path = Path.absname("lib/mix_project.ex")
 
@@ -201,7 +226,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -279,10 +304,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                          }
                        ]
                      }),
-                     1000
+                     10000
 
       Server.receive_packet(server, next_req(10, thread_id))
-      assert_receive response(_, 10, "next", %{})
+      assert_receive response(_, 10, "next")
 
       assert_receive event(_, "stopped", %{
                        "allThreadsStopped" => false,
@@ -305,7 +330,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                      })
 
       Server.receive_packet(server, step_in_req(12, thread_id))
-      assert_receive response(_, 12, "stepIn", %{})
+      assert_receive response(_, 12, "stepIn")
 
       assert_receive event(_, "stopped", %{
                        "allThreadsStopped" => false,
@@ -329,7 +354,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                      })
 
       Server.receive_packet(server, step_out_req(14, thread_id))
-      assert_receive response(_, 14, "stepOut", %{})
+      assert_receive response(_, 14, "stepOut")
 
       assert_receive event(_, "stopped", %{
                        "allThreadsStopped" => false,
@@ -369,9 +394,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     in_fixture(__DIR__, "no_mix_exs", fn ->
       Server.receive_packet(
         server,
-        initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
         })
       )
 
@@ -392,7 +418,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
       abs_path = Path.absname("script.exs")
 
@@ -407,7 +433,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -490,9 +516,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
         server,
-        initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
         })
       )
 
@@ -510,11 +537,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -538,9 +565,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
         server,
-        initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
         })
       )
 
@@ -558,11 +586,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       assert_receive event(_, "output", %{
                        "category" => "console",
@@ -588,9 +616,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
         server,
-        initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
         })
       )
 
@@ -640,9 +669,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
         server,
-        initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
         })
       )
 
@@ -660,11 +690,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       assert_receive event(_, "output", %{
                        "category" => "console",
@@ -690,9 +720,10 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     in_fixture(__DIR__, "mix_project", fn ->
       Server.receive_packet(
         server,
-        initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
         })
       )
 
@@ -709,7 +740,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
       abs_path = Path.absname("lib/mix_project.ex")
 
@@ -726,7 +757,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       assert_receive event(_, "stopped", %{
                        "allThreadsStopped" => false,
@@ -795,7 +826,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(
@@ -809,7 +840,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -964,7 +995,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(
@@ -978,7 +1009,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -1023,7 +1054,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(
@@ -1037,7 +1068,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       )
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -1090,11 +1121,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
       Process.sleep(1000)
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -1105,7 +1136,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                |> Enum.map(& &1["id"])
 
       Server.receive_packet(server, request(7, "terminateThreads", %{"threadIds" => [thread_id]}))
-      assert_receive(response(_, 7, "terminateThreads", %{}), 500)
+      assert_receive(response(_, 7, "terminateThreads"), 500)
 
       assert_receive event(_, "thread", %{
                        "reason" => "exited",
@@ -1136,11 +1167,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
         Process.sleep(1000)
         Server.receive_packet(server, request(6, "threads", %{}))
         assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -1151,7 +1182,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                  |> Enum.map(& &1["id"])
 
         Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
-        assert_receive(response(_, 7, "pause", %{}), 500)
+        assert_receive(response(_, 7, "pause"), 500)
 
         assert_receive event(_, "stopped", %{
                          "allThreadsStopped" => false,
@@ -1187,11 +1218,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
         Process.sleep(1000)
         Server.receive_packet(server, request(6, "threads", %{}))
         assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -1205,7 +1236,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         Process.sleep(1000)
 
         Server.receive_packet(server, request(7, "pause", %{"threadId" => thread_id}))
-        assert_receive(response(_, 7, "pause", %{}), 500)
+        assert_receive(response(_, 7, "pause"), 500)
 
         assert_receive event(_, "thread", %{
                          "reason" => "exited",
@@ -1235,7 +1266,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -1321,7 +1352,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -1371,7 +1402,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -1477,7 +1508,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -1573,7 +1604,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -1670,7 +1701,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -1767,7 +1798,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -1852,10 +1883,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(
           server,
-          initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
-        })
+          initialize_req_(1, %{
+            initialize_req_args()
+            | supports_variable_paging: true,
+              supports_variable_type: true
+          })
         )
 
         assert_receive(
@@ -1873,7 +1905,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
         abs_path = Path.absname("lib/protocol_breakpoints.ex")
 
@@ -1895,7 +1927,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                  :sys.get_state(server).breakpoints
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
 
         assert_receive event(_, "stopped", %{
                          "allThreadsStopped" => false,
@@ -1962,10 +1994,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(
           server,
-          initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
-        })
+          initialize_req_(1, %{
+            initialize_req_args()
+            | supports_variable_paging: true,
+              supports_variable_type: true
+          })
         )
 
         assert_receive(
@@ -1983,7 +2016,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
         abs_path = Path.absname("lib/protocol_breakpoints.ex")
 
@@ -2009,7 +2042,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                  :sys.get_state(server).breakpoints
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
 
         assert_receive event(_, "stopped", %{
                          "allThreadsStopped" => false,
@@ -2091,7 +2124,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -2167,7 +2200,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -2213,7 +2246,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -2308,7 +2341,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", _), 3000)
+        assert_receive(response(_, 2, "launch"), 3000)
         assert_receive(event(_, "initialized", _), 5000)
 
         Process.sleep(100)
@@ -2406,7 +2439,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
 
         Server.receive_packet(
@@ -2420,7 +2453,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         )
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
 
         Server.receive_packet(server, request(6, "threads", %{}))
         assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -2442,10 +2475,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(
           server,
-          initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
-        })
+          initialize_req_(1, %{
+            initialize_req_args()
+            | supports_variable_paging: true,
+              supports_variable_type: true
+          })
         )
 
         assert_receive(
@@ -2463,7 +2497,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
         abs_path = Path.absname("lib/protocol_breakpoints.ex")
 
@@ -2486,7 +2520,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert %{{Proto, :go, 1} => [2]} = :sys.get_state(server).function_breakpoints
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
 
         assert_receive event(_, "stopped", %{
                          "allThreadsStopped" => false,
@@ -2553,10 +2587,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(
           server,
-          initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
-        })
+          initialize_req_(1, %{
+            initialize_req_args()
+            | supports_variable_paging: true,
+              supports_variable_type: true
+          })
         )
 
         assert_receive(
@@ -2574,7 +2609,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
         abs_path = Path.absname("lib/protocol_breakpoints.ex")
 
@@ -2597,7 +2632,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert %{{Proto.List, :go, 1} => [7]} = :sys.get_state(server).function_breakpoints
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
 
         assert_receive event(_, "stopped", %{
                          "allThreadsStopped" => false,
@@ -2639,10 +2674,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(
           server,
-          initialize_req_(1, %{initialize_req_args() |
-          supports_variable_paging: true,
-          supports_variable_type: true
-        })
+          initialize_req_(1, %{
+            initialize_req_args()
+            | supports_variable_paging: true,
+              supports_variable_type: true
+          })
         )
 
         assert_receive(
@@ -2660,7 +2696,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
         abs_path = Path.absname("lib/protocol_breakpoints.ex")
 
@@ -2685,7 +2721,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                  :sys.get_state(server).function_breakpoints
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
 
         assert_receive event(_, "stopped", %{
                          "allThreadsStopped" => false,
@@ -2741,7 +2777,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
             })
           )
 
-          assert_receive(response(_, 2, "launch", _), 3000)
+          assert_receive(response(_, 2, "launch"), 3000)
           assert_receive(event(_, "initialized", _), 5000)
 
           Process.sleep(100)
@@ -2749,7 +2785,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           assert MixProject.Dbg in :int.interpreted()
 
           Server.receive_packet(server, request(5, "configurationDone", %{}))
-          assert_receive(response(_, 5, "configurationDone", %{}))
+          assert_receive(response(_, 5, "configurationDone"))
 
           Server.receive_packet(server, request(6, "threads", %{}))
           assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -2849,7 +2885,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
           # next results in continue
           Server.receive_packet(server, next_req(14, thread_id))
-          assert_receive response(_, 14, "next", %{})
+          assert_receive response(_, 14, "next")
 
           assert_receive event(_, "stopped", %{
                            "allThreadsStopped" => false,
@@ -2929,7 +2965,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
             })
           )
 
-          assert_receive(response(_, 2, "launch", _), 3000)
+          assert_receive(response(_, 2, "launch"), 3000)
           assert_receive(event(_, "initialized", _), 5000)
 
           Process.sleep(100)
@@ -2937,7 +2973,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           assert MixProject.Dbg in :int.interpreted()
 
           Server.receive_packet(server, request(5, "configurationDone", %{}))
-          assert_receive(response(_, 5, "configurationDone", %{}))
+          assert_receive(response(_, 5, "configurationDone"))
 
           Server.receive_packet(server, request(6, "threads", %{}))
           assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -3037,7 +3073,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
           # next steps through pipe
           Server.receive_packet(server, next_req(14, thread_id))
-          assert_receive response(_, 14, "next", %{})
+          assert_receive response(_, 14, "next")
 
           assert_receive event(_, "stopped", %{
                            "allThreadsStopped" => false,
@@ -3099,7 +3135,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
             })
           )
 
-          assert_receive(response(_, 2, "launch", _), 3000)
+          assert_receive(response(_, 2, "launch"), 3000)
           assert_receive(event(_, "initialized", _), 5000)
 
           Process.sleep(100)
@@ -3107,7 +3143,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           refute MixProject.Dbg in :int.interpreted()
 
           Server.receive_packet(server, request(5, "configurationDone", %{}))
-          assert_receive(response(_, 5, "configurationDone", %{}))
+          assert_receive(response(_, 5, "configurationDone"))
 
           Server.receive_packet(server, request(6, "threads", %{}))
           assert_receive(response(_, 6, "threads", %{"threads" => threads}))
@@ -3208,7 +3244,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
           # next results in continue
           Server.receive_packet(server, next_req(14, thread_id))
-          assert_receive response(_, 14, "next", %{})
+          assert_receive response(_, 14, "next")
 
           assert_receive event(_, "stopped", %{
                            "allThreadsStopped" => false,
@@ -3293,11 +3329,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         })
       )
 
-      assert_receive(response(_, 2, "launch", %{}), 5000)
+      assert_receive(response(_, 2, "launch"), 5000)
       assert_receive(event(_, "initialized", _))
 
       Server.receive_packet(server, request(5, "configurationDone", %{}))
-      assert_receive(response(_, 5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
       Process.sleep(1000)
 
       {:ok, pid} =
@@ -3367,11 +3403,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
         assert_receive(event(_, "initialized", _))
 
         Server.receive_packet(server, request(5, "configurationDone", %{}))
-        assert_receive(response(_, 5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
         Process.sleep(1000)
 
         {:ok, pid} =
@@ -3434,9 +3470,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
     test "evaluate expression with OK result", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req_(1, %{initialize_req_args() |
-          supports_progress_reporting: true
-        }))
+        Server.receive_packet(
+          server,
+          initialize_req_(1, %{initialize_req_args() | supports_progress_reporting: true})
+        )
+
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3495,9 +3533,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     @tag :capture_log
     test "evaluate expression with exception result", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req_(1, %{initialize_req_args() |
-          supports_progress_reporting: true
-        }))
+        Server.receive_packet(
+          server,
+          initialize_req_(1, %{initialize_req_args() | supports_progress_reporting: true})
+        )
+
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3536,9 +3576,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
     test "evaluate expression which calls exit process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req_(1, %{initialize_req_args() |
-          supports_progress_reporting: true
-        }))
+        Server.receive_packet(
+          server,
+          initialize_req_(1, %{initialize_req_args() | supports_progress_reporting: true})
+        )
+
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3580,9 +3622,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
     test "evaluate expression with attempt to exit debugger process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req_(1, %{initialize_req_args() |
-          supports_progress_reporting: true
-        }))
+        Server.receive_packet(
+          server,
+          initialize_req_(1, %{initialize_req_args() | supports_progress_reporting: true})
+        )
+
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3668,9 +3712,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
     test "evaluate expression with attempt to throw debugger process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req_(1, %{initialize_req_args() |
-          supports_progress_reporting: true
-        }))
+        Server.receive_packet(
+          server,
+          initialize_req_(1, %{initialize_req_args() | supports_progress_reporting: true})
+        )
+
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3709,9 +3755,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
     test "evaluate expression which has long execution", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
-        Server.receive_packet(server, initialize_req_(1, %{initialize_req_args() |
-          supports_progress_reporting: true
-        }))
+        Server.receive_packet(
+          server,
+          initialize_req_(1, %{initialize_req_args() | supports_progress_reporting: true})
+        )
+
         assert_receive(response(_, 1, "initialize", _))
 
         Server.receive_packet(
@@ -3724,7 +3772,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
 
         Server.receive_packet(
           server,
@@ -3746,7 +3794,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           cancel_req(2, %{"progressId" => "1"})
         )
 
-        assert_receive(response(_, 2, "cancel", _))
+        assert_receive(response(_, 2, "cancel"))
 
         assert_receive(
           error_response(
@@ -3784,7 +3832,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           })
         )
 
-        assert_receive(response(_, 2, "launch", %{}), 5000)
+        assert_receive(response(_, 2, "launch"), 5000)
 
         Server.receive_packet(
           server,
@@ -3806,7 +3854,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           cancel_req(2, %{"requestId" => 1})
         )
 
-        assert_receive(response(_, 2, "cancel", _))
+        assert_receive(response(_, 2, "cancel"))
 
         assert_receive(
           error_response(
@@ -3875,7 +3923,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         cancel_req(2, %{"requestId" => 1})
       )
 
-      assert_receive(response(_, 2, "cancel", _))
+      assert_receive(response(_, 2, "cancel"))
 
       assert_receive(
         error_response(

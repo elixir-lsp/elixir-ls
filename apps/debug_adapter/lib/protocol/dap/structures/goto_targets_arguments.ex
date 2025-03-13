@@ -11,14 +11,15 @@ defmodule GenDAP.Structures.GotoTargetsArguments do
   @doc """
   ## Fields
   
-  * line: The line location for which the goto targets are determined.
   * column: The position within `line` for which the goto targets are determined. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
+  * line: The line location for which the goto targets are determined.
   * source: The source location for which the goto targets are determined.
   """
   @derive JasonV.Encoder
   typedstruct do
-    field :line, integer(), enforce: true
+    @typedoc "A type defining DAP structure GotoTargetsArguments"
     field :column, integer()
+    field :line, integer(), enforce: true
     field :source, GenDAP.Structures.Source.t(), enforce: true
   end
 
@@ -26,8 +27,8 @@ defmodule GenDAP.Structures.GotoTargetsArguments do
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"line", :line} => int(),
       optional({"column", :column}) => int(),
+      {"line", :line} => int(),
       {"source", :source} => GenDAP.Structures.Source.schematic(),
     })
   end

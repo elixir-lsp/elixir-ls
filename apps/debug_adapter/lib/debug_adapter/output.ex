@@ -47,26 +47,41 @@ defmodule ElixirLS.DebugAdapter.Output do
   end
 
   def debugger_console(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "console", output: maybe_append_newline(str)}})
+    send_event_(server, %GenDAP.Events.OutputEvent{
+      seq: nil,
+      body: %{category: "console", output: maybe_append_newline(str)}
+    })
   end
 
   def debugger_important(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{
-      category: "important",
-      output: maybe_append_newline(str)
-    }})
+    send_event_(server, %GenDAP.Events.OutputEvent{
+      seq: nil,
+      body: %{
+        category: "important",
+        output: maybe_append_newline(str)
+      }
+    })
   end
 
   def debuggee_out(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "stdout", output: maybe_append_newline(str)}})
+    send_event_(server, %GenDAP.Events.OutputEvent{
+      seq: nil,
+      body: %{category: "stdout", output: maybe_append_newline(str)}
+    })
   end
 
   def debuggee_err(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "stderr", output: maybe_append_newline(str)}})
+    send_event_(server, %GenDAP.Events.OutputEvent{
+      seq: nil,
+      body: %{category: "stderr", output: maybe_append_newline(str)}
+    })
   end
 
   def ex_unit_event(server \\ __MODULE__, data) when is_map(data) do
-    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{category: "ex_unit", output: "", data: data}})
+    send_event_(server, %GenDAP.Events.OutputEvent{
+      seq: nil,
+      body: %{category: "ex_unit", output: "", data: data}
+    })
   end
 
   def telemetry(server \\ __MODULE__, event, properties, measurements)
@@ -86,15 +101,18 @@ defmodule ElixirLS.DebugAdapter.Output do
       "elixir_ls.mix_target" => Mix.target()
     }
 
-    send_event_(server, %GenDAP.Events.OutputEvent{seq: nil, body: %{
-      category: "telemetry",
-      output: event,
-      data: %{
-        "name" => event,
-        "properties" => Map.merge(common_properties, properties),
-        "measurements" => measurements
+    send_event_(server, %GenDAP.Events.OutputEvent{
+      seq: nil,
+      body: %{
+        category: "telemetry",
+        output: event,
+        data: %{
+          "name" => event,
+          "properties" => Map.merge(common_properties, properties),
+          "measurements" => measurements
+        }
       }
-    }})
+    })
   end
 
   defp maybe_append_newline(message) do
@@ -113,6 +131,19 @@ defmodule ElixirLS.DebugAdapter.Output do
   end
 
   @impl GenServer
+  def handle_call({:send_response, request_packet, body = %struct{}}, _from, seq) do
+    IO.warn(inspect(body))
+
+    {:ok, dumped_body} =
+      Schematic.dump(struct.schematic(), %{body | seq: seq, request_seq: request_packet["seq"]})
+
+    IO.warn(inspect(dumped_body))
+
+    res = WireProtocol.send(dumped_body)
+
+    {:reply, res, seq + 1}
+  end
+
   def handle_call({:send_response, request_packet, body}, _from, seq) do
     res = WireProtocol.send(response(seq, request_packet["seq"], request_packet["command"], body))
     {:reply, res, seq + 1}
@@ -124,19 +155,24 @@ defmodule ElixirLS.DebugAdapter.Output do
         _from,
         seq
       ) do
-    res =
-      WireProtocol.send(
-        error_response(
-          seq,
-          request_packet["seq"],
-          request_packet["command"],
-          message,
-          format,
-          variables,
-          send_telemetry,
-          show_user
-        )
-      )
+    {:ok, dumped_error} = Schematic.dump(GenDAP.Structures.ErrorResponse.schematic(), %GenDAP.Structures.ErrorResponse{
+      seq: seq,
+      request_seq: request_packet["seq"],
+      command: request_packet["command"],
+      type: "response",
+      success: false,
+      message: message,
+      body: %{error: %GenDAP.Structures.Message{
+          # TODO unique ids
+          id: 1,
+          format: format,
+          variables: variables,
+          send_telemetry: send_telemetry,
+          show_user: show_user
+        }
+      }
+    })
+    res = WireProtocol.send(dumped_error)
 
     {:reply, res, seq + 1}
   end

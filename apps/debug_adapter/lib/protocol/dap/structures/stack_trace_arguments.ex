@@ -14,15 +14,16 @@ defmodule GenDAP.Structures.StackTraceArguments do
   * format: Specifies details on how to format the returned `StackFrame.name`. The debug adapter may format requested details in any way that would make sense to a developer.
     The attribute is only honored by a debug adapter if the corresponding capability `supportsValueFormattingOptions` is true.
   * levels: The maximum number of frames to return. If levels is not specified or 0, all frames are returned.
-  * thread_id: Retrieve the stacktrace for this thread.
   * start_frame: The index of the first frame to return; if omitted frames start at 0.
+  * thread_id: Retrieve the stacktrace for this thread.
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure StackTraceArguments"
     field :format, GenDAP.Structures.StackFrameFormat.t()
     field :levels, integer()
-    field :thread_id, integer(), enforce: true
     field :start_frame, integer()
+    field :thread_id, integer(), enforce: true
   end
 
   @doc false
@@ -31,8 +32,8 @@ defmodule GenDAP.Structures.StackTraceArguments do
     schema(__MODULE__, %{
       optional({"format", :format}) => GenDAP.Structures.StackFrameFormat.schematic(),
       optional({"levels", :levels}) => int(),
-      {"threadId", :thread_id} => int(),
       optional({"startFrame", :start_frame}) => int(),
+      {"threadId", :thread_id} => int(),
     })
   end
 end

@@ -23,6 +23,18 @@ defmodule ElixirLS.DebugAdapter.Protocol.Basic do
     end
   end
 
+  defmacro response(seq, request_seq, command) do
+    quote do
+      %{
+        "type" => "response",
+        "command" => unquote(command),
+        "seq" => unquote(seq),
+        "request_seq" => unquote(request_seq),
+        "success" => true
+      }
+    end
+  end
+
   defmacro response(seq, request_seq, command, body) do
     quote do
       %{

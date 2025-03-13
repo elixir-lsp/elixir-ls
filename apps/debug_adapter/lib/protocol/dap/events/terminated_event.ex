@@ -11,12 +11,22 @@ defmodule GenDAP.Events.TerminatedEvent do
 
   use TypedStruct
 
+  @doc """
+  ## Fields
+  
+  * body: Event-specific information.
+  * event: Type of event.
+  * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
+  * type: Message type.
+  """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP event terminated"
+
     field :seq, integer(), enforce: true
     field :type, String.t(), default: "event"
     field :event, String.t(), default: "terminated"
-    field :body, %{restart: list() | boolean() | integer() | nil | number() | map() | String.t()}, enforce: false
+    field :body, %{optional(:restart) => list() | boolean() | integer() | nil | number() | map() | String.t()}, enforce: false
   end
 
   @doc false
@@ -27,7 +37,7 @@ defmodule GenDAP.Events.TerminatedEvent do
       :type => "event",
       :event => "terminated",
       optional(:body) => map(%{
-        optional(:restart) => oneof([list(), bool(), int(), nil, oneof([int(), float()]), map(), str()])
+        optional({"restart", :restart}) => oneof([list(), bool(), int(), nil, oneof([int(), float()]), map(), str()])
       })
     })
   end

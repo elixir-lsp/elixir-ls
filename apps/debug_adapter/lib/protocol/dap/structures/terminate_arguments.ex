@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.TerminateArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure TerminateArguments"
     field :restart, boolean()
   end
 

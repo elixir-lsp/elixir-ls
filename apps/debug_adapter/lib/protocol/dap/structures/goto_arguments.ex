@@ -11,21 +11,22 @@ defmodule GenDAP.Structures.GotoArguments do
   @doc """
   ## Fields
   
-  * thread_id: Set the goto target for this thread.
   * target_id: The location where the debuggee will continue to run.
+  * thread_id: Set the goto target for this thread.
   """
   @derive JasonV.Encoder
   typedstruct do
-    field :thread_id, integer(), enforce: true
+    @typedoc "A type defining DAP structure GotoArguments"
     field :target_id, integer(), enforce: true
+    field :thread_id, integer(), enforce: true
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"threadId", :thread_id} => int(),
       {"targetId", :target_id} => int(),
+      {"threadId", :thread_id} => int(),
     })
   end
 end

@@ -15,6 +15,7 @@ defmodule GenDAP.Structures.ScopesArguments do
   """
   @derive JasonV.Encoder
   typedstruct do
+    @typedoc "A type defining DAP structure ScopesArguments"
     field :frame_id, integer(), enforce: true
   end
 

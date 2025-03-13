@@ -11,21 +11,22 @@ defmodule GenDAP.Structures.ModulesArguments do
   @doc """
   ## Fields
   
-  * start_module: The index of the first module to return; if omitted modules start at 0.
   * module_count: The number of modules to return. If `moduleCount` is not specified or 0, all modules are returned.
+  * start_module: The index of the first module to return; if omitted modules start at 0.
   """
   @derive JasonV.Encoder
   typedstruct do
-    field :start_module, integer()
+    @typedoc "A type defining DAP structure ModulesArguments"
     field :module_count, integer()
+    field :start_module, integer()
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"startModule", :start_module}) => int(),
       optional({"moduleCount", :module_count}) => int(),
+      optional({"startModule", :start_module}) => int(),
     })
   end
 end

@@ -4,6 +4,7 @@ defmodule GenDAP.Enumerations.InvalidatedAreas do
   Logical areas that can be invalidated by the `invalidated` event.
   """
 
+  @typedoc "A type defining DAP enumeration InvalidatedAreas"
   @type t :: String.t()
 
   import Schematic, warn: false
@@ -36,7 +37,6 @@ defmodule GenDAP.Enumerations.InvalidatedAreas do
       "all",
       "stacks",
       "threads",
-      "variables",
-    ])
+      "variables", str()])
   end
 end
