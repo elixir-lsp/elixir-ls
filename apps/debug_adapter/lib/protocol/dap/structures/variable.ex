@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.Variable do
   @moduledoc """
   A Variable is a name/value pair.
@@ -17,7 +16,7 @@ defmodule GenDAP.Structures.Variable do
 
   @doc """
   ## Fields
-  
+
   * declaration_location_reference: A reference that allows the client to request the location where the variable is declared. This should be present only if the adapter is likely to be able to resolve the location.
     
     This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
@@ -46,17 +45,17 @@ defmodule GenDAP.Structures.Variable do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure Variable"
-    field :declaration_location_reference, integer()
-    field :evaluate_name, String.t()
-    field :indexed_variables, integer()
-    field :memory_reference, String.t()
-    field :name, String.t(), enforce: true
-    field :named_variables, integer()
-    field :presentation_hint, GenDAP.Structures.VariablePresentationHint.t()
-    field :type, String.t()
-    field :value, String.t(), enforce: true
-    field :value_location_reference, integer()
-    field :variables_reference, integer(), enforce: true
+    field(:declaration_location_reference, integer())
+    field(:evaluate_name, String.t())
+    field(:indexed_variables, integer())
+    field(:memory_reference, String.t())
+    field(:name, String.t(), enforce: true)
+    field(:named_variables, integer())
+    field(:presentation_hint, GenDAP.Structures.VariablePresentationHint.t())
+    field(:type, String.t())
+    field(:value, String.t(), enforce: true)
+    field(:value_location_reference, integer())
+    field(:variables_reference, integer(), enforce: true)
   end
 
   @doc false
@@ -69,12 +68,12 @@ defmodule GenDAP.Structures.Variable do
       optional({"memoryReference", :memory_reference}) => str(),
       {"name", :name} => str(),
       optional({"namedVariables", :named_variables}) => int(),
-      optional({"presentationHint", :presentation_hint}) => GenDAP.Structures.VariablePresentationHint.schematic(),
+      optional({"presentationHint", :presentation_hint}) =>
+        GenDAP.Structures.VariablePresentationHint.schematic(),
       optional({"type", :type}) => str(),
       {"value", :value} => str(),
       optional({"valueLocationReference", :value_location_reference}) => int(),
-      {"variablesReference", :variables_reference} => int(),
+      {"variablesReference", :variables_reference} => int()
     })
   end
 end
-

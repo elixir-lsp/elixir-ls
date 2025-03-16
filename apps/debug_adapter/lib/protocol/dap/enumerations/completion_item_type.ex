@@ -9,64 +9,63 @@ defmodule GenDAP.Enumerations.CompletionItemType do
 
   import Schematic, warn: false
 
-  
   @spec method() :: String.t()
   def method, do: "method"
-  
+
   @spec function() :: String.t()
   def function, do: "function"
-  
+
   @spec constructor() :: String.t()
   def constructor, do: "constructor"
-  
+
   @spec field() :: String.t()
   def field, do: "field"
-  
+
   @spec variable() :: String.t()
   def variable, do: "variable"
-  
+
   @spec class() :: String.t()
   def class, do: "class"
-  
+
   @spec interface() :: String.t()
   def interface, do: "interface"
-  
+
   @spec module() :: String.t()
   def module, do: "module"
-  
+
   @spec property() :: String.t()
   def property, do: "property"
-  
+
   @spec unit() :: String.t()
   def unit, do: "unit"
-  
+
   @spec value() :: String.t()
   def value, do: "value"
-  
+
   @spec enum() :: String.t()
   def enum, do: "enum"
-  
+
   @spec keyword() :: String.t()
   def keyword, do: "keyword"
-  
+
   @spec snippet() :: String.t()
   def snippet, do: "snippet"
-  
+
   @spec text() :: String.t()
   def text, do: "text"
-  
+
   @spec color() :: String.t()
   def color, do: "color"
-  
+
   @spec file() :: String.t()
   def file, do: "file"
-  
+
   @spec reference() :: String.t()
   def reference, do: "reference"
-  
+
   @spec customcolor() :: String.t()
   def customcolor, do: "customcolor"
-  
+
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
@@ -89,6 +88,7 @@ defmodule GenDAP.Enumerations.CompletionItemType do
       "color",
       "file",
       "reference",
-      "customcolor",])
+      "customcolor"
+    ])
   end
 end

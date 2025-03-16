@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.FunctionBreakpoint do
   @moduledoc """
   Properties of a breakpoint passed to the `setFunctionBreakpoints` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
 
   @doc """
   ## Fields
-  
+
   * condition: An expression for conditional breakpoints.
     It is only honored by a debug adapter if the corresponding capability `supportsConditionalBreakpoints` is true.
   * hit_condition: An expression that controls how many hits of the breakpoint are ignored.
@@ -23,9 +22,9 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure FunctionBreakpoint"
-    field :condition, String.t()
-    field :hit_condition, String.t()
-    field :name, String.t(), enforce: true
+    field(:condition, String.t())
+    field(:hit_condition, String.t())
+    field(:name, String.t(), enforce: true)
   end
 
   @doc false
@@ -34,8 +33,7 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
     schema(__MODULE__, %{
       optional({"condition", :condition}) => str(),
       optional({"hitCondition", :hit_condition}) => str(),
-      {"name", :name} => str(),
+      {"name", :name} => str()
     })
   end
 end
-

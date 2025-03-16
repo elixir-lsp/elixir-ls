@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.SetDataBreakpointsArguments do
   @moduledoc """
   Arguments for `setDataBreakpoints` request.
@@ -12,21 +11,20 @@ defmodule GenDAP.Structures.SetDataBreakpointsArguments do
 
   @doc """
   ## Fields
-  
+
   * breakpoints: The contents of this array replaces all existing data breakpoints. An empty array clears all data breakpoints.
   """
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure SetDataBreakpointsArguments"
-    field :breakpoints, list(GenDAP.Structures.DataBreakpoint.t()), enforce: true
+    field(:breakpoints, list(GenDAP.Structures.DataBreakpoint.t()), enforce: true)
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"breakpoints", :breakpoints} => list(GenDAP.Structures.DataBreakpoint.schematic()),
+      {"breakpoints", :breakpoints} => list(GenDAP.Structures.DataBreakpoint.schematic())
     })
   end
 end
-

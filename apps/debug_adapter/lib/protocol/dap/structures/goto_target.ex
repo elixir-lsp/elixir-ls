@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.GotoTarget do
   @moduledoc """
   A `GotoTarget` describes a code location that can be used as a target in the `goto` request.
@@ -13,7 +12,7 @@ defmodule GenDAP.Structures.GotoTarget do
 
   @doc """
   ## Fields
-  
+
   * column: The column of the goto target.
   * end_column: The end column of the range covered by the goto target.
   * end_line: The end line of the range covered by the goto target.
@@ -25,13 +24,13 @@ defmodule GenDAP.Structures.GotoTarget do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure GotoTarget"
-    field :column, integer()
-    field :end_column, integer()
-    field :end_line, integer()
-    field :id, integer(), enforce: true
-    field :instruction_pointer_reference, String.t()
-    field :label, String.t(), enforce: true
-    field :line, integer(), enforce: true
+    field(:column, integer())
+    field(:end_column, integer())
+    field(:end_line, integer())
+    field(:id, integer(), enforce: true)
+    field(:instruction_pointer_reference, String.t())
+    field(:label, String.t(), enforce: true)
+    field(:line, integer(), enforce: true)
   end
 
   @doc false
@@ -44,8 +43,7 @@ defmodule GenDAP.Structures.GotoTarget do
       {"id", :id} => int(),
       optional({"instructionPointerReference", :instruction_pointer_reference}) => str(),
       {"label", :label} => str(),
-      {"line", :line} => int(),
+      {"line", :line} => int()
     })
   end
 end
-

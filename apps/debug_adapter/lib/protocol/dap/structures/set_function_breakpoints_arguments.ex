@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.SetFunctionBreakpointsArguments do
   @moduledoc """
   Arguments for `setFunctionBreakpoints` request.
@@ -12,21 +11,20 @@ defmodule GenDAP.Structures.SetFunctionBreakpointsArguments do
 
   @doc """
   ## Fields
-  
+
   * breakpoints: The function names of the breakpoints.
   """
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure SetFunctionBreakpointsArguments"
-    field :breakpoints, list(GenDAP.Structures.FunctionBreakpoint.t()), enforce: true
+    field(:breakpoints, list(GenDAP.Structures.FunctionBreakpoint.t()), enforce: true)
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"breakpoints", :breakpoints} => list(GenDAP.Structures.FunctionBreakpoint.schematic()),
+      {"breakpoints", :breakpoints} => list(GenDAP.Structures.FunctionBreakpoint.schematic())
     })
   end
 end
-

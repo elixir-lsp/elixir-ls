@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.VariablePresentationHint do
   @moduledoc """
   Properties of a variable that can be used to determine how to render the variable in the UI.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.VariablePresentationHint do
 
   @doc """
   ## Fields
-  
+
   * attributes: Set of attributes represented as an array of strings. Before introducing additional values, try to use the listed values.
   * kind: The kind of variable. Before introducing additional values, try to use the listed values.
   * lazy: If true, clients can present the variable with a UI that supports a specific gesture to trigger its evaluation.
@@ -23,21 +22,48 @@ defmodule GenDAP.Structures.VariablePresentationHint do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure VariablePresentationHint"
-    field :attributes, list(String.t())
-    field :kind, String.t()
-    field :lazy, boolean()
-    field :visibility, String.t()
+    field(:attributes, list(String.t()))
+    field(:kind, String.t())
+    field(:lazy, boolean())
+    field(:visibility, String.t())
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"attributes", :attributes}) => list(oneof(["static", "constant", "readOnly", "rawString", "hasObjectId", "canHaveObjectId", "hasSideEffects", "hasDataBreakpoint", str()])),
-      optional({"kind", :kind}) => oneof(["property", "method", "class", "data", "event", "baseClass", "innerClass", "interface", "mostDerivedClass", "virtual", "dataBreakpoint", str()]),
+      optional({"attributes", :attributes}) =>
+        list(
+          oneof([
+            "static",
+            "constant",
+            "readOnly",
+            "rawString",
+            "hasObjectId",
+            "canHaveObjectId",
+            "hasSideEffects",
+            "hasDataBreakpoint",
+            str()
+          ])
+        ),
+      optional({"kind", :kind}) =>
+        oneof([
+          "property",
+          "method",
+          "class",
+          "data",
+          "event",
+          "baseClass",
+          "innerClass",
+          "interface",
+          "mostDerivedClass",
+          "virtual",
+          "dataBreakpoint",
+          str()
+        ]),
       optional({"lazy", :lazy}) => bool(),
-      optional({"visibility", :visibility}) => oneof(["public", "private", "protected", "internal", "final", str()]),
+      optional({"visibility", :visibility}) =>
+        oneof(["public", "private", "protected", "internal", "final", str()])
     })
   end
 end
-

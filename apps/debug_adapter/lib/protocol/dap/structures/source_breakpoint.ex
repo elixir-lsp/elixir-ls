@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.SourceBreakpoint do
   @moduledoc """
   Properties of a breakpoint or logpoint passed to the `setBreakpoints` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.SourceBreakpoint do
 
   @doc """
   ## Fields
-  
+
   * column: Start position within source line of the breakpoint or logpoint. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
   * condition: The expression for conditional breakpoints.
     It is only honored by a debug adapter if the corresponding capability `supportsConditionalBreakpoints` is true.
@@ -30,12 +29,12 @@ defmodule GenDAP.Structures.SourceBreakpoint do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure SourceBreakpoint"
-    field :column, integer()
-    field :condition, String.t()
-    field :hit_condition, String.t()
-    field :line, integer(), enforce: true
-    field :log_message, String.t()
-    field :mode, String.t()
+    field(:column, integer())
+    field(:condition, String.t())
+    field(:hit_condition, String.t())
+    field(:line, integer(), enforce: true)
+    field(:log_message, String.t())
+    field(:mode, String.t())
   end
 
   @doc false
@@ -47,8 +46,7 @@ defmodule GenDAP.Structures.SourceBreakpoint do
       optional({"hitCondition", :hit_condition}) => str(),
       {"line", :line} => int(),
       optional({"logMessage", :log_message}) => str(),
-      optional({"mode", :mode}) => str(),
+      optional({"mode", :mode}) => str()
     })
   end
 end
-

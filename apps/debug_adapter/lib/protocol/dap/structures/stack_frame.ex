@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.StackFrame do
   @moduledoc """
   A Stackframe contains the source location.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.StackFrame do
 
   @doc """
   ## Fields
-  
+
   * can_restart: Indicates whether this frame can be restarted with the `restartFrame` request. Clients should only use this if the debug adapter supports the `restart` request and the corresponding capability `supportsRestartFrame` is true. If a debug adapter has this capability, then `canRestart` defaults to `true` if the property is absent.
   * column: Start position of the range covered by the stack frame. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based. If attribute `source` is missing or doesn't exist, `column` is 0 and should be ignored by the client.
   * end_column: End position of the range covered by the stack frame. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
@@ -30,17 +29,17 @@ defmodule GenDAP.Structures.StackFrame do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure StackFrame"
-    field :can_restart, boolean()
-    field :column, integer(), enforce: true
-    field :end_column, integer()
-    field :end_line, integer()
-    field :id, integer(), enforce: true
-    field :instruction_pointer_reference, String.t()
-    field :line, integer(), enforce: true
-    field :module_id, integer() | String.t()
-    field :name, String.t(), enforce: true
-    field :presentation_hint, String.t()
-    field :source, GenDAP.Structures.Source.t()
+    field(:can_restart, boolean())
+    field(:column, integer(), enforce: true)
+    field(:end_column, integer())
+    field(:end_line, integer())
+    field(:id, integer(), enforce: true)
+    field(:instruction_pointer_reference, String.t())
+    field(:line, integer(), enforce: true)
+    field(:module_id, integer() | String.t())
+    field(:name, String.t(), enforce: true)
+    field(:presentation_hint, String.t())
+    field(:source, GenDAP.Structures.Source.t())
   end
 
   @doc false
@@ -57,8 +56,7 @@ defmodule GenDAP.Structures.StackFrame do
       optional({"moduleId", :module_id}) => oneof([int(), str()]),
       {"name", :name} => str(),
       optional({"presentationHint", :presentation_hint}) => oneof(["normal", "label", "subtle"]),
-      optional({"source", :source}) => GenDAP.Structures.Source.schematic(),
+      optional({"source", :source}) => GenDAP.Structures.Source.schematic()
     })
   end
 end
-

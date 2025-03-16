@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.Breakpoint do
   @moduledoc """
   Information about a breakpoint created in `setBreakpoints`, `setFunctionBreakpoints`, `setInstructionBreakpoints`, or `setDataBreakpoints` requests.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.Breakpoint do
 
   @doc """
   ## Fields
-  
+
   * column: Start position of the source range covered by the breakpoint. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
   * end_column: End position of the source range covered by the breakpoint. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
     If no end line is given, then the end column is assumed to be in the start line.
@@ -34,17 +33,17 @@ defmodule GenDAP.Structures.Breakpoint do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure Breakpoint"
-    field :column, integer()
-    field :end_column, integer()
-    field :end_line, integer()
-    field :id, integer()
-    field :instruction_reference, String.t()
-    field :line, integer()
-    field :message, String.t()
-    field :offset, integer()
-    field :reason, String.t()
-    field :source, GenDAP.Structures.Source.t()
-    field :verified, boolean(), enforce: true
+    field(:column, integer())
+    field(:end_column, integer())
+    field(:end_line, integer())
+    field(:id, integer())
+    field(:instruction_reference, String.t())
+    field(:line, integer())
+    field(:message, String.t())
+    field(:offset, integer())
+    field(:reason, String.t())
+    field(:source, GenDAP.Structures.Source.t())
+    field(:verified, boolean(), enforce: true)
   end
 
   @doc false
@@ -61,8 +60,7 @@ defmodule GenDAP.Structures.Breakpoint do
       optional({"offset", :offset}) => int(),
       optional({"reason", :reason}) => oneof(["pending", "failed"]),
       optional({"source", :source}) => GenDAP.Structures.Source.schematic(),
-      {"verified", :verified} => bool(),
+      {"verified", :verified} => bool()
     })
   end
 end
-

@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.DisconnectArguments do
   @moduledoc """
   Arguments for `disconnect` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.DisconnectArguments do
 
   @doc """
   ## Fields
-  
+
   * restart: A value of true indicates that this `disconnect` request is part of a restart sequence.
   * suspend_debuggee: Indicates whether the debuggee should stay suspended when the debugger is disconnected.
     If unspecified, the debuggee should resume execution.
@@ -24,9 +23,9 @@ defmodule GenDAP.Structures.DisconnectArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure DisconnectArguments"
-    field :restart, boolean()
-    field :suspend_debuggee, boolean()
-    field :terminate_debuggee, boolean()
+    field(:restart, boolean())
+    field(:suspend_debuggee, boolean())
+    field(:terminate_debuggee, boolean())
   end
 
   @doc false
@@ -35,8 +34,7 @@ defmodule GenDAP.Structures.DisconnectArguments do
     schema(__MODULE__, %{
       optional({"restart", :restart}) => bool(),
       optional({"suspendDebuggee", :suspend_debuggee}) => bool(),
-      optional({"terminateDebuggee", :terminate_debuggee}) => bool(),
+      optional({"terminateDebuggee", :terminate_debuggee}) => bool()
     })
   end
 end
-

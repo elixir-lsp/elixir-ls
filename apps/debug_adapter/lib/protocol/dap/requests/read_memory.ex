@@ -13,7 +13,7 @@ defmodule GenDAP.Requests.ReadMemoryRequest do
 
   @doc """
   ## Fields
-  
+
   * arguments: Object containing arguments for the command.
   * command: The command to execute.
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
@@ -23,10 +23,10 @@ defmodule GenDAP.Requests.ReadMemoryRequest do
   typedstruct do
     @typedoc "A type defining DAP request readMemory"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "request"
-    field :command, String.t(), default: "readMemory"
-    field :arguments, GenDAP.Structures.ReadMemoryArguments.t(), enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "request")
+    field(:command, String.t(), default: "readMemory")
+    field(:arguments, GenDAP.Structures.ReadMemoryArguments.t(), enforce: true)
   end
 
   @doc false
@@ -54,7 +54,7 @@ defmodule GenDAP.Requests.ReadMemoryResponse do
 
   @doc """
   ## Fields
-  
+
   * body: Contains request result if success is true and error details if success is false.
   * command: The command requested.
   * message: Contains the raw error in short form if `success` is false.
@@ -71,12 +71,17 @@ defmodule GenDAP.Requests.ReadMemoryResponse do
   typedstruct do
     @typedoc "A type defining DAP request readMemory response"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "response"
-    field :request_seq, integer(), enforce: true
-    field :success, boolean(), default: true
-    field :command, String.t(), default: "readMemory"
-    field :body, %{optional(:data) => String.t(), required(:address) => String.t(), optional(:unreadable_bytes) => integer()}
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "response")
+    field(:request_seq, integer(), enforce: true)
+    field(:success, boolean(), default: true)
+    field(:command, String.t(), default: "readMemory")
+
+    field(:body, %{
+      optional(:data) => String.t(),
+      required(:address) => String.t(),
+      optional(:unreadable_bytes) => integer()
+    })
   end
 
   @doc false
@@ -88,11 +93,12 @@ defmodule GenDAP.Requests.ReadMemoryResponse do
       :request_seq => int(),
       :success => true,
       :command => "readMemory",
-      optional(:body) => map(%{
-        optional({"data", :data}) => str(),
-        {"address", :address} => str(),
-        optional({"unreadableBytes", :unreadable_bytes}) => int()
-      })
+      optional(:body) =>
+        map(%{
+          optional({"data", :data}) => str(),
+          {"address", :address} => str(),
+          optional({"unreadableBytes", :unreadable_bytes}) => int()
+        })
     })
   end
 end

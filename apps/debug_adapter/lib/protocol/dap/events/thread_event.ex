@@ -13,7 +13,7 @@ defmodule GenDAP.Events.ThreadEvent do
 
   @doc """
   ## Fields
-  
+
   * body: Event-specific information.
   * event: Type of event.
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
@@ -23,10 +23,13 @@ defmodule GenDAP.Events.ThreadEvent do
   typedstruct do
     @typedoc "A type defining DAP event thread"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "event"
-    field :event, String.t(), default: "thread"
-    field :body, %{required(:reason) => String.t(), required(:thread_id) => integer()}, enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "event")
+    field(:event, String.t(), default: "thread")
+
+    field(:body, %{required(:reason) => String.t(), required(:thread_id) => integer()},
+      enforce: true
+    )
   end
 
   @doc false
@@ -36,10 +39,11 @@ defmodule GenDAP.Events.ThreadEvent do
       :seq => int(),
       :type => "event",
       :event => "thread",
-      :body => map(%{
-        {"reason", :reason} => oneof(["started", "exited", str()]),
-        {"threadId", :thread_id} => int()
-      })
+      :body =>
+        map(%{
+          {"reason", :reason} => oneof(["started", "exited", str()]),
+          {"threadId", :thread_id} => int()
+        })
     })
   end
 end

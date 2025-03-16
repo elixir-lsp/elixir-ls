@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.DisassembledInstruction do
   @moduledoc """
   Represents a single disassembled instruction.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.DisassembledInstruction do
 
   @doc """
   ## Fields
-  
+
   * address: The address of the instruction. Treated as a hex value if prefixed with `0x`, or as a decimal value otherwise.
   * column: The column within the line that corresponds to this instruction, if any.
   * end_column: The end column of the range that corresponds to this instruction, if any.
@@ -31,16 +30,16 @@ defmodule GenDAP.Structures.DisassembledInstruction do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure DisassembledInstruction"
-    field :address, String.t(), enforce: true
-    field :column, integer()
-    field :end_column, integer()
-    field :end_line, integer()
-    field :instruction, String.t(), enforce: true
-    field :instruction_bytes, String.t()
-    field :line, integer()
-    field :location, GenDAP.Structures.Source.t()
-    field :presentation_hint, String.t()
-    field :symbol, String.t()
+    field(:address, String.t(), enforce: true)
+    field(:column, integer())
+    field(:end_column, integer())
+    field(:end_line, integer())
+    field(:instruction, String.t(), enforce: true)
+    field(:instruction_bytes, String.t())
+    field(:line, integer())
+    field(:location, GenDAP.Structures.Source.t())
+    field(:presentation_hint, String.t())
+    field(:symbol, String.t())
   end
 
   @doc false
@@ -56,8 +55,7 @@ defmodule GenDAP.Structures.DisassembledInstruction do
       optional({"line", :line}) => int(),
       optional({"location", :location}) => GenDAP.Structures.Source.schematic(),
       optional({"presentationHint", :presentation_hint}) => oneof(["normal", "invalid"]),
-      optional({"symbol", :symbol}) => str(),
+      optional({"symbol", :symbol}) => str()
     })
   end
 end
-

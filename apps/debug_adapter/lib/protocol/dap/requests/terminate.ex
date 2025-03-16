@@ -15,7 +15,7 @@ defmodule GenDAP.Requests.TerminateRequest do
 
   @doc """
   ## Fields
-  
+
   * arguments: Object containing arguments for the command.
   * command: The command to execute.
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
@@ -25,10 +25,10 @@ defmodule GenDAP.Requests.TerminateRequest do
   typedstruct do
     @typedoc "A type defining DAP request terminate"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "request"
-    field :command, String.t(), default: "terminate"
-    field :arguments, GenDAP.Structures.TerminateArguments.t()
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "request")
+    field(:command, String.t(), default: "terminate")
+    field(:arguments, GenDAP.Structures.TerminateArguments.t())
   end
 
   @doc false
@@ -56,7 +56,7 @@ defmodule GenDAP.Requests.TerminateResponse do
 
   @doc """
   ## Fields
-  
+
   * body: Contains request result if success is true and error details if success is false.
   * command: The command requested.
   * message: Contains the raw error in short form if `success` is false.
@@ -73,11 +73,11 @@ defmodule GenDAP.Requests.TerminateResponse do
   typedstruct do
     @typedoc "A type defining DAP request terminate response"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "response"
-    field :request_seq, integer(), enforce: true
-    field :success, boolean(), default: true
-    field :command, String.t(), default: "terminate"
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "response")
+    field(:request_seq, integer(), enforce: true)
+    field(:success, boolean(), default: true)
+    field(:command, String.t(), default: "terminate")
   end
 
   @doc false
@@ -88,7 +88,7 @@ defmodule GenDAP.Requests.TerminateResponse do
       :type => "response",
       :request_seq => int(),
       :success => true,
-      :command => "terminate",
+      :command => "terminate"
     })
   end
 end

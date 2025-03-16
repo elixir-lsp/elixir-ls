@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.SetBreakpointsArguments do
   @moduledoc """
   Arguments for `setBreakpoints` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.SetBreakpointsArguments do
 
   @doc """
   ## Fields
-  
+
   * breakpoints: The code locations of the breakpoints.
   * lines: Deprecated: The code locations of the breakpoints.
   * source: The source location of the breakpoints; either `source.path` or `source.sourceReference` must be specified.
@@ -21,21 +20,21 @@ defmodule GenDAP.Structures.SetBreakpointsArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure SetBreakpointsArguments"
-    field :breakpoints, list(GenDAP.Structures.SourceBreakpoint.t())
-    field :lines, list(integer())
-    field :source, GenDAP.Structures.Source.t(), enforce: true
-    field :source_modified, boolean()
+    field(:breakpoints, list(GenDAP.Structures.SourceBreakpoint.t()))
+    field(:lines, list(integer()))
+    field(:source, GenDAP.Structures.Source.t(), enforce: true)
+    field(:source_modified, boolean())
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"breakpoints", :breakpoints}) => list(GenDAP.Structures.SourceBreakpoint.schematic()),
+      optional({"breakpoints", :breakpoints}) =>
+        list(GenDAP.Structures.SourceBreakpoint.schematic()),
       optional({"lines", :lines}) => list(int()),
       {"source", :source} => GenDAP.Structures.Source.schematic(),
-      optional({"sourceModified", :source_modified}) => bool(),
+      optional({"sourceModified", :source_modified}) => bool()
     })
   end
 end
-

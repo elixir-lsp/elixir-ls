@@ -447,15 +447,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     struct =
       case GenDAP.Requests.new(packet) do
         {:ok, struct} ->
-          r =
-            if command in ["launch", "attach"] do
-              packet
-            else
-              struct
-            end
-
-          IO.warn(inspect(r))
-          r
+          struct
 
         {:error, "unexpected request payload"} ->
           packet
@@ -840,8 +832,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     {%GenDAP.Requests.CancelResponse{seq: 0, request_seq: 0}, state}
   end
 
-  defp handle_request(launch_req(_, config), state = %__MODULE__{}) do
-    # defp handle_request(%GenDAP.Requests.LaunchRequest{arguments: config = %GenDAP.Structures.LaunchRequestArguments{}}, state = %__MODULE__{}) do
+  defp handle_request(%GenDAP.Requests.LaunchRequest{arguments: config}, state = %__MODULE__{}) do
     server = self()
 
     {_, ref} = spawn_monitor(fn -> launch(config, server) end)
@@ -913,8 +904,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     {%GenDAP.Requests.LaunchResponse{seq: 0, request_seq: 0}, %{state | config: config}}
   end
 
-  defp handle_request(attach_req(_, config), state = %__MODULE__{}) do
-    # defp handle_request(%GenDAP.Requests.AttachRequest{arguments: config = %GenDAP.Structures.AttachRequestArguments{}}, state = %__MODULE__{}) do
+  defp handle_request(%GenDAP.Requests.AttachRequest{arguments: config}, state = %__MODULE__{}) do
     server = self()
 
     :net_kernel.monitor_nodes(true, %{

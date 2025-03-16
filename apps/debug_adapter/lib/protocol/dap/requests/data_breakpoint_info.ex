@@ -13,7 +13,7 @@ defmodule GenDAP.Requests.DataBreakpointInfoRequest do
 
   @doc """
   ## Fields
-  
+
   * arguments: Object containing arguments for the command.
   * command: The command to execute.
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
@@ -23,10 +23,10 @@ defmodule GenDAP.Requests.DataBreakpointInfoRequest do
   typedstruct do
     @typedoc "A type defining DAP request dataBreakpointInfo"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "request"
-    field :command, String.t(), default: "dataBreakpointInfo"
-    field :arguments, GenDAP.Structures.DataBreakpointInfoArguments.t(), enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "request")
+    field(:command, String.t(), default: "dataBreakpointInfo")
+    field(:arguments, GenDAP.Structures.DataBreakpointInfoArguments.t(), enforce: true)
   end
 
   @doc false
@@ -54,7 +54,7 @@ defmodule GenDAP.Requests.DataBreakpointInfoResponse do
 
   @doc """
   ## Fields
-  
+
   * body: Contains request result if success is true and error details if success is false.
   * command: The command requested.
   * message: Contains the raw error in short form if `success` is false.
@@ -71,12 +71,22 @@ defmodule GenDAP.Requests.DataBreakpointInfoResponse do
   typedstruct do
     @typedoc "A type defining DAP request dataBreakpointInfo response"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "response"
-    field :request_seq, integer(), enforce: true
-    field :success, boolean(), default: true
-    field :command, String.t(), default: "dataBreakpointInfo"
-    field :body, %{required(:description) => String.t(), required(:data_id) => String.t() | nil, optional(:access_types) => list(GenDAP.Enumerations.DataBreakpointAccessType.t()), optional(:can_persist) => boolean()}, enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "response")
+    field(:request_seq, integer(), enforce: true)
+    field(:success, boolean(), default: true)
+    field(:command, String.t(), default: "dataBreakpointInfo")
+
+    field(
+      :body,
+      %{
+        required(:description) => String.t(),
+        required(:data_id) => String.t() | nil,
+        optional(:access_types) => list(GenDAP.Enumerations.DataBreakpointAccessType.t()),
+        optional(:can_persist) => boolean()
+      },
+      enforce: true
+    )
   end
 
   @doc false
@@ -88,12 +98,14 @@ defmodule GenDAP.Requests.DataBreakpointInfoResponse do
       :request_seq => int(),
       :success => true,
       :command => "dataBreakpointInfo",
-      :body => map(%{
-        {"description", :description} => str(),
-        {"dataId", :data_id} => oneof([str(), nil]),
-        optional({"accessTypes", :access_types}) => list(GenDAP.Enumerations.DataBreakpointAccessType.schematic()),
-        optional({"canPersist", :can_persist}) => bool()
-      })
+      :body =>
+        map(%{
+          {"description", :description} => str(),
+          {"dataId", :data_id} => oneof([str(), nil]),
+          optional({"accessTypes", :access_types}) =>
+            list(GenDAP.Enumerations.DataBreakpointAccessType.schematic()),
+          optional({"canPersist", :can_persist}) => bool()
+        })
     })
   end
 end

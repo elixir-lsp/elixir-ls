@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.CompletionItem do
   @moduledoc """
   `CompletionItems` are the suggestions returned from the `completions` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.CompletionItem do
 
   @doc """
   ## Fields
-  
+
   * detail: A human-readable string with additional information about this item, like type or symbol information.
   * label: The label of this completion item. By default this is also the text that is inserted when selecting this completion.
   * length: Length determines how many characters are overwritten by the completion text and it is measured in UTF-16 code units. If missing the value 0 is assumed which results in the completion text being inserted.
@@ -26,15 +25,15 @@ defmodule GenDAP.Structures.CompletionItem do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure CompletionItem"
-    field :detail, String.t()
-    field :label, String.t(), enforce: true
-    field :length, integer()
-    field :selection_length, integer()
-    field :selection_start, integer()
-    field :sort_text, String.t()
-    field :start, integer()
-    field :text, String.t()
-    field :type, GenDAP.Enumerations.CompletionItemType.t()
+    field(:detail, String.t())
+    field(:label, String.t(), enforce: true)
+    field(:length, integer())
+    field(:selection_length, integer())
+    field(:selection_start, integer())
+    field(:sort_text, String.t())
+    field(:start, integer())
+    field(:text, String.t())
+    field(:type, GenDAP.Enumerations.CompletionItemType.t())
   end
 
   @doc false
@@ -49,8 +48,7 @@ defmodule GenDAP.Structures.CompletionItem do
       optional({"sortText", :sort_text}) => str(),
       optional({"start", :start}) => int(),
       optional({"text", :text}) => str(),
-      optional({"type", :type}) => GenDAP.Enumerations.CompletionItemType.schematic(),
+      optional({"type", :type}) => GenDAP.Enumerations.CompletionItemType.schematic()
     })
   end
 end
-

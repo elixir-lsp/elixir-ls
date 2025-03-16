@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.DataBreakpointInfoArguments do
   @moduledoc """
   Arguments for `dataBreakpointInfo` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.DataBreakpointInfoArguments do
 
   @doc """
   ## Fields
-  
+
   * as_address: If `true`, the `name` is a memory address and the debugger should interpret it as a decimal value, or hex value if it is prefixed with `0x`.
     
     Clients may set this property only if the `supportsDataBreakpointBytes`
@@ -29,12 +28,12 @@ defmodule GenDAP.Structures.DataBreakpointInfoArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure DataBreakpointInfoArguments"
-    field :as_address, boolean()
-    field :bytes, integer()
-    field :frame_id, integer()
-    field :mode, String.t()
-    field :name, String.t(), enforce: true
-    field :variables_reference, integer()
+    field(:as_address, boolean())
+    field(:bytes, integer())
+    field(:frame_id, integer())
+    field(:mode, String.t())
+    field(:name, String.t(), enforce: true)
+    field(:variables_reference, integer())
   end
 
   @doc false
@@ -46,8 +45,7 @@ defmodule GenDAP.Structures.DataBreakpointInfoArguments do
       optional({"frameId", :frame_id}) => int(),
       optional({"mode", :mode}) => str(),
       {"name", :name} => str(),
-      optional({"variablesReference", :variables_reference}) => int(),
+      optional({"variablesReference", :variables_reference}) => int()
     })
   end
 end
-

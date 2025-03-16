@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.InitializeRequestArguments do
   @moduledoc """
   Arguments for `initialize` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
 
   @doc """
   ## Fields
-  
+
   * adapter_i_d: The ID of the debug adapter.
   * client_i_d: The ID of the client using this adapter.
   * client_name: The human-readable name of the client using this adapter.
@@ -34,23 +33,23 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure InitializeRequestArguments"
-    field :adapter_i_d, String.t(), enforce: true
-    field :client_i_d, String.t()
-    field :client_name, String.t()
-    field :columns_start_at1, boolean()
-    field :lines_start_at1, boolean()
-    field :locale, String.t()
-    field :path_format, String.t()
-    field :supports_a_n_s_i_styling, boolean()
-    field :supports_args_can_be_interpreted_by_shell, boolean()
-    field :supports_invalidated_event, boolean()
-    field :supports_memory_event, boolean()
-    field :supports_memory_references, boolean()
-    field :supports_progress_reporting, boolean()
-    field :supports_run_in_terminal_request, boolean()
-    field :supports_start_debugging_request, boolean()
-    field :supports_variable_paging, boolean()
-    field :supports_variable_type, boolean()
+    field(:adapter_i_d, String.t(), enforce: true)
+    field(:client_i_d, String.t())
+    field(:client_name, String.t())
+    field(:columns_start_at1, boolean())
+    field(:lines_start_at1, boolean())
+    field(:locale, String.t())
+    field(:path_format, String.t())
+    field(:supports_a_n_s_i_styling, boolean())
+    field(:supports_args_can_be_interpreted_by_shell, boolean())
+    field(:supports_invalidated_event, boolean())
+    field(:supports_memory_event, boolean())
+    field(:supports_memory_references, boolean())
+    field(:supports_progress_reporting, boolean())
+    field(:supports_run_in_terminal_request, boolean())
+    field(:supports_start_debugging_request, boolean())
+    field(:supports_variable_paging, boolean())
+    field(:supports_variable_type, boolean())
   end
 
   @doc false
@@ -65,7 +64,9 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
       optional({"locale", :locale}) => str(),
       optional({"pathFormat", :path_format}) => oneof(["path", "uri", str()]),
       optional({"supportsANSIStyling", :supports_a_n_s_i_styling}) => bool(),
-      optional({"supportsArgsCanBeInterpretedByShell", :supports_args_can_be_interpreted_by_shell}) => bool(),
+      optional(
+        {"supportsArgsCanBeInterpretedByShell", :supports_args_can_be_interpreted_by_shell}
+      ) => bool(),
       optional({"supportsInvalidatedEvent", :supports_invalidated_event}) => bool(),
       optional({"supportsMemoryEvent", :supports_memory_event}) => bool(),
       optional({"supportsMemoryReferences", :supports_memory_references}) => bool(),
@@ -73,8 +74,7 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
       optional({"supportsRunInTerminalRequest", :supports_run_in_terminal_request}) => bool(),
       optional({"supportsStartDebuggingRequest", :supports_start_debugging_request}) => bool(),
       optional({"supportsVariablePaging", :supports_variable_paging}) => bool(),
-      optional({"supportsVariableType", :supports_variable_type}) => bool(),
+      optional({"supportsVariableType", :supports_variable_type}) => bool()
     })
   end
 end
-

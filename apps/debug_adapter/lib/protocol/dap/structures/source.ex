@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.Source do
   @moduledoc """
   A `Source` is a descriptor for source code.
@@ -13,7 +12,7 @@ defmodule GenDAP.Structures.Source do
 
   @doc """
   ## Fields
-  
+
   * adapter_data: Additional data that a debug adapter might want to loop through the client.
     The client should leave the data intact and persist it across sessions. The client should not interpret the data.
   * checksums: The checksums associated with this file.
@@ -32,29 +31,30 @@ defmodule GenDAP.Structures.Source do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure Source"
-    field :adapter_data, list() | boolean() | integer() | nil | number() | map() | String.t()
-    field :checksums, list(GenDAP.Structures.Checksum.t())
-    field :name, String.t()
-    field :origin, String.t()
-    field :path, String.t()
-    field :presentation_hint, String.t()
-    field :source_reference, integer()
-    field :sources, list(GenDAP.Structures.Source.t())
+    field(:adapter_data, list() | boolean() | integer() | nil | number() | map() | String.t())
+    field(:checksums, list(GenDAP.Structures.Checksum.t()))
+    field(:name, String.t())
+    field(:origin, String.t())
+    field(:path, String.t())
+    field(:presentation_hint, String.t())
+    field(:source_reference, integer())
+    field(:sources, list(GenDAP.Structures.Source.t()))
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"adapterData", :adapter_data}) => oneof([list(), bool(), int(), nil, oneof([int(), float()]), map(), str()]),
+      optional({"adapterData", :adapter_data}) =>
+        oneof([list(), bool(), int(), nil, oneof([int(), float()]), map(), str()]),
       optional({"checksums", :checksums}) => list(GenDAP.Structures.Checksum.schematic()),
       optional({"name", :name}) => str(),
       optional({"origin", :origin}) => str(),
       optional({"path", :path}) => str(),
-      optional({"presentationHint", :presentation_hint}) => oneof(["normal", "emphasize", "deemphasize"]),
+      optional({"presentationHint", :presentation_hint}) =>
+        oneof(["normal", "emphasize", "deemphasize"]),
       optional({"sourceReference", :source_reference}) => int(),
-      optional({"sources", :sources}) => list({__MODULE__, :schematic, []}),
+      optional({"sources", :sources}) => list({__MODULE__, :schematic, []})
     })
   end
 end
-

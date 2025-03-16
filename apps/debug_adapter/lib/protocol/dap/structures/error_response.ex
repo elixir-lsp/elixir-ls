@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.ErrorResponse do
   @moduledoc """
   On error (whenever `success` is false), the body can provide more details.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.ErrorResponse do
 
   @doc """
   ## Fields
-  
+
   * body: Contains request result if success is true and error details if success is false.
   * command: The command requested.
   * message: Contains the raw error in short form if `success` is false.
@@ -28,29 +27,29 @@ defmodule GenDAP.Structures.ErrorResponse do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure ErrorResponse"
-    field :body, %{optional(:error) => GenDAP.Structures.Message.t()}, enforce: true
-    field :command, String.t(), enforce: true
-    field :message, String.t()
-    field :request_seq, integer(), enforce: true
-    field :seq, integer(), enforce: true
-    field :success, boolean(), enforce: true
-    field :type, String.t(), enforce: true
+    field(:body, %{optional(:error) => GenDAP.Structures.Message.t()}, enforce: true)
+    field(:command, String.t(), enforce: true)
+    field(:message, String.t())
+    field(:request_seq, integer(), enforce: true)
+    field(:seq, integer(), enforce: true)
+    field(:success, boolean(), enforce: true)
+    field(:type, String.t(), enforce: true)
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"body", :body} => map(%{
-        optional({"error", :error}) => GenDAP.Structures.Message.schematic()
-      }),
+      {"body", :body} =>
+        map(%{
+          optional({"error", :error}) => GenDAP.Structures.Message.schematic()
+        }),
       {"command", :command} => str(),
       optional({"message", :message}) => oneof(["cancelled", "notStopped", str()]),
       {"request_seq", :request_seq} => int(),
       {"seq", :seq} => int(),
       {"success", :success} => bool(),
-      {"type", :type} => oneof(["request", "response", "event", str()]),
+      {"type", :type} => oneof(["request", "response", "event", str()])
     })
   end
 end
-

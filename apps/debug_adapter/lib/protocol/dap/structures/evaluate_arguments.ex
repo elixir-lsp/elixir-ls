@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.EvaluateArguments do
   @moduledoc """
   Arguments for `evaluate` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.EvaluateArguments do
 
   @doc """
   ## Fields
-  
+
   * column: The contextual column where the expression should be evaluated. This may be provided if `line` is also provided.
     
     It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
@@ -27,13 +26,13 @@ defmodule GenDAP.Structures.EvaluateArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure EvaluateArguments"
-    field :column, integer()
-    field :context, String.t()
-    field :expression, String.t(), enforce: true
-    field :format, GenDAP.Structures.ValueFormat.t()
-    field :frame_id, integer()
-    field :line, integer()
-    field :source, GenDAP.Structures.Source.t()
+    field(:column, integer())
+    field(:context, String.t())
+    field(:expression, String.t(), enforce: true)
+    field(:format, GenDAP.Structures.ValueFormat.t())
+    field(:frame_id, integer())
+    field(:line, integer())
+    field(:source, GenDAP.Structures.Source.t())
   end
 
   @doc false
@@ -41,13 +40,13 @@ defmodule GenDAP.Structures.EvaluateArguments do
   def schematic() do
     schema(__MODULE__, %{
       optional({"column", :column}) => int(),
-      optional({"context", :context}) => oneof(["watch", "repl", "hover", "clipboard", "variables", str()]),
+      optional({"context", :context}) =>
+        oneof(["watch", "repl", "hover", "clipboard", "variables", str()]),
       {"expression", :expression} => str(),
       optional({"format", :format}) => GenDAP.Structures.ValueFormat.schematic(),
       optional({"frameId", :frame_id}) => int(),
       optional({"line", :line}) => int(),
-      optional({"source", :source}) => GenDAP.Structures.Source.schematic(),
+      optional({"source", :source}) => GenDAP.Structures.Source.schematic()
     })
   end
 end
-

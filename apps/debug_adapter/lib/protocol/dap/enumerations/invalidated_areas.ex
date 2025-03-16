@@ -14,22 +14,25 @@ defmodule GenDAP.Enumerations.InvalidatedAreas do
   """
   @spec all() :: String.t()
   def all, do: "all"
+
   @doc """
   Previously fetched stack related data has become invalid and needs to be refetched.
   """
   @spec stacks() :: String.t()
   def stacks, do: "stacks"
+
   @doc """
   Previously fetched thread related data has become invalid and needs to be refetched.
   """
   @spec threads() :: String.t()
   def threads, do: "threads"
+
   @doc """
   Previously fetched variable data has become invalid and needs to be refetched.
   """
   @spec variables() :: String.t()
   def variables, do: "variables"
-  
+
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
@@ -37,6 +40,8 @@ defmodule GenDAP.Enumerations.InvalidatedAreas do
       "all",
       "stacks",
       "threads",
-      "variables", str()])
+      "variables",
+      str()
+    ])
   end
 end

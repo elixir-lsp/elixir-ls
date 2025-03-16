@@ -13,7 +13,7 @@ defmodule GenDAP.Requests.SetVariableRequest do
 
   @doc """
   ## Fields
-  
+
   * arguments: Object containing arguments for the command.
   * command: The command to execute.
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
@@ -23,10 +23,10 @@ defmodule GenDAP.Requests.SetVariableRequest do
   typedstruct do
     @typedoc "A type defining DAP request setVariable"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "request"
-    field :command, String.t(), default: "setVariable"
-    field :arguments, GenDAP.Structures.SetVariableArguments.t(), enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "request")
+    field(:command, String.t(), default: "setVariable")
+    field(:arguments, GenDAP.Structures.SetVariableArguments.t(), enforce: true)
   end
 
   @doc false
@@ -54,7 +54,7 @@ defmodule GenDAP.Requests.SetVariableResponse do
 
   @doc """
   ## Fields
-  
+
   * body: Contains request result if success is true and error details if success is false.
   * command: The command requested.
   * message: Contains the raw error in short form if `success` is false.
@@ -71,12 +71,25 @@ defmodule GenDAP.Requests.SetVariableResponse do
   typedstruct do
     @typedoc "A type defining DAP request setVariable response"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "response"
-    field :request_seq, integer(), enforce: true
-    field :success, boolean(), default: true
-    field :command, String.t(), default: "setVariable"
-    field :body, %{optional(:type) => String.t(), required(:value) => String.t(), optional(:variables_reference) => integer(), optional(:memory_reference) => String.t(), optional(:named_variables) => integer(), optional(:indexed_variables) => integer(), optional(:value_location_reference) => integer()}, enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "response")
+    field(:request_seq, integer(), enforce: true)
+    field(:success, boolean(), default: true)
+    field(:command, String.t(), default: "setVariable")
+
+    field(
+      :body,
+      %{
+        optional(:type) => String.t(),
+        required(:value) => String.t(),
+        optional(:variables_reference) => integer(),
+        optional(:memory_reference) => String.t(),
+        optional(:named_variables) => integer(),
+        optional(:indexed_variables) => integer(),
+        optional(:value_location_reference) => integer()
+      },
+      enforce: true
+    )
   end
 
   @doc false
@@ -88,15 +101,16 @@ defmodule GenDAP.Requests.SetVariableResponse do
       :request_seq => int(),
       :success => true,
       :command => "setVariable",
-      :body => map(%{
-        optional({"type", :type}) => str(),
-        {"value", :value} => str(),
-        optional({"variablesReference", :variables_reference}) => int(),
-        optional({"memoryReference", :memory_reference}) => str(),
-        optional({"namedVariables", :named_variables}) => int(),
-        optional({"indexedVariables", :indexed_variables}) => int(),
-        optional({"valueLocationReference", :value_location_reference}) => int()
-      })
+      :body =>
+        map(%{
+          optional({"type", :type}) => str(),
+          {"value", :value} => str(),
+          optional({"variablesReference", :variables_reference}) => int(),
+          optional({"memoryReference", :memory_reference}) => str(),
+          optional({"namedVariables", :named_variables}) => int(),
+          optional({"indexedVariables", :indexed_variables}) => int(),
+          optional({"valueLocationReference", :value_location_reference}) => int()
+        })
     })
   end
 end

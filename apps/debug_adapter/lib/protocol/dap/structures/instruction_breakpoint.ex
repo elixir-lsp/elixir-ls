@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.InstructionBreakpoint do
   @moduledoc """
   Properties of a breakpoint passed to the `setInstructionBreakpoints` request
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.InstructionBreakpoint do
 
   @doc """
   ## Fields
-  
+
   * condition: An expression for conditional breakpoints.
     It is only honored by a debug adapter if the corresponding capability `supportsConditionalBreakpoints` is true.
   * hit_condition: An expression that controls how many hits of the breakpoint are ignored.
@@ -27,11 +26,11 @@ defmodule GenDAP.Structures.InstructionBreakpoint do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure InstructionBreakpoint"
-    field :condition, String.t()
-    field :hit_condition, String.t()
-    field :instruction_reference, String.t(), enforce: true
-    field :mode, String.t()
-    field :offset, integer()
+    field(:condition, String.t())
+    field(:hit_condition, String.t())
+    field(:instruction_reference, String.t(), enforce: true)
+    field(:mode, String.t())
+    field(:offset, integer())
   end
 
   @doc false
@@ -42,8 +41,7 @@ defmodule GenDAP.Structures.InstructionBreakpoint do
       optional({"hitCondition", :hit_condition}) => str(),
       {"instructionReference", :instruction_reference} => str(),
       optional({"mode", :mode}) => str(),
-      optional({"offset", :offset}) => int(),
+      optional({"offset", :offset}) => int()
     })
   end
 end
-

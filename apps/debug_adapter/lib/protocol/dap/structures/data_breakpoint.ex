@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.DataBreakpoint do
   @moduledoc """
   Properties of a data breakpoint passed to the `setDataBreakpoints` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.DataBreakpoint do
 
   @doc """
   ## Fields
-  
+
   * access_type: The access type of the data.
   * condition: An expression for conditional breakpoints.
   * data_id: An id representing the data. This id is returned from the `dataBreakpointInfo` request.
@@ -22,21 +21,21 @@ defmodule GenDAP.Structures.DataBreakpoint do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure DataBreakpoint"
-    field :access_type, GenDAP.Enumerations.DataBreakpointAccessType.t()
-    field :condition, String.t()
-    field :data_id, String.t(), enforce: true
-    field :hit_condition, String.t()
+    field(:access_type, GenDAP.Enumerations.DataBreakpointAccessType.t())
+    field(:condition, String.t())
+    field(:data_id, String.t(), enforce: true)
+    field(:hit_condition, String.t())
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"accessType", :access_type}) => GenDAP.Enumerations.DataBreakpointAccessType.schematic(),
+      optional({"accessType", :access_type}) =>
+        GenDAP.Enumerations.DataBreakpointAccessType.schematic(),
       optional({"condition", :condition}) => str(),
       {"dataId", :data_id} => str(),
-      optional({"hitCondition", :hit_condition}) => str(),
+      optional({"hitCondition", :hit_condition}) => str()
     })
   end
 end
-

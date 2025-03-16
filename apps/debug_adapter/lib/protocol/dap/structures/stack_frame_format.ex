@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.StackFrameFormat do
   @moduledoc """
   Provides formatting information for a stack frame.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.StackFrameFormat do
 
   @doc """
   ## Fields
-  
+
   * hex: Display the value in hex.
   * include_all: Includes all stack frames, including those the debug adapter might otherwise hide.
   * line: Displays the line number of the stack frame.
@@ -25,14 +24,14 @@ defmodule GenDAP.Structures.StackFrameFormat do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure StackFrameFormat"
-    field :hex, boolean()
-    field :include_all, boolean()
-    field :line, boolean()
-    field :module, boolean()
-    field :parameter_names, boolean()
-    field :parameter_types, boolean()
-    field :parameter_values, boolean()
-    field :parameters, boolean()
+    field(:hex, boolean())
+    field(:include_all, boolean())
+    field(:line, boolean())
+    field(:module, boolean())
+    field(:parameter_names, boolean())
+    field(:parameter_types, boolean())
+    field(:parameter_values, boolean())
+    field(:parameters, boolean())
   end
 
   @doc false
@@ -46,8 +45,7 @@ defmodule GenDAP.Structures.StackFrameFormat do
       optional({"parameterNames", :parameter_names}) => bool(),
       optional({"parameterTypes", :parameter_types}) => bool(),
       optional({"parameterValues", :parameter_values}) => bool(),
-      optional({"parameters", :parameters}) => bool(),
+      optional({"parameters", :parameters}) => bool()
     })
   end
 end
-

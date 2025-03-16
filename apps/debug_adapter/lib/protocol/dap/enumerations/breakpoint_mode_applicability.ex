@@ -14,22 +14,25 @@ defmodule GenDAP.Enumerations.BreakpointModeApplicability do
   """
   @spec source() :: String.t()
   def source, do: "source"
+
   @doc """
   In exception breakpoints applied in the `ExceptionFilterOptions`
   """
   @spec exception() :: String.t()
   def exception, do: "exception"
+
   @doc """
   In data breakpoints requested in the `DataBreakpointInfo` request
   """
   @spec data() :: String.t()
   def data, do: "data"
+
   @doc """
   In `InstructionBreakpoint`s
   """
   @spec instruction() :: String.t()
   def instruction, do: "instruction"
-  
+
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
@@ -37,6 +40,8 @@ defmodule GenDAP.Enumerations.BreakpointModeApplicability do
       "source",
       "exception",
       "data",
-      "instruction", str()])
+      "instruction",
+      str()
+    ])
   end
 end

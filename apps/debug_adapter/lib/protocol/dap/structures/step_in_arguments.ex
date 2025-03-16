@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.StepInArguments do
   @moduledoc """
   Arguments for `stepIn` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.StepInArguments do
 
   @doc """
   ## Fields
-  
+
   * granularity: Stepping granularity. If no granularity is specified, a granularity of `statement` is assumed.
   * single_thread: If this flag is true, all other suspended threads are not resumed.
   * target_id: Id of the target to step into.
@@ -21,21 +20,21 @@ defmodule GenDAP.Structures.StepInArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure StepInArguments"
-    field :granularity, GenDAP.Enumerations.SteppingGranularity.t()
-    field :single_thread, boolean()
-    field :target_id, integer()
-    field :thread_id, integer(), enforce: true
+    field(:granularity, GenDAP.Enumerations.SteppingGranularity.t())
+    field(:single_thread, boolean())
+    field(:target_id, integer())
+    field(:thread_id, integer(), enforce: true)
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"granularity", :granularity}) => GenDAP.Enumerations.SteppingGranularity.schematic(),
+      optional({"granularity", :granularity}) =>
+        GenDAP.Enumerations.SteppingGranularity.schematic(),
       optional({"singleThread", :single_thread}) => bool(),
       optional({"targetId", :target_id}) => int(),
-      {"threadId", :thread_id} => int(),
+      {"threadId", :thread_id} => int()
     })
   end
 end
-

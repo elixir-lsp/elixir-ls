@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.PauseArguments do
   @moduledoc """
   Arguments for `pause` request.
@@ -12,21 +11,20 @@ defmodule GenDAP.Structures.PauseArguments do
 
   @doc """
   ## Fields
-  
+
   * thread_id: Pause execution for this thread.
   """
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure PauseArguments"
-    field :thread_id, integer(), enforce: true
+    field(:thread_id, integer(), enforce: true)
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      {"threadId", :thread_id} => int(),
+      {"threadId", :thread_id} => int()
     })
   end
 end
-

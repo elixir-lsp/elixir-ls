@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.DisassembleArguments do
   @moduledoc """
   Arguments for `disassemble` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.DisassembleArguments do
 
   @doc """
   ## Fields
-  
+
   * instruction_count: Number of instructions to disassemble starting at the specified location and offset.
     An adapter must return exactly this number of instructions - any unavailable instructions should be replaced with an implementation-defined 'invalid instruction' value.
   * instruction_offset: Offset (in instructions) to be applied after the byte offset (if any) before disassembling. Can be negative.
@@ -23,11 +22,11 @@ defmodule GenDAP.Structures.DisassembleArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure DisassembleArguments"
-    field :instruction_count, integer(), enforce: true
-    field :instruction_offset, integer()
-    field :memory_reference, String.t(), enforce: true
-    field :offset, integer()
-    field :resolve_symbols, boolean()
+    field(:instruction_count, integer(), enforce: true)
+    field(:instruction_offset, integer())
+    field(:memory_reference, String.t(), enforce: true)
+    field(:offset, integer())
+    field(:resolve_symbols, boolean())
   end
 
   @doc false
@@ -38,8 +37,7 @@ defmodule GenDAP.Structures.DisassembleArguments do
       optional({"instructionOffset", :instruction_offset}) => int(),
       {"memoryReference", :memory_reference} => str(),
       optional({"offset", :offset}) => int(),
-      optional({"resolveSymbols", :resolve_symbols}) => bool(),
+      optional({"resolveSymbols", :resolve_symbols}) => bool()
     })
   end
 end
-

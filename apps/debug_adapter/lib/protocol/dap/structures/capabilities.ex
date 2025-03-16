@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.Capabilities do
   @moduledoc """
   Information about the capabilities of a debug adapter.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.Capabilities do
 
   @doc """
   ## Fields
-  
+
   * additional_module_columns: The set of additional module information exposed by the debug adapter.
   * breakpoint_modes: Modes of breakpoints supported by the debug adapter, such as 'hardware' or 'software'. If present, the client may allow the user to select a mode and include it in its `setBreakpoints` request.
     
@@ -61,71 +60,78 @@ defmodule GenDAP.Structures.Capabilities do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure Capabilities"
-    field :additional_module_columns, list(GenDAP.Structures.ColumnDescriptor.t())
-    field :breakpoint_modes, list(GenDAP.Structures.BreakpointMode.t())
-    field :completion_trigger_characters, list(String.t())
-    field :exception_breakpoint_filters, list(GenDAP.Structures.ExceptionBreakpointsFilter.t())
-    field :support_suspend_debuggee, boolean()
-    field :support_terminate_debuggee, boolean()
-    field :supported_checksum_algorithms, list(GenDAP.Enumerations.ChecksumAlgorithm.t())
-    field :supports_a_n_s_i_styling, boolean()
-    field :supports_breakpoint_locations_request, boolean()
-    field :supports_cancel_request, boolean()
-    field :supports_clipboard_context, boolean()
-    field :supports_completions_request, boolean()
-    field :supports_conditional_breakpoints, boolean()
-    field :supports_configuration_done_request, boolean()
-    field :supports_data_breakpoint_bytes, boolean()
-    field :supports_data_breakpoints, boolean()
-    field :supports_delayed_stack_trace_loading, boolean()
-    field :supports_disassemble_request, boolean()
-    field :supports_evaluate_for_hovers, boolean()
-    field :supports_exception_filter_options, boolean()
-    field :supports_exception_info_request, boolean()
-    field :supports_exception_options, boolean()
-    field :supports_function_breakpoints, boolean()
-    field :supports_goto_targets_request, boolean()
-    field :supports_hit_conditional_breakpoints, boolean()
-    field :supports_instruction_breakpoints, boolean()
-    field :supports_loaded_sources_request, boolean()
-    field :supports_log_points, boolean()
-    field :supports_modules_request, boolean()
-    field :supports_read_memory_request, boolean()
-    field :supports_restart_frame, boolean()
-    field :supports_restart_request, boolean()
-    field :supports_set_expression, boolean()
-    field :supports_set_variable, boolean()
-    field :supports_single_thread_execution_requests, boolean()
-    field :supports_step_back, boolean()
-    field :supports_step_in_targets_request, boolean()
-    field :supports_stepping_granularity, boolean()
-    field :supports_terminate_request, boolean()
-    field :supports_terminate_threads_request, boolean()
-    field :supports_value_formatting_options, boolean()
-    field :supports_write_memory_request, boolean()
+    field(:additional_module_columns, list(GenDAP.Structures.ColumnDescriptor.t()))
+    field(:breakpoint_modes, list(GenDAP.Structures.BreakpointMode.t()))
+    field(:completion_trigger_characters, list(String.t()))
+    field(:exception_breakpoint_filters, list(GenDAP.Structures.ExceptionBreakpointsFilter.t()))
+    field(:support_suspend_debuggee, boolean())
+    field(:support_terminate_debuggee, boolean())
+    field(:supported_checksum_algorithms, list(GenDAP.Enumerations.ChecksumAlgorithm.t()))
+    field(:supports_a_n_s_i_styling, boolean())
+    field(:supports_breakpoint_locations_request, boolean())
+    field(:supports_cancel_request, boolean())
+    field(:supports_clipboard_context, boolean())
+    field(:supports_completions_request, boolean())
+    field(:supports_conditional_breakpoints, boolean())
+    field(:supports_configuration_done_request, boolean())
+    field(:supports_data_breakpoint_bytes, boolean())
+    field(:supports_data_breakpoints, boolean())
+    field(:supports_delayed_stack_trace_loading, boolean())
+    field(:supports_disassemble_request, boolean())
+    field(:supports_evaluate_for_hovers, boolean())
+    field(:supports_exception_filter_options, boolean())
+    field(:supports_exception_info_request, boolean())
+    field(:supports_exception_options, boolean())
+    field(:supports_function_breakpoints, boolean())
+    field(:supports_goto_targets_request, boolean())
+    field(:supports_hit_conditional_breakpoints, boolean())
+    field(:supports_instruction_breakpoints, boolean())
+    field(:supports_loaded_sources_request, boolean())
+    field(:supports_log_points, boolean())
+    field(:supports_modules_request, boolean())
+    field(:supports_read_memory_request, boolean())
+    field(:supports_restart_frame, boolean())
+    field(:supports_restart_request, boolean())
+    field(:supports_set_expression, boolean())
+    field(:supports_set_variable, boolean())
+    field(:supports_single_thread_execution_requests, boolean())
+    field(:supports_step_back, boolean())
+    field(:supports_step_in_targets_request, boolean())
+    field(:supports_stepping_granularity, boolean())
+    field(:supports_terminate_request, boolean())
+    field(:supports_terminate_threads_request, boolean())
+    field(:supports_value_formatting_options, boolean())
+    field(:supports_write_memory_request, boolean())
   end
 
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     schema(__MODULE__, %{
-      optional({"additionalModuleColumns", :additional_module_columns}) => list(GenDAP.Structures.ColumnDescriptor.schematic()),
-      optional({"breakpointModes", :breakpoint_modes}) => list(GenDAP.Structures.BreakpointMode.schematic()),
+      optional({"additionalModuleColumns", :additional_module_columns}) =>
+        list(GenDAP.Structures.ColumnDescriptor.schematic()),
+      optional({"breakpointModes", :breakpoint_modes}) =>
+        list(GenDAP.Structures.BreakpointMode.schematic()),
       optional({"completionTriggerCharacters", :completion_trigger_characters}) => list(str()),
-      optional({"exceptionBreakpointFilters", :exception_breakpoint_filters}) => list(GenDAP.Structures.ExceptionBreakpointsFilter.schematic()),
+      optional({"exceptionBreakpointFilters", :exception_breakpoint_filters}) =>
+        list(GenDAP.Structures.ExceptionBreakpointsFilter.schematic()),
       optional({"supportSuspendDebuggee", :support_suspend_debuggee}) => bool(),
       optional({"supportTerminateDebuggee", :support_terminate_debuggee}) => bool(),
-      optional({"supportedChecksumAlgorithms", :supported_checksum_algorithms}) => list(GenDAP.Enumerations.ChecksumAlgorithm.schematic()),
+      optional({"supportedChecksumAlgorithms", :supported_checksum_algorithms}) =>
+        list(GenDAP.Enumerations.ChecksumAlgorithm.schematic()),
       optional({"supportsANSIStyling", :supports_a_n_s_i_styling}) => bool(),
-      optional({"supportsBreakpointLocationsRequest", :supports_breakpoint_locations_request}) => bool(),
+      optional({"supportsBreakpointLocationsRequest", :supports_breakpoint_locations_request}) =>
+        bool(),
       optional({"supportsCancelRequest", :supports_cancel_request}) => bool(),
       optional({"supportsClipboardContext", :supports_clipboard_context}) => bool(),
       optional({"supportsCompletionsRequest", :supports_completions_request}) => bool(),
       optional({"supportsConditionalBreakpoints", :supports_conditional_breakpoints}) => bool(),
-      optional({"supportsConfigurationDoneRequest", :supports_configuration_done_request}) => bool(),
+      optional({"supportsConfigurationDoneRequest", :supports_configuration_done_request}) =>
+        bool(),
       optional({"supportsDataBreakpointBytes", :supports_data_breakpoint_bytes}) => bool(),
       optional({"supportsDataBreakpoints", :supports_data_breakpoints}) => bool(),
-      optional({"supportsDelayedStackTraceLoading", :supports_delayed_stack_trace_loading}) => bool(),
+      optional({"supportsDelayedStackTraceLoading", :supports_delayed_stack_trace_loading}) =>
+        bool(),
       optional({"supportsDisassembleRequest", :supports_disassemble_request}) => bool(),
       optional({"supportsEvaluateForHovers", :supports_evaluate_for_hovers}) => bool(),
       optional({"supportsExceptionFilterOptions", :supports_exception_filter_options}) => bool(),
@@ -133,7 +139,8 @@ defmodule GenDAP.Structures.Capabilities do
       optional({"supportsExceptionOptions", :supports_exception_options}) => bool(),
       optional({"supportsFunctionBreakpoints", :supports_function_breakpoints}) => bool(),
       optional({"supportsGotoTargetsRequest", :supports_goto_targets_request}) => bool(),
-      optional({"supportsHitConditionalBreakpoints", :supports_hit_conditional_breakpoints}) => bool(),
+      optional({"supportsHitConditionalBreakpoints", :supports_hit_conditional_breakpoints}) =>
+        bool(),
       optional({"supportsInstructionBreakpoints", :supports_instruction_breakpoints}) => bool(),
       optional({"supportsLoadedSourcesRequest", :supports_loaded_sources_request}) => bool(),
       optional({"supportsLogPoints", :supports_log_points}) => bool(),
@@ -143,15 +150,17 @@ defmodule GenDAP.Structures.Capabilities do
       optional({"supportsRestartRequest", :supports_restart_request}) => bool(),
       optional({"supportsSetExpression", :supports_set_expression}) => bool(),
       optional({"supportsSetVariable", :supports_set_variable}) => bool(),
-      optional({"supportsSingleThreadExecutionRequests", :supports_single_thread_execution_requests}) => bool(),
+      optional(
+        {"supportsSingleThreadExecutionRequests", :supports_single_thread_execution_requests}
+      ) => bool(),
       optional({"supportsStepBack", :supports_step_back}) => bool(),
       optional({"supportsStepInTargetsRequest", :supports_step_in_targets_request}) => bool(),
       optional({"supportsSteppingGranularity", :supports_stepping_granularity}) => bool(),
       optional({"supportsTerminateRequest", :supports_terminate_request}) => bool(),
-      optional({"supportsTerminateThreadsRequest", :supports_terminate_threads_request}) => bool(),
+      optional({"supportsTerminateThreadsRequest", :supports_terminate_threads_request}) =>
+        bool(),
       optional({"supportsValueFormattingOptions", :supports_value_formatting_options}) => bool(),
-      optional({"supportsWriteMemoryRequest", :supports_write_memory_request}) => bool(),
+      optional({"supportsWriteMemoryRequest", :supports_write_memory_request}) => bool()
     })
   end
 end
-

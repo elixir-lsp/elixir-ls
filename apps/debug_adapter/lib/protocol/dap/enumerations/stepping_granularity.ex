@@ -16,23 +16,26 @@ defmodule GenDAP.Enumerations.SteppingGranularity do
   """
   @spec statement() :: String.t()
   def statement, do: "statement"
+
   @doc """
   The step should allow the program to run until the current source line has executed.
   """
   @spec line() :: String.t()
   def line, do: "line"
+
   @doc """
   The step should allow one instruction to execute (e.g. one x86 instruction).
   """
   @spec instruction() :: String.t()
   def instruction, do: "instruction"
-  
+
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
     oneof([
       "statement",
       "line",
-      "instruction",])
+      "instruction"
+    ])
   end
 end

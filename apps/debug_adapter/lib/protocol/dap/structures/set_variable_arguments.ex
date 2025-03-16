@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.SetVariableArguments do
   @moduledoc """
   Arguments for `setVariable` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.SetVariableArguments do
 
   @doc """
   ## Fields
-  
+
   * format: Specifies details on how to format the response value.
   * name: The name of the variable in the container.
   * value: The value of the variable.
@@ -21,10 +20,10 @@ defmodule GenDAP.Structures.SetVariableArguments do
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure SetVariableArguments"
-    field :format, GenDAP.Structures.ValueFormat.t()
-    field :name, String.t(), enforce: true
-    field :value, String.t(), enforce: true
-    field :variables_reference, integer(), enforce: true
+    field(:format, GenDAP.Structures.ValueFormat.t())
+    field(:name, String.t(), enforce: true)
+    field(:value, String.t(), enforce: true)
+    field(:variables_reference, integer(), enforce: true)
   end
 
   @doc false
@@ -34,8 +33,7 @@ defmodule GenDAP.Structures.SetVariableArguments do
       optional({"format", :format}) => GenDAP.Structures.ValueFormat.schematic(),
       {"name", :name} => str(),
       {"value", :value} => str(),
-      {"variablesReference", :variables_reference} => int(),
+      {"variablesReference", :variables_reference} => int()
     })
   end
 end
-

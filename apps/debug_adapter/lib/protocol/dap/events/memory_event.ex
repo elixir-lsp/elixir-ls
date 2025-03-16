@@ -15,7 +15,7 @@ defmodule GenDAP.Events.MemoryEvent do
 
   @doc """
   ## Fields
-  
+
   * body: Event-specific information.
   * event: Type of event.
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
@@ -25,10 +25,19 @@ defmodule GenDAP.Events.MemoryEvent do
   typedstruct do
     @typedoc "A type defining DAP event memory"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "event"
-    field :event, String.t(), default: "memory"
-    field :body, %{required(:count) => integer(), required(:offset) => integer(), required(:memory_reference) => String.t()}, enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "event")
+    field(:event, String.t(), default: "memory")
+
+    field(
+      :body,
+      %{
+        required(:count) => integer(),
+        required(:offset) => integer(),
+        required(:memory_reference) => String.t()
+      },
+      enforce: true
+    )
   end
 
   @doc false
@@ -38,11 +47,12 @@ defmodule GenDAP.Events.MemoryEvent do
       :seq => int(),
       :type => "event",
       :event => "memory",
-      :body => map(%{
-        {"count", :count} => int(),
-        {"offset", :offset} => int(),
-        {"memoryReference", :memory_reference} => str()
-      })
+      :body =>
+        map(%{
+          {"count", :count} => int(),
+          {"offset", :offset} => int(),
+          {"memoryReference", :memory_reference} => str()
+        })
     })
   end
 end

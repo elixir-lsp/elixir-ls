@@ -16,7 +16,7 @@ defmodule GenDAP.Events.CapabilitiesEvent do
 
   @doc """
   ## Fields
-  
+
   * body: Event-specific information.
   * event: Type of event.
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
@@ -26,10 +26,10 @@ defmodule GenDAP.Events.CapabilitiesEvent do
   typedstruct do
     @typedoc "A type defining DAP event capabilities"
 
-    field :seq, integer(), enforce: true
-    field :type, String.t(), default: "event"
-    field :event, String.t(), default: "capabilities"
-    field :body, %{required(:capabilities) => GenDAP.Structures.Capabilities.t()}, enforce: true
+    field(:seq, integer(), enforce: true)
+    field(:type, String.t(), default: "event")
+    field(:event, String.t(), default: "capabilities")
+    field(:body, %{required(:capabilities) => GenDAP.Structures.Capabilities.t()}, enforce: true)
   end
 
   @doc false
@@ -39,9 +39,10 @@ defmodule GenDAP.Events.CapabilitiesEvent do
       :seq => int(),
       :type => "event",
       :event => "capabilities",
-      :body => map(%{
-        {"capabilities", :capabilities} => GenDAP.Structures.Capabilities.schematic()
-      })
+      :body =>
+        map(%{
+          {"capabilities", :capabilities} => GenDAP.Structures.Capabilities.schematic()
+        })
     })
   end
 end

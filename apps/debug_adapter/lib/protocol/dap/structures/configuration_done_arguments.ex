@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.ConfigurationDoneArguments do
   @moduledoc """
   Arguments for `configurationDone` request.
@@ -12,7 +11,7 @@ defmodule GenDAP.Structures.ConfigurationDoneArguments do
 
   @doc """
   ## Fields
-  
+
   """
   @derive JasonV.Encoder
   typedstruct do
@@ -22,8 +21,6 @@ defmodule GenDAP.Structures.ConfigurationDoneArguments do
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
-    schema(__MODULE__, %{
-    })
+    schema(__MODULE__, %{})
   end
 end
-

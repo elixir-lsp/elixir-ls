@@ -1,6 +1,5 @@
 # codegen: do not edit
 
-
 defmodule GenDAP.Structures.ExceptionPathSegment do
   @moduledoc """
   An `ExceptionPathSegment` represents a segment in a path that is used to match leafs or nodes in a tree of exceptions.
@@ -13,15 +12,15 @@ defmodule GenDAP.Structures.ExceptionPathSegment do
 
   @doc """
   ## Fields
-  
+
   * names: Depending on the value of `negate` the names that should match or not match.
   * negate: If false or missing this segment matches the names provided, otherwise it matches anything except the names provided.
   """
   @derive JasonV.Encoder
   typedstruct do
     @typedoc "A type defining DAP structure ExceptionPathSegment"
-    field :names, list(String.t()), enforce: true
-    field :negate, boolean()
+    field(:names, list(String.t()), enforce: true)
+    field(:negate, boolean())
   end
 
   @doc false
@@ -29,8 +28,7 @@ defmodule GenDAP.Structures.ExceptionPathSegment do
   def schematic() do
     schema(__MODULE__, %{
       {"names", :names} => list(str()),
-      optional({"negate", :negate}) => bool(),
+      optional({"negate", :negate}) => bool()
     })
   end
 end
-

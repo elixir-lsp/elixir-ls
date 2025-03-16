@@ -13,19 +13,18 @@ defmodule GenDAP.Enumerations.ExceptionBreakMode do
 
   import Schematic, warn: false
 
-  
   @spec never() :: String.t()
   def never, do: "never"
-  
+
   @spec always() :: String.t()
   def always, do: "always"
-  
+
   @spec unhandled() :: String.t()
   def unhandled, do: "unhandled"
-  
+
   @spec user_unhandled() :: String.t()
   def user_unhandled, do: "userUnhandled"
-  
+
   @doc false
   @spec schematic() :: Schematic.t()
   def schematic() do
@@ -33,6 +32,7 @@ defmodule GenDAP.Enumerations.ExceptionBreakMode do
       "never",
       "always",
       "unhandled",
-      "userUnhandled",])
+      "userUnhandled"
+    ])
   end
 end
