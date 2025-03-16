@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Message do
   @moduledoc """
   A structured message object. Used to return errors from requests.
@@ -46,3 +48,4 @@ defmodule GenDAP.Structures.Message do
     })
   end
 end
+

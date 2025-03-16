@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.CompletionItem do
   @moduledoc """
   `CompletionItems` are the suggestions returned from the `completions` request.
@@ -51,3 +53,4 @@ defmodule GenDAP.Structures.CompletionItem do
     })
   end
 end
+

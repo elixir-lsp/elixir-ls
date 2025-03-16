@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.GotoArguments do
   @moduledoc """
   Arguments for `goto` request.
@@ -30,3 +32,4 @@ defmodule GenDAP.Structures.GotoArguments do
     })
   end
 end
+

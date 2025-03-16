@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ExceptionFilterOptions do
   @moduledoc """
   An `ExceptionFilterOptions` is used to specify an exception filter together with a condition for the `setExceptionBreakpoints` request.
@@ -34,3 +36,4 @@ defmodule GenDAP.Structures.ExceptionFilterOptions do
     })
   end
 end
+

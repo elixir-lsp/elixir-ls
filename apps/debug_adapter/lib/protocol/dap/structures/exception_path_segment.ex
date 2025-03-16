@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ExceptionPathSegment do
   @moduledoc """
   An `ExceptionPathSegment` represents a segment in a path that is used to match leafs or nodes in a tree of exceptions.
@@ -31,3 +33,4 @@ defmodule GenDAP.Structures.ExceptionPathSegment do
     })
   end
 end
+

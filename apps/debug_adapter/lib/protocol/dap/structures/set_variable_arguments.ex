@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.SetVariableArguments do
   @moduledoc """
   Arguments for `setVariable` request.
@@ -36,3 +38,4 @@ defmodule GenDAP.Structures.SetVariableArguments do
     })
   end
 end
+

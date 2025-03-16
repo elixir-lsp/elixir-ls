@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.InitializeRequestArguments do
   @moduledoc """
   Arguments for `initialize` request.
@@ -75,3 +77,4 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
     })
   end
 end
+

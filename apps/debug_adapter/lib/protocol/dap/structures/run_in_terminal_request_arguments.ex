@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.RunInTerminalRequestArguments do
   @moduledoc """
   Arguments for `runInTerminal` request.
@@ -42,3 +44,4 @@ defmodule GenDAP.Structures.RunInTerminalRequestArguments do
     })
   end
 end
+

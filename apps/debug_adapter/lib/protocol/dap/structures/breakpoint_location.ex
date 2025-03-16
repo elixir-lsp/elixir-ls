@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.BreakpointLocation do
   @moduledoc """
   Properties of a breakpoint location returned from the `breakpointLocations` request.
@@ -36,3 +38,4 @@ defmodule GenDAP.Structures.BreakpointLocation do
     })
   end
 end
+

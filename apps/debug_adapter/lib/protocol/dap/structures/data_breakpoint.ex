@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.DataBreakpoint do
   @moduledoc """
   Properties of a data breakpoint passed to the `setDataBreakpoints` request.
@@ -37,3 +39,4 @@ defmodule GenDAP.Structures.DataBreakpoint do
     })
   end
 end
+

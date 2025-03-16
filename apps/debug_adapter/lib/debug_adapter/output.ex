@@ -38,23 +38,19 @@ defmodule ElixirLS.DebugAdapter.Output do
     )
   end
 
-  def send_event(server \\ __MODULE__, event, body) do
-    GenServer.call(server, {:send_event, event, body}, :infinity)
-  end
-
-  def send_event_(server \\ __MODULE__, body) do
-    GenServer.call(server, {:send_event_, body}, :infinity)
+  def send_event(server \\ __MODULE__, body) do
+    GenServer.call(server, {:send_event, body}, :infinity)
   end
 
   def debugger_console(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{
+    send_event(server, %GenDAP.Events.OutputEvent{
       seq: nil,
       body: %{category: "console", output: maybe_append_newline(str)}
     })
   end
 
   def debugger_important(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{
+    send_event(server, %GenDAP.Events.OutputEvent{
       seq: nil,
       body: %{
         category: "important",
@@ -64,21 +60,21 @@ defmodule ElixirLS.DebugAdapter.Output do
   end
 
   def debuggee_out(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{
+    send_event(server, %GenDAP.Events.OutputEvent{
       seq: nil,
       body: %{category: "stdout", output: maybe_append_newline(str)}
     })
   end
 
   def debuggee_err(server \\ __MODULE__, str) when is_binary(str) do
-    send_event_(server, %GenDAP.Events.OutputEvent{
+    send_event(server, %GenDAP.Events.OutputEvent{
       seq: nil,
       body: %{category: "stderr", output: maybe_append_newline(str)}
     })
   end
 
   def ex_unit_event(server \\ __MODULE__, data) when is_map(data) do
-    send_event_(server, %GenDAP.Events.OutputEvent{
+    send_event(server, %GenDAP.Events.OutputEvent{
       seq: nil,
       body: %{category: "ex_unit", output: "", data: data}
     })
@@ -101,7 +97,7 @@ defmodule ElixirLS.DebugAdapter.Output do
       "elixir_ls.mix_target" => Mix.target()
     }
 
-    send_event_(server, %GenDAP.Events.OutputEvent{
+    send_event(server, %GenDAP.Events.OutputEvent{
       seq: nil,
       body: %{
         category: "telemetry",
@@ -132,12 +128,8 @@ defmodule ElixirLS.DebugAdapter.Output do
 
   @impl GenServer
   def handle_call({:send_response, request_packet, body = %struct{}}, _from, seq) do
-    IO.warn(inspect(body))
-
     {:ok, dumped_body} =
       Schematic.dump(struct.schematic(), %{body | seq: seq, request_seq: request_packet["seq"]})
-
-    IO.warn(inspect(dumped_body))
 
     res = WireProtocol.send(dumped_body)
 
@@ -155,36 +147,35 @@ defmodule ElixirLS.DebugAdapter.Output do
         _from,
         seq
       ) do
-    {:ok, dumped_error} = Schematic.dump(GenDAP.Structures.ErrorResponse.schematic(), %GenDAP.Structures.ErrorResponse{
-      seq: seq,
-      request_seq: request_packet["seq"],
-      command: request_packet["command"],
-      type: "response",
-      success: false,
-      message: message,
-      body: %{error: %GenDAP.Structures.Message{
-          # TODO unique ids
-          id: 1,
-          format: format,
-          variables: variables,
-          send_telemetry: send_telemetry,
-          show_user: show_user
+    {:ok, dumped_error} =
+      Schematic.dump(
+        GenDAP.Structures.ErrorResponse.schematic(),
+        %GenDAP.Structures.ErrorResponse{
+          seq: seq,
+          request_seq: request_packet["seq"],
+          command: request_packet["command"],
+          type: "response",
+          success: false,
+          message: message,
+          body: %{
+            error: %GenDAP.Structures.Message{
+              # TODO unique ids
+              id: 1,
+              format: format,
+              variables: variables,
+              send_telemetry: send_telemetry,
+              show_user: show_user
+            }
+          }
         }
-      }
-    })
+      )
+
     res = WireProtocol.send(dumped_error)
 
     {:reply, res, seq + 1}
   end
 
-  def handle_call({:send_event, event, body}, _from, seq) do
-    dumped_event = event(seq, event, body)
-    IO.warn(inspect(dumped_event))
-    res = WireProtocol.send(dumped_event)
-    {:reply, res, seq + 1}
-  end
-
-  def handle_call({:send_event_, body = %struct{seq: _}}, _from, seq) do
+  def handle_call({:send_event, body = %struct{seq: _}}, _from, seq) do
     # IO.warn(inspect(%{body | seq: seq}))
     {:ok, dumped_event} = Schematic.dump(struct.schematic(), %{body | seq: seq})
     # IO.warn(inspect(dumped_event))

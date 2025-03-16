@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ErrorResponse do
   @moduledoc """
   On error (whenever `success` is false), the body can provide more details.
@@ -51,3 +53,4 @@ defmodule GenDAP.Structures.ErrorResponse do
     })
   end
 end
+

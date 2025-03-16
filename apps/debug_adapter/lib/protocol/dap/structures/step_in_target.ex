@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.StepInTarget do
   @moduledoc """
   A `StepInTarget` can be used in the `stepIn` request and determines into which single target the `stepIn` request should step.
@@ -42,3 +44,4 @@ defmodule GenDAP.Structures.StepInTarget do
     })
   end
 end
+

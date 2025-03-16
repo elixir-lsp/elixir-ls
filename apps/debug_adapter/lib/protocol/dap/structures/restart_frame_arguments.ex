@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.RestartFrameArguments do
   @moduledoc """
   Arguments for `restartFrame` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.RestartFrameArguments do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.NextArguments do
   @moduledoc """
   Arguments for `next` request.
@@ -33,3 +35,4 @@ defmodule GenDAP.Structures.NextArguments do
     })
   end
 end
+

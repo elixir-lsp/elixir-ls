@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ExceptionInfoArguments do
   @moduledoc """
   Arguments for `exceptionInfo` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.ExceptionInfoArguments do
     })
   end
 end
+

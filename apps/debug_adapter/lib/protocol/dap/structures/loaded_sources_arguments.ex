@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.LoadedSourcesArguments do
   @moduledoc """
   Arguments for `loadedSources` request.
@@ -24,3 +26,4 @@ defmodule GenDAP.Structures.LoadedSourcesArguments do
     })
   end
 end
+

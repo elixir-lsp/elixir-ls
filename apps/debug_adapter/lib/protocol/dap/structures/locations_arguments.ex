@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.LocationsArguments do
   @moduledoc """
   Arguments for `locations` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.LocationsArguments do
     })
   end
 end
+

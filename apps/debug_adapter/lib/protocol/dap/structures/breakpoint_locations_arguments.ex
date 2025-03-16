@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.BreakpointLocationsArguments do
   @moduledoc """
   Arguments for `breakpointLocations` request.
@@ -39,3 +41,4 @@ defmodule GenDAP.Structures.BreakpointLocationsArguments do
     })
   end
 end
+

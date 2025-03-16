@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Capabilities do
   @moduledoc """
   Information about the capabilities of a debug adapter.
@@ -152,3 +154,4 @@ defmodule GenDAP.Structures.Capabilities do
     })
   end
 end
+

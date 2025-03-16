@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ReadMemoryArguments do
   @moduledoc """
   Arguments for `readMemory` request.
@@ -33,3 +35,4 @@ defmodule GenDAP.Structures.ReadMemoryArguments do
     })
   end
 end
+

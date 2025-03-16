@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.CancelArguments do
   @moduledoc """
   Arguments for `cancel` request.
@@ -32,3 +34,4 @@ defmodule GenDAP.Structures.CancelArguments do
     })
   end
 end
+

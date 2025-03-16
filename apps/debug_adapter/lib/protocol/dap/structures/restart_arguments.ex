@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.RestartArguments do
   @moduledoc """
   Arguments for `restart` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.RestartArguments do
     })
   end
 end
+

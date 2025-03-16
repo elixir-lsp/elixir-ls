@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ColumnDescriptor do
   @moduledoc """
   A `ColumnDescriptor` specifies what module attribute to show in a column of the modules view, how to format it,
@@ -41,3 +43,4 @@ defmodule GenDAP.Structures.ColumnDescriptor do
     })
   end
 end
+

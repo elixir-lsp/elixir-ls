@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.StackTraceArguments do
   @moduledoc """
   Arguments for `stackTrace` request.
@@ -37,3 +39,4 @@ defmodule GenDAP.Structures.StackTraceArguments do
     })
   end
 end
+

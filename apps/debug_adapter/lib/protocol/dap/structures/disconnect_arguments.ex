@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.DisconnectArguments do
   @moduledoc """
   Arguments for `disconnect` request.
@@ -37,3 +39,4 @@ defmodule GenDAP.Structures.DisconnectArguments do
     })
   end
 end
+

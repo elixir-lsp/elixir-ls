@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.PauseArguments do
   @moduledoc """
   Arguments for `pause` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.PauseArguments do
     })
   end
 end
+

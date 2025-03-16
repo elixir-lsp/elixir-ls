@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ValueFormat do
   @moduledoc """
   Provides formatting information for a value.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.ValueFormat do
     })
   end
 end
+

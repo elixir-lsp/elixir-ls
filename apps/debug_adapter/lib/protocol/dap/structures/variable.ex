@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Variable do
   @moduledoc """
   A Variable is a name/value pair.
@@ -75,3 +77,4 @@ defmodule GenDAP.Structures.Variable do
     })
   end
 end
+

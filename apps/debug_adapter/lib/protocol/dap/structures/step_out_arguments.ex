@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.StepOutArguments do
   @moduledoc """
   Arguments for `stepOut` request.
@@ -33,3 +35,4 @@ defmodule GenDAP.Structures.StepOutArguments do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.StackFrame do
   @moduledoc """
   A Stackframe contains the source location.
@@ -59,3 +61,4 @@ defmodule GenDAP.Structures.StackFrame do
     })
   end
 end
+

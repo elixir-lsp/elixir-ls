@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ReverseContinueArguments do
   @moduledoc """
   Arguments for `reverseContinue` request.
@@ -30,3 +32,4 @@ defmodule GenDAP.Structures.ReverseContinueArguments do
     })
   end
 end
+

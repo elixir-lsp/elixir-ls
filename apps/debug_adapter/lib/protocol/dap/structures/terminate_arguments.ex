@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.TerminateArguments do
   @moduledoc """
   Arguments for `terminate` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.TerminateArguments do
     })
   end
 end
+

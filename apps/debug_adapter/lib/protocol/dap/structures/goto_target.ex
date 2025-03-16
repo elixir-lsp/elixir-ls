@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.GotoTarget do
   @moduledoc """
   A `GotoTarget` describes a code location that can be used as a target in the `goto` request.
@@ -46,3 +48,4 @@ defmodule GenDAP.Structures.GotoTarget do
     })
   end
 end
+

@@ -305,7 +305,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     paused_process = %PausedProcess{stack: stacktrace, ref: ref}
     state = put_in(state.paused_processes[pid], paused_process)
 
-    Output.send_event_(%GenDAP.Events.StoppedEvent{
+    Output.send_event(%GenDAP.Events.StoppedEvent{
       seq: nil,
       body: %{reason: "breakpoint", thread_id: thread_id, all_threads_stopped: false}
     })
@@ -330,7 +330,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         updated_progresses =
           if MapSet.member?(state.progresses, seq) do
-            Output.send_event_(%GenDAP.Events.ProgressEndEvent{
+            Output.send_event(%GenDAP.Events.ProgressEndEvent{
               seq: nil,
               body: %{
                 progress_id: to_string(seq)
@@ -583,7 +583,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         reason = get_stop_reason(state, event, paused_process.stack)
 
-        Output.send_event_(%GenDAP.Events.StoppedEvent{
+        Output.send_event(%GenDAP.Events.StoppedEvent{
           seq: nil,
           body: %{reason: reason, thread_id: thread_id, all_threads_stopped: false}
         })
@@ -628,8 +628,8 @@ defmodule ElixirLS.DebugAdapter.Server do
       )
     end
 
-    Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
-    Output.send_event_(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
+    Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+    Output.send_event(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
 
     {:noreply, %{state | task_ref: nil}}
   end
@@ -665,7 +665,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         # no MapSet.pop...
         updated_progresses =
           if MapSet.member?(state.progresses, seq) do
-            Output.send_event_(%GenDAP.Events.ProgressEndEvent{
+            Output.send_event(%GenDAP.Events.ProgressEndEvent{
               seq: nil,
               body: %{
                 progress_id: to_string(seq)
@@ -807,7 +807,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         # send progressEnd if cancelling a progress
         updated_progresses =
           if MapSet.member?(state.progresses, request_or_progress_id) do
-            Output.send_event_(%GenDAP.Events.ProgressEndEvent{
+            Output.send_event(%GenDAP.Events.ProgressEndEvent{
               seq: nil,
               body: %{
                 progress_id: to_string(request_or_progress_id)
@@ -851,7 +851,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:ok, config} ->
           # sending `initialized` signals that we are ready to receive configuration requests
           # setBreakpoints, setFunctionBreakpoints and configurationDone
-          Output.send_event_(%GenDAP.Events.InitializedEvent{seq: nil})
+          Output.send_event(%GenDAP.Events.InitializedEvent{seq: nil})
           # Process.sleep(30000)
           send(self(), :update_threads)
 
@@ -887,8 +887,8 @@ defmodule ElixirLS.DebugAdapter.Server do
 
             {%ServerError{} = error, stack} ->
               exit_code = 1
-              Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
-              Output.send_event_(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
+              Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+              Output.send_event(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
 
               reraise error, stack
 
@@ -898,8 +898,8 @@ defmodule ElixirLS.DebugAdapter.Server do
               Output.debugger_console(message)
 
               exit_code = 1
-              Output.send_event_(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
-              Output.send_event_(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
+              Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+              Output.send_event(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
 
               raise ServerError,
                 message: "launchError",
@@ -930,7 +930,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:ok, config} ->
           # sending `initialized` signals that we are ready to receive configuration requests
           # setBreakpoints, setFunctionBreakpoints and configurationDone
-          Output.send_event_(%GenDAP.Events.InitializedEvent{seq: nil})
+          Output.send_event(%GenDAP.Events.InitializedEvent{seq: nil})
           send(self(), :update_threads)
 
           Output.telemetry(
@@ -957,7 +957,7 @@ defmodule ElixirLS.DebugAdapter.Server do
               :ok
 
             {%ServerError{} = error, stack} ->
-              Output.send_event_(%GenDAP.Events.TerminatedEvent{
+              Output.send_event(%GenDAP.Events.TerminatedEvent{
                 seq: nil,
                 body: %{restart: false}
               })
@@ -969,7 +969,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
               Output.debugger_console(message)
 
-              Output.send_event_(%GenDAP.Events.TerminatedEvent{
+              Output.send_event(%GenDAP.Events.TerminatedEvent{
                 seq: nil,
                 body: %{restart: false}
               })
@@ -1509,7 +1509,7 @@ defmodule ElixirLS.DebugAdapter.Server do
        ) do
     state =
       if client_info.supports_progress_reporting do
-        Output.send_event_(%GenDAP.Events.ProgressStartEvent{
+        Output.send_event(%GenDAP.Events.ProgressStartEvent{
           seq: nil,
           body: %{
             progress_id: to_string(seq),
@@ -2901,7 +2901,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     {state, thread_ids, new_ids} = ensure_thread_ids(state, pids)
 
     for thread_id <- new_ids do
-      Output.send_event_(%GenDAP.Events.ThreadEvent{
+      Output.send_event(%GenDAP.Events.ThreadEvent{
         seq: nil,
         body: %{
           reason: "started",
@@ -2931,7 +2931,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     }
 
     if thread_id do
-      Output.send_event_(%GenDAP.Events.ThreadEvent{
+      Output.send_event(%GenDAP.Events.ThreadEvent{
         seq: nil,
         body: %{
           reason: "exited",

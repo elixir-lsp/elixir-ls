@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.VariablePresentationHint do
   @moduledoc """
   Properties of a variable that can be used to determine how to render the variable in the UI.
@@ -38,3 +40,4 @@ defmodule GenDAP.Structures.VariablePresentationHint do
     })
   end
 end
+

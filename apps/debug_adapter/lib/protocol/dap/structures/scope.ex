@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Scope do
   @moduledoc """
   A `Scope` is a named container for variables. Optionally a scope can map to a source or a range within a source.
@@ -59,3 +61,4 @@ defmodule GenDAP.Structures.Scope do
     })
   end
 end
+

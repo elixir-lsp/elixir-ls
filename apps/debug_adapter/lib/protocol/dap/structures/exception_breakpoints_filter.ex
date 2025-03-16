@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ExceptionBreakpointsFilter do
   @moduledoc """
   An `ExceptionBreakpointsFilter` is shown in the UI as an filter option for configuring how exceptions are dealt with.
@@ -42,3 +44,4 @@ defmodule GenDAP.Structures.ExceptionBreakpointsFilter do
     })
   end
 end
+

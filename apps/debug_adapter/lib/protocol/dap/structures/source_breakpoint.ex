@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.SourceBreakpoint do
   @moduledoc """
   Properties of a breakpoint or logpoint passed to the `setBreakpoints` request.
@@ -49,3 +51,4 @@ defmodule GenDAP.Structures.SourceBreakpoint do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.WriteMemoryArguments do
   @moduledoc """
   Arguments for `writeMemory` request.
@@ -37,3 +39,4 @@ defmodule GenDAP.Structures.WriteMemoryArguments do
     })
   end
 end
+

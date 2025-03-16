@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.DisassembledInstruction do
   @moduledoc """
   Represents a single disassembled instruction.
@@ -58,3 +60,4 @@ defmodule GenDAP.Structures.DisassembledInstruction do
     })
   end
 end
+

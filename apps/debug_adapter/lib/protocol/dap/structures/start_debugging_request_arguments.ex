@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.StartDebuggingRequestArguments do
   @moduledoc """
   Arguments for `startDebugging` request.
@@ -30,3 +32,4 @@ defmodule GenDAP.Structures.StartDebuggingRequestArguments do
     })
   end
 end
+

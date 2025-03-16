@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ContinueArguments do
   @moduledoc """
   Arguments for `continue` request.
@@ -30,3 +32,4 @@ defmodule GenDAP.Structures.ContinueArguments do
     })
   end
 end
+

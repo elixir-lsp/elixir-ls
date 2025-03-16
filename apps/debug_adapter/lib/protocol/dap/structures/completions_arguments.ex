@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.CompletionsArguments do
   @moduledoc """
   Arguments for `completions` request.
@@ -36,3 +38,4 @@ defmodule GenDAP.Structures.CompletionsArguments do
     })
   end
 end
+

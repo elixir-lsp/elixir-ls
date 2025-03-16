@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.BreakpointMode do
   @moduledoc """
   A `BreakpointMode` is provided as a option when setting breakpoints on sources or instructions.
@@ -36,3 +38,4 @@ defmodule GenDAP.Structures.BreakpointMode do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ExceptionDetails do
   @moduledoc """
   Detailed information about an exception that has occurred.
@@ -42,3 +44,4 @@ defmodule GenDAP.Structures.ExceptionDetails do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ModulesArguments do
   @moduledoc """
   Arguments for `modules` request.
@@ -30,3 +32,4 @@ defmodule GenDAP.Structures.ModulesArguments do
     })
   end
 end
+

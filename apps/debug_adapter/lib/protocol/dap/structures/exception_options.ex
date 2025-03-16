@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ExceptionOptions do
   @moduledoc """
   An `ExceptionOptions` assigns configuration options to a set of exceptions.
@@ -31,3 +33,4 @@ defmodule GenDAP.Structures.ExceptionOptions do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.EvaluateArguments do
   @moduledoc """
   Arguments for `evaluate` request.
@@ -48,3 +50,4 @@ defmodule GenDAP.Structures.EvaluateArguments do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.SetExceptionBreakpointsArguments do
   @moduledoc """
   Arguments for `setExceptionBreakpoints` request.
@@ -34,3 +36,4 @@ defmodule GenDAP.Structures.SetExceptionBreakpointsArguments do
     })
   end
 end
+

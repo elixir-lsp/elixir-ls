@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.DisassembleArguments do
   @moduledoc """
   Arguments for `disassemble` request.
@@ -40,3 +42,4 @@ defmodule GenDAP.Structures.DisassembleArguments do
     })
   end
 end
+

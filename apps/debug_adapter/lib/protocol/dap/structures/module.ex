@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Module do
   @moduledoc """
   A Module object represents a row in the modules view.
@@ -60,3 +62,4 @@ defmodule GenDAP.Structures.Module do
     })
   end
 end
+

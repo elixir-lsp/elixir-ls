@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ScopesArguments do
   @moduledoc """
   Arguments for `scopes` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.ScopesArguments do
     })
   end
 end
+

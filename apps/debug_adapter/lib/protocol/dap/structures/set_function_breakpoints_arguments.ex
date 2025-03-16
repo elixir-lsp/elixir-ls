@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.SetFunctionBreakpointsArguments do
   @moduledoc """
   Arguments for `setFunctionBreakpoints` request.
@@ -27,3 +29,4 @@ defmodule GenDAP.Structures.SetFunctionBreakpointsArguments do
     })
   end
 end
+

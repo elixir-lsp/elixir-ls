@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.FunctionBreakpoint do
   @moduledoc """
   Properties of a breakpoint passed to the `setFunctionBreakpoints` request.
@@ -36,3 +38,4 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
     })
   end
 end
+

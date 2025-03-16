@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Breakpoint do
   @moduledoc """
   Information about a breakpoint created in `setBreakpoints`, `setFunctionBreakpoints`, `setInstructionBreakpoints`, or `setDataBreakpoints` requests.
@@ -63,3 +65,4 @@ defmodule GenDAP.Structures.Breakpoint do
     })
   end
 end
+

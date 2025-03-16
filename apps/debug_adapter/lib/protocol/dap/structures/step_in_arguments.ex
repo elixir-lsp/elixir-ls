@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.StepInArguments do
   @moduledoc """
   Arguments for `stepIn` request.
@@ -36,3 +38,4 @@ defmodule GenDAP.Structures.StepInArguments do
     })
   end
 end
+

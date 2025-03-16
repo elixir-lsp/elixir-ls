@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Thread do
   @moduledoc """
   A Thread
@@ -30,3 +32,4 @@ defmodule GenDAP.Structures.Thread do
     })
   end
 end
+

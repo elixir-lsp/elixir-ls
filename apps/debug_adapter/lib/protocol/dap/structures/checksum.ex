@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.Checksum do
   @moduledoc """
   The checksum of an item calculated by the specified algorithm.
@@ -30,3 +32,4 @@ defmodule GenDAP.Structures.Checksum do
     })
   end
 end
+

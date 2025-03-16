@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.InstructionBreakpoint do
   @moduledoc """
   Properties of a breakpoint passed to the `setInstructionBreakpoints` request
@@ -44,3 +46,4 @@ defmodule GenDAP.Structures.InstructionBreakpoint do
     })
   end
 end
+

@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.DataBreakpointInfoArguments do
   @moduledoc """
   Arguments for `dataBreakpointInfo` request.
@@ -48,3 +50,4 @@ defmodule GenDAP.Structures.DataBreakpointInfoArguments do
     })
   end
 end
+

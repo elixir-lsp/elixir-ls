@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.StackFrameFormat do
   @moduledoc """
   Provides formatting information for a stack frame.
@@ -48,3 +50,4 @@ defmodule GenDAP.Structures.StackFrameFormat do
     })
   end
 end
+

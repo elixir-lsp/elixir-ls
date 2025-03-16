@@ -1,4 +1,6 @@
 # codegen: do not edit
+
+
 defmodule GenDAP.Structures.ConfigurationDoneArguments do
   @moduledoc """
   Arguments for `configurationDone` request.
@@ -24,3 +26,4 @@ defmodule GenDAP.Structures.ConfigurationDoneArguments do
     })
   end
 end
+
