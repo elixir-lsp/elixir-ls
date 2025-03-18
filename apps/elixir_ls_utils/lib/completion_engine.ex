@@ -906,7 +906,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
       case type do
         {:map, all, _} ->
           {:map, Map.new(all), pairs}
-        {:struct, origin, all, _} ->
+        {:struct, all, origin, _} ->
           case origin do
             {:atom, alias} -> {:struct, alias, pairs}
             _ ->
