@@ -723,10 +723,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp expand_container_context(code, context, hint, env, metadata, cursor_position) do
     case container_context(code, env, metadata, cursor_position) |> dbg do
       {:map, map, pairs} when context == :expr ->
-        container_context_map_fields(pairs, nil, map, hint, metadata)
+        container_context_map_fields(pairs, :map, map, hint, metadata)
 
       {:struct, alias, pairs} when context == :expr ->
-        container_context_map_fields(pairs, alias, %{}, hint, metadata)
+        container_context_map_fields(pairs, {:struct, alias}, %{}, hint, metadata)
 
       :bitstring_modifier ->
         existing =
@@ -745,14 +745,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp container_context_map_fields(pairs, alias, map, hint, metadata) do
-    {keys, types} = if alias do
-      keys = Struct.get_fields(alias, metadata.structs)
-      types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
-      {keys, types}
-    else
-      {Map.keys(map), %{}}
-    end
+  defp container_context_map_fields(pairs, kind, map, hint, metadata) do
+    {keys, types, alias} = case kind do
+      {:struct, alias} ->
+        keys = Struct.get_fields(alias, metadata.structs)
+        types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+        {keys, types, alias}
+      _ ->
+      {Map.keys(map), %{}, nil}
+    end |> dbg
 
     entries =
       for key <- keys,
@@ -762,7 +763,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
             spec = case types[key] do
                             nil ->
                               case key do
-                                :__struct__ -> inspect(alias) || "atom()"
+                                :__struct__ -> if(alias, do: inspect(alias), else: "atom()")
                                 :__exception__ -> "true"
                                 _ -> nil
                               end
@@ -773,9 +774,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
             %{
                         kind: :field,
                         name: name,
-                        subtype: if(alias, do: :struct_field, else: :map_field),
+                        subtype: if(kind == :map, do: :map_field, else: :struct_field),
                         value_is_map: false,
-                        origin: if(alias, do: inspect(alias)),
+                        origin: if(kind != :map and alias, do: inspect(alias)),
                         call?: false,
                         type_spec: spec
                       }
@@ -858,6 +859,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
+  defp expand_struct_module({variable, _, context}, env = %{context: :match}, _metadata, _cursor_position) when is_atom(context) and is_atom(variable) do
+    {:ok, nil}
+  end
+
   defp expand_struct_module(_ast, _env, _metadata, _cursor_position) do
     :error
   end
@@ -865,7 +870,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp container_context_struct(cursor, pairs, ast, env, metadata, cursor_position) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
          {:ok, alias} <- expand_struct_module(ast, env, metadata, cursor_position),
-         true <- Keyword.keyword?(pairs) and struct?(alias, metadata) do
+         true <- Keyword.keyword?(pairs) and (struct?(alias, metadata) or alias == nil) do
       {:struct, alias, pairs}
     else
       _ -> nil
