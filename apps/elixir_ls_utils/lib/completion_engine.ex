@@ -781,7 +781,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
                       }
                     end
 
-    format_expansion(entries)
+    format_expansion(entries |> Enum.sort_by(& &1.name))
   end
 
   defp container_context(code, env, metadata, cursor_position) do
