@@ -85,6 +85,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
     %{type: :bitstring_option, name: "utf32"}
   ]
 
+  @alias_only_atoms ~w(alias import require)a
+  @alias_only_charlists ~w(alias import require)c
+
   @type attribute :: %{
           type: :attribute,
           name: String.t(),
@@ -162,6 +165,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_erlang_modules(List.to_string(unquoted_atom), env, metadata)
 
       {:dot, path, hint} ->
+        if alias = alias_only(path, hint, code, env, metadata, cursor_position) do
+          expand_aliases(List.to_string(alias), env, metadata, cursor_position, false, opts)
+        else
         expand_dot(
           path,
           List.to_string(hint),
@@ -172,6 +178,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           false,
           opts
         )
+        end
 
       {:dot_arity, path, hint} ->
         expand_dot(
@@ -222,6 +229,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, env, metadata, cursor_position)
+
+      {:local_call, local} when local in @alias_only_charlists ->
+        expand_aliases("", env, metadata, cursor_position, false, opts)
 
       {:local_call, _local} ->
         # no need to expand signatures here, we have signatures provider
@@ -811,6 +821,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
           [cursor, pairs, {:|, _, [expr | _]}, {:%{}, _, _} | _] ->
             container_context_map(cursor, pairs, expr, env, metadata, cursor_position) |> dbg
 
+          [cursor, {special_form, _, [cursor]} | _] when special_form in @alias_only_atoms ->
+            :alias_only
+
           [cursor | tail] ->
             case remove_operators(tail, cursor) do
               [{:"::", _, [_, _]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
@@ -933,6 +946,17 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   ## Aliases and modules
+
+  defp alias_only(path, hint, code, env, metadata, cursor_position) do
+    # TODO __MODULE__ @?
+    with {:alias, alias} <- path,
+         [] <- hint,
+         :alias_only <- container_context(code, env, metadata, cursor_position) do
+      alias ++ [?.]
+    else
+      _ -> nil
+    end
+  end
 
   defp expand_aliases(
          all,

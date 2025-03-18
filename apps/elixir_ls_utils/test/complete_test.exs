@@ -1878,6 +1878,15 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
   end
 
+  test "completion for aliases in special forms" do
+    assert entries = expand(~c"alias ")
+    assert Enum.any?(entries, & &1.name == "Atom")
+    refute Enum.any?(entries, & &1.name == "is_atom")
+
+    assert entries = expand(~c"alias Date.")
+    assert Enum.any?(entries, & &1.name == "Range")
+  end
+
   test "ignore invalid Elixir module literals" do
     defmodule :"ElixirSense.Providers.Suggestion.CompleteTest.Unicodé", do: nil
     assert expand(~c"ElixirLS.Utils.CompletionEngineTest.Unicod") == []
