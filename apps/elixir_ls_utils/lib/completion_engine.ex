@@ -197,17 +197,18 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # we choose to return more and handle some special cases
         # TODO expand_expr(env) after we require elixir 1.13
 
-        # case code |> dbg do
-        #   [?^] -> expand_var("", env, metadata)
-        #   [?%] ->
-        #     # expand_aliases("", env, metadata, cursor_position, true, opts)
-        #     expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
-        #   _ ->
-        #     # expand_expr(env, metadata, cursor_position, opts)
-        #     expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
-        # end
+        
         {results, continue?} = expand_container_context(code, :expr, "", env, metadata, cursor_position)
-        if continue?, do: results ++ expand_local_or_var("", env, metadata, cursor_position), else: results
+        if continue?, do: results ++ (
+        # expand_local_or_var("", env, metadata, cursor_position), else: results
+        case code |> dbg do
+          [?^] -> expand_var("", env, metadata)
+          [?%] ->
+            expand_aliases("", env, metadata, cursor_position, true, opts)
+            # expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
+          _ ->
+            expand_expr(env, metadata, cursor_position, opts)
+        end), else: results
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
@@ -276,8 +277,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       # elixir >= 1.14
       {:struct, {:local_or_var, local_or_var}} ->
-        # TODO consider suggesting struct fields here when we require elixir 1.13
-        # expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
         expand_local_or_var(List.to_string(local_or_var), env, metadata, cursor_position)
 
       {:module_attribute, attribute} ->

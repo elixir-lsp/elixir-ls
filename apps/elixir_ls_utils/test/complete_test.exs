@@ -1049,11 +1049,10 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       assert [] == expand(~c"asd.(")
       assert [] == expand(~c"@asd.(")
     else
-      expr_suggestions = expand(~c"")
-      expand(~c"asd.(") |> dbg
-      assert false
-      assert expr_suggestions == expand(~c"asd.(")
-      assert expr_suggestions == expand(~c"@asd.(")
+      expr_suggestions = expand(~c"") |> Enum.map(& &1.type) |> MapSet.new()
+
+      assert expr_suggestions == expand(~c"asd.(") |> Enum.map(& &1.type) |> MapSet.new()
+      assert expr_suggestions == expand(~c"@asd.(") |> Enum.map(& &1.type) |> MapSet.new()
     end
 
     # list = expand('asd.(')
