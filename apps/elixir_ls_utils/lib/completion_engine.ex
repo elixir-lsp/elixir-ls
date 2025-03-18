@@ -788,17 +788,17 @@ defmodule ElixirLS.Utils.CompletionEngine do
     case NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) |> dbg do
-          [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
-            container_context_struct(cursor, pairs |> dbg, aliases, env, metadata) |> dbg
+          [cursor, {:%{}, _, pairs}, {:%, _, [struct_module_ast, _map]} | _] ->
+            container_context_struct(cursor, pairs |> dbg, struct_module_ast, env, metadata, cursor_position) |> dbg
 
           [
             cursor,
             pairs,
             {:|, _, _},
             {:%{}, _, _},
-            {:%, _, [{:__aliases__, _, aliases}, _map]} | _
+            {:%, _, [struct_module_ast, _map]} | _
           ] ->
-            container_context_struct(cursor, pairs, aliases, env, metadata)
+            container_context_struct(cursor, pairs, struct_module_ast, env, metadata, cursor_position)
 
           [cursor, pairs, {:|, _, [expr | _]}, {:%{}, _, _} | _] ->
             container_context_map(cursor, pairs, expr, env, metadata, cursor_position) |> dbg
@@ -824,9 +824,47 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp remove_operators(tail, _previous),
     do: tail
 
-  defp container_context_struct(cursor, pairs, aliases, env, metadata) do
+  defp expand_struct_module(atom, _env, _metadata, _cursor_position) when is_atom(atom) do
+    {:ok, atom}
+  end
+
+  defp expand_struct_module({:__MODULE__, _, context}, env = %{module: module}, _metadata, _cursor_position) when is_atom(context) and not is_nil(module) do
+    {:ok, module}
+  end
+
+  defp expand_struct_module({:@, _, [{attribute, _, context}]}, env = %{function: {_, _}}, metadata, cursor_position) when is_atom(context) and is_atom(attribute) do
+    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
+      {:ok, {:atom, atom}} ->
+        {:ok, atom}
+      _ ->
+        :error
+    end
+  end
+
+  defp expand_struct_module({:__aliases__, _, aliases = [h | _]}, env, metadata, _cursor_position) when is_atom(h) do
+    value_from_alias(aliases, env, metadata)
+  end
+
+  defp expand_struct_module({:__aliases__, _, aliases = [{:__MODULE__, _, context} | rest]}, env = %{module: module}, metadata, _cursor_position) when is_atom(context) and not is_nil(module) do
+    {:ok, Module.concat([module | rest])}
+  end
+
+  defp expand_struct_module({:__aliases__, _, aliases = [{:@, _, [{attribute, _, context}]} | rest]}, env = %{function: {_, _}}, metadata, cursor_position) when is_atom(context) and is_atom(attribute) do
+    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
+      {:ok, {:atom, atom}} ->
+        {:ok, Module.concat([atom | rest])}
+      _ ->
+        :error
+    end
+  end
+
+  defp expand_struct_module(_ast, _env, _metadata, _cursor_position) do
+    :error
+  end
+
+  defp container_context_struct(cursor, pairs, ast, env, metadata, cursor_position) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-         {:ok, alias} <- value_from_alias(aliases, env, metadata),
+         {:ok, alias} <- expand_struct_module(ast, env, metadata, cursor_position),
          true <- Keyword.keyword?(pairs) and struct?(alias, metadata) do
       {:struct, alias, pairs}
     else

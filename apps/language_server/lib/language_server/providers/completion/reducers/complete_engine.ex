@@ -122,7 +122,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.CompleteEngine d
     hint =
       case Source.get_v12_module_prefix(text_before, module) do
         nil ->
-          hint
+          text_before
 
         module_string ->
           # multi alias syntax detected
