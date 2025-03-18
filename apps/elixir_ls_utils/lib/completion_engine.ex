@@ -206,11 +206,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
         #     # expand_expr(env, metadata, cursor_position, opts)
         #     expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
         # end
-        expand_container_context(code, :expr, "", env, metadata, cursor_position) || expand_local_or_var("", env, metadata, cursor_position)
+        {results, continue?} = expand_container_context(code, :expr, "", env, metadata, cursor_position)
+        if continue?, do: results ++ expand_local_or_var("", env, metadata, cursor_position), else: results
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
-        expand_container_context(code, :expr, hint, env, metadata, cursor_position) || expand_local_or_var(hint, env, metadata, cursor_position)
+
+        {results, continue?} = expand_container_context(code, :expr, hint, env, metadata, cursor_position)
+        if continue?, do: results ++ expand_local_or_var(hint, env, metadata, cursor_position), else: results
 
       # elixir >= 1.18
       {:capture_arg, capture_arg} ->
@@ -228,8 +231,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_expr(env, metadata, cursor_position, opts)
 
       {:operator, operator} when operator in ~w(:: -)c ->
-        expand_container_context(code, :operator, "", env, metadata, cursor_position) |> dbg ||
-          expand_local(List.to_string(operator), false, env, metadata, cursor_position) |> dbg
+        {results, continue?} = expand_container_context(code, :operator, "", env, metadata, cursor_position)
+        if continue?, do: results ++ expand_local(List.to_string(operator), false, env, metadata, cursor_position), else: results
 
       {:operator, operator} ->
         case operator do
@@ -242,7 +245,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_local(List.to_string(operator), true, env, metadata, cursor_position)
 
       {:operator_call, operator} when operator in ~w(|)c ->
-        expand_container_context(code, :expr, "", env, metadata, cursor_position) || expand_local_or_var("", env, metadata, cursor_position)
+        {results, continue?} = expand_container_context(code, :expr, "", env, metadata, cursor_position)
+        if continue?, do: results ++ expand_local_or_var("", env, metadata, cursor_position), else: results
 
       {:operator_call, _operator} ->
         expand_local_or_var("", env, metadata, cursor_position)
@@ -723,10 +727,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp expand_container_context(code, context, hint, env, metadata, cursor_position) do
     case container_context(code, env, metadata, cursor_position) |> dbg do
       {:map, map, pairs} when context == :expr ->
-        container_context_map_fields(pairs, :map, map, hint, metadata)
+        continue? = pairs == []
+        {container_context_map_fields(pairs, :map, map, hint, metadata), continue?}
 
       {:struct, alias, pairs} when context == :expr ->
-        container_context_map_fields(pairs, {:struct, alias}, %{}, hint, metadata)
+        continue? = pairs == []
+        {container_context_map_fields(pairs, {:struct, alias}, %{}, hint, metadata), continue?}
 
       :bitstring_modifier ->
         existing =
@@ -736,12 +742,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
           |> List.last()
           |> String.split("-")
 
-        @bitstring_modifiers
+        results = @bitstring_modifiers
         |> Enum.filter(&(Matcher.match?(&1.name, hint) and &1.name not in existing))
         |> format_expansion()
 
+        {results, false}
+
       _ ->
-        nil
+        {[], true}
     end
   end
 

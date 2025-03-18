@@ -3194,15 +3194,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     list = Suggestion.suggestions(buffer, 12, 19)
 
     assert [
-             %{
-               origin: "MyServer",
-               type: :field,
-               name: "some_field",
-               call?: false,
-               subtype: :struct_field
-             },
              %{name: "some_arg", type: :variable},
-             %{name: "some_func", type: :function}
+             %{name: "some_func", type: :function},
+             %{
+              origin: "MyServer",
+              type: :field,
+              name: "some_field",
+              call?: false,
+              subtype: :struct_field
+            }
            ] = list
   end
 
