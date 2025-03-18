@@ -2794,12 +2794,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
   test "suggestion for struct fields atom module" do
     buffer = """
     defmodule Mod do
-      %:"Elixir.Stream"{
+      %:"Elixir.ElixirSenseExample.IO.Stream"{
     end
     """
 
     list =
-      Suggestion.suggestions(buffer, 2, 21)
+      Suggestion.suggestions(buffer, 2, 43)
       |> Enum.filter(&(&1.type in [:field]))
 
     assert list == [
