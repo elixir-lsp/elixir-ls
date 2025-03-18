@@ -1706,9 +1706,11 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
         }
       ]
     }
-    assert entries = expand(~c"%{map | ", env) |> Enum.filter(& &1.type == :field)
-    assert %{call?: false, name: "some", origin: nil, subtype: :map_field, type: :field, type_spec: nil} = entries |> Enum.find(& &1.name == "some")
-    assert entries |> Enum.any?(& &1.name == "other")
+    if Version.match?(System.version(), ">= 1.15.0") do
+      assert entries = expand(~c"%{map | ", env) |> Enum.filter(& &1.type == :field)
+      assert %{call?: false, name: "some", origin: nil, subtype: :map_field, type: :field, type_spec: nil} = entries |> Enum.find(& &1.name == "some")
+      assert entries |> Enum.any?(& &1.name == "other")
+    end
 
     assert entries = expand(~c"%{map | some: \"foo\",", env) |> Enum.filter(& &1.type == :field)
     refute entries |> Enum.any?(& &1.name == "some")
