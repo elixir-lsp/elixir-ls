@@ -644,7 +644,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp match_erlang_modules(hint, %State.Env{} = env, %Metadata{} = metadata) do
-    for mod <- match_modules(hint, true, env, metadata),
+    for mod <- match_modules(hint, false, env, metadata),
         usable_as_unquoted_module?(mod) do
       mod_as_atom = String.to_atom(mod)
 
@@ -1117,7 +1117,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         filter.(mod_as_atom),
         parts = String.split(mod, "."),
         depth <= length(parts),
-        name = Enum.at(parts, depth - 1),
+        [name] = [Enum.at(parts, depth - 1)],
         valid_alias_piece?("." <> name),
         concatted = parts |> Enum.take(depth) |> concat_module.(),
         filter.(concatted) do
@@ -1298,13 +1298,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
     |> Enum.filter(fn {suggestion, _required_alias} -> valid_alias_piece?("." <> suggestion) end)
   end
 
-  defp match_modules(hint, root, %State.Env{} = env, %Metadata{} = metadata) do
+  defp match_modules(hint, elixir_root?, %State.Env{} = env, %Metadata{} = metadata) do
     hint_parts = hint |> String.split(".")
     hint_parts_length = length(hint_parts)
     [hint_suffix | hint_prefix] = hint_parts |> Enum.reverse()
 
-    root
-    |> get_modules(env, metadata)
+    get_modules(elixir_root?, env, metadata)
     |> Enum.sort()
     |> Enum.dedup()
     |> Enum.filter(fn mod ->
