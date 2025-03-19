@@ -137,8 +137,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
   @type bitstring_option :: %{
           type: :bitstring_option,
           name: String.t(),
-          arity: non_neg_integer,
-   }
+          arity: non_neg_integer
+        }
 
   @type t() ::
           mod()
@@ -168,16 +168,16 @@ defmodule ElixirLS.Utils.CompletionEngine do
         if alias = alias_only(path, hint, code, env, metadata, cursor_position) do
           expand_aliases(List.to_string(alias), env, metadata, cursor_position, false, opts)
         else
-        expand_dot(
-          path,
-          List.to_string(hint),
-          false,
-          env,
-          metadata,
-          cursor_position,
-          false,
-          opts
-        )
+          expand_dot(
+            path,
+            List.to_string(hint),
+            false,
+            env,
+            metadata,
+            cursor_position,
+            false,
+            opts
+          )
         end
 
       {:dot_arity, path, hint} ->
@@ -204,22 +204,33 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # we choose to return more and handle some special cases
         # TODO expand_expr(env) after we require elixir 1.13
 
-        
-        {results, continue?} = expand_container_context(code, :expr, "", env, metadata, cursor_position)
-        if continue?, do: results ++ (
-        case code |> dbg do
-          [?^] -> expand_var("", env, metadata)
-          [?%] ->
-            expand_aliases("", env, metadata, cursor_position, true, opts)
-          _ ->
-            expand_expr(env, metadata, cursor_position, opts)
-        end), else: results
+        {results, continue?} =
+          expand_container_context(code, :expr, "", env, metadata, cursor_position)
+
+        if continue?,
+          do:
+            results ++
+              (case code |> dbg do
+                 [?^] ->
+                   expand_var("", env, metadata)
+
+                 [?%] ->
+                   expand_aliases("", env, metadata, cursor_position, true, opts)
+
+                 _ ->
+                   expand_expr(env, metadata, cursor_position, opts)
+               end),
+          else: results
 
       {:local_or_var, local_or_var} ->
         hint = List.to_string(local_or_var)
 
-        {results, continue?} = expand_container_context(code, :expr, hint, env, metadata, cursor_position)
-        if continue?, do: results ++ expand_local_or_var(hint, env, metadata, cursor_position), else: results
+        {results, continue?} =
+          expand_container_context(code, :expr, hint, env, metadata, cursor_position)
+
+        if continue?,
+          do: results ++ expand_local_or_var(hint, env, metadata, cursor_position),
+          else: results
 
       # elixir >= 1.18
       {:capture_arg, capture_arg} ->
@@ -240,8 +251,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_expr(env, metadata, cursor_position, opts)
 
       {:operator, operator} when operator in ~w(:: -)c ->
-        {results, continue?} = expand_container_context(code, :operator, "", env, metadata, cursor_position)
-        if continue?, do: results ++ expand_local(List.to_string(operator), false, env, metadata, cursor_position), else: results
+        {results, continue?} =
+          expand_container_context(code, :operator, "", env, metadata, cursor_position)
+
+        if continue?,
+          do:
+            results ++
+              expand_local(List.to_string(operator), false, env, metadata, cursor_position),
+          else: results
 
       {:operator, operator} ->
         case operator do
@@ -254,8 +271,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_local(List.to_string(operator), true, env, metadata, cursor_position)
 
       {:operator_call, operator} when operator in ~w(|)c ->
-        {results, continue?} = expand_container_context(code, :expr, "", env, metadata, cursor_position)
-        if continue?, do: results ++ expand_local_or_var("", env, metadata, cursor_position), else: results
+        {results, continue?} =
+          expand_container_context(code, :expr, "", env, metadata, cursor_position)
+
+        if continue?,
+          do: results ++ expand_local_or_var("", env, metadata, cursor_position),
+          else: results
 
       {:operator_call, _operator} ->
         expand_local_or_var("", env, metadata, cursor_position)
@@ -707,9 +728,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
           |> List.last()
           |> String.split("-")
 
-        results = @bitstring_modifiers
-        |> Enum.filter(&(Matcher.match?(&1.name, hint) and &1.name not in existing))
-        |> format_expansion()
+        results =
+          @bitstring_modifiers
+          |> Enum.filter(&(Matcher.match?(&1.name, hint) and &1.name not in existing))
+          |> format_expansion()
 
         {results, false}
 
@@ -719,30 +741,33 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp container_context_map_fields(pairs, kind, map, hint, metadata) do
-    {keys, types, alias} = case kind do
-      {:struct, alias} ->
-        keys = Struct.get_fields(alias, metadata.structs)
-        types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
-        {keys, types, alias}
-      _ ->
-      {Map.keys(map), %{}, nil}
-    end |> dbg
+    {keys, types, alias} =
+      case kind do
+        {:struct, alias} ->
+          keys = Struct.get_fields(alias, metadata.structs)
+          types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+          {keys, types, alias}
+
+        _ ->
+          {Map.keys(map), %{}, nil}
+      end
+      |> dbg
 
     entries =
       for key <- keys,
           not Keyword.has_key?(pairs |> dbg, key),
           name = Atom.to_string(key),
           Matcher.match?(name, hint) do
-            %{
-                        kind: :field,
-                        name: name,
-                        subtype: if(kind == :map, do: :map_field, else: :struct_field),
-                        value_is_map: false,
-                        origin: if(kind != :map and alias != nil, do: inspect(alias)),
-                        call?: false,
-                        type_spec: map_field_spec(key, types, alias)
-                      }
-                    end
+        %{
+          kind: :field,
+          name: name,
+          subtype: if(kind == :map, do: :map_field, else: :struct_field),
+          value_is_map: false,
+          origin: if(kind != :map and alias != nil, do: inspect(alias)),
+          call?: false,
+          type_spec: map_field_spec(key, types, alias)
+        }
+      end
 
     format_expansion(entries |> Enum.sort_by(& &1.name))
   end
@@ -752,7 +777,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) |> dbg do
           [cursor, {:%{}, _, pairs}, {:%, _, [struct_module_ast, _map]} | _] ->
-            container_context_struct(cursor, pairs |> dbg, struct_module_ast, env, metadata, cursor_position) |> dbg
+            container_context_struct(
+              cursor,
+              pairs |> dbg,
+              struct_module_ast,
+              env,
+              metadata,
+              cursor_position
+            )
+            |> dbg
 
           [
             cursor,
@@ -761,7 +794,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
             {:%{}, _, _},
             {:%, _, [struct_module_ast, _map]} | _
           ] ->
-            container_context_struct(cursor, pairs, struct_module_ast, env, metadata, cursor_position)
+            container_context_struct(
+              cursor,
+              pairs,
+              struct_module_ast,
+              env,
+              metadata,
+              cursor_position
+            )
 
           [cursor, pairs, {:|, _, [expr | _]}, {:%{}, _, _} | _] ->
             container_context_map(cursor, pairs, expr, env, metadata, cursor_position) |> dbg
@@ -794,37 +834,70 @@ defmodule ElixirLS.Utils.CompletionEngine do
     {:ok, atom}
   end
 
-  defp expand_struct_module({:__MODULE__, _, context}, env = %{module: module}, _metadata, _cursor_position) when is_atom(context) and not is_nil(module) do
+  defp expand_struct_module(
+         {:__MODULE__, _, context},
+         env = %{module: module},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and not is_nil(module) do
     {:ok, module}
   end
 
-  defp expand_struct_module({:@, _, [{attribute, _, context}]}, env = %{function: {_, _}}, metadata, cursor_position) when is_atom(context) and is_atom(attribute) do
+  defp expand_struct_module(
+         {:@, _, [{attribute, _, context}]},
+         env = %{function: {_, _}},
+         metadata,
+         cursor_position
+       )
+       when is_atom(context) and is_atom(attribute) do
     case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
       {:ok, {:atom, atom}} ->
         {:ok, atom}
+
       _ ->
         :error
     end
   end
 
-  defp expand_struct_module({:__aliases__, _, aliases = [h | _]}, env, metadata, _cursor_position) when is_atom(h) do
+  defp expand_struct_module({:__aliases__, _, aliases = [h | _]}, env, metadata, _cursor_position)
+       when is_atom(h) do
     value_from_alias(aliases, env, metadata)
   end
 
-  defp expand_struct_module({:__aliases__, _, aliases = [{:__MODULE__, _, context} | rest]}, env = %{module: module}, metadata, _cursor_position) when is_atom(context) and not is_nil(module) do
+  defp expand_struct_module(
+         {:__aliases__, _, aliases = [{:__MODULE__, _, context} | rest]},
+         env = %{module: module},
+         metadata,
+         _cursor_position
+       )
+       when is_atom(context) and not is_nil(module) do
     {:ok, Module.concat([module | rest])}
   end
 
-  defp expand_struct_module({:__aliases__, _, aliases = [{:@, _, [{attribute, _, context}]} | rest]}, env = %{function: {_, _}}, metadata, cursor_position) when is_atom(context) and is_atom(attribute) do
+  defp expand_struct_module(
+         {:__aliases__, _, aliases = [{:@, _, [{attribute, _, context}]} | rest]},
+         env = %{function: {_, _}},
+         metadata,
+         cursor_position
+       )
+       when is_atom(context) and is_atom(attribute) do
     case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
       {:ok, {:atom, atom}} ->
         {:ok, Module.concat([atom | rest])}
+
       _ ->
         :error
     end
   end
 
-  defp expand_struct_module({variable, _, context}, env = %{context: :match}, _metadata, _cursor_position) when is_atom(context) and is_atom(variable) do
+  defp expand_struct_module(
+         {variable, _, context},
+         env = %{context: :match},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and is_atom(variable) do
     {:ok, nil}
   end
 
@@ -844,50 +917,74 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   defp container_context_map(cursor, pairs, expr, env, metadata, cursor_position) do
     # TODO extract to function
-    binding_ast = case expr do
-      {:@, _, [{atom, _, context}]} when is_atom(atom) and is_atom(context) -> {:attribute, atom}
-      {atom, _, context} when is_atom(atom) and is_atom(context) -> {:variable, atom, :any}
-      {atom, _, args} when is_atom(atom) and is_list(args) ->
-        # TODO filter special
-        # TODO map args
-        {:local_call, atom, cursor_position, (for a <- args, do: nil)}
-      {{:., _, [remote, fun]}, _, args} when is_atom(fun) and is_list(args) ->
-        remote = case remote do
-          atom when is_atom(atom) -> atom
-          {:__MODULE__, _, context} when is_atom(context) -> env.module
-          {:__aliases__, _, [:__MODULE__ | rest]} ->
-            # TODO check if it works
-            Module.concat([env.module | rest])
-          # TODO attribute submodule
-          {:__aliases__, _, list = [h | _]} when is_atom(h) ->
-            # TODO expand alias
-            Module.concat(list)
-          _ -> nil
-        end
-        if remote do
+    binding_ast =
+      case expr do
+        {:@, _, [{atom, _, context}]} when is_atom(atom) and is_atom(context) ->
+          {:attribute, atom}
+
+        {atom, _, context} when is_atom(atom) and is_atom(context) ->
+          {:variable, atom, :any}
+
+        {atom, _, args} when is_atom(atom) and is_list(args) ->
+          # TODO filter special
           # TODO map args
-          {:call, {:atom, remote}, fun, (for a <- args, do: nil)}
-        end
-      _ -> nil
-    end
+          {:local_call, atom, cursor_position, for(a <- args, do: nil)}
+
+        {{:., _, [remote, fun]}, _, args} when is_atom(fun) and is_list(args) ->
+          remote =
+            case remote do
+              atom when is_atom(atom) ->
+                atom
+
+              {:__MODULE__, _, context} when is_atom(context) ->
+                env.module
+
+              {:__aliases__, _, [:__MODULE__ | rest]} ->
+                # TODO check if it works
+                Module.concat([env.module | rest])
+
+              # TODO attribute submodule
+              {:__aliases__, _, list = [h | _]} when is_atom(h) ->
+                # TODO expand alias
+                Module.concat(list)
+
+              _ ->
+                nil
+            end
+
+          if remote do
+            # TODO map args
+            {:call, {:atom, remote}, fun, for(a <- args, do: nil)}
+          end
+
+        _ ->
+          nil
+      end
+
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
          {:ok, type} <- value_from_binding(binding_ast, env, metadata, cursor_position),
          true <- Keyword.keyword?(pairs) do
       case type do
         {:map, all, _} ->
           {:map, Map.new(all), pairs}
+
         {:struct, all, origin, _} ->
           case origin do
-            {:atom, alias} -> {:struct, alias, pairs}
+            {:atom, alias} ->
+              {:struct, alias, pairs}
+
             _ ->
               # TODO maybe add __struct__
               {:map, Map.new(all), pairs}
           end
-        _ -> nil
+
+        _ ->
+          nil
       end
     else
       _ -> nil
-    end |> dbg
+    end
+    |> dbg
   end
 
   ## Aliases and modules
@@ -1699,6 +1796,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp to_entries(%{type: :bitstring_option} = option) do
     [option]
   end
+
   defp to_entries(%{
          kind: :field,
          subtype: subtype,

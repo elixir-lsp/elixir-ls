@@ -1623,20 +1623,22 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   end
 
   test "completion for struct keys" do
-    assert entries = expand(~c"%URI{") |> Enum.filter(& &1.type == :field)
-    assert %{
-      name: "path",
-      type: :field,
-      origin: "URI",
-      subtype: :struct_field,
-      call?: false,
-      type_spec: "nil | binary()"
-    } = entries |> Enum.find(& &1.name == "path")
-    assert entries |> Enum.any?(& &1.name == "query")
+    assert entries = expand(~c"%URI{") |> Enum.filter(&(&1.type == :field))
 
-    assert entries = expand(~c"%URI{path: \"foo\",") |> Enum.filter(& &1.type == :field)
-    refute entries |> Enum.any?(& &1.name == "path")
-    assert entries |> Enum.any?(& &1.name == "query")
+    assert %{
+             name: "path",
+             type: :field,
+             origin: "URI",
+             subtype: :struct_field,
+             call?: false,
+             type_spec: "nil | binary()"
+           } = entries |> Enum.find(&(&1.name == "path"))
+
+    assert entries |> Enum.any?(&(&1.name == "query"))
+
+    assert entries = expand(~c"%URI{path: \"foo\",") |> Enum.filter(&(&1.type == :field))
+    refute entries |> Enum.any?(&(&1.name == "path"))
+    assert entries |> Enum.any?(&(&1.name == "query"))
 
     assert [%{name: "query"}] = expand(~c"%URI{path: \"foo\", que")
     assert [] == expand(~c"%URI{path: \"foo\", unkno")
@@ -1656,32 +1658,35 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       }
     }
 
-    assert entries = expand(~c"%MyStruct{", %Env{}, metadata) |> Enum.filter(& &1.type == :field)
+    assert entries = expand(~c"%MyStruct{", %Env{}, metadata) |> Enum.filter(&(&1.type == :field))
+
     assert %{
-      name: "some",
-      type: :field,
-      origin: "MyStruct",
-      subtype: :struct_field,
-      call?: false,
-      type_spec: nil
-    } = entries |> Enum.find(& &1.name == "some")
+             name: "some",
+             type: :field,
+             origin: "MyStruct",
+             subtype: :struct_field,
+             call?: false,
+             type_spec: nil
+           } = entries |> Enum.find(&(&1.name == "some"))
   end
 
   test "completion for struct keys in update syntax" do
-    assert entries = expand(~c"%URI{var | ") |> Enum.filter(& &1.type == :field)
-    assert %{
-      name: "path",
-      type: :field,
-      origin: "URI",
-      subtype: :struct_field,
-      call?: false,
-      type_spec: "nil | binary()"
-    } = entries |> Enum.find(& &1.name == "path")
-    assert entries |> Enum.any?(& &1.name == "query")
+    assert entries = expand(~c"%URI{var | ") |> Enum.filter(&(&1.type == :field))
 
-    assert entries = expand(~c"%URI{var | path: \"foo\",") |> Enum.filter(& &1.type == :field)
-    refute entries |> Enum.any?(& &1.name == "path")
-    assert entries |> Enum.any?(& &1.name == "query")
+    assert %{
+             name: "path",
+             type: :field,
+             origin: "URI",
+             subtype: :struct_field,
+             call?: false,
+             type_spec: "nil | binary()"
+           } = entries |> Enum.find(&(&1.name == "path"))
+
+    assert entries |> Enum.any?(&(&1.name == "query"))
+
+    assert entries = expand(~c"%URI{var | path: \"foo\",") |> Enum.filter(&(&1.type == :field))
+    refute entries |> Enum.any?(&(&1.name == "path"))
+    assert entries |> Enum.any?(&(&1.name == "query"))
 
     assert [%{name: "query"}] = expand(~c"%URI{var | path: \"foo\", que")
     assert [] == expand(~c"%URI{var | path: \"foo\", unkno")
@@ -1701,15 +1706,17 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       }
     }
 
-    assert entries = expand(~c"%MyStruct{var | ", %Env{}, metadata) |> Enum.filter(& &1.type == :field)
+    assert entries =
+             expand(~c"%MyStruct{var | ", %Env{}, metadata) |> Enum.filter(&(&1.type == :field))
+
     assert %{
-      name: "some",
-      type: :field,
-      origin: "MyStruct",
-      subtype: :struct_field,
-      call?: false,
-      type_spec: nil
-    } = entries |> Enum.find(& &1.name == "some")
+             name: "some",
+             type: :field,
+             origin: "MyStruct",
+             subtype: :struct_field,
+             call?: false,
+             type_spec: nil
+           } = entries |> Enum.find(&(&1.name == "some"))
   end
 
   test "completion for map keys in update syntax" do
@@ -1728,15 +1735,25 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
         }
       ]
     }
+
     if Version.match?(System.version(), ">= 1.15.0") do
-      assert entries = expand(~c"%{map | ", env) |> Enum.filter(& &1.type == :field)
-      assert %{call?: false, name: "some", origin: nil, subtype: :map_field, type: :field, type_spec: nil} = entries |> Enum.find(& &1.name == "some")
-      assert entries |> Enum.any?(& &1.name == "other")
+      assert entries = expand(~c"%{map | ", env) |> Enum.filter(&(&1.type == :field))
+
+      assert %{
+               call?: false,
+               name: "some",
+               origin: nil,
+               subtype: :map_field,
+               type: :field,
+               type_spec: nil
+             } = entries |> Enum.find(&(&1.name == "some"))
+
+      assert entries |> Enum.any?(&(&1.name == "other"))
     end
 
-    assert entries = expand(~c"%{map | some: \"foo\",", env) |> Enum.filter(& &1.type == :field)
-    refute entries |> Enum.any?(& &1.name == "some")
-    assert entries |> Enum.any?(& &1.name == "other")
+    assert entries = expand(~c"%{map | some: \"foo\",", env) |> Enum.filter(&(&1.type == :field))
+    refute entries |> Enum.any?(&(&1.name == "some"))
+    assert entries |> Enum.any?(&(&1.name == "other"))
 
     assert [%{name: "other"}] = expand(~c"%{map | some: \"foo\", oth", env)
     assert [] = expand(~c"%{map | some: \"foo\", unkno", env)
@@ -1883,30 +1900,32 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   end
 
   test "completion for bitstring modifiers" do
-    assert entries = expand('<<foo::') |> Enum.filter(& &1[:type] == :bitstring_option)
-    assert Enum.any?(entries, & &1.name == "integer")
-    assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
+    assert entries = expand('<<foo::') |> Enum.filter(&(&1[:type] == :bitstring_option))
+    assert Enum.any?(entries, &(&1.name == "integer"))
+    assert Enum.any?(entries, &(&1.name == "size" and &1.arity == 1))
 
     assert [%{name: "integer", type: :bitstring_option}] = expand('<<foo::int')
 
-    assert entries = expand('<<foo::integer-') |> Enum.filter(& &1[:type] == :bitstring_option)
-    refute Enum.any?(entries, & &1.name == "integer")
-    assert Enum.any?(entries, & &1.name == "little")
-    assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
+    assert entries = expand('<<foo::integer-') |> Enum.filter(&(&1[:type] == :bitstring_option))
+    refute Enum.any?(entries, &(&1.name == "integer"))
+    assert Enum.any?(entries, &(&1.name == "little"))
+    assert Enum.any?(entries, &(&1.name == "size" and &1.arity == 1))
 
-    assert entries = expand('<<foo::integer-little-') |> Enum.filter(& &1[:type] == :bitstring_option)
-    refute Enum.any?(entries, & &1.name == "integer")
-    refute Enum.any?(entries, & &1.name == "little")
-    assert Enum.any?(entries, & &1.name == "size" and &1.arity == 1)
+    assert entries =
+             expand('<<foo::integer-little-') |> Enum.filter(&(&1[:type] == :bitstring_option))
+
+    refute Enum.any?(entries, &(&1.name == "integer"))
+    refute Enum.any?(entries, &(&1.name == "little"))
+    assert Enum.any?(entries, &(&1.name == "size" and &1.arity == 1))
   end
 
   test "completion for aliases in special forms" do
     assert entries = expand(~c"alias ")
-    assert Enum.any?(entries, & &1.name == "Atom")
-    refute Enum.any?(entries, & &1.name == "is_atom")
+    assert Enum.any?(entries, &(&1.name == "Atom"))
+    refute Enum.any?(entries, &(&1.name == "is_atom"))
 
     assert entries = expand(~c"alias Date.")
-    assert Enum.any?(entries, & &1.name == "Range")
+    assert Enum.any?(entries, &(&1.name == "Range"))
   end
 
   test "ignore invalid Elixir module literals" do
