@@ -207,12 +207,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
         
         {results, continue?} = expand_container_context(code, :expr, "", env, metadata, cursor_position)
         if continue?, do: results ++ (
-        # expand_local_or_var("", env, metadata, cursor_position), else: results
         case code |> dbg do
           [?^] -> expand_var("", env, metadata)
           [?%] ->
             expand_aliases("", env, metadata, cursor_position, true, opts)
-            # expand_struct_fields_or_local_or_var(code, "", env, metadata, cursor_position)
           _ ->
             expand_expr(env, metadata, cursor_position, opts)
         end), else: results
@@ -691,48 +689,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     # Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
   end
 
-  # defp expand_struct_fields_or_local_or_var(code, hint, env, metadata, cursor_position) do
-  #   with {:ok, quoted} <- NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg,
-  #        {aliases, pairs} <- find_struct_fields(quoted),
-  #        {:ok, alias} <- value_from_alias(aliases, env, metadata),
-  #        true <- struct?(alias, metadata) do
-
-  #     types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
-
-  #     entries =
-  #       for key <- Struct.get_fields(alias, metadata.structs),
-  #           not Keyword.has_key?(pairs, key),
-  #           name = Atom.to_string(key),
-  #           Matcher.match?(name, hint),
-  #           [spec] = [case types[key] do
-  #               nil ->
-  #                 case key do
-  #                   :__struct__ -> inspect(alias) || "atom()"
-  #                   :__exception__ -> "true"
-  #                   _ -> nil
-  #                 end
-
-  #               some ->
-  #                 Introspection.to_string_with_parens(some)
-  #             end],
-  #           do: %{
-  #             kind: :field,
-  #             name: name,
-  #             subtype: :struct_field,
-  #             value_is_map: false,
-  #             origin: inspect(alias),
-  #             call?: false,
-  #             type_spec: spec
-  #           }
-            
-  #           # %{kind: :keyword, name: name}
-
-  #     format_expansion(entries|>Enum.sort_by(& &1.name))
-  #   else
-  #     _ -> expand_local_or_var(hint, env, metadata, cursor_position)
-  #   end
-  # end
-
   defp expand_container_context(code, context, hint, env, metadata, cursor_position) do
     case container_context(code, env, metadata, cursor_position) |> dbg do
       {:map, map, pairs} when context == :expr ->
@@ -777,25 +733,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
           not Keyword.has_key?(pairs |> dbg, key),
           name = Atom.to_string(key),
           Matcher.match?(name, hint) do
-            spec = case types[key] do
-                            nil ->
-                              case key do
-                                :__struct__ -> if(alias, do: inspect(alias), else: "atom()")
-                                :__exception__ -> "true"
-                                _ -> nil
-                              end
-            
-                            some ->
-                              Introspection.to_string_with_parens(some)
-                          end
             %{
                         kind: :field,
                         name: name,
                         subtype: if(kind == :map, do: :map_field, else: :struct_field),
                         value_is_map: false,
-                        origin: if(kind != :map and alias, do: inspect(alias)),
+                        origin: if(kind != :map and alias != nil, do: inspect(alias)),
                         call?: false,
-                        type_spec: spec
+                        type_spec: map_field_spec(key, types, alias)
                       }
                     end
 
@@ -1698,7 +1643,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
               true
             )
 
-          {:struct_field, inspect(mod), types}
+          {:struct_field, mod, types}
 
         {:struct, nil} ->
           {:struct_field, nil, %{}}
@@ -1726,13 +1671,26 @@ defmodule ElixirLS.Utils.CompletionEngine do
         name: key_str,
         subtype: subtype,
         value_is_map: value_is_map,
-        origin: origin,
+        origin: if(subtype == :struct_field and origin != nil, do: inspect(origin)),
         call?: true,
-        # TODO make it use the same code
-        type_spec: if(types[key], do: Introspection.to_string_with_parens(types[key]))
+        type_spec: map_field_spec(key, types, origin)
       }
     end
     |> Enum.sort_by(& &1.name)
+  end
+
+  defp map_field_spec(key, specs, alias) do
+    case specs[key] do
+      nil ->
+        case key do
+          :__struct__ -> if(alias, do: inspect(alias), else: "atom()")
+          :__exception__ -> "true"
+          _ -> nil
+        end
+
+      some ->
+        Introspection.to_string_with_parens(some)
+    end
   end
 
   ## Ad-hoc conversions

@@ -1805,7 +1805,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: "ElixirLS.Utils.CompletionEngineTest.MyStruct"
                },
                %{
                  name: "a_mod",
@@ -1869,7 +1869,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: nil
+                 type_spec: "atom()"
                },
                %{
                  call?: true,
