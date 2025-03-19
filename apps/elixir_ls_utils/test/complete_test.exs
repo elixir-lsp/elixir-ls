@@ -1687,7 +1687,29 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [] == expand(~c"%URI{var | path: \"foo\", unkno")
     assert [] = expand(~c"%Unkown{var | path: \"foo\", unkno")
 
-    # TODO metadata
+    metadata = %Metadata{
+      types: %{
+        {MyStruct, :t, 0} => %ElixirSense.Core.State.TypeInfo{
+          name: :t,
+          args: [[]],
+          specs: ["@type t :: %MyStruct{some: integer}"],
+          kind: :type
+        }
+      },
+      structs: %{
+        Elixir.MyStruct => %ElixirSense.Core.State.StructInfo{type: :defstruct, fields: [some: 1]}
+      }
+    }
+
+    assert entries = expand(~c"%MyStruct{var | ", %Env{}, metadata) |> Enum.filter(& &1.type == :field)
+    assert %{
+      name: "some",
+      type: :field,
+      origin: "MyStruct",
+      subtype: :struct_field,
+      call?: false,
+      type_spec: nil
+    } = entries |> Enum.find(& &1.name == "some")
   end
 
   test "completion for map keys in update syntax" do
