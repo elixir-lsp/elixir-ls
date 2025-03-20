@@ -154,7 +154,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   def do_expand(code, %State.Env{} = env, %Metadata{} = metadata, cursor_position, opts \\ []) do
-    case NormalizedCode.Fragment.cursor_context(code |> dbg) |> dbg do
+    case NormalizedCode.Fragment.cursor_context(code) do
       {:alias, hint} when is_list(hint) ->
         expand_aliases(List.to_string(hint), env, metadata, cursor_position, false, opts)
 
@@ -210,7 +210,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         if continue?,
           do:
             results ++
-              (case code |> dbg do
+              (case code do
                  [?^] ->
                    expand_var("", env, metadata)
 
@@ -755,7 +755,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp expand_container_context(code, context, hint, env, metadata, cursor_position) do
-    case container_context(code, env, metadata, cursor_position) |> dbg do
+    case container_context(code, env, metadata, cursor_position) do
       {:map, map, pairs} when context == :expr ->
         continue? = pairs == []
         {container_context_map_fields(pairs, :map, map, hint, metadata), continue?}
@@ -795,11 +795,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
         _ ->
           {Map.keys(map), %{}, nil}
       end
-      |> dbg
 
     entries =
       for key <- keys,
-          not Keyword.has_key?(pairs |> dbg, key),
+          not Keyword.has_key?(pairs, key),
           name = Atom.to_string(key),
           Matcher.match?(name, hint) do
         %{
@@ -817,19 +816,18 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp container_context(code, env, metadata, cursor_position) do
-    case NormalizedCode.Fragment.container_cursor_to_quoted(code) |> dbg do
+    case NormalizedCode.Fragment.container_cursor_to_quoted(code) do
       {:ok, quoted} ->
-        case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) |> dbg do
+        case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
           [cursor, {:%{}, _, pairs}, {:%, _, [struct_module_ast, _map]} | _] ->
             container_context_struct(
               cursor,
-              pairs |> dbg,
+              pairs,
               struct_module_ast,
               env,
               metadata,
               cursor_position
             )
-            |> dbg
 
           [
             cursor,
@@ -848,7 +846,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
             )
 
           [cursor, pairs, {:|, _, [expr | _]}, {:%{}, _, _} | _] ->
-            container_context_map(cursor, pairs, expr, env, metadata, cursor_position) |> dbg
+            container_context_map(cursor, pairs, expr, env, metadata, cursor_position)
 
           [cursor, {special_form, _, [cursor]} | _] when special_form in @alias_only_atoms ->
             :alias_only
@@ -962,7 +960,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp container_context_map(cursor, pairs, expr, env, metadata, cursor_position) do
     # TODO extract to function
     binding_ast =
-      case expr do
+      case expr |> dbg do
         {:@, _, [{atom, _, context}]} when is_atom(atom) and is_atom(context) ->
           {:attribute, atom}
 
@@ -1006,7 +1004,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
       end
 
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-         {:ok, type} <- value_from_binding(binding_ast, env, metadata, cursor_position),
+         {:ok, type} <- value_from_binding(binding_ast |> dbg, env, metadata, cursor_position),
          true <- Keyword.keyword?(pairs) do
       case type do
         {:map, all, _} ->
@@ -1028,7 +1026,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     else
       _ -> nil
     end
-    |> dbg
+
   end
 
   ## Aliases and modules
