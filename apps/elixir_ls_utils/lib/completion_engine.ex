@@ -698,11 +698,55 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp struct_module_filter(true, %State.Env{} = _env, %Metadata{} = metadata) do
-    fn module -> Struct.is_struct(module, metadata.structs) end
+    fn module ->
+      Struct.is_struct(module, metadata.structs) or has_struct_submodule?(module, metadata.structs)
+    end
   end
 
   defp struct_module_filter(false, %State.Env{} = _env, %Metadata{} = _metadata) do
     fn _ -> true end
+  end
+
+  # Check if a module has any direct submodules that are structs
+  defp has_struct_submodule?(module, structs) do
+    module_str = Atom.to_string(module)
+    
+    # Check metadata structs (from current buffer)
+    metadata_result = Enum.any?(structs, fn {struct_module, _} ->
+      struct_module_str = Atom.to_string(struct_module)
+      String.starts_with?(struct_module_str, module_str <> ".")
+    end)
+    
+    # Also check compiled modules
+    if metadata_result do
+      true
+    else
+      # Get all modules and check if any direct submodule is a struct
+      module_str_with_dot = module_str <> "."
+      
+      # Get all loaded modules
+      modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+      
+      # Add modules from applications if in interactive mode
+      modules = 
+        case :code.get_mode() do
+          :interactive ->
+            modules ++ 
+              Enum.map(Applications.get_modules_from_applications(), &Atom.to_string/1)
+          _ ->
+            modules
+        end
+      
+      # Find submodules
+      submodules = for mod <- modules,
+          String.starts_with?(mod, module_str_with_dot),
+          do: String.to_atom(mod)
+      
+      # Check if any submodule is a struct
+      Enum.any?(submodules, fn mod ->
+        Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
+      end)
+    end
   end
 
   defp struct?(mod, metadata) do

@@ -1579,14 +1579,51 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert entries = expand(~c"%")
     assert entries |> Enum.any?(&(&1.name == "URI"))
 
+    # IO is not a struct but contains Stream struct
+    assert entries = expand(~c"%I")
+    assert entries |> Enum.any?(&(&1.name == "IO"))
+
+    assert entries = expand(~c"%ElixirLS.Utils.Completion")
+    assert entries |> Enum.any?(&(&1.name == "CompletionEngineTest"))
+
+    assert entries = expand(~c"%ElixirLS.Util")
+    assert entries |> Enum.any?(&(&1.name == "Utils"))
+
     assert [%{name: "MyStruct"}] = expand(~c"%ElixirLS.Utils.CompletionEngineTest.")
 
-    env = %Env{
-      aliases: [{MyDate, Date}]
+
+    metadata = %Metadata{
+      mods_funs_to_positions: %{
+        {FooStruct, nil, nil} => %ModFunInfo{},
+        {Bar.BazStruct, nil, nil} => %ModFunInfo{}
+      },
+      structs: %{
+        FooStruct => %ElixirSense.Core.State.StructInfo{
+          type: :defstruct,
+          fields: [my_val: nil, some_map: nil, a_mod: nil, str: nil, unknown_str: nil]
+        },
+        Bar.BazStruct => %ElixirSense.Core.State.StructInfo{
+          type: :defstruct,
+          fields: [my_val: nil, some_map: nil, a_mod: nil, str: nil, unknown_str: nil]
+        }
+      }
     }
 
-    entries = expand(~c"%My", env, %Metadata{}, required_alias: true)
+    assert [%{name: "FooStruct"}] = expand(~c"%FooStr", %Env{}, metadata)
+    assert [%{name: "BazStruct"}] = expand(~c"%Bar.BazStr", %Env{}, metadata)
+    assert expand(~c"%Ba", %Env{}, metadata) |> Enum.any?(&(&1.name == "Bar"))
+
+    env = %Env{
+      aliases: [{MyDate, Date}, {Foo, ElixirLS.Utils.CompletionEngineTest}]
+    }
+
+    entries = expand(~c"%My", env, %Metadata{})
     assert Enum.any?(entries, &(&1.name == "MyDate" and &1.subtype == :struct))
+    assert [%{name: "MyStruct"}] = expand(~c"%Foo.MyStr", env, %Metadata{})
+    assert [%{name: "Foo"}] = expand(~c"%Fo", env, %Metadata{}) |> Enum.filter(&(&1.name == "Foo"))
+
+    assert [%{name: "MyStruct", required_alias: "ElixirLS.Utils.CompletionEngineTest.MyStruct"}] = expand(~c"%MyStr", env, %Metadata{}, required_alias: true) |> Enum.filter(&(&1.name == "MyStruct"))
+    refute expand(~c"%MyStr", env, %Metadata{}, required_alias: false) |> Enum.any?(&(&1.name == "MyStruct"))
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
