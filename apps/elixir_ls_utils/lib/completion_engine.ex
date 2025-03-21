@@ -54,6 +54,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   alias ElixirSense.Core.Introspection
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
+  alias ElixirSense.Core.Normalized.Macro.Env, as: NormalizedMacroEnv
   alias ElixirSense.Core.Source
   alias ElixirSense.Core.State
   alias ElixirSense.Core.Struct
@@ -393,10 +394,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          _cursor_position
        ) do
-    alias = hint |> List.to_string() |> String.split(".") |> value_from_alias(env, metadata)
+    result =
+      hint
+      |> List.to_string()
+      |> String.split(".")
+      |> Enum.map(&String.to_atom/1)
+      |> value_from_alias(env)
 
-    case alias do
-      {:ok, atom} -> {:ok, {:atom, atom}}
+    case result do
+      {:alias, atom} -> {:ok, {:atom, atom}}
       :error -> :error
     end
   end
@@ -408,21 +414,16 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          _cursor_position
        ) do
-    case var do
-      ~c"__MODULE__" ->
-        alias_suffix = hint |> List.to_string() |> String.split(".")
-        alias = [{:__MODULE__, [], nil} | alias_suffix] |> value_from_alias(env, metadata)
-
-        case alias do
-          {:ok, atom} -> {:ok, {:atom, atom}}
-          :error -> :error
-        end
-
-      _ ->
-        :error
+    if var == ~c"__MODULE__" and env.module != nil and Introspection.elixir_module?(env.module) do
+      alias_suffix = hint |> List.to_string() |> String.split(".") |> Enum.map(&String.to_atom/1)
+      expanded_alias = Module.concat([env.module | alias_suffix])
+      {:ok, {:atom, expanded_alias}}
+    else
+      :error
     end
   end
 
+  # TODO check if we are in function context
   defp expand_dot_path(
          {:alias, {:module_attribute, attribute}, hint},
          %State.Env{} = env,
@@ -431,14 +432,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
        ) do
     case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position) do
       {:ok, {:atom, atom}} ->
-        if Introspection.elixir_module?(atom) do
-          alias_suffix = hint |> List.to_string() |> String.split(".")
-          alias = (Module.split(atom) ++ alias_suffix) |> value_from_alias(env, metadata)
+        if Introspection.elixir_module?(atom) and match?({_, _}, env.function) do
+          alias_suffix =
+            hint |> List.to_string() |> String.split(".") |> Enum.map(&String.to_atom/1)
 
-          case alias do
-            {:ok, atom} -> {:ok, {:atom, atom}}
-            :error -> :error
-          end
+          expanded_alias = Module.concat([atom | alias_suffix])
+          {:ok, {:atom, expanded_alias}}
         else
           :error
         end
@@ -699,7 +698,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   defp struct_module_filter(true, %State.Env{} = _env, %Metadata{} = metadata) do
     fn module ->
-      Struct.is_struct(module, metadata.structs) or has_struct_submodule?(module, metadata.structs)
+      Struct.is_struct(module, metadata.structs) or
+        has_struct_submodule?(module, metadata.structs)
     end
   end
 
@@ -710,38 +710,41 @@ defmodule ElixirLS.Utils.CompletionEngine do
   # Check if a module has any direct submodules that are structs
   defp has_struct_submodule?(module, structs) do
     module_str = Atom.to_string(module)
-    
+
     # Check metadata structs (from current buffer)
-    metadata_result = Enum.any?(structs, fn {struct_module, _} ->
-      struct_module_str = Atom.to_string(struct_module)
-      String.starts_with?(struct_module_str, module_str <> ".")
-    end)
-    
+    metadata_result =
+      Enum.any?(structs, fn {struct_module, _} ->
+        struct_module_str = Atom.to_string(struct_module)
+        String.starts_with?(struct_module_str, module_str <> ".")
+      end)
+
     # Also check compiled modules
     if metadata_result do
       true
     else
       # Get all modules and check if any direct submodule is a struct
       module_str_with_dot = module_str <> "."
-      
+
       # Get all loaded modules
       modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
-      
+
       # Add modules from applications if in interactive mode
-      modules = 
+      modules =
         case :code.get_mode() do
           :interactive ->
-            modules ++ 
+            modules ++
               Enum.map(Applications.get_modules_from_applications(), &Atom.to_string/1)
+
           _ ->
             modules
         end
-      
+
       # Find submodules
-      submodules = for mod <- modules,
-          String.starts_with?(mod, module_str_with_dot),
-          do: String.to_atom(mod)
-      
+      submodules =
+        for mod <- modules,
+            String.starts_with?(mod, module_str_with_dot),
+            do: String.to_atom(mod)
+
       # Check if any submodule is a struct
       Enum.any?(submodules, fn mod ->
         Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
@@ -887,49 +890,28 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp expand_struct_module(
-         {:@, _, [{attribute, _, context}]},
-         env = %{function: {_, _}},
+         {:__aliases__, meta, list = [head | tail]},
+         env,
          metadata,
          cursor_position
-       )
-       when is_atom(context) and is_atom(attribute) do
-    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
-      {:ok, {:atom, atom}} ->
-        {:ok, atom}
+       ) do
+    case NormalizedMacroEnv.expand_alias(env, meta, list, trace: false) do
+      {:alias, alias} ->
+        {:ok, alias}
 
-      _ ->
-        :error
-    end
-  end
+      :error ->
+        if match?({:@, _, _}, head) do
+          # alias with attribute is not supported in struct
+          :error
+        else
+          head = simple_expand(head, env, metadata, cursor_position)
 
-  defp expand_struct_module({:__aliases__, _, aliases = [h | _]}, env, metadata, _cursor_position)
-       when is_atom(h) do
-    value_from_alias(aliases, env, metadata)
-  end
-
-  defp expand_struct_module(
-         {:__aliases__, _, aliases = [{:__MODULE__, _, context} | rest]},
-         env = %{module: module},
-         metadata,
-         _cursor_position
-       )
-       when is_atom(context) and not is_nil(module) do
-    {:ok, Module.concat([module | rest])}
-  end
-
-  defp expand_struct_module(
-         {:__aliases__, _, aliases = [{:@, _, [{attribute, _, context}]} | rest]},
-         env = %{function: {_, _}},
-         metadata,
-         cursor_position
-       )
-       when is_atom(context) and is_atom(attribute) do
-    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
-      {:ok, {:atom, atom}} ->
-        {:ok, Module.concat([atom | rest])}
-
-      _ ->
-        :error
+          if is_atom(head) do
+            {:ok, Module.concat([head | tail])}
+          else
+            :error
+          end
+        end
     end
   end
 
@@ -957,54 +939,88 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp container_context_map(cursor, pairs, expr, env, metadata, cursor_position) do
-    # TODO extract to function
-    binding_ast =
-      case expr |> dbg do
-        {:@, _, [{atom, _, context}]} when is_atom(atom) and is_atom(context) ->
-          {:attribute, atom}
+  defp simple_expand({:__ENV__, _, context}, env, _metadata, _cursor_position)
+       when is_atom(context) do
+    {:%, [], [Macro.Env, {:%{}, [], []}]}
+  end
 
-        {atom, _, context} when is_atom(atom) and is_atom(context) ->
-          {:variable, atom, :any}
+  defp simple_expand(
+         {:__MODULE__, _, context},
+         env = %{module: module},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and not is_nil(module) do
+    env.module
+  end
 
-        {atom, _, args} when is_atom(atom) and is_list(args) ->
-          # TODO filter special
-          # TODO map args
-          {:local_call, atom, cursor_position, for(a <- args, do: nil)}
+  defp simple_expand(
+         {special, _, context} = node,
+         env = %{module: module},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and special in [:__DIR__, :__STACKTRACE__, :__CALLER__] do
+    node
+  end
 
-        {{:., _, [remote, fun]}, _, args} when is_atom(fun) and is_list(args) ->
-          remote =
-            case remote do
-              atom when is_atom(atom) ->
-                atom
+  defp simple_expand({:@, _, [{attribute, _, context}]} = node, env, metadata, cursor_position)
+       when is_atom(context) and is_atom(attribute) do
+    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
+      {:ok, {:atom, atom}} ->
+        if Introspection.elixir_module?(atom) do
+          atom
+        else
+          node
+        end
 
-              {:__MODULE__, _, context} when is_atom(context) ->
-                env.module
+      _ ->
+        node
+    end
+  end
 
-              {:__aliases__, _, [:__MODULE__ | rest]} ->
-                # TODO check if it works
-                Module.concat([env.module | rest])
+  defp simple_expand(
+         {:__aliases__, meta, [head | tail] = list} = node,
+         env,
+         metadata,
+         cursor_position
+       ) do
+    case NormalizedMacroEnv.expand_alias(env, meta, list, trace: false) do
+      {:alias, alias} ->
+        alias
 
-              # TODO attribute submodule
-              {:__aliases__, _, list = [h | _]} when is_atom(h) ->
-                # TODO expand alias
-                Module.concat(list)
+      :error ->
+        if match?({:@, _, _}, head) and not match?({_, _}, env.function) do
+          # alias with attribute is only valid in function context
+          node
+        else
+          head = simple_expand(head, env, metadata, cursor_position)
 
-              _ ->
-                nil
-            end
-
-          if remote do
-            # TODO map args
-            {:call, {:atom, remote}, fun, for(a <- args, do: nil)}
+          if is_atom(head) do
+            Module.concat([head | tail])
+          else
+            node
           end
+        end
+    end
+  end
 
-        _ ->
-          nil
-      end
+  defp simple_expand({variable, meta, context}, env, metadata, cursor_position)
+       when is_atom(variable) and is_atom(context) do
+    # put fake version to make it work with TypeInference
+    {variable, meta |> Keyword.put(:version, 1), context}
+  end
+
+  defp simple_expand(ast, _env, _metadata, _cursor_position), do: ast
+
+  defp container_context_map(cursor, pairs, expr, env, metadata, cursor_position) do
+    binding_ast =
+      expr
+      |> Macro.prewalk(fn node -> simple_expand(node, env, metadata, cursor_position) end)
+      |> ElixirSense.Core.TypeInference.type_of(env.context)
 
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-         {:ok, type} <- value_from_binding(binding_ast |> dbg, env, metadata, cursor_position),
+         {:ok, type} <- value_from_binding(binding_ast, env, metadata, cursor_position),
          true <- Keyword.keyword?(pairs) do
       case type do
         {:map, all, _} ->
@@ -1026,7 +1042,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     else
       _ -> nil
     end
-
   end
 
   ## Aliases and modules
@@ -1059,10 +1074,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       parts ->
         hint = List.last(parts)
-        list = Enum.take(parts, length(parts) - 1)
+        list = Enum.take(parts, length(parts) - 1) |> Enum.map(&String.to_atom/1)
 
-        case value_from_alias(list, env, metadata) do
-          {:ok, alias} ->
+        case value_from_alias(list, env) do
+          {:alias, alias} ->
             expand_aliases(
               alias,
               hint,
@@ -1127,7 +1142,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
        ) do
     case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position) do
       {:ok, {:atom, atom}} ->
-        if Introspection.elixir_module?(atom) do
+        if Introspection.elixir_module?(atom) and match?({_, _}, env.function) do
           expand_aliases("#{atom}.#{hint}", env, metadata, cursor_position, only_structs, [])
         else
           no()
@@ -1155,13 +1170,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
        ),
        do: no()
 
-  defp value_from_alias(mod_parts, %State.Env{} = env, %Metadata{} = _metadata) do
-    mod_parts
-    |> Enum.map(fn
-      bin when is_binary(bin) -> String.to_atom(bin)
-      other -> other
-    end)
-    |> Source.concat_module_parts(env.module, env.aliases)
+  defp value_from_alias(list = [head | _], %State.Env{} = env) do
+    case NormalizedMacroEnv.expand_alias(env, [], list, trace: false) do
+      {:alias, alias} ->
+        {:alias, alias}
+
+      :error ->
+        # we do not expect non atom aliases here
+        {:alias, Module.concat(list)}
+    end
   end
 
   defp match_aliases(hint, %State.Env{} = env, %Metadata{} = _metadata) do

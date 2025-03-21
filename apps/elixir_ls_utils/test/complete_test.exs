@@ -304,7 +304,21 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                      name: :my_attr,
                      type: {:atom, String}
                    }
-                 ]
+                 ],
+                 module: Foo,
+                 function: {:bar, 1}
+               })
+
+      assert [] ==
+               expand(~c"@my_attr.Cha", %Env{
+                 attributes: [
+                   %AttributeInfo{
+                     name: :my_attr,
+                     type: {:atom, String}
+                   }
+                 ],
+                 module: Foo,
+                 function: nil
                })
     end
   end
@@ -1591,7 +1605,6 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
     assert [%{name: "MyStruct"}] = expand(~c"%ElixirLS.Utils.CompletionEngineTest.")
 
-
     metadata = %Metadata{
       mods_funs_to_positions: %{
         {FooStruct, nil, nil} => %ModFunInfo{},
@@ -1620,42 +1633,22 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     entries = expand(~c"%My", env, %Metadata{})
     assert Enum.any?(entries, &(&1.name == "MyDate" and &1.subtype == :struct))
     assert [%{name: "MyStruct"}] = expand(~c"%Foo.MyStr", env, %Metadata{})
-    assert [%{name: "Foo"}] = expand(~c"%Fo", env, %Metadata{}) |> Enum.filter(&(&1.name == "Foo"))
 
-    assert [%{name: "MyStruct", required_alias: "ElixirLS.Utils.CompletionEngineTest.MyStruct"}] = expand(~c"%MyStr", env, %Metadata{}, required_alias: true) |> Enum.filter(&(&1.name == "MyStruct"))
-    refute expand(~c"%MyStr", env, %Metadata{}, required_alias: false) |> Enum.any?(&(&1.name == "MyStruct"))
+    assert [%{name: "Foo"}] =
+             expand(~c"%Fo", env, %Metadata{}) |> Enum.filter(&(&1.name == "Foo"))
+
+    assert [%{name: "MyStruct", required_alias: "ElixirLS.Utils.CompletionEngineTest.MyStruct"}] =
+             expand(~c"%MyStr", env, %Metadata{}, required_alias: true)
+             |> Enum.filter(&(&1.name == "MyStruct"))
+
+    refute expand(~c"%MyStr", env, %Metadata{}, required_alias: false)
+           |> Enum.any?(&(&1.name == "MyStruct"))
   end
 
   if Version.match?(System.version(), ">= 1.14.0") do
     test "completion for struct names with __MODULE__" do
       assert [%{name: "__MODULE__"}] = expand(~c"%__MODU", %Env{module: Date.Range})
       assert [%{name: "Range"}] = expand(~c"%__MODULE__.Ra", %Env{module: Date})
-    end
-  end
-
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "completion for struct attributes" do
-      assert [%{name: "@my_attr"}] =
-               expand(~c"%@my", %Env{
-                 attributes: [
-                   %AttributeInfo{
-                     name: :my_attr,
-                     type: {:atom, Date}
-                   }
-                 ],
-                 module: MyMod
-               })
-
-      assert [%{name: "Range"}] =
-               expand(~c"%@my_attr.R", %Env{
-                 attributes: [
-                   %AttributeInfo{
-                     name: :my_attr,
-                     type: {:atom, Date}
-                   }
-                 ],
-                 module: MyMod
-               })
     end
   end
 
@@ -2319,8 +2312,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     refute Enum.any?(list, &(&1.type != :module))
     assert Enum.any?(list, &(&1.name == "ArithmeticError"))
     assert Enum.any?(list, &(&1.name == "URI"))
-    refute Enum.any?(list, &(&1.name == "File"))
-    refute Enum.any?(list, &(&1.subtype not in [:struct, :exception]))
+    refute Enum.any?(list, &(&1.name == "Integer"))
 
     assert [_ | _] = expand(~c"%Fi")
     assert list = expand(~c"%File.")
