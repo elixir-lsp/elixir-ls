@@ -29,7 +29,7 @@
 # Since then the codebases have diverged as the requirements
 # put on editor and REPL autocomplete are different.
 # However some relevant changes have been merged back
-# from upstream Elixir (1.13).
+# from upstream Elixir (1.18).
 # Changes made to the original version include:
 # - different result format with added docs and spec
 # - built in and private funcs are not excluded
