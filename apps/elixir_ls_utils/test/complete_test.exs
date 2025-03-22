@@ -1714,6 +1714,27 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [] == expand(~c"%URI{var | path: \"foo\", unkno")
     assert [] = expand(~c"%Unkown{var | path: \"foo\", unkno")
 
+    env = %Env{
+      vars: [
+        %VarInfo{
+          name: :var,
+          version: 1,
+          type: {:struct, [], {:atom, URI}, nil}
+        }
+      ]
+    }
+
+    assert entries = expand(~c"%{var | ", env)
+    assert entries |> Enum.any?(&(&1.name == "path"))
+    assert entries |> Enum.any?(&(&1.name == "query"))
+
+    assert entries = expand(~c"%{var | path: \"foo\",", env)
+    refute entries |> Enum.any?(&(&1.name == "path"))
+    assert entries |> Enum.any?(&(&1.name == "query"))
+
+    assert [%{name: "query"}] = expand(~c"%{var | path: \"foo\", que", env)
+    assert [] = expand(~c"%URI{var | path: \"foo\", unkno", env)
+
     metadata = %Metadata{
       types: %{
         {MyStruct, :t, 0} => %ElixirSense.Core.State.TypeInfo{
