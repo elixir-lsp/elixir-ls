@@ -769,9 +769,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
         continue? = pairs == []
         {container_context_map_fields(pairs, :map, map, hint, metadata), continue?}
 
-      {:struct, alias, pairs} when context == :expr ->
+      {:struct, map, alias, pairs} when context == :expr ->
         continue? = pairs == []
-        {container_context_map_fields(pairs, {:struct, alias}, %{}, hint, metadata), continue?}
+        {container_context_map_fields(pairs, {:struct, alias}, map, hint, metadata), continue?}
 
       :bitstring_modifier ->
         existing =
@@ -796,6 +796,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp container_context_map_fields(pairs, kind, map, hint, metadata) do
     {keys, types, alias} =
       case kind do
+        {:struct, nil} ->
+          {Map.keys(map), %{}, nil}
+
         {:struct, alias} ->
           keys = Struct.get_fields(alias, metadata.structs)
           types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
@@ -813,7 +816,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         %{
           type: :field,
           name: name,
-          subtype: if(kind == :map, do: :map_field, else: :struct_field),
+          subtype: if(kind == :map, do: :map_key, else: :struct_field),
           value_is_map: false,
           origin: if(kind != :map and alias != nil, do: inspect(alias)),
           call?: false,
@@ -967,7 +970,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
          {:ok, alias} <- expand_struct_module(ast, env, metadata, cursor_position),
          true <- Keyword.keyword?(pairs) and (struct?(alias, metadata) or alias == nil) do
-      {:struct, alias, pairs}
+      {:struct, %{}, alias, pairs}
     else
       _ -> nil
     end
@@ -1058,10 +1061,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
          true <- Keyword.keyword?(pairs) do
       case type do
         {:struct, all, {:atom, alias}, _} ->
-          {:struct, alias, pairs}
+          {:struct, Map.new(all), alias, pairs}
 
         {:struct, all, _origin, _} ->
-          {:map, Map.new(all), pairs}
+          {:struct, Map.new(all), nil, pairs}
 
         {:map, all, _} ->
           {:map, Map.new(all), pairs}

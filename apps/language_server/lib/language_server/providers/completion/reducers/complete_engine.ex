@@ -86,6 +86,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.CompleteEngine d
   end
 
   @doc """
+  A reducer that adds suggestions of variable fields.
+
+  Note: requires populate/5.
+  """
+  def add_struct_fields(_hint, _env, _file_metadata, _context, acc) do
+    add_suggestions(:struct_field, acc)
+  end
+
+  @doc """
+  A reducer that adds suggestions of bitstring options.
+
+  Note: requires populate/5.
+  """
+  def add_bitstring_options(_hint, _env, _file_metadata, _context, acc) do
+    add_suggestions(:bitstring_option, acc)
+  end
+
+  @doc """
   A reducer that adds suggestions of existing module attributes.
 
   Note: requires populate/5.

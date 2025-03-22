@@ -3278,7 +3278,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                origin: "MyServer",
                subtype: :struct_field,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
   end
@@ -3306,7 +3307,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                origin: "MyServer",
                subtype: :struct_field,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
   end
@@ -3329,7 +3331,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                origin: nil,
                subtype: :struct_field,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
   end
@@ -3377,7 +3380,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                origin: nil,
                subtype: :map_key,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
   end
@@ -3400,7 +3404,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                origin: nil,
                subtype: :map_key,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
   end

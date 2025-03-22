@@ -1786,7 +1786,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                call?: false,
                name: "some",
                origin: nil,
-               subtype: :map_field,
+               subtype: :map_key,
                type: :field,
                type_spec: nil
              } = entries |> Enum.find(&(&1.name == "some"))
