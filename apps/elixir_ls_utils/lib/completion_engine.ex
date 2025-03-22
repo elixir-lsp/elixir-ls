@@ -859,6 +859,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
           [cursor, {special_form, _, [cursor]} | _] when special_form in @alias_only_atoms ->
             :alias_only
 
+          [
+            cursor,
+            {:__MODULE__, _, [cursor]},
+            {special_form, _, [{:__MODULE__, _, [cursor]}]} | _
+          ]
+          when special_form in @alias_only_atoms ->
+            :alias_only
+
           [cursor | tail] ->
             case remove_operators(tail, cursor) do
               [{:"::", _, [_, _]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
@@ -1067,8 +1075,26 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   ## Aliases and modules
 
+  defp alias_only(
+         {:var, ~c"__MODULE__"},
+         [],
+         code,
+         env = %{module: module},
+         metadata,
+         cursor_position
+       )
+       when not is_nil(module) do
+    case container_context(code, env, metadata, cursor_position) do
+      :alias_only ->
+        String.to_charlist(inspect(env.module)) ++ [?.]
+
+      _ ->
+        nil
+    end
+  end
+
   defp alias_only(path, hint, code, env, metadata, cursor_position) do
-    # TODO __MODULE__ @?
+    # attributes are not supported in alias only context
     with {:alias, alias} <- path,
          [] <- hint,
          :alias_only <- container_context(code, env, metadata, cursor_position) do

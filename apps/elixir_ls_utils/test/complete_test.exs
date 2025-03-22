@@ -1956,6 +1956,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
     assert entries = expand(~c"alias Date.")
     assert Enum.any?(entries, &(&1.name == "Range"))
+
+    assert entries = expand(~c"alias __MODULE__.", %Env{module: Date})
+    assert Enum.any?(entries, &(&1.name == "Range"))
   end
 
   test "ignore invalid Elixir module literals" do
