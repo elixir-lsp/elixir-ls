@@ -2475,4 +2475,48 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              ] = expand(~c"Application.compile_e")
     end
   end
+
+  test "attribute submodule" do
+    metadata = %Metadata{
+      mods_funs_to_positions: %{
+        {MyTest, nil, nil} => %ModFunInfo{},
+        {MyTest.SubModule, nil, nil} => %ModFunInfo{},
+        {MyTest, :some_fun, 0} => %ModFunInfo{
+          positions: [{1, 1}],
+          type: :def,
+          params: [[]]
+        }
+      }
+    }
+
+    module_env = %Env{
+      module: Foo,
+      function: nil,
+      attributes: [
+        %AttributeInfo{name: :module_attr, type: {:atom, MyTest}}
+      ]
+    }
+
+    # In module context, we should only module functions
+    entries =
+      expand(
+        '@module_attr.',
+        module_env,
+        metadata
+      )
+
+    assert Enum.any?(entries, &(&1.name == "some_fun"))
+    refute Enum.any?(entries, &(&1.name == "SubModule"))
+
+    # In def context, we should get both module and function
+    entries =
+      expand(
+        '@module_attr.',
+        module_env |> Map.put(:function, {:bar, 0}),
+        metadata
+      )
+
+    assert Enum.any?(entries, &(&1.name == "some_fun"))
+    assert Enum.any?(entries, &(&1.name == "SubModule"))
+  end
 end
