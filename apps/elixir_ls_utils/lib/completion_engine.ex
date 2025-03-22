@@ -1013,7 +1013,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp simple_expand({variable, meta, context}, env, metadata, cursor_position)
        when is_atom(variable) and is_atom(context) do
     # put fake version to make it work with TypeInference
-    {variable, meta |> Keyword.put(:version, 1), context}
+    {variable, meta |> Keyword.put(:version, :any), context}
   end
 
   defp simple_expand(ast, _env, _metadata, _cursor_position), do: ast
@@ -1028,18 +1028,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
          {:ok, type} <- value_from_binding(binding_ast, env, metadata, cursor_position),
          true <- Keyword.keyword?(pairs) do
       case type do
-        {:map, all, _} ->
+        {:struct, all, {:atom, alias}, _} ->
+          {:struct, alias, pairs}
+
+        {:struct, all, _origin, _} ->
           {:map, Map.new(all), pairs}
 
-        {:struct, all, origin, _} ->
-          case origin do
-            {:atom, alias} ->
-              {:struct, alias, pairs}
-
-            _ ->
-              # TODO maybe add __struct__
-              {:map, Map.new(all), pairs}
-          end
+        {:map, all, _} ->
+          {:map, Map.new(all), pairs}
 
         _ ->
           nil
