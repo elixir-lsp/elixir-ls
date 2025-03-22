@@ -427,27 +427,28 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # TODO check if we are in function context
   defp expand_dot_path(
          {:alias, {:module_attribute, attribute}, hint},
          %State.Env{} = env,
          %Metadata{} = metadata,
          cursor_position
        ) do
-    case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position) do
-      {:ok, {:atom, atom}} ->
-        if Introspection.elixir_module?(atom) and match?({_, _}, env.function) do
-          alias_suffix =
-            hint |> List.to_string() |> String.split(".") |> Enum.map(&String.to_atom/1)
+    with true <- match?({_, _}, env.function),
+         {:ok, {:atom, atom}} <-
+           value_from_binding(
+             {:attribute, List.to_atom(attribute)},
+             env,
+             metadata,
+             cursor_position
+           ),
+         true <- Introspection.elixir_module?(atom) do
+      alias_suffix =
+        hint |> List.to_string() |> String.split(".") |> Enum.map(&String.to_atom/1)
 
-          expanded_alias = Module.concat([atom | alias_suffix])
-          {:ok, {:atom, expanded_alias}}
-        else
-          :error
-        end
-
-      :error ->
-        :error
+      expanded_alias = Module.concat([atom | alias_suffix])
+      {:ok, {:atom, expanded_alias}}
+    else
+      _ -> :error
     end
   end
 
