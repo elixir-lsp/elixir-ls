@@ -335,17 +335,21 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
     case expand_dot_path(path, env, metadata, cursor_position) do
       {:ok, {:atom, mod}} when hint == "" ->
-        expand_aliases(
-          mod,
-          "",
-          [],
-          not only_structs,
-          env,
-          metadata,
-          cursor_position,
-          filter,
-          opts
-        )
+        if match?({:module_attribute, _attribute}, path) and not match?({_, _}, env.function) do
+          expand_require(mod, hint, exact?, env, metadata, cursor_position)
+        else
+          expand_aliases(
+            mod,
+            "",
+            [],
+            not only_structs,
+            env,
+            metadata,
+            cursor_position,
+            filter,
+            opts
+          )
+        end
 
       {:ok, {:atom, mod}} ->
         expand_require(mod, hint, exact?, env, metadata, cursor_position)
