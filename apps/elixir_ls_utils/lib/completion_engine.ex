@@ -1502,39 +1502,25 @@ defmodule ElixirLS.Utils.CompletionEngine do
     list =
       cond do
         metadata.mods_funs_to_positions |> Map.has_key?({mod, nil, nil}) ->
-          get_metadata_module_funs(mod, include_builtin, env, metadata, cursor_position)
+          get_metadata_module_funs(
+            mod,
+            hint,
+            exact?,
+            include_builtin,
+            env,
+            metadata,
+            cursor_position
+          )
 
         match?({:module, _}, ensure_loaded(mod)) ->
-          get_module_funs(mod, include_builtin)
+          get_module_funs(mod, hint, exact?, include_builtin)
 
         true ->
           []
       end
       |> Enum.sort_by(fn {f, _, a, _, _, _, _} -> {f, a} end)
 
-    # list =
-    #   Enum.reduce(falist, [], fn {f, a, def_a, func_kind, {doc_str, meta}, spec, arg}, acc ->
-    #     doc = {Introspection.extract_summary_from_docs(doc_str), meta}
-
-    #     case :lists.keyfind(f, 1, acc) do
-    #       {f, aa, def_arities, func_kinds, docs, specs, args} ->
-    #         raise "here"
-    #         :lists.keyreplace(
-    #           f,
-    #           1,
-    #           acc,
-    #           {f, [a | aa], [def_a | def_arities], [func_kind | func_kinds], [doc | docs],
-    #            [spec | specs], [arg | args]}
-    #         )
-
-    #       false ->
-    #         [{f, [a], [def_a], [func_kind], [doc], [spec], [arg]} | acc]
-    #     end
-    #   end)
-
-    for {fun, default_args, arity, func_kind, docs, specs, args} <- list,
-        name = Atom.to_string(fun),
-        if(exact?, do: name == hint, else: Matcher.match?(name, hint)) do
+    for {fun, default_args, arity, func_kind, docs, specs, args} <- list do
       needed_require =
         if func_kind in [:macro, :defmacro, :defguard] and mod not in env.requires and
              mod != Kernel.SpecialForms and mod != env.module do
@@ -1553,7 +1539,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       %{
         type: :function,
-        name: name,
+        name: Atom.to_string(fun),
         arity: arity,
         default_args: default_args,
         module: mod,
@@ -1567,9 +1553,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # TODO filter by hint here?
   defp get_metadata_module_funs(
          mod,
+         hint,
+         exact?,
          include_builtin,
          %State.Env{} = env,
          %Metadata{} = metadata,
@@ -1585,6 +1572,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
         for {{^mod, f, a}, %State.ModFunInfo{} = info} when is_atom(f) <-
               metadata.mods_funs_to_positions,
             a != nil,
+            name = Atom.to_string(f),
+            if(exact?, do: name == hint, else: Matcher.match?(name, hint)),
             (mod == env.module and not include_builtin) or Introspection.is_pub(info.type),
             mod != env.module or State.ModFunInfo.get_category(info) != :macro or
               List.last(info.positions) < cursor_position,
@@ -1650,8 +1639,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # TODO filter by hint here?
-  def get_module_funs(mod, include_builtin) do
+  def get_module_funs(mod, hint, exact?, include_builtin) do
     docs = NormalizedCode.get_docs(mod, :docs)
     module_specs = TypeInfo.get_module_specs(mod)
 
@@ -1667,7 +1655,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       for {f, a} <- exports,
           {new_a, default_args} = Map.get(default_arg_functions, {f, a}, {a, 0}),
-          new_a == a do
+          new_a == a,
+          name = Atom.to_string(f),
+          if(exact?, do: name == hint, else: Matcher.match?(name, hint)) do
         {func_kind, func_doc} = find_doc({f, new_a}, docs)
         func_kind = func_kind || :function
 
@@ -1720,6 +1710,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
       end
       |> Kernel.++(
         for {f, a} <- @builtin_functions,
+            name = Atom.to_string(f),
+            if(exact?, do: name == hint, else: Matcher.match?(name, hint)),
             include_builtin,
             do: {f, 0, a, :function, {"", %{}}, nil, nil}
       )
@@ -1733,7 +1725,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
           []
         end
 
-      for {f, a} <- funs do
+      for {f, a} <- funs,
+          name = Atom.to_string(f),
+          if(exact?, do: name == hint, else: Matcher.match?(name, hint)) do
         # we don't expect macros here
         {behaviour, fun_spec} =
           case callback_specs[{f, a}] do
