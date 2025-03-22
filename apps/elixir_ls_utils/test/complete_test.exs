@@ -2224,6 +2224,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   end
 
   test "provide doc and specs for erlang functions" do
+    Application.load(:erts)
     assert [
              %{
                arity: 1,
