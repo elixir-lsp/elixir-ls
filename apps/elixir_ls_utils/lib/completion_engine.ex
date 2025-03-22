@@ -895,6 +895,26 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp expand_struct_module(
+         {:@, _, [{attribute, _, context}]},
+         env = %{function: {_, _}},
+         metadata,
+         cursor_position
+       )
+       when is_atom(context) and is_atom(attribute) do
+    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
+      {:ok, {:atom, atom}} ->
+        if Introspection.elixir_module?(atom) do
+          {:ok, atom}
+        else
+          :error
+        end
+
+      _ ->
+        :error
+    end
+  end
+
+  defp expand_struct_module(
          {:__aliases__, meta, list = [head | tail]},
          env,
          metadata,
