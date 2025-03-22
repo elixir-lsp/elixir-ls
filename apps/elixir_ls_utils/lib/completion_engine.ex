@@ -107,7 +107,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           needed_require: String.t() | nil,
           needed_import: {String.t(), {String.t(), integer()}} | nil,
           arity: non_neg_integer,
-          def_arity: non_neg_integer,
+          default_args: non_neg_integer,
           args: String.t(),
           args_list: [String.t()],
           origin: String.t(),
@@ -132,6 +132,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           name: String.t(),
           origin: String.t() | nil,
           call?: boolean,
+          value_is_map: boolean,
           type_spec: String.t() | nil
         }
 
@@ -512,7 +513,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   ## Formatting
 
   defp format_expansion(entries) do
-    Enum.flat_map(entries, &to_entries/1)
+    Enum.map(entries, &to_entries/1)
   end
 
   defp expand_map_field_access(fields, hint, type, %State.Env{} = env, %Metadata{} = metadata) do
@@ -613,7 +614,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
       do: name
     )
     |> Enum.sort()
-    |> Enum.map(&%{kind: :variable, name: &1})
+    |> Enum.map(&%{type: :variable, name: &1})
   end
 
   # do not suggest attributes outside of a module
@@ -652,7 +653,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     |> Enum.sort()
     |> Enum.map(
       &%{
-        kind: :attribute,
+        type: :attribute,
         name: Atom.to_string(&1),
         summary: BuiltinAttributes.docs(&1)
       }
@@ -689,10 +690,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
     name = inspect(module)
 
     result = %{
-      kind: :module,
+      type: :module,
       name: name,
       full_name: name,
-      type: :erlang,
+      type: :module,
       desc: desc,
       subtype: subtype
     }
@@ -810,7 +811,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           name = Atom.to_string(key),
           Matcher.match?(name, hint) do
         %{
-          kind: :field,
+          type: :field,
           name: name,
           subtype: if(kind == :map, do: :map_field, else: :struct_field),
           value_is_map: false,
@@ -1233,8 +1234,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         [name] = Module.split(alias),
         Matcher.match?(name, hint) do
       %{
-        kind: :module,
-        type: :elixir,
+        type: :module,
         name: name,
         full_name: inspect(mod),
         desc: {"", %{}},
@@ -1295,8 +1295,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
           info ->
             %{
-              kind: :module,
-              type: :elixir,
+              type: :module,
               full_name: inspect(module),
               desc: {Introspection.extract_summary_from_docs(info.doc), info.meta},
               subtype: Metadata.get_module_subtype(metadata, module)
@@ -1322,8 +1321,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     subtype = Introspection.get_module_subtype(module)
 
     result = %{
-      kind: :module,
-      type: :elixir,
+      type: :module,
       full_name: inspect(module),
       desc: {desc, meta},
       subtype: subtype
@@ -1501,7 +1499,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          cursor_position
        ) do
-    falist =
+    list =
       cond do
         metadata.mods_funs_to_positions |> Map.has_key?({mod, nil, nil}) ->
           get_metadata_module_funs(mod, include_builtin, env, metadata, cursor_position)
@@ -1512,65 +1510,61 @@ defmodule ElixirLS.Utils.CompletionEngine do
         true ->
           []
       end
-      |> Enum.sort_by(fn {f, a, _, _, _, _, _} -> {f, -a} end)
+      |> Enum.sort_by(fn {f, _, a, _, _, _, _} -> {f, a} end)
 
-    list =
-      Enum.reduce(falist, [], fn {f, a, def_a, func_kind, {doc_str, meta}, spec, arg}, acc ->
-        doc = {Introspection.extract_summary_from_docs(doc_str), meta}
+    # list =
+    #   Enum.reduce(falist, [], fn {f, a, def_a, func_kind, {doc_str, meta}, spec, arg}, acc ->
+    #     doc = {Introspection.extract_summary_from_docs(doc_str), meta}
 
-        case :lists.keyfind(f, 1, acc) do
-          {f, aa, def_arities, func_kinds, docs, specs, args} ->
-            :lists.keyreplace(
-              f,
-              1,
-              acc,
-              {f, [a | aa], [def_a | def_arities], [func_kind | func_kinds], [doc | docs],
-               [spec | specs], [arg | args]}
-            )
+    #     case :lists.keyfind(f, 1, acc) do
+    #       {f, aa, def_arities, func_kinds, docs, specs, args} ->
+    #         raise "here"
+    #         :lists.keyreplace(
+    #           f,
+    #           1,
+    #           acc,
+    #           {f, [a | aa], [def_a | def_arities], [func_kind | func_kinds], [doc | docs],
+    #            [spec | specs], [arg | args]}
+    #         )
 
-          false ->
-            [{f, [a], [def_a], [func_kind], [doc], [spec], [arg]} | acc]
-        end
-      end)
+    #       false ->
+    #         [{f, [a], [def_a], [func_kind], [doc], [spec], [arg]} | acc]
+    #     end
+    #   end)
 
-    for {fun, arities, def_arities, func_kinds, docs, specs, args} <- list,
+    for {fun, default_args, arity, func_kind, docs, specs, args} <- list,
         name = Atom.to_string(fun),
         if(exact?, do: name == hint, else: Matcher.match?(name, hint)) do
-      needed_requires =
-        for func_kind <- func_kinds do
-          if func_kind in [:macro, :defmacro, :defguard] and mod not in env.requires and
-               mod != Kernel.SpecialForms and mod != env.module do
-            mod
+      needed_require =
+        if func_kind in [:macro, :defmacro, :defguard] and mod not in env.requires and
+             mod != Kernel.SpecialForms and mod != env.module do
+          mod
+        end
+
+      needed_import =
+        if imported == :all do
+          nil
+        else
+          # TODO check if this is correct with regards to default_args
+          if {fun, arity} not in imported do
+            {mod, {fun, arity}}
           end
         end
 
-      needed_imports =
-        if imported == :all do
-          arities |> Enum.map(fn _ -> nil end)
-        else
-          arities
-          |> Enum.map(fn a ->
-            if {fun, a} not in imported do
-              {mod, {fun, a}}
-            end
-          end)
-        end
-
       %{
-        kind: :function,
+        type: :function,
         name: name,
-        arities: arities,
-        def_arities: def_arities,
+        arity: arity,
+        default_args: default_args,
         module: mod,
-        func_kinds: func_kinds,
+        func_kind: func_kind,
         docs: docs,
         specs: specs,
-        needed_requires: needed_requires,
-        needed_imports: needed_imports,
+        needed_require: needed_require,
+        needed_import: needed_import,
         args: args
       }
     end
-    |> Enum.sort_by(& &1.name)
   end
 
   # TODO filter by hint here?
@@ -1651,12 +1645,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
           args = head_params |> Enum.map(&Macro.to_string/1)
           default_args = Introspection.count_defaults(head_params)
 
-          # TODO this is useless - we duplicate and then deduplicate
-          for arity <- (a - default_args)..a do
-            {f, arity, a, info.type, {docs, meta}, specs, args}
-          end
+          {f, default_args, a, info.type, {docs, meta}, specs, args}
         end
-        |> Enum.concat()
     end
   end
 
@@ -1673,17 +1663,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
     if docs != nil and function_exported?(mod, :__info__, 1) do
       exports = mod.__info__(:macros) ++ mod.__info__(:functions) ++ special_builtins(mod)
-      # TODO this is useless - we should only return max arity variant
       default_arg_functions = default_arg_functions(docs)
 
-      for {f, a} <- exports do
-        {f, new_arity} =
-          case default_arg_functions[{f, a}] do
-            nil -> {f, a}
-            new_arity -> {f, new_arity}
-          end
-
-        {func_kind, func_doc} = find_doc({f, new_arity}, docs)
+      for {f, a} <- exports,
+          {new_a, default_args} = Map.get(default_arg_functions, {f, a}, {a, 0}),
+          new_a == a do
+        {func_kind, func_doc} = find_doc({f, new_a}, docs)
         func_kind = func_kind || :function
 
         doc =
@@ -1703,8 +1688,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
         spec_key =
           case func_kind do
-            :macro -> {:"MACRO-#{f}", new_arity + 1}
-            :function -> {f, new_arity}
+            :macro -> {:"MACRO-#{f}", a + 1}
+            :function -> {f, a}
           end
 
         {_behaviour, fun_spec, spec_kind} =
@@ -1725,18 +1710,18 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # have broken specs in docs
         # in that case we fill a dummy fun_args
         fun_args =
-          if length(fun_args) != new_arity do
-            format_params(nil, new_arity)
+          if length(fun_args) != a do
+            format_params(nil, a)
           else
             fun_args
           end
 
-        {f, a, new_arity, func_kind, doc, spec, fun_args}
+        {f, default_args, a, func_kind, doc, spec, fun_args}
       end
       |> Kernel.++(
         for {f, a} <- @builtin_functions,
             include_builtin,
-            do: {f, a, a, :function, {"", %{}}, nil, nil}
+            do: {f, 0, a, :function, {"", %{}}, nil, nil}
       )
     else
       funs =
@@ -1784,7 +1769,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         params = format_params(fun_spec, a)
         spec = Introspection.spec_to_string(fun_spec, if(behaviour, do: :callback, else: :spec))
 
-        {f, a, a, :function, doc_result, spec, params}
+        {f, 0, a, :function, doc_result, spec, params}
       end
     end
   end
@@ -1827,9 +1812,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
     for {{fun_name, arity}, _, _kind, args, _, _} <- docs,
         count = Introspection.count_defaults(args),
         count > 0,
-        new_arity <- (arity - count)..(arity - 1),
+        new_arity <- (arity - count)..arity,
         into: %{},
-        do: {{fun_name, new_arity}, arity}
+        do: {{fun_name, new_arity}, {arity, count}}
   end
 
   defp ensure_loaded(Elixir), do: {:error, :nofile}
@@ -1870,7 +1855,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         end
 
       %{
-        kind: :field,
+        type: :field,
         name: key_str,
         subtype: subtype,
         value_is_map: value_is_map,
@@ -1897,148 +1882,117 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   ## Ad-hoc conversions
-  @spec to_entries(map) :: [t()]
+  @spec to_entries(map) :: t()
 
   defp to_entries(%{type: :bitstring_option} = option) do
-    [option]
+    option
   end
 
-  defp to_entries(%{
-         kind: :field,
-         subtype: subtype,
-         name: name,
-         origin: origin,
-         call?: call?,
-         type_spec: type_spec
-       }) do
-    [
-      %{
-        type: :field,
-        name: name,
-        subtype: subtype,
-        origin: origin,
-        call?: call?,
-        type_spec: type_spec
-      }
-    ]
+  defp to_entries(%{type: :field} = option) do
+    option
   end
 
   defp to_entries(
          %{
-           kind: :module,
+           type: :module,
            name: name,
            full_name: full_name,
            desc: {desc, metadata},
            subtype: subtype
          } = map
        ) do
-    [
-      %{
-        type: :module,
-        name: name,
-        full_name: full_name,
-        required_alias: if(map[:required_alias], do: inspect(map[:required_alias])),
-        subtype: subtype,
-        summary: desc,
-        metadata: metadata
-      }
-    ]
+    %{
+      type: :module,
+      name: name,
+      full_name: full_name,
+      required_alias: if(map[:required_alias], do: inspect(map[:required_alias])),
+      subtype: subtype,
+      summary: desc,
+      metadata: metadata
+    }
   end
 
-  defp to_entries(%{kind: :variable, name: name}) do
-    [%{type: :variable, name: name}]
+  defp to_entries(%{type: :variable, name: name} = option) do
+    option
   end
 
-  defp to_entries(%{kind: :attribute, name: name, summary: summary}) do
-    [%{type: :attribute, name: "@" <> name, summary: summary}]
+  defp to_entries(%{type: :attribute, name: name, summary: summary}) do
+    %{type: :attribute, name: "@" <> name, summary: summary}
   end
 
   defp to_entries(%{
-         kind: :function,
+         type: :function,
          name: name,
-         arities: arities,
-         def_arities: def_arities,
-         needed_imports: needed_imports,
-         needed_requires: needed_requires,
+         arity: arity,
+         default_args: default_args,
+         needed_import: needed_import,
+         needed_require: needed_require,
          module: mod,
-         func_kinds: func_kinds,
-         docs: docs,
-         specs: specs,
+         func_kind: func_kind,
+         docs: {doc, metadata},
+         specs: spec,
          args: args
        }) do
-    for e <-
-          Enum.zip([
-            arities,
-            docs,
-            specs,
-            args,
-            def_arities,
-            func_kinds,
-            needed_imports,
-            needed_requires
-          ]),
-        {a, {doc, metadata}, spec, args, def_arity, func_kind, needed_import, needed_require} = e do
-      kind =
-        case func_kind do
-          k when k in [:macro, :defmacro, :defmacrop, :defguard, :defguardp] -> :macro
-          _ -> :function
-        end
-
-      visibility =
-        if func_kind in [:defp, :defmacrop, :defguardp] do
-          :private
-        else
-          :public
-        end
-
-      mod_name = inspect(mod)
-
-      fa = {name |> String.to_atom(), a}
-
-      if fa in (BuiltinFunctions.all() -- [exception: 1, message: 1]) do
-        args = BuiltinFunctions.get_args(fa)
-        docs = BuiltinFunctions.get_docs(fa)
-
-        %{
-          type: kind,
-          visibility: visibility,
-          name: name,
-          arity: a,
-          def_arity: def_arity,
-          args: args |> Enum.join(", "),
-          args_list: args,
-          needed_require: nil,
-          needed_import: nil,
-          origin: mod_name,
-          summary: Introspection.extract_summary_from_docs(docs),
-          metadata: %{builtin: true},
-          spec: BuiltinFunctions.get_specs(fa) |> Enum.join("\n"),
-          snippet: nil
-        }
-      else
-        needed_import =
-          case needed_import do
-            nil -> nil
-            {mod, {fun, arity}} -> {inspect(mod), {Atom.to_string(fun), arity}}
-          end
-
-        %{
-          type: kind,
-          visibility: visibility,
-          name: name,
-          arity: a,
-          def_arity: def_arity,
-          args: args |> Enum.join(", "),
-          args_list: args,
-          needed_require: if(needed_require, do: inspect(needed_require)),
-          needed_import: needed_import,
-          origin: mod_name,
-          summary: doc,
-          metadata: metadata,
-          spec: spec || "",
-          snippet: nil
-        }
+    kind =
+      case func_kind do
+        k when k in [:macro, :defmacro, :defmacrop, :defguard, :defguardp] -> :macro
+        _ -> :function
       end
+
+    visibility =
+      if func_kind in [:defp, :defmacrop, :defguardp] do
+        :private
+      else
+        :public
+      end
+
+    mod_name = inspect(mod)
+
+    fa = {name |> String.to_atom(), arity}
+
+    if fa in (BuiltinFunctions.all() -- [exception: 1, message: 1]) do
+      args = BuiltinFunctions.get_args(fa)
+      docs = BuiltinFunctions.get_docs(fa)
+
+      %{
+        type: kind,
+        visibility: visibility,
+        name: name,
+        arity: arity,
+        default_args: default_args,
+        args: args |> Enum.join(", "),
+        args_list: args,
+        needed_require: nil,
+        needed_import: nil,
+        origin: mod_name,
+        summary: Introspection.extract_summary_from_docs(docs),
+        metadata: %{builtin: true},
+        spec: BuiltinFunctions.get_specs(fa) |> Enum.join("\n"),
+        snippet: nil
+      }
+    else
+      needed_import =
+        case needed_import do
+          nil -> nil
+          {mod, {fun, arity}} -> {inspect(mod), {Atom.to_string(fun), arity}}
+        end
+
+      %{
+        type: kind,
+        visibility: visibility,
+        name: name,
+        arity: arity,
+        default_args: default_args,
+        args: args |> Enum.join(", "),
+        args_list: args,
+        needed_require: if(needed_require, do: inspect(needed_require)),
+        needed_import: needed_import,
+        origin: mod_name,
+        summary: Introspection.extract_summary_from_docs(doc),
+        metadata: metadata,
+        spec: spec || "",
+        snippet: nil
+      }
     end
   end
 

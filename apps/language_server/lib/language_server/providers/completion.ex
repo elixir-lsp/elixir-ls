@@ -442,14 +442,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     signature_help_supported = Keyword.get(options, :signature_help_supported, false)
     capture_before? = context.capture_before?
 
-    Enum.reject(suggestions, fn s ->
-      s.type in [:function, :macro] and
-        !capture_before? and
-        s.arity < s.def_arity and
-        signature_help_supported and
-        function_name_with_parens?(s.name, s.arity, locals_without_parens) ==
-          function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
-    end)
+    for s <- suggestions do
+      default_arg_variants =
+        if s.type in [:function, :macro] and s.default_args > 0 do
+          max_arity_name = function_name_with_parens?(s.name, s.arity, locals_without_parens)
+
+          for i <- s.default_args..1//-1,
+              capture_before? or !signature_help_supported or
+                max_arity_name !=
+                  function_name_with_parens?(s.name, s.arity - i, locals_without_parens) do
+            %{s | arity: s.arity - i}
+          end
+        else
+          []
+        end
+
+      default_arg_variants ++ [s]
+    end
+    |> List.flatten()
   end
 
   defp from_completion_item(

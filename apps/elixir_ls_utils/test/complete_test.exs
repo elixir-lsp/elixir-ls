@@ -96,17 +96,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   test "elixir function completion with @doc false" do
     assert [
              %{
-               name: "some_fun_doc_false",
-               summary: "",
-               args: "a, b \\\\ nil",
-               arity: 1,
-               origin: "ElixirLS.Utils.Example.ModuleWithDocs",
-               spec: "",
-               type: :function
-             },
-             %{
                args: "a, b \\\\ nil",
                arity: 2,
+               default_args: 1,
                name: "some_fun_doc_false",
                origin: "ElixirLS.Utils.Example.ModuleWithDocs",
                spec: "",
@@ -115,16 +107,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              },
              %{
                args: "a, b \\\\ nil",
-               arity: 1,
-               name: "some_fun_no_doc",
-               origin: "ElixirLS.Utils.Example.ModuleWithDocs",
-               spec: "",
-               summary: "",
-               type: :function
-             },
-             %{
-               args: "a, b \\\\ nil",
                arity: 2,
+               default_args: 1,
                name: "some_fun_no_doc",
                origin: "ElixirLS.Utils.Example.ModuleWithDocs",
                spec: "",
@@ -142,25 +126,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [
              %{
                args: "a \\\\ :asdf, b, var \\\\ 0",
-               arity: 1,
-               name: "with_default",
-               origin: "ElixirLS.Utils.Example.BehaviourWithMacrocallback.Impl",
-               spec: "@spec with_default(atom(), list(), integer()) :: Macro.t()",
-               summary: "some macro with default arg\n",
-               type: :macro
-             },
-             %{
-               args: "a \\\\ :asdf, b, var \\\\ 0",
-               arity: 2,
-               name: "with_default",
-               origin: "ElixirLS.Utils.Example.BehaviourWithMacrocallback.Impl",
-               spec: "@spec with_default(atom(), list(), integer()) :: Macro.t()",
-               summary: "some macro with default arg\n",
-               type: :macro
-             },
-             %{
-               args: "a \\\\ :asdf, b, var \\\\ 0",
                arity: 3,
+               default_args: 2,
                name: "with_default",
                origin: "ElixirLS.Utils.Example.BehaviourWithMacrocallback.Impl",
                spec: "@spec with_default(atom(), list(), integer()) :: Macro.t()",
@@ -413,41 +380,38 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [
              %{
                name: "printable?",
-               arity: 1,
-               spec:
-                 "@spec printable?(t(), 0) :: true\n@spec printable?(t(), pos_integer() | :infinity) :: boolean()",
-               summary:
-                 "Checks if a string contains only printable characters up to `character_limit`."
-             },
-             %{
-               name: "printable?",
                arity: 2,
                spec:
                  "@spec printable?(t(), 0) :: true\n@spec printable?(t(), pos_integer() | :infinity) :: boolean()",
                summary:
-                 "Checks if a string contains only printable characters up to `character_limit`."
+                 "Checks if a string contains only printable characters up to `character_limit`.",
+               default_args: 1
              }
            ] = expand(~c"String.printable?")
 
-    assert [%{name: "printable?", arity: 1}, %{name: "printable?", arity: 2}] =
+    assert [%{name: "printable?", arity: 2, default_args: 1}] =
              expand(~c"String.printable?/")
 
     assert [
              %{
                name: "count",
-               arity: 1
+               arity: 1,
+               default_args: 0
              },
              %{
                name: "count",
-               arity: 2
+               arity: 2,
+               default_args: 0
              },
              %{
                name: "count_until",
-               arity: 2
+               arity: 2,
+               default_args: 0
              },
              %{
                name: "count_until",
-               arity: 3
+               arity: 3,
+               default_args: 0
              }
            ] = expand(~c"Enum.count")
 
@@ -511,7 +475,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       ]
     }
 
-    assert [%{name: "printable?", arity: 1}, %{name: "printable?", arity: 2}] =
+    assert [%{name: "printable?", arity: 2}] =
              expand(~c"mod.print", env)
   end
 
@@ -534,7 +498,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -548,7 +513,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "bar_2",
@@ -556,7 +522,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -570,7 +537,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "bar_2",
@@ -578,7 +546,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "foo",
@@ -586,7 +555,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -597,7 +567,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                origin: nil,
                subtype: :map_key,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
   end
@@ -660,7 +631,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "DateTime",
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: "Calendar.hour()"
+                 type_spec: "Calendar.hour()",
+                 value_is_map: false
                }
              ]
 
@@ -672,7 +644,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "DateTime",
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: "Calendar.day()"
+                 type_spec: "Calendar.day()",
+                 value_is_map: false
                }
              ]
 
@@ -684,7 +657,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "MyStruct",
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: "integer"
+                 type_spec: "integer",
+                 value_is_map: false
                }
              ]
 
@@ -696,7 +670,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "DateTime",
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: "Calendar.hour()"
+                 type_spec: "Calendar.hour()",
+                 value_is_map: false
                }
              ]
 
@@ -708,7 +683,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "DateTime",
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: "Calendar.hour()"
+                 type_spec: "Calendar.hour()",
+                 value_is_map: false
                }
              ]
   end
@@ -731,7 +707,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -745,7 +722,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "bar_2",
@@ -753,7 +731,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -767,7 +746,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "bar_2",
@@ -775,7 +755,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "foo",
@@ -783,7 +764,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -794,7 +776,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                origin: nil,
                subtype: :map_key,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
   end
@@ -834,7 +817,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -848,7 +832,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "bar_2",
@@ -856,7 +841,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -868,7 +854,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "bar_2",
@@ -876,7 +863,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "foo",
@@ -884,7 +872,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "mod",
@@ -892,7 +881,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "num",
@@ -900,7 +890,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -914,7 +905,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: true
                }
              ]
 
@@ -926,7 +918,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: true
                }
              ]
 
@@ -937,7 +930,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                origin: nil,
                subtype: :map_key,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
            ]
 
@@ -1222,8 +1216,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              %{name: "all?", arity: 2},
              %{name: "any?", arity: 1},
              %{name: "any?", arity: 2},
-             %{name: "at", arity: 2},
-             %{name: "at", arity: 3}
+             %{name: "at", arity: 3, default_args: 1}
            ] = expand(~c"&Enum.a")
 
     assert [
@@ -1231,8 +1224,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              %{name: "all?", arity: 2},
              %{name: "any?", arity: 1},
              %{name: "any?", arity: 2},
-             %{name: "at", arity: 2},
-             %{name: "at", arity: 3}
+             %{name: "at", arity: 3, default_args: 1}
            ] = expand(~c"f = &Enum.a")
   end
 
@@ -1816,7 +1808,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -1828,7 +1821,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: true
                }
              ]
 
@@ -1840,7 +1834,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -1852,7 +1847,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: "ElixirLS.Utils.CompletionEngineTest.MyStruct"
+                 type_spec: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
+                 value_is_map: false
                },
                %{
                  name: "a_mod",
@@ -1860,7 +1856,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "my_val",
@@ -1868,7 +1865,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "some_map",
@@ -1876,7 +1874,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "str",
@@ -1884,7 +1883,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                },
                %{
                  name: "unknown_str",
@@ -1892,7 +1892,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
 
@@ -1904,7 +1905,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: true
                }
              ]
 
@@ -1916,7 +1918,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: "atom()"
+                 type_spec: "atom()",
+                 value_is_map: false
                },
                %{
                  call?: true,
@@ -1924,7 +1927,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  subtype: :struct_field,
                  type: :field,
-                 type_spec: nil
+                 type_spec: nil,
+                 value_is_map: false
                }
              ]
   end
@@ -2225,6 +2229,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
   test "provide doc and specs for erlang functions" do
     Application.load(:erts)
+
     assert [
              %{
                arity: 1,
@@ -2340,25 +2345,25 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [
              %{
                name: "info",
-               arity: 1,
+               arity: 2,
+               default_args: 1,
                type: :macro,
                origin: "Logger",
                needed_require: "Logger",
                visibility: :public
-             },
-             _
+             }
            ] = expand(~c"Logger.inf")
 
     assert [
              %{
                name: "info",
-               arity: 1,
+               arity: 2,
+               default_args: 1,
                type: :macro,
                origin: "Logger",
                needed_require: nil,
                visibility: :public
-             },
-             _
+             }
            ] = expand(~c"Logger.inf", %Env{requires: [Logger]})
   end
 
@@ -2443,14 +2448,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       assert [
                %{
                  name: "compile_env",
-                 arity: 2,
-                 type: :macro,
-                 origin: "Application",
-                 needed_require: "Application"
-               },
-               %{
-                 name: "compile_env",
                  arity: 3,
+                 default_args: 1,
                  type: :macro,
                  origin: "Application",
                  needed_require: "Application"
@@ -2458,6 +2457,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                %{
                  name: "compile_env",
                  arity: 4,
+                 default_args: 0,
                  type: :function,
                  origin: "Application",
                  needed_require: nil
