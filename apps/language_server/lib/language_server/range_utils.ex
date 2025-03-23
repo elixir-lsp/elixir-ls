@@ -29,6 +29,10 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
 
   def valid?(_), do: false
 
+  def empty?(range(start_line, start_character, end_line, end_character)) do
+    start_line == end_line and start_character == end_character
+  end
+
   def increasingly_narrowing?([left]), do: valid?(left)
 
   def increasingly_narrowing?([left, right | rest]) do

@@ -151,7 +151,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
       case end_token do
         :end ->
-          if line < start_line + 1 or line > end_line - 1 do
+          if line < start_line + 1 or line > end_line - 1 or start_line + 1 == end_line do
             # do not include inner range if cursor is outside, e.g.
             # do
             # ^ 
@@ -160,8 +160,14 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
             line_length = lines |> Enum.at(end_line - 1, "") |> String.length()
             inner_range = range(start_line + 1, 0, end_line - 1, line_length)
 
-            find_stop_token_range(stop_tokens_in_pair, pair, inner_range, line, character) ++
-              [inner_range, outer_range | acc]
+            if empty?(inner_range) do
+              # degenerate case where the inner range is an empty line
+              # in this case we should not include the inner range
+              [outer_range | acc]
+            else
+              find_stop_token_range(stop_tokens_in_pair, pair, inner_range, line, character) ++
+                [inner_range, outer_range | acc]
+            end
           end
 
         _ ->
@@ -238,13 +244,22 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
                   {start_line, start_character}
               end
 
-            trimmed_range =
-              intersection(
-                range(start_line, start_character, end_line, end_character),
-                inner_range
-              )
+            computed_range = range(start_line, start_character, end_line, end_character)
 
-            if in?(trimmed_range, {line, character}) do
+            trimmed_range =
+              if not empty?(computed_range) do
+                try do
+                  intersection(
+                    range(start_line, start_character, end_line, end_character),
+                    inner_range
+                  )
+                rescue
+                  # No intersection possible
+                  ArgumentError -> nil
+                end
+              end
+
+            if trimmed_range && in?(trimmed_range, {line, character}) do
               {:halt, {token_tuple, [trimmed_range]}}
             else
               {:halt, {token_tuple, []}}

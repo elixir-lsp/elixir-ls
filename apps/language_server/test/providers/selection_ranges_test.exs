@@ -1103,4 +1103,31 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
     # s variable
     assert_range(ranges, range(0, 15, 0, 16))
   end
+
+  test "do not raise no intersection in degenerate stop token cases" do
+    text = """
+    if 1 do
+      :ok
+    end
+    """
+
+    get_ranges(text, 1, 2)
+
+    text = """
+    if 1 do
+
+    end
+    """
+
+    get_ranges(text, 1, 2)
+
+    text = """
+    if 1 do
+      :ok
+
+    end
+    """
+
+    get_ranges(text, 1, 2)
+  end
 end
