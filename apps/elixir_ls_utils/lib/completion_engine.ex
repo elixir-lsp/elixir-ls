@@ -105,7 +105,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           visibility: :public | :private,
           name: String.t(),
           needed_require: String.t() | nil,
-          needed_import: {String.t(), {String.t(), integer()}} | nil,
+          needed_import: {String.t(), list({String.t(), integer()})} | nil,
           arity: non_neg_integer,
           default_args: non_neg_integer,
           args: String.t(),
@@ -1534,9 +1534,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
         if imported == :all do
           nil
         else
-          # TODO check if this is correct with regards to default_args
-          if {fun, arity} not in imported do
-            {mod, {fun, arity}}
+          missing =
+            for a <- (arity - default_args)..arity, {fun, a} not in imported do
+              {fun, a}
+            end
+
+          if missing == [] do
+            nil
+          else
+            {mod, missing}
           end
         end
 
@@ -1970,8 +1976,11 @@ defmodule ElixirLS.Utils.CompletionEngine do
     else
       needed_import =
         case needed_import do
-          nil -> nil
-          {mod, {fun, arity}} -> {inspect(mod), {Atom.to_string(fun), arity}}
+          nil ->
+            nil
+
+          {mod, missing} ->
+            {inspect(mod), missing |> Enum.map(fn {f, a} -> {Atom.to_string(f), a} end)}
         end
 
       %{

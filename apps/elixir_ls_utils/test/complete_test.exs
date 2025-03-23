@@ -1404,7 +1404,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              %{
                name: "my_fun_other_pub",
                origin: "OtherModule",
-               needed_import: {"OtherModule", {"my_fun_other_pub", 2}}
+               needed_import: {"OtherModule", [{"my_fun_other_pub", 2}]}
              }
            ] = expand(~c"my_f", env, metadata)
   end
