@@ -37,6 +37,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Declaration,
     Implementation,
     References,
+    Rename,
     Formatting,
     SignatureHelp,
     DocumentSymbols,
@@ -1203,6 +1204,26 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
+  defp handle_request(rename_req(_id, uri, line, character, new_name), state = %__MODULE__{}) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      Rename.rename(source_file, uri, line + 1, character + 1, new_name)
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(prepare_rename_req(_id, uri, line, character), state = %__MODULE__{}) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      Rename.prepare(source_file, uri, line + 1, character + 1)
+    end
+
+    {:async, fun, state}
+  end
+
   defp handle_request(execute_command_req(_id, command, args) = req, state = %__MODULE__{}) do
     {:async,
      fn ->
@@ -1314,6 +1335,7 @@ defmodule ElixirLS.LanguageServer.Server do
       "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
       "codeLensProvider" => %{"resolveProvider" => false},
       "selectionRangeProvider" => true,
+      "renameProvider" => %{"prepareProvider" => true},
       "executeCommandProvider" => %{
         "commands" => ExecuteCommand.get_commands(server_instance_id)
       },

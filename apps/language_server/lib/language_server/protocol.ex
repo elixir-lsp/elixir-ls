@@ -199,6 +199,25 @@ defmodule ElixirLS.LanguageServer.Protocol do
     end
   end
 
+  defmacro rename_req(id, uri, line, character, new_name) do
+    quote do
+      request(unquote(id), "textDocument/rename", %{
+        "textDocument" => %{"uri" => unquote(uri)},
+        "position" => %{"line" => unquote(line), "character" => unquote(character)},
+        "newName" => unquote(new_name)
+      })
+    end
+  end
+
+  defmacro prepare_rename_req(id, uri, line, character) do
+    quote do
+      request(unquote(id), "textDocument/prepareRename", %{
+        "textDocument" => %{"uri" => unquote(uri)},
+        "position" => %{"line" => unquote(line), "character" => unquote(character)}
+      })
+    end
+  end
+
   defmacro execute_command_req(id, command, arguments) do
     quote do
       request(unquote(id), "workspace/executeCommand", %{
