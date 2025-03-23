@@ -20,6 +20,9 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration do
 
         %ElixirLS.LanguageServer.Location{} = location ->
           Protocol.Location.new(location, uri, source_file.text, project_dir)
+
+        list when is_list(list) ->
+          Enum.map(list, &Protocol.Location.new(&1, uri, source_file.text, project_dir))
       end
 
     {:ok, result}
