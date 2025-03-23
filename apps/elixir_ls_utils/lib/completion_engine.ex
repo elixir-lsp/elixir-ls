@@ -797,7 +797,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     {keys, types, alias} =
       case kind do
         {:struct, nil} ->
-          {Map.keys(map), %{}, nil}
+          {Map.keys(map) ++ [:__struct__], %{}, nil}
 
         {:struct, alias} ->
           keys = Struct.get_fields(alias, metadata.structs)
