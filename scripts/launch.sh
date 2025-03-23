@@ -37,7 +37,6 @@ esac
 
 # First order of business, see whether we can setup asdf
 echo "Looking for asdf install" >&2
-ASDF_DIR=${ASDF_DIR:-"${HOME}/.asdf"}
 
 # Check if we have the asdf binary for version >= 0.16.0
 if command -v asdf >/dev/null 2>&1; then
@@ -47,6 +46,7 @@ if command -v asdf >/dev/null 2>&1; then
     minor=$(echo "$version" | cut -d. -f2)
     # If the version is less than 0.16.0 (i.e. major = 0 and minor < 16), use legacy method.
     if [ "$major" -eq 0 ] && [ "$minor" -lt 16 ]; then
+        ASDF_DIR=${ASDF_DIR:-"${HOME}/.asdf"}
         ASDF_SH="${ASDF_DIR}/asdf.sh"
         if test -f "$ASDF_SH"; then
             >&2 echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing"
@@ -56,13 +56,11 @@ if command -v asdf >/dev/null 2>&1; then
             >&2 echo "Legacy asdf not found at $ASDF_SH"
         fi
     else
-        >&2 echo "asdf executable found at $(command -v asdf). Setting ASDF_DIR=${ASDF_DIR} and adding ${ASDF_DIR}/shims to PATH."
-        # If the binary is found, set up environment for newer asdf versions
-        export ASDF_DATA_DIR="$ASDF_DIR"
-        export PATH="$ASDF_DATA_DIR/shims:$PATH"
+        >&2 echo "asdf executable found at $(command -v asdf). Using ASDF_DIR=${ASDF_DIR}, ASDF_DATA_DIR=${ASDF_DATA_DIR}."
     fi
 else
     # Fallback to old method for version <= 0.15.x
+    ASDF_DIR=${ASDF_DIR:-"${HOME}/.asdf"}
     ASDF_SH="${ASDF_DIR}/asdf.sh"
     if test -f "$ASDF_SH"; then
         >&2 echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing"

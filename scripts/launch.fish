@@ -9,7 +9,6 @@
 # First order of business, see whether we can setup asdf
 
 echo "Looking for asdf install" >&2
-test -n "$ASDF_DIR"; or set ASDF_DIR "$HOME/.asdf"
 
 # Check if we have the asdf binary for version >= 0.16.0
 set asdf (which asdf)
@@ -18,18 +17,17 @@ if test -n "$asdf"
     set semver (string match -r '(\d+)\.(\d+)\.(\d+)' $asdf_version)
     if test $semver[2] -eq 0 -a $semver[3] -lt 16
         # Fallback to old method for asdf version <= 0.15.x
+        test -n "$ASDF_DIR"; or set ASDF_DIR "$HOME/.asdf"
         set ASDF_SH "$ASDF_DIR/asdf.fish"
         echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing" >&2
         # Source the old asdf.sh script for versions <= 0.15.0
         source "$ASDF_SH"
     else
-        echo "asdf executable found at $asdf. Setting ASDF_DIR=$ASDF_DIR and adding $ASDF_DIR/shims to PATH." >&2
-        # If the binary is found, set up environment for newer asdf versions
-        set -gx ASDF_DATA_DIR "$ASDF_DIR"
-        set -gx PATH "$ASDF_DATA_DIR/shims" $PATH
+        echo "asdf executable found at $asdf. Using ASDF_DIR=$ASDF_DIR, ASDF_DATA_DIR=$ASDF_DATA_DIR." >&2
     end
 else
     # Fallback to old method for asdf version <= 0.15.x
+    test -n "$ASDF_DIR"; or set ASDF_DIR "$HOME/.asdf"
     set ASDF_SH "$ASDF_DIR/asdf.fish"
     if test -f "$ASDF_SH"
         echo "Legacy pre v0.16.0 asdf install found at $ASDF_SH, sourcing" >&2
