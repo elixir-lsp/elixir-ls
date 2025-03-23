@@ -38,7 +38,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
           :functions,
           :macros,
           :variables,
-          :attributes
+          :attributes,
+          :structs_fields,
+          :bitstring_options
         ]
 
         {:cont, %{acc | result: fields, reducers: reducers}}
