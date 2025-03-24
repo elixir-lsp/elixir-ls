@@ -132,7 +132,17 @@ ElixirLS generally aims to support all supported versions of Elixir on all compa
 
 ### Version management
 
-It is generally recommended to install Elixir and Erlang via [ASDF](https://github.com/asdf-vm/asdf) so that you can have different projects using different versions of Elixir without having to change your system-installed version. ElixirLS can detect and use the versions of Elixir and Erlang that you have configured in ASDF.
+It is generally recommended to install Elixir and Erlang via a version manager so that you can have different projects using different versions of Elixir without having to change your system-installed version. Supported managers include:
+
+- [asdf](https://asdf-vm.com/)
+- [mise](https://mise.jdx.dev/)
+- [vfox](https://vfox.dev/)
+
+ElixirLS launch script will attempt to activate found version manager.
+
+#### Windows
+
+Version managers are currently not supported on Windows. mise and vfox may work if activated.
 
 ## Debugger support
 
@@ -498,7 +508,7 @@ ElixirLS supports the following environment variables.
 
   <dt>ELS_ERL_OPTS</dt><dd>Optional parameters to pass to the erl CLI</dd>
 
-  <dt>ASDF_DIR</dt><dd>(not supported on Windows) If this is set, ElixirLS will look for the <a href="https://github.com/asdf-vm/asdf">ASDF</a> script in a directory given by that variable.</dd>
+  <dt>ASDF_DIR</dt><dd>(not supported on Windows)(deprecated, not used with asdf v0.16+) If this is set, ElixirLS will look for the <a href="https://asdf-vm.com/">asdf</a> script in a directory given by that variable.</dd>
 
 </dl>
 
