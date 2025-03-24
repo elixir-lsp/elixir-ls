@@ -1,5 +1,14 @@
 ### Unreleased
 
+### v0.27.2: 24 March 2025
+
+#### Fixes
+
+- Improved asdf v0.16+ handling in launch script. ElixirLS will no longer overwrite ASDF_* environment variables
+- Fixed selection ranges crash with empty do end blocks
+- Fixed declaration provider when multiple locations are returned
+- Avoid emitting events from debug adapter after `disconnect` request
+
 ### v0.27.1: 27 February 2025
 
 #### Fixes
