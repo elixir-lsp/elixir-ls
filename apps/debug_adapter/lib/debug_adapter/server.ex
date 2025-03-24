@@ -391,7 +391,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   @impl GenServer
   def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state = %__MODULE__{}) do
-    Output.send_response(packet, %{})
+    Output.debugger_console("Received disconnect request\n")
 
     Output.telemetry("dap_request", %{"elixir_ls.dap_command" => "disconnect"}, %{
       "elixir_ls.dap_request_time" => 0
@@ -409,6 +409,11 @@ defmodule ElixirLS.DebugAdapter.Server do
         :int.nn(module)
       end
     end
+
+    # disable logger so we do not get unexpected
+    # [notice] SIGTERM received - shutting down
+    Logger.configure(level: :none)
+    Output.send_response(packet, %{})
 
     {:noreply, state, {:continue, :disconnect}}
   end
@@ -559,8 +564,8 @@ defmodule ElixirLS.DebugAdapter.Server do
       )
     end
 
-    Output.send_event("exited", %{"exitCode" => exit_code})
     Output.send_event("terminated", %{"restart" => false})
+    Output.send_event("exited", %{"exitCode" => exit_code})
 
     {:noreply, %{state | task_ref: nil}}
   end
@@ -653,7 +658,6 @@ defmodule ElixirLS.DebugAdapter.Server do
   @impl GenServer
   def handle_continue(:disconnect, state = %__MODULE__{}) do
     unless :persistent_term.get(:debug_adapter_test_mode, false) do
-      Output.debugger_console("Received disconnect request\n")
       Process.sleep(200)
       System.halt(0)
     else
@@ -795,8 +799,8 @@ defmodule ElixirLS.DebugAdapter.Server do
 
             {%ServerError{} = error, stack} ->
               exit_code = 1
-              Output.send_event("exited", %{"exitCode" => exit_code})
               Output.send_event("terminated", %{"restart" => false})
+              Output.send_event("exited", %{"exitCode" => exit_code})
 
               reraise error, stack
 
@@ -806,8 +810,8 @@ defmodule ElixirLS.DebugAdapter.Server do
               Output.debugger_console(message)
 
               exit_code = 1
-              Output.send_event("exited", %{"exitCode" => exit_code})
               Output.send_event("terminated", %{"restart" => false})
+              Output.send_event("exited", %{"exitCode" => exit_code})
 
               raise ServerError,
                 message: "launchError",
