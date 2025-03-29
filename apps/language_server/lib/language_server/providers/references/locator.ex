@@ -112,7 +112,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
             |> List.flatten()
             |> Enum.filter(fn call -> function == nil or call.func == function end)
             |> Enum.map(fn call ->
-              env = Metadata.get_cursor_env(metadata, call.position)
+              {call_line, call_column} = call.position
+              env = Metadata.get_cursor_env(metadata, {call_line, call_column || 1})
 
               binding_env = Binding.from_env(env, metadata, call.position)
 
