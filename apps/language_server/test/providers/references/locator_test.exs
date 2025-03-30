@@ -6,9 +6,7 @@
 
 defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
   use ExUnit.Case, async: true
-  # TODO remove
   alias ElixirSense.Core.References.Tracer
-  # TODO remove
   alias ElixirSense.Core.Source
   alias ElixirLS.LanguageServer.Providers.References.Locator
 
@@ -887,8 +885,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     assert [
              %{
                range: %{
-                 start: %{line: 8, column: 9},
-                 end: %{line: 8, column: 9}
+                 start: %{line: 8, column: 3},
+                 end: %{line: 8, column: 3}
                },
                uri: nil
              },
@@ -970,7 +968,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     references_2 = Locator.references(buffer, 3, 58, trace)
 
     assert references_1 == references_2
-    assert [_, _, _] = references_1
+    assert [_, _, _, _] = references_1
   end
 
   test "find references with cursor over a function call from an aliased module", %{trace: trace} do
@@ -1227,6 +1225,13 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
       references = Locator.references(buffer, 7, 15, trace)
 
       assert references == [
+        %{
+          range: %{
+            start: %{line: 2, column: 13},
+            end: %{line: 2, column: 13}
+          },
+          uri: nil
+        },
                %{
                  range: %{
                    start: %{line: 7, column: 13},
@@ -1871,7 +1876,6 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     references = Locator.references(buffer, 3, 53, trace)
 
     assert [
-             # TODO should be 2, 13
              %{
                range: %{
                  start: %{line: 3, column: 5},
@@ -2029,6 +2033,87 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
       assert range_1 ==
                %{start: %{column: 60, line: 101}, end: %{column: 71, line: 101}} |> maybe_shift
+    end
+  end
+
+  describe "alias" do
+    test "find references of alias", %{trace: trace} do
+      buffer = """
+      defmodule MyModule do
+      #          ^
+        @type t :: %MyModule{
+          field: String.t()
+        }
+        defstruct field: ""
+        
+        def my_fun(arg) do
+          :ok
+        end
+      end
+  
+      defmodule Caller do
+        alias MyModule, as: M
+        
+        @spec process(MyModule.t()) :: :ok
+        def process(%MyModule{} = struct) do
+          MyModule.my_fun(struct)
+        end
+      end
+      """
+  
+      references = Locator.references(buffer, 1, 11, trace)
+  
+      assert [
+        %{
+          range: %{
+            start: %{line: 3, column: 15},
+            end: %{line: 3, column: 15}
+          },
+          uri: nil
+        },
+        %{
+          range: %{
+            start: %{line: 14, column: 3},
+            end: %{line: 14, column: 3}
+          },
+          uri: nil
+        },
+        %{
+          range: %{
+            end: %{column: 27, line: 16},
+            start: %{column: 26, line: 16}
+          },
+          uri: nil
+        },
+        %{
+          range: %{
+            start: %{line: 16, column: 26},
+            end: %{line: 16, column: 27}
+          },
+          uri: nil
+        },
+        %{
+          range: %{
+            end: %{column: 16, line: 17},
+            start: %{column: 16, line: 17}
+          },
+          uri: nil
+        },
+        %{
+          range: %{
+            start: %{line: 18, column: 5},
+            end: %{line: 18, column: 5}
+          },
+          uri: nil
+        },
+        %{
+          range: %{
+            start: %{line: 18, column: 14},
+            end: %{line: 18, column: 20}
+          },
+          uri: nil
+        }
+      ] = references
     end
   end
 
