@@ -120,37 +120,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacroTest do
                |> String.trim()
 
       assert result.expand_all =~
-               (if Version.match?(System.version(), ">= 1.14.0") do
-                  """
-                  Application
+               """
+               Application
 
-                  (
-                    Application
-                    @doc false
-                    {:stop, 1}
-                    nil
-                  )
-                  """
-                else
-                  if Version.match?(System.version(), "< 1.14.0") do
-                    "Application\n\n(\n  Application\n  @doc false\n  {:stop, 1}\n  nil\n)"
-                  else
-                    """
-                    (
-                      require Application
-
-                      (
-                        Module.__put_attribute__(MyModule, :behaviour, Application, nil)
-                        Module.__put_attribute__(MyModule, :doc, {2, false}, nil)
-
-                        def stop(_state) do
-                          :ok
-                        end
-
-                        Module.make_overridable(MyModule, Application)
-                    """
-                  end
-                end)
+               (
+                 Application
+                 @doc false
+                 {:stop, 1}
+                 nil
+               )
+               """
                |> String.trim()
     end
 

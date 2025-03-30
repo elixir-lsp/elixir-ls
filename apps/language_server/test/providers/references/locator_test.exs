@@ -409,11 +409,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              }
            ] = references
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      # before 1.14 tracer reports invalid positions for captures
-      # https://github.com/elixir-lang/elixir/issues/12023
-      assert range == %{start: %{line: 55, column: 72}, end: %{line: 55, column: 83}}
-    end
+    assert range == %{start: %{line: 55, column: 72}, end: %{line: 55, column: 83}}
   end
 
   test "find references with cursor over a function with default argument when caller uses default arguments",
@@ -1180,93 +1176,87 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
            ] = references
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "find references when module with __MODULE__ special form submodule function", %{
-      trace: trace
-    } do
-      buffer = """
-      defmodule ElixirSense.Providers.ReferencesTest.Modules do
-        def func() do
-          __MODULE__.Callee3.func()
-          #                   ^
-        end
+  test "find references when module with __MODULE__ special form submodule function", %{
+    trace: trace
+  } do
+    buffer = """
+    defmodule ElixirSense.Providers.ReferencesTest.Modules do
+      def func() do
+        __MODULE__.Callee3.func()
+        #                   ^
       end
-      """
-
-      references = Locator.references(buffer, 3, 25, trace)
-
-      assert references == [
-               %{range: %{end: %{column: 28, line: 3}, start: %{column: 24, line: 3}}, uri: nil},
-               %{
-                 uri: "test/support/modules_with_references.ex",
-                 range: %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}}
-               },
-               %{
-                 range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
-                 uri: "test/support/modules_with_references.ex"
-               }
-             ]
     end
+    """
+
+    references = Locator.references(buffer, 3, 25, trace)
+
+    assert references == [
+             %{range: %{end: %{column: 28, line: 3}, start: %{column: 24, line: 3}}, uri: nil},
+             %{
+               uri: "test/support/modules_with_references.ex",
+               range: %{start: %{line: 65, column: 47}, end: %{line: 65, column: 51}}
+             },
+             %{
+               range: %{end: %{column: 13, line: 70}, start: %{column: 9, line: 70}},
+               uri: "test/support/modules_with_references.ex"
+             }
+           ]
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "find references when module with __MODULE__ special form submodule", %{trace: trace} do
-      buffer = """
-      defmodule MyLocalModule do
-        defmodule Some do
-          def func() do
-            :ok
-          end
+  test "find references when module with __MODULE__ special form submodule", %{trace: trace} do
+    buffer = """
+    defmodule MyLocalModule do
+      defmodule Some do
+        def func() do
+          :ok
         end
-        __MODULE__.Some.func()
       end
-      """
-
-      references = Locator.references(buffer, 7, 15, trace)
-
-      assert references == [
-               %{
-                 range: %{
-                   start: %{line: 2, column: 13},
-                   end: %{line: 2, column: 13}
-                 },
-                 uri: nil
-               },
-               %{
-                 range: %{
-                   start: %{line: 7, column: 13},
-                   end: %{line: 7, column: 13}
-                 },
-                 uri: nil
-               },
-               %{range: %{start: %{column: 19, line: 7}, end: %{column: 23, line: 7}}, uri: nil}
-             ]
+      __MODULE__.Some.func()
     end
+    """
+
+    references = Locator.references(buffer, 7, 15, trace)
+
+    assert references == [
+             %{
+               range: %{
+                 start: %{line: 2, column: 13},
+                 end: %{line: 2, column: 13}
+               },
+               uri: nil
+             },
+             %{
+               range: %{
+                 start: %{line: 7, column: 13},
+                 end: %{line: 7, column: 13}
+               },
+               uri: nil
+             },
+             %{range: %{start: %{column: 19, line: 7}, end: %{column: 23, line: 7}}, uri: nil}
+           ]
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "find references when module with __MODULE__ special form function", %{trace: trace} do
-      buffer = """
-      defmodule ElixirSense.Providers.ReferencesTest.Modules do
-        def func() do
-          __MODULE__.func()
-          #            ^
-        end
+  test "find references when module with __MODULE__ special form function", %{trace: trace} do
+    buffer = """
+    defmodule ElixirSense.Providers.ReferencesTest.Modules do
+      def func() do
+        __MODULE__.func()
+        #            ^
       end
-      """
-
-      references = Locator.references(buffer, 3, 18, trace)
-
-      assert references == [
-               %{
-                 uri: nil,
-                 range: %{
-                   end: %{column: 20, line: 3},
-                   start: %{column: 16, line: 3}
-                 }
-               }
-             ]
     end
+    """
+
+    references = Locator.references(buffer, 3, 18, trace)
+
+    assert references == [
+             %{
+               uri: nil,
+               range: %{
+                 end: %{column: 20, line: 3},
+                 start: %{column: 16, line: 3}
+               }
+             }
+           ]
   end
 
   test "find references when module with __MODULE__ special form", %{trace: trace} do

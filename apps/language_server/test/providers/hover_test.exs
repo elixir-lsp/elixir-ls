@@ -182,18 +182,13 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
-               Hover.hover(parser_context, line, char)
+    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+             Hover.hover(parser_context, line, char)
 
-      assert String.starts_with?(
-               v,
-               "```elixir\ndo\n```\n\n*reserved word*"
-             )
-    else
-      assert {:ok, nil} =
-               Hover.hover(parser_context, line, char)
-    end
+    assert String.starts_with?(
+             v,
+             "```elixir\ndo\n```\n\n*reserved word*"
+           )
   end
 
   test "variable" do

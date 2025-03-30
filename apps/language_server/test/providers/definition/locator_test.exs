@@ -18,27 +18,25 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert nil == Locator.definition("__MODULE__", 1, 1)
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "find module definition inside Phoenix's scope" do
-      _define_existing_atom = ExampleWeb
+  test "find module definition inside Phoenix's scope" do
+    _define_existing_atom = ExampleWeb
 
-      buffer = """
-      defmodule ExampleWeb.Router do
-        import Phoenix.Router
+    buffer = """
+    defmodule ExampleWeb.Router do
+      import Phoenix.Router
 
-        scope "/", ExampleWeb do
-          get "/", PageController, :home
-        end
+      scope "/", ExampleWeb do
+        get "/", PageController, :home
       end
-      """
-
-      %Location{type: :module, file: file} =
-        location =
-        Locator.definition(buffer, 5, 15)
-
-      assert file =~ "language_server/test/support/plugins/phoenix/page_controller.ex"
-      assert read_range(location) =~ "ExampleWeb.PageController"
     end
+    """
+
+    %Location{type: :module, file: file} =
+      location =
+      Locator.definition(buffer, 5, 15)
+
+    assert file =~ "language_server/test/support/plugins/phoenix/page_controller.ex"
+    assert read_range(location) =~ "ExampleWeb.PageController"
   end
 
   test "find definition of aliased modules in `use`" do
@@ -1425,79 +1423,73 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
            }
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "find definition of local functions with __MODULE__ submodule" do
-      buffer = """
-      defmodule MyModule do
-        defmodule Sub do
-          def my_fun(), do: :ok
-        end
-
-        def a do
-          my_fun1 = 1
-          __MODULE__.Sub.my_fun()
-        end
-      end
-      """
-
-      assert %Location{
-               type: :function,
-               file: nil,
-               line: 3,
-               column: 5,
-               end_line: 3
-             } = Locator.definition(buffer, 8, 22)
-    end
-  end
-
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "find definition of local __MODULE__ submodule" do
-      buffer = """
-      defmodule MyModule do
-        defmodule Sub do
-          def my_fun(), do: :ok
-        end
-
-        def a do
-          my_fun1 = 1
-          __MODULE__.Sub.my_fun()
-        end
-      end
-      """
-
-      assert Locator.definition(buffer, 8, 17) == %Location{
-               type: :module,
-               file: nil,
-               line: 2,
-               column: 3,
-               end_line: 4,
-               end_column: 6
-             }
-    end
-  end
-
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "find definition of local functions with @attr" do
-      buffer = """
-      defmodule MyModule do
+  test "find definition of local functions with __MODULE__ submodule" do
+    buffer = """
+    defmodule MyModule do
+      defmodule Sub do
         def my_fun(), do: :ok
-        @attr MyModule
-        def a do
-          my_fun1 = 1
-          @attr.my_fun()
-        end
       end
-      """
 
-      assert Locator.definition(buffer, 6, 13) == %Location{
-               type: :function,
-               file: nil,
-               line: 2,
-               column: 3,
-               end_line: 2,
-               end_column: 24
-             }
+      def a do
+        my_fun1 = 1
+        __MODULE__.Sub.my_fun()
+      end
     end
+    """
+
+    assert %Location{
+             type: :function,
+             file: nil,
+             line: 3,
+             column: 5,
+             end_line: 3
+           } = Locator.definition(buffer, 8, 22)
+  end
+
+  test "find definition of local __MODULE__ submodule" do
+    buffer = """
+    defmodule MyModule do
+      defmodule Sub do
+        def my_fun(), do: :ok
+      end
+
+      def a do
+        my_fun1 = 1
+        __MODULE__.Sub.my_fun()
+      end
+    end
+    """
+
+    assert Locator.definition(buffer, 8, 17) == %Location{
+             type: :module,
+             file: nil,
+             line: 2,
+             column: 3,
+             end_line: 4,
+             end_column: 6
+           }
+  end
+
+  test "find definition of local functions with @attr" do
+    buffer = """
+    defmodule MyModule do
+      def my_fun(), do: :ok
+      @attr MyModule
+      def a do
+        my_fun1 = 1
+        @attr.my_fun()
+      end
+    end
+    """
+
+    assert Locator.definition(buffer, 6, 13) == %Location{
+             type: :function,
+             file: nil,
+             line: 2,
+             column: 3,
+             end_line: 2,
+             end_column: 24
+           }
   end
 
   test "find definition of local functions with current module" do
