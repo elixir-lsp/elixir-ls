@@ -62,7 +62,7 @@ else
         set mise (which mise)
         if test -n "$mise"
             echo "mise executable found at $mise, activating" >&2
-            source ( "$mise" env -s fish )
+            "$mise" env -s fish | source
             export_stdlib_path "mise which elixir"
         else
             echo "mise not found" >&2
@@ -71,7 +71,7 @@ else
             set rtx (which rtx)
             if test -n "$rtx"
                 echo "rtx executable found at $rtx, activating" >&2
-                source ( "$rtx" env -s fish )
+                "$rtx" env -s fish | source
                 export_stdlib_path "rtx which elixir"
             else
                 echo "rtx not found" >&2
