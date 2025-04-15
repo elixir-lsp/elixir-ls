@@ -68,7 +68,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 24) == %{
+      assert Signature.signature(code, 4, 21) == %{
                active_param: 0,
                signatures: [
                  %{
@@ -96,7 +96,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 30) == %{
+      assert Signature.signature(code, 4, 27) == %{
                active_param: 1,
                signatures: [
                  %{

@@ -5,13 +5,15 @@
 # The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   alias ElixirSense.Core.References.Tracer
   alias ElixirSense.Core.Source
   alias ElixirLS.LanguageServer.Providers.References.Locator
 
   setup_all do
-    {:ok, _} = Tracer.start_link()
+    _ = start_link_supervised!({Tracer, %{}})
+
+    original_options = Code.compiler_options()
 
     Code.compiler_options(
       tracers: [Tracer],
@@ -25,6 +27,10 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     Code.compile_file("./test/support/functions_with_default_args.ex")
 
     trace = Tracer.get()
+
+    on_exit(fn ->
+      Code.compiler_options(original_options)
+    end)
 
     %{trace: trace}
   end
@@ -523,27 +529,54 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     assert [
              %{
                range: %{
-                 start: %{line: 3, column: 5},
-                 end: %{line: 3, column: 5}
+                 end: %{column: 5, line: 3},
+                 start: %{column: 5, line: 3}
                },
                uri: nil
              },
-             %{range: %{end: %{column: 67, line: 3}, start: %{column: 58, line: 3}}, uri: nil},
              %{
-               range: range_1,
+               range: %{
+                 end: %{column: 67, line: 3},
+                 start: %{column: 58, line: 3}
+               },
+               uri: nil
+             },
+             %{
+               range: %{
+                 start: %{line: 78, column: 13},
+                 end: %{line: 78, column: 13}
+               },
                uri: "test/support/modules_with_references.ex"
              },
              %{
-               range: range_2,
+               range: %{
+                 start: %{line: 90, column: 7},
+                 end: %{line: 90, column: 7}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 90, column: 60},
+                 end: %{line: 90, column: 68}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 91, column: 7},
+                 end: %{line: 91, column: 7}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 91, column: 60},
+                 end: %{line: 91, column: 69}
+               },
                uri: "test/support/modules_with_references.ex"
              }
            ] = references
-
-    assert range_1 ==
-             %{end: %{column: 68, line: 90}, start: %{column: 60, line: 90}}
-
-    assert range_2 ==
-             %{end: %{column: 69, line: 91}, start: %{column: 60, line: 91}}
   end
 
   test "find references for the correct arity version", %{trace: trace} do
@@ -964,7 +997,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     references_2 = Locator.references(buffer, 3, 58, trace)
 
     assert references_1 == references_2
-    assert [_, _, _, _] = references_1
+    assert [_, _, _, _, _, _, _] = references_1
   end
 
   test "find references with cursor over a function call from an aliased module", %{trace: trace} do
@@ -1868,48 +1901,103 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     assert [
              %{
                range: %{
-                 start: %{line: 3, column: 5},
-                 end: %{line: 3, column: 5}
+                 end: %{column: 5, line: 3},
+                 start: %{column: 5, line: 3}
                },
                uri: nil
              },
-             %{range: %{end: %{column: 62, line: 3}, start: %{column: 58, line: 3}}, uri: nil},
              %{
-               uri: "test/support/modules_with_references.ex",
-               range: range_1
+               range: %{
+                 end: %{column: 62, line: 3},
+                 start: %{column: 58, line: 3}
+               },
+               uri: nil
              },
              %{
-               uri: "test/support/modules_with_references.ex",
-               range: range_2
+               range: %{
+                 start: %{line: 2, column: 13},
+                 end: %{line: 2, column: 13}
+               },
+               uri: "test/support/modules_with_references.ex"
              },
              %{
-               uri: "test/support/modules_with_references.ex",
-               range: range_3
+               range: %{
+                 start: %{line: 36, column: 7},
+                 end: %{line: 36, column: 7}
+               },
+               uri: "test/support/modules_with_references.ex"
              },
              %{
-               uri: "test/support/modules_with_references.ex",
-               range: range_4
+               range: %{
+                 start: %{line: 36, column: 60},
+                 end: %{line: 36, column: 64}
+               },
+               uri: "test/support/modules_with_references.ex"
              },
              %{
-               uri: "test/support/modules_with_references.ex",
-               range: range_5
+               range: %{
+                 start: %{line: 42, column: 7},
+                 end: %{line: 42, column: 7}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 42, column: 60},
+                 end: %{line: 42, column: 64}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 60, column: 5},
+                 end: %{line: 60, column: 5}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 65, column: 8},
+                 end: %{line: 65, column: 8}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 65, column: 16},
+                 end: %{line: 65, column: 20}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 65, column: 55},
+                 end: %{line: 65, column: 55}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 65, column: 63},
+                 end: %{line: 65, column: 67}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 65, column: 71},
+                 end: %{line: 65, column: 71}
+               },
+               uri: "test/support/modules_with_references.ex"
+             },
+             %{
+               range: %{
+                 start: %{line: 65, column: 79},
+                 end: %{line: 65, column: 83}
+               },
+               uri: "test/support/modules_with_references.ex"
              }
            ] = references
-
-    assert range_1 ==
-             %{start: %{line: 36, column: 60}, end: %{line: 36, column: 64}}
-
-    assert range_2 ==
-             %{start: %{line: 42, column: 60}, end: %{line: 42, column: 64}}
-
-    assert range_3 ==
-             %{start: %{line: 65, column: 16}, end: %{line: 65, column: 20}}
-
-    assert range_4 ==
-             %{start: %{line: 65, column: 63}, end: %{line: 65, column: 67}}
-
-    assert range_5 ==
-             %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}}
   end
 
   describe "remote calls on erlang modules" do
@@ -2056,6 +2144,13 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
       assert [
                %{
                  range: %{
+                   start: %{line: 3, column: 14},
+                   end: %{line: 3, column: 14}
+                 },
+                 uri: nil
+               },
+               %{
+                 range: %{
                    start: %{line: 3, column: 15},
                    end: %{line: 3, column: 15}
                  },
@@ -2077,8 +2172,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
                },
                %{
                  range: %{
-                   start: %{line: 16, column: 26},
-                   end: %{line: 16, column: 27}
+                   start: %{line: 17, column: 15},
+                   end: %{line: 17, column: 15}
                  },
                  uri: nil
                },
@@ -2104,6 +2199,80 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
                  uri: nil
                }
              ] = references
+    end
+  end
+
+  test "local vs remote references" do
+    exclude = [
+      {:elixir_utils, :noop, 0},
+      {:elixir_def, :store_definition, 3},
+      {Enum, nil, nil},
+      {Enum, :reduce, 3},
+      {Kernel.Utils, :announce_struct, 1},
+      {Kernel.Utils, :defstruct, 4},
+      {Kernel.Utils, nil, nil},
+      {Protocol, :__derive__, 3},
+      {Protocol, nil, nil},
+      {:elixir_bootstrap, :def, 2},
+      {Kernel.Typespec, :deftypespec, 6},
+      {Kernel.Typespec, nil, nil},
+      {Module, :__put_attribute__, 5},
+      {Module, nil, nil},
+      {Module, :make_overridable, 2}
+    ]
+
+    for file <- [
+          "test/support/references/simple_module.ex",
+          "test/support/references/module_with_def.ex",
+          "test/support/references/module_with_defmacro.ex",
+          "test/support/references/require.ex",
+          "test/support/references/require_as.ex",
+          "test/support/references/local_call.ex",
+          "test/support/references/local_macro_call.ex",
+          "test/support/references/remote_call.ex",
+          "test/support/references/alias.ex",
+          "test/support/references/import.ex",
+          "test/support/references/struct.ex",
+          "test/support/references/captures.ex",
+          # "test/support/references/super.ex",
+          "test/support/references/quoted.ex"
+        ] do
+      Code.compile_file(file)
+      trace = Tracer.get()
+
+      filtered_trace =
+        trace
+        |> Enum.map(fn {key, list} ->
+          filtered_list =
+            list
+            |> Enum.filter(fn t -> t.file == file end)
+            |> Enum.sort_by(fn t -> {t.line, t.column, t.kind} end)
+
+          {key, filtered_list}
+        end)
+        |> Enum.filter(fn {key, list} -> list != [] and key not in exclude end)
+        |> Map.new()
+
+      metadata = ElixirSense.Core.Parser.parse_file(file, false, false, {1, 1})
+
+      groupped_calls =
+        metadata.calls
+        |> Enum.flat_map(fn {_, list} ->
+          list
+          |> Enum.map(fn %ElixirSense.Core.State.CallInfo{} = ci ->
+            %{
+              line: ci.position |> elem(0),
+              file: file,
+              column: ci.position |> elem(1),
+              callee: {ci.mod, ci.func, ci.arity},
+              kind: ci.kind
+            }
+          end)
+          |> Enum.sort_by(fn t -> {t.line, t.column, t.kind} end)
+        end)
+        |> Enum.group_by(fn item -> item.callee end)
+
+      assert groupped_calls == filtered_trace
     end
   end
 

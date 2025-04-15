@@ -1,0 +1,2 @@
+defmodule ElixirSenseExample.References.SimpleModule do
+end

@@ -49,6 +49,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           metadata,
           trace
         )
+        |> Enum.uniq()
     end
   end
 
@@ -117,8 +118,20 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
 
               binding_env = Binding.from_env(env, metadata, call.position)
 
+              mod_or_nil =
+                case call.kind do
+                  :local_function ->
+                    nil
+
+                  :local_macro ->
+                    nil
+
+                  _ ->
+                    call.mod
+                end
+
               found =
-                {call.mod, function}
+                {mod_or_nil, function}
                 |> wrap_atom
                 |> expand(binding_env, env.module, env.aliases)
                 |> Introspection.actual_mod_fun(
