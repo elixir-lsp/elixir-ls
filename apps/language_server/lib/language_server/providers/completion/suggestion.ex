@@ -109,7 +109,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
 
   @add_opts_for [:populate_complete_engine]
 
-  @spec suggestions(String.t(), pos_integer, pos_integer, keyword()) :: [Suggestion.suggestion()]
+  @spec suggestions(String.t(), pos_integer, pos_integer, keyword()) :: [suggestion()]
   def suggestions(code, line, column, options \\ []) do
     {prefix = hint, suffix} = Source.prefix_suffix(code, line, column)
 
