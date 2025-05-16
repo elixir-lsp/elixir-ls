@@ -214,6 +214,92 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
 
       refute Docs.docs(buffer, 2, 11)
     end
+
+    test "retrieve documentation from modules in multialias" do
+      buffer = """
+      defmodule Foo.Bar do
+        @moduledoc "Bar module doc"
+      end
+
+      defmodule Foo.Baz.Boom do
+        @moduledoc "Boom module doc"
+      end
+
+      defmodule MyModule do
+        alias Foo.{Bar, Baz.Boom}
+        alias Foo, as: X
+        require X.{Bar, Baz.Boom}
+        alias Foo, as: Y
+        import Elixir.Foo.{Bar, Baz.Boom}
+      end
+      """
+
+      # Test hover on Bar in multialias
+      %{
+        docs: [bar_doc]
+      } = Docs.docs(buffer, 10, 15)
+
+      assert %{
+               module: Foo.Bar,
+               docs: "Bar module doc",
+               kind: :module
+             } = bar_doc
+
+      # Test hover on Boom in multialias
+      %{
+        docs: [boom_doc]
+      } = Docs.docs(buffer, 10, 20)
+
+      assert %{
+               module: Foo.Baz.Boom,
+               docs: "Boom module doc",
+               kind: :module
+             } = boom_doc
+
+      # Test hover on Bar in require
+      %{
+        docs: [require_bar_doc]
+      } = Docs.docs(buffer, 12, 15)
+
+      assert %{
+               module: Foo.Bar,
+               docs: "Bar module doc",
+               kind: :module
+             } = require_bar_doc
+
+      # Test hover on Boom in require
+      %{
+        docs: [require_boom_doc]
+      } = Docs.docs(buffer, 12, 20)
+
+      assert %{
+               module: Foo.Baz.Boom,
+               docs: "Boom module doc",
+               kind: :module
+             } = require_boom_doc
+
+      # Test hover on Bar in import
+      %{
+        docs: [import_bar_doc]
+      } = Docs.docs(buffer, 14, 23)
+
+      assert %{
+               module: Foo.Bar,
+               docs: "Bar module doc",
+               kind: :module
+             } = import_bar_doc
+
+      # Test hover on Boom in import
+      %{
+        docs: [import_boom_doc]
+      } = Docs.docs(buffer, 14, 28)
+
+      assert %{
+               module: Foo.Baz.Boom,
+               docs: "Boom module doc",
+               kind: :module
+             } = import_boom_doc
+    end
   end
 
   describe "functions and macros" do

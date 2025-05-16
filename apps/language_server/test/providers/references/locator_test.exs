@@ -2200,6 +2200,81 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
                }
              ] = references
     end
+
+    test "find references in multialias", %{trace: trace} do
+      buffer = """
+      defmodule Foo.Bar do
+        def hello(), do: :ok
+      end
+
+      defmodule Foo.Baz.Boom do
+        def world(), do: :ok
+      end
+
+      defmodule MyModule do
+        alias Foo.{Bar, Baz.Boom}
+        
+        def process() do
+          Bar.hello()
+          Boom.world()
+        end
+      end
+      """
+
+      # Test references for Bar in multialias
+      references = Locator.references(buffer, 10, 15, trace)
+
+      assert [
+               %{
+                 range: %{
+                   start: %{line: 10, column: 3},
+                   end: %{line: 10, column: 3}
+                 },
+                 uri: nil
+               },
+               %{
+                 range: %{
+                   start: %{line: 13, column: 5},
+                   end: %{line: 13, column: 5}
+                 },
+                 uri: nil
+               },
+               %{
+                 range: %{
+                   start: %{line: 13, column: 9},
+                   end: %{line: 13, column: 14}
+                 },
+                 uri: nil
+               }
+             ] = references
+
+      # Test references for Boom in multialias
+      references = Locator.references(buffer, 10, 20, trace)
+
+      assert [
+               %{
+                 range: %{
+                   start: %{line: 10, column: 3},
+                   end: %{line: 10, column: 3}
+                 },
+                 uri: nil
+               },
+               %{
+                 range: %{
+                   start: %{line: 14, column: 5},
+                   end: %{line: 14, column: 5}
+                 },
+                 uri: nil
+               },
+               %{
+                 range: %{
+                   start: %{line: 14, column: 10},
+                   end: %{line: 14, column: 15}
+                 },
+                 uri: nil
+               }
+             ] = references
+    end
   end
 
   test "local vs remote references" do

@@ -308,6 +308,42 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert read_range(location) =~ "@moduledoc \"example module\""
   end
 
+  test "find definition on module in multialias" do
+    buffer = """
+    defmodule Foo.Bar do
+    end
+
+    defmodule Foo.Baz.Boom do
+    end
+
+    defmodule MyModule do
+      alias Foo.{Bar, Baz.Boom}
+      alias Foo, as: X
+      require X.{Bar, Baz.Boom}
+      alias Foo, as: Y
+      import Elixir.Foo.{Bar, Baz.Boom}
+    end
+    """
+
+    assert %Location{type: :module, file: nil, line: 1, column: 1} =
+             Locator.definition(buffer, 8, 15)
+
+    assert %Location{type: :module, file: nil, line: 4, column: 1} =
+             Locator.definition(buffer, 8, 20)
+
+    assert %Location{type: :module, file: nil, line: 1, column: 1} =
+             Locator.definition(buffer, 10, 15)
+
+    assert %Location{type: :module, file: nil, line: 4, column: 1} =
+             Locator.definition(buffer, 10, 20)
+
+    assert %Location{type: :module, file: nil, line: 1, column: 1} =
+             Locator.definition(buffer, 12, 23)
+
+    assert %Location{type: :module, file: nil, line: 4, column: 1} =
+             Locator.definition(buffer, 12, 28)
+  end
+
   test "find definition for the correct arity of function - on fn call" do
     buffer = """
     defmodule MyModule do

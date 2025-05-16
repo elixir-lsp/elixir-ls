@@ -118,6 +118,49 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
           }
         end
 
+      {{:atom, alias}, nil} ->
+        # Handle multialias syntax
+        text_before =
+          Source.text_before(metadata.source, context.end |> elem(0), context.end |> elem(1))
+
+        case Code.Fragment.container_cursor_to_quoted(text_before) do
+          {:ok, quoted} ->
+            case Macro.path(quoted, fn
+                   {:., _, [{:__aliases__, _, _}, :{}]} -> true
+                   _ -> false
+                 end) do
+              [{:., _, [{:__aliases__, _, outer_alias}, :{}]} | _] ->
+                # Combine outer alias with the one under cursor
+                expanded = Module.concat(outer_alias ++ [alias])
+
+                find_function_or_module(
+                  {{:atom, expanded}, nil},
+                  context,
+                  env,
+                  metadata,
+                  binding_env
+                )
+
+              _ ->
+                find_function_or_module(
+                  {{:atom, alias}, nil},
+                  context,
+                  env,
+                  metadata,
+                  binding_env
+                )
+            end
+
+          _ ->
+            find_function_or_module(
+              {{:atom, alias}, nil},
+              context,
+              env,
+              metadata,
+              binding_env
+            )
+        end
+
       {module, function} ->
         find_function_or_module(
           {module, function},
