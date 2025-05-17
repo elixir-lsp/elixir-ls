@@ -2293,7 +2293,8 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
       {Kernel.Typespec, nil, nil},
       {Module, :__put_attribute__, 5},
       {Module, nil, nil},
-      {Module, :make_overridable, 2}
+      {Module, :make_overridable, 2},
+      {Module, :compile_definition_attributes, 6}
     ]
 
     for file <- [
