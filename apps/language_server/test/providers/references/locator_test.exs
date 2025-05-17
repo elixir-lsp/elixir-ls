@@ -2330,7 +2330,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
 
       metadata = ElixirSense.Core.Parser.parse_file(file, false, false, {1, 1})
 
-      groupped_calls =
+      grouped_calls =
         metadata.calls
         |> Enum.flat_map(fn {_, list} ->
           list
@@ -2347,7 +2347,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
         end)
         |> Enum.group_by(fn item -> item.callee end)
 
-      assert groupped_calls == filtered_trace
+      assert grouped_calls == filtered_trace
     end
   end
 

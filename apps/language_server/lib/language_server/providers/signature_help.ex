@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
   """
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
   alias ElixirLS.LanguageServer.Providers.SignatureHelp.Signature
+  alias ElixirLS.LanguageServer.MarkdownUtils
 
   def trigger_characters(), do: ["(", ","]
 
@@ -29,7 +30,13 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
   end
 
   defp signature_response(
-         %{documentation: documentation, name: name, params: params, spec: spec} = signature
+         %{
+           documentation: documentation,
+           name: name,
+           params: params,
+           spec: spec,
+           metadata: metadata
+         } = signature
        ) do
     params_info = for param <- params, do: %{"label" => param}
 
@@ -47,18 +54,36 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
 
     case {spec, documentation} do
       {"", ""} ->
-        response
+        put_metadata(response, metadata)
 
       {"", _} ->
         put_documentation(response, documentation)
+        |> put_metadata(metadata)
 
       {_, _} ->
         spec_str = SourceFile.format_spec(spec, line_length: 42)
+
         put_documentation(response, "#{documentation}\n#{spec_str}")
+        |> put_metadata(metadata)
     end
   end
 
   defp put_documentation(response, documentation) do
     Map.put(response, "documentation", %{"kind" => "markdown", "value" => documentation})
+  end
+
+  defp put_metadata(response, metadata) do
+    if metadata do
+      metadata_md = MarkdownUtils.get_metadata_md(metadata)
+
+      if metadata_md != "" do
+        current_docs = get_in(response, ["documentation", "value"]) || ""
+        put_documentation(response, metadata_md <> "\n\n" <> current_docs)
+      else
+        response
+      end
+    else
+      response
+    end
   end
 end

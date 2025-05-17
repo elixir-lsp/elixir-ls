@@ -18,23 +18,25 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 19) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation: "",
                    name: "my",
                    params: ["a"],
-                   spec: "@typep my(a) :: {a, nil}"
+                   spec: "@typep my(a) :: {a, nil}",
+                   metadata: %{}
                  },
                  %{
                    documentation: "",
                    name: "my",
                    params: ["a", "b"],
-                   spec: "@typep my(a, b) :: {a, b}"
+                   spec: "@typep my(a, b) :: {a, b}",
+                   metadata: %{}
                  }
                ]
-             }
+             } = Signature.signature(code, 4, 19)
     end
 
     test "find signatures from local type, filter by arity" do
@@ -46,17 +48,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 25) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
                    documentation: "",
                    name: "my",
                    params: ["a", "b"],
-                   spec: "@typep my(a, b) :: {a, b}"
+                   spec: "@typep my(a, b) :: {a, b}",
+                   metadata: %{}
                  }
                ]
-             }
+             } = Signature.signature(code, 4, 25)
     end
 
     test "find signatures from local type, filter by arity unfinished param" do
@@ -68,23 +71,25 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 21) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation: "",
                    name: "my",
                    params: ["a"],
-                   spec: "@typep my(a) :: {a, nil}"
+                   spec: "@typep my(a) :: {a, nil}",
+                   metadata: %{}
                  },
                  %{
                    documentation: "",
                    name: "my",
                    params: ["a", "b"],
-                   spec: "@typep my(a, b) :: {a, b}"
+                   spec: "@typep my(a, b) :: {a, b}",
+                   metadata: %{}
                  }
                ]
-             }
+             } = Signature.signature(code, 4, 21)
     end
 
     test "find signatures from local type, filter by arity unfinished params" do
@@ -96,7 +101,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 27) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -106,7 +111,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    spec: "@typep my(a, b) :: {a, b}"
                  }
                ]
-             }
+             } = Signature.signature(code, 4, 27)
     end
 
     test "find local metadata type signature even if it's defined after cursor" do
@@ -132,23 +137,25 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 69) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation: "Remote type",
                    name: "remote_t",
                    params: [],
-                   spec: "@type remote_t() :: atom()"
+                   spec: "@type remote_t() :: atom()",
+                   metadata: %{app: :language_server}
                  },
                  %{
                    documentation: "Remote type with params",
                    name: "remote_t",
                    params: ["a", "b"],
-                   spec: "@type remote_t(a, b) ::\n  {a, b}"
+                   spec: "@type remote_t(a, b) ::\n  {a, b}",
+                   metadata: %{app: :language_server}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 69)
     end
 
     test "does not reveal opaque type details" do
@@ -158,17 +165,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 82) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation: "",
                    name: "some_opaque_options_t",
                    params: [],
-                   spec: "@opaque some_opaque_options_t()"
+                   spec: "@opaque some_opaque_options_t()",
+                   metadata: %{app: :language_server, opaque: true}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 82)
     end
 
     test "does not reveal local opaque type details" do
@@ -181,17 +189,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 5, 22) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation: "",
                    name: "my",
                    params: ["a", "b"],
-                   spec: "@opaque my(a, b)"
+                   spec: "@opaque my(a, b)",
+                   metadata: %{opaque: true}
                  }
                ]
-             }
+             } = Signature.signature(code, 5, 22)
     end
 
     test "find type signatures with @typedoc false" do
@@ -201,17 +210,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 68) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation: "",
                    name: "some_type_doc_false",
-                   params: ~c"",
-                   spec: "@type some_type_doc_false() :: integer()"
+                   params: [],
+                   spec: "@type some_type_doc_false() :: integer()",
+                   metadata: %{app: :language_server, hidden: true}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 68)
     end
 
     test "does not find builtin type signatures with Elixir prefix" do
@@ -259,17 +269,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 21) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    params: [],
                    documentation: "An integer or a float",
                    name: "number",
-                   spec: "@type number() :: integer() | float()"
+                   spec: "@type number() :: integer() | float()",
+                   metadata: %{builtin: true}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 21)
     end
   end
 
@@ -282,7 +293,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 3, 15) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
@@ -290,10 +301,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "some",
                    params: ["var"],
                    spec:
-                     "@spec some(integer()) :: Macro.t()\n@spec some(b) :: Macro.t() when b: float()"
+                     "@spec some(integer()) :: Macro.t()\n@spec some(b) :: Macro.t() when b: float()",
+                   metadata: %{app: :language_server}
                  }
                ]
-             }
+             } = Signature.signature(code, 3, 15)
     end
 
     test "find signatures special forms" do
@@ -303,7 +315,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 14) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
@@ -311,10 +323,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                      "Returns the current module name as an atom or `nil` otherwise.",
                    name: "__MODULE__",
                    params: [],
-                   spec: ""
+                   spec: "",
+                   metadata: %{app: :elixir}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 14)
     end
   end
 
@@ -368,14 +381,15 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 3, 23) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    name: "flatten",
                    params: ["list"],
                    documentation: "Flattens the given `list` of nested lists.",
-                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]"
+                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]",
+                   metadata: %{app: :elixir}
                  },
                  %{
                    name: "flatten",
@@ -383,10 +397,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    documentation:
                      "Flattens the given `list` of nested lists.\nThe list `tail` will be added at the end of\nthe flattened list.",
                    spec:
-                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var"
+                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var",
+                   metadata: %{app: :elixir}
                  }
                ]
-             }
+             } = Signature.signature(code, 3, 23)
     end
 
     test "find signatures from aliased modules aaa" do
@@ -397,25 +412,27 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 3, 28) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
+                   documentation: "Flattens the given `list` of nested lists.",
                    name: "flatten",
                    params: ["list"],
-                   documentation: "Flattens the given `list` of nested lists.",
-                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]"
+                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]",
+                   metadata: %{app: :elixir}
                  },
                  %{
-                   name: "flatten",
-                   params: ["list", "tail"],
                    documentation:
                      "Flattens the given `list` of nested lists.\nThe list `tail` will be added at the end of\nthe flattened list.",
+                   name: "flatten",
+                   params: ["list", "tail"],
                    spec:
-                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var"
+                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var",
+                   metadata: %{app: :elixir}
                  }
                ]
-             }
+             } = Signature.signature(code, 3, 28)
     end
 
     test "find signatures from imported modules" do
@@ -426,14 +443,15 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 3, 16) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    name: "flatten",
                    params: ["list"],
                    documentation: "Flattens the given `list` of nested lists.",
-                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]"
+                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]",
+                   metadata: %{app: :elixir}
                  },
                  %{
                    name: "flatten",
@@ -441,10 +459,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    documentation:
                      "Flattens the given `list` of nested lists.\nThe list `tail` will be added at the end of\nthe flattened list.",
                    spec:
-                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var"
+                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var",
+                   metadata: %{app: :elixir}
                  }
                ]
-             }
+             } = Signature.signature(code, 3, 16)
     end
 
     test "find signatures when function with default args" do
@@ -454,7 +473,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 21) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -462,10 +481,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                      "Returns and removes the value at the specified `index` in the `list`.",
                    name: "pop_at",
                    params: ["list", "index", "default \\\\ nil"],
-                   spec: "@spec pop_at(list(), integer(), any()) :: {any(), list()}"
+                   spec: "@spec pop_at(list(), integer(), any()) :: {any(), list()}",
+                   metadata: %{app: :elixir, defaults: 1, since: "1.4.0"}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 21)
     end
 
     test "find signatures when function with many clauses" do
@@ -497,17 +517,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 56) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    documentation: "",
                    name: "some_fun_doc_false",
                    params: ["a", "b \\\\ nil"],
-                   spec: ""
+                   spec: "",
+                   metadata: %{app: :language_server, hidden: true, defaults: 1}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 56)
     end
 
     test "find signatures from atom modules" do
@@ -517,14 +538,15 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 31) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    name: "flatten",
                    params: ["list"],
                    documentation: "Flattens the given `list` of nested lists.",
-                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]"
+                   spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]",
+                   metadata: %{app: :elixir}
                  },
                  %{
                    name: "flatten",
@@ -532,10 +554,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    documentation:
                      "Flattens the given `list` of nested lists.\nThe list `tail` will be added at the end of\nthe flattened list.",
                    spec:
-                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var"
+                     "@spec flatten(deep_list, [elem]) :: [elem] when deep_list: [elem | deep_list], elem: var",
+                   metadata: %{app: :elixir}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 31)
     end
 
     test "find signatures from __MODULE__" do
@@ -545,7 +568,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 24) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -554,10 +577,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "glue",
                    params: ["doc1", "break_string \\\\ \" \"", "doc2"],
                    spec: "@spec glue(t(), binary(), t()) :: t()",
-                   active_param: 2
+                   active_param: 2,
+                   metadata: %{app: :elixir, defaults: 1}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 24)
     end
 
     test "find signatures from __MODULE__ submodule" do
@@ -567,7 +591,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 2, 32) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -576,10 +600,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "glue",
                    params: ["doc1", "break_string \\\\ \" \"", "doc2"],
                    spec: "@spec glue(t(), binary(), t()) :: t()",
-                   active_param: 2
+                   active_param: 2,
+                   metadata: %{app: :elixir, defaults: 1}
                  }
                ]
-             }
+             } = Signature.signature(code, 2, 32)
     end
 
     test "find signatures from attribute" do
@@ -590,19 +615,20 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 3, 24) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
+                   active_param: 2,
                    documentation:
                      "Glues two documents (`doc1` and `doc2`) inserting the given\nbreak `break_string` between them.",
                    name: "glue",
                    params: ["doc1", "break_string \\\\ \" \"", "doc2"],
                    spec: "@spec glue(t(), binary(), t()) :: t()",
-                   active_param: 2
+                   metadata: %{app: :elixir, defaults: 1}
                  }
                ]
-             }
+             } = Signature.signature(code, 3, 24)
     end
 
     @tag :capture_log
@@ -614,7 +640,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 3, 32) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -623,10 +649,11 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "glue",
                    params: ["doc1", "break_string \\\\ \" \"", "doc2"],
                    spec: "@spec glue(t(), binary(), t()) :: t()",
-                   active_param: 2
+                   active_param: 2,
+                   metadata: %{app: :elixir, defaults: 1}
                  }
                ]
-             }
+             } = Signature.signature(code, 3, 32)
     end
 
     test "find signatures from variable" do
@@ -637,7 +664,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 3, 24) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -646,10 +673,14 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "glue",
                    params: ["doc1", "break_string \\\\ \" \"", "doc2"],
                    spec: "@spec glue(t(), binary(), t()) :: t()",
-                   active_param: 2
+                   active_param: 2,
+                   metadata: %{
+                     app: :elixir,
+                     defaults: 1
+                   }
                  }
                ]
-             }
+             } = Signature.signature(code, 3, 24)
     end
 
     @tag :capture_log
@@ -743,13 +774,15 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "sum",
                    params: ["tuple"],
                    documentation: "",
-                   spec: ""
+                   spec: "",
+                   metadata: %{}
                  },
                  %{
                    name: "sum",
                    params: ["a", "b"],
                    documentation: "",
-                   spec: ""
+                   spec: "",
+                   metadata: %{}
                  }
                ]
              }
@@ -773,7 +806,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 12) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -783,7 +816,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    spec: ""
                  }
                ]
-             }
+             } = Signature.signature(code, 4, 12)
     end
 
     test "finds signatures from module with many function clauses" do
@@ -796,19 +829,26 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 4, 21) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
+                   active_param: 0,
                    documentation: "",
                    name: "sum",
-                   spec: "",
                    params: ["s \\\\ nil", "f"],
-                   active_param: 0
+                   spec: "",
+                   metadata: %{app: :language_server, defaults: 1}
                  },
-                 %{documentation: "", name: "sum", spec: "", params: ["arg", "x", "y"]}
+                 %{
+                   documentation: "",
+                   name: "sum",
+                   params: ["arg", "x", "y"],
+                   spec: "",
+                   metadata: %{app: :language_server}
+                 }
                ]
-             }
+             } = Signature.signature(code, 4, 21)
     end
 
     test "finds signatures from metadata module functions" do
@@ -832,7 +872,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 15, 21) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
@@ -840,11 +880,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    name: "sum",
                    params: ["s \\\\ nil", "f"],
                    spec: "",
-                   active_param: 0
+                   active_param: 0,
+                   metadata: %{}
                  },
-                 %{documentation: "", name: "sum", params: ["tuple", "x", "y"], spec: ""}
+                 %{
+                   documentation: "",
+                   name: "sum",
+                   params: ["tuple", "x", "y"],
+                   spec: "",
+                   metadata: %{}
+                 }
                ]
-             }
+             } = Signature.signature(code, 15, 21)
     end
 
     test "does not finds signatures from metadata module private functions" do
@@ -884,17 +931,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 8, 11) == %{
+      assert %{
                active_param: 1,
                signatures: [
                  %{
                    name: "sum",
                    params: ["a", "b \\\\ 0"],
                    documentation: "",
-                   spec: "@spec sum(integer(), integer()) :: integer()"
+                   spec: "@spec sum(integer(), integer()) :: integer()",
+                   metadata: %{}
                  }
                ]
-             }
+             } = Signature.signature(code, 8, 11)
     end
 
     test "finds signatures from metadata module functions with default param - correctly highlight active param" do
@@ -911,26 +959,20 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert Signature.signature(code, 8, 10) == %{
+      assert %{
                active_param: 0,
                signatures: [
                  %{
                    name: "sum",
-                   params: [
-                     "a \\\\ 1",
-                     "b \\\\ 1",
-                     "c",
-                     "d",
-                     "e \\\\ 1",
-                     "f \\\\ 1"
-                   ],
+                   params: ["a \\\\ 1", "b \\\\ 1", "c", "d", "e \\\\ 1", "f \\\\ 1"],
                    documentation: "",
                    spec:
                      "@spec sum(integer(), integer(), integer(), integer(), integer(), integer()) :: integer()",
-                   active_param: 2
+                   active_param: 2,
+                   metadata: %{}
                  }
                ]
-             }
+             } = Signature.signature(code, 8, 10)
 
       assert %{
                active_param: 1,
@@ -1417,12 +1459,18 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       end
       """
 
-      assert res = Signature.signature(code, 3, 10)
-
-      assert res == %{
+      assert %{
                active_param: 0,
-               signatures: [%{documentation: "", name: "some", params: ["var"], spec: ""}]
-             }
+               signatures: [
+                 %{
+                   documentation: "",
+                   name: "some",
+                   params: ["var"],
+                   spec: "",
+                   metadata: %{}
+                 }
+               ]
+             } = Signature.signature(code, 3, 10)
     end
 
     test "returns :none when it cannot identify a function call" do
