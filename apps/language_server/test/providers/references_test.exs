@@ -264,6 +264,6 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
     references_lines = Enum.map(list, & &1["range"]["start"]["line"])
 
-    assert references_lines == [1, 2, 3, 4, 7, 11, 15, 19, 20]
+    assert references_lines == [1, 2, 3, 3, 4, 4, 7, 11, 15, 19, 20]
   end
 end

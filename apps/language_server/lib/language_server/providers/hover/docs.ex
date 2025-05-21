@@ -19,6 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.State.{ModFunInfo, SpecInfo}
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
+  alias ElixirSense.Core.Source
 
   @type markdown :: String.t()
 
@@ -148,6 +149,30 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
             env,
             metadata
           )
+        end
+
+      {{:atom, alias}, nil} ->
+        # Handle multialias syntax
+        text_before =
+          Source.text_before(metadata.source, context.end |> elem(0), context.end |> elem(1))
+
+        case Code.Fragment.container_cursor_to_quoted(text_before) do
+          {:ok, quoted} ->
+            case Macro.path(quoted, fn
+                   {:., _, [{:__aliases__, _, _}, :{}]} -> true
+                   _ -> false
+                 end) do
+              [{:., _, [{:__aliases__, _, outer_alias}, :{}]} | _] ->
+                # Combine outer alias with the one under cursor
+                expanded = Module.concat(outer_alias ++ [alias])
+                mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+
+              _ ->
+                mod_fun_docs({{:atom, alias}, nil}, context, binding_env, env, metadata)
+            end
+
+          _ ->
+            mod_fun_docs({{:atom, alias}, nil}, context, binding_env, env, metadata)
         end
 
       _ ->

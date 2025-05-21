@@ -201,24 +201,41 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def trace({kind, meta, module, name, arity}, %Macro.Env{} = env)
       when kind in [:imported_function, :imported_macro, :remote_function, :remote_macro] do
-    register_call(meta, module, name, arity, env)
+    register_call(meta, module, name, arity, kind, env)
+  end
+
+  def trace({:imported_quoted, meta, module, name, arities}, env) do
+    for arity <- arities do
+      register_call(meta, module, name, arity, :imported_quoted, env)
+    end
+
+    :ok
   end
 
   def trace({kind, meta, name, arity}, %Macro.Env{} = env)
       when kind in [:local_function, :local_macro] do
-    register_call(meta, env.module, name, arity, env)
+    register_call(meta, env.module, name, arity, kind, env)
   end
 
   def trace({:alias_reference, meta, module}, %Macro.Env{} = env) do
-    register_call(meta, module, nil, nil, env)
+    register_call(meta, module, nil, nil, :alias_reference, env)
   end
 
   def trace({:alias, meta, module, _as, _opts}, %Macro.Env{} = env) do
-    register_call(meta, module, nil, nil, env)
+    register_call(meta, module, nil, nil, :alias, env)
   end
 
   def trace({kind, meta, module, _opts}, %Macro.Env{} = env) when kind in [:import, :require] do
-    register_call(meta, module, nil, nil, env)
+    register_call(meta, module, nil, nil, kind, env)
+  end
+
+  def trace({:struct_expansion, meta, name, _assocs}, %Macro.Env{} = env) do
+    register_call(meta, name, nil, nil, :struct_expansion, env)
+  end
+
+  def trace({:alias_expansion, meta, as, alias}, %Macro.Env{} = env) do
+    register_call(meta, as, nil, nil, :alias_expansion_as, env)
+    register_call(meta, alias, nil, nil, :alias_expansion, env)
   end
 
   def trace(_trace, _env) do
@@ -266,22 +283,26 @@ defmodule ElixirLS.LanguageServer.Tracer do
     }
   end
 
-  defp register_call(meta, module, name, arity, env) do
+  defp register_call(meta, module, name, arity, kind, env) do
     if in_project_sources?(env.file) do
-      do_register_call(meta, module, name, arity, env)
+      do_register_call(meta, module, name, arity, kind, env)
     end
 
     :ok
   end
 
-  defp do_register_call(meta, module, name, arity, env) do
+  defp do_register_call(meta, module, name, arity, kind, env) do
     callee = {module, name, arity}
 
     line = meta[:line]
     column = meta[:column]
-    # TODO meta can have last or maybe other?
 
-    :ets.insert(table_name(:calls), {{callee, env.file, line, column}, :ok})
+    # TODO meta can have last or maybe other?
+    # last
+    # end_of_expression
+    # closing
+
+    :ets.insert(table_name(:calls), {{callee, env.file, line, column}, kind})
   end
 
   def get_trace do
@@ -291,12 +312,13 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     try do
       :ets.tab2list(table)
-      |> Enum.map(fn {{callee, file, line, column}, _} ->
+      |> Enum.map(fn {{callee, file, line, column}, kind} ->
         %{
           callee: callee,
           file: file,
           line: line,
-          column: column
+          column: column,
+          kind: kind
         }
       end)
       |> Enum.group_by(fn %{callee: callee} -> callee end)

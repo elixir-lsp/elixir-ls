@@ -1627,6 +1627,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                      "kind" => "markdown",
                      "value" =>
                        """
+                       **Application** elixir
+
+
+
                        Inspects and writes the given `item`\
                        """ <> _
                    },
@@ -1637,6 +1641,10 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                    "documentation" => %{
                      "kind" => "markdown",
                      "value" => """
+                     **Application** elixir
+
+
+
                      Inspects `item` according to the given options using the IO `device`.
 
                      ```elixir

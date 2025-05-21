@@ -121,20 +121,27 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
                       |> Enum.reject(&String.starts_with?(&1, "@spec"))
                       |> Enum.reverse()
 
-                    callback_doc =
+                    {callback_doc, callback_meta} =
                       case metadata.mods_funs_to_positions[{behaviour, fun, arity}] do
                         nil ->
-                          spec_info.doc
+                          {spec_info.doc, spec_info.meta}
 
                         def_info ->
                           # in case of protocol implementation get doc and meta from def
-                          def_info.doc
+                          {def_info.doc, def_info.meta}
                       end
+
+                    # Merge metadata from both the implementation and the behaviour
+                    metadata =
+                      callback_meta
+                      |> Map.merge(signature.metadata)
+                      |> Map.put(:implementing, behaviour)
 
                     %{
                       signature
                       | spec: specs |> Enum.join("\n"),
-                        documentation: Introspection.extract_summary_from_docs(callback_doc)
+                        documentation: Introspection.extract_summary_from_docs(callback_doc),
+                        metadata: metadata
                     }
 
                   nil ->
@@ -151,7 +158,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
                           State.ModFunInfo.get_category(fun_info)
                       end
 
-                    {spec, doc, _} =
+                    {spec, doc, callback_meta} =
                       Metadata.get_doc_spec_from_behaviour(
                         behaviour,
                         fun,
@@ -162,7 +169,8 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.Signature do
                     %{
                       signature
                       | documentation: Introspection.extract_summary_from_docs(doc),
-                        spec: spec
+                        spec: spec,
+                        metadata: callback_meta |> Map.merge(signature.metadata)
                     }
                 end
             end

@@ -228,23 +228,21 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(1, 0, 2, 4))
     end
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      test "left from do" do
-        text = """
-        do
-          1
-          24
-        end
-        """
-
-        ranges = get_ranges(text, 0, 0)
-        # full range
-        assert_range(ranges, range(0, 0, 4, 0))
-        # outside do-end
-        assert_range(ranges, range(0, 0, 3, 3))
-        # do
-        assert_range(ranges, range(0, 0, 0, 2))
+    test "left from do" do
+      text = """
+      do
+        1
+        24
       end
+      """
+
+      ranges = get_ranges(text, 0, 0)
+      # full range
+      assert_range(ranges, range(0, 0, 4, 0))
+      # outside do-end
+      assert_range(ranges, range(0, 0, 3, 3))
+      # do
+      assert_range(ranges, range(0, 0, 0, 2))
     end
 
     test "right from do" do
@@ -262,23 +260,21 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 0, 3, 3))
     end
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      test "left from end" do
-        text = """
-        do
-          1
-          24
-        end
-        """
-
-        ranges = get_ranges(text, 3, 0)
-        # full range
-        assert_range(ranges, range(0, 0, 4, 0))
-        # outside do-end
-        assert_range(ranges, range(0, 0, 3, 3))
-        # end
-        assert_range(ranges, range(3, 0, 3, 3))
+    test "left from end" do
+      text = """
+      do
+        1
+        24
       end
+      """
+
+      ranges = get_ranges(text, 3, 0)
+      # full range
+      assert_range(ranges, range(0, 0, 4, 0))
+      # outside do-end
+      assert_range(ranges, range(0, 0, 3, 3))
+      # end
+      assert_range(ranges, range(3, 0, 3, 3))
     end
 
     test "right from end" do
@@ -1044,21 +1040,19 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       assert_range(ranges, range(0, 8, 0, 12))
     end
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      test "left side of | near" do
-        text = """
-        %{state | 1 => 1, counter: counter + to_dispatch, demand: demand - to_dispatch}
-        """
+    test "left side of | near" do
+      text = """
+      %{state | 1 => 1, counter: counter + to_dispatch, demand: demand - to_dispatch}
+      """
 
-        ranges = get_ranges(text, 0, 8)
+      ranges = get_ranges(text, 0, 8)
 
-        # full range
-        assert_range(ranges, range(0, 0, 1, 0))
-        # full map
-        assert_range(ranges, range(0, 0, 0, 79))
-        # |
-        assert_range(ranges, range(0, 8, 0, 9))
-      end
+      # full range
+      assert_range(ranges, range(0, 0, 1, 0))
+      # full map
+      assert_range(ranges, range(0, 0, 0, 79))
+      # |
+      assert_range(ranges, range(0, 8, 0, 9))
     end
 
     test "right side of | near" do

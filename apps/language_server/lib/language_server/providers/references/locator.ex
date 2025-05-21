@@ -18,6 +18,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
   alias ElixirSense.Core.State.VarInfo
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.Parser
+  alias ElixirSense.Core.Source
 
   def references(code, line, column, trace, options \\ []) do
     case NormalizedCode.Fragment.surround_context(code, {line, column}) do
@@ -49,6 +50,7 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           metadata,
           trace
         )
+        |> Enum.uniq()
     end
   end
 
@@ -112,12 +114,25 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
             |> List.flatten()
             |> Enum.filter(fn call -> function == nil or call.func == function end)
             |> Enum.map(fn call ->
-              env = Metadata.get_cursor_env(metadata, call.position)
+              {call_line, call_column} = call.position
+              env = Metadata.get_cursor_env(metadata, {call_line, call_column || 1})
 
               binding_env = Binding.from_env(env, metadata, call.position)
 
+              mod_or_nil =
+                case call.kind do
+                  :local_function ->
+                    nil
+
+                  :local_macro ->
+                    nil
+
+                  _ ->
+                    call.mod
+                end
+
               found =
-                {call.mod, function}
+                {mod_or_nil, function}
                 |> wrap_atom
                 |> expand(binding_env, env.module, env.aliases)
                 |> Introspection.actual_mod_fun(
@@ -194,6 +209,30 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           |> Enum.map(fn pos -> build_var_location("@#{attribute}", pos) end)
         else
           []
+        end
+
+      {{:atom, alias}, nil} ->
+        # Handle multialias syntax
+        text_before =
+          Source.text_before(metadata.source, context.end |> elem(0), context.end |> elem(1))
+
+        case Code.Fragment.container_cursor_to_quoted(text_before) do
+          {:ok, quoted} ->
+            case Macro.path(quoted, fn
+                   {:., _, [{:__aliases__, _, _}, :{}]} -> true
+                   _ -> false
+                 end) do
+              [{:., _, [{:__aliases__, _, outer_alias}, :{}]} | _] ->
+                # Combine outer alias with the one under cursor
+                expanded = Module.concat(outer_alias ++ [alias])
+                refs_for_mod_fun.({{:atom, expanded}, nil})
+
+              _ ->
+                refs_for_mod_fun.({{:atom, alias}, nil})
+            end
+
+          _ ->
+            refs_for_mod_fun.({{:atom, alias}, nil})
         end
 
       {mod, function} ->

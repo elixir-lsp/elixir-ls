@@ -117,32 +117,30 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              } = doc
     end
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      test "retrieve documentation from metadata modules on __MODULE__ submodule" do
-        buffer = """
-        defmodule MyLocalModule do
-          defmodule Sub do
-            @moduledoc "Some example doc"
-            @moduledoc since: "1.2.3"
-          end
-
-          def self() do
-            __MODULE__.Sub
-          end
+    test "retrieve documentation from metadata modules on __MODULE__ submodule" do
+      buffer = """
+      defmodule MyLocalModule do
+        defmodule Sub do
+          @moduledoc "Some example doc"
+          @moduledoc since: "1.2.3"
         end
-        """
 
-        %{
-          docs: [doc]
-        } = Docs.docs(buffer, 8, 17)
-
-        assert %{
-                 module: MyLocalModule.Sub,
-                 metadata: %{since: "1.2.3"},
-                 docs: "Some example doc",
-                 kind: :module
-               } = doc
+        def self() do
+          __MODULE__.Sub
+        end
       end
+      """
+
+      %{
+        docs: [doc]
+      } = Docs.docs(buffer, 8, 17)
+
+      assert %{
+               module: MyLocalModule.Sub,
+               metadata: %{since: "1.2.3"},
+               docs: "Some example doc",
+               kind: :module
+             } = doc
     end
 
     test "retrieve documentation from metadata modules with @moduledoc false" do
@@ -215,6 +213,92 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       """
 
       refute Docs.docs(buffer, 2, 11)
+    end
+
+    test "retrieve documentation from modules in multialias" do
+      buffer = """
+      defmodule Foo.Bar do
+        @moduledoc "Bar module doc"
+      end
+
+      defmodule Foo.Baz.Boom do
+        @moduledoc "Boom module doc"
+      end
+
+      defmodule MyModule do
+        alias Foo.{Bar, Baz.Boom}
+        alias Foo, as: X
+        require X.{Bar, Baz.Boom}
+        alias Foo, as: Y
+        import Elixir.Foo.{Bar, Baz.Boom}
+      end
+      """
+
+      # Test hover on Bar in multialias
+      %{
+        docs: [bar_doc]
+      } = Docs.docs(buffer, 10, 15)
+
+      assert %{
+               module: Foo.Bar,
+               docs: "Bar module doc",
+               kind: :module
+             } = bar_doc
+
+      # Test hover on Boom in multialias
+      %{
+        docs: [boom_doc]
+      } = Docs.docs(buffer, 10, 20)
+
+      assert %{
+               module: Foo.Baz.Boom,
+               docs: "Boom module doc",
+               kind: :module
+             } = boom_doc
+
+      # Test hover on Bar in require
+      %{
+        docs: [require_bar_doc]
+      } = Docs.docs(buffer, 12, 15)
+
+      assert %{
+               module: Foo.Bar,
+               docs: "Bar module doc",
+               kind: :module
+             } = require_bar_doc
+
+      # Test hover on Boom in require
+      %{
+        docs: [require_boom_doc]
+      } = Docs.docs(buffer, 12, 20)
+
+      assert %{
+               module: Foo.Baz.Boom,
+               docs: "Boom module doc",
+               kind: :module
+             } = require_boom_doc
+
+      # Test hover on Bar in import
+      %{
+        docs: [import_bar_doc]
+      } = Docs.docs(buffer, 14, 23)
+
+      assert %{
+               module: Foo.Bar,
+               docs: "Bar module doc",
+               kind: :module
+             } = import_bar_doc
+
+      # Test hover on Boom in import
+      %{
+        docs: [import_boom_doc]
+      } = Docs.docs(buffer, 14, 28)
+
+      assert %{
+               module: Foo.Baz.Boom,
+               docs: "Boom module doc",
+               kind: :module
+             } = import_boom_doc
     end
   end
 
@@ -857,40 +941,38 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              }
     end
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      test "retrieve local private metadata function documentation on __MODULE__ submodule call" do
-        buffer = """
-        defmodule MyLocalModule do
-          defmodule Sub do
-            @doc "Sample doc"
-            @doc since: "1.2.3"
-            @spec flatten(list()) :: list()
-            def flatten(list) do
-              []
-            end
-          end
-
-          def func(list) do
-            __MODULE__.Sub.flatten(list)
+    test "retrieve local private metadata function documentation on __MODULE__ submodule call" do
+      buffer = """
+      defmodule MyLocalModule do
+        defmodule Sub do
+          @doc "Sample doc"
+          @doc since: "1.2.3"
+          @spec flatten(list()) :: list()
+          def flatten(list) do
+            []
           end
         end
-        """
 
-        %{
-          docs: [doc]
-        } = Docs.docs(buffer, 12, 20)
-
-        assert doc == %{
-                 args: ["list"],
-                 function: :flatten,
-                 arity: 1,
-                 kind: :function,
-                 metadata: %{since: "1.2.3"},
-                 module: MyLocalModule.Sub,
-                 specs: ["@spec flatten(list()) :: list()"],
-                 docs: "Sample doc"
-               }
+        def func(list) do
+          __MODULE__.Sub.flatten(list)
+        end
       end
+      """
+
+      %{
+        docs: [doc]
+      } = Docs.docs(buffer, 12, 20)
+
+      assert doc == %{
+               args: ["list"],
+               function: :flatten,
+               arity: 1,
+               kind: :function,
+               metadata: %{since: "1.2.3"},
+               module: MyLocalModule.Sub,
+               specs: ["@spec flatten(list()) :: list()"],
+               docs: "Sample doc"
+             }
     end
 
     test "does not retrieve remote private metadata function documentation" do
@@ -1081,31 +1163,29 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              } = doc
     end
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      test "retrieve function documentation with __MODULE__ submodule call" do
-        buffer = """
-        defmodule Inspect do
-          def func(list) do
-            __MODULE__.Algebra.string(list)
-          end
+    test "retrieve function documentation with __MODULE__ submodule call" do
+      buffer = """
+      defmodule Inspect do
+        def func(list) do
+          __MODULE__.Algebra.string(list)
         end
-        """
-
-        %{
-          docs: [doc]
-        } = Docs.docs(buffer, 3, 26)
-
-        assert %{
-                 args: ["string"],
-                 function: :string,
-                 module: Inspect.Algebra,
-                 metadata: %{since: "1.6.0"},
-                 specs: ["@spec string(String.t()) :: doc_string()"],
-                 kind: :function
-               } = doc
-
-        assert doc.docs =~ "Creates a document"
       end
+      """
+
+      %{
+        docs: [doc]
+      } = Docs.docs(buffer, 3, 26)
+
+      assert %{
+               args: ["string"],
+               function: :string,
+               module: Inspect.Algebra,
+               metadata: %{since: "1.6.0"},
+               specs: ["@spec string(String.t()) :: doc_string()"],
+               kind: :function
+             } = doc
+
+      assert doc.docs =~ "Creates a document"
     end
 
     test "retrieve function documentation from aliased modules" do
@@ -1891,15 +1971,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
     end
     """
 
-    if Version.match?(System.version(), ">= 1.14.0") do
-      assert %{
-               docs: [doc]
-             } = Docs.docs(buffer, 1, 21)
+    assert %{
+             docs: [doc]
+           } = Docs.docs(buffer, 1, 21)
 
-      assert doc == %{name: "do", docs: "do-end block control keyword", kind: :keyword}
-    else
-      assert nil == Docs.docs(buffer, 1, 21)
-    end
+    assert doc == %{name: "do", docs: "do-end block control keyword", kind: :keyword}
   end
 
   describe "variables" do
