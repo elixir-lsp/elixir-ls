@@ -80,7 +80,7 @@ else
                 set vfox (which vfox)
                 if test -n "$vfox"
                     echo "vfox executable found at $vfox, activating" >&2
-                    source ( "$vfox" activate fish )
+                    "$vfox" activate fish | source
                 else
                     echo "vfox not found" >&2
                     export_stdlib_path "which elixir"
