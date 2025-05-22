@@ -11,7 +11,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
   # default warns taken from
   # https://github.com/erlang/otp/blob/928d03e6da416208fce7b9a7dbbfbb4f25d26c37/lib/dialyzer/src/dialyzer_options.erl#L34
   # macros defined in https://github.com/erlang/otp/blob/928d03e6da416208fce7b9a7dbbfbb4f25d26c37/lib/dialyzer/src/dialyzer.hrl#L36
-  # as of OTP 27
+  # as of OTP 28
 
   # NOTE the allowed options in vscode extension need to be updated basing on https://github.com/erlang/otp/blob/412bff5196fc0ab88a61fe37ca30e5226fc7872d/lib/dialyzer/src/dialyzer_options.erl#L495
   @default_warns [
@@ -35,6 +35,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
                       [
                         # warn_unknown is enabled by default since OTP 26
                         :warn_unknown
+                      ]
+                    else
+                      []
+                    end) ++
+                   (if String.to_integer(System.otp_release()) >= 28 do
+                      [
+                        # warn_contract_opaque is enabled by default since OTP 26
+                        :warn_contract_opaque
                       ]
                     else
                       []
@@ -66,6 +74,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Analyzer do
                             # warn_unknown is enabled by default since OTP 26
                             :warn_unknown
                           ]
+                        end) ++
+                       (if String.to_integer(System.otp_release()) >= 28 do
+                          [
+                            # OTP >= 28 options
+                            :warn_opaque_union
+                          ]
+                        else
+                          []
                         end)
   @log_cache_length 10
 
