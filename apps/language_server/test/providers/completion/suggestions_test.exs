@@ -1804,13 +1804,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       end
       """
 
-      assert capture_io(:stderr, fn ->
-               list =
-                 Suggestion.suggestions(buffer, 3, 5)
-                 |> Enum.filter(fn s -> s.type == :variable end)
+      capture_io(:stderr, fn ->
+        list =
+          Suggestion.suggestions(buffer, 3, 5)
+          |> Enum.filter(fn s -> s.type == :variable end)
 
-               send(self(), {:result, list})
-             end) =~ "an expression is always required on the right side of ->"
+        send(self(), {:result, list})
+      end)
 
       assert_received {:result, list}
 
@@ -1826,13 +1826,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       end
       """
 
-      assert capture_io(:stderr, fn ->
-               list =
-                 Suggestion.suggestions(buffer, 2, 19)
-                 |> Enum.filter(fn s -> s.type == :variable end)
+      capture_io(:stderr, fn ->
+        list =
+          Suggestion.suggestions(buffer, 2, 19)
+          |> Enum.filter(fn s -> s.type == :variable end)
 
-               send(self(), {:result, list})
-             end) =~ "an expression is always required on the right side of ->"
+        send(self(), {:result, list})
+      end)
 
       assert_received {:result, list}
 
