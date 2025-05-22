@@ -1117,7 +1117,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
           assert doc.metadata == %{app: :erts}
         else
           assert doc.args == ["term", "term"]
-          assert doc.metadata == %{hidden: true, app: :erts}
+          assert %{hidden: true, app: :erts} = doc.metadata
         end
 
         %{

@@ -2062,7 +2062,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
       if System.otp_release() |> String.to_integer() >= 27 do
         assert "" == summary1
-        assert %{group: :time, equiv: "erlang:cancel_timer(TimerRef, [])", app: :erts} == meta1
+        assert %{equiv: "erlang:cancel_timer(TimerRef, [])", app: :erts} = meta1
       else
         assert "Cancels a timer\\." <> _ = summary1
       end

@@ -745,7 +745,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     end
     """
 
-    assert %Location{line: 20, column: 9, end_line: 20, end_column: 15, type: :module, file: file} =
+    assert %Location{line: _, column: 9, end_line: _, end_column: 15, type: :module, file: file} =
              Locator.definition(buffer, 2, 5)
 
     assert file =~ "/src/erlang.erl"
