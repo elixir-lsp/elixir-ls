@@ -29,18 +29,17 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
     |> Text.fetch_line(0)
   end
 
-  @do_regex ~r/\s*do\s*/
   defp maybe_recover_one_line_do(updated_text, {_name, context, _children} = _updated_ast) do
     wrong_do_end_conditions = [
       not Keyword.has_key?(context, :do),
       not Keyword.has_key?(context, :end),
-      Regex.match?(@do_regex, updated_text),
+      Regex.match?(~r/\s*do\s*/, updated_text),
       String.ends_with?(updated_text, "\nend")
     ]
 
     if Enum.all?(wrong_do_end_conditions) do
       updated_text
-      |> String.replace(@do_regex, ", do: ")
+      |> String.replace(~r/\s*do\s*/, ", do: ")
       |> String.trim_trailing("\nend")
     else
       updated_text

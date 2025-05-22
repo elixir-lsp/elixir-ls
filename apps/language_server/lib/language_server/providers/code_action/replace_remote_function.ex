@@ -37,9 +37,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
     end
   end
 
-  @function_re ~r/(\S+)\/(\d+) is undefined or private. Did you mean:.*/
   defp extract_function(message) do
-    with [[_, module_and_function, arity]] <- Regex.scan(@function_re, message),
+    with [[_, module_and_function, arity]] <-
+           Regex.scan(~r/(\S+)\/(\d+) is undefined or private. Did you mean:.*/, message),
          {:ok, module, function_name} <- separate_module_from_function(module_and_function) do
       {:ok, module, function_name, String.to_integer(arity)}
     end

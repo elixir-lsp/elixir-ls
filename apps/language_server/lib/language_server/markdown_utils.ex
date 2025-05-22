@@ -1,10 +1,9 @@
 defmodule ElixirLS.LanguageServer.MarkdownUtils do
   alias ElixirLS.LanguageServer.DocLinks
 
-  @hash_match ~r/(?<!\\)(?<!\w)(#+)(?=\s)/u
   # Find the lowest heading level in the fragment
   defp lowest_heading_level(fragment) do
-    case Regex.scan(@hash_match, fragment) do
+    case Regex.scan(~r/(?<!\\)(?<!\w)(#+)(?=\s)/u, fragment) do
       [] ->
         nil
 
@@ -22,7 +21,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
     if min_level do
       level_difference = base_level + 1 - min_level
 
-      Regex.replace(@hash_match, fragment, fn _, capture ->
+      Regex.replace(~r/(?<!\\)(?<!\w)(#+)(?=\s)/u, fragment, fn _, capture ->
         adjusted_level = String.length(capture) + level_difference
         String.duplicate("#", adjusted_level)
       end)

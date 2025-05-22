@@ -35,9 +35,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
     end
   end
 
-  @variable_re ~r/variable "([^"]+)" is unused/
   defp extract_variable_name(message) do
-    case Regex.scan(@variable_re, message) do
+    case Regex.scan(~r/variable "([^"]+)" is unused/, message) do
       [[_, variable_name]] ->
         {:ok, String.to_atom(variable_name)}
 
