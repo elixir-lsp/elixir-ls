@@ -129,6 +129,7 @@ ElixirLS generally aims to support all supported versions of Elixir on all compa
 |   >= 26.2.0     |  1.14.5 - 1.18  |        Yes        |                            None                            |
 |      any        |     1.15.5      |        Yes        |  Broken formatter [#975](https://github.com/elixir-lsp/elixir-ls/issues/975) |
 |      27         |    1.17 - 1.18  |        Yes        |                            None                            |
+|      28         |      1.18.4     |        Yes        |                            None                            |
 
 ### Version management
 
@@ -478,6 +479,7 @@ This section provides additional information on how to set up the ElixirLS local
 When launching ElixirLS from an IDE that is itself launched from a graphical shell, the environment may not be complete enough to find or run the correct Elixir/OTP version. To address this on Unix or Linux, the ElixirLS wrapper scripts try to configure [ASDF](https://github.com/asdf-vm/asdf) (a version manager for Elixir and other languages), but that may not always be what is needed.
 
 To ensure that the correct environment is set up, you can create a setup script. The setup script location varies based on platform and shell:
+
 - Unix-based systems using bash or zsh: `$XDG_CONFIG_HOME/elixir_ls/setup.sh` (by default `~/.config/elixir_ls/setup.sh`)
 - Unix-based systems using fish: `$XDG_CONFIG_HOME/elixir_ls/setup.fish` (by default `~/.config/elixir_ls/setup.fish`)
 - Windows-based systems `%APPDATA%\elixir_ls\setup.bat`

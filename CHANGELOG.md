@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.28.0: xx May 2025
+
+#### Highlights
+
+- Added support for OTP 28 on elixir 1.18.4
+
 ### v0.27.2: 24 March 2025
 
 #### Fixes
