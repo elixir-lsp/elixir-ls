@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.28.1: 24 May 2025
+
+#### Fixes
+
+- Added missing CI permissions on release publish
+
 ### v0.28.0: 24 May 2025
 
 #### Highlights
