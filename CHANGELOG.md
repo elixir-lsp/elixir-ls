@@ -5,6 +5,20 @@
 #### Highlights
 
 - Added support for OTP 28 on elixir 1.18.4
+- Support for go to definition and find references in multialias directives
+- ElixirLS will now try to autodetect path to elixir standard library [Gilbert](https://github.com/gilbertwong96)
+
+#### Improvements
+
+- Documentation on struct and record field completion items
+- Added support for OTP 28 dialyzer options
+- Signature help now renders metadata entries
+- Improvements to references provider. It now can find references to aliases in current file
+
+#### Fixes
+
+- Fixed crash in references provider on nil column in call location
+- Fixed loading of mise in fish shell [Chris Burrows](https://github.com/burrowsca)
 
 ### v0.27.2: 24 March 2025
 
