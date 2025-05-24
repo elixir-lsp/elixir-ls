@@ -18,7 +18,8 @@ defmodule ElixirLS.LanguageServer.CodeUnit do
   @type utf8_offset :: non_neg_integer()
   @type utf16_offset :: non_neg_integer()
 
-  @type error :: {:error, :misaligned} | {:error, :out_of_bounds}
+  @type error ::
+          {:error, :misaligned} | {:error, :out_of_bounds} | {:error, :invalid_surrogate_position}
 
   # public
 
@@ -130,48 +131,66 @@ defmodule ElixirLS.LanguageServer.CodeUnit do
 
   # UTF-8
 
-  defp do_utf8_offset(_, 0, offset) do
-    offset
-  end
+  # Walk the UTF-8 bytes, consuming whole codepoints one-by-one.
+  # If the requested utf16 “remaining” lands in the middle of a
+  # 2-unit surrogate pair, we clamp back to the start of that codepoint.
 
-  defp do_utf8_offset(<<>>, _, offset) do
-    # this clause pegs the offset at the end of the string
-    # no matter the character index
-    offset
-  end
+  defp do_utf8_offset(_, 0, offset), do: offset
 
-  defp do_utf8_offset(<<c, rest::binary>>, remaining, offset) when c < 128 do
+  defp do_utf8_offset(<<>>, _remaining, offset), do: offset
+
+  defp do_utf8_offset(<<c, rest::binary>>, remaining, offset) when c < 0x80 do
     do_utf8_offset(rest, remaining - 1, offset + 1)
   end
 
   defp do_utf8_offset(<<c::utf8, rest::binary>>, remaining, offset) do
     s = <<c::utf8>>
-    increment = utf8_size(s)
-    decrement = utf16_size(s)
-    do_utf8_offset(rest, remaining - decrement, offset + increment)
+    # 1 for BMP, 2 for supplementary
+    size16 = utf16_size(s)
+    size8 = byte_size(s)
+
+    cond do
+      remaining < size16 and remaining > 0 ->
+        # landed inside a surrogate pair → clamp to before the pair
+        offset
+
+      true ->
+        # either we have enough to consume the whole codepoint, or remaining <= 0
+        do_utf8_offset(rest, remaining - size16, offset + size8)
+    end
   end
 
-  defp do_to_utf8(_, 0, utf8_unit) do
-    {:ok, utf8_unit}
-  end
+  # at exactly zero we’re done
+  defp do_to_utf8(_, 0, utf8_unit), do: {:ok, utf8_unit}
 
-  defp do_to_utf8(_, utf_16_units, _) when utf_16_units < 0 do
+  # before the start → misaligned
+  defp do_to_utf8(_, utf16_units, _) when utf16_units < 0 do
     {:error, :misaligned}
   end
 
-  defp do_to_utf8(<<>>, _remaining, _utf8_unit) do
-    {:error, :out_of_bounds}
+  # ran off the end → out_of_bounds
+  defp do_to_utf8(<<>>, _remaining, _utf8_unit), do: {:error, :out_of_bounds}
+
+  # ASCII fast-path
+  defp do_to_utf8(<<c, rest::binary>>, utf16_units, utf8_unit) when c < 0x80 do
+    do_to_utf8(rest, utf16_units - 1, utf8_unit + 1)
   end
 
-  defp do_to_utf8(<<c, rest::binary>>, utf16_unit, utf8_unit) when c < 128 do
-    do_to_utf8(rest, utf16_unit - 1, utf8_unit + 1)
-  end
+  # Multi-byte path – detect mid-surrogate and error
+  defp do_to_utf8(<<c::utf8, rest::binary>>, utf16_units, utf8_unit) do
+    s = <<c::utf8>>
+    size8 = byte_size(s)
+    size16 = utf16_size(s)
 
-  defp do_to_utf8(<<c::utf8, rest::binary>>, utf16_unit, utf8_unit) do
-    utf8_code_units = byte_size(<<c::utf8>>)
-    utf16_code_units = utf16_size(<<c::utf8>>)
+    cond do
+      utf16_units < size16 and utf16_units > 0 ->
+        # asking for the 2nd code‐unit of a surrogate pair → invalid
+        {:error, :invalid_surrogate_position}
 
-    do_to_utf8(rest, utf16_unit - utf16_code_units, utf8_unit + utf8_code_units)
+      true ->
+        # consume it and keep going
+        do_to_utf8(rest, utf16_units - size16, utf8_unit + size8)
+    end
   end
 
   defp utf8_size(binary) when is_binary(binary) do
