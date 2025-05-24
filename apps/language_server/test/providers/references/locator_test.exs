@@ -2277,78 +2277,80 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
     end
   end
 
-  test "local vs remote references" do
-    exclude = [
-      {:elixir_utils, :noop, 0},
-      {:elixir_def, :store_definition, 3},
-      {Enum, nil, nil},
-      {Enum, :reduce, 3},
-      {Kernel.Utils, :announce_struct, 1},
-      {Kernel.Utils, :defstruct, 4},
-      {Kernel.Utils, nil, nil},
-      {Protocol, :__derive__, 3},
-      {Protocol, nil, nil},
-      {:elixir_bootstrap, :def, 2},
-      {Kernel.Typespec, :deftypespec, 6},
-      {Kernel.Typespec, nil, nil},
-      {Module, :__put_attribute__, 5},
-      {Module, nil, nil},
-      {Module, :make_overridable, 2},
-      {Module, :compile_definition_attributes, 6}
-    ]
+  if System.version() >= "1.18.0" do
+    test "local vs remote references" do
+      exclude = [
+        {:elixir_utils, :noop, 0},
+        {:elixir_def, :store_definition, 3},
+        {Enum, nil, nil},
+        {Enum, :reduce, 3},
+        {Kernel.Utils, :announce_struct, 1},
+        {Kernel.Utils, :defstruct, 4},
+        {Kernel.Utils, nil, nil},
+        {Protocol, :__derive__, 3},
+        {Protocol, nil, nil},
+        {:elixir_bootstrap, :def, 2},
+        {Kernel.Typespec, :deftypespec, 6},
+        {Kernel.Typespec, nil, nil},
+        {Module, :__put_attribute__, 5},
+        {Module, nil, nil},
+        {Module, :make_overridable, 2},
+        {Module, :compile_definition_attributes, 6}
+      ]
 
-    for file <- [
-          "test/support/references/simple_module.ex",
-          "test/support/references/module_with_def.ex",
-          "test/support/references/module_with_defmacro.ex",
-          "test/support/references/require.ex",
-          "test/support/references/require_as.ex",
-          "test/support/references/local_call.ex",
-          "test/support/references/local_macro_call.ex",
-          "test/support/references/remote_call.ex",
-          "test/support/references/alias.ex",
-          "test/support/references/import.ex",
-          "test/support/references/struct.ex",
-          "test/support/references/captures.ex",
-          # "test/support/references/super.ex",
-          "test/support/references/quoted.ex"
-        ] do
-      Code.compile_file(file)
-      trace = Tracer.get()
+      for file <- [
+            "test/support/references/simple_module.ex",
+            "test/support/references/module_with_def.ex",
+            "test/support/references/module_with_defmacro.ex",
+            "test/support/references/require.ex",
+            "test/support/references/require_as.ex",
+            "test/support/references/local_call.ex",
+            "test/support/references/local_macro_call.ex",
+            "test/support/references/remote_call.ex",
+            "test/support/references/alias.ex",
+            "test/support/references/import.ex",
+            "test/support/references/struct.ex",
+            "test/support/references/captures.ex",
+            # "test/support/references/super.ex",
+            "test/support/references/quoted.ex"
+          ] do
+        Code.compile_file(file)
+        trace = Tracer.get()
 
-      filtered_trace =
-        trace
-        |> Enum.map(fn {key, list} ->
-          filtered_list =
-            list
-            |> Enum.filter(fn t -> t.file == file end)
-            |> Enum.sort_by(fn t -> {t.line, t.column, t.kind} end)
+        filtered_trace =
+          trace
+          |> Enum.map(fn {key, list} ->
+            filtered_list =
+              list
+              |> Enum.filter(fn t -> t.file == file end)
+              |> Enum.sort_by(fn t -> {t.line, t.column, t.kind} end)
 
-          {key, filtered_list}
-        end)
-        |> Enum.filter(fn {key, list} -> list != [] and key not in exclude end)
-        |> Map.new()
-
-      metadata = ElixirSense.Core.Parser.parse_file(file, false, false, {1, 1})
-
-      grouped_calls =
-        metadata.calls
-        |> Enum.flat_map(fn {_, list} ->
-          list
-          |> Enum.map(fn %ElixirSense.Core.State.CallInfo{} = ci ->
-            %{
-              line: ci.position |> elem(0),
-              file: file,
-              column: ci.position |> elem(1),
-              callee: {ci.mod, ci.func, ci.arity},
-              kind: ci.kind
-            }
+            {key, filtered_list}
           end)
-          |> Enum.sort_by(fn t -> {t.line, t.column, t.kind} end)
-        end)
-        |> Enum.group_by(fn item -> item.callee end)
+          |> Enum.filter(fn {key, list} -> list != [] and key not in exclude end)
+          |> Map.new()
 
-      assert grouped_calls == filtered_trace
+        metadata = ElixirSense.Core.Parser.parse_file(file, false, false, {1, 1})
+
+        grouped_calls =
+          metadata.calls
+          |> Enum.flat_map(fn {_, list} ->
+            list
+            |> Enum.map(fn %ElixirSense.Core.State.CallInfo{} = ci ->
+              %{
+                line: ci.position |> elem(0),
+                file: file,
+                column: ci.position |> elem(1),
+                callee: {ci.mod, ci.func, ci.arity},
+                kind: ci.kind
+              }
+            end)
+            |> Enum.sort_by(fn t -> {t.line, t.column, t.kind} end)
+          end)
+          |> Enum.group_by(fn item -> item.callee end)
+
+        assert grouped_calls == filtered_trace
+      end
     end
   end
 

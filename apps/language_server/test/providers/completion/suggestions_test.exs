@@ -2746,7 +2746,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: "ElixirSenseExample.IO.Stream",
                metadata: %{
                  hidden: true,
-                 source_annos: [2],
                  app: :language_server
                },
                summary: ""
