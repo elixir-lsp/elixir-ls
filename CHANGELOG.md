@@ -1,6 +1,6 @@
 ### Unreleased
 
-### v0.28.0: xx May 2025
+### v0.28.0: 24 May 2025
 
 #### Highlights
 
