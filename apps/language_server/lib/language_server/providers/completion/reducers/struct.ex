@@ -12,7 +12,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Source
   alias ElixirSense.Core.State
+  alias ElixirSense.Core.State.StructInfo
   alias ElixirLS.Utils.Matcher
+  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   @type field :: %{
           type: :field,
@@ -20,7 +22,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
           name: String.t(),
           origin: String.t() | nil,
           call?: boolean,
-          type_spec: String.t() | nil
+          type_spec: String.t() | nil,
+          summary: String.t(),
+          metadata: map
         }
 
   @doc """
@@ -92,16 +96,44 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
   end
 
   defp get_fields(metadata, {:map, fields, _}, hint, fields_so_far) do
-    expand_map_field_access(metadata, fields, hint, :map, fields_so_far)
+    expand_map_field_access(metadata, fields, hint, :map, fields_so_far, "", %{})
   end
 
   defp get_fields(metadata, {:struct, fields, type, _}, hint, fields_so_far) do
-    expand_map_field_access(metadata, fields, hint, {:struct, type}, fields_so_far)
+    {doc, meta} = get_struct_info(type, metadata)
+    expand_map_field_access(metadata, fields, hint, {:struct, type}, fields_so_far, doc, meta)
   end
 
   defp get_fields(_, _, _hint, _fields_so_far), do: []
 
-  defp expand_map_field_access(metadata, fields, hint, type, fields_so_far) do
+  defp get_struct_info({:atom, module}, metadata) when is_atom(module) do
+    case metadata.structs[module] do
+      %StructInfo{} = info ->
+        {info.doc, info.meta}
+
+      nil ->
+        case NormalizedCode.get_docs(module, :docs) do
+          nil ->
+            {"", %{}}
+
+          docs ->
+            case Enum.find(docs, fn
+                   {{:__struct__, 0}, _, _, _, _, _} -> true
+                   _ -> false
+                 end) do
+              {{:__struct__, 0}, _, _, _, doc, meta} ->
+                {doc || "", meta}
+
+              _ ->
+                {"", %{}}
+            end
+        end
+    end
+  end
+
+  defp get_struct_info(_, _metadata), do: {"", %{}}
+
+  defp expand_map_field_access(metadata, fields, hint, type, fields_so_far, doc, meta) do
     {subtype, origin, types} =
       case type do
         {:struct, {:atom, mod}} ->
@@ -139,7 +171,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Struct do
         subtype: subtype,
         origin: origin,
         call?: false,
-        type_spec: spec
+        type_spec: spec,
+        summary: doc,
+        metadata: meta
       }
     end
     |> Enum.sort_by(& &1.name)

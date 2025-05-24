@@ -739,7 +739,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            name: name,
            origin: origin,
            call?: call?,
-           type_spec: type_spec
+           type_spec: type_spec,
+           summary: summary,
+           metadata: metadata
          },
          _context,
          _options
@@ -750,6 +752,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         {:struct_field, nil} -> "struct field"
         {:struct_field, module_name} -> "#{module_name} struct field"
         {:record_field, module_and_record} -> "#{module_and_record} record field"
+      end
+
+    summary =
+      if summary != "" do
+        "#{summary}\n\n" <> MarkdownUtils.get_metadata_md(metadata) <> "\n\n"
+      else
+        MarkdownUtils.get_metadata_md(metadata) <> "\n\n"
       end
 
     formatted_spec =
@@ -763,7 +772,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       label: to_string(name),
       detail: detail,
       insert_text: if(call?, do: name, else: "#{name}: "),
-      documentation: formatted_spec,
+      documentation: summary <> formatted_spec,
       priority: 10,
       kind: :field,
       tags: []

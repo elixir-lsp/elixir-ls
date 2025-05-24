@@ -56,6 +56,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.Source
   alias ElixirSense.Core.State
+  alias ElixirSense.Core.State.StructInfo
   alias ElixirSense.Core.Struct
   alias ElixirSense.Core.TypeInfo
 
@@ -111,7 +112,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
           name: String.t(),
           origin: String.t() | nil,
           call?: boolean,
-          type_spec: String.t() | nil
+          type_spec: String.t() | nil,
+          summary: String.t(),
+          metadata: map
         }
 
   @type t() ::
@@ -1370,8 +1373,35 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp ensure_loaded(Elixir), do: {:error, :nofile}
   defp ensure_loaded(mod), do: Code.ensure_compiled(mod)
 
+  defp get_struct_info({:atom, module}, metadata) when is_atom(module) do
+    case metadata.structs[module] do
+      %StructInfo{} = info ->
+        {info.doc, info.meta}
+
+      nil ->
+        case NormalizedCode.get_docs(module, :docs) do
+          nil ->
+            {"", %{}}
+
+          docs ->
+            case Enum.find(docs, fn
+                   {{:__struct__, 0}, _, _, _, _, _} -> true
+                   _ -> false
+                 end) do
+              {{:__struct__, 0}, _, _, _, doc, meta} ->
+                {doc || "", meta}
+
+              _ ->
+                {"", %{}}
+            end
+        end
+    end
+  end
+
+  defp get_struct_info(_, _metadata), do: {"", %{}}
+
   defp match_map_fields(fields, hint, type, %State.Env{} = _env, %Metadata{} = metadata) do
-    {subtype, origin, types} =
+    {subtype, origin, types, doc, meta} =
       case type do
         {:struct, {:atom, mod}} ->
           types =
@@ -1381,13 +1411,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
               true
             )
 
-          {:struct_field, inspect(mod), types}
+          {doc, meta} = get_struct_info({:atom, mod}, metadata)
+          {:struct_field, inspect(mod), types, doc, meta}
 
         {:struct, nil} ->
-          {:struct_field, nil, %{}}
+          {:struct_field, nil, %{}, "", %{}}
 
         :map ->
-          {:map_key, nil, %{}}
+          {:map_key, nil, %{}, "", %{}}
 
         other ->
           raise "unexpected #{inspect(other)} for hint #{inspect(hint)}"
@@ -1410,7 +1441,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
         subtype: subtype,
         value_is_map: value_is_map,
         origin: origin,
-        type_spec: types[key]
+        type_spec: types[key],
+        summary: doc,
+        metadata: meta
       }
     end
     |> Enum.sort_by(& &1.name)
@@ -1423,7 +1456,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
          subtype: subtype,
          name: name,
          origin: origin,
-         type_spec: type_spec
+         type_spec: type_spec,
+         summary: summary,
+         metadata: metadata
        }) do
     [
       %{
@@ -1432,7 +1467,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
         subtype: subtype,
         origin: origin,
         call?: true,
-        type_spec: if(type_spec, do: Macro.to_string(type_spec))
+        type_spec: if(type_spec, do: Macro.to_string(type_spec)),
+        summary: summary,
+        metadata: metadata
       }
     ]
   end
