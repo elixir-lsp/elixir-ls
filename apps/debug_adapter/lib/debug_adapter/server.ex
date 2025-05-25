@@ -136,7 +136,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   def dbg(code, options, %Macro.Env{} = caller) do
     quote do
-      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+      stacktrace = (Process.info(self()) || [])[:current_stacktrace] || []
       GenServer.call(unquote(__MODULE__), {:dbg, binding(), __ENV__, stacktrace}, :infinity)
       unquote(Macro.dbg(code, options, caller))
     end
@@ -144,7 +144,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   def __next__(next?, binding, opts_or_env) when is_boolean(next?) do
     if next? do
-      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+      stacktrace = (Process.info(self()) || [])[:current_stacktrace] || []
 
       GenServer.call(__MODULE__, {:dbg, binding, opts_or_env, stacktrace}, :infinity) ==
         {:ok, true}
@@ -1220,7 +1220,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       case find_frame(state.paused_processes, frame_id) do
         {pid, %Frame{dbg_frame?: true} = frame} ->
           {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
-          process_info = Process.info(pid)
+          process_info = Process.info(pid) || []
           {state, process_info_id} = ensure_var_id(state, pid, process_info)
 
           vars_scope = %{
@@ -1254,7 +1254,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           process_info =
             try do
-              Process.info(pid)
+              Process.info(pid) || []
             rescue
               ArgumentError ->
                 # remote pid
@@ -2626,7 +2626,7 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp build_attach_mfa(reason) do
-    server = Process.info(self())[:registered_name] || self()
+    server = (Process.info(self()) || [])[:registered_name] || self()
     {__MODULE__, reason, [server]}
   end
 
