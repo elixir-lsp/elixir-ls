@@ -488,7 +488,21 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:noreply, state}
     catch
       kind, error ->
-        {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, error, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Output.debugger_console(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {error, stacktrace}
+          end
+
         message = Exception.format(kind, payload, stacktrace)
         Output.debugger_console(message)
         Output.send_error_response(packet, "internalServerError", message, %{}, true, false)
@@ -1644,7 +1658,21 @@ defmodule ElixirLS.DebugAdapter.Server do
       term
     catch
       kind, error ->
-        {payload, stacktrace} = Exception.blame(kind, error, prune_stacktrace(__STACKTRACE__))
+        stacktrace = prune_stacktrace(__STACKTRACE__)
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, error, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Output.debugger_console(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {error, stacktrace}
+          end
+
         message = Exception.format(kind, payload, stacktrace)
 
         reraise(
@@ -2836,7 +2864,21 @@ defmodule ElixirLS.DebugAdapter.Server do
             #     ** (MatchError) no match of right hand side value: {:error, :on_load_failure}
             # (debugger 5.3) int.erl:531: anonymous fn_3 in :int.load_2
             # (debugger 5.3) int.erl:527: :int.load_2
-            {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+            stacktrace = __STACKTRACE__
+
+            {payload, stacktrace} =
+              try do
+                Exception.blame(kind, error, stacktrace)
+              catch
+                kind_1, error_1 ->
+                  # in case of error in Exception.blame we want to use the original error and stacktrace
+                  Output.debugger_console(
+                    "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                  )
+
+                  {error, stacktrace}
+              end
+
             message = Exception.format(kind, payload, stacktrace)
 
             Output.debugger_console(
@@ -2926,7 +2968,21 @@ defmodule ElixirLS.DebugAdapter.Server do
             {:error, e}
         catch
           kind, error ->
-            {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+            stacktrace = __STACKTRACE__
+
+            {payload, stacktrace} =
+              try do
+                Exception.blame(kind, error, stacktrace)
+              catch
+                kind_1, error_1 ->
+                  # in case of error in Exception.blame we want to use the original error and stacktrace
+                  Output.debugger_console(
+                    "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                  )
+
+                  {error, stacktrace}
+              end
+
             message = Exception.format(kind, payload, stacktrace)
             Output.debugger_console(message)
 
@@ -2952,7 +3008,21 @@ defmodule ElixirLS.DebugAdapter.Server do
       end
     rescue
       error ->
-        {payload, stacktrace} = Exception.blame(:error, error, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(:error, error, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Output.debugger_console(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {error, stacktrace}
+          end
+
         message = Exception.format(:error, payload, stacktrace)
 
         Output.debugger_console(

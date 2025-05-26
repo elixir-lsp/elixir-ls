@@ -49,7 +49,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.GenericReducer do
             reducer.suggestions(hint, func_call, chain, opts) |> handle_suggestions(acc)
           catch
             kind, payload ->
-              {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+              stacktrace = __STACKTRACE__
+
+              {payload, stacktrace} =
+                try do
+                  Exception.blame(kind, payload, stacktrace)
+                catch
+                  kind_1, error_1 ->
+                    # in case of error in Exception.blame we want to use the original error and stacktrace
+                    Logger.error(
+                      "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                    )
+
+                    {payload, stacktrace}
+                end
+
               message = Exception.format(kind, payload, stacktrace)
               Logger.error("Error in suggestions reducer: #{message}")
               {:cont, acc}
@@ -64,7 +78,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.GenericReducer do
             reducer.suggestions(hint, opts) |> handle_suggestions(acc)
           catch
             kind, payload ->
-              {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+              stacktrace = __STACKTRACE__
+
+              {payload, stacktrace} =
+                try do
+                  Exception.blame(kind, payload, stacktrace)
+                catch
+                  kind_1, error_1 ->
+                    # in case of error in Exception.blame we want to use the original error and stacktrace
+                    Logger.error(
+                      "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                    )
+
+                    {payload, stacktrace}
+                end
+
               message = Exception.format(kind, payload, stacktrace)
               Logger.error("Error in suggestions reducer: #{message}")
               {:cont, acc}

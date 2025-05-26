@@ -192,8 +192,4 @@ defmodule ElixirLS.LanguageServer.CodeUnit do
         do_to_utf8(rest, utf16_units - size16, utf8_unit + size8)
     end
   end
-
-  defp utf8_size(binary) when is_binary(binary) do
-    byte_size(binary)
-  end
 end

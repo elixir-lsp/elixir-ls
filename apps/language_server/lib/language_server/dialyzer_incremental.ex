@@ -45,7 +45,21 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       GenServer.call({:global, {parent, __MODULE__}}, {:suggest_contracts, files}, :infinity)
     catch
       kind, payload ->
-        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, payload, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Logger.error(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {payload, stacktrace}
+          end
+
         error_msg = Exception.format(kind, payload, stacktrace)
 
         Logger.error("Unable to suggest contracts: #{error_msg}")
@@ -102,7 +116,20 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
         SuccessTypings.suggest_contracts(plt, files)
       catch
         :throw = kind, {:dialyzer_error, message} = payload ->
-          {_payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+          stacktrace = __STACKTRACE__
+
+          {_payload, stacktrace} =
+            try do
+              Exception.blame(kind, payload, stacktrace)
+            catch
+              kind_1, error_1 ->
+                # in case of error in Exception.blame we want to use the original error and stacktrace
+                Logger.error(
+                  "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                )
+
+                {payload, stacktrace}
+            end
 
           Logger.warning(
             "Unable to load incremental PLT: #{message}\n#{Exception.format_stacktrace(stacktrace)}"
@@ -111,7 +138,20 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
           []
 
         kind, payload ->
-          {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+          stacktrace = __STACKTRACE__
+
+          {payload, stacktrace} =
+            try do
+              Exception.blame(kind, payload, stacktrace)
+            catch
+              kind_1, error_1 ->
+                # in case of error in Exception.blame we want to use the original error and stacktrace
+                Logger.error(
+                  "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                )
+
+                {payload, stacktrace}
+            end
 
           Logger.error(
             "Unexpected error during incremental PLT load: #{Exception.format(kind, payload, stacktrace)}"
@@ -362,7 +402,20 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       {warnings, dialyzer_plt}
     catch
       :throw = kind, {:dialyzer_error, message} = payload ->
-        {_payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {_payload, stacktrace} =
+          try do
+            Exception.blame(kind, payload, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Logger.error(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {payload, stacktrace}
+          end
 
         Logger.error(
           "Dialyzer error during incremental PLT build: #{message}\n#{Exception.format_stacktrace(stacktrace)}"
@@ -371,7 +424,20 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
         {[], nil}
 
       kind, payload ->
-        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, payload, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Logger.error(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {payload, stacktrace}
+          end
 
         Logger.error(
           "Unexpected error during incremental PLT build: #{Exception.format(kind, payload, stacktrace)}"

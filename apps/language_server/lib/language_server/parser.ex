@@ -381,7 +381,20 @@ defmodule ElixirLS.LanguageServer.Parser do
     end
   catch
     kind, err ->
-      {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+      stacktrace = __STACKTRACE__
+
+      {payload, stacktrace} =
+        try do
+          Exception.blame(kind, err, stacktrace)
+        catch
+          kind_1, error_1 ->
+            # in case of error in Exception.blame we want to use the original error and stacktrace
+            Logger.error(
+              "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+            )
+
+            {err, stacktrace}
+        end
 
       message = Exception.format(kind, payload, stacktrace)
 

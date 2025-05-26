@@ -782,7 +782,21 @@ defmodule ElixirLS.LanguageServer.Server do
           state
         catch
           kind, payload ->
-            {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+            stacktrace = __STACKTRACE__
+
+            {payload, stacktrace} =
+              try do
+                Exception.blame(kind, payload, stacktrace)
+              catch
+                kind_1, error_1 ->
+                  # in case of error in Exception.blame we want to use the original error and stacktrace
+                  Logger.error(
+                    "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                  )
+
+                  {payload, stacktrace}
+              end
+
             error_msg = Exception.format(kind, payload, stacktrace)
 
             # on error in initialize the protocol requires to respond with
@@ -891,7 +905,21 @@ defmodule ElixirLS.LanguageServer.Server do
         state
     catch
       kind, payload ->
-        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, payload, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Logger.error(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {payload, stacktrace}
+          end
+
         error_msg = Exception.format(kind, payload, stacktrace)
         JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
