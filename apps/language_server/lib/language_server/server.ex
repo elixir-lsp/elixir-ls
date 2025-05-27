@@ -1818,8 +1818,8 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_settings(state = %__MODULE__{settings: prev_settings}, settings)
        when settings != prev_settings do
     enable_dialyzer =
-      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) and
-        Map.get(settings, "dialyzerEnabled", true)
+      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) == true and
+        Map.get(settings, "dialyzerEnabled", true) == true
 
     if enable_dialyzer do
       dialyzer_warn_opts = Map.get(settings, "dialyzerWarnOpts", [])
