@@ -1140,7 +1140,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {:ok, {_, opts}} ->
           locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
 
-          if List.improper?(locals_without_parens) do
+          if not is_list(locals_without_parens) or List.improper?(locals_without_parens) do
             []
           else
             locals_without_parens
