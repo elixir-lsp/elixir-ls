@@ -1523,9 +1523,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp function_name_with_parens?(name, arity, locals_without_parens) do
-    (locals_without_parens || MapSet.new())
-    |> MapSet.member?({String.to_atom(name), arity})
-    |> Kernel.not()
+    locals_without_parens = locals_without_parens || MapSet.new()
+    name = String.to_atom(name)
+
+    not (MapSet.member?(locals_without_parens, {name, arity}) or
+           MapSet.member?(locals_without_parens, {name, :*}))
   end
 
   defp sanitize_function_name(name, origin) when origin in ["Kernel", "Kernel.SpecialForms"],
