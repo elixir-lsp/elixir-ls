@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.LocationsArguments do
 
   * location_reference: Location reference to resolve.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure LocationsArguments"
     field(:location_reference, integer(), enforce: true)

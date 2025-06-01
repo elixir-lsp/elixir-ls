@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.CancelArguments do
   * request_id: The ID (attribute `seq`) of the request to cancel. If missing no request is cancelled.
     Both a `requestId` and a `progressId` can be specified in one request.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure CancelArguments"
     field(:progress_id, String.t())

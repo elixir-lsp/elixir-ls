@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.RestartFrameArguments do
 
   * frame_id: Restart the stack frame identified by `frameId`. The `frameId` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure RestartFrameArguments"
     field(:frame_id, integer(), enforce: true)

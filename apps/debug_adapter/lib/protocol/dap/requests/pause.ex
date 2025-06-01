@@ -19,7 +19,7 @@ defmodule GenDAP.Requests.PauseRequest do
   * seq: Sequence number of the message (also known as message ID). The `seq` for the first message sent by a client or debug adapter is 1, and for each subsequent message is 1 greater than the previous message sent by that actor. `seq` can be used to order requests, responses, and events, and to associate requests with their corresponding responses. For protocol messages of type `request` the sequence number can be used to cancel the request.
   * type: Message type.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP request pause"
 
@@ -67,7 +67,7 @@ defmodule GenDAP.Requests.PauseResponse do
     If the value is false, the attribute `message` contains the error in short form and the `body` may contain additional information (see `ErrorResponse.body.error`).
   * type: Message type.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP request pause response"
 

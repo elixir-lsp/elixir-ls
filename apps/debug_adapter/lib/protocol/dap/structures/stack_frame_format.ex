@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.StackFrameFormat do
   * parameter_values: Displays the values of parameters for the stack frame.
   * parameters: Displays parameters for the stack frame.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure StackFrameFormat"
     field(:hex, boolean())

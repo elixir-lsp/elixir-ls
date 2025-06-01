@@ -18,7 +18,7 @@ defmodule GenDAP.Structures.StackTraceArguments do
   * start_frame: The index of the first frame to return; if omitted frames start at 0.
   * thread_id: Retrieve the stacktrace for this thread.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure StackTraceArguments"
     field(:format, GenDAP.Structures.StackFrameFormat.t())

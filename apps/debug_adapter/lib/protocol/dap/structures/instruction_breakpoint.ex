@@ -23,7 +23,7 @@ defmodule GenDAP.Structures.InstructionBreakpoint do
   * offset: The offset from the instruction reference in bytes.
     This can be negative.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure InstructionBreakpoint"
     field(:condition, String.t())

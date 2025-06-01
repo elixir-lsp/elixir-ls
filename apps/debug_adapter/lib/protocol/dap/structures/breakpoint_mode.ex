@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.BreakpointMode do
   * label: The name of the breakpoint mode. This is shown in the UI.
   * mode: The internal ID of the mode. This value is passed to the `setBreakpoints` request.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure BreakpointMode"
     field(:applies_to, list(GenDAP.Enumerations.BreakpointModeApplicability.t()), enforce: true)

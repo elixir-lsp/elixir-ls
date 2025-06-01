@@ -16,7 +16,7 @@ defmodule GenDAP.Structures.StepBackArguments do
   * single_thread: If this flag is true, all other suspended threads are not resumed.
   * thread_id: Specifies the thread for which to resume execution for one step backwards (of the given granularity).
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure StepBackArguments"
     field(:granularity, GenDAP.Enumerations.SteppingGranularity.t())

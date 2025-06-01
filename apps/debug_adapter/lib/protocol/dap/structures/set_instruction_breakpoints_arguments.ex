@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.SetInstructionBreakpointsArguments do
 
   * breakpoints: The instruction references of the breakpoints
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SetInstructionBreakpointsArguments"
     field(:breakpoints, list(GenDAP.Structures.InstructionBreakpoint.t()), enforce: true)

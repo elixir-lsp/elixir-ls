@@ -20,7 +20,7 @@ defmodule GenDAP.Structures.DisconnectArguments do
     If unspecified, the debug adapter is free to do whatever it thinks is best.
     The attribute is only honored by a debug adapter if the corresponding capability `supportTerminateDebuggee` is true.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure DisconnectArguments"
     field(:restart, boolean())

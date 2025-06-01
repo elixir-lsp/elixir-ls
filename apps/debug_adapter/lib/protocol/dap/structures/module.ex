@@ -29,7 +29,7 @@ defmodule GenDAP.Structures.Module do
   * symbol_status: User-understandable description of if symbols were found for the module (ex: 'Symbols Loaded', 'Symbols not found', etc.)
   * version: Version of Module.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Module"
     field(:address_range, String.t())

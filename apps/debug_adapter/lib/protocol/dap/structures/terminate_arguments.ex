@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.TerminateArguments do
 
   * restart: A value of true indicates that this `terminate` request is part of a restart sequence.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure TerminateArguments"
     field(:restart, boolean())

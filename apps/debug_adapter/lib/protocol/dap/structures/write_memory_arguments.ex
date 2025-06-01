@@ -18,7 +18,7 @@ defmodule GenDAP.Structures.WriteMemoryArguments do
   * memory_reference: Memory reference to the base location to which data should be written.
   * offset: Offset (in bytes) to be applied to the reference location before writing data. Can be negative.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure WriteMemoryArguments"
     field(:allow_partial, boolean())

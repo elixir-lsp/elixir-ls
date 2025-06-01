@@ -26,7 +26,7 @@ defmodule GenDAP.Structures.StackFrame do
     A value of `label` can be used to indicate that the frame is an artificial frame that is used as a visual label or separator. A value of `subtle` can be used to change the appearance of a frame in a 'subtle' way.
   * source: The source of the frame.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure StackFrame"
     field(:can_restart, boolean())

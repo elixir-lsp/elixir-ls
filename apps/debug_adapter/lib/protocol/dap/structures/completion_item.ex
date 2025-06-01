@@ -22,7 +22,7 @@ defmodule GenDAP.Structures.CompletionItem do
   * text: If text is returned and not an empty string, then it is inserted instead of the label.
   * type: The item's type. Typically the client uses this information to render the item in the UI with an icon.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure CompletionItem"
     field(:detail, String.t())

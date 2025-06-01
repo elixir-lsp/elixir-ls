@@ -25,7 +25,7 @@ defmodule GenDAP.Structures.DataBreakpointInfoArguments do
     If `variablesReference` isn't specified, this can be an expression, or an address if `asAddress` is also true.
   * variables_reference: Reference to the variable container if the data breakpoint is requested for a child of the container. The `variablesReference` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure DataBreakpointInfoArguments"
     field(:as_address, boolean())

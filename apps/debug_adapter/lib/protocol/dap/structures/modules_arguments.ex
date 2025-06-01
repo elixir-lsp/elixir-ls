@@ -15,7 +15,7 @@ defmodule GenDAP.Structures.ModulesArguments do
   * module_count: The number of modules to return. If `moduleCount` is not specified or 0, all modules are returned.
   * start_module: The index of the first module to return; if omitted modules start at 0.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ModulesArguments"
     field(:module_count, integer())

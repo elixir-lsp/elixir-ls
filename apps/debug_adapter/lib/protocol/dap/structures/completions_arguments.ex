@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.CompletionsArguments do
   * line: A line for which to determine the completion proposals. If missing the first line of the text is assumed.
   * text: One or more source lines. Typically this is the text users have typed into the debug console before they asked for completion.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure CompletionsArguments"
     field(:column, integer(), enforce: true)

@@ -30,7 +30,7 @@ defmodule GenDAP.Structures.Breakpoint do
   * source: The source where the breakpoint is located.
   * verified: If true, the breakpoint could be set (but not necessarily at the desired location).
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Breakpoint"
     field(:column, integer())

@@ -16,7 +16,7 @@ defmodule GenDAP.Structures.GotoTargetsArguments do
   * line: The line location for which the goto targets are determined.
   * source: The source location for which the goto targets are determined.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure GotoTargetsArguments"
     field(:column, integer())

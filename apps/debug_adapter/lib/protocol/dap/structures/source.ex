@@ -28,7 +28,7 @@ defmodule GenDAP.Structures.Source do
     The value should be less than or equal to 2147483647 (2^31-1).
   * sources: A list of sources that are related to this source. These may be the source that generated this source.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Source"
     field(:adapter_data, list() | boolean() | integer() | nil | number() | map() | String.t())

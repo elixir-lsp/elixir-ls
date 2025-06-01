@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
     The attribute is only honored by a debug adapter if the corresponding capability `supportsHitConditionalBreakpoints` is true.
   * name: The name of the function.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure FunctionBreakpoint"
     field(:condition, String.t())

@@ -42,7 +42,7 @@ defmodule GenDAP.Structures.Variable do
     This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
   * variables_reference: If `variablesReference` is > 0, the variable is structured and its children can be retrieved by passing `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Variable"
     field(:declaration_location_reference, integer())

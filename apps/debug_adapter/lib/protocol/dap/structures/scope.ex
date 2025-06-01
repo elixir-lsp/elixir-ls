@@ -26,7 +26,7 @@ defmodule GenDAP.Structures.Scope do
   * source: The source for this scope.
   * variables_reference: The variables of this scope can be retrieved by passing the value of `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Scope"
     field(:column, integer())

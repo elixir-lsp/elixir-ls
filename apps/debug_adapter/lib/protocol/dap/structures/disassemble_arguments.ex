@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.DisassembleArguments do
   * offset: Offset (in bytes) to be applied to the reference location before disassembling. Can be negative.
   * resolve_symbols: If true, the adapter should attempt to resolve memory addresses and other values to symbolic names.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure DisassembleArguments"
     field(:instruction_count, integer(), enforce: true)

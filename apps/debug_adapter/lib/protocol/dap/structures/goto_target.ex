@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.GotoTarget do
   * label: The name of the goto target (shown in the UI).
   * line: The line of the goto target.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure GotoTarget"
     field(:column, integer())

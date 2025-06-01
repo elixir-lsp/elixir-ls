@@ -26,7 +26,7 @@ defmodule GenDAP.Structures.SourceBreakpoint do
     If either `hitCondition` or `condition` is specified, then the message should only be logged if those conditions are met.
   * mode: The mode of this breakpoint. If defined, this must be one of the `breakpointModes` the debug adapter advertised in its `Capabilities`.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SourceBreakpoint"
     field(:column, integer())

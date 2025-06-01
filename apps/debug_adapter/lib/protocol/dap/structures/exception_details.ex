@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.ExceptionDetails do
   * stack_trace: Stack trace at the time the exception was thrown.
   * type_name: Short type name of the exception object.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ExceptionDetails"
     field(:evaluate_name, String.t())

@@ -16,7 +16,7 @@ defmodule GenDAP.Structures.ExceptionPathSegment do
   * names: Depending on the value of `negate` the names that should match or not match.
   * negate: If false or missing this segment matches the names provided, otherwise it matches anything except the names provided.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ExceptionPathSegment"
     field(:names, list(String.t()), enforce: true)

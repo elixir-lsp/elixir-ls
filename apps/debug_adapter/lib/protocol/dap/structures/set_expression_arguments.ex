@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.SetExpressionArguments do
   * frame_id: Evaluate the expressions in the scope of this stack frame. If not specified, the expressions are evaluated in the global scope.
   * value: The value expression to assign to the l-value expression.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SetExpressionArguments"
     field(:expression, String.t(), enforce: true)

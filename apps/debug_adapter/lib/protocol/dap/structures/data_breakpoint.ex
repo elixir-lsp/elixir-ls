@@ -18,7 +18,7 @@ defmodule GenDAP.Structures.DataBreakpoint do
   * hit_condition: An expression that controls how many hits of the breakpoint are ignored.
     The debug adapter is expected to interpret the expression as needed.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure DataBreakpoint"
     field(:access_type, GenDAP.Enumerations.DataBreakpointAccessType.t())

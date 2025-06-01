@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.ExceptionInfoArguments do
 
   * thread_id: Thread for which exception information should be retrieved.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ExceptionInfoArguments"
     field(:thread_id, integer(), enforce: true)

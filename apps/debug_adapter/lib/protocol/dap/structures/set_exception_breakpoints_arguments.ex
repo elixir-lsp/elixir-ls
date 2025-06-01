@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.SetExceptionBreakpointsArguments do
   * filter_options: Set of exception filters and their options. The set of all possible exception filters is defined by the `exceptionBreakpointFilters` capability. This attribute is only honored by a debug adapter if the corresponding capability `supportsExceptionFilterOptions` is true. The `filter` and `filterOptions` sets are additive.
   * filters: Set of exception filters specified by their ID. The set of all possible exception filters is defined by the `exceptionBreakpointFilters` capability. The `filter` and `filterOptions` sets are additive.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SetExceptionBreakpointsArguments"
     field(:exception_options, list(GenDAP.Structures.ExceptionOptions.t()))

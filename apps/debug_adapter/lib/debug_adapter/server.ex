@@ -879,7 +879,11 @@ defmodule ElixirLS.DebugAdapter.Server do
             {%ServerError{} = error, stack} ->
               exit_code = 1
               Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
-              Output.send_event(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
+
+              Output.send_event(%GenDAP.Events.ExitedEvent{
+                seq: nil,
+                body: %{exit_code: exit_code}
+              })
 
               reraise error, stack
 
@@ -890,7 +894,11 @@ defmodule ElixirLS.DebugAdapter.Server do
 
               exit_code = 1
               Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
-              Output.send_event(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
+
+              Output.send_event(%GenDAP.Events.ExitedEvent{
+                seq: nil,
+                body: %{exit_code: exit_code}
+              })
 
               raise ServerError,
                 message: "launchError",

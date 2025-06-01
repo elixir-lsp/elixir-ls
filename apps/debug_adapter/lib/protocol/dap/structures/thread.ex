@@ -15,7 +15,7 @@ defmodule GenDAP.Structures.Thread do
   * id: Unique identifier for the thread.
   * name: The name of the thread.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Thread"
     field(:id, integer(), enforce: true)

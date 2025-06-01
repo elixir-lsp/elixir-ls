@@ -15,7 +15,7 @@ defmodule GenDAP.Structures.GotoArguments do
   * target_id: The location where the debuggee will continue to run.
   * thread_id: Set the goto target for this thread.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure GotoArguments"
     field(:target_id, integer(), enforce: true)

@@ -23,7 +23,7 @@ defmodule GenDAP.Structures.EvaluateArguments do
   * line: The contextual line where the expression should be evaluated. In the 'hover' context, this should be set to the start of the expression being hovered.
   * source: The contextual source in which the `line` is found. This must be provided if `line` is provided.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure EvaluateArguments"
     field(:column, integer())

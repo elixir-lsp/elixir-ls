@@ -16,7 +16,7 @@ defmodule GenDAP.Structures.SourceArguments do
   * source_reference: The reference to the source. This is the same as `source.sourceReference`.
     This is provided for backward compatibility since old clients do not understand the `source` attribute.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SourceArguments"
     field(:source, GenDAP.Structures.Source.t())

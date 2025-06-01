@@ -30,7 +30,7 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
   * supports_variable_paging: Client supports the paging of variables.
   * supports_variable_type: Client supports the `type` attribute for variables.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure InitializeRequestArguments"
     field(:adapter_i_d, String.t(), enforce: true)

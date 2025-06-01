@@ -16,7 +16,7 @@ defmodule GenDAP.Structures.ExceptionOptions do
   * path: A path that selects a single or multiple exceptions in a tree. If `path` is missing, the whole tree is selected.
     By convention the first segment of the path is a category that is used to group exceptions in the UI.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ExceptionOptions"
     field(:break_mode, GenDAP.Enumerations.ExceptionBreakMode.t(), enforce: true)

@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.StepInTarget do
   * label: The name of the step-in target (shown in the UI).
   * line: The line of the step-in target.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure StepInTarget"
     field(:column, integer())

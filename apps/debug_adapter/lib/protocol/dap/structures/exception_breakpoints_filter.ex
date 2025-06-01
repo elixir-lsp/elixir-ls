@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.ExceptionBreakpointsFilter do
   * label: The name of the filter option. This is shown in the UI.
   * supports_condition: Controls whether a condition can be specified for this filter option. If false or missing, a condition can not be set.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ExceptionBreakpointsFilter"
     field(:condition_description, String.t())

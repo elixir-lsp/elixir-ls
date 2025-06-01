@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.SetDataBreakpointsArguments do
 
   * breakpoints: The contents of this array replaces all existing data breakpoints. An empty array clears all data breakpoints.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SetDataBreakpointsArguments"
     field(:breakpoints, list(GenDAP.Structures.DataBreakpoint.t()), enforce: true)

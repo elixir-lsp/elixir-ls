@@ -24,7 +24,7 @@ defmodule GenDAP.Structures.ErrorResponse do
     If the value is false, the attribute `message` contains the error in short form and the `body` may contain additional information (see `ErrorResponse.body.error`).
   * type: Message type.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ErrorResponse"
     field(:body, %{optional(:error) => GenDAP.Structures.Message.t()}, enforce: true)

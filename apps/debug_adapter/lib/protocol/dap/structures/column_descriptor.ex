@@ -20,7 +20,7 @@ defmodule GenDAP.Structures.ColumnDescriptor do
   * type: Datatype of values in this column. Defaults to `string` if not specified.
   * width: Width of this column in characters (hint only).
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ColumnDescriptor"
     field(:attribute_name, String.t(), enforce: true)

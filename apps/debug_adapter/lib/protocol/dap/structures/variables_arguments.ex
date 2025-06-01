@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.VariablesArguments do
     The attribute is only honored by a debug adapter if the corresponding capability `supportsVariablePaging` is true.
   * variables_reference: The variable for which to retrieve its children. The `variablesReference` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure VariablesArguments"
     field(:count, integer())

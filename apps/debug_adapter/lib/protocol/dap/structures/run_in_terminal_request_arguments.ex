@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.RunInTerminalRequestArguments do
   * kind: What kind of terminal to launch. Defaults to `integrated` if not specified.
   * title: Title of the terminal.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure RunInTerminalRequestArguments"
     field(:args, list(String.t()), enforce: true)

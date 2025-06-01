@@ -13,7 +13,7 @@ defmodule GenDAP.Structures.ConfigurationDoneArguments do
   ## Fields
 
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ConfigurationDoneArguments"
   end

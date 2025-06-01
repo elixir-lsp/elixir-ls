@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.SetBreakpointsArguments do
   * source: The source location of the breakpoints; either `source.path` or `source.sourceReference` must be specified.
   * source_modified: A value of true indicates that the underlying source has been modified which results in new breakpoint locations.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SetBreakpointsArguments"
     field(:breakpoints, list(GenDAP.Structures.SourceBreakpoint.t()))

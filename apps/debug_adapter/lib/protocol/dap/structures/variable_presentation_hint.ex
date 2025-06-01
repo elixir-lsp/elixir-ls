@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.VariablePresentationHint do
     Please note that in addition to the `lazy` flag, the variable's `variablesReference` is expected to refer to a variable that will provide the value through another `variable` request.
   * visibility: Visibility of variable. Before introducing additional values, try to use the listed values.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure VariablePresentationHint"
     field(:attributes, list(String.t()))

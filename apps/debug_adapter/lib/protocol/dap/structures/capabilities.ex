@@ -57,7 +57,7 @@ defmodule GenDAP.Structures.Capabilities do
   * supports_value_formatting_options: The debug adapter supports a `format` attribute on the `stackTrace`, `variables`, and `evaluate` requests.
   * supports_write_memory_request: The debug adapter supports the `writeMemory` request.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Capabilities"
     field(:additional_module_columns, list(GenDAP.Structures.ColumnDescriptor.t()))

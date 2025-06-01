@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.SetVariableArguments do
   * value: The value of the variable.
   * variables_reference: The reference of the variable container. The `variablesReference` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure SetVariableArguments"
     field(:format, GenDAP.Structures.ValueFormat.t())

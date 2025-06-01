@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.ExceptionFilterOptions do
   * filter_id: ID of an exception filter returned by the `exceptionBreakpointFilters` capability.
   * mode: The mode of this exception breakpoint. If defined, this must be one of the `breakpointModes` the debug adapter advertised in its `Capabilities`.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ExceptionFilterOptions"
     field(:condition, String.t())

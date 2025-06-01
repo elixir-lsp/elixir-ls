@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.StepInArguments do
   * target_id: Id of the target to step into.
   * thread_id: Specifies the thread for which to resume execution for one step-into (of the given granularity).
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure StepInArguments"
     field(:granularity, GenDAP.Enumerations.SteppingGranularity.t())

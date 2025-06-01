@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.StepInTargetsArguments do
 
   * frame_id: The stack frame for which to retrieve the possible step-in targets.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure StepInTargetsArguments"
     field(:frame_id, integer(), enforce: true)

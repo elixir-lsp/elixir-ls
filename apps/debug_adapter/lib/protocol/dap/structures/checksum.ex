@@ -15,7 +15,7 @@ defmodule GenDAP.Structures.Checksum do
   * algorithm: The algorithm used to calculate this checksum.
   * checksum: Value of the checksum, encoded as a hexadecimal value.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Checksum"
     field(:algorithm, GenDAP.Enumerations.ChecksumAlgorithm.t(), enforce: true)

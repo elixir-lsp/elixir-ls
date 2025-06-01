@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.RestartArguments do
 
   * arguments: The latest version of the `launch` or `attach` configuration.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure RestartArguments"
     field(

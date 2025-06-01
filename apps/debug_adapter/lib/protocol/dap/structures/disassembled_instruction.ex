@@ -27,7 +27,7 @@ defmodule GenDAP.Structures.DisassembledInstruction do
     A value of `invalid` may be used to indicate this instruction is 'filler' and cannot be reached by the program. For example, unreadable memory addresses may be presented is 'invalid.'
   * symbol: Name of the symbol that corresponds with the location of this instruction, if any.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure DisassembledInstruction"
     field(:address, String.t(), enforce: true)

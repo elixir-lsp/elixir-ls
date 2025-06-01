@@ -18,7 +18,7 @@ defmodule GenDAP.Structures.BreakpointLocationsArguments do
   * line: Start line of range to search possible breakpoint locations in. If only the line is specified, the request returns all possible locations in that line.
   * source: The source location of the breakpoints; either `source.path` or `source.sourceReference` must be specified.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure BreakpointLocationsArguments"
     field(:column, integer())

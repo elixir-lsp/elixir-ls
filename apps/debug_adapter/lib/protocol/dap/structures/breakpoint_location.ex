@@ -17,7 +17,7 @@ defmodule GenDAP.Structures.BreakpointLocation do
   * end_line: The end line of breakpoint location if the location covers a range.
   * line: Start line of breakpoint location.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure BreakpointLocation"
     field(:column, integer())

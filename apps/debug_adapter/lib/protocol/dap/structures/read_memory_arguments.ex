@@ -16,7 +16,7 @@ defmodule GenDAP.Structures.ReadMemoryArguments do
   * memory_reference: Memory reference to the base location from which data should be read.
   * offset: Offset (in bytes) to be applied to the reference location before reading data. Can be negative.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ReadMemoryArguments"
     field(:count, integer(), enforce: true)

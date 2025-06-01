@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.Message do
   * url_label: A label that is presented to the user as the UI for opening the url.
   * variables: An object used as a dictionary for looking up the variables in the format string.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure Message"
     field(:format, String.t(), enforce: true)

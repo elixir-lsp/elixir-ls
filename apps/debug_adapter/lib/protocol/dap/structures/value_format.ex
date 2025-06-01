@@ -14,7 +14,7 @@ defmodule GenDAP.Structures.ValueFormat do
 
   * hex: Display the value in hex.
   """
-  @derive JasonV.Encoder
+
   typedstruct do
     @typedoc "A type defining DAP structure ValueFormat"
     field(:hex, boolean())
