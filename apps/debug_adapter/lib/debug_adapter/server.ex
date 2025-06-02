@@ -136,7 +136,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   def dbg(code, options, %Macro.Env{} = caller) do
     quote do
-      stacktrace = (Process.info(self()) || [])[:current_stacktrace] || []
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
       GenServer.call(unquote(__MODULE__), {:dbg, binding(), __ENV__, stacktrace}, :infinity)
       unquote(Macro.dbg(code, options, caller))
     end
@@ -144,7 +144,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   def __next__(next?, binding, opts_or_env) when is_boolean(next?) do
     if next? do
-      stacktrace = (Process.info(self()) || [])[:current_stacktrace] || []
+      {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
 
       GenServer.call(__MODULE__, {:dbg, binding, opts_or_env, stacktrace}, :infinity) ==
         {:ok, true}
@@ -2654,7 +2654,7 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp build_attach_mfa(reason) do
-    server = (Process.info(self()) || [])[:registered_name] || self()
+    server = Process.info(self())[:registered_name] || self()
     {__MODULE__, reason, [server]}
   end
 
