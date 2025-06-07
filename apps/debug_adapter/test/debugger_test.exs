@@ -4,7 +4,15 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
   # between the debug adapter tests and the fixture project's tests. Expect to see output printed
   # from both.
 
-  alias ElixirLS.DebugAdapter.{Server, Protocol, BreakpointCondition, ModuleInfoCache, Output}
+  alias ElixirLS.DebugAdapter.{
+    Server,
+    Protocol,
+    BreakpointCondition,
+    ModuleInfoCache,
+    Output,
+    ThreadRegistry
+  }
+
   use ElixirLS.Utils.MixTest.Case, async: false
   use Protocol
 
@@ -3348,9 +3356,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       send(server, :update_threads)
       state = :sys.get_state(server)
 
-      thread_id = state.pids_to_thread_ids[pid]
+      {:ok, thread_id} = ThreadRegistry.get_thread_id_by_pid(state.thread_registry, pid)
       assert thread_id
-      assert state.thread_ids_to_pids[thread_id] == pid
+      assert ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) == {:ok, pid}
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -3372,8 +3380,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       send(server, :update_threads)
       state = :sys.get_state(server)
 
-      refute Map.has_key?(state.pids_to_thread_ids, pid)
-      refute Map.has_key?(state.thread_ids_to_pids, thread_id)
+      assert ThreadRegistry.get_thread_id_by_pid(state.thread_registry, pid) == :error
+      assert ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) == :error
 
       Server.receive_packet(server, request(6, "threads", %{}))
       assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -3424,9 +3432,9 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         send(server, :update_threads)
         state = :sys.get_state(server)
 
-        thread_id = state.pids_to_thread_ids[pid]
+        {:ok, thread_id} = ThreadRegistry.get_thread_id_by_pid(state.thread_registry, pid)
         assert thread_id
-        assert state.thread_ids_to_pids[thread_id] == pid
+        assert ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) == {:ok, pid}
 
         Server.receive_packet(server, request(6, "threads", %{}))
         assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)
@@ -3443,8 +3451,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         send(server, :update_threads)
         state = :sys.get_state(server)
 
-        refute Map.has_key?(state.pids_to_thread_ids, pid)
-        refute Map.has_key?(state.thread_ids_to_pids, thread_id)
+        assert ThreadRegistry.get_thread_id_by_pid(state.thread_registry, pid) == :error
+        assert ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) == :error
 
         Server.receive_packet(server, request(6, "threads", %{}))
         assert_receive(response(_, 6, "threads", %{"threads" => threads}), 1_000)

@@ -24,7 +24,10 @@ defmodule ElixirLS.DebugAdapter.Server do
     Utils,
     BreakpointCondition,
     Binding,
-    ModuleInfoCache
+    ModuleInfoCache,
+    IdManager,
+    VariableRegistry,
+    ThreadRegistry
   }
 
   alias ElixirLS.DebugAdapter.Stacktrace.Frame
@@ -34,35 +37,25 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   @temp_beam_dir ".elixir_ls/temp_beams"
 
+  defmodule PausedProcess do
+    defstruct stack: nil,
+              registry: %ElixirLS.DebugAdapter.VariableRegistry{},
+              ref: nil
+  end
+
   defstruct client_info: nil,
             config: %{},
             dbg_session: nil,
             task_ref: nil,
             update_threads_ref: nil,
-            thread_ids_to_pids: %{},
-            pids_to_thread_ids: %{},
-            paused_processes: %{
-              evaluator: %{
-                var_ids_to_vars: %{},
-                vars_to_var_ids: %{}
-              }
-            },
+            thread_registry: %ThreadRegistry{},
+            paused_processes: %{},
             requests: %{},
             requests_seqs_by_pid: %{},
             progresses: MapSet.new(),
-            next_id: 1,
             output: Output,
             breakpoints: %{},
             function_breakpoints: %{}
-
-  defmodule PausedProcess do
-    defstruct stack: nil,
-              frame_ids_to_frames: %{},
-              frames_to_frame_ids: %{},
-              var_ids_to_vars: %{},
-              vars_to_var_ids: %{},
-              ref: nil
-  end
 
   ## Client API
 
@@ -177,12 +170,20 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   @impl GenServer
   def init(opts) do
+    IdManager.init()
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
+
+    # Initialize the evaluator process entry
+    evaluator_process = %PausedProcess{}
+    state = put_in(state.paused_processes[:evaluator], evaluator_process)
+
     {:ok, state}
   end
 
   @impl GenServer
   def terminate(reason, _state) do
+    IdManager.cleanup()
+
     case reason do
       :normal ->
         :ok
@@ -381,19 +382,6 @@ defmodule ElixirLS.DebugAdapter.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call(
-        {:get_variable_reference, child_type, pid, value},
-        _from,
-        state = %__MODULE__{}
-      ) do
-    if Map.has_key?(state.paused_processes, pid) do
-      {state, var_id} = get_variable_reference(child_type, state, pid, value)
-      {:reply, {:ok, var_id}, state}
-    else
-      {:reply, {:error, :not_paused}, state}
-    end
-  end
-
   @impl GenServer
   def handle_cast(
         {:receive_packet, request(seq, "disconnect" = command) = packet},
@@ -550,6 +538,20 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   @impl GenServer
+  def handle_cast({:merge_registry, pid, registry}, state = %__MODULE__{}) do
+    case Map.fetch(state.paused_processes, pid) do
+      {:ok, paused_process = %PausedProcess{}} ->
+        merged_registry = VariableRegistry.merge(paused_process.registry, registry)
+        paused_process = %{paused_process | registry: merged_registry}
+        state = put_in(state.paused_processes[pid], paused_process)
+        {:noreply, state}
+
+      :error ->
+        # Process might have been resumed or exited, ignore
+        {:noreply, state}
+    end
+  end
+
   def handle_cast({event, pid}, state = %__MODULE__{})
       when event in [:breakpoint_reached, :paused] do
     # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
@@ -1245,7 +1247,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
     threads =
       for thread_id <- thread_ids,
-          pid = state.thread_ids_to_pids[thread_id],
+          {:ok, pid} = ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id),
           (process_name = get_process_name(pid, snapshot_by_pid)) != nil do
         full_name = "#{process_name} #{:erlang.pid_to_list(pid)}"
         %GenDAP.Structures.Thread{id: thread_id, name: full_name}
@@ -1261,12 +1263,18 @@ defmodule ElixirLS.DebugAdapter.Server do
          },
          state = %__MODULE__{}
        ) do
-    for {id, pid} <- state.thread_ids_to_pids,
-        id in args.thread_ids do
-      # :kill is untrappable
-      # do not need to cleanup here, :DOWN message handler will do it
-      Process.monitor(pid)
-      Process.exit(pid, :kill)
+    for thread_id <- args.thread_ids do
+      case ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) do
+        {:ok, pid} ->
+          # :kill is untrappable
+          # do not need to cleanup here, :DOWN message handler will do it
+          Process.monitor(pid)
+          Process.exit(pid, :kill)
+
+        :error ->
+          # thread_id not found, treat as already terminated
+          :ok
+      end
     end
 
     {%GenDAP.Requests.TerminateThreadsResponse{seq: 0, request_seq: 0}, state}
@@ -1489,7 +1497,26 @@ defmodule ElixirLS.DebugAdapter.Server do
        ) do
     async_fn = fn ->
       {pid, var} = find_var!(state.paused_processes, args.variables_reference)
-      variables = variables(state, pid, var, args.start, args.count, args.filter)
+
+      # Get the existing registry from the paused process
+      existing_registry =
+        case Map.fetch!(state.paused_processes, pid) do
+          %PausedProcess{registry: registry} -> registry
+        end
+
+      {updated_registry, variables} =
+        variables_async(
+          var,
+          args.start,
+          args.count,
+          args.filter,
+          state.client_info,
+          existing_registry
+        )
+
+      # Merge the registry back to the server state
+      GenServer.cast(__MODULE__, {:merge_registry, pid, updated_registry})
+
       %GenDAP.Requests.VariablesResponse{seq: 0, request_seq: 0, body: %{variables: variables}}
     end
 
@@ -1528,14 +1555,19 @@ defmodule ElixirLS.DebugAdapter.Server do
       {_metadata, _env, binding, env_for_eval} = binding_and_env(state.paused_processes, frame)
       value = evaluate_code_expression(args.expression, binding, env_for_eval)
 
+      # Get the existing evaluator registry
+      existing_registry =
+        case Map.fetch!(state.paused_processes, :evaluator) do
+          %PausedProcess{registry: registry} -> registry
+        end
+
+      {updated_registry, var_id} =
+        VariableRegistry.get_variable_reference(existing_registry, value)
+
+      # Merge the registry back to the server state
+      GenServer.cast(__MODULE__, {:merge_registry, :evaluator, updated_registry})
+
       child_type = Variables.child_type(value)
-      # we need to call here as get_variable_reference modifies the state
-      {:ok, var_id} =
-        GenServer.call(
-          __MODULE__,
-          {:get_variable_reference, child_type, :evaluator, value},
-          60_000
-        )
 
       variable =
         %{
@@ -1756,8 +1788,11 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id, show_message_on_error?) do
-    case state.thread_ids_to_pids[thread_id] do
-      nil ->
+    case ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) do
+      {:ok, pid} ->
+        pid
+
+      :error ->
         raise ServerError,
           message: "invalidArgument",
           format: "Unable to find process pid for DAP threadId {threadId}",
@@ -1766,9 +1801,6 @@ defmodule ElixirLS.DebugAdapter.Server do
           },
           send_telemetry: false,
           show_user: show_message_on_error?
-
-      pid ->
-        pid
     end
   end
 
@@ -1782,47 +1814,35 @@ defmodule ElixirLS.DebugAdapter.Server do
     %{state | paused_processes: paused_processes}
   end
 
-  defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
+  defp variables_async(var, start, count, filter, client_info, registry) do
     var_child_type = Variables.child_type(var)
 
-    if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
-      []
-    else
-      Variables.children(var, start, count)
-    end
-    |> Enum.reduce([], fn {name, value}, acc ->
-      child_type = Variables.child_type(value)
-
-      case GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value}, 60_000) do
-        {:ok, var_id} ->
-          json =
-            %GenDAP.Structures.Variable{
-              name: to_string(name),
-              value: inspect(value),
-              variables_reference: var_id
-            }
-            |> maybe_append_children_number(state.client_info, child_type, value)
-            |> maybe_append_variable_type(state.client_info, value)
-
-          [json | acc]
-
-        {:error, :not_paused} ->
-          raise ServerError,
-            message: "runtimeError",
-            format: "process with pid {pid} is not paused",
-            variables: %{
-              "pid" => inspect(pid)
-            },
-            send_telemetry: false
+    children =
+      if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
+        []
+      else
+        Variables.children(var, start, count)
       end
-    end)
-    |> Enum.reverse()
+
+    {updated_registry, variables} =
+      Enum.reduce(children, {registry, []}, fn {name, value}, {registry_acc, acc} ->
+        {registry_acc, var_id} = VariableRegistry.get_variable_reference(registry_acc, value)
+        child_type = Variables.child_type(value)
+
+        json =
+          %GenDAP.Structures.Variable{
+            name: to_string(name),
+            value: inspect(value),
+            variables_reference: var_id
+          }
+          |> maybe_append_children_number(client_info, child_type, value)
+          |> maybe_append_variable_type(client_info, value)
+
+        {registry_acc, [json | acc]}
+      end)
+
+    {updated_registry, Enum.reverse(variables)}
   end
-
-  defp get_variable_reference(nil, state, _pid, _value), do: {state, 0}
-
-  defp get_variable_reference(_child_type, state, pid, value),
-    do: ensure_var_id(state, pid, value)
 
   defp maybe_append_children_number(
          variable,
@@ -1917,7 +1937,7 @@ defmodule ElixirLS.DebugAdapter.Server do
           []
 
         {_pid, %PausedProcess{} = paused_process} ->
-          Map.values(paused_process.frame_ids_to_frames)
+          Map.values(paused_process.registry.frame_ids_to_frames)
       end)
       |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
       |> Enum.flat_map(fn %Frame{bindings: bindings} ->
@@ -1962,8 +1982,11 @@ defmodule ElixirLS.DebugAdapter.Server do
   defp find_var!(paused_processes, var_id) do
     result =
       Enum.find_value(paused_processes, fn
-        {pid, %{var_ids_to_vars: %{^var_id => var}}} ->
-          {pid, var}
+        {pid, %PausedProcess{registry: registry}} ->
+          case VariableRegistry.find_var(registry, var_id) do
+            {:ok, var} -> {pid, var}
+            :error -> nil
+          end
 
         _ ->
           nil
@@ -1986,8 +2009,11 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp find_frame(paused_processes, frame_id) do
     Enum.find_value(paused_processes, fn
-      {pid, %{frame_ids_to_frames: %{^frame_id => frame}}} when is_pid(pid) ->
-        {pid, frame}
+      {pid, %{registry: registry}} when is_pid(pid) ->
+        case VariableRegistry.find_frame(registry, frame_id) do
+          {:ok, frame} -> {pid, frame}
+          :error -> nil
+        end
 
       _ ->
         nil
@@ -1995,44 +2021,27 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp ensure_thread_id(state = %__MODULE__{}, pid, new_ids) when is_pid(pid) do
-    case state.pids_to_thread_ids do
-      %{^pid => thread_id} ->
-        {state, thread_id, new_ids}
+    {updated_registry, thread_id, new_ids} =
+      ThreadRegistry.ensure_thread_id(state.thread_registry, pid, new_ids)
 
-      _ ->
-        id = state.next_id
-        state = put_in(state.thread_ids_to_pids[id], pid)
-        state = put_in(state.pids_to_thread_ids[pid], id)
-        state = put_in(state.next_id, id + 1)
-        {state, id, [id | new_ids]}
-    end
+    state = %{state | thread_registry: updated_registry}
+    {state, thread_id, new_ids}
   end
 
   defp ensure_thread_ids(state = %__MODULE__{}, pids) do
-    {state, ids, new_ids} =
-      Enum.reduce(pids, {state, [], []}, fn pid, {state, ids, new_ids} ->
-        {state, id, new_ids} = ensure_thread_id(state, pid, new_ids)
-        {state, [id | ids], new_ids}
-      end)
+    {updated_registry, thread_ids, new_ids} =
+      ThreadRegistry.ensure_thread_ids(state.thread_registry, pids)
 
-    {state, Enum.reverse(ids), Enum.reverse(new_ids)}
+    state = %{state | thread_registry: updated_registry}
+    {state, thread_ids, new_ids}
   end
 
   defp ensure_var_id(state = %__MODULE__{}, pid, var) when is_pid(pid) or pid == :evaluator do
-    paused_process = Map.fetch!(state.paused_processes, pid)
-
-    case paused_process.vars_to_var_ids do
-      %{^var => var_id} ->
-        {state, var_id}
-
-      _ ->
-        id = state.next_id
-        paused_process = put_in(paused_process.var_ids_to_vars[id], var)
-        paused_process = put_in(paused_process.vars_to_var_ids[var], id)
-        state = put_in(state.paused_processes[pid], paused_process)
-        state = put_in(state.next_id, id + 1)
-        {state, id}
-    end
+    paused_process = %PausedProcess{} = Map.fetch!(state.paused_processes, pid)
+    {registry, var_id} = VariableRegistry.ensure_var_id(paused_process.registry, var)
+    paused_process = %{paused_process | registry: registry}
+    state = put_in(state.paused_processes[pid], paused_process)
+    {state, var_id}
   end
 
   defp ensure_frame_ids(state = %__MODULE__{}, pid, stack_frames) do
@@ -2043,20 +2052,11 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) when is_pid(pid) do
-    paused_process = Map.fetch!(state.paused_processes, pid)
-
-    case paused_process.frames_to_frame_ids do
-      %{^frame => frame_id} ->
-        {state, frame_id}
-
-      _ ->
-        id = state.next_id
-        paused_process = put_in(paused_process.frame_ids_to_frames[id], frame)
-        paused_process = put_in(paused_process.frames_to_frame_ids[frame], id)
-        state = put_in(state.paused_processes[pid], paused_process)
-        state = put_in(state.next_id, id + 1)
-        {state, id}
-    end
+    paused_process = %PausedProcess{} = Map.fetch!(state.paused_processes, pid)
+    {registry, frame_id} = VariableRegistry.ensure_frame_id(paused_process.registry, frame)
+    paused_process = %{paused_process | registry: registry}
+    state = put_in(state.paused_processes[pid], paused_process)
+    {state, frame_id}
   end
 
   defp launch(config, server) do
@@ -2908,7 +2908,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       })
     end
 
-    exited_pids = Map.keys(state.pids_to_thread_ids) -- pids
+    exited_pids = ThreadRegistry.all_pids(state.thread_registry) -- pids
 
     state =
       Enum.reduce(exited_pids, state, fn pid, state ->
@@ -2919,14 +2919,12 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp handle_process_exit(state = %__MODULE__{}, pid) when is_pid(pid) do
-    {thread_id, pids_to_thread_ids} = Map.pop(state.pids_to_thread_ids, pid)
-    state = remove_paused_process(state, pid)
+    # Get thread_id before removing from registry
+    {thread_id, updated_registry} = ThreadRegistry.remove_pid(state.thread_registry, pid)
+    state = %{state | thread_registry: updated_registry}
 
-    state = %__MODULE__{
-      state
-      | thread_ids_to_pids: Map.delete(state.thread_ids_to_pids, thread_id),
-        pids_to_thread_ids: pids_to_thread_ids
-    }
+    # Remove from paused processes
+    state = remove_paused_process(state, pid)
 
     if thread_id do
       Output.send_event(%GenDAP.Events.ThreadEvent{
