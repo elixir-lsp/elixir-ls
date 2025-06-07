@@ -17,7 +17,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation do
 
     results =
       for location <- locations,
-          do: Protocol.Location.new(location, uri, source_file.text, project_dir)
+          do: Protocol.Location.to_gen_lsp(location, uri, source_file.text, project_dir)
 
     {:ok, results}
   end

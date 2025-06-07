@@ -204,7 +204,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
     requests_ids_by_pid =
       if popped_request do
-        {pid, ref, command, start_time} = popped_request
+        {pid, ref, command, start_time, request_module} = 
+          case popped_request do
+            {pid, ref, command, start_time, request_module} -> 
+              {pid, ref, command, start_time, request_module}
+            {pid, ref, command, start_time} -> 
+              # Handle old format for backward compatibility
+              {pid, ref, command, start_time, nil}
+          end
         # we are no longer interested in :DOWN message
         Process.demonitor(ref, [:flush])
 
@@ -228,7 +235,18 @@ defmodule ElixirLS.LanguageServer.Server do
 
           {:ok, result} ->
             elapsed = System.monotonic_time(:millisecond) - start_time
-            JsonRpc.respond(id, result)
+            
+            # Use request module's result schematic if available (GenLSP requests)
+            response_body = 
+              if request_module && function_exported?(request_module, :result, 0) do
+                {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
+                dumped_body
+              else
+                # Fallback for non-GenLSP requests or when no request module is available
+                result
+              end
+            
+            JsonRpc.respond(id, response_body)
 
             JsonRpc.telemetry(
               "lsp_request",
@@ -504,7 +522,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
     updated_requests_ids_by_pid =
       if request do
-        {pid, ref, _command, _start_time} = request
+        {pid, ref} = case request do
+          {pid, ref, _command, _start_time} -> {pid, ref}
+          {pid, ref, _command, _start_time, _request_module} -> {pid, ref}
+        end
+        
         # we are no longer interested in :DOWN message
         Process.demonitor(ref, [:flush])
         Process.exit(pid, :cancelled)
@@ -840,6 +862,120 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request_packet(
          id,
+         packet = %{"method" => command, "id" => id},
+         state = %__MODULE__{received_shutdown?: false}
+       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references"] do
+    struct =
+        case GenLSP.Requests.new(packet) do
+          {:ok, struct} ->
+            struct
+  
+          {:error, "unexpected request payload"} ->
+            packet
+        end
+    command =
+      case packet do
+        execute_command_req(_id, custom_command_with_server_id, _args) ->
+          command <> ":" <> (ExecuteCommand.get_command(custom_command_with_server_id) || "")
+
+        _ ->
+          command
+      end
+
+    start_time = System.monotonic_time(:millisecond)
+
+    try do
+      case handle_request(struct, state) do
+        {:ok, result, state} ->
+          elapsed = System.monotonic_time(:millisecond) - start_time
+          {:ok, dumped_body} =
+            Schematic.dump(struct.schematic(), %{result | id: id})
+          JsonRpc.respond(id, dumped_body)
+
+          JsonRpc.telemetry(
+            "lsp_request",
+            %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
+            %{
+              "elixir_ls.lsp_request_time" => elapsed
+            }
+          )
+
+          state
+
+        {:error, type, msg, send_telemetry, state} ->
+          JsonRpc.respond_with_error(id, type, msg)
+
+          do_sanity_check(msg)
+
+          if send_telemetry do
+            JsonRpc.telemetry(
+              "lsp_request_error",
+              %{
+                "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                "elixir_ls.lsp_error" => type,
+                "elixir_ls.lsp_error_message" => msg
+              },
+              %{}
+            )
+          end
+
+          state
+
+        {:async, fun, state} ->
+          {pid, ref} = handle_request_async(id, fun)
+
+          # Store the request module for proper result encoding
+          request_module = struct.__struct__
+
+          %{
+            state
+            | requests: Map.put(state.requests, id, {pid, ref, command, start_time, request_module}),
+              requests_ids_by_pid: Map.put(state.requests_ids_by_pid, pid, id)
+          }
+      end
+    rescue
+      e in InvalidParamError ->
+        JsonRpc.respond_with_error(id, :invalid_params, e.message)
+
+        state
+    catch
+      kind, payload ->
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, payload, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Logger.error(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {payload, stacktrace}
+          end
+
+        error_msg = Exception.format(kind, payload, stacktrace)
+        JsonRpc.respond_with_error(id, :internal_error, error_msg)
+
+        do_sanity_check(error_msg)
+
+        JsonRpc.telemetry(
+          "lsp_request_error",
+          %{
+            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+            "elixir_ls.lsp_error" => :internal_error,
+            "elixir_ls.lsp_error_message" => error_msg
+          },
+          %{}
+        )
+
+        state
+    end
+  end
+
+  defp handle_request_packet(
+         id,
          packet = %{"method" => command},
          state = %__MODULE__{received_shutdown?: false}
        ) do
@@ -996,7 +1132,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:ok, nil, %{state | received_shutdown?: true}}
   end
 
-  defp handle_request(definition_req(_id, uri, line, character), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentDefinition{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1008,7 +1148,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(declaration_req(_id, uri, line, character), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentDeclaration{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1020,7 +1164,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(implementation_req(_id, uri, line, character), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentImplementation{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1032,10 +1180,12 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(
-         references_req(_id, uri, line, character, include_declaration),
-         state = %__MODULE__{}
-       ) do
+  defp handle_request(%GenLSP.Requests.TextDocumentReferences{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    include_declaration = params.context.include_declaration
+    
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1091,7 +1241,12 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(workspace_symbol_req(_id, query), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.WorkspaceSymbol{params: params}, state = %__MODULE__{}) do
+    query = case params do
+      %GenLSP.Structures.WorkspaceSymbolParams{query: query} -> query
+      _ -> ""
+    end
+    
     fun = fn ->
       WorkspaceSymbols.symbols(query)
     end

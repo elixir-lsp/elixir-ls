@@ -14,26 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   require ElixirSense.Core.Introspection, as: Introspection
   require Logger
 
-  @type position_t :: %{
-          line: non_neg_integer,
-          character: non_neg_integer
-        }
-
-  @type range_t :: %{
-          start: position_t,
-          end: position_t
-        }
-
-  @type location_t :: %{
-          uri: String.t(),
-          range: range_t
-        }
-
-  @type symbol_information_t :: %{
-          kind: integer,
-          name: String.t(),
-          location: location_t
-        }
+  @type symbol_information_t :: GenLSP.Structures.WorkspaceSymbol.t()
 
   @typep key_t :: :modules
   @typep symbol_t :: module | {module, atom, non_neg_integer}
@@ -640,30 +621,24 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   @spec build_result(atom, symbol_t, String.t(), :erl_anno.anno(), map(), String.t(), boolean) ::
           symbol_information_t
   defp build_result(key, symbol, path, annotation, metadata, project_dir, tag_support) do
-    res = %{
-      kind: @symbol_codes |> Map.fetch!(key),
-      name: symbol_name(key, symbol),
-      location: %{
-        uri: SourceFile.Path.to_uri(path, project_dir),
-        range: build_range(annotation)
-      }
+    range = build_range(annotation)
+    location = %GenLSP.Structures.Location{
+      uri: SourceFile.Path.to_uri(path, project_dir),
+      range: range
     }
 
     container_name = container_name(key, symbol)
+    symbol_kind_code = @symbol_codes |> Map.fetch!(key)
 
-    res =
-      if container_name do
-        Map.put(res, :containerName, container_name)
-      else
-        res
-      end
+    tags = if tag_support, do: metadata_to_tags(metadata), else: nil
 
-    if tag_support do
-      tags = metadata_to_tags(metadata)
-      Map.put(res, :tags, tags)
-    else
-      res
-    end
+    %GenLSP.Structures.WorkspaceSymbol{
+      kind: symbol_kind_code,
+      name: symbol_name(key, symbol),
+      location: location,
+      container_name: container_name,
+      tags: tags
+    }
   end
 
   @module_kinds [:module, :interface, :struct]
@@ -696,14 +671,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     inspect(module)
   end
 
-  @spec build_range(:erl_anno.anno()) :: range_t
+  @spec build_range(:erl_anno.anno()) :: GenLSP.Structures.Range.t()
   defp build_range(annotation) do
     line = max(:erl_anno.line(annotation), 1) - 1
     # we don't care about utf16 positions here as we send 0
     # it's not worth to present column info here
-    %{
-      start: %{line: line, character: 0},
-      end: %{line: line + 1, character: 0}
+    %GenLSP.Structures.Range{
+      start: %GenLSP.Structures.Position{line: line, character: 0},
+      end: %GenLSP.Structures.Position{line: line + 1, character: 0}
     }
   end
 

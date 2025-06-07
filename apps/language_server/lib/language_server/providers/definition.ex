@@ -19,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition do
           nil
 
         %ElixirLS.LanguageServer.Location{} = location ->
-          Protocol.Location.new(location, uri, source_file.text, project_dir)
+          Protocol.Location.to_gen_lsp(location, uri, source_file.text, project_dir)
       end
 
     {:ok, result}
