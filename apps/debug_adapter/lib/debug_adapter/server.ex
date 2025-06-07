@@ -439,13 +439,6 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         {:error, "unexpected request payload"} ->
           packet
-
-        {:error, e} ->
-          e |> IO.inspect(label: "#{command}: #{seq}")
-          # Process.sleep(200)
-          System.halt(1)
-          # raise "#{command}: #{seq}"
-          e |> IO.inspect(label: "#{command}: #{seq}")
       end
 
     try do
