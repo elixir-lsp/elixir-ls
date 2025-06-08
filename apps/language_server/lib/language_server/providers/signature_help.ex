@@ -16,10 +16,10 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
     response =
       case Signature.signature(source_file.text, line, character, metadata: metadata) do
         %{active_param: active_param, signatures: signatures} ->
-          %{
-            "activeSignature" => 0,
-            "activeParameter" => active_param,
-            "signatures" => Enum.map(signatures, &signature_response/1)
+          %GenLSP.Structures.SignatureHelp{
+            active_signature: 0,
+            active_parameter: active_param,
+            signatures: Enum.map(signatures, &signature_response/1)
           }
 
         :none ->
@@ -38,52 +38,62 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
            metadata: metadata
          } = signature
        ) do
-    params_info = for param <- params, do: %{"label" => param}
+    params_info = for param <- params, do: %GenLSP.Structures.ParameterInformation{label: param}
 
     label = "#{name}(#{Enum.join(params, ", ")})"
-    response = %{"label" => label, "parameters" => params_info}
+    
+    base_signature = %GenLSP.Structures.SignatureInformation{
+      label: label,
+      parameters: params_info
+    }
 
-    response =
+    base_signature =
       case signature do
         %{active_param: active_param} ->
-          Map.put(response, "activeParameter", active_param)
+          %{base_signature | active_parameter: active_param}
 
         _ ->
-          response
+          base_signature
       end
 
     case {spec, documentation} do
       {"", ""} ->
-        put_metadata(response, metadata)
+        put_metadata(base_signature, metadata)
 
       {"", _} ->
-        put_documentation(response, documentation)
+        put_documentation(base_signature, documentation)
         |> put_metadata(metadata)
 
       {_, _} ->
         spec_str = SourceFile.format_spec(spec, line_length: 42)
 
-        put_documentation(response, "#{documentation}\n#{spec_str}")
+        put_documentation(base_signature, "#{documentation}\n#{spec_str}")
         |> put_metadata(metadata)
     end
   end
 
-  defp put_documentation(response, documentation) do
-    Map.put(response, "documentation", %{"kind" => "markdown", "value" => documentation})
+  defp put_documentation(signature = %GenLSP.Structures.SignatureInformation{}, documentation) do
+    %{signature | documentation: %GenLSP.Structures.MarkupContent{
+      kind: GenLSP.Enumerations.MarkupKind.markdown(),
+      value: documentation
+    }}
   end
 
-  defp put_metadata(response, metadata) do
+  defp put_metadata(signature = %GenLSP.Structures.SignatureInformation{}, metadata) do
     if metadata do
       metadata_md = MarkdownUtils.get_metadata_md(metadata)
 
       if metadata_md != "" do
-        current_docs = get_in(response, ["documentation", "value"]) || ""
-        put_documentation(response, metadata_md <> "\n\n" <> current_docs)
+        current_docs = case signature.documentation do
+          %GenLSP.Structures.MarkupContent{value: value} -> value
+          _ -> ""
+        end
+        put_documentation(signature, metadata_md <> "\n\n" <> current_docs)
       else
-        response
+        signature
       end
     else
-      response
+      signature
     end
   end
 end

@@ -1,6 +1,5 @@
 defmodule ElixirLS.LanguageServer.Providers.Hover do
   alias ElixirLS.LanguageServer.{SourceFile, DocLinks, Parser}
-  import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.MarkdownUtils
   alias ElixirLS.LanguageServer.Providers.Hover.Docs
   require Logger
@@ -18,9 +17,9 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
         %{docs: docs, range: es_range} ->
           lines = SourceFile.lines(source_file.text)
 
-          %{
-            "contents" => contents(docs),
-            "range" => build_range(lines, es_range)
+          %GenLSP.Structures.Hover{
+            contents: contents(docs),
+            range: build_range(lines, es_range)
           }
       end
 
@@ -30,12 +29,16 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   ## Helpers
 
   def build_range(lines, %{begin: {begin_line, begin_char}, end: {end_line, end_char}}) do
-    range(
-      begin_line - 1,
-      SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1, ""), begin_char),
-      end_line - 1,
-      SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1, ""), end_char)
-    )
+    %GenLSP.Structures.Range{
+      start: %GenLSP.Structures.Position{
+        line: begin_line - 1,
+        character: SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1, ""), begin_char)
+      },
+      end: %GenLSP.Structures.Position{
+        line: end_line - 1,
+        character: SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1, ""), end_char)
+      }
+    }
   end
 
   defp contents(docs) do
@@ -44,8 +47,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
       |> Enum.map(&format_doc/1)
       |> MarkdownUtils.join_with_horizontal_rule()
 
-    %{
-      kind: "markdown",
+    %GenLSP.Structures.MarkupContent{
+      kind: GenLSP.Enumerations.MarkupKind.markdown(),
       value: markdown_value
     }
   end

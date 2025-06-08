@@ -445,7 +445,11 @@ defmodule ElixirLS.LanguageServer.Server do
 
     updated_requests =
       if id do
-        {{^pid, ^ref, command, _start_time}, updated_requests} = Map.pop!(requests, id)
+        {command, updated_requests} = case Map.pop!(requests, id) do
+          {{^pid, ^ref, command, _start_time}, updated_requests} -> {command, updated_requests}
+          {{^pid, ^ref, command, _start_time, _request_module}, updated_requests} -> {command, updated_requests}
+        end
+
         error_msg = Exception.format_exit(reason)
         JsonRpc.respond_with_error(id, :internal_error, error_msg)
 
@@ -864,7 +868,7 @@ defmodule ElixirLS.LanguageServer.Server do
          id,
          packet = %{"method" => command, "id" => id},
          state = %__MODULE__{received_shutdown?: false}
-       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references"] do
+       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/signatureHelp", "textDocument/completion"] do
     struct =
         case GenLSP.Requests.new(packet) do
           {:ok, struct} ->
@@ -1206,7 +1210,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(hover_req(_id, uri, line, character), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentHover{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1254,7 +1262,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(completion_req(_id, uri, line, character), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentCompletion{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    
     settings = state.settings || %{}
 
     source_file = get_source_file(state, uri)
@@ -1340,7 +1352,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(signature_help_req(_id, uri, line, character), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentSignatureHelp{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    
     source_file = get_source_file(state, uri)
 
     fun = fn ->

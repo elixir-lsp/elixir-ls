@@ -7,9 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   with the Language Server Protocol. We also attempt to determine the context based on the line
   text before the cursor so we can filter out suggestions that are not relevant.
   """
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
-  import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.Utils.Matcher
   alias ElixirSense.Core.State
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
@@ -307,11 +305,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
           item
       end)
 
-    items_json =
-      items
-      |> items_to_json(options)
-
-    {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
+    completion_list = %GenLSP.Structures.CompletionList{
+      is_incomplete: is_incomplete(items),
+      items: items_to_gen_lsp(items, options)
+    }
+    
+    {:ok, completion_list}
   end
 
   defp maybe_add_do(completion_items, context, options) do
@@ -413,7 +412,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
             text_edit: text_edit,
             tags: [],
             priority: 0,
-            insert_text_mode: 2,
+            insert_text_mode: GenLSP.Enumerations.InsertTextMode.adjust_indentation(),
             preselect: hint == keyword
           }
         end
@@ -573,9 +572,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     %__MODULE__{
       completion_without_additional_text_edit
-      | additional_text_edit: %TextEdit{
-          range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
-          newText: alias_edit
+      |         additional_text_edit: %GenLSP.Structures.TextEdit{
+          range: %GenLSP.Structures.Range{
+            start: %GenLSP.Structures.Position{line: line_to_insert_alias, character: 0},
+            end: %GenLSP.Structures.Position{line: line_to_insert_alias, character: 0}
+          },
+          new_text: alias_edit
         },
         documentation: name <> "\n" <> summary,
         label_details: label_details,
@@ -1002,9 +1004,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
           %__MODULE__{
             completion
-            | additional_text_edit: %TextEdit{
-                range: range(line_to_insert_require, 0, line_to_insert_require, 0),
-                newText: require_edit
+            | additional_text_edit: %GenLSP.Structures.TextEdit{
+                range: %GenLSP.Structures.Range{
+                  start: %GenLSP.Structures.Position{line: line_to_insert_require, character: 0},
+                  end: %GenLSP.Structures.Position{line: line_to_insert_require, character: 0}
+                },
+                new_text: require_edit
               },
               label_details: label_details
           }
@@ -1227,44 +1232,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     text != ""
   end
 
-  # LSP CompletionItemKind enumeration
-  defp completion_kind(kind) do
-    case kind do
-      :text -> 1
-      :method -> 2
-      :function -> 3
-      :constructor -> 4
-      :field -> 5
-      :variable -> 6
-      :class -> 7
-      :interface -> 8
-      :module -> 9
-      :property -> 10
-      :unit -> 11
-      :value -> 12
-      :enum -> 13
-      :keyword -> 14
-      :snippet -> 15
-      :color -> 16
-      :file -> 17
-      :reference -> 18
-      :folder -> 19
-      :enum_member -> 20
-      :constant -> 21
-      :struct -> 22
-      :event -> 23
-      :operator -> 24
-      :type_parameter -> 25
-    end
-  end
-
-  defp insert_text_format(type) do
-    case type do
-      :plain_text -> 1
-      :snippet -> 2
-    end
-  end
-
   defp get_prefix(text_before_cursor) do
     regex = ~r/[\w0-9\._!\?\:@\->]+$/u
 
@@ -1413,7 +1380,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end)
   end
 
-  defp items_to_json(items, options) do
+  defp items_to_gen_lsp(items, options) do
     snippets_supported = Keyword.get(options, :snippets_supported, false)
 
     items =
@@ -1422,88 +1389,90 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end)
 
     for {item, idx} <- Enum.with_index(items) do
-      item_to_json(item, idx, options)
+      item_to_gen_lsp(item, idx, options)
     end
   end
 
-  defp item_to_json(item, idx, options) do
-    kind =
-      try do
-        completion_kind(item.kind)
-      rescue
-        _ ->
-          raise "unexpected kind #{inspect(item.kind)} in completion #{inspect(item)}"
-      end
-
-    json = %{
-      "label" => item.label,
-      "kind" => kind,
-      "detail" => item.detail,
-      "documentation" => %{"value" => item.documentation || "", kind: "markdown"},
-      "labelDetails" => item.label_details,
-      "filterText" => item.filter_text,
-      "sortText" => String.pad_leading(to_string(idx), 8, "0"),
-      "insertText" => item.insert_text,
-      "additionalTextEdits" =>
-        if item.additional_text_edit do
-          [item.additional_text_edit]
-        else
-          nil
-        end,
-      "command" => item.command,
-      "insertTextFormat" =>
-        if Keyword.get(options, :snippets_supported, false) do
-          insert_text_format(:snippet)
-        else
-          insert_text_format(:plain_text)
-        end,
-      # adjustIndentation
-      "insertTextMode" => 2
+  defp item_to_gen_lsp(item, idx, options) do
+    kind = completion_kind_gen_lsp(item.kind)
+    
+    base_item = %GenLSP.Structures.CompletionItem{
+      label: item.label,
+      kind: kind,
+      detail: item.detail,
+      sort_text: String.pad_leading(to_string(idx), 8, "0"),
+      filter_text: item.filter_text,
+      insert_text: item.insert_text,
+      preselect: if(item.preselect, do: true, else: nil),
+      command: if(item.command, do: command_to_gen_lsp(item.command), else: nil)
     }
 
-    json =
-      if item.preselect do
-        Map.put(json, "preselect", true)
+    base_item =
+      if item.documentation do
+        %{base_item | documentation: %GenLSP.Structures.MarkupContent{
+          kind: GenLSP.Enumerations.MarkupKind.markdown(),
+          value: item.documentation
+        }}
       else
-        json
+        base_item
       end
 
-    json =
-      if item.insert_text_mode do
-        Map.put(json, "insertTextMode", item.insert_text_mode)
+    base_item =
+      if item.label_details do
+        %{base_item | label_details: %GenLSP.Structures.CompletionItemLabelDetails{
+          detail: item.label_details["detail"],
+          description: item.label_details["description"]
+        }}
       else
-        json
+        base_item
       end
 
-    json =
+    base_item =
+      if item.additional_text_edit do
+        %{base_item | additional_text_edits: [item.additional_text_edit]}
+      else
+        base_item
+      end
+
+    base_item =
       if item.text_edit do
-        Map.put(json, "textEdit", item.text_edit)
+        %{base_item | text_edit: item.text_edit}
       else
-        json
+        base_item
       end
 
-    # deprecated as of Language Server Protocol Specification - 3.15
-    json =
-      if Keyword.get(options, :deprecated_supported, false) do
-        Map.merge(json, %{
-          "deprecated" => item.tags |> Enum.any?(&(&1 == :deprecated))
-        })
+    base_item =
+      if item.insert_text_mode do
+        %{base_item | insert_text_mode: item.insert_text_mode}
       else
-        json
+        base_item
+      end
+
+    base_item =
+      if Keyword.get(options, :snippets_supported, false) do
+        %{base_item | insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet()}
+      else
+        %{base_item | insert_text_format: GenLSP.Enumerations.InsertTextFormat.plain_text()}
       end
 
     tags_supported = options |> Keyword.get(:tags_supported, [])
-
-    json =
+    base_item =
       if tags_supported != [] do
-        Map.merge(json, %{
-          "tags" => item.tags |> Enum.map(&tag_to_code/1) |> Enum.filter(&(&1 in tags_supported))
-        })
+        completion_tags = item.tags |> Enum.map(&tag_to_gen_lsp/1) |> Enum.filter(&(&1 != nil))
+        %{base_item | tags: if(completion_tags != [], do: completion_tags, else: nil)}
       else
-        json
+        base_item
       end
 
-    for {k, v} <- json, not is_nil(v), into: %{}, do: {k, v}
+    # deprecated as of Language Server Protocol Specification - 3.15
+    base_item =
+      if Keyword.get(options, :deprecated_supported, false) do
+        %{base_item | deprecated: if(item.tags |> Enum.any?(&(&1 == :deprecated)), do: true, else: nil)}
+      else
+        base_item
+      end
+
+    base_item
   end
 
   defp snippet?(item) do
@@ -1511,11 +1480,50 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       (item.insert_text != nil and String.match?(item.insert_text, ~r/\${?\d/u))
   end
 
-  # As defined by CompletionItemTag in https://microsoft.github.io/language-server-protocol/specifications/specification-current/
-  defp tag_to_code(:deprecated), do: 1
+  # GenLSP helper functions
+  defp completion_kind_gen_lsp(kind) do
+    case kind do
+      :text -> GenLSP.Enumerations.CompletionItemKind.text()
+      :method -> GenLSP.Enumerations.CompletionItemKind.method()
+      :function -> GenLSP.Enumerations.CompletionItemKind.function()
+      :constructor -> GenLSP.Enumerations.CompletionItemKind.constructor()
+      :field -> GenLSP.Enumerations.CompletionItemKind.field()
+      :variable -> GenLSP.Enumerations.CompletionItemKind.variable()
+      :class -> GenLSP.Enumerations.CompletionItemKind.class()
+      :interface -> GenLSP.Enumerations.CompletionItemKind.interface()
+      :module -> GenLSP.Enumerations.CompletionItemKind.module()
+      :property -> GenLSP.Enumerations.CompletionItemKind.property()
+      :unit -> GenLSP.Enumerations.CompletionItemKind.unit()
+      :value -> GenLSP.Enumerations.CompletionItemKind.value()
+      :enum -> GenLSP.Enumerations.CompletionItemKind.enum()
+      :keyword -> GenLSP.Enumerations.CompletionItemKind.keyword()
+      :snippet -> GenLSP.Enumerations.CompletionItemKind.snippet()
+      :color -> GenLSP.Enumerations.CompletionItemKind.color()
+      :file -> GenLSP.Enumerations.CompletionItemKind.file()
+      :reference -> GenLSP.Enumerations.CompletionItemKind.reference()
+      :folder -> GenLSP.Enumerations.CompletionItemKind.folder()
+      :enum_member -> GenLSP.Enumerations.CompletionItemKind.enum_member()
+      :constant -> GenLSP.Enumerations.CompletionItemKind.constant()
+      :struct -> GenLSP.Enumerations.CompletionItemKind.struct()
+      :event -> GenLSP.Enumerations.CompletionItemKind.event()
+      :operator -> GenLSP.Enumerations.CompletionItemKind.operator()
+      :type_parameter -> GenLSP.Enumerations.CompletionItemKind.type_parameter()
+    end
+  end
+
+  defp tag_to_gen_lsp(:deprecated), do: GenLSP.Enumerations.CompletionItemTag.deprecated()
+  defp tag_to_gen_lsp(_), do: nil
+
+  defp command_to_gen_lsp(command) when is_map(command) do
+    %GenLSP.Structures.Command{
+      title: command["title"],
+      command: command["command"],
+      arguments: command["arguments"]
+    }
+  end
 
   defp metadata_to_tags(metadata) do
-    # As of Language Server Protocol Specification - 3.15 only one tag is supported
+    # As of Language Server Protocol Specification - 3.18 only one tag is supported
     case metadata[:deprecated] do
       nil -> []
       _ -> [:deprecated]
