@@ -44,7 +44,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
@@ -68,7 +68,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
@@ -90,7 +90,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
@@ -112,7 +112,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
@@ -134,7 +134,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
@@ -158,7 +158,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(v, "```elixir\n:timer.sleep(")
@@ -182,7 +182,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
@@ -204,7 +204,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(
@@ -226,7 +226,7 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %{"contents" => %{kind: "markdown", value: v}}} =
+    assert {:ok, %GenLSP.Structures.Hover{contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}}} =
              Hover.hover(parser_context, line, char)
 
     assert String.starts_with?(

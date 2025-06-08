@@ -2,11 +2,11 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
   use ExUnit.Case, async: true
 
   alias ElixirLS.LanguageServer.Providers.Definition
-  alias ElixirLS.LanguageServer.Protocol.Location
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   alias ElixirLS.LanguageServer.Test.ParserContextBuilder
   require ElixirLS.Test.TextLoc
+  import ElixirLS.LanguageServer.RangeUtils
 
   test "find definition remote function call" do
     file_path = FixtureHelpers.get_path("references_remote.ex")
@@ -27,13 +27,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 1, "character" => 2},
-             "end" => %{"line" => 6, "character" => 5}
-           }
+    assert range == range(1, 2, 6, 5)
   end
 
   test "find definition remote macro call" do
@@ -54,13 +51,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 8, "character" => 2},
-             "end" => %{"line" => 12, "character" => 5}
-           }
+    assert range == range(8, 2, 12, 5)
   end
 
   test "find definition imported function call" do
@@ -81,13 +75,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 1, "character" => 2},
-             "end" => %{"line" => 6, "character" => 5}
-           }
+    assert range == range(1, 2, 6, 5)
   end
 
   test "find definition imported macro call" do
@@ -108,13 +99,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 8, "character" => 2},
-             "end" => %{"line" => 12, "character" => 5}
-           }
+    assert range == range(8, 2, 12, 5)
   end
 
   test "find definition local function call" do
@@ -135,13 +123,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 1, "character" => 2},
-             "end" => %{"line" => 6, "character" => 5}
-           }
+    assert range == range(1, 2, 6, 5)
   end
 
   test "find definition local macro call" do
@@ -162,13 +147,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 8, "character" => 2},
-             "end" => %{"line" => 12, "character" => 5}
-           }
+    assert range == range(8, 2, 12, 5)
   end
 
   test "find definition variable" do
@@ -189,13 +171,10 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 2, "character" => 4},
-             "end" => %{"line" => 2, "character" => 23}
-           }
+    assert range == range(2, 4, 2, 23)
   end
 
   test "find definition attribute" do
@@ -216,12 +195,9 @@ defmodule ElixirLS.LanguageServer.Providers.DefinitionTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert {:ok, %Location{uri: ^b_uri, range: range}} =
+    assert {:ok, %GenLSP.Structures.Location{uri: ^b_uri, range: range}} =
              Definition.definition(uri, parser_context, line, char, File.cwd!())
 
-    assert range == %{
-             "start" => %{"line" => 24, "character" => 2},
-             "end" => %{"line" => 24, "character" => 23}
-           }
+    assert range == range(24, 2, 24, 23)
   end
 end

@@ -7,7 +7,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
-  require ElixirLS.LanguageServer.Protocol, as: Protocol
 
   defmodule Info do
     defstruct [:type, :name, :detail, :location, :children, :selection_location, :symbol]
@@ -384,24 +383,19 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       location_to_range(info.location, text, nil)
       |> maybe_extend_range(selection_range)
 
-    %Protocol.DocumentSymbol{
+    %GenLSP.Structures.DocumentSymbol{
       name: info.name,
       detail: info.detail,
       kind: SymbolUtils.symbol_kind_to_code(info.type),
       range: range,
-      selectionRange: selection_range,
+      selection_range: selection_range,
       children: build_symbol_information_hierarchical(uri, text, info.children)
     }
   end
 
   defp maybe_extend_range(
-         Protocol.range(start_line, start_character, end_line, end_character),
-         Protocol.range(
-           selection_start_line,
-           selection_start_character,
-           selection_end_line,
-           selection_end_character
-         )
+         %GenLSP.Structures.Range{start: %GenLSP.Structures.Position{line: start_line, character: start_character}, end: %GenLSP.Structures.Position{line: end_line, character: end_character}},
+         %GenLSP.Structures.Range{start: %GenLSP.Structures.Position{line: selection_start_line, character: selection_start_character}, end: %GenLSP.Structures.Position{line: selection_end_line, character: selection_end_character}}
        ) do
     {extended_start_line, extended_start_character} =
       cond do
@@ -427,12 +421,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           {end_line, end_character}
       end
 
-    Protocol.range(
-      extended_start_line,
-      extended_start_character,
-      extended_end_line,
-      extended_end_character
-    )
+    %GenLSP.Structures.Range{
+      start: %GenLSP.Structures.Position{line: extended_start_line, character: extended_start_character},
+      end: %GenLSP.Structures.Position{line: extended_end_line, character: extended_end_character}
+    }
   end
 
   defp build_symbol_information_flat(uri, text, info, parent_name \\ nil)
@@ -444,27 +436,27 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     case info.children do
       [_ | _] ->
         [
-          %Protocol.SymbolInformation{
+          %GenLSP.Structures.SymbolInformation{
             name: info.name,
             kind: SymbolUtils.symbol_kind_to_code(info.type),
-            location: %{
+            location: %GenLSP.Structures.Location{
               uri: uri,
               range: location_to_range(info.location, text, nil)
             },
-            containerName: parent_name
+            container_name: parent_name
           }
           | Enum.map(info.children, &build_symbol_information_flat(uri, text, &1, info.name))
         ]
 
       _ ->
-        %Protocol.SymbolInformation{
+        %GenLSP.Structures.SymbolInformation{
           name: info.name,
           kind: SymbolUtils.symbol_kind_to_code(info.type),
-          location: %{
+          location: %GenLSP.Structures.Location{
             uri: uri,
             range: location_to_range(info.location, text, nil)
           },
-          containerName: parent_name
+          container_name: parent_name
         }
     end
   end
@@ -537,7 +529,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           {start_line, start_character}
       end
 
-    Protocol.range(start_line, start_character, end_line, end_character)
+    %GenLSP.Structures.Range{
+      start: %GenLSP.Structures.Position{line: start_line, character: start_character},
+      end: %GenLSP.Structures.Position{line: end_line, character: end_character}
+    }
   end
 
   defp extract_module_name(protocol: protocol, implementations: implementations) do
