@@ -1416,7 +1416,8 @@ defmodule ElixirLS.LanguageServer.Server do
      end, state}
   end
 
-  defp handle_request(folding_range_req(_id, uri), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentFoldingRange{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1428,7 +1429,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end
     end
 
-    {:async, fun, state}
+    {:async, fun, GenLSP.Requests.TextDocumentFoldingRange, state}
   end
 
   defp handle_request(selection_range_req(_id, uri, positions), state = %__MODULE__{}) do

@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
 
   Several tokens, like `"..."`s, define ranges all on their own.
   This module converts these tokens to ranges.
-  These ranges can be either `kind?: :comment` or `kind?: :region`.
+  These ranges can be either `kind: "comment"` or `kind: "region"`.
   """
 
   alias ElixirLS.LanguageServer.Providers.FoldingRange
@@ -41,8 +41,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
       iex> FoldingRange.convert_text_to_input(text)
       ...> |> FoldingRange.SpecialToken.provide_ranges()
       {:ok, [
-        %{startLine: 5, endLine: 6, kind?: :region},
-        %{startLine: 2, endLine: 3, kind?: :region},
+        %GenLSP.Structures.FoldingRange{start_line: 5, end_line: 6, kind: "region"},
+        %GenLSP.Structures.FoldingRange{start_line: 2, end_line: 3, kind: "region"},
       ]}
   """
   @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
@@ -114,17 +114,17 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
       classify_group(first, last)
     end)
     |> Enum.map(fn {start_line, end_line, kind} ->
-      %{
-        startLine: start_line,
-        endLine: end_line - 1,
-        kind?: kind
+      %GenLSP.Structures.FoldingRange{
+        start_line: start_line,
+        end_line: end_line - 1,
+        kind: kind
       }
     end)
-    |> Enum.filter(fn range -> range.endLine > range.startLine end)
+    |> Enum.filter(fn range -> range.end_line > range.start_line end)
   end
 
   defp classify_group({kind, {start_line, _, _}, _}, {_, {end_line, _, _}, _}) do
-    kind = if kind == :at_op, do: :comment, else: :region
+    kind = if kind == :at_op, do: GenLSP.Enumerations.FoldingRangeKind.comment(), else: GenLSP.Enumerations.FoldingRangeKind.region()
     {start_line, end_line, kind}
   end
 end

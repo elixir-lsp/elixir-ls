@@ -290,7 +290,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          """
     test "@moduledoc, @doc, and stand-alone heredocs", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      expected = [{1, 2, :comment}, {5, 6, :comment}, {9, 10, :region}]
+      expected = [{1, 2, "comment"}, {5, 6, "comment"}, {9, 10, "region"}]
       assert compare_condensed_ranges(ranges, expected, text)
     end
 
@@ -369,7 +369,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          """
     test "@doc with ~S sigil", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      assert compare_condensed_ranges(ranges, [{1, 2, :comment}, {5, 6, :comment}], text)
+      assert compare_condensed_ranges(ranges, [{1, 2, "comment"}, {5, 6, "comment"}], text)
     end
 
     defp fold_via_special_tokens(%{text: text} = context) do
@@ -486,7 +486,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          """
     test "@doc false does not create a folding range", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      expected = [{0, 5, :region}, {2, 4, :region}]
+      expected = [{0, 5, "region"}, {2, 4, "region"}]
       assert compare_condensed_ranges(ranges, expected, text)
     end
 
@@ -503,7 +503,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
          """
     test "@typedoc example", %{ranges_result: ranges_result, text: text} do
       assert {:ok, ranges} = ranges_result
-      expected = [{0, 7, :region}, {4, 6, :region}]
+      expected = [{0, 7, "region"}, {4, 6, "region"}]
       assert compare_condensed_ranges(ranges, expected, text)
     end
 
@@ -522,7 +522,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
       text: text
     } do
       assert {:ok, ranges} = ranges_result
-      expected = [{0, 6, :region}, {3, 5, :region}]
+      expected = [{0, 6, "region"}, {3, 5, "region"}]
       assert compare_condensed_ranges(ranges, expected, text)
     end
 
@@ -536,10 +536,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     result_condensed =
       result
       |> Enum.map(fn
-        %{startLine: start_line, endLine: end_line, kind?: kind} ->
+        %GenLSP.Structures.FoldingRange{start_line: start_line, end_line: end_line, kind: kind} ->
           {start_line, end_line, kind}
 
-        %{startLine: start_line, endLine: end_line} ->
+        %GenLSP.Structures.FoldingRange{start_line: start_line, end_line: end_line} ->
           {start_line, end_line, :any}
       end)
       |> Enum.sort()

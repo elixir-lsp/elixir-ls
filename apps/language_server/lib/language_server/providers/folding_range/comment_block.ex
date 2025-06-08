@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
       iex> FoldingRange.convert_text_to_input(text)
       iex> |> CommentBlock.provide_ranges()
       {:ok, [
-        %{startLine: 2, endLine: 4, kind?: :comment}
+        %GenLSP.Structures.FoldingRange{start_line: 2, end_line: 4, kind: "comment"}
       ]}
   """
   @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
@@ -67,12 +67,12 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.CommentBlock do
     {{{end_line, _}, _}, {{start_line, _}, _}} =
       group |> FoldingRange.Helpers.first_and_last_of_list()
 
-    %{
-      startLine: start_line,
+    %GenLSP.Structures.FoldingRange{
+      start_line: start_line,
       # We're not doing end_line - 1 on purpose.
       # It seems weird to show the first _and_ last line of a comment block.
-      endLine: end_line,
-      kind?: :comment
+      end_line: end_line,
+      kind: GenLSP.Enumerations.FoldingRangeKind.comment()
     }
   end
 end
