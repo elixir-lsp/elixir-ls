@@ -1,7 +1,6 @@
 defmodule ElixirLS.LanguageServer.RangeUtilsTest do
   use ExUnit.Case
 
-  import ElixirLS.LanguageServer.Protocol
   import ElixirLS.LanguageServer.RangeUtils
 
   describe "valid?/1" do

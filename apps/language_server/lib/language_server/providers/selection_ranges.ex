@@ -19,7 +19,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.FoldingRange
-  import ElixirLS.LanguageServer.Protocol
   import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.AstUtils
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
@@ -122,9 +121,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
           {end_line_elixir + 1, end_character_elixir + 1}
         )
 
-      %{
-        "range" => range(start_line_lsp, start_character_lsp, end_line_lsp, end_character_lsp),
-        "parent" => parent
+      %GenLSP.Structures.SelectionRange{
+        range: %GenLSP.Structures.Range{
+          start: %GenLSP.Structures.Position{line: start_line_lsp, character: start_character_lsp},
+          end: %GenLSP.Structures.Position{line: end_line_lsp, character: end_character_lsp}
+        },
+        parent: parent
       }
     end)
   end

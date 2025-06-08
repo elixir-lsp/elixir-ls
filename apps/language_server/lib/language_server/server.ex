@@ -868,7 +868,7 @@ defmodule ElixirLS.LanguageServer.Server do
          id,
          packet = %{"method" => command, "id" => id},
          state = %__MODULE__{received_shutdown?: false}
-       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/signatureHelp", "textDocument/completion"] do
+       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/signatureHelp", "textDocument/completion", "textDocument/foldingRange", "textDocument/selectionRange"] do
     struct =
         case GenLSP.Requests.new(packet) do
           {:ok, struct} ->
@@ -1432,7 +1432,9 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, GenLSP.Requests.TextDocumentFoldingRange, state}
   end
 
-  defp handle_request(selection_range_req(_id, uri, positions), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentSelectionRange{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    positions = params.positions
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1455,7 +1457,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end
     end
 
-    {:async, fun, state}
+    {:async, fun, GenLSP.Requests.TextDocumentSelectionRange, state}
   end
 
   defp handle_request(code_action_req(_id, uri, diagnostics), state = %__MODULE__{}) do
