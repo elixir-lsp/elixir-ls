@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormattingTest do
 
   alias ElixirLS.LanguageServer.Providers.OnTypeFormatting
   alias ElixirLS.LanguageServer.SourceFile
+  import ElixirLS.LanguageServer.RangeUtils
 
   test "insert `end` after `do`" do
     text = """
@@ -11,12 +12,9 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormattingTest do
 
     assert {:ok,
             [
-              %{
-                "newText" => "\nend",
-                "range" => %{
-                  "start" => %{"character" => 0, "line" => 1},
-                  "end" => %{"character" => 0, "line" => 1}
-                }
+              %GenLSP.Structures.TextEdit{
+                new_text: "\nend",
+                range: range(1, 0, 1, 0)
               }
             ]} = OnTypeFormatting.format(%SourceFile{text: text}, 1, 0, "\n", [])
   end
@@ -30,12 +28,9 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormattingTest do
 
     assert {:ok,
             [
-              %{
-                "newText" => "\n  end",
-                "range" => %{
-                  "start" => %{"character" => 0, "line" => 2},
-                  "end" => %{"character" => 0, "line" => 2}
-                }
+              %GenLSP.Structures.TextEdit{
+                new_text: "\n  end",
+                range: range(2, 0, 2, 0)
               }
             ]} = OnTypeFormatting.format(%SourceFile{text: text}, 2, 0, "\n", [])
   end

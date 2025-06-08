@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
+  alias GenLSP.Structures.TextEdit
 
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.JsonRpc
   require ElixirSense.Core.Introspection, as: Introspection
   require Logger
@@ -63,7 +63,9 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     apply_content_changes(source_file, rest)
   end
 
-  defp maybe_convert_text_edit(%TextEdit{range: range, newText: new_text}) do
+  # TODO: remove this when Document synchronization is migrated to GenLSP
+
+  defp maybe_convert_text_edit(%TextEdit{range: range, new_text: new_text}) do
     %{"range" => range, "text" => new_text}
   end
 

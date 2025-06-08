@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
   alias ElixirLS.LanguageServer.Providers.DocumentSymbols
   alias ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.Test.ParserContextBuilder
+  import ElixirLS.LanguageServer.RangeUtils
 
   test "returns hierarchical symbol information" do
     uri = "file:///project/file.ex"
@@ -59,169 +60,115 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@my_mod_var",
-                    range: %{
-                      "end" => %{"character" => 37, "line" => 2},
-                      "start" => %{"character" => 8, "line" => 2}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 37, "line" => 2},
-                      "start" => %{"character" => 8, "line" => 2}
-                    }
+                    range: range(2, 8, 2, 37),
+                    selection_range: range(2, 8, 2, 37)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn/1",
                     detail: :def,
-                    range: %{
-                      "end" => %{"character" => 31, "line" => 3},
-                      "start" => %{"character" => 8, "line" => 3}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 22, "line" => 3},
-                      "start" => %{"character" => 12, "line" => 3}
-                    }
+                    range: range(3, 8, 3, 31),
+                    selection_range: range(3, 12, 3, 22)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_private_fn/1",
                     detail: :defp
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "my_macro/0",
                     detail: :defmacro
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "my_private_macro/0",
                     detail: :defmacrop
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "my_guard/1",
                     detail: :defguard,
-                    range: %{
-                      "end" => %{"character" => 47, "line" => 7},
-                      "start" => %{"character" => 8, "line" => 7}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 28, "line" => 7},
-                      "start" => %{"character" => 17, "line" => 7}
-                    }
+                    range: range(7, 8, 7, 47),
+                    selection_range: range(7, 17, 7, 28)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "my_private_guard/1",
                     detail: :defguardp
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_delegate/1",
                     detail: :defdelegate,
-                    range: %{
-                      "end" => %{"character" => 61, "line" => 9},
-                      "start" => %{"character" => 8, "line" => 9}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 37, "line" => 9},
-                      "start" => %{"character" => 20, "line" => 9}
-                    }
+                    range: range(9, 8, 9, 61),
+                    selection_range: range(9, 20, 9, 37)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 14,
                     name: "my_guard/0",
                     detail: :defguard
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn_no_arg/0",
-                    range: %{
-                      "end" => %{"character" => 33, "line" => 11},
-                      "start" => %{"character" => 8, "line" => 11}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 24, "line" => 11},
-                      "start" => %{"character" => 12, "line" => 11}
-                    }
+                    range: range(11, 8, 11, 33),
+                    selection_range: range(11, 12, 11, 24)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn_with_guard/1"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn_with_more_blocks/1",
-                    range: %{
-                      "end" => %{"character" => 11, "line" => 23},
-                      "start" => %{"character" => 8, "line" => 13}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 39, "line" => 13},
-                      "start" => %{"character" => 12, "line" => 13}
-                    }
+                    range: range(13, 8, 23, 11),
+                    selection_range: range(13, 12, 13, 39)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "fun_multiple_when/1",
-                    range: %{
-                      "end" => %{"character" => 42, "line" => 24},
-                      "start" => %{"character" => 8, "line" => 24}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 42, "line" => 24},
-                      "start" => %{"character" => 12, "line" => 24}
-                    }
+                    range: range(24, 8, 24, 42),
+                    selection_range: range(24, 12, 24, 42)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "fun_multiple_when/1",
-                    range: %{
-                      "end" => %{"character" => 11, "line" => 30},
-                      "start" => %{"character" => 8, "line" => 25}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 35, "line" => 25},
-                      "start" => %{"character" => 12, "line" => 25}
-                    }
+                    range: range(25, 8, 30, 11),
+                    selection_range: range(25, 12, 25, 35)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "fun_multiple_when/1",
-                    range: %{
-                      "end" => %{"character" => 11, "line" => 33},
-                      "start" => %{"character" => 8, "line" => 31}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 37, "line" => 31},
-                      "start" => %{"character" => 12, "line" => 31}
-                    }
+                    range: range(31, 8, 33, 11),
+                    selection_range: range(31, 12, 31, 37)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "fun_multiline_args/2"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "fun_multiline_args/2"
@@ -230,14 +177,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 2,
                 name: "MyModule",
                 detail: :defmodule,
-                range: %{
-                  "end" => %{"character" => 9, "line" => 45},
-                  "start" => %{"character" => 6, "line" => 1}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 24, "line" => 1},
-                  "start" => %{"character" => 16, "line" => 1}
-                }
+                range: range(1, 6, 45, 9),
+                selection_range: range(1, 16, 1, 24)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -286,115 +227,97 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 35},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 35, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@my_mod_var",
                 kind: 22,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 37, "line" => 2},
-                    "start" => %{"character" => 8, "line" => 2}
-                  }
+                  range: range(2, 8, 2, 37)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn/1",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 31, "line" => 3},
-                    "start" => %{"character" => 8, "line" => 3}
-                  }
+                  range: range(3, 8, 3, 31)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_private_fn/1",
                 kind: 12,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_macro/0",
                 kind: 14,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_private_macro/0",
                 kind: 14,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_guard/1",
                 kind: 14,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 47, "line" => 7},
-                    "start" => %{"character" => 8, "line" => 7}
-                  }
+                  range: range(7, 8, 7, 47)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_private_guard/1",
                 kind: 14,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_delegate/1",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 61, "line" => 9},
-                    "start" => %{"character" => 8, "line" => 9}
-                  }
+                  range: range(9, 8, 9, 61)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_guard/0",
                 kind: 14,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn_no_arg/0",
                 kind: 12,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn_with_guard/1",
                 kind: 12,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn_with_more_blocks/1",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 11, "line" => 23},
-                    "start" => %{"character" => 8, "line" => 13}
-                  }
+                  range: range(13, 8, 23, 11)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "fun_multiline_args/2",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "fun_multiline_args/2",
-                containerName: "MyModule"
+                container_name: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -413,11 +336,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 12,
                         name: "my_fn/0"
@@ -425,26 +348,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     ],
                     kind: 2,
                     name: "Sub.Module",
-                    range: %{
-                      "end" => %{"character" => 11, "line" => 4},
-                      "start" => %{"character" => 8, "line" => 2}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 28, "line" => 2},
-                      "start" => %{"character" => 18, "line" => 2}
-                    }
+                    range: range(2, 8, 4, 11),
+                    selection_range: range(2, 18, 2, 28)
                   }
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{
-                  "end" => %{"character" => 9, "line" => 5},
-                  "start" => %{"character" => 6, "line" => 1}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 24, "line" => 1},
-                  "start" => %{"character" => 16, "line" => 1}
-                }
+                range: range(1, 6, 5, 9),
+                selection_range: range(1, 16, 1, 24)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -463,31 +374,25 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 5},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 5, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "SubModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 11, "line" => 4},
-                    "start" => %{"character" => 8, "line" => 2}
-                  }
+                  range: range(2, 8, 4, 11)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "my_fn/0",
-                containerName: "SubModule"
+                container_name: "SubModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -507,9 +412,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "some_function/0"
@@ -517,18 +422,12 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{
-                  "end" => %{"character" => 9, "line" => 3},
-                  "start" => %{"character" => 6, "line" => 1}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 24, "line" => 1},
-                  "start" => %{"character" => 16, "line" => 1}
-                }
+                range: range(1, 6, 3, 9),
+                selection_range: range(1, 16, 1, 24)
               },
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "some_other_function/0"
@@ -536,14 +435,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 ],
                 kind: 2,
                 name: "MyOtherModule",
-                range: %{
-                  "end" => %{"character" => 9, "line" => 6},
-                  "start" => %{"character" => 6, "line" => 4}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 29, "line" => 4},
-                  "start" => %{"character" => 16, "line" => 4}
-                }
+                range: range(4, 6, 6, 9),
+                selection_range: range(4, 16, 4, 29)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -563,35 +456,29 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 3},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 3, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "some_function/0",
                 kind: 12,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyOtherModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 6},
-                    "start" => %{"character" => 6, "line" => 4}
-                  }
+                  range: range(4, 6, 6, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "some_other_function/0",
-                containerName: "MyOtherModule"
+                container_name: "MyOtherModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -608,9 +495,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn/0"
@@ -618,14 +505,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 ],
                 kind: 2,
                 name: "MyModule",
-                range: %{
-                  "end" => %{"character" => 9, "line" => 3},
-                  "start" => %{"character" => 6, "line" => 1}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 9, "line" => 3},
-                  "start" => %{"character" => 6, "line" => 1}
-                }
+                range: range(1, 6, 3, 9),
+                selection_range: range(1, 6, 3, 9)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -642,20 +523,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 3},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 3, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn/0",
                 kind: 12,
-                containerName: "MyModule"
+                container_name: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -672,9 +550,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn/0"
@@ -682,14 +560,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 ],
                 kind: 2,
                 name: "unquote(var)",
-                range: %{
-                  "end" => %{"character" => 9, "line" => 3},
-                  "start" => %{"character" => 6, "line" => 1}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 28, "line" => 1},
-                  "start" => %{"character" => 16, "line" => 1}
-                }
+                range: range(1, 6, 3, 9),
+                selection_range: range(1, 16, 1, 28)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -706,20 +578,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "unquote(var)",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 3},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 3, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "my_fn/0",
-                containerName: "unquote(var)"
+                container_name: "unquote(var)"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -736,9 +605,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn/0"
@@ -746,14 +615,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 ],
                 kind: 2,
                 name: "my_module",
-                range: %{
-                  "end" => %{"character" => 9, "line" => 3},
-                  "start" => %{"character" => 6, "line" => 1}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 9, "line" => 3},
-                  "start" => %{"character" => 6, "line" => 1}
-                }
+                range: range(1, 6, 3, 9),
+                selection_range: range(1, 6, 3, 9)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -770,20 +633,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_module",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 3},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 3, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn/0",
                 kind: 12,
-                containerName: "my_module"
+                container_name: "my_module"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -802,11 +662,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 12,
                         name: "my_fn/0"
@@ -836,19 +696,19 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "__MODULE__",
                 kind: 2
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "__MODULE__.SubModule",
                 kind: 2,
-                containerName: "__MODULE__"
+                container_name: "__MODULE__"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn/0",
                 kind: 12,
-                containerName: "__MODULE__.SubModule"
+                container_name: "__MODULE__.SubModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -875,88 +735,52 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "size/1",
-                    range: %{
-                      "end" => %{"character" => 16, "line" => 2},
-                      "start" => %{"character" => 2, "line" => 2}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 16, "line" => 2},
-                      "start" => %{"character" => 6, "line" => 2}
-                    }
+                    range: range(2, 2, 2, 16),
+                    selection_range: range(2, 6, 2, 16)
                   }
                 ],
                 kind: 11,
                 name: "MyProtocol",
                 detail: :defprotocol,
-                range: %{
-                  "end" => %{"character" => 3, "line" => 3},
-                  "start" => %{"character" => 0, "line" => 0}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 22, "line" => 0},
-                  "start" => %{"character" => 12, "line" => 0}
-                }
+                range: range(0, 0, 3, 3),
+                selection_range: range(0, 12, 0, 22)
               },
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "size/1",
-                    range: %{
-                      "end" => %{"character" => 41, "line" => 6},
-                      "start" => %{"character" => 2, "line" => 6}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 18, "line" => 6},
-                      "start" => %{"character" => 6, "line" => 6}
-                    }
+                    range: range(6, 2, 6, 41),
+                    selection_range: range(6, 6, 6, 18)
                   }
                 ],
                 kind: 2,
                 name: "MyProtocol, for: BitString",
                 detail: :defimpl,
-                range: %{
-                  "end" => %{"character" => 3, "line" => 7},
-                  "start" => %{"character" => 0, "line" => 5}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 3, "line" => 7},
-                  "start" => %{"character" => 0, "line" => 5}
-                }
+                range: range(5, 0, 7, 3),
+                selection_range: range(5, 0, 7, 3)
               },
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "size/1",
-                    range: %{
-                      "end" => %{"character" => 36, "line" => 10},
-                      "start" => %{"character" => 2, "line" => 10}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 17, "line" => 10},
-                      "start" => %{"character" => 6, "line" => 10}
-                    }
+                    range: range(10, 2, 10, 36),
+                    selection_range: range(10, 6, 10, 17)
                   }
                 ],
                 kind: 2,
                 name: "MyProtocol, for: [List, MyList]",
-                range: %{
-                  "end" => %{"character" => 3, "line" => 11},
-                  "start" => %{"character" => 0, "line" => 9}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 3, "line" => 11},
-                  "start" => %{"character" => 0, "line" => 9}
-                }
+                range: range(9, 0, 11, 3),
+                selection_range: range(9, 0, 11, 3)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -983,68 +807,50 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyProtocol",
                 kind: 11,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 3},
-                    "start" => %{"character" => 0, "line" => 0}
-                  }
+                  range: range(0, 0, 3, 3)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "size/1",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 16, "line" => 2},
-                    "start" => %{"character" => 2, "line" => 2}
-                  }
+                  range: range(2, 2, 2, 16)
                 },
-                containerName: "MyProtocol"
+                container_name: "MyProtocol"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 2,
                 name: "MyProtocol, for: BitString",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 7},
-                    "start" => %{"character" => 0, "line" => 5}
-                  }
+                  range: range(5, 0, 7, 3)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "size/1",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 41, "line" => 6},
-                    "start" => %{"character" => 2, "line" => 6}
-                  }
+                  range: range(6, 2, 6, 41)
                 },
-                containerName: "MyProtocol, for: BitString"
+                container_name: "MyProtocol, for: BitString"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 2,
                 name: "MyProtocol, for: [List, MyList]",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 11},
-                    "start" => %{"character" => 0, "line" => 9}
-                  }
+                  range: range(9, 0, 11, 3)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "size/1",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 36, "line" => 10},
-                    "start" => %{"character" => 2, "line" => 10}
-                  }
+                  range: range(10, 2, 10, 36)
                 },
-                containerName: "MyProtocol, for: [List, MyList]"
+                container_name: "MyProtocol, for: [List, MyList]"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -1062,47 +868,29 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "prop",
-                        range: %{
-                          "end" => %{"character" => _, "line" => 1},
-                          "start" => %{"character" => 2, "line" => 1}
-                        },
-                        selectionRange: %{
-                          "end" => %{"character" => _, "line" => 1},
-                          "start" => %{"character" => 2, "line" => 1}
-                        }
+                        range: range(1, 2, 1, 39),
+                        selection_range: range(1, 2, 1, 39)
                       },
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "prop_with_def",
-                        range: %{
-                          "end" => %{"character" => _, "line" => 1},
-                          "start" => %{"character" => 2, "line" => 1}
-                        },
-                        selectionRange: %{
-                          "end" => %{"character" => _, "line" => 1},
-                          "start" => %{"character" => 2, "line" => 1}
-                        }
+                        range: range(1, 2, 1, 39),
+                        selection_range: range(1, 2, 1, 39)
                       }
                     ],
                     kind: 23,
                     name: "defstruct MyModule",
-                    range: %{
-                      "end" => %{"character" => 39, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 39, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    }
+                    range: range(1, 2, 1, 39),
+                    selection_range: range(1, 2, 1, 39)
                   }
                 ],
                 kind: 2,
@@ -1124,42 +912,33 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "defstruct MyModule",
                 kind: 23,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 39, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 39)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "prop",
                 kind: 7,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => _, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 39)
                 },
-                containerName: "defstruct MyModule"
+                container_name: "defstruct MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 7,
                 name: "prop_with_def",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => _, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 39)
                 },
-                containerName: "defstruct MyModule"
+                container_name: "defstruct MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -1177,34 +956,22 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "message",
-                        range: %{
-                          "end" => %{"character" => _, "line" => 1},
-                          "start" => %{"character" => 2, "line" => 1}
-                        },
-                        selectionRange: %{
-                          "end" => %{"character" => _, "line" => 1},
-                          "start" => %{"character" => 2, "line" => 1}
-                        }
+                        range: range(1, 2, 1, 25),
+                        selection_range: range(1, 2, 1, 25)
                       }
                     ],
                     kind: 23,
                     name: "defexception MyError",
-                    range: %{
-                      "end" => %{"character" => 25, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 25, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    }
+                    range: range(1, 2, 1, 25),
+                    selection_range: range(1, 2, 1, 25)
                   }
                 ],
                 kind: 2,
@@ -1226,31 +993,25 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyError",
                 kind: 2
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 23,
                 name: "defexception MyError",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 25, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 25)
                 },
-                containerName: "MyError"
+                container_name: "MyError"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 7,
                 name: "message",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => _, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 25)
                 },
-                containerName: "defexception MyError"
+                container_name: "defexception MyError"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -1279,60 +1040,54 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
                   %{
                     children: [],
                     kind: 5,
                     name: "my_simple/0",
                     detail: "@type",
-                    range: %{
-                      "end" => %{"character" => 28, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 17, "line" => 1},
-                      "start" => %{"character" => 8, "line" => 1}
-                    }
+                    range: range(1, 2, 1, 28),
+                    selection_range: range(1, 8, 1, 17)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_union/0"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_simple_private/0",
                     detail: "@typep"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_simple_opaque/0",
                     detail: "@opaque"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_with_args/2"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_with_args_when/2"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "abc/0"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@type"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 5,
                     name: "my_with_multiline_args/2"
@@ -1368,60 +1123,57 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_simple/0",
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 28, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 28)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_union/0",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_simple_private/0",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_simple_opaque/0",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_with_args/2",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_with_args_when/2",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "abc/0",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 22,
                 name: "@type",
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_with_multiline_args/2",
-                containerName: "MyModule"
+                container_name: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -1446,47 +1198,41 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_callback/2",
                     detail: "@callback",
-                    range: %{
-                      "end" => %{"character" => 52, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 37, "line" => 1},
-                      "start" => %{"character" => 12, "line" => 1}
-                    }
+                    range: range(1, 2, 1, 52),
+                    selection_range: range(1, 12, 1, 37)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_macrocallback/2",
                     detail: "@macrocallback"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_callback_when/2",
                     detail: "@callback"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_macrocallback_when/2",
                     detail: "@macrocallback"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_callback_no_arg/0",
                     detail: "@callback"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 24,
                     name: "my_macrocallback_no_arg/0",
@@ -1519,45 +1265,42 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_callback/2",
                 kind: 24,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 52, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 52)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_macrocallback/2",
                 kind: 24,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_callback_when/2",
                 kind: 24,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_macrocallback_when/2",
                 kind: 24,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_callback_no_arg/0",
                 kind: 24,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_macrocallback_no_arg/0",
                 kind: 24,
-                containerName: "MyModule"
+                container_name: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -1575,9 +1318,9 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "my_fn/1"
@@ -1602,14 +1345,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "my_fn/1",
                 kind: 12,
-                containerName: "MyModule"
+                container_name: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -1629,48 +1372,30 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "name",
-                        range: %{
-                          "end" => %{"character" => 55, "line" => 3},
-                          "start" => %{"character" => 15, "line" => 3}
-                        },
-                        selectionRange: %{
-                          "end" => %{"character" => 55, "line" => 3},
-                          "start" => %{"character" => 15, "line" => 3}
-                        }
+                        range: range(3, 15, 3, 55),
+                        selection_range: range(3, 15, 3, 55)
                       },
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "age",
-                        range: %{
-                          "end" => %{"character" => 55, "line" => 3},
-                          "start" => %{"character" => 15, "line" => 3}
-                        },
-                        selectionRange: %{
-                          "end" => %{"character" => 55, "line" => 3},
-                          "start" => %{"character" => 15, "line" => 3}
-                        }
+                        range: range(3, 15, 3, 55),
+                        selection_range: range(3, 15, 3, 55)
                       }
                     ],
                     kind: 5,
                     name: ":user",
                     detail: :defrecord,
-                    range: %{
-                      "end" => %{"character" => 55, "line" => 3},
-                      "start" => %{"character" => 8, "line" => 3}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 55, "line" => 3},
-                      "start" => %{"character" => 8, "line" => 3}
-                    }
+                    range: range(3, 8, 3, 55),
+                    selection_range: range(3, 8, 3, 55)
                   }
                 ],
                 kind: 2,
@@ -1694,41 +1419,32 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 4},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 4, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: ":user",
                 kind: 5,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
-                containerName: ":user",
+              %GenLSP.Structures.SymbolInformation{
+                container_name: ":user",
                 kind: 7,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 55, "line" => 3},
-                    "start" => %{"character" => 15, "line" => 3}
-                  },
+                  range: range(3, 15, 3, 55),
                   uri: "file:///project/file.ex"
                 },
                 name: "name"
               },
-              %Protocol.SymbolInformation{
-                containerName: ":user",
+              %GenLSP.Structures.SymbolInformation{
+                container_name: ":user",
                 kind: 7,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 55, "line" => 3},
-                    "start" => %{"character" => 15, "line" => 3}
-                  },
+                  range: range(3, 15, 3, 55),
                   uri: "file:///project/file.ex"
                 },
                 name: "age"
@@ -1751,7 +1467,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [],
                 kind: 2,
                 name: "MyModule"
@@ -1774,7 +1490,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2
               }
@@ -1810,82 +1526,76 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@optional_callbacks",
-                    range: %{
-                      "end" => %{"character" => 58, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 58, "line" => 1},
-                      "start" => %{"character" => 2, "line" => 1}
-                    }
+                    range: range(1, 2, 1, 58),
+                    selection_range: range(1, 2, 1, 58)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 11,
                     name: "@behaviour MyBehaviour"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@derive"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@enforce_keys"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@compile"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@dialyzer"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@file"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@external_resource"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@on_load"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@on_definition"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@vsn"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@after_compile"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@before_compile"
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 22,
                     name: "@fallback_to_any"
@@ -1926,91 +1636,85 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 18},
-                    "start" => %{"character" => 0, "line" => 0}
-                  }
+                  range: range(0, 0, 18, 3)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@optional_callbacks",
                 kind: 22,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 58, "line" => 1},
-                    "start" => %{"character" => 2, "line" => 1}
-                  }
+                  range: range(1, 2, 1, 58)
                 },
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@behaviour MyBehaviour",
                 kind: 11,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@derive",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@enforce_keys",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@compile",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@dialyzer",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@file",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@external_resource",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@on_load",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@on_definition",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@vsn",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@after_compile",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@before_compile",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "@fallback_to_any",
                 kind: 22,
-                containerName: "MyModule"
+                container_name: "MyModule"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -2029,35 +1733,23 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "\"does something\"",
                     detail: :test,
-                    range: %{
-                      "end" => %{"character" => 38, "line" => 3},
-                      "start" => %{"character" => 8, "line" => 3}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 38, "line" => 3},
-                      "start" => %{"character" => 8, "line" => 3}
-                    }
+                    range: range(3, 8, 3, 38),
+                    selection_range: range(3, 8, 3, 38)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "\"not implemented\"",
                     detail: :test,
-                    range: %{
-                      "end" => %{"character" => 30, "line" => 4},
-                      "start" => %{"character" => 8, "line" => 4}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 30, "line" => 4},
-                      "start" => %{"character" => 8, "line" => 4}
-                    }
+                    range: range(4, 8, 4, 30),
+                    selection_range: range(4, 8, 4, 30)
                   }
                 ],
                 kind: 2,
@@ -2079,26 +1771,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 4},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 4, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "\"does something\"",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 38, "line" => 3},
-                    "start" => %{"character" => 8, "line" => 3}
-                  }
+                  range: range(3, 8, 3, 38)
                 },
-                containerName: "MyModuleTest"
+                container_name: "MyModuleTest"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -2118,35 +1804,23 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 12,
                         name: "\"does something\"",
-                        range: %{
-                          "end" => %{"character" => _, "line" => 4},
-                          "start" => %{"character" => 10, "line" => 4}
-                        },
-                        selectionRange: %{
-                          "end" => %{"character" => _, "line" => 4},
-                          "start" => %{"character" => 10, "line" => 4}
-                        }
+                        range: range(4, 10, 4, 40),
+                        selection_range: range(4, 10, 4, 40)
                       }
                     ],
                     kind: 12,
                     name: "\"some description\"",
                     detail: :describe,
-                    range: %{
-                      "end" => %{"character" => 11, "line" => 5},
-                      "start" => %{"character" => 8, "line" => 3}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 11, "line" => 5},
-                      "start" => %{"character" => 8, "line" => 3}
-                    }
+                    range: range(3, 8, 5, 11),
+                    selection_range: range(3, 8, 5, 11)
                   }
                 ],
                 kind: 2,
@@ -2170,34 +1844,22 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [
-                      %Protocol.DocumentSymbol{
+                      %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 12,
                         name: "\"does\" <> \"something\"",
-                        range: %{
-                          "end" => %{"character" => _, "line" => 4},
-                          "start" => %{"character" => 10, "line" => 4}
-                        },
-                        selectionRange: %{
-                          "end" => %{"character" => _, "line" => 4},
-                          "start" => %{"character" => 10, "line" => 4}
-                        }
+                        range: range(4, 10, 4, 45),
+                        selection_range: range(4, 10, 4, 45)
                       }
                     ],
                     kind: 12,
                     name: describe_sigil,
-                    range: %{
-                      "end" => %{"character" => 11, "line" => 5},
-                      "start" => %{"character" => 8, "line" => 3}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 11, "line" => 5},
-                      "start" => %{"character" => 8, "line" => 3}
-                    }
+                    range: range(3, 8, 5, 11),
+                    selection_range: range(3, 8, 5, 11)
                   }
                 ],
                 kind: 2,
@@ -2223,37 +1885,28 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 6},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 6, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "\"some description\"",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 11, "line" => 5},
-                    "start" => %{"character" => 8, "line" => 3}
-                  }
+                  range: range(3, 8, 5, 11)
                 },
-                containerName: "MyModuleTest"
+                container_name: "MyModuleTest"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "\"does something\"",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => _, "line" => 4},
-                    "start" => %{"character" => 10, "line" => 4}
-                  }
+                  range: range(4, 10, 4, 40)
                 },
-                containerName: "\"some description\""
+                container_name: "\"some description\""
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -2273,37 +1926,28 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 9, "line" => 6},
-                    "start" => %{"character" => 6, "line" => 1}
-                  }
+                  range: range(1, 6, 6, 9)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: describe_sigil,
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 11, "line" => 5},
-                    "start" => %{"character" => 8, "line" => 3}
-                  }
+                  range: range(3, 8, 5, 11)
                 },
-                containerName: "MyModuleTest"
+                container_name: "MyModuleTest"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "\"does\" <> \"something\"",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => _, "line" => 4},
-                    "start" => %{"character" => 10, "line" => 4}
-                  }
+                  range: range(4, 10, 4, 45)
                 },
-                containerName: describe_sigil
+                container_name: describe_sigil
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
 
@@ -2330,46 +1974,28 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "setup",
-                    range: %{
-                      "end" => %{"character" => 5, "line" => 4},
-                      "start" => %{"character" => 2, "line" => 2}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 5, "line" => 4},
-                      "start" => %{"character" => 2, "line" => 2}
-                    }
+                    range: range(2, 2, 4, 5),
+                    selection_range: range(2, 2, 4, 5)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "setup",
-                    range: %{
-                      "end" => %{"character" => 31, "line" => 5},
-                      "start" => %{"character" => 2, "line" => 5}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 31, "line" => 5},
-                      "start" => %{"character" => 2, "line" => 5}
-                    }
+                    range: range(5, 2, 5, 31),
+                    selection_range: range(5, 2, 5, 31)
                   },
-                  %Protocol.DocumentSymbol{
+                  %GenLSP.Structures.DocumentSymbol{
                     children: [],
                     kind: 12,
                     name: "setup_all",
-                    range: %{
-                      "end" => %{"character" => 5, "line" => 8},
-                      "start" => %{"character" => 2, "line" => 6}
-                    },
-                    selectionRange: %{
-                      "end" => %{"character" => 5, "line" => 8},
-                      "start" => %{"character" => 2, "line" => 6}
-                    }
+                    range: range(6, 2, 8, 5),
+                    selection_range: range(6, 2, 8, 5)
                   }
                 ],
                 kind: 2,
@@ -2398,48 +2024,36 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 3, "line" => 9},
-                    "start" => %{"character" => 0, "line" => 0}
-                  }
+                  range: range(0, 0, 9, 3)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "setup",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 5, "line" => 4},
-                    "start" => %{"character" => 2, "line" => 2}
-                  }
+                  range: range(2, 2, 4, 5)
                 },
-                containerName: "MyModuleTest"
+                container_name: "MyModuleTest"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "setup",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 31, "line" => 5},
-                    "start" => %{"character" => 2, "line" => 5}
-                  }
+                  range: range(5, 2, 5, 31)
                 },
-                containerName: "MyModuleTest"
+                container_name: "MyModuleTest"
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "setup_all",
                 kind: 12,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 5, "line" => 8},
-                    "start" => %{"character" => 2, "line" => 6}
-                  }
+                  range: range(6, 2, 8, 5)
                 },
-                containerName: "MyModuleTest"
+                container_name: "MyModuleTest"
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
   end
@@ -2465,57 +2079,33 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [],
                 kind: 20,
                 name: "config :logger :console",
-                range: %{
-                  "end" => %{"character" => 23, "line" => 5},
-                  "start" => %{"character" => 0, "line" => 1}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 23, "line" => 5},
-                  "start" => %{"character" => 0, "line" => 1}
-                }
+                range: range(1, 0, 5, 23),
+                selection_range: range(1, 0, 5, 23)
               },
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [],
                 kind: 20,
                 name: "config :app :key",
-                range: %{
-                  "end" => %{"character" => 25, "line" => 6},
-                  "start" => %{"character" => 0, "line" => 6}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 25, "line" => 6},
-                  "start" => %{"character" => 0, "line" => 6}
-                }
+                range: range(6, 0, 6, 25),
+                selection_range: range(6, 0, 6, 25)
               },
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [],
                 kind: 20,
                 name: "config :my_app [:ecto_repos]",
-                range: %{
-                  "end" => %{"character" => 26, "line" => 8},
-                  "start" => %{"character" => 0, "line" => 7}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => 26, "line" => 8},
-                  "start" => %{"character" => 0, "line" => 7}
-                }
+                range: range(7, 0, 8, 26),
+                selection_range: range(7, 0, 8, 26)
               },
-              %Protocol.DocumentSymbol{
+              %GenLSP.Structures.DocumentSymbol{
                 children: [],
                 kind: 20,
                 name: "config :my_app MyApp.Repo",
-                range: %{
-                  "end" => %{"character" => _, "line" => _},
-                  "start" => %{"character" => 0, "line" => 9}
-                },
-                selectionRange: %{
-                  "end" => %{"character" => _, "line" => _},
-                  "start" => %{"character" => 0, "line" => 9}
-                }
+                range: range(9, 0, 11, 22),
+                selection_range: range(9, 0, 11, 22)
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, true)
   end
@@ -2541,44 +2131,32 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     assert {:ok,
             [
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "config :logger :console",
                 kind: 20,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 23, "line" => 5},
-                    "start" => %{"character" => 0, "line" => 1}
-                  }
+                  range: range(1, 0, 5, 23)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "config :app :key",
                 kind: 20,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 25, "line" => 6},
-                    "start" => %{"character" => 0, "line" => 6}
-                  }
+                  range: range(6, 0, 6, 25)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "config :my_app [:ecto_repos]",
                 kind: 20,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => 26, "line" => 8},
-                    "start" => %{"character" => 0, "line" => 7}
-                  }
+                  range: range(7, 0, 8, 26)
                 }
               },
-              %Protocol.SymbolInformation{
+              %GenLSP.Structures.SymbolInformation{
                 name: "config :my_app MyApp.Repo",
                 kind: 20,
                 location: %{
-                  range: %{
-                    "end" => %{"character" => _, "line" => _},
-                    "start" => %{"character" => 0, "line" => 9}
-                  }
+                  range: range(9, 0, 11, 22)
                 }
               }
             ]} = DocumentSymbols.symbols(uri, parser_context, false)
@@ -2598,7 +2176,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, parser_context, true)
 
     assert [
-             %Protocol.DocumentSymbol{
+             %GenLSP.Structures.DocumentSymbol{
                children: children,
                kind: 2,
                name: "MISSING_MODULE_NAME"
@@ -2606,7 +2184,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
            ] = document_symbols
 
     assert [
-             %Protocol.DocumentSymbol{
+             %GenLSP.Structures.DocumentSymbol{
                children: [],
                kind: 12,
                name: "foo/0"
@@ -2627,7 +2205,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
     assert {:ok, document_symbols} = DocumentSymbols.symbols(uri, parser_context, true)
 
     assert [
-             %Protocol.DocumentSymbol{
+             %GenLSP.Structures.DocumentSymbol{
                children: [],
                kind: 11,
                name: "MISSING_PROTOCOL_NAME"

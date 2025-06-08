@@ -868,7 +868,7 @@ defmodule ElixirLS.LanguageServer.Server do
          id,
          packet = %{"method" => command, "id" => id},
          state = %__MODULE__{received_shutdown?: false}
-       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/documentSymbol", "textDocument/signatureHelp", "textDocument/completion", "textDocument/foldingRange", "textDocument/selectionRange"] do
+       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/documentSymbol", "textDocument/signatureHelp", "textDocument/completion", "textDocument/foldingRange", "textDocument/selectionRange", "textDocument/formatting", "textDocument/onTypeFormatting"] do
     struct =
         case GenLSP.Requests.new(packet) do
           {:ok, struct} ->
@@ -1347,10 +1347,11 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(formatting_req(_id, uri, _options), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentFormatting{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
     source_file = get_source_file(state, uri)
     fun = fn -> Formatting.format(source_file, uri, state.project_dir, state.mix_project?) end
-    {:async, fun, state}
+    {:async, fun, GenLSP.Requests.TextDocumentFormatting, state}
   end
 
   defp handle_request(%GenLSP.Requests.TextDocumentSignatureHelp{params: params}, state = %__MODULE__{}) do
@@ -1370,10 +1371,12 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(
-         on_type_formatting_req(_id, uri, line, character, ch, options),
-         state = %__MODULE__{}
-       ) do
+  defp handle_request(%GenLSP.Requests.TextDocumentOnTypeFormatting{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    line = params.position.line
+    character = params.position.character
+    ch = params.ch
+    options = params.options
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1385,7 +1388,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end
     end
 
-    {:async, fun, state}
+    {:async, fun, GenLSP.Requests.TextDocumentOnTypeFormatting, state}
   end
 
   defp handle_request(code_lens_req(_id, uri), state = %__MODULE__{}) do
