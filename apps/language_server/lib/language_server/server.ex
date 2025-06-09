@@ -204,14 +204,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     requests_ids_by_pid =
       if popped_request do
-        {pid, ref, command, start_time, request_module} = 
-          case popped_request do
-            {pid, ref, command, start_time, request_module} -> 
-              {pid, ref, command, start_time, request_module}
-            {pid, ref, command, start_time} -> 
-              # Handle old format for backward compatibility
-              {pid, ref, command, start_time, nil}
-          end
+        {pid, ref, command, start_time, request_module} = popped_request
         # we are no longer interested in :DOWN message
         Process.demonitor(ref, [:flush])
 
@@ -238,11 +231,10 @@ defmodule ElixirLS.LanguageServer.Server do
             
             # Use request module's result schematic if available (GenLSP requests)
             response_body = 
-              if request_module && function_exported?(request_module, :result, 0) do
+              if function_exported?(request_module, :result, 0) do
                 {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
                 dumped_body
               else
-                # Fallback for non-GenLSP requests or when no request module is available
                 result
               end
             
@@ -446,7 +438,6 @@ defmodule ElixirLS.LanguageServer.Server do
     updated_requests =
       if id do
         {command, updated_requests} = case Map.pop!(requests, id) do
-          {{^pid, ^ref, command, _start_time}, updated_requests} -> {command, updated_requests}
           {{^pid, ^ref, command, _start_time, _request_module}, updated_requests} -> {command, updated_requests}
         end
 
@@ -785,13 +776,31 @@ defmodule ElixirLS.LanguageServer.Server do
        )
        when not is_initialized(server_instance_id) do
     start_time = System.monotonic_time(:millisecond)
+    struct =
+        case GenLSP.Requests.new(packet) do
+          {:ok, struct} ->
+            struct
+  
+          {:error, "unexpected request payload"} ->
+            packet
+        end
 
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
         try do
-          {:ok, result, state} = handle_request(packet, state)
+          # Store the request module for proper result encoding
+          request_module = struct.__struct__
+          {:ok, result, state} = handle_request(struct, state)
           elapsed = System.monotonic_time(:millisecond) - start_time
-          JsonRpc.respond(id, result)
+          # Use request module's result schematic if available (GenLSP requests)
+          response_body = 
+            if function_exported?(request_module, :result, 0) do
+              {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
+              dumped_body
+            else
+              result
+            end
+          JsonRpc.respond(id, response_body)
 
           JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
             "elixir_ls.lsp_request_time" => elapsed
@@ -883,10 +892,18 @@ defmodule ElixirLS.LanguageServer.Server do
     try do
       case handle_request(struct, state) do
         {:ok, result, state} ->
+          # Store the request module for proper result encoding
+          request_module = struct.__struct__
           elapsed = System.monotonic_time(:millisecond) - start_time
-          {:ok, dumped_body} =
-            Schematic.dump(struct.schematic(), %{result | id: id})
-          JsonRpc.respond(id, dumped_body)
+          # Use request module's result schematic if available (GenLSP requests)
+          response_body = 
+            if function_exported?(request_module, :result, 0) do
+              {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
+              dumped_body
+            else
+              result
+            end
+          JsonRpc.respond(id, response_body)
 
           JsonRpc.telemetry(
             "lsp_request",
@@ -1134,7 +1151,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end
     end
 
-    {:async, fun, GenLSP.Requests.TextDocumentDocumentSymbol, state}
+    {:async, fun, state}
   end
 
   defp handle_request(%GenLSP.Requests.WorkspaceSymbol{params: params}, state = %__MODULE__{}) do
@@ -1223,7 +1240,7 @@ defmodule ElixirLS.LanguageServer.Server do
     uri = params.text_document.uri
     source_file = get_source_file(state, uri)
     fun = fn -> Formatting.format(source_file, uri, state.project_dir, state.mix_project?) end
-    {:async, fun, GenLSP.Requests.TextDocumentFormatting, state}
+    {:async, fun, state}
   end
 
   defp handle_request(%GenLSP.Requests.TextDocumentSignatureHelp{params: params}, state = %__MODULE__{}) do
@@ -1260,7 +1277,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end
     end
 
-    {:async, fun, GenLSP.Requests.TextDocumentOnTypeFormatting, state}
+    {:async, fun, state}
   end
 
   defp handle_request(%GenLSP.Requests.TextDocumentCodeLens{params: params}, state = %__MODULE__{}) do
@@ -1276,7 +1293,7 @@ defmodule ElixirLS.LanguageServer.Server do
       {:ok, spec_code_lenses ++ test_code_lenses}
     end
 
-    {:async, fun, GenLSP.Requests.TextDocumentCodeLens, state}
+    {:async, fun, state}
   end
 
   defp handle_request(%GenLSP.Requests.WorkspaceExecuteCommand{params: params} = req, state = %__MODULE__{}) do
@@ -1293,7 +1310,7 @@ defmodule ElixirLS.LanguageServer.Server do
          other ->
            other
        end
-     end, GenLSP.Requests.WorkspaceExecuteCommand, state}
+     end, state}
   end
 
   defp handle_request(%GenLSP.Requests.TextDocumentFoldingRange{params: params}, state = %__MODULE__{}) do
@@ -1309,7 +1326,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end
     end
 
-    {:async, fun, GenLSP.Requests.TextDocumentFoldingRange, state}
+    {:async, fun, state}
   end
 
   defp handle_request(%GenLSP.Requests.TextDocumentSelectionRange{params: params}, state = %__MODULE__{}) do
@@ -1337,7 +1354,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end
     end
 
-    {:async, fun, GenLSP.Requests.TextDocumentSelectionRange, state}
+    {:async, fun, state}
   end
 
   defp handle_request(%GenLSP.Requests.TextDocumentCodeAction{params: params}, state = %__MODULE__{}) do
@@ -1345,7 +1362,7 @@ defmodule ElixirLS.LanguageServer.Server do
     diagnostics = params.context.diagnostics
     source_file = get_source_file(state, uri)
 
-    {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, GenLSP.Requests.TextDocumentCodeAction, state}
+    {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, state}
   end
 
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
