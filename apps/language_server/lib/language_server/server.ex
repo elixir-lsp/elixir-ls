@@ -328,6 +328,7 @@ defmodule ElixirLS.LanguageServer.Server do
         state = %__MODULE__{received_shutdown?: false, server_instance_id: server_instance_id}
       )
       when is_initialized(server_instance_id) do
+    IO.puts(:stderr, "received notification: #{inspect(packet)}")
     struct =
         case GenLSP.Notifications.new(packet) do
           {:ok, struct} ->
@@ -495,7 +496,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     supports_dynamic_configuration_change_registration =
-      get_in(state.client_capabilities, [:workspace, :did_change_configuration, :dynamic_registration])
+      state.client_capabilities &&
+      state.client_capabilities.workspace && 
+      state.client_capabilities.workspace.did_change_configuration &&
+      state.client_capabilities.workspace.did_change_configuration.dynamic_registration
 
     if supports_dynamic_configuration_change_registration do
       Logger.info("Registering for workspace/didChangeConfiguration notifications")
@@ -505,7 +509,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     supports_dynamic_file_watcher_registration =
-      get_in(state.client_capabilities, [:workspace, :did_change_watched_files, :dynamic_registration])
+      state.client_capabilities &&
+      state.client_capabilities.workspace && 
+      state.client_capabilities.workspace.did_change_watched_files &&
+      state.client_capabilities.workspace.did_change_watched_files.dynamic_registration
 
     if supports_dynamic_file_watcher_registration do
       Logger.info("Registering for workspace/didChangeWatchedFiles notifications")
@@ -817,7 +824,7 @@ defmodule ElixirLS.LanguageServer.Server do
           {:error, "unexpected request payload"} ->
             packet
         end
-
+ 
     case packet do
       initialize_req(_id, _root_uri, _client_capabilities) ->
         try do
@@ -826,6 +833,7 @@ defmodule ElixirLS.LanguageServer.Server do
           {:ok, result, state} = handle_request(struct, state)
           elapsed = System.monotonic_time(:millisecond) - start_time
           # Use request module's result schematic if available (GenLSP requests)
+          IO.puts(:stderr, "result: #{inspect(result)}")
           response_body = 
             if function_exported?(request_module, :result, 0) do
               {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
@@ -1067,8 +1075,8 @@ defmodule ElixirLS.LanguageServer.Server do
      %GenLSP.Structures.InitializeResult{
        capabilities: server_capabilities(server_instance_id),
        server_info: %{
-         "name" => "ElixirLS",
-         "version" => "#{Launch.language_server_version()}"
+         name: "ElixirLS",
+         version: "#{Launch.language_server_version()}"
        }
      }, state}
   end
@@ -1173,7 +1181,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
     fun = fn ->
       hierarchical? =
-        get_in(state.client_capabilities, [:text_document, :document_symbol, :hierarchical_document_symbol_support]) || false
+        (state.client_capabilities &&
+         state.client_capabilities.text_document && 
+         state.client_capabilities.text_document.document_symbol &&
+         state.client_capabilities.text_document.document_symbol.hierarchical_document_symbol_support) || false
 
       if String.ends_with?(uri, [".ex", ".exs", ".eex"]) or
            source_file.language_id in ["elixir", "eex", "html-eex"] do
@@ -1210,20 +1221,34 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     snippets_supported =
-      !!get_in(state.client_capabilities, [:text_document, :completion, :completion_item, :snippet_support])
+      !!(state.client_capabilities &&
+         state.client_capabilities.text_document && 
+         state.client_capabilities.text_document.completion &&
+         state.client_capabilities.text_document.completion.completion_item &&
+         state.client_capabilities.text_document.completion.completion_item.snippet_support)
 
     # deprecated as of Language Server Protocol Specification - 3.15
     deprecated_supported =
-      !!get_in(state.client_capabilities, [:text_document, :completion, :completion_item, :deprecated_support])
+      !!(state.client_capabilities &&
+         state.client_capabilities.text_document && 
+         state.client_capabilities.text_document.completion &&
+         state.client_capabilities.text_document.completion.completion_item &&
+         state.client_capabilities.text_document.completion.completion_item.deprecated_support)
 
     tags_supported =
-      case get_in(state.client_capabilities, [:text_document, :completion, :completion_item, :tag_support]) do
+      case (state.client_capabilities &&
+            state.client_capabilities.text_document && 
+            state.client_capabilities.text_document.completion &&
+            state.client_capabilities.text_document.completion.completion_item &&
+            state.client_capabilities.text_document.completion.completion_item.tag_support) do
         nil -> []
         %{value_set: value_set} -> value_set
       end
 
     signature_help_supported =
-      !!get_in(state.client_capabilities, [:text_document, :signature_help])
+      !!(state.client_capabilities &&
+         state.client_capabilities.text_document && 
+         state.client_capabilities.text_document.signature_help)
 
     locals_without_parens =
       case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
@@ -1466,7 +1491,6 @@ defmodule ElixirLS.LanguageServer.Server do
           supported: false,
           change_notifications: false
         },
-        file_operations: %{}
       },
       folding_range_provider: true,
       code_action_provider: true
@@ -2458,7 +2482,8 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp pull_configuration(state) do
     supports_get_configuration =
-      get_in(state.client_capabilities, [:workspace, :configuration])
+      state.client_capabilities.workspace && 
+      state.client_capabilities.workspace.configuration
 
     if supports_get_configuration do
       response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")

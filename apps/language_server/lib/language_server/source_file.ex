@@ -50,26 +50,27 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def apply_content_changes(%__MODULE__{} = source_file, [edit | rest]) do
     source_file =
-      case maybe_convert_text_edit(edit) do
-        %{"range" => edited_range, "text" => new_text} when not is_nil(edited_range) ->
+      case normalize_text_edit(edit) do
+        # GenLSP.TypeAlias.TextDocumentContentChangeEvent with range
+        %{range: edited_range, text: new_text} when not is_nil(edited_range) ->
           update_in(source_file.text, fn text ->
             apply_edit(text, edited_range, new_text)
           end)
 
-        %{"text" => new_text} ->
+        # GenLSP.TypeAlias.TextDocumentContentChangeEvent without range
+        %{text: new_text} ->
           put_in(source_file.text, new_text)
       end
 
     apply_content_changes(source_file, rest)
   end
 
-  # TODO: remove this when Document synchronization is migrated to GenLSP
-
-  defp maybe_convert_text_edit(%TextEdit{range: range, new_text: new_text}) do
-    %{"range" => range, "text" => new_text}
+  defp normalize_text_edit(%TextEdit{range: range, new_text: new_text}) do
+    # return a map with the same fields as GenLSP.TypeAlias.TextDocumentContentChangeEvent
+    %{range: range, text: new_text}
   end
 
-  defp maybe_convert_text_edit(edit) do
+  defp normalize_text_edit(edit) do
     edit
   end
 

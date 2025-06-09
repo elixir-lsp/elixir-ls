@@ -85,7 +85,7 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
       })
     )
 
-    Server.receive_packet(server, notification("initialized"))
+    Server.receive_packet(server, notification("initialized", %{}))
 
     config = config || %{"dialyzerEnabled" => false}
 
