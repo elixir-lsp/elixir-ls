@@ -868,7 +868,7 @@ defmodule ElixirLS.LanguageServer.Server do
          id,
          packet = %{"method" => command, "id" => id},
          state = %__MODULE__{received_shutdown?: false}
-       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/documentSymbol", "textDocument/signatureHelp", "textDocument/completion", "textDocument/foldingRange", "textDocument/selectionRange", "textDocument/formatting", "textDocument/onTypeFormatting"] do
+       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/documentSymbol", "textDocument/signatureHelp", "textDocument/completion", "textDocument/foldingRange", "textDocument/selectionRange", "textDocument/formatting", "textDocument/onTypeFormatting", "textDocument/codeAction"] do
     struct =
         case GenLSP.Requests.new(packet) do
           {:ok, struct} ->
@@ -1462,6 +1462,14 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     {:async, fun, GenLSP.Requests.TextDocumentSelectionRange, state}
+  end
+
+  defp handle_request(%GenLSP.Requests.TextDocumentCodeAction{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    diagnostics = params.context.diagnostics
+    source_file = get_source_file(state, uri)
+
+    {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, GenLSP.Requests.TextDocumentCodeAction, state}
   end
 
   defp handle_request(code_action_req(_id, uri, diagnostics), state = %__MODULE__{}) do

@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
   import ElixirLS.LanguageServer.Test.PlatformTestHelpers
   alias ElixirLS.LanguageServer.Providers.CodeLens
   alias ElixirLS.LanguageServer.Test.ParserContextBuilder
+  import ElixirLS.LanguageServer.RangeUtils
 
   @project_dir "/project"
 
@@ -577,21 +578,12 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TestTest do
       }
       |> Map.merge(args)
 
-    %{
-      "range" => %{
-        "start" => %{
-          "line" => line,
-          "character" => 0
-        },
-        "end" => %{
-          "line" => line,
-          "character" => 0
-        }
-      },
-      "command" => %{
-        "title" => get_lens_title(target),
-        "command" => "elixir.lens.test.run",
-        "arguments" => [arguments]
+    %GenLSP.Structures.CodeLens{
+      range: range(line, 0, line, 0),
+      command: %GenLSP.Structures.Command{
+        title: get_lens_title(target),
+        command: "elixir.lens.test.run",
+        arguments: [arguments]
       }
     }
   end

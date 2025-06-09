@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
   """
 
   alias ElixirLS.LanguageServer.Providers.CodeLens
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   def spec_code_lens(server_instance_id, uri, text),
     do: CodeLens.TypeSpec.code_lens(server_instance_id, uri, text)
@@ -17,13 +17,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens do
     do: CodeLens.Test.code_lens(parser_context, project_dir)
 
   def build_code_lens(line, title, command, argument) do
-    %{
+    %GenLSP.Structures.CodeLens{
       # we don't care about utf16 positions here as we send 0
-      "range" => range(line - 1, 0, line - 1, 0),
-      "command" => %{
-        "title" => title,
-        "command" => command,
-        "arguments" => [argument]
+      range: range(line - 1, 0, line - 1, 0),
+      command: %GenLSP.Structures.Command{
+        title: title,
+        command: command,
+        arguments: [argument]
       }
     }
   end

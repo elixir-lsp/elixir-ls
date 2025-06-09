@@ -1,8 +1,8 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeMod.Diff do
   alias ElixirLS.LanguageServer.CodeUnit
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
+  alias GenLSP.Structures.TextEdit
 
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   @spec diff(String.t(), String.t()) :: [TextEdit.t()]
   def diff(source, dest) do
@@ -31,24 +31,19 @@ defmodule ElixirLS.LanguageServer.Providers.CodeMod.Diff do
   # insert rather than ""
   defp collapse(
          %TextEdit{
-           newText: "",
-           range: %{
-             "end" => %{"character" => same_character, "line" => same_line}
-           }
+           new_text: "",
+           range: range(_, _, same_line, same_character)
          } = delete_edit,
          [
            %TextEdit{
-             newText: insert_text,
-             range:
-               %{
-                 "start" => %{"character" => same_character, "line" => same_line}
-               } = _insert_edit
+             new_text: insert_text,
+             range: range(same_line, same_character, _, _) = _insert_edit
            }
            | rest
          ]
        )
        when byte_size(insert_text) > 0 do
-    collapsed_edit = %TextEdit{delete_edit | newText: insert_text}
+    collapsed_edit = %TextEdit{delete_edit | new_text: insert_text}
     [collapsed_edit | rest]
   end
 
@@ -95,7 +90,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeMod.Diff do
 
   defp edit(text, start_line, start_unit, end_line, end_unit) do
     %TextEdit{
-      newText: text,
+      new_text: text,
       range: range(start_line, start_unit, end_line, end_unit)
     }
   end

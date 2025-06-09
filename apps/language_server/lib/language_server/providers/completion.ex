@@ -583,7 +583,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     label_details =
       Map.update!(
-        completion_without_additional_text_edit.label_details,
+        completion_without_additional_text_edit.completion_item.label_details,
         "description",
         &("alias " <> &1)
       )

@@ -3,10 +3,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
   A code action that prefixes unused variables with an underscore
   """
 
-  use ElixirLS.LanguageServer.Protocol
-
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
-  alias ElixirLS.LanguageServer.Providers.CodeAction.CodeActionResult
   alias ElixirLS.LanguageServer.Providers.CodeMod.Ast
   alias ElixirLS.LanguageServer.Providers.CodeMod.Diff
   alias ElixirLS.LanguageServer.Providers.CodeMod.Text
@@ -14,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
 
   import ElixirLS.LanguageServer.Providers.CodeAction.Helpers
 
-  @spec apply(SourceFile.t(), String.t(), [map()]) :: [CodeActionResult.t()]
+  @spec apply(SourceFile.t(), String.t(), [map()]) :: [GenLSP.Structures.CodeAction.t()]
   def apply(%SourceFile{} = source_file, uri, diagnostics) do
     Enum.flat_map(diagnostics, fn diagnostic ->
       with {:ok, variable_name, line_number} <- extract_variable_and_line(diagnostic),
@@ -56,13 +52,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
         [_ | _] ->
           text_edits = Enum.map(text_edits, &update_line(&1, line_number))
 
-          reply =
-            CodeActionResult.new(
-              "Rename to _#{variable_name}",
-              "quickfix",
-              text_edits,
-              uri
-            )
+          reply = %GenLSP.Structures.CodeAction{
+            title: "Rename to _#{variable_name}",
+            kind: "quickfix",
+            edit: %GenLSP.Structures.WorkspaceEdit{
+              changes: %{uri => text_edits}
+            }
+          }
 
           {:ok, reply}
       end
@@ -79,7 +75,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
     end
   end
 
-  @spec text_edits(String.t(), Ast.t(), atom()) :: {:ok, [TextEdit.t()]} | :error
+  @spec text_edits(String.t(), Ast.t(), atom()) :: {:ok, [GenLSP.Structures.TextEdit.t()]} | :error
   defp text_edits(original_text, ast, variable_name) do
     with {:ok, transformed} <- apply_transform(original_text, ast, variable_name) do
       {:ok, to_text_edits(original_text, transformed)}
@@ -110,6 +106,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
   defp to_text_edits(original_text, fixed_text) do
     original_text
     |> Diff.diff(fixed_text)
-    |> Enum.filter(&(&1.newText == "_"))
+    |> Enum.filter(&(&1.new_text == "_"))
   end
 end
