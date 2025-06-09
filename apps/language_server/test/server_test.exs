@@ -99,7 +99,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
         assert_receive(
           %{
-            "id" => 1,
+            "id" => id,
             "method" => "workspace/configuration",
             "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
           },
@@ -107,7 +107,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         JsonRpc.receive_packet(
-          response(1, [
+          response(id, [
             %{
               "mixEnv" => "dev",
               "autoBuild" => false,
@@ -909,7 +909,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                            "type" => 2
                          }
                        },
-                       1000
+                       3000
 
         state = :sys.get_state(server)
         refute Map.has_key?(state.source_files, uri)

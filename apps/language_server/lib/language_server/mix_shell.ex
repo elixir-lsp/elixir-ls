@@ -42,13 +42,16 @@ defmodule ElixirLS.LanguageServer.MixShell do
     if WireProtocol.io_intercepted?() do
       response =
         JsonRpc.show_message_request(:info, message, [
-          %{"title" => "No", "result" => false},
-          %{"title" => "Yes", "result" => true}
+          %GenLSP.Structures.MessageActionItem{title: "No"},
+          %GenLSP.Structures.MessageActionItem{title: "Yes"}
         ])
 
       case response do
-        {:ok, %{"result" => result}} ->
-          result
+        {:ok, %GenLSP.Structures.MessageActionItem{title: "No"}} ->
+          false
+
+        {:ok, %GenLSP.Structures.MessageActionItem{title: "Yes"}} ->
+          true
 
         other ->
           error("[ElixirLS] unexpected client response #{inspect(other)}, assuming yes")

@@ -4,6 +4,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   from various sources
   """
   alias ElixirLS.LanguageServer.{SourceFile, JsonRpc}
+  import ElixirLS.LanguageServer.RangeUtils
   require Logger
 
   @enforce_keys [:file, :severity, :message, :position, :compiler_name]
@@ -311,68 +312,67 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   end
 
   def publish_file_diagnostics(uri, uri_diagnostics, source_file, version) do
-    diagnostics_json =
+    diagnostics =
       for %__MODULE__{} = diagnostic <- uri_diagnostics do
         severity =
           case diagnostic.severity do
-            :error ->
-              1
-
-            :warning ->
-              2
-
-            :information ->
-              3
-
-            :hint ->
-              4
-
+            :error -> GenLSP.Enumerations.DiagnosticSeverity.error()
+            :warning -> GenLSP.Enumerations.DiagnosticSeverity.warning()
+            :information -> GenLSP.Enumerations.DiagnosticSeverity.information()
+            :hint -> GenLSP.Enumerations.DiagnosticSeverity.hint()
             other ->
               Logger.warning(
                 "Invalid severity on diagnostic: #{inspect(other)}, using warning level"
               )
-
-              2
+              GenLSP.Enumerations.DiagnosticSeverity.warning()
           end
 
-        %{
-          "message" => diagnostic.message,
-          "severity" => severity,
-          "range" => range(normalize_position(diagnostic), source_file),
-          "source" => diagnostic.compiler_name,
-          "relatedInformation" => build_related_information(diagnostic, uri, source_file),
-          "tags" => get_tags(diagnostic)
+
+        related_information =
+          build_related_information(diagnostic, uri, source_file)
+
+        %GenLSP.Structures.Diagnostic{
+          message: diagnostic.message,
+          severity: severity,
+          range: range(normalize_position(diagnostic), source_file),
+          source: diagnostic.compiler_name,
+          related_information: related_information,
+          tags: get_tags(diagnostic)
         }
       end
-      |> Enum.sort_by(& &1["range"]["start"])
+      |> Enum.sort_by(fn diag -> {diag.range.start.line, diag.range.start.character} end)
       |> Enum.dedup()
 
-    message = %{
-      "uri" => uri,
-      "diagnostics" => diagnostics_json
+    params = %GenLSP.Structures.PublishDiagnosticsParams{
+      uri: uri,
+      diagnostics: diagnostics
     }
 
-    message =
+    params = 
       if is_integer(version) do
-        Map.put(message, "version", version)
+        %{params | version: version}
       else
-        message
+        params
       end
 
-    JsonRpc.notify("textDocument/publishDiagnostics", message)
+    notification = %GenLSP.Notifications.TextDocumentPublishDiagnostics{
+      params: params
+    }
+
+    JsonRpc.notify(notification)
   end
 
   defp get_tags(diagnostic) do
     unused =
       if Regex.match?(~r/unused|no effect/u, diagnostic.message) do
-        [1]
+        [GenLSP.Enumerations.DiagnosticTag.unnecessary()]
       else
         []
       end
 
     deprecated =
       if Regex.match?(~r/deprecated/u, diagnostic.message) do
-        [2]
+        [GenLSP.Enumerations.DiagnosticTag.deprecated()]
       else
         []
       end
@@ -404,12 +404,12 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     if line do
       [
-        %{
-          "location" => %{
-            "uri" => uri,
-            "range" => range(line, source_file)
+        %GenLSP.Structures.DiagnosticRelatedInformation{
+          location: %GenLSP.Structures.Location{
+            uri: uri,
+            range: range(line, source_file)
           },
-          "message" => message
+          message: message
         }
       ]
     else
@@ -438,12 +438,12 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
     if line do
       [
-        %{
-          "location" => %{
-            "uri" => uri,
-            "range" => range(line, source_file)
+        %GenLSP.Structures.DiagnosticRelatedInformation{
+          location: %GenLSP.Structures.Location{
+            uri: uri,
+            range: range(line, source_file)
           },
-          "message" => "related"
+          message: "related"
         }
       ]
     else
@@ -483,16 +483,12 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
 
               message = "given type: #{trace.formatted_type}"
 
-              %{
-                "location" => %{
-                  "uri" => uri,
-                  "range" =>
-                    range(
-                      {line || 1, column || 1},
-                      source_file
-                    )
+              %GenLSP.Structures.DiagnosticRelatedInformation{
+                location: %GenLSP.Structures.Location{
+                  uri: uri,
+                  range: range({line || 1, column || 1}, source_file)
                 },
-                "message" => message
+                message: message
               }
           end
         end
@@ -500,53 +496,50 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       # for backwards compatibility with elixir < 1.16
       {:error, %kind{} = payload} when kind == MismatchedDelimiterError ->
         [
-          %{
-            "location" => %{
-              "uri" => uri,
-              "range" =>
-                range(
-                  {payload.line, payload.column, payload.line,
-                   payload.column + String.length(to_string(payload.opening_delimiter))},
-                  source_file
-                )
+          %GenLSP.Structures.DiagnosticRelatedInformation{
+            location: %GenLSP.Structures.Location{
+              uri: uri,
+              range: range(
+                {payload.line, payload.column, payload.line,
+                 payload.column + String.length(to_string(payload.opening_delimiter))},
+                source_file
+              )
             },
-            "message" => "opening delimiter: #{payload.opening_delimiter}"
+            message: "opening delimiter: #{payload.opening_delimiter}"
           },
-          %{
-            "location" => %{
-              "uri" => uri,
-              "range" =>
-                range(
-                  {payload.end_line, payload.end_column, payload.end_line,
-                   payload.end_column + String.length(to_string(payload.closing_delimiter))},
-                  source_file
-                )
+          %GenLSP.Structures.DiagnosticRelatedInformation{
+            location: %GenLSP.Structures.Location{
+              uri: uri,
+              range: range(
+                {payload.end_line, payload.end_column, payload.end_line,
+                 payload.end_column + String.length(to_string(payload.closing_delimiter))},
+                source_file
+              )
             },
-            "message" => "closing delimiter: #{payload.closing_delimiter}"
+            message: "closing delimiter: #{payload.closing_delimiter}"
           }
         ]
 
       {:error, %kind{opening_delimiter: opening_delimiter} = payload}
       when kind == TokenMissingError and not is_nil(opening_delimiter) ->
         [
-          %{
-            "location" => %{
-              "uri" => uri,
-              "range" =>
-                range(
-                  {payload.line, payload.column, payload.line,
-                   payload.column + String.length(to_string(payload.opening_delimiter))},
-                  source_file
-                )
+          %GenLSP.Structures.DiagnosticRelatedInformation{
+            location: %GenLSP.Structures.Location{
+              uri: uri,
+              range: range(
+                {payload.line, payload.column, payload.line,
+                 payload.column + String.length(to_string(payload.opening_delimiter))},
+                source_file
+              )
             },
-            "message" => "opening delimiter: #{payload.opening_delimiter}"
+            message: "opening delimiter: #{payload.opening_delimiter}"
           },
-          %{
-            "location" => %{
-              "uri" => uri,
-              "range" => range({payload.end_line, payload.end_column}, source_file)
+          %GenLSP.Structures.DiagnosticRelatedInformation{
+            location: %GenLSP.Structures.Location{
+              uri: uri,
+              range: range({payload.end_line, payload.end_column}, source_file)
             },
-            "message" => "expected delimiter: #{payload.expected_delimiter}"
+            message: "expected delimiter: #{payload.expected_delimiter}"
           }
         ]
 
@@ -610,16 +603,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
         {0, 0}
       end
 
-    %{
-      "start" => %{
-        "line" => line_start_lsp,
-        "character" => char_start_lsp
-      },
-      "end" => %{
-        "line" => line_start_lsp,
-        "character" => char_start_lsp
-      }
-    }
+    range(line_start_lsp, char_start_lsp, line_start_lsp, char_start_lsp)
   end
 
   # position is a 1 based line number and 1 based character cursor (UTF8)
@@ -634,16 +618,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     {line_start_lsp, char_start_lsp} =
       SourceFile.elixir_position_to_lsp(lines, {line_start, char_start})
 
-    %{
-      "start" => %{
-        "line" => line_start_lsp,
-        "character" => char_start_lsp
-      },
-      "end" => %{
-        "line" => line_start_lsp,
-        "character" => char_start_lsp
-      }
-    }
+    range(line_start_lsp, char_start_lsp, line_start_lsp, char_start_lsp)
   end
 
   # position is a range defined by 1 based line numbers and 1 based character cursors (UTF8)
@@ -665,16 +640,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     {line_end_lsp, char_end_lsp} =
       SourceFile.elixir_position_to_lsp(lines, {line_end, char_end})
 
-    %{
-      "start" => %{
-        "line" => line_start_lsp,
-        "character" => char_start_lsp
-      },
-      "end" => %{
-        "line" => line_end_lsp,
-        "character" => char_end_lsp
-      }
-    }
+    range(line_start_lsp, char_start_lsp, line_end_lsp, char_end_lsp)
   end
 
   # source file is unknown
@@ -682,7 +648,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   # unfortunately LSP does not allow `null` range so we need to return something
   defp range(_, _) do
     # we don't care about utf16 positions here as we send 0
-    %{"start" => %{"line" => 0, "character" => 0}, "end" => %{"line" => 0, "character" => 0}}
+    range(0, 0, 0, 0)
   end
 
   # this utility function is copied from elixir source
