@@ -328,7 +328,15 @@ defmodule ElixirLS.LanguageServer.Server do
         state = %__MODULE__{received_shutdown?: false, server_instance_id: server_instance_id}
       )
       when is_initialized(server_instance_id) do
-    new_state = handle_notification(packet, state)
+    struct =
+        case GenLSP.Notifications.new(packet) do
+          {:ok, struct} ->
+            struct
+  
+          {:error, "unexpected notification payload"} ->
+            packet
+        end
+    new_state = handle_notification(struct, state)
 
     {:noreply, new_state}
   end
@@ -337,7 +345,15 @@ defmodule ElixirLS.LanguageServer.Server do
   def handle_cast({:receive_packet, notification(_) = packet}, state = %__MODULE__{}) do
     case packet do
       notification("exit") ->
-        new_state = handle_notification(packet, state)
+        struct =
+        case GenLSP.Notifications.new(packet) do
+          {:ok, struct} ->
+            struct
+  
+          {:error, "unexpected notification payload"} ->
+            packet
+        end
+        new_state = handle_notification(struct, state)
 
         {:noreply, new_state}
 
@@ -467,7 +483,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   ## Helpers
 
-  defp handle_notification(notification("initialized"), state = %__MODULE__{}) do
+  defp handle_notification(%GenLSP.Notifications.Initialized{}, state = %__MODULE__{}) do
     # according to https://github.com/microsoft/language-server-protocol/issues/567#issuecomment-1060605611
     # this is the best point to pull configuration
 
@@ -502,9 +518,10 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         cancel_request(id),
+         %GenLSP.Notifications.DollarCancelRequest{params: params},
          %__MODULE__{requests: requests, requests_ids_by_pid: requests_ids_by_pid} = state
        ) do
+    id = params.id
     {request, updated_requests} = Map.pop(requests, id)
 
     updated_requests_ids_by_pid =
@@ -530,7 +547,8 @@ defmodule ElixirLS.LanguageServer.Server do
   # We don't start performing builds until we receive settings from the client in case they've set
   # the `projectDir` or `mixEnv` settings.
   # note that clients supporting `workspace/configuration` will send nil and we need to pull
-  defp handle_notification(did_change_configuration(changed_settings), state = %__MODULE__{}) do
+  defp handle_notification(%GenLSP.Notifications.WorkspaceDidChangeConfiguration{params: params}, state = %__MODULE__{}) do
+    changed_settings = params.settings
     Logger.info("Received workspace/didChangeConfiguration")
     prev_settings = state.settings || %{}
 
@@ -556,7 +574,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(notification("exit"), state = %__MODULE__{}) do
+  defp handle_notification(%GenLSP.Notifications.Exit{}, state = %__MODULE__{}) do
     code = if state.received_shutdown?, do: 0, else: 1
 
     unless :persistent_term.get(:language_server_test_mode, false) do
@@ -568,7 +586,11 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_notification(did_open(uri, language_id, version, text), state = %__MODULE__{}) do
+  defp handle_notification(%GenLSP.Notifications.TextDocumentDidOpen{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    language_id = params.text_document.language_id
+    version = params.text_document.version
+    text = params.text_document.text
     if Map.has_key?(state.source_files, uri) do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
@@ -599,7 +621,8 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_close(uri), state = %__MODULE__{}) do
+  defp handle_notification(%GenLSP.Notifications.TextDocumentDidClose{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
     if not Map.has_key?(state.source_files, uri) do
       # A close notification requires a previous open notification to be sent
       Logger.warning(
@@ -620,7 +643,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change(uri, version, content_changes), state = %__MODULE__{}) do
+  defp handle_notification(%GenLSP.Notifications.TextDocumentDidChange{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
+    version = params.text_document.version
+    content_changes = params.content_changes
     if not Map.has_key?(state.source_files, uri) do
       # The source file was not marked as open either due to a bug in the
       # client or a restart of the server. So just ignore the message and do
@@ -664,7 +690,8 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_save(uri), state = %__MODULE__{}) do
+  defp handle_notification(%GenLSP.Notifications.TextDocumentDidSave{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
     if not Map.has_key?(state.source_files, uri) do
       Logger.warning(
         "Received textDocument/didSave for file that is not open. Received uri: #{inspect(uri)}"
@@ -679,18 +706,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         did_change_watched_files(changes),
+         %GenLSP.Notifications.WorkspaceDidChangeWatchedFiles{params: params},
          state = %__MODULE__{project_dir: project_dir}
        )
        when is_binary(project_dir) do
-    changes = Enum.filter(changes, &match?(%{"uri" => "file:" <> _}, &1))
+    changes = params.changes
+    changes = Enum.filter(changes, &String.starts_with?(&1.uri, "file:"))
 
     # `settings` may not always be available here, like during testing
     additional_watched_extensions =
       Map.get(state.settings || %{}, "additionalWatchedExtensions", [])
 
     needs_build =
-      Enum.any?(changes, fn %{"uri" => uri = "file:" <> _, "type" => type} ->
+      Enum.any?(changes, fn %GenLSP.Structures.FileEvent{uri: uri, type: type} ->
         path = SourceFile.Path.from_uri(uri)
 
         relative_path = Path.relative_to(path, state.project_dir)
@@ -698,27 +726,29 @@ defmodule ElixirLS.LanguageServer.Server do
 
         first_path_segment not in [".elixir_ls", "_build"] and
           Path.extname(path) in (additional_watched_extensions ++ @default_watched_extensions) and
-          (type in [1, 3] or not Map.has_key?(state.source_files, uri) or
+          (type in [GenLSP.Enumerations.FileChangeType.created(), GenLSP.Enumerations.FileChangeType.deleted()] or not Map.has_key?(state.source_files, uri) or
              state.source_files[uri].dirty?)
       end)
 
     deleted_paths =
       for change <- changes,
-          change["type"] == 3,
-          do: SourceFile.Path.from_uri(change["uri"])
+          change.type == GenLSP.Enumerations.FileChangeType.deleted(),
+          do: SourceFile.Path.from_uri(change.uri)
 
     for path <- deleted_paths do
       Tracer.notify_file_deleted(path)
     end
 
+    deleted_change_type = GenLSP.Enumerations.FileChangeType.deleted()
+
     source_files =
       changes
       |> Enum.reduce(state.source_files, fn
-        %{"type" => 3}, acc ->
+        %GenLSP.Structures.FileEvent{type: ^deleted_change_type}, acc ->
           # deleted file still open in editor, keep dirty flag
           acc
 
-        %{"uri" => uri = "file:" <> _}, acc ->
+        %GenLSP.Structures.FileEvent{uri: uri = "file:" <> _}, acc ->
           # file created/updated - set dirty flag to false if file contents are equal
           case acc[uri] do
             %SourceFile{text: source_file_text, dirty?: true} = source_file ->
@@ -744,7 +774,7 @@ defmodule ElixirLS.LanguageServer.Server do
     state = %{state | source_files: source_files}
 
     changes
-    |> Enum.map(& &1["uri"])
+    |> Enum.map(& &1.uri)
     |> WorkspaceSymbols.notify_uris_modified()
 
     if needs_build do
@@ -754,7 +784,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_notification(did_change_watched_files(_changes), state = %__MODULE__{}) do
+  defp handle_notification(
+         %GenLSP.Notifications.WorkspaceDidChangeWatchedFiles{},
+         state = %__MODULE__{project_dir: nil}
+       ) do
     # swallow notification if we are not in mix_project
     state
   end
@@ -1398,7 +1431,7 @@ defmodule ElixirLS.LanguageServer.Server do
     %GenLSP.Structures.ServerCapabilities{
       experimental: %{"macroExpansion" => true},
       text_document_sync: %GenLSP.Structures.TextDocumentSyncOptions{
-        change: 2,
+        change: GenLSP.Enumerations.TextDocumentSyncKind.incremental(),
         open_close: true,
         save: %GenLSP.Structures.SaveOptions{include_text: true}
       },
