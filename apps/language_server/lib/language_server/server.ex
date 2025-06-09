@@ -488,11 +488,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     supports_dynamic_configuration_change_registration =
-      get_in(state.client_capabilities, [
-        "workspace",
-        "didChangeConfiguration",
-        "dynamicRegistration"
-      ])
+      get_in(state.client_capabilities, [:workspace, :did_change_configuration, :dynamic_registration])
 
     if supports_dynamic_configuration_change_registration do
       Logger.info("Registering for workspace/didChangeConfiguration notifications")
@@ -502,11 +498,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     supports_dynamic_file_watcher_registration =
-      get_in(state.client_capabilities, [
-        "workspace",
-        "didChangeWatchedFiles",
-        "dynamicRegistration"
-      ])
+      get_in(state.client_capabilities, [:workspace, :did_change_watched_files, :dynamic_registration])
 
     if supports_dynamic_file_watcher_registration do
       Logger.info("Registering for workspace/didChangeWatchedFiles notifications")
@@ -868,7 +860,7 @@ defmodule ElixirLS.LanguageServer.Server do
          id,
          packet = %{"method" => command, "id" => id},
          state = %__MODULE__{received_shutdown?: false}
-       ) when command in ["workspace/symbol", "textDocument/definition", "textDocument/declaration", "textDocument/implementation", "textDocument/references", "textDocument/hover", "textDocument/documentSymbol", "textDocument/signatureHelp", "textDocument/completion", "textDocument/foldingRange", "textDocument/selectionRange", "textDocument/formatting", "textDocument/onTypeFormatting", "textDocument/codeAction"] do
+       ) do
     struct =
         case GenLSP.Requests.new(packet) do
           {:ok, struct} ->
@@ -978,107 +970,6 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp handle_request_packet(
-         id,
-         packet = %{"method" => command},
-         state = %__MODULE__{received_shutdown?: false}
-       ) do
-    command =
-      case packet do
-        execute_command_req(_id, custom_command_with_server_id, _args) ->
-          command <> ":" <> (ExecuteCommand.get_command(custom_command_with_server_id) || "")
-
-        _ ->
-          command
-      end
-
-    start_time = System.monotonic_time(:millisecond)
-
-    try do
-      case handle_request(packet, state) do
-        {:ok, result, state} ->
-          elapsed = System.monotonic_time(:millisecond) - start_time
-          JsonRpc.respond(id, result)
-
-          JsonRpc.telemetry(
-            "lsp_request",
-            %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
-            %{
-              "elixir_ls.lsp_request_time" => elapsed
-            }
-          )
-
-          state
-
-        {:error, type, msg, send_telemetry, state} ->
-          JsonRpc.respond_with_error(id, type, msg)
-
-          do_sanity_check(msg)
-
-          if send_telemetry do
-            JsonRpc.telemetry(
-              "lsp_request_error",
-              %{
-                "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-                "elixir_ls.lsp_error" => type,
-                "elixir_ls.lsp_error_message" => msg
-              },
-              %{}
-            )
-          end
-
-          state
-
-        {:async, fun, state} ->
-          {pid, ref} = handle_request_async(id, fun)
-
-          %{
-            state
-            | requests: Map.put(state.requests, id, {pid, ref, command, start_time}),
-              requests_ids_by_pid: Map.put(state.requests_ids_by_pid, pid, id)
-          }
-      end
-    rescue
-      e in InvalidParamError ->
-        JsonRpc.respond_with_error(id, :invalid_params, e.message)
-
-        state
-    catch
-      kind, payload ->
-        stacktrace = __STACKTRACE__
-
-        {payload, stacktrace} =
-          try do
-            Exception.blame(kind, payload, stacktrace)
-          catch
-            kind_1, error_1 ->
-              # in case of error in Exception.blame we want to use the original error and stacktrace
-              Logger.error(
-                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
-              )
-
-              {payload, stacktrace}
-          end
-
-        error_msg = Exception.format(kind, payload, stacktrace)
-        JsonRpc.respond_with_error(id, :internal_error, error_msg)
-
-        do_sanity_check(error_msg)
-
-        JsonRpc.telemetry(
-          "lsp_request_error",
-          %{
-            "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
-            "elixir_ls.lsp_error" => :internal_error,
-            "elixir_ls.lsp_error_message" => error_msg
-          },
-          %{}
-        )
-
-        state
-    end
-  end
-
   defp handle_request_packet(id, _packet = %{"method" => command}, state = %__MODULE__{}) do
     JsonRpc.respond_with_error(id, :invalid_request)
 
@@ -1095,11 +986,11 @@ defmodule ElixirLS.LanguageServer.Server do
     state
   end
 
-  defp handle_request(
-         initialize_req(_id, root_uri, client_capabilities),
-         state = %__MODULE__{server_instance_id: server_instance_id}
-       )
+  defp handle_request(%GenLSP.Requests.Initialize{params: params}, state = %__MODULE__{server_instance_id: server_instance_id})
        when not is_initialized(server_instance_id) do
+    root_uri = params.root_uri
+    client_capabilities = params.capabilities
+    
     show_version_warnings()
 
     server_instance_id =
@@ -1123,16 +1014,16 @@ defmodule ElixirLS.LanguageServer.Server do
     :persistent_term.put(:language_server_client_capabilities, client_capabilities)
 
     {:ok,
-     %{
-       "capabilities" => server_capabilities(server_instance_id),
-       "serverInfo" => %{
+     %GenLSP.Structures.InitializeResult{
+       capabilities: server_capabilities(server_instance_id),
+       server_info: %{
          "name" => "ElixirLS",
          "version" => "#{Launch.language_server_version()}"
        }
      }, state}
   end
 
-  defp handle_request(request(_id, "shutdown", _params), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.Shutdown{}, state = %__MODULE__{}) do
     {:ok, nil, %{state | received_shutdown?: true}}
   end
 
@@ -1232,11 +1123,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     fun = fn ->
       hierarchical? =
-        get_in(state.client_capabilities, [
-          "textDocument",
-          "documentSymbol",
-          "hierarchicalDocumentSymbolSupport"
-        ]) || false
+        get_in(state.client_capabilities, [:text_document, :document_symbol, :hierarchical_document_symbol_support]) || false
 
       if String.ends_with?(uri, [".ex", ".exs", ".eex"]) or
            source_file.language_id in ["elixir", "eex", "html-eex"] do
@@ -1273,35 +1160,20 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     snippets_supported =
-      !!get_in(state.client_capabilities, [
-        "textDocument",
-        "completion",
-        "completionItem",
-        "snippetSupport"
-      ])
+      !!get_in(state.client_capabilities, [:text_document, :completion, :completion_item, :snippet_support])
 
     # deprecated as of Language Server Protocol Specification - 3.15
     deprecated_supported =
-      !!get_in(state.client_capabilities, [
-        "textDocument",
-        "completion",
-        "completionItem",
-        "deprecatedSupport"
-      ])
+      !!get_in(state.client_capabilities, [:text_document, :completion, :completion_item, :deprecated_support])
 
     tags_supported =
-      case get_in(state.client_capabilities, [
-             "textDocument",
-             "completion",
-             "completionItem",
-             "tagSupport"
-           ]) do
+      case get_in(state.client_capabilities, [:text_document, :completion, :completion_item, :tag_support]) do
         nil -> []
-        %{"valueSet" => value_set} -> value_set
+        %{value_set: value_set} -> value_set
       end
 
     signature_help_supported =
-      !!get_in(state.client_capabilities, ["textDocument", "signatureHelp"])
+      !!get_in(state.client_capabilities, [:text_document, :signature_help])
 
     locals_without_parens =
       case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
@@ -1391,7 +1263,8 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, GenLSP.Requests.TextDocumentOnTypeFormatting, state}
   end
 
-  defp handle_request(code_lens_req(_id, uri), state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.TextDocumentCodeLens{params: params}, state = %__MODULE__{}) do
+    uri = params.text_document.uri
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1403,10 +1276,13 @@ defmodule ElixirLS.LanguageServer.Server do
       {:ok, spec_code_lenses ++ test_code_lenses}
     end
 
-    {:async, fun, state}
+    {:async, fun, GenLSP.Requests.TextDocumentCodeLens, state}
   end
 
-  defp handle_request(execute_command_req(_id, command, args) = req, state = %__MODULE__{}) do
+  defp handle_request(%GenLSP.Requests.WorkspaceExecuteCommand{params: params} = req, state = %__MODULE__{}) do
+    command = params.command
+    args = params.arguments || []
+    
     {:async,
      fn ->
        case ExecuteCommand.execute(command, args, state) do
@@ -1417,7 +1293,7 @@ defmodule ElixirLS.LanguageServer.Server do
          other ->
            other
        end
-     end, state}
+     end, GenLSP.Requests.WorkspaceExecuteCommand, state}
   end
 
   defp handle_request(%GenLSP.Requests.TextDocumentFoldingRange{params: params}, state = %__MODULE__{}) do
@@ -1472,12 +1348,6 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, GenLSP.Requests.TextDocumentCodeAction, state}
   end
 
-  defp handle_request(code_action_req(_id, uri, diagnostics), state = %__MODULE__{}) do
-    source_file = get_source_file(state, uri)
-
-    {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, state}
-  end
-
   defp handle_request(%{"method" => "$/" <> _}, state = %__MODULE__{}) do
     # "$/" requests that the server doesn't support must return method_not_found
     {:error, :method_not_found, nil, false, state}
@@ -1508,34 +1378,48 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp server_capabilities(server_instance_id) do
-    %{
-      "macroExpansion" => true,
-      "textDocumentSync" => %{
-        "change" => 2,
-        "openClose" => true,
-        "save" => %{"includeText" => true}
+    %GenLSP.Structures.ServerCapabilities{
+      experimental: %{"macroExpansion" => true},
+      text_document_sync: %GenLSP.Structures.TextDocumentSyncOptions{
+        change: 2,
+        open_close: true,
+        save: %GenLSP.Structures.SaveOptions{include_text: true}
       },
-      "hoverProvider" => true,
-      "completionProvider" => %{"triggerCharacters" => Completion.trigger_characters()},
-      "definitionProvider" => true,
-      "declarationProvider" => true,
-      "implementationProvider" => true,
-      "referencesProvider" => true,
-      "documentFormattingProvider" => true,
-      "signatureHelpProvider" => %{"triggerCharacters" => SignatureHelp.trigger_characters()},
-      "documentSymbolProvider" => %{"label" => "Elixir outline"},
-      "workspaceSymbolProvider" => true,
-      "documentOnTypeFormattingProvider" => %{"firstTriggerCharacter" => "\n"},
-      "codeLensProvider" => %{"resolveProvider" => false},
-      "selectionRangeProvider" => true,
-      "executeCommandProvider" => %{
-        "commands" => ExecuteCommand.get_commands(server_instance_id)
+      hover_provider: true,
+      completion_provider: %GenLSP.Structures.CompletionOptions{
+        trigger_characters: Completion.trigger_characters()
       },
-      "workspace" => %{
-        "workspaceFolders" => %{"supported" => false, "changeNotifications" => false}
+      definition_provider: true,
+      declaration_provider: true,
+      implementation_provider: true,
+      references_provider: true,
+      document_formatting_provider: true,
+      signature_help_provider: %GenLSP.Structures.SignatureHelpOptions{
+        trigger_characters: SignatureHelp.trigger_characters()
       },
-      "foldingRangeProvider" => true,
-      "codeActionProvider" => true
+      document_symbol_provider: %GenLSP.Structures.DocumentSymbolOptions{
+        label: "Elixir outline"
+      },
+      workspace_symbol_provider: true,
+      document_on_type_formatting_provider: %GenLSP.Structures.DocumentOnTypeFormattingOptions{
+        first_trigger_character: "\n"
+      },
+      code_lens_provider: %GenLSP.Structures.CodeLensOptions{
+        resolve_provider: false
+      },
+      selection_range_provider: true,
+      execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
+        commands: ExecuteCommand.get_commands(server_instance_id)
+      },
+      workspace: %{
+        workspace_folders: %GenLSP.Structures.WorkspaceFoldersServerCapabilities{
+          supported: false,
+          change_notifications: false
+        },
+        file_operations: %{}
+      },
+      folding_range_provider: true,
+      code_action_provider: true
     }
   end
 
@@ -2524,10 +2408,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp pull_configuration(state) do
     supports_get_configuration =
-      get_in(state.client_capabilities, [
-        "workspace",
-        "configuration"
-      ])
+      get_in(state.client_capabilities, [:workspace, :configuration])
 
     if supports_get_configuration do
       response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")

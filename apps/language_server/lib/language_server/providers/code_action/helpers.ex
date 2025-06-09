@@ -1,7 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
   alias ElixirLS.LanguageServer.Providers.CodeMod.Ast
   alias ElixirLS.LanguageServer.Providers.CodeMod.Text
-  import ElixirLS.LanguageServer.RangeUtils
 
   @spec update_line(GenLSP.Structures.TextEdit.t(), non_neg_integer()) :: GenLSP.Structures.TextEdit.t()
   def update_line(
