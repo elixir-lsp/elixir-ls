@@ -3886,8 +3886,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
           2,
           "cancel",
           "invalidRequest",
-          "Request or progress {reguestOrProgressId} cannot be cancelled",
-          %{"reguestOrProgressId" => "1"},
+          "Request or progress {requestOrProgressId} cannot be cancelled",
+          %{"requestOrProgressId" => "1"},
           _,
           _
         )
