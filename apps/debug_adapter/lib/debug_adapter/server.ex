@@ -737,9 +737,9 @@ defmodule ElixirLS.DebugAdapter.Server do
       else
         raise ServerError,
           message: "invalidRequest",
-          format: "Request or progress {reguestOrProgressId} cannot be cancelled",
+          format: "Request or progress {requestOrProgressId} cannot be cancelled",
           variables: %{
-            "reguestOrProgressId" => inspect(request_or_progress_id)
+            "requestOrProgressId" => inspect(request_or_progress_id)
           },
           send_telemetry: false
       end
