@@ -17,9 +17,10 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
           module,
           module,
           non_neg_integer,
+          Macro.Env.t(),
           String.t(),
           String.t() | nil,
-          String.t()
+          non_neg_integer
         ) ::
           {:ok, {module, atom}} | {:error, :limit_reached}
   def register_condition(name \\ __MODULE__, module, line, env, condition, log_message, hit_count) do
