@@ -1499,7 +1499,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     tags_supported = options |> Keyword.get(:tags_supported, [])
     base_item =
       if tags_supported != [] do
-        completion_tags = completion_item.tags |> Enum.map(&tag_to_gen_lsp/1) |> Enum.filter(&(&1 != nil))
+        completion_tags = completion_item.tags 
+          |> Enum.map(&tag_to_gen_lsp/1) 
+          |> Enum.filter(&(&1 != nil))
+          |> Enum.filter(&(&1 in tags_supported))
         %{base_item | tags: if(completion_tags != [], do: completion_tags, else: nil)}
       else
         base_item

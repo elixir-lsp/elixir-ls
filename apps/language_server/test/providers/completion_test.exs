@@ -16,9 +16,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     locals_without_parens: MapSet.new()
   ]
 
-  @signature_command %{
-    "title" => "Trigger Parameter Hint",
-    "command" => "editor.action.triggerParameterHints"
+  @signature_command %GenLSP.Structures.Command{
+    title: "Trigger Parameter Hint",
+    command: "editor.action.triggerParameterHints"
   }
 
   test "do is returned" do
@@ -42,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       Completion.completion(parser_context, line, char, @supports)
 
     assert first_item.label == "do"
-    assert first_item["preselect"] == true
+    assert first_item.preselect == true
   end
 
   test "end is returned" do
@@ -101,7 +101,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     logger_labels = ["warn", "debug", "error", "info"]
 
     for lfn <- logger_labels do
-      assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
+      assert(Enum.any?(items, fn item -> item.label == lfn end))
     end
   end
 
@@ -128,7 +128,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     logger_labels = ["warn", "debug", "error", "info"]
 
     for lfn <- logger_labels do
-      assert(Enum.any?(items, fn %{"label" => label} -> label == lfn end))
+      assert(Enum.any?(items, fn item -> item.label == lfn end))
     end
   end
 
@@ -206,7 +206,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
 
     # 8 is interface
-    assert item["kind"] == 8
+    assert item.kind == 8
     assert item.label == "ExampleProtocol"
     assert item.label_details.detail == "protocol"
 
@@ -261,7 +261,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert [item, _] = items
 
     # 8 is interface
-    assert item["kind"] == 8
+    assert item.kind == 8
     assert item.label == "ExampleBehaviour"
     assert item.label_details.detail == "behaviour"
 
@@ -290,7 +290,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert [item] = items
 
     # 22 is struct
-    assert item["kind"] == 22
+    assert item.kind == 22
     assert item.label == "ExampleException"
     assert item.label_details.detail == "exception"
 
@@ -428,21 +428,22 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     end
 
     test "returns deprecated flag when supported" do
-      assert %{"deprecated" => true} = get_deprecated_completion_item(deprecated_supported: true)
+      assert %GenLSP.Structures.CompletionItem{deprecated: true} = get_deprecated_completion_item(deprecated_supported: true)
     end
 
     test "returns deprecated completion tag when supported" do
-      assert %{"tags" => [1]} = get_deprecated_completion_item(tags_supported: [1])
+      assert %GenLSP.Structures.CompletionItem{tags: [1]} = get_deprecated_completion_item(tags_supported: [1])
     end
 
     test "returns no deprecated indicator when not supported" do
       # deprecated and tags not supported
       item = get_deprecated_completion_item([])
-      refute Map.has_key?(item, "deprecated")
-      refute Map.has_key?(item, "tags")
+      assert item.deprecated == nil
+      assert item.tags == nil
 
-      # tags supported but not deprecated tag
-      assert %{"tags" => []} = get_deprecated_completion_item(tags_supported: [2])
+      # tags supported but not deprecated tag - the item still has deprecated tag but it's filtered out
+      item = get_deprecated_completion_item(tags_supported: [2])
+      assert item.tags == nil || item.tags == []
     end
   end
 
@@ -476,23 +477,23 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert [item] = items |> Enum.filter(&(&1.label == "ExampleStruct"))
 
       # 22 is struct
-      assert item["kind"] == 22
+      assert item.kind == 22
       assert item.label_details.detail == "struct"
 
       assert item.label_details.description ==
                "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct"
 
-      assert [%{newText: "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct\n"}] =
-               item["additionalTextEdits"]
+      assert [%GenLSP.Structures.TextEdit{new_text: "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct\n"}] =
+               item.additional_text_edits
 
       assert [
-               %{
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 8},
-                   "start" => %{"character" => 0, "line" => 8}
+               %GenLSP.Structures.TextEdit{
+                 range: %GenLSP.Structures.Range{
+                   end: %GenLSP.Structures.Position{character: 0, line: 8},
+                   start: %GenLSP.Structures.Position{character: 0, line: 8}
                  }
                }
-             ] = item["additionalTextEdits"]
+             ] = item.additional_text_edits
     end
 
     test "suggests nothing when auto_insert_required_alias is false" do
@@ -565,7 +566,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert [item] = items
 
       # 21 is constant which we use for macro
-      assert item["kind"] == 21
+      assert item.kind == 21
       assert item.label == "error"
       assert item.detail == "macro"
       assert item.label_details.detail == "(message_or_fun, metadata \\\\ [])"
@@ -573,16 +574,16 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item.label_details.description ==
                "require Logger.error/2"
 
-      assert [%{newText: "  require Logger\n"}] = item["additionalTextEdits"]
+      assert [%GenLSP.Structures.TextEdit{new_text: "  require Logger\n"}] = item.additional_text_edits
 
       assert [
-               %{
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 1},
-                   "start" => %{"character" => 0, "line" => 1}
+               %GenLSP.Structures.TextEdit{
+                 range: %GenLSP.Structures.Range{
+                   end: %GenLSP.Structures.Position{character: 0, line: 1},
+                   start: %GenLSP.Structures.Position{character: 0, line: 1}
                  }
                }
-             ] = item["additionalTextEdits"]
+             ] = item.additional_text_edits
     end
   end
 
@@ -632,7 +633,7 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert [item] = items
 
       # 22 is struct
-      assert item["kind"] == 22
+      assert item.kind == 22
       assert item.label == "ExampleStruct"
       assert item.label_details.detail == "struct"
 
@@ -756,8 +757,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       {:ok, result} = Completion.completion(parser_context, line, char, @supports)
 
-      assert result["isIncomplete"] == true
-      items = result["items"]
+      assert result.is_incomplete == true
+      items = result.items
 
       assert ["__struct__", "other", "some"] ==
                items |> Enum.filter(&(&1.kind == 5)) |> Enum.map(& &1.label) |> Enum.sort()
@@ -782,8 +783,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
       {:ok, result} = Completion.completion(parser_context, line, char, @supports)
-      assert result["isIncomplete"] == false
-      assert result["items"] == []
+      assert result.is_incomplete == false
+      assert result.items == []
     end
   end
 
@@ -815,15 +816,13 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
 
       [item] = items |> Enum.filter(&(&1.insert_text == "true"))
 
-      assert %{
-               "detail" => "reserved word",
-               "documentation" => %{:kind => "markdown", "value" => ""},
-               "insertText" => "true",
-               "insertTextFormat" => 2,
-               "kind" => 14,
-               "label" => "true",
-               "sortText" => "00000000"
-             } = item
+      assert item.detail == "reserved word"
+      assert item.documentation == nil
+      assert item.insert_text == "true"
+      assert item.insert_text_format == 2
+      assert item.kind == 14
+      assert item.label == "true"
+      assert item.sort_text == "00000000"
     end
   end
 
@@ -1276,9 +1275,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {:ok, %GenLSP.Structures.CompletionList{items: [item | _]}} =
         Completion.completion(parser_context, line, char, @supports)
 
-      assert item["documentation"] == %{
-               :kind => "markdown",
-               "value" => """
+      assert item.documentation == %GenLSP.Structures.MarkupContent{
+               kind: "markdown",
+               value: """
                The summary
 
                **Application** language_server
@@ -1322,10 +1321,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  )
                )
 
-      assert %{
-               "label" => "defmodule",
-               "insertText" => "defmodule MyProject.SubFolder.MyFile$1 do\n\t$0\nend"
-             } = first
+      assert first.label == "defmodule"
+      assert first.insert_text == "defmodule MyProject.SubFolder.MyFile$1 do\n\t$0\nend"
     end
 
     test "will suggest defmodule without module_name snippet when file path does not match expected patterns" do
@@ -1352,10 +1349,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  )
                )
 
-      assert %{
-               "label" => "defmodule",
-               "insertText" => "defmodule $1 do\n\t$0\nend"
-             } = first
+      assert first.label == "defmodule"
+      assert first.insert_text == "defmodule $1 do\n\t$0\nend"
     end
 
     test "will suggest defmodule without module_name snippet when file path is nil" do
@@ -1382,10 +1377,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  )
                )
 
-      assert %{
-               "label" => "defmodule",
-               "insertText" => "defmodule $1 do\n\t$0\nend"
-             } = first
+      assert first.label == "defmodule"
+      assert first.insert_text == "defmodule $1 do\n\t$0\nend"
     end
 
     test "will suggest defprotocol with protocol_name snippet when file path matches **/lib/**/*.ex" do
@@ -1412,10 +1405,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  )
                )
 
-      assert %{
-               "label" => "defprotocol",
-               "insertText" => "defprotocol MyProject.SubFolder.MyFile$1 do\n\t$0\nend"
-             } = first
+      assert first.label == "defprotocol"
+      assert first.insert_text == "defprotocol MyProject.SubFolder.MyFile$1 do\n\t$0\nend"
     end
 
     test "will suggest defprotocol without protocol_name snippet when file path does not match expected patterns" do
@@ -1442,10 +1433,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                  )
                )
 
-      assert %{
-               "label" => "defprotocol",
-               "insertText" => "defprotocol $1 do\n\t$0\nend"
-             } = first
+      assert first.label == "defprotocol"
+      assert first.insert_text == "defprotocol $1 do\n\t$0\nend"
     end
 
     if Version.match?(System.version(), ">= 1.15.0") do
@@ -1505,17 +1494,14 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
                "@moduledoc false"
              ]
 
-      assert first == %{
-               "detail" => "module attribute snippet",
-               "documentation" => %{:kind => "markdown", "value" => "Documents a module"},
-               "filterText" => "moduledoc",
-               "insertText" => ~s(moduledoc """\n$0\n"""),
-               "insertTextFormat" => 2,
-               "kind" => 15,
-               "label" => ~s(@moduledoc """"""),
-               "sortText" => "00000000",
-               "insertTextMode" => 2
-             }
+      assert first.detail == "module attribute snippet"
+      assert first.documentation == %GenLSP.Structures.MarkupContent{kind: "markdown", value: "Documents a module"}
+      assert first.filter_text == "moduledoc"
+      assert first.insert_text == ~s(moduledoc """\n$0\n""")
+      assert first.insert_text_format == 2
+      assert first.kind == 15
+      assert first.label == ~s(@moduledoc """""")
+      assert first.sort_text == "00000000"
     end
   end
 
@@ -1592,7 +1578,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert {:ok, %GenLSP.Structures.CompletionList{items: items}} =
                Completion.completion(parser_context, line, char, @supports)
 
-      assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "case"}, &1))
+      assert item = Enum.find(items, fn item -> item.label == "case" end)
+      insert_text = item.insert_text
       assert insert_text =~ "case do\n\t"
     end
 
@@ -1616,8 +1603,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert {:ok, %GenLSP.Structures.CompletionList{items: items}} =
                Completion.completion(parser_context, line, char, @supports)
 
-      assert %{"insertText" => insert_text} =
-               Enum.find(items, &match?(%{"label" => "unless"}, &1))
+      assert item = Enum.find(items, fn item -> item.label == "unless" end)
+      insert_text = item.insert_text
 
       assert insert_text =~ "unless do\n\t"
     end
@@ -1642,7 +1629,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert {:ok, %GenLSP.Structures.CompletionList{items: items}} =
                Completion.completion(parser_context, line, char, @supports)
 
-      assert %{"insertText" => insert_text} = Enum.find(items, &match?(%{"label" => "if"}, &1))
+      assert item = Enum.find(items, fn item -> item.label == "if" end)
+      insert_text = item.insert_text
 
       assert insert_text =~ "if do\n\t"
     end
