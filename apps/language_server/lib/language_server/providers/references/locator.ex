@@ -19,37 +19,16 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Source
+  alias ElixirLS.LanguageServer.Providers.LocatorUtils
 
   def references(code, line, column, trace, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case LocatorUtils.build(code, line, column, options) do
+      nil ->
         []
 
-      context ->
-        metadata =
-          Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, false, {line, column})
-          end)
-
-        # if context is var try to find env by scope_id
-        # find scopes that contain this variable
-
-        env =
-          %State.Env{
-            module: module
-          } =
-          Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
-
-        # find last env of current module
-        attributes = get_attributes(metadata, module)
-
-        find(
-          context,
-          env,
-          attributes,
-          metadata,
-          trace
-        )
+      info ->
+        attributes = get_attributes(info.metadata, info.env.module)
+        find(Map.put(info, :attributes, attributes), trace)
         |> Enum.uniq()
     end
   end
@@ -73,23 +52,21 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
           range: range
         }
 
-  def find(
-        context,
-        %State.Env{
+  def find(%{
+        context: context,
+        env: %State.Env{
           aliases: aliases,
           module: module
         } = env,
-        attributes,
-        %Metadata{
+        metadata: %Metadata{
           mods_funs_to_positions: mods_funs,
           calls: calls,
           types: metadata_types
         } = metadata,
-        trace
-      ) do
-    binding_env = Binding.from_env(env, metadata, context.begin)
-
-    type = SurroundContext.to_binding(context.context, module)
+        binding_env: binding_env,
+        type: type,
+        attributes: attributes
+      }, trace) do
 
     refs_for_mod_fun = fn {mod, function} ->
       actual =
