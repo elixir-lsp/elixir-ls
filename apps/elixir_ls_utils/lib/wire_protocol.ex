@@ -77,7 +77,7 @@ defmodule ElixirLS.Utils.WireProtocol do
         raw_standard_error = Process.whereis(:raw_standard_error)
         Process.unregister(:raw_standard_error)
         Process.register(raw_standard_error, :standard_error)
-        raw_user
+        raw_standard_error
       rescue
         ArgumentError -> nil
       end
