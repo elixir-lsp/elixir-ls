@@ -3,11 +3,11 @@
 [![Actions Status](https://img.shields.io/github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)](github/actions/workflow/status/elixir-lsp/elixir-ls/ci.yml?branch=master)
 [![Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://elixir-lang.slack.com/archives/C7D272G6N)
 
-ElixirLS is provides two components: a language server driving code intelligence and a debug adapter that allows step through debugging of Elixir projects. Language server adheres to the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/). Debug adapter implements [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/).
+ElixirLS provides two components: a language server driving code intelligence and a debug adapter that allows step-through debugging of Elixir projects. The language server adheres to the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), and the debug adapter implements the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/).
 
 ## This is the main elixir-ls repo
 
-This repo is a community maintained fork. The original repository [JakeBecker/elixir-ls](https://github.com/JakeBecker/elixir-ls) has now been deprecated in favor of this one.
+This repo is a community-maintained fork. The original repository [JakeBecker/elixir-ls](https://github.com/JakeBecker/elixir-ls) has now been deprecated in favor of this one.
 
 ## Features
 
@@ -110,7 +110,7 @@ OTP supports the last three versions with security updates:
 https://github.com/erlang/otp/blob/master/SECURITY.md#supported-versions
 https://www.erlang.org/doc/system/misc.html#supported-releases
 
-ElixirLS generally aims to support all supported versions of Elixir on all compatible versions of OTP. However this is not a hard and fast rule and may change in the future.
+ElixirLS generally aims to support all supported versions of Elixir on all compatible versions of OTP. However, this is not a hard and fast rule and may change in the future.
 
 ### Support matrix
 
@@ -139,7 +139,7 @@ It is generally recommended to install Elixir and Erlang via a version manager s
 - [mise](https://mise.jdx.dev/)
 - [vfox](https://vfox.dev/)
 
-ElixirLS launch script will attempt to activate found version manager.
+The ElixirLS launch script will attempt to activate the found version manager.
 
 #### Windows
 
@@ -200,9 +200,9 @@ To debug Phoenix applications using ElixirLS, you can use the following launch c
 }
 ```
 
-In case of phoenix apps it is generally not advised to interpret all modules. Cowboy and ecto have known performance issues when run in interpreted mode. The example configuration disables auto interpreting and instead makes the DAP interpret only a subset of modules.
+In the case of Phoenix apps, it is generally not advised to interpret all modules. Cowboy and Ecto have known performance issues when run in interpreted mode. The example configuration disables auto-interpreting and instead instructs the DAP to interpret only a subset of modules.
 
-Note that `exitAfterTaskReturns` is set to `false`. Otherwise DAP session will end immediately after starting because mix task `phx.server` returns control to the caller.
+Note that `exitAfterTaskReturns` is set to `false`. Otherwise, the DAP session will end immediately after starting because the `phx.server` mix task returns control to the caller.
 
 Please make sure that `startApps` is not set to `true`. To clarify, `startApps` is a configuration option in the ElixirLS debug adapter. It controls whether or not to start the applications in the Mix project before running the task. In the case of Phoenix applications, setting `startApps` to `true` can interfere with the application's normal startup process and cause issues.
 
@@ -212,7 +212,7 @@ If you are running tests in the Phoenix application, you may need to set `startA
 
 - Phoenix live reload and CodeReloader is not compatible with debug adapter. It will purge and recompile beams running in interpreted mode, unset breakpoints and corrupt the debug session [phoenix_live_reload issue](https://github.com/phoenixframework/phoenix_live_reload/issues/133)
 
-- When cowboy and/or ecto modules are interpreted the DAP server leaks enormous amount of heap memory on every request. The reason is unknown. [GH issue](https://github.com/elixir-lsp/elixir-ls/issues/1017)
+- When Cowboy and/or Ecto modules are interpreted, the DAP server leaks an enormous amount of heap memory on every request. The reason is unknown. [GH issue](https://github.com/elixir-lsp/elixir-ls/issues/1017)
 
 ### NIF modules limitation
 
@@ -263,7 +263,7 @@ It's important to note that as of version 1.51 of the Debug Adapter Protocol spe
 
 The debugger's expression evaluator has some limitations due to how the Erlang VM works. Specifically, the evaluator is implemented using `:int`, which works at the level of individual BEAM instructions. As a result, it returns multiple versions of variables in Static Single Assignment form, without indicating which one is valid in the current Elixir scope.
 
-To work around this, the evaluator uses a heuristic to select the highest versions of variables. However this doesn't always behave correctly in all cases. For example, in the following code snippet:
+To work around this, the evaluator uses a heuristic to select the highest versions of variables. However, this doesn't always behave correctly in all cases. For example, in the following code snippet:
 
 ```elixir
 a = 4
@@ -435,7 +435,7 @@ Basic troubleshooting steps:
 - Run `mix clean` or `mix clean --deps` in ElixirLS with the custom command `mixClean`.
 - Restart your editor (which will restart ElixirLS).
 - After stopping your editor, remove the entire `.elixir_ls` directory, then restart your editor.
-  - NOTE: This will cause you to have to re-run the entire dialyzer build.
+  - NOTE: This will require you to re-run the entire Dialyzer build.
 
 You may need to set `elixirLS.mixEnv`, `elixirLS.mixTarget`, and `elixirLS.projectDir` if your project requires this. By default, ElixirLS compiles code with `MIX_ENV=test` and `MIX_TARGET=host`; it assumes that `mix.exs` is located in the workspace root directory.
 
@@ -460,7 +460,7 @@ On Fedora Linux, if you only install the Elixir package you will not have a full
 
 ## Building and running
 
-There are two ways of building the release: `Mix.install` based (recommended) and `.ez` archives (deprecated).
+There are two ways to build the release: `Mix.install`-based (recommended) and `.ez` archives (deprecated).
 
 ### `Mix.install` based release
 
@@ -490,7 +490,7 @@ Note: The setup script must not read from `stdin` or write to `stdout`. On Unix,
 this might be accomplished by adding `>/dev/null` at the end of any line that produces
 output; for a Windows batch script, you will want to add `@echo off` at the top and use `>nul`.
 
-If you want to debug your setup script you can write to stderr.
+If you want to debug your setup script, you can write to stderr.
 
 ### Development
 
@@ -520,7 +520,7 @@ ElixirLS language server sends telemetry information to the client via [LSP Tele
 
 ## Acknowledgements and related projects
 
-ElixirLS incorporates code intelligence providers that were originally developed in [Elixir Sense](https://github.com/elixir-lsp/elixir_sense) and still uses this library for lower lever operations. Other prior work includes [Alchemist Server](https://github.com/tonini/alchemist-server/), [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir), [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). Credit for those projects goes to their respective authors.
+ElixirLS incorporates code intelligence providers that were originally developed in [Elixir Sense](https://github.com/elixir-lsp/elixir_sense) and still uses this library for lower level operations. Other prior work includes [Alchemist Server](https://github.com/tonini/alchemist-server/), [Elixir plugin for Atom](https://github.com/msaraiva/atom-elixir), [VSCode Elixir](https://github.com/fr1zle/vscode-elixir). Credit for those projects goes to their respective authors.
 
 ## License
 
