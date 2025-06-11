@@ -17,6 +17,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
           module,
           module,
           non_neg_integer,
+          Macro.Env.t(),
           String.t(),
           String.t() | nil,
           String.t()
