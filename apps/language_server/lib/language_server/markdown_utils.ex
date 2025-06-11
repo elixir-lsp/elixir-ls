@@ -265,7 +265,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
           {module, type, arity} ->
             if match?(":" <> _, rest) do
               if @erlang_ex_doc? do
-                # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+                # TODO not sure how the docs will handle versions app/vsn does not work as of June 2024
                 {app, _vsn} = DocLinks.get_app(module)
                 "https://www.erlang.org/doc/apps/#{app}/#{module}.html#t:#{type}/#{arity}"
               else
@@ -286,7 +286,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
       {module, callback, arity} ->
         if match?(":" <> _, rest) do
           if @erlang_ex_doc? do
-            # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+            # TODO not sure how the docs will handle versions app/vsn does not work as of June 2024
             {app, _vsn} = DocLinks.get_app(module)
             "https://www.erlang.org/doc/apps/#{app}/#{module}.html#c:#{callback}/#{arity}"
           else
@@ -371,7 +371,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
       {app, _vsn} = app_vsn
 
       if app in @all_otp_apps and @erlang_ex_doc? do
-        # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+        # TODO not sure how the docs will handle versions app/vsn does not work as of June 2024
         "https://www.erlang.org/doc/apps/#{app}/#{page}"
       else
         DocLinks.hex_docs_extra_link(app_vsn, page)
@@ -399,7 +399,7 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
       {module, function, arity} ->
         if match?(":" <> _, prefix) and module != Kernel.SpecialForms do
           if @erlang_ex_doc? do
-            # TODO not sure hos the docs will handle versions app/vsn does not work as of June 2024
+            # TODO not sure how the docs will handle versions app/vsn does not work as of June 2024
             {app, _vsn} = DocLinks.get_app(module)
             "https://www.erlang.org/doc/apps/#{app}/#{module}.html##{function}/#{arity}"
           else
