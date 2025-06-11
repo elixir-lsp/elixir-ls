@@ -240,15 +240,13 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
 
     from_matches = Regex.scan(~r/^.+\(?\s*(#{@binding_r})/u, func_code)
 
-    # TODO this code is broken
-    # depends on join positions that we are unable to get from AST
-    # line and col was previously assigned to each option in Source.which_func
-    join_matches =
-      for join when join in @joins <- func_info.options_so_far,
-          code = Source.text_after(prefix, line, col),
-          match <- Regex.scan(~r/^#{Regex.escape(join)}\:\s*(#{@binding_r})/u, code) do
-        match
-      end
+    joins_pattern =
+      @joins
+      |> Enum.map(&Regex.escape(to_string(&1)))
+      |> Enum.join("|")
+
+    join_regex = ~r/(?:^|\s)(?:#{joins_pattern})\s*:\s*(#{@binding_r})/u
+    join_matches = Regex.scan(join_regex, func_code)
 
     matches = from_matches ++ join_matches
 
