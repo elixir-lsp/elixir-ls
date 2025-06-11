@@ -25,47 +25,29 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
 
   alias ElixirLS.LanguageServer.Plugins.Phoenix.Scope
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
+  alias ElixirLS.LanguageServer.Providers.LocatorUtils
 
   def definition(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case LocatorUtils.build(code, line, column, options) do
+      nil ->
         nil
 
-      context ->
-        metadata =
-          Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, false, {line, column})
-          end)
-
-        env = Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
-
-        find(
-          context,
-          env,
-          metadata
-        )
+      info ->
+        find(info)
     end
   end
 
   @doc """
   Finds out where a module, function, macro or variable was defined.
   """
-  @spec find(
-          any(),
-          State.Env.t(),
-          Metadata.t()
-        ) :: %Location{} | nil
-  def find(
-        context,
-        %State.Env{
-          module: module,
-          attributes: attributes
-        } = env,
-        metadata
-      ) do
-    binding_env = Binding.from_env(env, metadata, context.begin)
-
-    type = SurroundContext.to_binding(context.context, module)
+  @spec find(LocatorUtils.t()) :: %Location{} | nil
+  def find(%{
+        context: context,
+        env: %State.Env{module: module, attributes: attributes} = env,
+        metadata: metadata,
+        binding_env: binding_env,
+        type: type
+      }) do
 
     case type do
       nil ->
