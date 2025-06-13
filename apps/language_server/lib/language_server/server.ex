@@ -21,7 +21,6 @@ defmodule ElixirLS.LanguageServer.Server do
   alias ElixirLS.LanguageServer.{
     SourceFile,
     Build,
-    Protocol,
     JsonRpc,
     Dialyzer,
     DialyzerIncremental,
@@ -52,8 +51,7 @@ defmodule ElixirLS.LanguageServer.Server do
   alias ElixirLS.Utils.Launch
   alias ElixirLS.LanguageServer.Tracer
   alias ElixirLS.Utils.MixfileHelpers
-
-  use Protocol
+  import ElixirLS.LanguageServer.JsonRpc, only: [notification: 1, request: 2, request: 3]
 
   defstruct [
     :server_instance_id,
@@ -826,7 +824,7 @@ defmodule ElixirLS.LanguageServer.Server do
         end
  
     case packet do
-      initialize_req(_id, _root_uri, _client_capabilities) ->
+      request(id, "initialize") ->
         try do
           # Store the request module for proper result encoding
           request_module = struct.__struct__
@@ -921,7 +919,7 @@ defmodule ElixirLS.LanguageServer.Server do
         end
     command =
       case packet do
-        execute_command_req(_id, custom_command_with_server_id, _args) ->
+        request(_id, "workspace/executeCommand", %{"command" => custom_command_with_server_id}) ->
           command <> ":" <> (ExecuteCommand.get_command(custom_command_with_server_id) || "")
 
         _ ->

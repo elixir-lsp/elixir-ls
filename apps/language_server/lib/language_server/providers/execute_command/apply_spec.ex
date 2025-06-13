@@ -98,7 +98,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
         })
 
       case edit_result do
-        {:ok, %{"applied" => true}} ->
+        {:ok, %GenLSP.Structures.ApplyWorkspaceEditResult{applied: true}} ->
           {:ok, nil}
 
         other ->

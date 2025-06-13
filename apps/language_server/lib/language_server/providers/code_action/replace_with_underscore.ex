@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
 
   import ElixirLS.LanguageServer.Providers.CodeAction.Helpers
 
-  @spec apply(SourceFile.t(), String.t(), [map()]) :: [GenLSP.Structures.CodeAction.t()]
+  @spec apply(SourceFile.t(), String.t(), [GenLSP.Structures.Diagnostic.t()]) :: [GenLSP.Structures.CodeAction.t()]
   def apply(%SourceFile{} = source_file, uri, diagnostics) do
     Enum.flat_map(diagnostics, fn diagnostic ->
       with {:ok, variable_name, line_number} <- extract_variable_and_line(diagnostic),
@@ -23,11 +23,11 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore do
     end)
   end
 
-  defp extract_variable_and_line(diagnostic) do
+  defp extract_variable_and_line(diagnostic = %GenLSP.Structures.Diagnostic{}) do
     message = diagnostic_to_message(diagnostic)
 
     with {:ok, variable_name} <- extract_variable_name(message) do
-      {:ok, variable_name, diagnostic["range"]["start"]["line"]}
+      {:ok, variable_name, diagnostic["range"].start.line}
     end
   end
 
