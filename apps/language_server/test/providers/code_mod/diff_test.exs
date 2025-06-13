@@ -1,14 +1,12 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeMod.DiffTest do
   use ElixirLS.LanguageServer.Test.CodeMod.Case
 
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
-
   import ElixirLS.LanguageServer.Providers.CodeMod.Diff
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   def edit(start_line, start_code_unit, end_line, end_code_unit, replacement) do
-    %TextEdit{
-      newText: replacement,
+    %GenLSP.Structures.TextEdit{
+      new_text: replacement,
       range: range(start_line, start_code_unit, end_line, end_code_unit)
     }
   end

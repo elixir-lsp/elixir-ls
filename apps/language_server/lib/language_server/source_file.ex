@@ -344,7 +344,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     String.length(partial_utf8) + 1
   end
 
-  # “Clamp” helper. 
+  # "Clamp" helper. 
   # - If offset is out of bounds, keep it within [0, max_bytes].
   # - Then check if we landed *immediately* after a high surrogate (0xD800..0xDBFF);
   #   if so, subtract 2 to avoid slicing in the middle.

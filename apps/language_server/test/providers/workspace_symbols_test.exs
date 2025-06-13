@@ -64,9 +64,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
       assert module.kind == 11
       assert module.location.uri |> String.ends_with?("lib/workspace_symbols.ex")
 
-      assert module.location.range == %{
-               end: %{character: 0, line: 1},
-               start: %{character: 0, line: 0}
+      assert module.location.range == %GenLSP.Structures.Range{
+               end: %GenLSP.Structures.Position{character: 0, line: 1},
+               start: %GenLSP.Structures.Position{character: 0, line: 0}
              }
 
       assert WorkspaceSymbols.symbols("work")
@@ -95,14 +95,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
 
       assert some_function.kind == 12
 
-      assert some_function.containerName == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
+      assert some_function.container_name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
 
       assert some_function.location.uri
              |> String.ends_with?("lib/workspace_symbols.ex")
 
-      assert some_function.location.range == %{
-               end: %{character: 0, line: 2},
-               start: %{character: 0, line: 1}
+      assert some_function.location.range == %GenLSP.Structures.Range{
+               end: %GenLSP.Structures.Position{character: 0, line: 2},
+               start: %GenLSP.Structures.Position{character: 0, line: 1}
              }
 
       assert WorkspaceSymbols.symbols("fun")
@@ -133,14 +133,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
 
       assert some_type.kind == 5
 
-      assert some_type.containerName == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
+      assert some_type.container_name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
 
       assert some_type.location.uri
              |> String.ends_with?("lib/workspace_symbols.ex")
 
-      assert some_type.location.range == %{
-               end: %{character: 0, line: 8},
-               start: %{character: 0, line: 7}
+      assert some_type.location.range == %GenLSP.Structures.Range{
+               end: %GenLSP.Structures.Position{character: 0, line: 8},
+               start: %GenLSP.Structures.Position{character: 0, line: 7}
              }
 
       assert Enum.any?(
@@ -176,14 +176,14 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbolsTest do
 
       assert some_callback.kind == 24
 
-      assert some_callback.containerName == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
+      assert some_callback.container_name == "ElixirLS.LanguageServer.Fixtures.WorkspaceSymbols"
 
       assert some_callback.location.uri
              |> String.ends_with?("lib/workspace_symbols.ex")
 
-      assert some_callback.location.range == %{
-               end: %{character: 0, line: 5},
-               start: %{character: 0, line: 4}
+      assert some_callback.location.range == %GenLSP.Structures.Range{
+               end: %GenLSP.Structures.Position{character: 0, line: 5},
+               start: %GenLSP.Structures.Position{character: 0, line: 4}
              }
 
       assert Enum.any?(

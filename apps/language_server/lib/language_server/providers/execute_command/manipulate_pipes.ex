@@ -41,11 +41,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
     with {:ok, %TextEdit{} = text_edit} <- processing_result,
          {:ok, %{"applied" => true}} <-
-           JsonRpc.send_request("workspace/applyEdit", %{
-             "label" => label,
-             "edit" => %{
-               "changes" => %{
-                 uri => [text_edit]
+           JsonRpc.send_request(%GenLSP.Requests.WorkspaceApplyEdit{
+             id: System.unique_integer([:positive]),
+             params: %GenLSP.Structures.ApplyWorkspaceEditParams{
+               label: label,
+               edit: %GenLSP.Structures.WorkspaceEdit{
+                 changes: %{
+                   uri => [%GenLSP.Structures.TextEdit{
+                     range: text_edit.range,
+                     new_text: text_edit.newText
+                   }]
+                 }
                }
              }
            }) do

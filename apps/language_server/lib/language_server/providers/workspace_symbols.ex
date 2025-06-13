@@ -135,9 +135,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     # as of LSP 3.17 only one tag is defined and clients are required to silently ignore unknown tags
     # so there's no need to pass the list
     tag_support =
-      :persistent_term.get(:language_server_client_capabilities)["workspace"]["symbol"][
-        "tagSupport"
-      ] != nil
+      case :persistent_term.get(:language_server_client_capabilities) do
+        %GenLSP.Structures.ClientCapabilities{workspace: %GenLSP.Structures.WorkspaceClientCapabilities{symbol: %{tag_support: tag_support}}} when tag_support != nil -> true
+        _ -> false
+      end
 
     {:noreply, %{state | project_dir: project_dir, tag_support: tag_support}}
   end
