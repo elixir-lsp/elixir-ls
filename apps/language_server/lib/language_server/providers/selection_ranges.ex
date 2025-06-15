@@ -66,7 +66,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
       |> Enum.map(&FoldingRange.Indentation.extract_cell/1)
       |> FoldingRange.Indentation.pair_cells()
 
-    for %{"line" => line, "character" => character} <- positions do
+    for %GenLSP.Structures.Position{line: line, character: character} <- positions do
       {line, character} = SourceFile.lsp_position_to_elixir(lines, {line, character})
       # for convenance the code in this module uses 0 based indexing
       {line, character} = {line - 1, character - 1}
@@ -98,7 +98,9 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
         raise "merged_ranges are not increasingly narrowing"
       end
 
-      to_nested_lsp_message(merged_ranges, lines)
+      res = to_nested_lsp_message(merged_ranges, lines)
+      IO.puts(:stderr, "res: #{inspect(res)}")
+      res
     end
   end
 
