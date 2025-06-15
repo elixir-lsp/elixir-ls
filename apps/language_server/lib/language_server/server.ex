@@ -332,7 +332,6 @@ defmodule ElixirLS.LanguageServer.Server do
         state = %__MODULE__{received_shutdown?: false, server_instance_id: server_instance_id}
       )
       when is_initialized(server_instance_id) do
-    IO.puts(:stderr, "received notification: #{inspect(packet)}")
     struct =
         case GenLSP.Notifications.new(packet) do
           {:ok, struct} ->
