@@ -1089,13 +1089,15 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.Initialize{params: params},
+         %GenLSP.Requests.Initialize{
+           params: %GenLSP.Structures.InitializeParams{
+             root_uri: root_uri,
+             capabilities: client_capabilities = %GenLSP.Structures.ClientCapabilities{}
+           }
+         },
          state = %__MODULE__{server_instance_id: server_instance_id}
        )
        when not is_initialized(server_instance_id) do
-    root_uri = params.root_uri
-    client_capabilities = params.capabilities
-
     show_version_warnings()
 
     server_instance_id =
@@ -1133,13 +1135,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentDefinition{params: params},
+         %GenLSP.Requests.TextDocumentDefinition{
+           params: %GenLSP.Structures.TextDocumentPositionParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1152,13 +1160,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentDeclaration{params: params},
+         %GenLSP.Requests.TextDocumentDeclaration{
+           params: %GenLSP.Structures.TextDocumentPositionParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1171,13 +1185,19 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentImplementation{params: params},
+         %GenLSP.Requests.TextDocumentImplementation{
+           params: %GenLSP.Structures.TextDocumentPositionParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1190,14 +1210,22 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentReferences{params: params},
+         %GenLSP.Requests.TextDocumentReferences{
+           params: %GenLSP.Structures.ReferenceParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             },
+             context: %GenLSP.Structures.ReferenceContext{
+               include_declaration: include_declaration
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-    include_declaration = params.context.include_declaration
-
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1218,11 +1246,20 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(%GenLSP.Requests.TextDocumentHover{params: params}, state = %__MODULE__{}) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-
+  defp handle_request(
+         %GenLSP.Requests.TextDocumentHover{
+           params: %GenLSP.Structures.TextDocumentPositionParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             }
+           }
+         },
+         state = %__MODULE__{}
+       ) do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1235,10 +1272,15 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentDocumentSymbol{params: params},
+         %GenLSP.Requests.TextDocumentDocumentSymbol{
+           params: %GenLSP.Structures.DocumentSymbolParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1261,13 +1303,14 @@ defmodule ElixirLS.LanguageServer.Server do
     {:async, fun, state}
   end
 
-  defp handle_request(%GenLSP.Requests.WorkspaceSymbol{params: params}, state = %__MODULE__{}) do
-    query =
-      case params do
-        %GenLSP.Structures.WorkspaceSymbolParams{query: query} -> query
-        _ -> ""
-      end
-
+  defp handle_request(
+         %GenLSP.Requests.WorkspaceSymbol{
+           params: %GenLSP.Structures.WorkspaceSymbolParams{
+             query: query
+           }
+         },
+         state = %__MODULE__{}
+       ) do
     fun = fn ->
       WorkspaceSymbols.symbols(query)
     end
@@ -1276,16 +1319,24 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentCompletion{params: params},
+         %GenLSP.Requests.TextDocumentCompletion{
+           params: %GenLSP.Structures.TextDocumentPositionParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-
     settings = state.settings || %{}
 
     source_file = get_source_file(state, uri)
+
+    # TODO: GenLSP
 
     snippets_supported =
       !!(state.client_capabilities &&
@@ -1362,23 +1413,34 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentFormatting{params: params},
+         %GenLSP.Requests.TextDocumentFormatting{
+           params: %GenLSP.Structures.DocumentFormattingParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
     source_file = get_source_file(state, uri)
     fun = fn -> Formatting.format(source_file, uri, state.project_dir, state.mix_project?) end
     {:async, fun, state}
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentSignatureHelp{params: params},
+         %GenLSP.Requests.TextDocumentSignatureHelp{
+           params: %GenLSP.Structures.TextDocumentPositionParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1392,14 +1454,21 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentOnTypeFormatting{params: params},
+         %GenLSP.Requests.TextDocumentOnTypeFormatting{
+           params: %GenLSP.Structures.DocumentOnTypeFormattingParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             },
+             ch: ch,
+             options: options
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    line = params.position.line
-    character = params.position.character
-    ch = params.ch
-    options = params.options
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1415,10 +1484,15 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentCodeLens{params: params},
+         %GenLSP.Requests.TextDocumentCodeLens{
+           params: %GenLSP.Structures.CodeLensParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1434,11 +1508,15 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.WorkspaceExecuteCommand{params: params} = req,
+         %GenLSP.Requests.WorkspaceExecuteCommand{
+           params: %GenLSP.Structures.ExecuteCommandParams{
+             command: command,
+             arguments: arguments
+           }
+         } = req,
          state = %__MODULE__{}
        ) do
-    command = params.command
-    args = params.arguments || []
+    args = arguments || []
 
     {:async,
      fn ->
@@ -1454,10 +1532,15 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentFoldingRange{params: params},
+         %GenLSP.Requests.TextDocumentFoldingRange{
+           params: %GenLSP.Structures.FoldingRangeParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1473,11 +1556,16 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentSelectionRange{params: params},
+         %GenLSP.Requests.TextDocumentSelectionRange{
+           params: %GenLSP.Structures.SelectionRangeParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             positions: positions
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    positions = params.positions
     source_file = get_source_file(state, uri)
 
     fun = fn ->
@@ -1504,11 +1592,18 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
-         %GenLSP.Requests.TextDocumentCodeAction{params: params},
+         %GenLSP.Requests.TextDocumentCodeAction{
+           params: %GenLSP.Structures.CodeActionParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             context: %GenLSP.Structures.CodeActionContext{
+               diagnostics: diagnostics
+             }
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    diagnostics = params.context.diagnostics
     source_file = get_source_file(state, uri)
 
     {:async, fn -> CodeAction.code_actions(source_file, uri, diagnostics) end, state}
