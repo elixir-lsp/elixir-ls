@@ -103,7 +103,9 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     {code, default_message} = error_code_and_message(type)
 
     if data do
-      WireProtocol.send(error_response(id, code, message || default_message, data))
+      {data_payload, data_module} = data
+      {:ok, dumped} = Schematic.dump(data_module.schematic(), data_payload)
+      WireProtocol.send(error_response(id, code, message || default_message, dumped))
     else
       WireProtocol.send(error_response(id, code, message || default_message))
     end
@@ -167,7 +169,9 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def register_capability_request(server \\ __MODULE__, server_instance_id, method, options) do
-    id_string = server_instance_id <> method <> JasonV.encode!(options)
+    {options_payload, options_module} = options
+    {:ok, dumped} = Schematic.dump(options_module.schematic(), options_payload)
+    id_string = server_instance_id <> method <> JasonV.encode!(dumped)
     registration_id = :crypto.hash(:sha, id_string) |> Base.encode16()
     
     # Generate a unique request ID
@@ -180,7 +184,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
           %GenLSP.Structures.Registration{
             id: registration_id,
             method: method,
-            register_options: options
+            register_options: options_payload
           }
         ]
       }

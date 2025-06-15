@@ -836,7 +836,6 @@ defmodule ElixirLS.LanguageServer.Server do
           {:ok, result, state} = handle_request(struct, state)
           elapsed = System.monotonic_time(:millisecond) - start_time
           # Use request module's result schematic if available (GenLSP requests)
-          IO.puts(:stderr, "result: #{inspect(result)}")
           response_body = 
             if function_exported?(request_module, :result, 0) do
               {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
@@ -873,8 +872,11 @@ defmodule ElixirLS.LanguageServer.Server do
             # on error in initialize the protocol requires to respond with
             # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#initializeError
             # the initialize request can fail on broken OTP installs, no point in retrying
-            JsonRpc.respond_with_error(id, :internal_error, error_msg, %{
-              "retry" => false
+            JsonRpc.respond_with_error(id, :internal_error, error_msg, {
+              %GenLSP.Structures.InitializeError{
+                retry: false
+              },
+              GenLSP.Structures.InitializeError
             })
 
             do_sanity_check(error_msg)
@@ -2127,9 +2129,10 @@ defmodule ElixirLS.LanguageServer.Server do
     case JsonRpc.register_capability_request(
            server_instance_id,
            "workspace/didChangeWatchedFiles",
-           %{
-             "watchers" => Enum.map(exts, &%{"globPattern" => "**/*" <> &1})
-           }
+           {%GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions{
+             watchers: Enum.map(exts, &%GenLSP.Structures.FileSystemWatcher{glob_pattern: "**/*" <> &1})
+           },
+           GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions}
          ) do
       {:ok, nil} ->
         Logger.info("client/registerCapability succeeded")
@@ -2156,7 +2159,8 @@ defmodule ElixirLS.LanguageServer.Server do
     case JsonRpc.register_capability_request(
            server_instance_id,
            "workspace/didChangeConfiguration",
-           %{}
+           {%GenLSP.Structures.DidChangeConfigurationRegistrationOptions{},
+            GenLSP.Structures.DidChangeConfigurationRegistrationOptions}
          ) do
       {:ok, nil} ->
         Logger.info("client/registerCapability succeeded")

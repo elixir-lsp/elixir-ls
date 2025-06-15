@@ -373,20 +373,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
               keyword in ~w(rescue catch else after) ->
                 if String.trim(context.text_after_cursor) == "" do
                   {nil,
-                   %{
-                     "range" => %{
-                       "start" => %{
-                         "line" => context.line - 1,
-                         "character" =>
+                   %GenLSP.Structures.TextEdit{
+                     range: %GenLSP.Structures.Range{
+                       start: %GenLSP.Structures.Position{
+                         line: context.line - 1,
+                         character:
                            context.character - String.length(hint) - 1 -
                              max(context.line_indent - context.do_block_indent, 0)
                        },
-                       "end" => %{
-                         "line" => context.line - 1,
-                         "character" => context.character - 1
+                       end: %GenLSP.Structures.Position{
+                         line: context.line - 1,
+                         character: context.character - 1
                        }
                      },
-                     "newText" => "#{keyword}\n  "
+                     new_text: "#{keyword}\n  "
                    }}
                 else
                   {"#{keyword}: ", nil}
@@ -397,17 +397,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
               keyword == "end" ->
                 {nil,
-                 %{
-                   "range" => %{
-                     "start" => %{
-                       "line" => context.line - 1,
-                       "character" =>
+                 %GenLSP.Structures.TextEdit{
+                   range: %GenLSP.Structures.Range{
+                     start: %GenLSP.Structures.Position{
+                       line: context.line - 1,
+                       character:
                          context.character - String.length(hint) - 1 -
                            max(context.line_indent - context.do_block_indent, 0)
                      },
-                     "end" => %{"line" => context.line - 1, "character" => context.character - 1}
+                     end: %GenLSP.Structures.Position{
+                       line: context.line - 1,
+                       character: context.character - 1
+                     }
                    },
-                   "newText" => "end\n"
+                   new_text: "end\n"
                  }}
 
               true ->
@@ -832,15 +835,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
         subtype == :keyword ->
           {"",
-           %{
-             "range" => %{
-               "start" => %{
-                 "line" => context.line,
-                 "character" => context.character - String.length(context.prefix)
+           %GenLSP.Structures.TextEdit{
+             range: %GenLSP.Structures.Range{
+               start: %GenLSP.Structures.Position{
+                 line: context.line,
+                 character: context.character - String.length(context.prefix)
                },
-               "end" => %{"line" => context.line, "character" => context.character}
+               end: %GenLSP.Structures.Position{
+                 line: context.line,
+                 character: context.character
+               }
              },
-             "newText" => "#{name}: "
+             new_text: "#{name}: "
            }}
 
         match?(":" <> _, context.prefix) ->

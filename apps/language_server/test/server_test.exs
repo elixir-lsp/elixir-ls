@@ -1308,14 +1308,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "auto complete", %{server: server} do
     in_fixture(__DIR__, "clean", fn ->
       uri = "file:///file.ex"
-      code = ~S(
-    defmodule MyModule do
-      def my_fn, do: GenSer
-    end
-    )
+      code = """
+      defmodule MyModule do
+        def my_fn, do: GenServe
+      end
+      """
       fake_initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, completion_req(1, uri, 2, 25))
+      Server.receive_packet(server, completion_req(1, uri, 1, 22))
 
       resp = assert_receive(%{"id" => 1}, 10000)
 
