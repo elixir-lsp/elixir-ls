@@ -50,16 +50,16 @@ defmodule GenLSP.Structures.CodeAction do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :title, String.t(), enforce: true
-    field :kind, GenLSP.Enumerations.CodeActionKind.t()
-    field :diagnostics, list(GenLSP.Structures.Diagnostic.t())
-    field :is_preferred, boolean()
-    field :disabled, map()
-    field :edit, GenLSP.Structures.WorkspaceEdit.t()
-    field :command, GenLSP.Structures.Command.t()
-    field :data, GenLSP.TypeAlias.LSPAny.t()
+    field(:title, String.t(), enforce: true)
+    field(:kind, GenLSP.Enumerations.CodeActionKind.t())
+    field(:diagnostics, list(GenLSP.Structures.Diagnostic.t()))
+    field(:is_preferred, boolean())
+    field(:disabled, map())
+    field(:edit, GenLSP.Structures.WorkspaceEdit.t())
+    field(:command, GenLSP.Structures.Command.t())
+    field(:data, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

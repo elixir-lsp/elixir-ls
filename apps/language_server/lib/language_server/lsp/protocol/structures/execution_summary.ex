@@ -13,10 +13,10 @@ defmodule GenLSP.Structures.ExecutionSummary do
   * success: Whether the execution was successful or
     not if known by the client.
   """
-  
+
   typedstruct do
-    field :execution_order, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :success, boolean()
+    field(:execution_order, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:success, boolean())
   end
 
   @doc false

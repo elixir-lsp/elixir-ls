@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.FileOperationRegistrationOptions do
 
   * filters: The actual filters.
   """
-  
+
   typedstruct do
-    field :filters, list(GenLSP.Structures.FileOperationFilter.t()), enforce: true
+    field(:filters, list(GenLSP.Structures.FileOperationFilter.t()), enforce: true)
   end
 
   @doc false

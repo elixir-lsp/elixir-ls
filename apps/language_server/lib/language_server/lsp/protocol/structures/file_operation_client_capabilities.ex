@@ -24,15 +24,15 @@ defmodule GenLSP.Structures.FileOperationClientCapabilities do
   * did_delete: The client has support for sending didDeleteFiles notifications.
   * will_delete: The client has support for sending willDeleteFiles requests.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :did_create, boolean()
-    field :will_create, boolean()
-    field :did_rename, boolean()
-    field :will_rename, boolean()
-    field :did_delete, boolean()
-    field :will_delete, boolean()
+    field(:dynamic_registration, boolean())
+    field(:did_create, boolean())
+    field(:will_create, boolean())
+    field(:did_rename, boolean())
+    field(:will_rename, boolean())
+    field(:did_delete, boolean())
+    field(:will_delete, boolean())
   end
 
   @doc false

@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.CodeLensClientCapabilities do
 
   * dynamic_registration: Whether code lens supports dynamic registration.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
+    field(:dynamic_registration, boolean())
   end
 
   @doc false

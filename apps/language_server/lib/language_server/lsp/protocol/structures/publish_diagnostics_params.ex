@@ -17,11 +17,11 @@ defmodule GenLSP.Structures.PublishDiagnosticsParams do
     @since 3.15.0
   * diagnostics: An array of diagnostic information items.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :version, integer()
-    field :diagnostics, list(GenLSP.Structures.Diagnostic.t()), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:version, integer())
+    field(:diagnostics, list(GenLSP.Structures.Diagnostic.t()), enforce: true)
   end
 
   @doc false

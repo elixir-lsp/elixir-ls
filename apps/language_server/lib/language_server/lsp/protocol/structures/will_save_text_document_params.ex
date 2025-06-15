@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.WillSaveTextDocumentParams do
   * text_document: The document that will be saved.
   * reason: The 'TextDocumentSaveReason'.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :reason, GenLSP.Enumerations.TextDocumentSaveReason.t(), enforce: true
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:reason, GenLSP.Enumerations.TextDocumentSaveReason.t(), enforce: true)
   end
 
   @doc false

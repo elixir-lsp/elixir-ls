@@ -21,10 +21,10 @@ defmodule GenLSP.Structures.UnchangedDocumentDiagnosticReport do
   * result_id: A result id which will be sent on the next
     diagnostic request for the same document.
   """
-  
+
   typedstruct do
-    field :kind, String.t(), enforce: true
-    field :result_id, String.t(), enforce: true
+    field(:kind, String.t(), enforce: true)
+    field(:result_id, String.t(), enforce: true)
   end
 
   @doc false

@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.CompletionItemResolve do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "completionItem/resolve"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.CompletionItem.t()
+    field(:method, String.t(), default: "completionItem/resolve")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.CompletionItem.t())
   end
 
   @type result :: GenLSP.Structures.CompletionItem.t()

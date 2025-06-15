@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.WorkspaceDidChangeWatchedFiles do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/didChangeWatchedFiles"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidChangeWatchedFilesParams.t()
+    field(:method, String.t(), default: "workspace/didChangeWatchedFiles")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidChangeWatchedFilesParams.t())
   end
 
   @doc false

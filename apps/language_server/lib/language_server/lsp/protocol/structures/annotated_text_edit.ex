@@ -19,11 +19,11 @@ defmodule GenLSP.Structures.AnnotatedTextEdit do
   * new_text: The string to be inserted. For delete operations use an
     empty string.
   """
-  
+
   typedstruct do
-    field :annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t(), enforce: true
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :new_text, String.t(), enforce: true
+    field(:annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t(), enforce: true)
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:new_text, String.t(), enforce: true)
   end
 
   @doc false

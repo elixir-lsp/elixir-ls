@@ -27,10 +27,10 @@ defmodule GenLSP.Structures.NotebookDocumentSyncOptions do
   * save: Whether save notification should be forwarded to
     the server. Will only be honored if mode === `notebook`.
   """
-  
+
   typedstruct do
-    field :notebook_selector, list(map() | map()), enforce: true
-    field :save, boolean()
+    field(:notebook_selector, list(map() | map()), enforce: true)
+    field(:save, boolean())
   end
 
   @doc false

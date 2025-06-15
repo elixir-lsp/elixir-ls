@@ -23,12 +23,12 @@ defmodule GenLSP.Structures.LocationLink do
   * target_selection_range: The range that should be selected and revealed when this link is being followed, e.g the name of a function.
     Must be contained by the `targetRange`. See also `DocumentSymbol#range`
   """
-  
+
   typedstruct do
-    field :origin_selection_range, GenLSP.Structures.Range.t()
-    field :target_uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :target_range, GenLSP.Structures.Range.t(), enforce: true
-    field :target_selection_range, GenLSP.Structures.Range.t(), enforce: true
+    field(:origin_selection_range, GenLSP.Structures.Range.t())
+    field(:target_uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:target_range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:target_selection_range, GenLSP.Structures.Range.t(), enforce: true)
   end
 
   @doc false

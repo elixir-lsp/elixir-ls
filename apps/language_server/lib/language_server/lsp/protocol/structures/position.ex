@@ -49,10 +49,10 @@ defmodule GenLSP.Structures.Position do
     If the character value is greater than the line length it defaults back to the
     line length.
   """
-  
+
   typedstruct do
-    field :line, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :character, GenLSP.BaseTypes.uinteger(), enforce: true
+    field(:line, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:character, GenLSP.BaseTypes.uinteger(), enforce: true)
   end
 
   @doc false

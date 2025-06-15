@@ -13,11 +13,10 @@ defmodule GenLSP.Notifications.WorkspaceDidDeleteFiles do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/didDeleteFiles"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DeleteFilesParams.t()
+    field(:method, String.t(), default: "workspace/didDeleteFiles")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DeleteFilesParams.t())
   end
 
   @doc false

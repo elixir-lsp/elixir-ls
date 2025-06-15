@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.MessageActionItem do
 
   * title: A short title like 'Retry', 'Open Log' etc.
   """
-  
+
   typedstruct do
-    field :title, String.t(), enforce: true
+    field(:title, String.t(), enforce: true)
   end
 
   @doc false

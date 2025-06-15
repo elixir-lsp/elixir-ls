@@ -4,11 +4,10 @@ defmodule GenLSP.Notifications.DollarSetTrace do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "$/setTrace"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.SetTraceParams.t()
+    field(:method, String.t(), default: "$/setTrace")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.SetTraceParams.t())
   end
 
   @doc false

@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.SetTraceParams do
 
   * value
   """
-  
+
   typedstruct do
-    field :value, GenLSP.Enumerations.TraceValues.t(), enforce: true
+    field(:value, GenLSP.Enumerations.TraceValues.t(), enforce: true)
   end
 
   @doc false

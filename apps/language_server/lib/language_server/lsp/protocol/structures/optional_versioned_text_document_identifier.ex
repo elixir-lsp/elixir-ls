@@ -18,10 +18,10 @@ defmodule GenLSP.Structures.OptionalVersionedTextDocumentIdentifier do
     truth (as specified with document content ownership).
   * uri: The text document's uri.
   """
-  
+
   typedstruct do
-    field :version, integer() | nil, enforce: true
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
+    field(:version, integer() | nil, enforce: true)
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
   end
 
   @doc false

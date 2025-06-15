@@ -18,10 +18,10 @@ defmodule GenLSP.Structures.CallHierarchyOutgoingCall do
     passed to {@link CallHierarchyItemProvider.provideCallHierarchyOutgoingCalls `provideCallHierarchyOutgoingCalls`}
     and not {@link CallHierarchyOutgoingCall.to `this.to`}.
   """
-  
+
   typedstruct do
-    field :to, GenLSP.Structures.CallHierarchyItem.t(), enforce: true
-    field :from_ranges, list(GenLSP.Structures.Range.t()), enforce: true
+    field(:to, GenLSP.Structures.CallHierarchyItem.t(), enforce: true)
+    field(:from_ranges, list(GenLSP.Structures.Range.t()), enforce: true)
   end
 
   @doc false

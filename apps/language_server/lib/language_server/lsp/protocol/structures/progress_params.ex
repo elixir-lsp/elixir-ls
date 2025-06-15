@@ -10,10 +10,10 @@ defmodule GenLSP.Structures.ProgressParams do
   * token: The progress token provided by the client or server.
   * value: The progress data.
   """
-  
+
   typedstruct do
-    field :token, GenLSP.TypeAlias.ProgressToken.t(), enforce: true
-    field :value, GenLSP.TypeAlias.LSPAny.t(), enforce: true
+    field(:token, GenLSP.TypeAlias.ProgressToken.t(), enforce: true)
+    field(:value, GenLSP.TypeAlias.LSPAny.t(), enforce: true)
   end
 
   @doc false

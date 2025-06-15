@@ -21,11 +21,11 @@ defmodule GenLSP.Structures.CodeActionOptions do
     @since 3.16.0
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :code_action_kinds, list(GenLSP.Enumerations.CodeActionKind.t())
-    field :resolve_provider, boolean()
-    field :work_done_progress, boolean()
+    field(:code_action_kinds, list(GenLSP.Enumerations.CodeActionKind.t()))
+    field(:resolve_provider, boolean())
+    field(:work_done_progress, boolean())
   end
 
   @doc false

@@ -11,12 +11,11 @@ defmodule GenLSP.Requests.ClientUnregisterCapability do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "client/unregisterCapability"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.UnregistrationParams.t()
+    field(:method, String.t(), default: "client/unregisterCapability")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.UnregistrationParams.t())
   end
 
   @type result :: nil

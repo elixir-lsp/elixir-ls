@@ -43,17 +43,17 @@ defmodule GenLSP.Structures.InitializeParams do
 
     @since 3.6.0
   """
-  
+
   typedstruct do
-    field :process_id, integer() | nil, enforce: true
-    field :client_info, map()
-    field :locale, String.t()
-    field :root_path, String.t() | nil
-    field :root_uri, GenLSP.BaseTypes.document_uri() | nil, enforce: true
-    field :capabilities, GenLSP.Structures.ClientCapabilities.t(), enforce: true
-    field :initialization_options, GenLSP.TypeAlias.LSPAny.t()
-    field :trace, GenLSP.Enumerations.TraceValues.t()
-    field :workspace_folders, list(GenLSP.Structures.WorkspaceFolder.t()) | nil
+    field(:process_id, integer() | nil, enforce: true)
+    field(:client_info, map())
+    field(:locale, String.t())
+    field(:root_path, String.t() | nil)
+    field(:root_uri, GenLSP.BaseTypes.document_uri() | nil, enforce: true)
+    field(:capabilities, GenLSP.Structures.ClientCapabilities.t(), enforce: true)
+    field(:initialization_options, GenLSP.TypeAlias.LSPAny.t())
+    field(:trace, GenLSP.Enumerations.TraceValues.t())
+    field(:workspace_folders, list(GenLSP.Structures.WorkspaceFolder.t()) | nil)
   end
 
   @doc false

@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.WorkspaceDiagnosticReportPartialResult do
 
   * items
   """
-  
+
   typedstruct do
-    field :items, list(GenLSP.TypeAlias.WorkspaceDocumentDiagnosticReport.t()), enforce: true
+    field(:items, list(GenLSP.TypeAlias.WorkspaceDocumentDiagnosticReport.t()), enforce: true)
   end
 
   @doc false

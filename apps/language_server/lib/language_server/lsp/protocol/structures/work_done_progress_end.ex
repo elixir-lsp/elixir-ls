@@ -11,10 +11,10 @@ defmodule GenLSP.Structures.WorkDoneProgressEnd do
   * message: Optional, a final message indicating to for example indicate the outcome
     of the operation.
   """
-  
+
   typedstruct do
-    field :kind, String.t(), enforce: true
-    field :message, String.t()
+    field(:kind, String.t(), enforce: true)
+    field(:message, String.t())
   end
 
   @doc false

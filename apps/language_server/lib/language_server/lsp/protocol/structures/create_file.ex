@@ -18,12 +18,12 @@ defmodule GenLSP.Structures.CreateFile do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :kind, String.t(), enforce: true
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :options, GenLSP.Structures.CreateFileOptions.t()
-    field :annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t()
+    field(:kind, String.t(), enforce: true)
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:options, GenLSP.Structures.CreateFileOptions.t())
+    field(:annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t())
   end
 
   @doc false

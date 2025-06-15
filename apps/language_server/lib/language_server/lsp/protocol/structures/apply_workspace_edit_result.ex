@@ -21,11 +21,11 @@ defmodule GenLSP.Structures.ApplyWorkspaceEditResult do
     contain the index of the change that failed. This property is only available
     if the client signals a `failureHandlingStrategy` in its client capabilities.
   """
-  
+
   typedstruct do
-    field :applied, boolean(), enforce: true
-    field :failure_reason, String.t()
-    field :failed_change, GenLSP.BaseTypes.uinteger()
+    field(:applied, boolean(), enforce: true)
+    field(:failure_reason, String.t())
+    field(:failed_change, GenLSP.BaseTypes.uinteger())
   end
 
   @doc false

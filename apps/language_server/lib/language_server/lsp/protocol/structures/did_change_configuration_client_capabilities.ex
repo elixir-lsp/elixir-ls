@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.DidChangeConfigurationClientCapabilities do
 
   * dynamic_registration: Did change configuration notification supports dynamic registration.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
+    field(:dynamic_registration, boolean())
   end
 
   @doc false

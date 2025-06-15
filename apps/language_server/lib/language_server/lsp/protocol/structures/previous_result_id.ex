@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.PreviousResultId do
     result id.
   * value: The value of the previous result id.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :value, String.t(), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:value, String.t(), enforce: true)
   end
 
   @doc false

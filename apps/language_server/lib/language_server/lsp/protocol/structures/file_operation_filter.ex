@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.FileOperationFilter do
   * scheme: A Uri scheme like `file` or `untitled`.
   * pattern: The actual file operation pattern.
   """
-  
+
   typedstruct do
-    field :scheme, String.t()
-    field :pattern, GenLSP.Structures.FileOperationPattern.t(), enforce: true
+    field(:scheme, String.t())
+    field(:pattern, GenLSP.Structures.FileOperationPattern.t(), enforce: true)
   end
 
   @doc false

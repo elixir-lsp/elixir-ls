@@ -11,12 +11,11 @@ defmodule GenLSP.Requests.WorkspaceExecuteCommand do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/executeCommand"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.ExecuteCommandParams.t()
+    field(:method, String.t(), default: "workspace/executeCommand")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.ExecuteCommandParams.t())
   end
 
   @type result :: GenLSP.TypeAlias.LSPAny.t() | nil

@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.TextDocumentPrepareRename do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/prepareRename"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.PrepareRenameParams.t()
+    field(:method, String.t(), default: "textDocument/prepareRename")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.PrepareRenameParams.t())
   end
 
   @type result :: GenLSP.TypeAlias.PrepareRenameResult.t() | nil

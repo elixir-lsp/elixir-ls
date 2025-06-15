@@ -17,12 +17,12 @@ defmodule GenLSP.Structures.SemanticTokensOptions do
   * full: Server supports providing semantic tokens for a full document.
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :legend, GenLSP.Structures.SemanticTokensLegend.t(), enforce: true
-    field :range, boolean() | map()
-    field :full, boolean() | map()
-    field :work_done_progress, boolean()
+    field(:legend, GenLSP.Structures.SemanticTokensLegend.t(), enforce: true)
+    field(:range, boolean() | map())
+    field(:full, boolean() | map())
+    field(:work_done_progress, boolean())
   end
 
   @doc false

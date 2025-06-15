@@ -12,11 +12,10 @@ defmodule GenLSP.Notifications.NotebookDocumentDidOpen do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "notebookDocument/didOpen"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidOpenNotebookDocumentParams.t()
+    field(:method, String.t(), default: "notebookDocument/didOpen")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidOpenNotebookDocumentParams.t())
   end
 
   @doc false

@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.WorkspaceFoldersServerCapabilities do
     side. The ID can be used to unregister for these events
     using the `client/unregisterCapability` request.
   """
-  
+
   typedstruct do
-    field :supported, boolean()
-    field :change_notifications, String.t() | boolean()
+    field(:supported, boolean())
+    field(:change_notifications, String.t() | boolean())
   end
 
   @doc false

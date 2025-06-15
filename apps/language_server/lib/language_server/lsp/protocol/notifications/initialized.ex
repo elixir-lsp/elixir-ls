@@ -12,11 +12,10 @@ defmodule GenLSP.Notifications.Initialized do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "initialized"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.InitializedParams.t()
+    field(:method, String.t(), default: "initialized")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.InitializedParams.t())
   end
 
   @doc false

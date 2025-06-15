@@ -26,12 +26,17 @@ defmodule GenLSP.Structures.RenameClientCapabilities do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :prepare_support, boolean()
-    field :prepare_support_default_behavior, GenLSP.Enumerations.PrepareSupportDefaultBehavior.t()
-    field :honors_change_annotations, boolean()
+    field(:dynamic_registration, boolean())
+    field(:prepare_support, boolean())
+
+    field(
+      :prepare_support_default_behavior,
+      GenLSP.Enumerations.PrepareSupportDefaultBehavior.t()
+    )
+
+    field(:honors_change_annotations, boolean())
   end
 
   @doc false

@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.DocumentSymbolOptions do
     @since 3.16.0
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :label, String.t()
-    field :work_done_progress, boolean()
+    field(:label, String.t())
+    field(:work_done_progress, boolean())
   end
 
   @doc false

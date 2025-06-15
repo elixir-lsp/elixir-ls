@@ -14,12 +14,12 @@ defmodule GenLSP.Structures.TextDocumentSyncClientCapabilities do
     be applied to the document before it is saved.
   * did_save: The client supports did save notifications.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :will_save, boolean()
-    field :will_save_wait_until, boolean()
-    field :did_save, boolean()
+    field(:dynamic_registration, boolean())
+    field(:will_save, boolean())
+    field(:will_save_wait_until, boolean())
+    field(:did_save, boolean())
   end
 
   @doc false

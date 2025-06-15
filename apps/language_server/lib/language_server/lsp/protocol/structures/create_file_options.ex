@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.CreateFileOptions do
   * overwrite: Overwrite existing file. Overwrite wins over `ignoreIfExists`
   * ignore_if_exists: Ignore if exists.
   """
-  
+
   typedstruct do
-    field :overwrite, boolean()
-    field :ignore_if_exists, boolean()
+    field(:overwrite, boolean())
+    field(:ignore_if_exists, boolean())
   end
 
   @doc false

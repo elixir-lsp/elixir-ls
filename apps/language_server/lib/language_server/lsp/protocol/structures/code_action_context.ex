@@ -25,11 +25,11 @@ defmodule GenLSP.Structures.CodeActionContext do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :diagnostics, list(GenLSP.Structures.Diagnostic.t()), enforce: true
-    field :only, list(GenLSP.Enumerations.CodeActionKind.t())
-    field :trigger_kind, GenLSP.Enumerations.CodeActionTriggerKind.t()
+    field(:diagnostics, list(GenLSP.Structures.Diagnostic.t()), enforce: true)
+    field(:only, list(GenLSP.Enumerations.CodeActionKind.t()))
+    field(:trigger_kind, GenLSP.Enumerations.CodeActionTriggerKind.t())
   end
 
   @doc false

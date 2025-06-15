@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.WorkspaceFoldersInitializeParams do
 
     @since 3.6.0
   """
-  
+
   typedstruct do
-    field :workspace_folders, list(GenLSP.Structures.WorkspaceFolder.t()) | nil
+    field(:workspace_folders, list(GenLSP.Structures.WorkspaceFolder.t()) | nil)
   end
 
   @doc false

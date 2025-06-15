@@ -80,116 +80,159 @@ defmodule GenLSP.Structures.ServerCapabilities do
   * workspace: Workspace specific server capabilities.
   * experimental: Experimental server capabilities.
   """
-  
+
   typedstruct do
-    field :position_encoding, GenLSP.Enumerations.PositionEncodingKind.t()
+    field(:position_encoding, GenLSP.Enumerations.PositionEncodingKind.t())
 
-    field :text_document_sync,
-          GenLSP.Structures.TextDocumentSyncOptions.t()
-          | GenLSP.Enumerations.TextDocumentSyncKind.t()
+    field(
+      :text_document_sync,
+      GenLSP.Structures.TextDocumentSyncOptions.t()
+      | GenLSP.Enumerations.TextDocumentSyncKind.t()
+    )
 
-    field :notebook_document_sync,
-          GenLSP.Structures.NotebookDocumentSyncOptions.t()
-          | GenLSP.Structures.NotebookDocumentSyncRegistrationOptions.t()
+    field(
+      :notebook_document_sync,
+      GenLSP.Structures.NotebookDocumentSyncOptions.t()
+      | GenLSP.Structures.NotebookDocumentSyncRegistrationOptions.t()
+    )
 
-    field :completion_provider, GenLSP.Structures.CompletionOptions.t()
-    field :hover_provider, boolean() | GenLSP.Structures.HoverOptions.t()
-    field :signature_help_provider, GenLSP.Structures.SignatureHelpOptions.t()
+    field(:completion_provider, GenLSP.Structures.CompletionOptions.t())
+    field(:hover_provider, boolean() | GenLSP.Structures.HoverOptions.t())
+    field(:signature_help_provider, GenLSP.Structures.SignatureHelpOptions.t())
 
-    field :declaration_provider,
-          boolean()
-          | GenLSP.Structures.DeclarationOptions.t()
-          | GenLSP.Structures.DeclarationRegistrationOptions.t()
+    field(
+      :declaration_provider,
+      boolean()
+      | GenLSP.Structures.DeclarationOptions.t()
+      | GenLSP.Structures.DeclarationRegistrationOptions.t()
+    )
 
-    field :definition_provider, boolean() | GenLSP.Structures.DefinitionOptions.t()
+    field(:definition_provider, boolean() | GenLSP.Structures.DefinitionOptions.t())
 
-    field :type_definition_provider,
-          boolean()
-          | GenLSP.Structures.TypeDefinitionOptions.t()
-          | GenLSP.Structures.TypeDefinitionRegistrationOptions.t()
+    field(
+      :type_definition_provider,
+      boolean()
+      | GenLSP.Structures.TypeDefinitionOptions.t()
+      | GenLSP.Structures.TypeDefinitionRegistrationOptions.t()
+    )
 
-    field :implementation_provider,
-          boolean()
-          | GenLSP.Structures.ImplementationOptions.t()
-          | GenLSP.Structures.ImplementationRegistrationOptions.t()
+    field(
+      :implementation_provider,
+      boolean()
+      | GenLSP.Structures.ImplementationOptions.t()
+      | GenLSP.Structures.ImplementationRegistrationOptions.t()
+    )
 
-    field :references_provider, boolean() | GenLSP.Structures.ReferenceOptions.t()
-    field :document_highlight_provider, boolean() | GenLSP.Structures.DocumentHighlightOptions.t()
-    field :document_symbol_provider, boolean() | GenLSP.Structures.DocumentSymbolOptions.t()
-    field :code_action_provider, boolean() | GenLSP.Structures.CodeActionOptions.t()
-    field :code_lens_provider, GenLSP.Structures.CodeLensOptions.t()
-    field :document_link_provider, GenLSP.Structures.DocumentLinkOptions.t()
+    field(:references_provider, boolean() | GenLSP.Structures.ReferenceOptions.t())
 
-    field :color_provider,
-          boolean()
-          | GenLSP.Structures.DocumentColorOptions.t()
-          | GenLSP.Structures.DocumentColorRegistrationOptions.t()
+    field(
+      :document_highlight_provider,
+      boolean() | GenLSP.Structures.DocumentHighlightOptions.t()
+    )
 
-    field :workspace_symbol_provider, boolean() | GenLSP.Structures.WorkspaceSymbolOptions.t()
+    field(:document_symbol_provider, boolean() | GenLSP.Structures.DocumentSymbolOptions.t())
+    field(:code_action_provider, boolean() | GenLSP.Structures.CodeActionOptions.t())
+    field(:code_lens_provider, GenLSP.Structures.CodeLensOptions.t())
+    field(:document_link_provider, GenLSP.Structures.DocumentLinkOptions.t())
 
-    field :document_formatting_provider,
-          boolean() | GenLSP.Structures.DocumentFormattingOptions.t()
+    field(
+      :color_provider,
+      boolean()
+      | GenLSP.Structures.DocumentColorOptions.t()
+      | GenLSP.Structures.DocumentColorRegistrationOptions.t()
+    )
 
-    field :document_range_formatting_provider,
-          boolean() | GenLSP.Structures.DocumentRangeFormattingOptions.t()
+    field(:workspace_symbol_provider, boolean() | GenLSP.Structures.WorkspaceSymbolOptions.t())
 
-    field :document_on_type_formatting_provider,
-          GenLSP.Structures.DocumentOnTypeFormattingOptions.t()
+    field(
+      :document_formatting_provider,
+      boolean() | GenLSP.Structures.DocumentFormattingOptions.t()
+    )
 
-    field :rename_provider, boolean() | GenLSP.Structures.RenameOptions.t()
+    field(
+      :document_range_formatting_provider,
+      boolean() | GenLSP.Structures.DocumentRangeFormattingOptions.t()
+    )
 
-    field :folding_range_provider,
-          boolean()
-          | GenLSP.Structures.FoldingRangeOptions.t()
-          | GenLSP.Structures.FoldingRangeRegistrationOptions.t()
+    field(
+      :document_on_type_formatting_provider,
+      GenLSP.Structures.DocumentOnTypeFormattingOptions.t()
+    )
 
-    field :selection_range_provider,
-          boolean()
-          | GenLSP.Structures.SelectionRangeOptions.t()
-          | GenLSP.Structures.SelectionRangeRegistrationOptions.t()
+    field(:rename_provider, boolean() | GenLSP.Structures.RenameOptions.t())
 
-    field :execute_command_provider, GenLSP.Structures.ExecuteCommandOptions.t()
+    field(
+      :folding_range_provider,
+      boolean()
+      | GenLSP.Structures.FoldingRangeOptions.t()
+      | GenLSP.Structures.FoldingRangeRegistrationOptions.t()
+    )
 
-    field :call_hierarchy_provider,
-          boolean()
-          | GenLSP.Structures.CallHierarchyOptions.t()
-          | GenLSP.Structures.CallHierarchyRegistrationOptions.t()
+    field(
+      :selection_range_provider,
+      boolean()
+      | GenLSP.Structures.SelectionRangeOptions.t()
+      | GenLSP.Structures.SelectionRangeRegistrationOptions.t()
+    )
 
-    field :linked_editing_range_provider,
-          boolean()
-          | GenLSP.Structures.LinkedEditingRangeOptions.t()
-          | GenLSP.Structures.LinkedEditingRangeRegistrationOptions.t()
+    field(:execute_command_provider, GenLSP.Structures.ExecuteCommandOptions.t())
 
-    field :semantic_tokens_provider,
-          GenLSP.Structures.SemanticTokensOptions.t()
-          | GenLSP.Structures.SemanticTokensRegistrationOptions.t()
+    field(
+      :call_hierarchy_provider,
+      boolean()
+      | GenLSP.Structures.CallHierarchyOptions.t()
+      | GenLSP.Structures.CallHierarchyRegistrationOptions.t()
+    )
 
-    field :moniker_provider,
-          boolean()
-          | GenLSP.Structures.MonikerOptions.t()
-          | GenLSP.Structures.MonikerRegistrationOptions.t()
+    field(
+      :linked_editing_range_provider,
+      boolean()
+      | GenLSP.Structures.LinkedEditingRangeOptions.t()
+      | GenLSP.Structures.LinkedEditingRangeRegistrationOptions.t()
+    )
 
-    field :type_hierarchy_provider,
-          boolean()
-          | GenLSP.Structures.TypeHierarchyOptions.t()
-          | GenLSP.Structures.TypeHierarchyRegistrationOptions.t()
+    field(
+      :semantic_tokens_provider,
+      GenLSP.Structures.SemanticTokensOptions.t()
+      | GenLSP.Structures.SemanticTokensRegistrationOptions.t()
+    )
 
-    field :inline_value_provider,
-          boolean()
-          | GenLSP.Structures.InlineValueOptions.t()
-          | GenLSP.Structures.InlineValueRegistrationOptions.t()
+    field(
+      :moniker_provider,
+      boolean()
+      | GenLSP.Structures.MonikerOptions.t()
+      | GenLSP.Structures.MonikerRegistrationOptions.t()
+    )
 
-    field :inlay_hint_provider,
-          boolean()
-          | GenLSP.Structures.InlayHintOptions.t()
-          | GenLSP.Structures.InlayHintRegistrationOptions.t()
+    field(
+      :type_hierarchy_provider,
+      boolean()
+      | GenLSP.Structures.TypeHierarchyOptions.t()
+      | GenLSP.Structures.TypeHierarchyRegistrationOptions.t()
+    )
 
-    field :diagnostic_provider,
-          GenLSP.Structures.DiagnosticOptions.t()
-          | GenLSP.Structures.DiagnosticRegistrationOptions.t()
+    field(
+      :inline_value_provider,
+      boolean()
+      | GenLSP.Structures.InlineValueOptions.t()
+      | GenLSP.Structures.InlineValueRegistrationOptions.t()
+    )
 
-    field :workspace, map()
-    field :experimental, GenLSP.TypeAlias.LSPAny.t()
+    field(
+      :inlay_hint_provider,
+      boolean()
+      | GenLSP.Structures.InlayHintOptions.t()
+      | GenLSP.Structures.InlayHintRegistrationOptions.t()
+    )
+
+    field(
+      :diagnostic_provider,
+      GenLSP.Structures.DiagnosticOptions.t()
+      | GenLSP.Structures.DiagnosticRegistrationOptions.t()
+    )
+
+    field(:workspace, map())
+    field(:experimental, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

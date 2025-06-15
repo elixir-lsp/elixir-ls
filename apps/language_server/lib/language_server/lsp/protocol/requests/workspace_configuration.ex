@@ -16,12 +16,11 @@ defmodule GenLSP.Requests.WorkspaceConfiguration do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/configuration"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.ConfigurationParams.t()
+    field(:method, String.t(), default: "workspace/configuration")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.ConfigurationParams.t())
   end
 
   @type result :: list(GenLSP.TypeAlias.LSPAny.t())

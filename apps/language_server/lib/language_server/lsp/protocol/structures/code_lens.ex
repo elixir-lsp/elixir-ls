@@ -21,11 +21,11 @@ defmodule GenLSP.Structures.CodeLens do
     a {@link CodeLensRequest} and a [CodeLensResolveRequest]
     (#CodeLensResolveRequest)
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :command, GenLSP.Structures.Command.t()
-    field :data, GenLSP.TypeAlias.LSPAny.t()
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:command, GenLSP.Structures.Command.t())
+    field(:data, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

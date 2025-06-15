@@ -10,10 +10,10 @@ defmodule GenLSP.Structures.LogTraceParams do
   * message
   * verbose
   """
-  
+
   typedstruct do
-    field :message, String.t(), enforce: true
-    field :verbose, String.t()
+    field(:message, String.t(), enforce: true)
+    field(:verbose, String.t())
   end
 
   @doc false

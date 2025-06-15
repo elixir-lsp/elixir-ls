@@ -26,12 +26,12 @@ defmodule GenLSP.Structures.NotebookCell do
   * execution_summary: Additional execution summary information
     if supported by the client.
   """
-  
+
   typedstruct do
-    field :kind, GenLSP.Enumerations.NotebookCellKind.t(), enforce: true
-    field :document, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :metadata, GenLSP.TypeAlias.LSPObject.t()
-    field :execution_summary, GenLSP.Structures.ExecutionSummary.t()
+    field(:kind, GenLSP.Enumerations.NotebookCellKind.t(), enforce: true)
+    field(:document, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:metadata, GenLSP.TypeAlias.LSPObject.t())
+    field(:execution_summary, GenLSP.Structures.ExecutionSummary.t())
   end
 
   @doc false

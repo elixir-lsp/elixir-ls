@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.VersionedTextDocumentIdentifier do
   * version: The version number of this document.
   * uri: The text document's uri.
   """
-  
+
   typedstruct do
-    field :version, integer(), enforce: true
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
+    field(:version, integer(), enforce: true)
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
   end
 
   @doc false

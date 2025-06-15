@@ -14,9 +14,9 @@ defmodule GenLSP.Structures.DefinitionRegistrationOptions do
   * document_selector: A document selector to identify the scope of the registration. If set to null
     the document selector provided on the client side will be used.
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
   end
 
   @doc false

@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.DidOpenNotebookDocumentParams do
   * cell_text_documents: The text documents that represent the content
     of a notebook cell.
   """
-  
+
   typedstruct do
-    field :notebook_document, GenLSP.Structures.NotebookDocument.t(), enforce: true
-    field :cell_text_documents, list(GenLSP.Structures.TextDocumentItem.t()), enforce: true
+    field(:notebook_document, GenLSP.Structures.NotebookDocument.t(), enforce: true)
+    field(:cell_text_documents, list(GenLSP.Structures.TextDocumentItem.t()), enforce: true)
   end
 
   @doc false

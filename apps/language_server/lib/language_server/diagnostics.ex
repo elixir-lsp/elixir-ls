@@ -316,17 +316,25 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       for %__MODULE__{} = diagnostic <- uri_diagnostics do
         severity =
           case diagnostic.severity do
-            :error -> GenLSP.Enumerations.DiagnosticSeverity.error()
-            :warning -> GenLSP.Enumerations.DiagnosticSeverity.warning()
-            :information -> GenLSP.Enumerations.DiagnosticSeverity.information()
-            :hint -> GenLSP.Enumerations.DiagnosticSeverity.hint()
+            :error ->
+              GenLSP.Enumerations.DiagnosticSeverity.error()
+
+            :warning ->
+              GenLSP.Enumerations.DiagnosticSeverity.warning()
+
+            :information ->
+              GenLSP.Enumerations.DiagnosticSeverity.information()
+
+            :hint ->
+              GenLSP.Enumerations.DiagnosticSeverity.hint()
+
             other ->
               Logger.warning(
                 "Invalid severity on diagnostic: #{inspect(other)}, using warning level"
               )
+
               GenLSP.Enumerations.DiagnosticSeverity.warning()
           end
-
 
         related_information =
           build_related_information(diagnostic, uri, source_file)
@@ -348,7 +356,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       diagnostics: diagnostics
     }
 
-    params = 
+    params =
       if is_integer(version) do
         %{params | version: version}
       else
@@ -499,22 +507,24 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           %GenLSP.Structures.DiagnosticRelatedInformation{
             location: %GenLSP.Structures.Location{
               uri: uri,
-              range: range(
-                {payload.line, payload.column, payload.line,
-                 payload.column + String.length(to_string(payload.opening_delimiter))},
-                source_file
-              )
+              range:
+                range(
+                  {payload.line, payload.column, payload.line,
+                   payload.column + String.length(to_string(payload.opening_delimiter))},
+                  source_file
+                )
             },
             message: "opening delimiter: #{payload.opening_delimiter}"
           },
           %GenLSP.Structures.DiagnosticRelatedInformation{
             location: %GenLSP.Structures.Location{
               uri: uri,
-              range: range(
-                {payload.end_line, payload.end_column, payload.end_line,
-                 payload.end_column + String.length(to_string(payload.closing_delimiter))},
-                source_file
-              )
+              range:
+                range(
+                  {payload.end_line, payload.end_column, payload.end_line,
+                   payload.end_column + String.length(to_string(payload.closing_delimiter))},
+                  source_file
+                )
             },
             message: "closing delimiter: #{payload.closing_delimiter}"
           }
@@ -526,11 +536,12 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           %GenLSP.Structures.DiagnosticRelatedInformation{
             location: %GenLSP.Structures.Location{
               uri: uri,
-              range: range(
-                {payload.line, payload.column, payload.line,
-                 payload.column + String.length(to_string(payload.opening_delimiter))},
-                source_file
-              )
+              range:
+                range(
+                  {payload.line, payload.column, payload.line,
+                   payload.column + String.length(to_string(payload.opening_delimiter))},
+                  source_file
+                )
             },
             message: "opening delimiter: #{payload.opening_delimiter}"
           },

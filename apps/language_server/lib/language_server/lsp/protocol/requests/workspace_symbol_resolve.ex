@@ -13,12 +13,11 @@ defmodule GenLSP.Requests.WorkspaceSymbolResolve do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspaceSymbol/resolve"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.WorkspaceSymbol.t()
+    field(:method, String.t(), default: "workspaceSymbol/resolve")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.WorkspaceSymbol.t())
   end
 
   @type result :: GenLSP.Structures.WorkspaceSymbol.t()

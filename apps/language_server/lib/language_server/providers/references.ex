@@ -46,7 +46,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
           SourceFile.elixir_position_to_lsp(text, {ref.range.end.line, ref.range.end.column})
 
         uri = build_uri(ref, current_file_uri, project_dir)
-        
+
         %GenLSP.Structures.Location{
           uri: uri,
           range: %GenLSP.Structures.Range{

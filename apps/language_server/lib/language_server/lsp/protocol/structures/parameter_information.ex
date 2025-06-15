@@ -23,12 +23,13 @@ defmodule GenLSP.Structures.ParameterInformation do
   * documentation: The human-readable doc-comment of this parameter. Will be shown
     in the UI but can be omitted.
   """
-  
-  typedstruct do
-    field :label, String.t() | {GenLSP.BaseTypes.uinteger(), GenLSP.BaseTypes.uinteger()},
-      enforce: true
 
-    field :documentation, String.t() | GenLSP.Structures.MarkupContent.t()
+  typedstruct do
+    field(:label, String.t() | {GenLSP.BaseTypes.uinteger(), GenLSP.BaseTypes.uinteger()},
+      enforce: true
+    )
+
+    field(:documentation, String.t() | GenLSP.Structures.MarkupContent.t())
   end
 
   @doc false

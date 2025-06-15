@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.TextDocumentLinkedEditingRange do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/linkedEditingRange"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.LinkedEditingRangeParams.t()
+    field(:method, String.t(), default: "textDocument/linkedEditingRange")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.LinkedEditingRangeParams.t())
   end
 
   @type result :: GenLSP.Structures.LinkedEditingRanges.t() | nil

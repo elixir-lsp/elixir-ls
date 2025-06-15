@@ -14,12 +14,11 @@ defmodule GenLSP.Requests.InlayHintResolve do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "inlayHint/resolve"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.InlayHint.t()
+    field(:method, String.t(), default: "inlayHint/resolve")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.InlayHint.t())
   end
 
   @type result :: GenLSP.Structures.InlayHint.t()

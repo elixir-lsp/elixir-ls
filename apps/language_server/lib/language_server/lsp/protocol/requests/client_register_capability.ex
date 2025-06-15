@@ -11,12 +11,11 @@ defmodule GenLSP.Requests.ClientRegisterCapability do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "client/registerCapability"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.RegistrationParams.t()
+    field(:method, String.t(), default: "client/registerCapability")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.RegistrationParams.t())
   end
 
   @type result :: nil

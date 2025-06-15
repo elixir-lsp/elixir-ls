@@ -13,12 +13,11 @@ defmodule GenLSP.Requests.TextDocumentFoldingRange do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/foldingRange"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.FoldingRangeParams.t()
+    field(:method, String.t(), default: "textDocument/foldingRange")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.FoldingRangeParams.t())
   end
 
   @type result :: list(GenLSP.Structures.FoldingRange.t()) | nil

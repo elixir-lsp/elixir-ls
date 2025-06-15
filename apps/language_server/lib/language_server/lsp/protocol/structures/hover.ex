@@ -15,15 +15,17 @@ defmodule GenLSP.Structures.Hover do
   * range: An optional range inside the text document that is used to
     visualize the hover, e.g. by changing the background color.
   """
-  
-  typedstruct do
-    field :contents,
-          GenLSP.Structures.MarkupContent.t()
-          | GenLSP.TypeAlias.MarkedString.t()
-          | list(GenLSP.TypeAlias.MarkedString.t()),
-          enforce: true
 
-    field :range, GenLSP.Structures.Range.t()
+  typedstruct do
+    field(
+      :contents,
+      GenLSP.Structures.MarkupContent.t()
+      | GenLSP.TypeAlias.MarkedString.t()
+      | list(GenLSP.TypeAlias.MarkedString.t()),
+      enforce: true
+    )
+
+    field(:range, GenLSP.Structures.Range.t())
   end
 
   @doc false

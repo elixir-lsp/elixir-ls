@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.SelectionRange do
   * range: The {@link Range range} of this selection range.
   * parent: The parent selection range containing this range. Therefore `parent.range` must contain `this.range`.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :parent, GenLSP.Structures.SelectionRange.t()
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:parent, GenLSP.Structures.SelectionRange.t())
   end
 
   @doc false

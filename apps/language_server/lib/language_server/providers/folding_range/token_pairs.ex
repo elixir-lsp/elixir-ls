@@ -106,7 +106,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
     end)
     |> Enum.filter(fn {start_line, end_line} -> end_line > start_line end)
     |> Enum.map(fn {start_line, end_line} ->
-      %GenLSP.Structures.FoldingRange{start_line: start_line, end_line: end_line, kind: GenLSP.Enumerations.FoldingRangeKind.region()}
+      %GenLSP.Structures.FoldingRange{
+        start_line: start_line,
+        end_line: end_line,
+        kind: GenLSP.Enumerations.FoldingRangeKind.region()
+      }
     end)
   end
 end

@@ -24,12 +24,12 @@ defmodule GenLSP.Structures.SignatureInformation do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :label, String.t(), enforce: true
-    field :documentation, String.t() | GenLSP.Structures.MarkupContent.t()
-    field :parameters, list(GenLSP.Structures.ParameterInformation.t())
-    field :active_parameter, GenLSP.BaseTypes.uinteger()
+    field(:label, String.t(), enforce: true)
+    field(:documentation, String.t() | GenLSP.Structures.MarkupContent.t())
+    field(:parameters, list(GenLSP.Structures.ParameterInformation.t()))
+    field(:active_parameter, GenLSP.BaseTypes.uinteger())
   end
 
   @doc false

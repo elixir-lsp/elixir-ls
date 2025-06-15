@@ -18,11 +18,11 @@ defmodule GenLSP.Structures.NotebookCellArrayChange do
   * delete_count: The deleted cells
   * cells: The new cells, if any
   """
-  
+
   typedstruct do
-    field :start, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :delete_count, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :cells, list(GenLSP.Structures.NotebookCell.t())
+    field(:start, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:delete_count, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:cells, list(GenLSP.Structures.NotebookCell.t()))
   end
 
   @doc false

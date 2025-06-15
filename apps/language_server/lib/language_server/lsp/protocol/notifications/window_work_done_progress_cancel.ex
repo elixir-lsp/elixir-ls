@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.WindowWorkDoneProgressCancel do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "window/workDoneProgress/cancel"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.WorkDoneProgressCancelParams.t()
+    field(:method, String.t(), default: "window/workDoneProgress/cancel")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.WorkDoneProgressCancelParams.t())
   end
 
   @doc false

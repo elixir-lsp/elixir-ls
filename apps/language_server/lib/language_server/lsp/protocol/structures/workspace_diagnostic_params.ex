@@ -20,12 +20,12 @@ defmodule GenLSP.Structures.WorkspaceDiagnosticParams do
   * partial_result_token: An optional token that a server can use to report partial results (e.g. streaming) to
     the client.
   """
-  
+
   typedstruct do
-    field :identifier, String.t()
-    field :previous_result_ids, list(GenLSP.Structures.PreviousResultId.t()), enforce: true
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
-    field :partial_result_token, GenLSP.TypeAlias.ProgressToken.t()
+    field(:identifier, String.t())
+    field(:previous_result_ids, list(GenLSP.Structures.PreviousResultId.t()), enforce: true)
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
+    field(:partial_result_token, GenLSP.TypeAlias.ProgressToken.t())
   end
 
   @doc false

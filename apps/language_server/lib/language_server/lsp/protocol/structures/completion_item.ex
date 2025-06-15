@@ -111,27 +111,27 @@ defmodule GenLSP.Structures.CompletionItem do
   * data: A data entry field that is preserved on a completion item between a
     {@link CompletionRequest} and a {@link CompletionResolveRequest}.
   """
-  
+
   typedstruct do
-    field :label, String.t(), enforce: true
-    field :label_details, GenLSP.Structures.CompletionItemLabelDetails.t()
-    field :kind, GenLSP.Enumerations.CompletionItemKind.t()
-    field :tags, list(GenLSP.Enumerations.CompletionItemTag.t())
-    field :detail, String.t()
-    field :documentation, String.t() | GenLSP.Structures.MarkupContent.t()
-    field :deprecated, boolean()
-    field :preselect, boolean()
-    field :sort_text, String.t()
-    field :filter_text, String.t()
-    field :insert_text, String.t()
-    field :insert_text_format, GenLSP.Enumerations.InsertTextFormat.t()
-    field :insert_text_mode, GenLSP.Enumerations.InsertTextMode.t()
-    field :text_edit, GenLSP.Structures.TextEdit.t() | GenLSP.Structures.InsertReplaceEdit.t()
-    field :text_edit_text, String.t()
-    field :additional_text_edits, list(GenLSP.Structures.TextEdit.t())
-    field :commit_characters, list(String.t())
-    field :command, GenLSP.Structures.Command.t()
-    field :data, GenLSP.TypeAlias.LSPAny.t()
+    field(:label, String.t(), enforce: true)
+    field(:label_details, GenLSP.Structures.CompletionItemLabelDetails.t())
+    field(:kind, GenLSP.Enumerations.CompletionItemKind.t())
+    field(:tags, list(GenLSP.Enumerations.CompletionItemTag.t()))
+    field(:detail, String.t())
+    field(:documentation, String.t() | GenLSP.Structures.MarkupContent.t())
+    field(:deprecated, boolean())
+    field(:preselect, boolean())
+    field(:sort_text, String.t())
+    field(:filter_text, String.t())
+    field(:insert_text, String.t())
+    field(:insert_text_format, GenLSP.Enumerations.InsertTextFormat.t())
+    field(:insert_text_mode, GenLSP.Enumerations.InsertTextMode.t())
+    field(:text_edit, GenLSP.Structures.TextEdit.t() | GenLSP.Structures.InsertReplaceEdit.t())
+    field(:text_edit_text, String.t())
+    field(:additional_text_edits, list(GenLSP.Structures.TextEdit.t()))
+    field(:commit_characters, list(String.t()))
+    field(:command, GenLSP.Structures.Command.t())
+    field(:data, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

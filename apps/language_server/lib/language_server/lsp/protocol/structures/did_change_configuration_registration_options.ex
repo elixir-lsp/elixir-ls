@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.DidChangeConfigurationRegistrationOptions do
 
   * section
   """
-  
+
   typedstruct do
-    field :section, String.t() | list(String.t())
+    field(:section, String.t() | list(String.t()))
   end
 
   @doc false

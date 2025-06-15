@@ -16,11 +16,11 @@ defmodule GenLSP.Structures.DocumentLinkParams do
   * partial_result_token: An optional token that a server can use to report partial results (e.g. streaming) to
     the client.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
-    field :partial_result_token, GenLSP.TypeAlias.ProgressToken.t()
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
+    field(:partial_result_token, GenLSP.TypeAlias.ProgressToken.t())
   end
 
   @doc false

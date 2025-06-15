@@ -17,11 +17,11 @@ defmodule GenLSP.Structures.InlayHintParams do
   * range: The document range for which inlay hints should be computed.
   * work_done_token: An optional token that a server can use to report work done progress.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
   end
 
   @doc false

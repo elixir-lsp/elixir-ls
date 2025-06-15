@@ -19,13 +19,13 @@ defmodule GenLSP.Structures.RenameFile do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :kind, String.t(), enforce: true
-    field :old_uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :new_uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :options, GenLSP.Structures.RenameFileOptions.t()
-    field :annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t()
+    field(:kind, String.t(), enforce: true)
+    field(:old_uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:new_uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:options, GenLSP.Structures.RenameFileOptions.t())
+    field(:annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t())
   end
 
   @doc false

@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.InlayHintOptions do
     information for an inlay hint item.
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :resolve_provider, boolean()
-    field :work_done_progress, boolean()
+    field(:resolve_provider, boolean())
+    field(:work_done_progress, boolean())
   end
 
   @doc false

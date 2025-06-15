@@ -15,11 +15,11 @@ defmodule GenLSP.Structures.SemanticTokensEdit do
   * delete_count: The count of elements to remove.
   * data: The elements to insert.
   """
-  
+
   typedstruct do
-    field :start, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :delete_count, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :data, list(GenLSP.BaseTypes.uinteger())
+    field(:start, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:delete_count, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:data, list(GenLSP.BaseTypes.uinteger()))
   end
 
   @doc false

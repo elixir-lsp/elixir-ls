@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.TextDocumentPositionParams do
   * text_document: The text document.
   * position: The position inside the text document.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :position, GenLSP.Structures.Position.t(), enforce: true
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:position, GenLSP.Structures.Position.t(), enforce: true)
   end
 
   @doc false

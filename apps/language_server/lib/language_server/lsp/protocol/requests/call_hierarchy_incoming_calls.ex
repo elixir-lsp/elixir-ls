@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.CallHierarchyIncomingCalls do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "callHierarchy/incomingCalls"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.CallHierarchyIncomingCallsParams.t()
+    field(:method, String.t(), default: "callHierarchy/incomingCalls")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.CallHierarchyIncomingCallsParams.t())
   end
 
   @type result :: list(GenLSP.Structures.CallHierarchyIncomingCall.t()) | nil

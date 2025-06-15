@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.ExecuteCommandRegistrationOptions do
 
   * commands: The commands to be executed on the server
   """
-  
+
   typedstruct do
-    field :commands, list(String.t()), enforce: true
+    field(:commands, list(String.t()), enforce: true)
   end
 
   @doc false

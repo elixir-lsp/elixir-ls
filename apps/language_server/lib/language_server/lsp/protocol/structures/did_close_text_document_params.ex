@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.DidCloseTextDocumentParams do
 
   * text_document: The document that was closed.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
   end
 
   @doc false

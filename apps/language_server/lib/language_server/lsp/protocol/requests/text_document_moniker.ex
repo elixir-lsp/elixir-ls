@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.TextDocumentMoniker do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/moniker"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.MonikerParams.t()
+    field(:method, String.t(), default: "textDocument/moniker")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.MonikerParams.t())
   end
 
   @type result :: list(GenLSP.Structures.Moniker.t()) | nil

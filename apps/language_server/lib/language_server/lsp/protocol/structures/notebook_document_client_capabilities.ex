@@ -17,10 +17,11 @@ defmodule GenLSP.Structures.NotebookDocumentClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :synchronization, GenLSP.Structures.NotebookDocumentSyncClientCapabilities.t(),
+    field(:synchronization, GenLSP.Structures.NotebookDocumentSyncClientCapabilities.t(),
       enforce: true
+    )
   end
 
   @doc false

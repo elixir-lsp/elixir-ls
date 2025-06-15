@@ -19,12 +19,12 @@ defmodule GenLSP.Structures.Moniker do
   * unique: The scope in which the moniker is unique
   * kind: The moniker kind if known.
   """
-  
+
   typedstruct do
-    field :scheme, String.t(), enforce: true
-    field :identifier, String.t(), enforce: true
-    field :unique, GenLSP.Enumerations.UniquenessLevel.t(), enforce: true
-    field :kind, GenLSP.Enumerations.MonikerKind.t()
+    field(:scheme, String.t(), enforce: true)
+    field(:identifier, String.t(), enforce: true)
+    field(:unique, GenLSP.Enumerations.UniquenessLevel.t(), enforce: true)
+    field(:kind, GenLSP.Enumerations.MonikerKind.t())
   end
 
   @doc false

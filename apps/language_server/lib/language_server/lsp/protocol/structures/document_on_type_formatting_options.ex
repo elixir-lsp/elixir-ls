@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.DocumentOnTypeFormattingOptions do
   * first_trigger_character: A character on which formatting should be triggered, like `{`.
   * more_trigger_character: More trigger characters.
   """
-  
+
   typedstruct do
-    field :first_trigger_character, String.t(), enforce: true
-    field :more_trigger_character, list(String.t())
+    field(:first_trigger_character, String.t(), enforce: true)
+    field(:more_trigger_character, list(String.t()))
   end
 
   @doc false

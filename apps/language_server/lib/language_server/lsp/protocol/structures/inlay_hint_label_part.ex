@@ -34,12 +34,12 @@ defmodule GenLSP.Structures.InlayHintLabelPart do
     Depending on the client capability `inlayHint.resolveSupport` clients
     might resolve this property late using the resolve request.
   """
-  
+
   typedstruct do
-    field :value, String.t(), enforce: true
-    field :tooltip, String.t() | GenLSP.Structures.MarkupContent.t()
-    field :location, GenLSP.Structures.Location.t()
-    field :command, GenLSP.Structures.Command.t()
+    field(:value, String.t(), enforce: true)
+    field(:tooltip, String.t() | GenLSP.Structures.MarkupContent.t())
+    field(:location, GenLSP.Structures.Location.t())
+    field(:command, GenLSP.Structures.Command.t())
   end
 
   @doc false

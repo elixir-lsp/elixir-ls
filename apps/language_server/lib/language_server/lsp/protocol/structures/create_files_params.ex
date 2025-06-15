@@ -16,9 +16,9 @@ defmodule GenLSP.Structures.CreateFilesParams do
 
   * files: An array of all files/folders created in this operation.
   """
-  
+
   typedstruct do
-    field :files, list(GenLSP.Structures.FileCreate.t()), enforce: true
+    field(:files, list(GenLSP.Structures.FileCreate.t()), enforce: true)
   end
 
   @doc false

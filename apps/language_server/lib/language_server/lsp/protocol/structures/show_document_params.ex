@@ -26,12 +26,12 @@ defmodule GenLSP.Structures.ShowDocumentParams do
     external program is started or the file is not a text
     file.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.uri(), enforce: true
-    field :external, boolean()
-    field :take_focus, boolean()
-    field :selection, GenLSP.Structures.Range.t()
+    field(:uri, GenLSP.BaseTypes.uri(), enforce: true)
+    field(:external, boolean())
+    field(:take_focus, boolean())
+    field(:selection, GenLSP.Structures.Range.t())
   end
 
   @doc false

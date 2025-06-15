@@ -1308,11 +1308,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "auto complete", %{server: server} do
     in_fixture(__DIR__, "clean", fn ->
       uri = "file:///file.ex"
+
       code = """
       defmodule MyModule do
         def my_fn, do: GenServe
       end
       """
+
       fake_initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       Server.receive_packet(server, completion_req(1, uri, 1, 22))
@@ -1568,10 +1570,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       wait_until_compiled(server)
-      Server.receive_packet(server, formatting_req(2, uri, %{
-        "tabSize" => 2,
-        "insertSpaces" => true
-      }))
+
+      Server.receive_packet(
+        server,
+        formatting_req(2, uri, %{
+          "tabSize" => 2,
+          "insertSpaces" => true
+        })
+      )
 
       resp = assert_receive(%{"id" => 2}, 1000)
 
@@ -1595,10 +1601,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       # Now try it in a subdirectory with its own .formatter.exs file that does not define a max line length.
       subdir_uri = Path.join([root_uri(), "lib/file.ex"])
       Server.receive_packet(server, did_open(subdir_uri, "elixir", 1, code))
-      Server.receive_packet(server, formatting_req(3, subdir_uri, %{
-        "tabSize" => 2,
-        "insertSpaces" => true
-      }))
+
+      Server.receive_packet(
+        server,
+        formatting_req(3, subdir_uri, %{
+          "tabSize" => 2,
+          "insertSpaces" => true
+        })
+      )
 
       resp = assert_receive(%{"id" => 3}, 1000)
 

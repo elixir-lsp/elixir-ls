@@ -34,14 +34,14 @@ defmodule GenLSP.Structures.SymbolInformation do
     if necessary). It can't be used to re-infer a hierarchy for the document
     symbols.
   """
-  
+
   typedstruct do
-    field :deprecated, boolean()
-    field :location, GenLSP.Structures.Location.t(), enforce: true
-    field :name, String.t(), enforce: true
-    field :kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true
-    field :tags, list(GenLSP.Enumerations.SymbolTag.t())
-    field :container_name, String.t()
+    field(:deprecated, boolean())
+    field(:location, GenLSP.Structures.Location.t(), enforce: true)
+    field(:name, String.t(), enforce: true)
+    field(:kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true)
+    field(:tags, list(GenLSP.Enumerations.SymbolTag.t()))
+    field(:container_name, String.t())
   end
 
   @doc false

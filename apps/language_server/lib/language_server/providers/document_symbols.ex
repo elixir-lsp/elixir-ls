@@ -394,8 +394,20 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp maybe_extend_range(
-         %GenLSP.Structures.Range{start: %GenLSP.Structures.Position{line: start_line, character: start_character}, end: %GenLSP.Structures.Position{line: end_line, character: end_character}},
-         %GenLSP.Structures.Range{start: %GenLSP.Structures.Position{line: selection_start_line, character: selection_start_character}, end: %GenLSP.Structures.Position{line: selection_end_line, character: selection_end_character}}
+         %GenLSP.Structures.Range{
+           start: %GenLSP.Structures.Position{line: start_line, character: start_character},
+           end: %GenLSP.Structures.Position{line: end_line, character: end_character}
+         },
+         %GenLSP.Structures.Range{
+           start: %GenLSP.Structures.Position{
+             line: selection_start_line,
+             character: selection_start_character
+           },
+           end: %GenLSP.Structures.Position{
+             line: selection_end_line,
+             character: selection_end_character
+           }
+         }
        ) do
     {extended_start_line, extended_start_character} =
       cond do
@@ -422,7 +434,10 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       end
 
     %GenLSP.Structures.Range{
-      start: %GenLSP.Structures.Position{line: extended_start_line, character: extended_start_character},
+      start: %GenLSP.Structures.Position{
+        line: extended_start_line,
+        character: extended_start_character
+      },
       end: %GenLSP.Structures.Position{line: extended_end_line, character: extended_end_character}
     }
   end

@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.TextDocumentPublishDiagnostics do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/publishDiagnostics"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.PublishDiagnosticsParams.t()
+    field(:method, String.t(), default: "textDocument/publishDiagnostics")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.PublishDiagnosticsParams.t())
   end
 
   @doc false

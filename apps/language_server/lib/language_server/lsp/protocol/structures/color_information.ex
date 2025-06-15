@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.ColorInformation do
   * range: The range in the document where this color appears.
   * color: The actual color value for this color range.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :color, GenLSP.Structures.Color.t(), enforce: true
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:color, GenLSP.Structures.Color.t(), enforce: true)
   end
 
   @doc false

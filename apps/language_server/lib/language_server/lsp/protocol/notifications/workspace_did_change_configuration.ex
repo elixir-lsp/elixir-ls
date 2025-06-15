@@ -12,11 +12,10 @@ defmodule GenLSP.Notifications.WorkspaceDidChangeConfiguration do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/didChangeConfiguration"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidChangeConfigurationParams.t()
+    field(:method, String.t(), default: "workspace/didChangeConfiguration")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidChangeConfigurationParams.t())
   end
 
   @doc false

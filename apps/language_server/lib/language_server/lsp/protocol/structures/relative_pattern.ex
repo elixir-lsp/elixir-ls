@@ -19,10 +19,13 @@ defmodule GenLSP.Structures.RelativePattern do
     against relatively.
   * pattern: The actual glob pattern;
   """
-  
+
   typedstruct do
-    field :base_uri, GenLSP.Structures.WorkspaceFolder.t() | GenLSP.BaseTypes.uri(), enforce: true
-    field :pattern, GenLSP.TypeAlias.Pattern.t(), enforce: true
+    field(:base_uri, GenLSP.Structures.WorkspaceFolder.t() | GenLSP.BaseTypes.uri(),
+      enforce: true
+    )
+
+    field(:pattern, GenLSP.TypeAlias.Pattern.t(), enforce: true)
   end
 
   @doc false

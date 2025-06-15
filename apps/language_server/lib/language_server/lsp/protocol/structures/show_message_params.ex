@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.ShowMessageParams do
   * type: The message type. See {@link MessageType}
   * message: The actual message.
   """
-  
+
   typedstruct do
-    field :type, GenLSP.Enumerations.MessageType.t(), enforce: true
-    field :message, String.t(), enforce: true
+    field(:type, GenLSP.Enumerations.MessageType.t(), enforce: true)
+    field(:message, String.t(), enforce: true)
   end
 
   @doc false

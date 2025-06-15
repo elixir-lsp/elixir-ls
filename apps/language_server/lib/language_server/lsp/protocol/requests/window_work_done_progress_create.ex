@@ -11,12 +11,11 @@ defmodule GenLSP.Requests.WindowWorkDoneProgressCreate do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "window/workDoneProgress/create"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.WorkDoneProgressCreateParams.t()
+    field(:method, String.t(), default: "window/workDoneProgress/create")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.WorkDoneProgressCreateParams.t())
   end
 
   @type result :: nil

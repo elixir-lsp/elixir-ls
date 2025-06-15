@@ -23,11 +23,11 @@ defmodule GenLSP.Structures.WindowClientCapabilities do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :work_done_progress, boolean()
-    field :show_message, GenLSP.Structures.ShowMessageRequestClientCapabilities.t()
-    field :show_document, GenLSP.Structures.ShowDocumentClientCapabilities.t()
+    field(:work_done_progress, boolean())
+    field(:show_message, GenLSP.Structures.ShowMessageRequestClientCapabilities.t())
+    field(:show_document, GenLSP.Structures.ShowDocumentClientCapabilities.t())
   end
 
   @doc false

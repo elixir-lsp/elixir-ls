@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.WorkDoneProgressParams do
 
   * work_done_token: An optional token that a server can use to report work done progress.
   """
-  
+
   typedstruct do
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
   end
 
   @doc false

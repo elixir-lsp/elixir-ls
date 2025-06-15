@@ -22,12 +22,12 @@ defmodule GenLSP.Structures.DiagnosticOptions do
   * workspace_diagnostics: The server provides support for workspace diagnostics as well.
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :identifier, String.t()
-    field :inter_file_dependencies, boolean(), enforce: true
-    field :workspace_diagnostics, boolean(), enforce: true
-    field :work_done_progress, boolean()
+    field(:identifier, String.t())
+    field(:inter_file_dependencies, boolean(), enforce: true)
+    field(:workspace_diagnostics, boolean(), enforce: true)
+    field(:work_done_progress, boolean())
   end
 
   @doc false

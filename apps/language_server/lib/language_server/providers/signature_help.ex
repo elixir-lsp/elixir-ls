@@ -41,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
     params_info = for param <- params, do: %GenLSP.Structures.ParameterInformation{label: param}
 
     label = "#{name}(#{Enum.join(params, ", ")})"
-    
+
     base_signature = %GenLSP.Structures.SignatureInformation{
       label: label,
       parameters: params_info
@@ -73,10 +73,13 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
   end
 
   defp put_documentation(signature = %GenLSP.Structures.SignatureInformation{}, documentation) do
-    %{signature | documentation: %GenLSP.Structures.MarkupContent{
-      kind: GenLSP.Enumerations.MarkupKind.markdown(),
-      value: documentation
-    }}
+    %{
+      signature
+      | documentation: %GenLSP.Structures.MarkupContent{
+          kind: GenLSP.Enumerations.MarkupKind.markdown(),
+          value: documentation
+        }
+    }
   end
 
   defp put_metadata(signature = %GenLSP.Structures.SignatureInformation{}, metadata) do
@@ -84,10 +87,12 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp do
       metadata_md = MarkdownUtils.get_metadata_md(metadata)
 
       if metadata_md != "" do
-        current_docs = case signature.documentation do
-          %GenLSP.Structures.MarkupContent{value: value} -> value
-          _ -> ""
-        end
+        current_docs =
+          case signature.documentation do
+            %GenLSP.Structures.MarkupContent{value: value} -> value
+            _ -> ""
+          end
+
         put_documentation(signature, metadata_md <> "\n\n" <> current_docs)
       else
         signature

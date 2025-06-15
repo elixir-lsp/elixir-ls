@@ -40,21 +40,23 @@ defmodule GenLSP.Structures.WorkspaceEdit do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :changes, %{GenLSP.BaseTypes.document_uri() => list(GenLSP.Structures.TextEdit.t())}
+    field(:changes, %{GenLSP.BaseTypes.document_uri() => list(GenLSP.Structures.TextEdit.t())})
 
-    field :document_changes,
-          list(
-            GenLSP.Structures.TextDocumentEdit.t()
-            | GenLSP.Structures.CreateFile.t()
-            | GenLSP.Structures.RenameFile.t()
-            | GenLSP.Structures.DeleteFile.t()
-          )
+    field(
+      :document_changes,
+      list(
+        GenLSP.Structures.TextDocumentEdit.t()
+        | GenLSP.Structures.CreateFile.t()
+        | GenLSP.Structures.RenameFile.t()
+        | GenLSP.Structures.DeleteFile.t()
+      )
+    )
 
-    field :change_annotations, %{
+    field(:change_annotations, %{
       GenLSP.TypeAlias.ChangeAnnotationIdentifier.t() => GenLSP.Structures.ChangeAnnotation.t()
-    }
+    })
   end
 
   @doc false

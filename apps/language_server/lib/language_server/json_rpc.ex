@@ -90,6 +90,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     case Schematic.dump(module.schematic(), notification_struct) do
       {:ok, dumped} ->
         WireProtocol.send(dumped)
+
       {:error, error} ->
         IO.puts(:stderr, "Error dumping notification: #{inspect(error)}")
     end
@@ -118,6 +119,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
         message: to_string(message)
       }
     }
+
     notify(notification)
   end
 
@@ -129,7 +131,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
           message: to_string(message)
         }
       }
-      
+
       notify(notification)
     end
   end
@@ -165,6 +167,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
         measurements: measurements
       }
     }
+
     notify(notification)
   end
 
@@ -173,10 +176,10 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     {:ok, dumped} = Schematic.dump(options_module.schematic(), options_payload)
     id_string = server_instance_id <> method <> JasonV.encode!(dumped)
     registration_id = :crypto.hash(:sha, id_string) |> Base.encode16()
-    
+
     # Generate a unique request ID
     request_id = System.unique_integer([:positive])
-    
+
     request = %GenLSP.Requests.ClientRegisterCapability{
       id: request_id,
       params: %GenLSP.Structures.RegistrationParams{
@@ -196,7 +199,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   def get_configuration_request(server \\ __MODULE__, scope_uri, section) do
     # Generate a unique request ID
     request_id = System.unique_integer([:positive])
-    
+
     request = %GenLSP.Requests.WorkspaceConfiguration{
       id: request_id,
       params: %GenLSP.Structures.ConfigurationParams{
@@ -215,7 +218,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   def show_message_request(server \\ __MODULE__, type, message, actions) do
     # Generate a unique request ID
     request_id = System.unique_integer([:positive])
-    
+
     request = %GenLSP.Requests.WindowShowMessageRequest{
       id: request_id,
       params: %GenLSP.Structures.ShowMessageRequestParams{
@@ -277,18 +280,21 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   @impl GenServer
   def handle_call({:packet, %{"id" => id, "result" => result}}, _from, state) do
     %{^id => {from, module}} = state.outgoing_requests
+
     case Schematic.unify(module.result(), result) do
       {:ok, error_response = %GenLSP.ErrorResponse{}} ->
         GenServer.reply(from, {:error, error_response})
+
       {:ok, loaded} ->
         GenServer.reply(from, {:ok, loaded})
+
       {:error, error} ->
         GenServer.reply(from, {:error, error})
     end
+
     state = update_in(state.outgoing_requests, &Map.delete(&1, id))
     {:reply, :ok, state}
   end
-
 
   @impl GenServer
   def handle_call({:request, id, dumped, module}, from, state) do

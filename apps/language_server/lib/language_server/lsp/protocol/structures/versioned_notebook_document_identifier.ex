@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.VersionedNotebookDocumentIdentifier do
   * version: The version number of this notebook document.
   * uri: The notebook document's uri.
   """
-  
+
   typedstruct do
-    field :version, integer(), enforce: true
-    field :uri, GenLSP.BaseTypes.uri(), enforce: true
+    field(:version, integer(), enforce: true)
+    field(:uri, GenLSP.BaseTypes.uri(), enforce: true)
   end
 
   @doc false

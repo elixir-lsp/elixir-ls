@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.TextDocumentSaveRegistrationOptions do
     the document selector provided on the client side will be used.
   * include_text: The client is supposed to include the content on save.
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :include_text, boolean()
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:include_text, boolean())
   end
 
   @doc false

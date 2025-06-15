@@ -18,10 +18,10 @@ defmodule GenLSP.Structures.CompletionItemLabelDetails do
   * description: An optional string which is rendered less prominently after {@link CompletionItem.detail}. Should be used
     for fully qualified names and file paths.
   """
-  
+
   typedstruct do
-    field :detail, String.t()
-    field :description, String.t()
+    field(:detail, String.t())
+    field(:description, String.t())
   end
 
   @doc false

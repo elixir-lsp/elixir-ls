@@ -18,12 +18,12 @@ defmodule GenLSP.Structures.TextDocumentItem do
     change, including undo/redo).
   * text: The content of the opened text document.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :language_id, String.t(), enforce: true
-    field :version, integer(), enforce: true
-    field :text, String.t(), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:language_id, String.t(), enforce: true)
+    field(:version, integer(), enforce: true)
+    field(:text, String.t(), enforce: true)
   end
 
   @doc false

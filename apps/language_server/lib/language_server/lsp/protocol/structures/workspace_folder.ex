@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.WorkspaceFolder do
   * name: The name of the workspace folder. Used to refer to this
     workspace folder in the user interface.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.uri(), enforce: true
-    field :name, String.t(), enforce: true
+    field(:uri, GenLSP.BaseTypes.uri(), enforce: true)
+    field(:name, String.t(), enforce: true)
   end
 
   @doc false

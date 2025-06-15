@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.DidOpenTextDocumentParams do
 
   * text_document: The document that was opened.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentItem.t(), enforce: true
+    field(:text_document, GenLSP.Structures.TextDocumentItem.t(), enforce: true)
   end
 
   @doc false

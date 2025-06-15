@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.CompletionContext do
   * trigger_character: The trigger character (a single character) that has trigger code complete.
     Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter`
   """
-  
+
   typedstruct do
-    field :trigger_kind, GenLSP.Enumerations.CompletionTriggerKind.t(), enforce: true
-    field :trigger_character, String.t()
+    field(:trigger_kind, GenLSP.Enumerations.CompletionTriggerKind.t(), enforce: true)
+    field(:trigger_character, String.t())
   end
 
   @doc false

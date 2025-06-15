@@ -24,13 +24,13 @@ defmodule GenLSP.Structures.FoldingRangeClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :range_limit, GenLSP.BaseTypes.uinteger()
-    field :line_folding_only, boolean()
-    field :folding_range_kind, map()
-    field :folding_range, map()
+    field(:dynamic_registration, boolean())
+    field(:range_limit, GenLSP.BaseTypes.uinteger())
+    field(:line_folding_only, boolean())
+    field(:folding_range_kind, map())
+    field(:folding_range, map())
   end
 
   @doc false

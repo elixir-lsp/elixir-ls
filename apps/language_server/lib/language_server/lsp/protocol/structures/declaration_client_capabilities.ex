@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.DeclarationClientCapabilities do
     for the corresponding server capability as well.
   * link_support: The client supports additional metadata in the form of declaration links.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :link_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:link_support, boolean())
   end
 
   @doc false

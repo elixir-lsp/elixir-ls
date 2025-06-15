@@ -19,10 +19,10 @@ defmodule GenLSP.Structures.NotebookDocumentSyncClientCapabilities do
     return value for the corresponding server capability as well.
   * execution_summary_support: The client supports sending execution summary data per cell.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :execution_summary_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:execution_summary_support, boolean())
   end
 
   @doc false

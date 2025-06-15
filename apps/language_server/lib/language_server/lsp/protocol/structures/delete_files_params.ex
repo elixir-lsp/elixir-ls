@@ -16,9 +16,9 @@ defmodule GenLSP.Structures.DeleteFilesParams do
 
   * files: An array of all files/folders deleted in this operation.
   """
-  
+
   typedstruct do
-    field :files, list(GenLSP.Structures.FileDelete.t()), enforce: true
+    field(:files, list(GenLSP.Structures.FileDelete.t()), enforce: true)
   end
 
   @doc false

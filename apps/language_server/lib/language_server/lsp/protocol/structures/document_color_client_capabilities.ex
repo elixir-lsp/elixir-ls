@@ -11,9 +11,9 @@ defmodule GenLSP.Structures.DocumentColorClientCapabilities do
     the client supports the new `DocumentColorRegistrationOptions` return value
     for the corresponding server capability as well.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
+    field(:dynamic_registration, boolean())
   end
 
   @doc false

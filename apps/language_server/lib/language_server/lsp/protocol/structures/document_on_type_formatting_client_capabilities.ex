@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.DocumentOnTypeFormattingClientCapabilities do
 
   * dynamic_registration: Whether on type formatting supports dynamic registration.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
+    field(:dynamic_registration, boolean())
   end
 
   @doc false

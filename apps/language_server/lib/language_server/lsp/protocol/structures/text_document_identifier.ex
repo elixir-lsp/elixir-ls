@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.TextDocumentIdentifier do
 
   * uri: The text document's uri.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
   end
 
   @doc false

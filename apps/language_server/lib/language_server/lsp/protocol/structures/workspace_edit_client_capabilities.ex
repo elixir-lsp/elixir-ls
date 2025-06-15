@@ -28,13 +28,13 @@ defmodule GenLSP.Structures.WorkspaceEditClientCapabilities do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :document_changes, boolean()
-    field :resource_operations, list(GenLSP.Enumerations.ResourceOperationKind.t())
-    field :failure_handling, GenLSP.Enumerations.FailureHandlingKind.t()
-    field :normalizes_line_endings, boolean()
-    field :change_annotation_support, map()
+    field(:document_changes, boolean())
+    field(:resource_operations, list(GenLSP.Enumerations.ResourceOperationKind.t()))
+    field(:failure_handling, GenLSP.Enumerations.FailureHandlingKind.t())
+    field(:normalizes_line_endings, boolean())
+    field(:change_annotation_support, map())
   end
 
   @doc false

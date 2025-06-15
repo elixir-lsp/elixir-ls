@@ -13,11 +13,10 @@ defmodule GenLSP.Requests.Shutdown do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "shutdown"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
+    field(:method, String.t(), default: "shutdown")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
   end
 
   @type result :: nil

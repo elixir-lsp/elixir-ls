@@ -23,13 +23,13 @@ defmodule GenLSP.Structures.FormattingOptions do
 
     @since 3.15.0
   """
-  
+
   typedstruct do
-    field :tab_size, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :insert_spaces, boolean(), enforce: true
-    field :trim_trailing_whitespace, boolean()
-    field :insert_final_newline, boolean()
-    field :trim_final_newlines, boolean()
+    field(:tab_size, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:insert_spaces, boolean(), enforce: true)
+    field(:trim_trailing_whitespace, boolean())
+    field(:insert_final_newline, boolean())
+    field(:trim_final_newlines, boolean())
   end
 
   @doc false

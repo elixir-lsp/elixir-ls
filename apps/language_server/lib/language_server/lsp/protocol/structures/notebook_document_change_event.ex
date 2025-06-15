@@ -18,10 +18,10 @@ defmodule GenLSP.Structures.NotebookDocumentChangeEvent do
     Note: should always be an object literal (e.g. LSPObject)
   * cells: Changes to cells
   """
-  
+
   typedstruct do
-    field :metadata, GenLSP.TypeAlias.LSPObject.t()
-    field :cells, map()
+    field(:metadata, GenLSP.TypeAlias.LSPObject.t())
+    field(:cells, map())
   end
 
   @doc false

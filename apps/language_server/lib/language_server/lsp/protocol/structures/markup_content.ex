@@ -35,10 +35,10 @@ defmodule GenLSP.Structures.MarkupContent do
   * kind: The type of the Markup
   * value: The content itself
   """
-  
+
   typedstruct do
-    field :kind, GenLSP.Enumerations.MarkupKind.t(), enforce: true
-    field :value, String.t(), enforce: true
+    field(:kind, GenLSP.Enumerations.MarkupKind.t(), enforce: true)
+    field(:value, String.t(), enforce: true)
   end
 
   @doc false

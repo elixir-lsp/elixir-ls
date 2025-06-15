@@ -25,13 +25,13 @@ defmodule GenLSP.Structures.DocumentSymbolClientCapabilities do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :symbol_kind, map()
-    field :hierarchical_document_symbol_support, boolean()
-    field :tag_support, map()
-    field :label_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:symbol_kind, map())
+    field(:hierarchical_document_symbol_support, boolean())
+    field(:tag_support, map())
+    field(:label_support, boolean())
   end
 
   @doc false

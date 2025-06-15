@@ -13,12 +13,11 @@ defmodule GenLSP.Requests.TextDocumentColorPresentation do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/colorPresentation"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.ColorPresentationParams.t()
+    field(:method, String.t(), default: "textDocument/colorPresentation")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.ColorPresentationParams.t())
   end
 
   @type result :: list(GenLSP.Structures.ColorPresentation.t())

@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.DocumentLinkRegistrationOptions do
     the document selector provided on the client side will be used.
   * resolve_provider: Document links have a resolve provider as well.
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :resolve_provider, boolean()
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:resolve_provider, boolean())
   end
 
   @doc false

@@ -26,12 +26,13 @@ defmodule GenLSP.Structures.DidChangeTextDocumentParams do
     - apply the `TextDocumentContentChangeEvent`s in a single notification in the order
       you receive them.
   """
-  
-  typedstruct do
-    field :text_document, GenLSP.Structures.VersionedTextDocumentIdentifier.t(), enforce: true
 
-    field :content_changes, list(GenLSP.TypeAlias.TextDocumentContentChangeEvent.t()),
+  typedstruct do
+    field(:text_document, GenLSP.Structures.VersionedTextDocumentIdentifier.t(), enforce: true)
+
+    field(:content_changes, list(GenLSP.TypeAlias.TextDocumentContentChangeEvent.t()),
       enforce: true
+    )
   end
 
   @doc false

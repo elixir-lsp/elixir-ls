@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.DocumentLinkOptions do
   * resolve_provider: Document links have a resolve provider as well.
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :resolve_provider, boolean()
-    field :work_done_progress, boolean()
+    field(:resolve_provider, boolean())
+    field(:work_done_progress, boolean())
   end
 
   @doc false

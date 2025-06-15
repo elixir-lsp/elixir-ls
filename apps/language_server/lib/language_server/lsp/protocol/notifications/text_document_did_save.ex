@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.TextDocumentDidSave do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/didSave"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidSaveTextDocumentParams.t()
+    field(:method, String.t(), default: "textDocument/didSave")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidSaveTextDocumentParams.t())
   end
 
   @doc false

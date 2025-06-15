@@ -18,10 +18,10 @@ defmodule GenLSP.Structures.DiagnosticClientCapabilities do
     return value for the corresponding server capability as well.
   * related_document_support: Whether the clients supports related documents for document diagnostic pulls.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :related_document_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:related_document_support, boolean())
   end
 
   @doc false

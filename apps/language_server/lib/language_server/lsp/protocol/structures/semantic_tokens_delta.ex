@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.SemanticTokensDelta do
   * result_id
   * edits: The semantic token edits to transform a previous result into a new result.
   """
-  
+
   typedstruct do
-    field :result_id, String.t()
-    field :edits, list(GenLSP.Structures.SemanticTokensEdit.t()), enforce: true
+    field(:result_id, String.t())
+    field(:edits, list(GenLSP.Structures.SemanticTokensEdit.t()), enforce: true)
   end
 
   @doc false

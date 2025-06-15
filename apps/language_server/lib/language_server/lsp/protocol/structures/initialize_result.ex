@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.InitializeResult do
 
     @since 3.15.0
   """
-  
+
   typedstruct do
-    field :capabilities, GenLSP.Structures.ServerCapabilities.t(), enforce: true
-    field :server_info, map()
+    field(:capabilities, GenLSP.Structures.ServerCapabilities.t(), enforce: true)
+    field(:server_info, map())
   end
 
   @doc false

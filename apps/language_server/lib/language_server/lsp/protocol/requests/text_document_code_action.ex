@@ -10,12 +10,11 @@ defmodule GenLSP.Requests.TextDocumentCodeAction do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/codeAction"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.CodeActionParams.t()
+    field(:method, String.t(), default: "textDocument/codeAction")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.CodeActionParams.t())
   end
 
   @type result :: list(GenLSP.Structures.Command.t() | GenLSP.Structures.CodeAction.t()) | nil

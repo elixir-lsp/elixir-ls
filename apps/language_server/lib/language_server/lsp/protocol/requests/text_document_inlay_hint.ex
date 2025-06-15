@@ -14,12 +14,11 @@ defmodule GenLSP.Requests.TextDocumentInlayHint do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/inlayHint"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.InlayHintParams.t()
+    field(:method, String.t(), default: "textDocument/inlayHint")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.InlayHintParams.t())
   end
 
   @type result :: list(GenLSP.Structures.InlayHint.t()) | nil

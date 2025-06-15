@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.TypeHierarchySubtypes do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "typeHierarchy/subtypes"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.TypeHierarchySubtypesParams.t()
+    field(:method, String.t(), default: "typeHierarchy/subtypes")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.TypeHierarchySubtypesParams.t())
   end
 
   @type result :: list(GenLSP.Structures.TypeHierarchyItem.t()) | nil

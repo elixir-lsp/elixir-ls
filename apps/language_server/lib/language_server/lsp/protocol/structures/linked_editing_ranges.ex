@@ -19,10 +19,10 @@ defmodule GenLSP.Structures.LinkedEditingRanges do
     the given ranges. If no pattern is provided, the client configuration's word
     pattern will be used.
   """
-  
+
   typedstruct do
-    field :ranges, list(GenLSP.Structures.Range.t()), enforce: true
-    field :word_pattern, String.t()
+    field(:ranges, list(GenLSP.Structures.Range.t()), enforce: true)
+    field(:word_pattern, String.t())
   end
 
   @doc false

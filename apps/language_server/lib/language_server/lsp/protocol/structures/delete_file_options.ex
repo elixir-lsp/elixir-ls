@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.DeleteFileOptions do
   * recursive: Delete the content recursively if a folder is denoted.
   * ignore_if_not_exists: Ignore the operation if the file doesn't exist.
   """
-  
+
   typedstruct do
-    field :recursive, boolean()
-    field :ignore_if_not_exists, boolean()
+    field(:recursive, boolean())
+    field(:ignore_if_not_exists, boolean())
   end
 
   @doc false

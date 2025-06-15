@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions do
 
   * watchers: The watchers to register.
   """
-  
+
   typedstruct do
-    field :watchers, list(GenLSP.Structures.FileSystemWatcher.t()), enforce: true
+    field(:watchers, list(GenLSP.Structures.FileSystemWatcher.t()), enforce: true)
   end
 
   @doc false

@@ -4,11 +4,10 @@ defmodule GenLSP.Notifications.DollarProgress do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "$/progress"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.ProgressParams.t()
+    field(:method, String.t(), default: "$/progress")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.ProgressParams.t())
   end
 
   @doc false

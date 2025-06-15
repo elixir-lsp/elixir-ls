@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.WindowShowMessage do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "window/showMessage"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.ShowMessageParams.t()
+    field(:method, String.t(), default: "window/showMessage")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.ShowMessageParams.t())
   end
 
   @doc false

@@ -11,10 +11,10 @@ defmodule GenLSP.Structures.HoverClientCapabilities do
   * content_format: Client supports the following content formats for the content
     property. The order describes the preferred format of the client.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :content_format, list(GenLSP.Enumerations.MarkupKind.t())
+    field(:dynamic_registration, boolean())
+    field(:content_format, list(GenLSP.Enumerations.MarkupKind.t()))
   end
 
   @doc false

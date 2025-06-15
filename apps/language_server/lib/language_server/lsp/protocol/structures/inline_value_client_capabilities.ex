@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.InlineValueClientCapabilities do
 
   * dynamic_registration: Whether implementation supports dynamic registration for inline value providers.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
+    field(:dynamic_registration, boolean())
   end
 
   @doc false

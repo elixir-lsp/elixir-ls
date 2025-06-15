@@ -44,12 +44,12 @@ defmodule GenLSP.Structures.GeneralClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :stale_request_support, map()
-    field :regular_expressions, GenLSP.Structures.RegularExpressionsClientCapabilities.t()
-    field :markdown, GenLSP.Structures.MarkdownClientCapabilities.t()
-    field :position_encodings, list(GenLSP.Enumerations.PositionEncodingKind.t())
+    field(:stale_request_support, map())
+    field(:regular_expressions, GenLSP.Structures.RegularExpressionsClientCapabilities.t())
+    field(:markdown, GenLSP.Structures.MarkdownClientCapabilities.t())
+    field(:position_encodings, list(GenLSP.Enumerations.PositionEncodingKind.t()))
   end
 
   @doc false

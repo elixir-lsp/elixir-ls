@@ -19,12 +19,12 @@ defmodule GenLSP.Structures.SignatureHelpParams do
   * text_document: The text document.
   * position: The position inside the text document.
   """
-  
+
   typedstruct do
-    field :context, GenLSP.Structures.SignatureHelpContext.t()
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :position, GenLSP.Structures.Position.t(), enforce: true
+    field(:context, GenLSP.Structures.SignatureHelpContext.t())
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:position, GenLSP.Structures.Position.t(), enforce: true)
   end
 
   @doc false

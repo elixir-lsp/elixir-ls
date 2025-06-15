@@ -16,9 +16,9 @@ defmodule GenLSP.Structures.WorkspaceSymbolRegistrationOptions do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :resolve_provider, boolean()
+    field(:resolve_provider, boolean())
   end
 
   @doc false

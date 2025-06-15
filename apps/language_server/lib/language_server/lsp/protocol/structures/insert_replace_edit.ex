@@ -17,11 +17,11 @@ defmodule GenLSP.Structures.InsertReplaceEdit do
   * insert: The range if the insert is requested
   * replace: The range if the replace is requested.
   """
-  
+
   typedstruct do
-    field :new_text, String.t(), enforce: true
-    field :insert, GenLSP.Structures.Range.t(), enforce: true
-    field :replace, GenLSP.Structures.Range.t(), enforce: true
+    field(:new_text, String.t(), enforce: true)
+    field(:insert, GenLSP.Structures.Range.t(), enforce: true)
+    field(:replace, GenLSP.Structures.Range.t(), enforce: true)
   end
 
   @doc false

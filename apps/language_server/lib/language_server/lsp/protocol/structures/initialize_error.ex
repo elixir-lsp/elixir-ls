@@ -17,9 +17,9 @@ defmodule GenLSP.Structures.InitializeError do
     (2) user selects retry or cancel
     (3) if user selected retry the initialize method is sent again.
   """
-  
+
   typedstruct do
-    field :retry, boolean(), enforce: true
+    field(:retry, boolean(), enforce: true)
   end
 
   @doc false

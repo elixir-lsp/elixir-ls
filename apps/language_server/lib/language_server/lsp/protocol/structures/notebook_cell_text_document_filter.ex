@@ -23,10 +23,10 @@ defmodule GenLSP.Structures.NotebookCellTextDocumentFilter do
     Will be matched against the language id of the
     notebook cell document. '*' matches every language.
   """
-  
+
   typedstruct do
-    field :notebook, String.t() | GenLSP.TypeAlias.NotebookDocumentFilter.t(), enforce: true
-    field :language, String.t()
+    field(:notebook, String.t() | GenLSP.TypeAlias.NotebookDocumentFilter.t(), enforce: true)
+    field(:language, String.t())
   end
 
   @doc false

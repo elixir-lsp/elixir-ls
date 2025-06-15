@@ -31,11 +31,11 @@ defmodule GenLSP.Structures.SignatureHelp do
     mandatory to better express the active parameter if the
     active signature does have any.
   """
-  
+
   typedstruct do
-    field :signatures, list(GenLSP.Structures.SignatureInformation.t()), enforce: true
-    field :active_signature, GenLSP.BaseTypes.uinteger()
-    field :active_parameter, GenLSP.BaseTypes.uinteger()
+    field(:signatures, list(GenLSP.Structures.SignatureInformation.t()), enforce: true)
+    field(:active_signature, GenLSP.BaseTypes.uinteger())
+    field(:active_parameter, GenLSP.BaseTypes.uinteger())
   end
 
   @doc false

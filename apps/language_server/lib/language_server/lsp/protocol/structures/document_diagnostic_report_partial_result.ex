@@ -15,15 +15,17 @@ defmodule GenLSP.Structures.DocumentDiagnosticReportPartialResult do
 
   * related_documents
   """
-  
+
   typedstruct do
-    field :related_documents,
-          %{
-            GenLSP.BaseTypes.document_uri() =>
-              GenLSP.Structures.FullDocumentDiagnosticReport.t()
-              | GenLSP.Structures.UnchangedDocumentDiagnosticReport.t()
-          },
-          enforce: true
+    field(
+      :related_documents,
+      %{
+        GenLSP.BaseTypes.document_uri() =>
+          GenLSP.Structures.FullDocumentDiagnosticReport.t()
+          | GenLSP.Structures.UnchangedDocumentDiagnosticReport.t()
+      },
+      enforce: true
+    )
   end
 
   @doc false

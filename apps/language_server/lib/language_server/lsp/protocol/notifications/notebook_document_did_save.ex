@@ -12,11 +12,10 @@ defmodule GenLSP.Notifications.NotebookDocumentDidSave do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "notebookDocument/didSave"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidSaveNotebookDocumentParams.t()
+    field(:method, String.t(), default: "notebookDocument/didSave")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidSaveNotebookDocumentParams.t())
   end
 
   @doc false

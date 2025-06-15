@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.ShowMessageRequestClientCapabilities do
 
   * message_action_item: Capabilities specific to the `MessageActionItem` type.
   """
-  
+
   typedstruct do
-    field :message_action_item, map()
+    field(:message_action_item, map())
   end
 
   @doc false

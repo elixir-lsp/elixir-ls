@@ -23,13 +23,13 @@ defmodule GenLSP.Structures.NotebookDocument do
     Note: should always be an object literal (e.g. LSPObject)
   * cells: The cells of a notebook.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.uri(), enforce: true
-    field :notebook_type, String.t(), enforce: true
-    field :version, integer(), enforce: true
-    field :metadata, GenLSP.TypeAlias.LSPObject.t()
-    field :cells, list(GenLSP.Structures.NotebookCell.t()), enforce: true
+    field(:uri, GenLSP.BaseTypes.uri(), enforce: true)
+    field(:notebook_type, String.t(), enforce: true)
+    field(:version, integer(), enforce: true)
+    field(:metadata, GenLSP.TypeAlias.LSPObject.t())
+    field(:cells, list(GenLSP.Structures.NotebookCell.t()), enforce: true)
   end
 
   @doc false

@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.DocumentLinkClientCapabilities do
 
     @since 3.15.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :tooltip_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:tooltip_support, boolean())
   end
 
   @doc false

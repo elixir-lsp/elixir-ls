@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.FileEvent do
   * uri: The file's uri.
   * type: The change type.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :type, GenLSP.Enumerations.FileChangeType.t(), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:type, GenLSP.Enumerations.FileChangeType.t(), enforce: true)
   end
 
   @doc false

@@ -31,16 +31,16 @@ defmodule GenLSP.Structures.DocumentSymbol do
     Must be contained by the `range`.
   * children: Children of this symbol, e.g. properties of a class.
   """
-  
+
   typedstruct do
-    field :name, String.t(), enforce: true
-    field :detail, String.t()
-    field :kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true
-    field :tags, list(GenLSP.Enumerations.SymbolTag.t())
-    field :deprecated, boolean()
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :selection_range, GenLSP.Structures.Range.t(), enforce: true
-    field :children, list(GenLSP.Structures.DocumentSymbol.t())
+    field(:name, String.t(), enforce: true)
+    field(:detail, String.t())
+    field(:kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true)
+    field(:tags, list(GenLSP.Enumerations.SymbolTag.t()))
+    field(:deprecated, boolean())
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:selection_range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:children, list(GenLSP.Structures.DocumentSymbol.t()))
   end
 
   @doc false

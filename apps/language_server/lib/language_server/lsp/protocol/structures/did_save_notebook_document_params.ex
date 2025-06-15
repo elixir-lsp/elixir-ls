@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.DidSaveNotebookDocumentParams do
 
   * notebook_document: The notebook document that got saved.
   """
-  
+
   typedstruct do
-    field :notebook_document, GenLSP.Structures.NotebookDocumentIdentifier.t(), enforce: true
+    field(:notebook_document, GenLSP.Structures.NotebookDocumentIdentifier.t(), enforce: true)
   end
 
   @doc false

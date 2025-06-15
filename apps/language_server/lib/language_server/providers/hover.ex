@@ -32,11 +32,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
     %GenLSP.Structures.Range{
       start: %GenLSP.Structures.Position{
         line: begin_line - 1,
-        character: SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1, ""), begin_char)
+        character:
+          SourceFile.elixir_character_to_lsp(lines |> Enum.at(begin_line - 1, ""), begin_char)
       },
       end: %GenLSP.Structures.Position{
         line: end_line - 1,
-        character: SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1, ""), end_char)
+        character:
+          SourceFile.elixir_character_to_lsp(lines |> Enum.at(end_line - 1, ""), end_char)
       }
     }
   end

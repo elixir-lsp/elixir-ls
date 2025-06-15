@@ -16,9 +16,9 @@ defmodule GenLSP.Structures.ShowDocumentClientCapabilities do
   * support: The client has support for the showDocument
     request.
   """
-  
+
   typedstruct do
-    field :support, boolean(), enforce: true
+    field(:support, boolean(), enforce: true)
   end
 
   @doc false

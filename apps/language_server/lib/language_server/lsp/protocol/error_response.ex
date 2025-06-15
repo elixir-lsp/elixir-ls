@@ -12,9 +12,9 @@ defmodule GenLSP.ErrorResponse do
   use TypedStruct
 
   typedstruct do
-    field :data, String.t() | number() | boolean() | list() | map() | nil
-    field :code, integer(), enforce: true
-    field :message, String.t(), enforce: true
+    field(:data, String.t() | number() | boolean() | list() | map() | nil)
+    field(:code, integer(), enforce: true)
+    field(:message, String.t(), enforce: true)
   end
 
   @spec schematic() :: Schematic.t()

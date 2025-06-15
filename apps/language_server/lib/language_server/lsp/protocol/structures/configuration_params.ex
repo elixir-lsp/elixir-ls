@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.ConfigurationParams do
 
   * items
   """
-  
+
   typedstruct do
-    field :items, list(GenLSP.Structures.ConfigurationItem.t()), enforce: true
+    field(:items, list(GenLSP.Structures.ConfigurationItem.t()), enforce: true)
   end
 
   @doc false

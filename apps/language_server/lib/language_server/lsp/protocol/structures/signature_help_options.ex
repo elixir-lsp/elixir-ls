@@ -20,11 +20,11 @@ defmodule GenLSP.Structures.SignatureHelpOptions do
     @since 3.15.0
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :trigger_characters, list(String.t())
-    field :retrigger_characters, list(String.t())
-    field :work_done_progress, boolean()
+    field(:trigger_characters, list(String.t()))
+    field(:retrigger_characters, list(String.t()))
+    field(:work_done_progress, boolean())
   end
 
   @doc false

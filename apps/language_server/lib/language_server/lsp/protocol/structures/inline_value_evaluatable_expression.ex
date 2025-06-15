@@ -19,10 +19,10 @@ defmodule GenLSP.Structures.InlineValueEvaluatableExpression do
     The range is used to extract the evaluatable expression from the underlying document.
   * expression: If specified the expression overrides the extracted expression.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :expression, String.t()
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:expression, String.t())
   end
 
   @doc false

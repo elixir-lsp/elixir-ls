@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.DidChangeConfigurationParams do
 
   * settings: The actual changed settings
   """
-  
+
   typedstruct do
-    field :settings, GenLSP.TypeAlias.LSPAny.t(), enforce: true
+    field(:settings, GenLSP.TypeAlias.LSPAny.t(), enforce: true)
   end
 
   @doc false

@@ -21,12 +21,12 @@ defmodule GenLSP.Structures.BaseSymbolInformation do
     if necessary). It can't be used to re-infer a hierarchy for the document
     symbols.
   """
-  
+
   typedstruct do
-    field :name, String.t(), enforce: true
-    field :kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true
-    field :tags, list(GenLSP.Enumerations.SymbolTag.t())
-    field :container_name, String.t()
+    field(:name, String.t(), enforce: true)
+    field(:kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true)
+    field(:tags, list(GenLSP.Enumerations.SymbolTag.t()))
+    field(:container_name, String.t())
   end
 
   @doc false

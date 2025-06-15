@@ -23,12 +23,12 @@ defmodule GenLSP.Structures.WorkspaceUnchangedDocumentDiagnosticReport do
   * result_id: A result id which will be sent on the next
     diagnostic request for the same document.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :version, integer() | nil, enforce: true
-    field :kind, String.t(), enforce: true
-    field :result_id, String.t(), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:version, integer() | nil, enforce: true)
+    field(:kind, String.t(), enforce: true)
+    field(:result_id, String.t(), enforce: true)
   end
 
   @doc false

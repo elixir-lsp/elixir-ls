@@ -27,14 +27,14 @@ defmodule GenLSP.Structures.FoldingRange do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :start_line, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :start_character, GenLSP.BaseTypes.uinteger()
-    field :end_line, GenLSP.BaseTypes.uinteger(), enforce: true
-    field :end_character, GenLSP.BaseTypes.uinteger()
-    field :kind, GenLSP.Enumerations.FoldingRangeKind.t()
-    field :collapsed_text, String.t()
+    field(:start_line, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:start_character, GenLSP.BaseTypes.uinteger())
+    field(:end_line, GenLSP.BaseTypes.uinteger(), enforce: true)
+    field(:end_character, GenLSP.BaseTypes.uinteger())
+    field(:kind, GenLSP.Enumerations.FoldingRangeKind.t())
+    field(:collapsed_text, String.t())
   end
 
   @doc false

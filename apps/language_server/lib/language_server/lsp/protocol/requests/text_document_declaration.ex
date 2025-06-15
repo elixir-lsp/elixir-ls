@@ -14,12 +14,11 @@ defmodule GenLSP.Requests.TextDocumentDeclaration do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/declaration"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.DeclarationParams.t()
+    field(:method, String.t(), default: "textDocument/declaration")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.DeclarationParams.t())
   end
 
   @type result ::

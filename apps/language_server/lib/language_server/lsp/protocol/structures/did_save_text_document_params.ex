@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.DidSaveTextDocumentParams do
   * text: Optional the content when saved. Depends on the includeText value
     when the save notification was requested.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :text, String.t()
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:text, String.t())
   end
 
   @doc false

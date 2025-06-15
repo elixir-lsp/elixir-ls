@@ -16,11 +16,11 @@ defmodule GenLSP.Structures.Registration do
   * method: The method / capability to register for.
   * register_options: Options necessary for the registration.
   """
-  
+
   typedstruct do
-    field :id, String.t(), enforce: true
-    field :method, String.t(), enforce: true
-    field :register_options, GenLSP.TypeAlias.LSPAny.t()
+    field(:id, String.t(), enforce: true)
+    field(:method, String.t(), enforce: true)
+    field(:register_options, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

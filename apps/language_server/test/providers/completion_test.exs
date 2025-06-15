@@ -96,7 +96,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     logger_labels = ["warn", "debug", "error", "info"]
 
@@ -123,7 +124,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     logger_labels = ["warn", "debug", "error", "info"]
 
@@ -173,7 +175,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
+
     assert length(items) == 1
 
     {:ok, %GenLSP.Structures.CompletionList{items: items}} =
@@ -203,7 +207,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     # 8 is interface
     assert item.kind == 8
@@ -228,7 +233,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     completions =
       items
@@ -256,7 +262,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     assert [item, _] = items
 
@@ -285,7 +292,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     assert [item] = items
 
@@ -313,7 +321,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     first_completion =
       items
@@ -341,7 +350,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     first_completion =
       items
@@ -370,7 +380,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     completions =
       items
@@ -385,7 +396,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     completions =
       items
@@ -400,7 +412,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
     parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-    {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
 
     completions =
       items
@@ -423,16 +436,20 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, options)
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, options)
+
       item
     end
 
     test "returns deprecated flag when supported" do
-      assert %GenLSP.Structures.CompletionItem{deprecated: true} = get_deprecated_completion_item(deprecated_supported: true)
+      assert %GenLSP.Structures.CompletionItem{deprecated: true} =
+               get_deprecated_completion_item(deprecated_supported: true)
     end
 
     test "returns deprecated completion tag when supported" do
-      assert %GenLSP.Structures.CompletionItem{tags: [1]} = get_deprecated_completion_item(tags_supported: [1])
+      assert %GenLSP.Structures.CompletionItem{tags: [1]} =
+               get_deprecated_completion_item(tags_supported: [1])
     end
 
     test "returns no deprecated indicator when not supported" do
@@ -472,7 +489,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert [item] = items |> Enum.filter(&(&1.label == "ExampleStruct"))
 
@@ -483,7 +501,11 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item.label_details.description ==
                "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct"
 
-      assert [%GenLSP.Structures.TextEdit{new_text: "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct\n"}] =
+      assert [
+               %GenLSP.Structures.TextEdit{
+                 new_text: "alias ElixirLS.LanguageServer.Fixtures.ExampleStruct\n"
+               }
+             ] =
                item.additional_text_edits
 
       assert [
@@ -522,7 +544,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, supports)
 
       # nothing is suggested
       assert [] = items
@@ -536,7 +559,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert [item | _] = items
 
@@ -561,7 +585,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert [item] = items
 
@@ -574,7 +599,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert item.label_details.description ==
                "require Logger.error/2"
 
-      assert [%GenLSP.Structures.TextEdit{new_text: "  require Logger\n"}] = item.additional_text_edits
+      assert [%GenLSP.Structures.TextEdit{new_text: "  require Logger\n"}] =
+               item.additional_text_edits
 
       assert [
                %GenLSP.Structures.TextEdit{
@@ -605,7 +631,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert [] == items
     end
@@ -628,7 +655,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert [item] = items
 
@@ -659,7 +687,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert ["__struct__", "other", "some"] == items |> Enum.map(& &1.label) |> Enum.sort()
       assert (items |> hd).detail == "MyModule struct field"
@@ -681,7 +710,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert ["other", "some"] == items |> Enum.map(& &1.label) |> Enum.sort()
       assert (items |> hd).detail == "map key"
@@ -705,7 +735,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert ["__struct__", "other", "some"] ==
                items |> Enum.filter(&(&1.kind == 5)) |> Enum.map(& &1.label) |> Enum.sort()
@@ -729,7 +760,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, @supports)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert ["other", "some"] ==
                items |> Enum.filter(&(&1.kind == 5)) |> Enum.map(& &1.label) |> Enum.sort()
@@ -812,7 +844,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: items}} = Completion.completion(parser_context, line, char, opts)
+      {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+        Completion.completion(parser_context, line, char, opts)
 
       [item] = items |> Enum.filter(&(&1.insert_text == "true"))
 
@@ -852,11 +885,16 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
+
       assert item.command == @signature_command
 
       opts = Keyword.merge(@supports, signature_after_complete: false)
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
+
       assert item.command == nil
     end
 
@@ -868,7 +906,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, snippets_supported: false, signature_help_supported: false)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item.insert_text == "add_2_numbers"
       assert item.command == nil
@@ -879,7 +919,8 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
           locals_without_parens: MapSet.new(add_2_numbers: 2)
         )
 
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item.insert_text == "add_2_numbers "
       assert item.command == @signature_command
@@ -894,7 +935,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, snippets_supported: false)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item.insert_text == "add_2_numbers("
       assert item.command == @signature_command
@@ -909,7 +952,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, signature_help_supported: false)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item.insert_text == "add_2_numbers(${1:a}, ${2:b})"
       assert item.command == nil
@@ -922,7 +967,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert item.insert_text == "add_2_numbers($1)$0"
       assert item.command == @signature_command
@@ -944,7 +991,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert item.insert_text == "add_2_numbers("
       assert item.command == @signature_command
@@ -968,7 +1017,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(add_2_numbers: 2))
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item.insert_text == "add_2_numbers"
       assert item.command == @signature_command
@@ -990,7 +1041,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       opts = Keyword.merge(@supports, locals_without_parens: MapSet.new(drop: 2))
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, opts)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, opts)
 
       assert item.insert_text == "drop($1)$0"
     end
@@ -1011,7 +1064,9 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, @supports)
 
       assert item.insert_text == "my_func()"
       assert item.command == nil
@@ -1115,7 +1170,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, @supports)
+
       assert item.label == "my_func"
       assert item.insert_text == "my_func($1)$0"
       assert item.command == @signature_command
@@ -1167,7 +1225,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, @supports)
+
       assert item.label == "func_with_1_arg"
       assert item.insert_text == "func_with_1_arg($1)$0"
       assert item.command == @signature_command
@@ -1189,7 +1250,10 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       TestUtils.assert_has_cursor_char(text, line, char)
       {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
       parser_context = ParserContextBuilder.from_string(text, {line, char})
-      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} = Completion.completion(parser_context, line, char, @supports)
+
+      {:ok, %GenLSP.Structures.CompletionList{items: [item]}} =
+        Completion.completion(parser_context, line, char, @supports)
+
       assert item.label == "func_with_1_arg"
       assert item.insert_text == "func_with_1_arg()"
       assert item.command == nil
@@ -1495,7 +1559,12 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
              ]
 
       assert first.detail == "module attribute snippet"
-      assert first.documentation == %GenLSP.Structures.MarkupContent{kind: "markdown", value: "Documents a module"}
+
+      assert first.documentation == %GenLSP.Structures.MarkupContent{
+               kind: "markdown",
+               value: "Documents a module"
+             }
+
       assert first.filter_text == "moduledoc"
       assert first.insert_text == ~s(moduledoc """\n$0\n""")
       assert first.insert_text_format == 2

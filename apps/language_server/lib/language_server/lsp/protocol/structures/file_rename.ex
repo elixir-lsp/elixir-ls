@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.FileRename do
   * old_uri: A file:// URI for the original location of the file/folder being renamed.
   * new_uri: A file:// URI for the new location of the file/folder being renamed.
   """
-  
+
   typedstruct do
-    field :old_uri, String.t(), enforce: true
-    field :new_uri, String.t(), enforce: true
+    field(:old_uri, String.t(), enforce: true)
+    field(:new_uri, String.t(), enforce: true)
   end
 
   @doc false

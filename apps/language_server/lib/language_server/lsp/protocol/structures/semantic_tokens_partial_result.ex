@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.SemanticTokensPartialResult do
 
   * data
   """
-  
+
   typedstruct do
-    field :data, list(GenLSP.BaseTypes.uinteger()), enforce: true
+    field(:data, list(GenLSP.BaseTypes.uinteger()), enforce: true)
   end
 
   @doc false

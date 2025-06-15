@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.FileSystemWatcher do
     to WatchKind.Create | WatchKind.Change | WatchKind.Delete
     which is 7.
   """
-  
+
   typedstruct do
-    field :glob_pattern, GenLSP.TypeAlias.GlobPattern.t(), enforce: true
-    field :kind, GenLSP.Enumerations.WatchKind.t()
+    field(:glob_pattern, GenLSP.TypeAlias.GlobPattern.t(), enforce: true)
+    field(:kind, GenLSP.Enumerations.WatchKind.t())
   end
 
   @doc false

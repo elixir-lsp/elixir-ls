@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.WindowLogMessage do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "window/logMessage"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.LogMessageParams.t()
+    field(:method, String.t(), default: "window/logMessage")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.LogMessageParams.t())
   end
 
   @doc false

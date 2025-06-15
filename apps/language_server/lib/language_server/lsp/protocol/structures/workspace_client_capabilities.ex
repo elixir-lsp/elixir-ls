@@ -49,25 +49,31 @@ defmodule GenLSP.Structures.WorkspaceClientCapabilities do
 
     @since 3.17.0.
   """
-  
+
   typedstruct do
-    field :apply_edit, boolean()
-    field :workspace_edit, GenLSP.Structures.WorkspaceEditClientCapabilities.t()
+    field(:apply_edit, boolean())
+    field(:workspace_edit, GenLSP.Structures.WorkspaceEditClientCapabilities.t())
 
-    field :did_change_configuration,
-          GenLSP.Structures.DidChangeConfigurationClientCapabilities.t()
+    field(
+      :did_change_configuration,
+      GenLSP.Structures.DidChangeConfigurationClientCapabilities.t()
+    )
 
-    field :did_change_watched_files, GenLSP.Structures.DidChangeWatchedFilesClientCapabilities.t()
-    field :symbol, GenLSP.Structures.WorkspaceSymbolClientCapabilities.t()
-    field :execute_command, GenLSP.Structures.ExecuteCommandClientCapabilities.t()
-    field :workspace_folders, boolean()
-    field :configuration, boolean()
-    field :semantic_tokens, GenLSP.Structures.SemanticTokensWorkspaceClientCapabilities.t()
-    field :code_lens, GenLSP.Structures.CodeLensWorkspaceClientCapabilities.t()
-    field :file_operations, GenLSP.Structures.FileOperationClientCapabilities.t()
-    field :inline_value, GenLSP.Structures.InlineValueWorkspaceClientCapabilities.t()
-    field :inlay_hint, GenLSP.Structures.InlayHintWorkspaceClientCapabilities.t()
-    field :diagnostics, GenLSP.Structures.DiagnosticWorkspaceClientCapabilities.t()
+    field(
+      :did_change_watched_files,
+      GenLSP.Structures.DidChangeWatchedFilesClientCapabilities.t()
+    )
+
+    field(:symbol, GenLSP.Structures.WorkspaceSymbolClientCapabilities.t())
+    field(:execute_command, GenLSP.Structures.ExecuteCommandClientCapabilities.t())
+    field(:workspace_folders, boolean())
+    field(:configuration, boolean())
+    field(:semantic_tokens, GenLSP.Structures.SemanticTokensWorkspaceClientCapabilities.t())
+    field(:code_lens, GenLSP.Structures.CodeLensWorkspaceClientCapabilities.t())
+    field(:file_operations, GenLSP.Structures.FileOperationClientCapabilities.t())
+    field(:inline_value, GenLSP.Structures.InlineValueWorkspaceClientCapabilities.t())
+    field(:inlay_hint, GenLSP.Structures.InlayHintWorkspaceClientCapabilities.t())
+    field(:diagnostics, GenLSP.Structures.DiagnosticWorkspaceClientCapabilities.t())
   end
 
   @doc false

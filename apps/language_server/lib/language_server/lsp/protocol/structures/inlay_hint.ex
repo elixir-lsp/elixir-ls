@@ -39,16 +39,16 @@ defmodule GenLSP.Structures.InlayHint do
   * data: A data entry field that is preserved on an inlay hint between
     a `textDocument/inlayHint` and a `inlayHint/resolve` request.
   """
-  
+
   typedstruct do
-    field :position, GenLSP.Structures.Position.t(), enforce: true
-    field :label, String.t() | list(GenLSP.Structures.InlayHintLabelPart.t()), enforce: true
-    field :kind, GenLSP.Enumerations.InlayHintKind.t()
-    field :text_edits, list(GenLSP.Structures.TextEdit.t())
-    field :tooltip, String.t() | GenLSP.Structures.MarkupContent.t()
-    field :padding_left, boolean()
-    field :padding_right, boolean()
-    field :data, GenLSP.TypeAlias.LSPAny.t()
+    field(:position, GenLSP.Structures.Position.t(), enforce: true)
+    field(:label, String.t() | list(GenLSP.Structures.InlayHintLabelPart.t()), enforce: true)
+    field(:kind, GenLSP.Enumerations.InlayHintKind.t())
+    field(:text_edits, list(GenLSP.Structures.TextEdit.t()))
+    field(:tooltip, String.t() | GenLSP.Structures.MarkupContent.t())
+    field(:padding_left, boolean())
+    field(:padding_right, boolean())
+    field(:data, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.WorkspaceDidChangeWorkspaceFolders do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/didChangeWorkspaceFolders"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidChangeWorkspaceFoldersParams.t()
+    field(:method, String.t(), default: "workspace/didChangeWorkspaceFolders")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidChangeWorkspaceFoldersParams.t())
   end
 
   @doc false

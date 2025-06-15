@@ -10,9 +10,9 @@ defmodule GenLSP.Structures.PartialResultParams do
   * partial_result_token: An optional token that a server can use to report partial results (e.g. streaming) to
     the client.
   """
-  
+
   typedstruct do
-    field :partial_result_token, GenLSP.TypeAlias.ProgressToken.t()
+    field(:partial_result_token, GenLSP.TypeAlias.ProgressToken.t())
   end
 
   @doc false

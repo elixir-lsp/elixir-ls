@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.RenameRegistrationOptions do
 
     @since version 3.12.0
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :prepare_provider, boolean()
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:prepare_provider, boolean())
   end
 
   @doc false

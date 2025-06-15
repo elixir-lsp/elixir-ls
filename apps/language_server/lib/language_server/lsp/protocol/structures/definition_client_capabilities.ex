@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.DefinitionClientCapabilities do
 
     @since 3.14.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :link_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:link_support, boolean())
   end
 
   @doc false

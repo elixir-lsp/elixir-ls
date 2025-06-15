@@ -31,11 +31,11 @@ defmodule GenLSP.Structures.CompletionList do
     @since 3.17.0
   * items: The completion items.
   """
-  
+
   typedstruct do
-    field :is_incomplete, boolean(), enforce: true
-    field :item_defaults, map()
-    field :items, list(GenLSP.Structures.CompletionItem.t()), enforce: true
+    field(:is_incomplete, boolean(), enforce: true)
+    field(:item_defaults, map())
+    field(:items, list(GenLSP.Structures.CompletionItem.t()), enforce: true)
   end
 
   @doc false

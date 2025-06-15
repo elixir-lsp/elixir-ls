@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.RenameFileOptions do
   * overwrite: Overwrite target if existing. Overwrite wins over `ignoreIfExists`
   * ignore_if_exists: Ignores if target exists.
   """
-  
+
   typedstruct do
-    field :overwrite, boolean()
-    field :ignore_if_exists, boolean()
+    field(:overwrite, boolean())
+    field(:ignore_if_exists, boolean())
   end
 
   @doc false

@@ -18,13 +18,13 @@ defmodule GenLSP.Structures.TextDocumentSyncOptions do
   * save: If present save notifications are sent to the server. If omitted the notification should not be
     sent.
   """
-  
+
   typedstruct do
-    field :open_close, boolean()
-    field :change, GenLSP.Enumerations.TextDocumentSyncKind.t()
-    field :will_save, boolean()
-    field :will_save_wait_until, boolean()
-    field :save, boolean() | GenLSP.Structures.SaveOptions.t()
+    field(:open_close, boolean())
+    field(:change, GenLSP.Enumerations.TextDocumentSyncKind.t())
+    field(:will_save, boolean())
+    field(:will_save_wait_until, boolean())
+    field(:save, boolean() | GenLSP.Structures.SaveOptions.t())
   end
 
   @doc false

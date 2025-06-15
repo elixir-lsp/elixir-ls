@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.CancelParams do
 
   * id: The request id to cancel.
   """
-  
+
   typedstruct do
-    field :id, integer() | String.t(), enforce: true
+    field(:id, integer() | String.t(), enforce: true)
   end
 
   @doc false

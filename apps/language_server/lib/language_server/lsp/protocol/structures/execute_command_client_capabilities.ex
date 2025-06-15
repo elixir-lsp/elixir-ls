@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.ExecuteCommandClientCapabilities do
 
   * dynamic_registration: Execute command supports dynamic registration.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
+    field(:dynamic_registration, boolean())
   end
 
   @doc false

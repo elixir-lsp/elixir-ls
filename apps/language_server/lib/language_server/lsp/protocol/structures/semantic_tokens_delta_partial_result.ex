@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.SemanticTokensDeltaPartialResult do
 
   * edits
   """
-  
+
   typedstruct do
-    field :edits, list(GenLSP.Structures.SemanticTokensEdit.t()), enforce: true
+    field(:edits, list(GenLSP.Structures.SemanticTokensEdit.t()), enforce: true)
   end
 
   @doc false

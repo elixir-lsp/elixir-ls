@@ -16,11 +16,11 @@ defmodule GenLSP.Structures.ColorPresentation do
   * additional_text_edits: An optional array of additional {@link TextEdit text edits} that are applied when
     selecting this color presentation. Edits must not overlap with the main {@link ColorPresentation.textEdit edit} nor with themselves.
   """
-  
+
   typedstruct do
-    field :label, String.t(), enforce: true
-    field :text_edit, GenLSP.Structures.TextEdit.t()
-    field :additional_text_edits, list(GenLSP.Structures.TextEdit.t())
+    field(:label, String.t(), enforce: true)
+    field(:text_edit, GenLSP.Structures.TextEdit.t())
+    field(:additional_text_edits, list(GenLSP.Structures.TextEdit.t()))
   end
 
   @doc false

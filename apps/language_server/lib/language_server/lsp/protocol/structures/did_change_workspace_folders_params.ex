@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.DidChangeWorkspaceFoldersParams do
 
   * event: The actual workspace folder change event.
   """
-  
+
   typedstruct do
-    field :event, GenLSP.Structures.WorkspaceFoldersChangeEvent.t(), enforce: true
+    field(:event, GenLSP.Structures.WorkspaceFoldersChangeEvent.t(), enforce: true)
   end
 
   @doc false

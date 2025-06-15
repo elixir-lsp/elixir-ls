@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.TextDocumentHover do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/hover"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.HoverParams.t()
+    field(:method, String.t(), default: "textDocument/hover")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.HoverParams.t())
   end
 
   @type result :: GenLSP.Structures.Hover.t() | nil

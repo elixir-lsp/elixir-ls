@@ -124,7 +124,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.SpecialToken do
   end
 
   defp classify_group({kind, {start_line, _, _}, _}, {_, {end_line, _, _}, _}) do
-    kind = if kind == :at_op, do: GenLSP.Enumerations.FoldingRangeKind.comment(), else: GenLSP.Enumerations.FoldingRangeKind.region()
+    kind =
+      if kind == :at_op,
+        do: GenLSP.Enumerations.FoldingRangeKind.comment(),
+        else: GenLSP.Enumerations.FoldingRangeKind.region()
+
     {start_line, end_line, kind}
   end
 end

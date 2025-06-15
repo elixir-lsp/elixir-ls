@@ -2,7 +2,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
   alias ElixirLS.LanguageServer.Providers.CodeMod.Ast
   alias ElixirLS.LanguageServer.Providers.CodeMod.Text
 
-  @spec update_line(GenLSP.Structures.TextEdit.t(), non_neg_integer()) :: GenLSP.Structures.TextEdit.t()
+  @spec update_line(GenLSP.Structures.TextEdit.t(), non_neg_integer()) ::
+          GenLSP.Structures.TextEdit.t()
   def update_line(
         %GenLSP.Structures.TextEdit{range: range} = text_edit,
         line_number
@@ -53,10 +54,14 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
   # https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#diagnostic
   # message can be string or MarkupContent
   # string
-  def diagnostic_to_message(%GenLSP.Structures.Diagnostic{message: message}) when is_binary(message), do: message
+  def diagnostic_to_message(%GenLSP.Structures.Diagnostic{message: message})
+      when is_binary(message),
+      do: message
 
   # MarkupContent
-  def diagnostic_to_message(%GenLSP.Structures.Diagnostic{message: %GenLSP.Structures.MarkupContent{kind: kind, value: value}})
+  def diagnostic_to_message(%GenLSP.Structures.Diagnostic{
+        message: %GenLSP.Structures.MarkupContent{kind: kind, value: value}
+      })
       when kind in ["plaintext", "markdown"],
       do: value
 end

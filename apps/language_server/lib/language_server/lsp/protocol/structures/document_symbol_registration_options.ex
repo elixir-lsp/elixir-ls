@@ -18,10 +18,10 @@ defmodule GenLSP.Structures.DocumentSymbolRegistrationOptions do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :label, String.t()
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:label, String.t())
   end
 
   @doc false

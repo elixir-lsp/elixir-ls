@@ -15,12 +15,11 @@ defmodule GenLSP.Requests.WindowShowDocument do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "window/showDocument"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.ShowDocumentParams.t()
+    field(:method, String.t(), default: "window/showDocument")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.ShowDocumentParams.t())
   end
 
   @type result :: GenLSP.Structures.ShowDocumentResult.t()

@@ -11,11 +11,10 @@ defmodule GenLSP.Notifications.TextDocumentDidChange do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/didChange"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidChangeTextDocumentParams.t()
+    field(:method, String.t(), default: "textDocument/didChange")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidChangeTextDocumentParams.t())
   end
 
   @doc false

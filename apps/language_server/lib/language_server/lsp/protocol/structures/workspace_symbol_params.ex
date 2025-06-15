@@ -17,11 +17,11 @@ defmodule GenLSP.Structures.WorkspaceSymbolParams do
   * partial_result_token: An optional token that a server can use to report partial results (e.g. streaming) to
     the client.
   """
-  
+
   typedstruct do
-    field :query, String.t(), enforce: true
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
-    field :partial_result_token, GenLSP.TypeAlias.ProgressToken.t()
+    field(:query, String.t(), enforce: true)
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
+    field(:partial_result_token, GenLSP.TypeAlias.ProgressToken.t())
   end
 
   @doc false

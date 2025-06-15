@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.UnregistrationParams do
 
   * unregisterations
   """
-  
+
   typedstruct do
-    field :unregisterations, list(GenLSP.Structures.Unregistration.t()), enforce: true
+    field(:unregisterations, list(GenLSP.Structures.Unregistration.t()), enforce: true)
   end
 
   @doc false

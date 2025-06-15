@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.ApplyWorkspaceEditParams do
     stack to undo the workspace edit.
   * edit: The edits to apply.
   """
-  
+
   typedstruct do
-    field :label, String.t()
-    field :edit, GenLSP.Structures.WorkspaceEdit.t(), enforce: true
+    field(:label, String.t())
+    field(:edit, GenLSP.Structures.WorkspaceEdit.t(), enforce: true)
   end
 
   @doc false

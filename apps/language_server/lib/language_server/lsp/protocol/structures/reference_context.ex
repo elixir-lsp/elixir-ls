@@ -14,9 +14,9 @@ defmodule GenLSP.Structures.ReferenceContext do
 
   * include_declaration: Include the declaration of the current symbol.
   """
-  
+
   typedstruct do
-    field :include_declaration, boolean(), enforce: true
+    field(:include_declaration, boolean(), enforce: true)
   end
 
   @doc false

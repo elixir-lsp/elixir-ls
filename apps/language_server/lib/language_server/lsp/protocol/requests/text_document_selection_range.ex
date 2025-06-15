@@ -13,12 +13,11 @@ defmodule GenLSP.Requests.TextDocumentSelectionRange do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/selectionRange"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.SelectionRangeParams.t()
+    field(:method, String.t(), default: "textDocument/selectionRange")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.SelectionRangeParams.t())
   end
 
   @type result :: list(GenLSP.Structures.SelectionRange.t()) | nil

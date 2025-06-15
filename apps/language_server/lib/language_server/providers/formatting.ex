@@ -116,22 +116,27 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
           range: range(line, col, line, col),
           new_text: str
         }
+
         myers_diff_to_text_edits(rest, {line, col}, [edit | edits])
 
       {{:del, del_str}, [{:ins, ins_str} | rest]} ->
         {end_line, end_col} = advance_pos({line, col}, del_str)
+
         edit = %GenLSP.Structures.TextEdit{
           range: range(line, col, end_line, end_col),
           new_text: ins_str
         }
+
         myers_diff_to_text_edits(rest, {end_line, end_col}, [edit | edits])
 
       {{:del, str}, _} ->
         {end_line, end_col} = advance_pos({line, col}, str)
+
         edit = %GenLSP.Structures.TextEdit{
           range: range(line, col, end_line, end_col),
           new_text: ""
         }
+
         myers_diff_to_text_edits(rest, {end_line, end_col}, [edit | edits])
     end
   end

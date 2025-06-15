@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.ResourceOperation do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :kind, String.t(), enforce: true
-    field :annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t()
+    field(:kind, String.t(), enforce: true)
+    field(:annotation_id, GenLSP.TypeAlias.ChangeAnnotationIdentifier.t())
   end
 
   @doc false

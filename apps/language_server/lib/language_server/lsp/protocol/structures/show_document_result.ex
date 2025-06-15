@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.ShowDocumentResult do
 
   * success: A boolean indicating if the show was successful.
   """
-  
+
   typedstruct do
-    field :success, boolean(), enforce: true
+    field(:success, boolean(), enforce: true)
   end
 
   @doc false

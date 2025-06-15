@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.CodeActionResolve do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "codeAction/resolve"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.CodeAction.t()
+    field(:method, String.t(), default: "codeAction/resolve")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.CodeAction.t())
   end
 
   @type result :: GenLSP.Structures.CodeAction.t()

@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.FileCreate do
 
   * uri: A file:// URI for the location of the file/folder being created.
   """
-  
+
   typedstruct do
-    field :uri, String.t(), enforce: true
+    field(:uri, String.t(), enforce: true)
   end
 
   @doc false

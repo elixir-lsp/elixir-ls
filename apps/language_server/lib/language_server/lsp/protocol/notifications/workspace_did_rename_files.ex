@@ -13,11 +13,10 @@ defmodule GenLSP.Notifications.WorkspaceDidRenameFiles do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/didRenameFiles"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.RenameFilesParams.t()
+    field(:method, String.t(), default: "workspace/didRenameFiles")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.RenameFilesParams.t())
   end
 
   @doc false

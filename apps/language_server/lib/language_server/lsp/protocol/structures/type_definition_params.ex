@@ -13,12 +13,12 @@ defmodule GenLSP.Structures.TypeDefinitionParams do
   * text_document: The text document.
   * position: The position inside the text document.
   """
-  
+
   typedstruct do
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
-    field :partial_result_token, GenLSP.TypeAlias.ProgressToken.t()
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :position, GenLSP.Structures.Position.t(), enforce: true
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
+    field(:partial_result_token, GenLSP.TypeAlias.ProgressToken.t())
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:position, GenLSP.Structures.Position.t(), enforce: true)
   end
 
   @doc false

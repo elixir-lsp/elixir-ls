@@ -29,13 +29,13 @@ defmodule GenLSP.Structures.PublishDiagnosticsClientCapabilities do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :related_information, boolean()
-    field :tag_support, map()
-    field :version_support, boolean()
-    field :code_description_support, boolean()
-    field :data_support, boolean()
+    field(:related_information, boolean())
+    field(:tag_support, map())
+    field(:version_support, boolean())
+    field(:code_description_support, boolean())
+    field(:data_support, boolean())
   end
 
   @doc false

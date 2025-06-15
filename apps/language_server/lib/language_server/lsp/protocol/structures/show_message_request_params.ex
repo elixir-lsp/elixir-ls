@@ -11,11 +11,11 @@ defmodule GenLSP.Structures.ShowMessageRequestParams do
   * message: The actual message.
   * actions: The message action items to present.
   """
-  
+
   typedstruct do
-    field :type, GenLSP.Enumerations.MessageType.t(), enforce: true
-    field :message, String.t(), enforce: true
-    field :actions, list(GenLSP.Structures.MessageActionItem.t())
+    field(:type, GenLSP.Enumerations.MessageType.t(), enforce: true)
+    field(:message, String.t(), enforce: true)
+    field(:actions, list(GenLSP.Structures.MessageActionItem.t()))
   end
 
   @doc false

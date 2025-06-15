@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.InlineValueText do
   * range: The document range for which the inline value applies.
   * text: The text of the inline value.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :text, String.t(), enforce: true
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:text, String.t(), enforce: true)
   end
 
   @doc false

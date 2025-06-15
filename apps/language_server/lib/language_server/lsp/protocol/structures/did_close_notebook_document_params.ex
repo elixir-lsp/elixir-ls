@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.DidCloseNotebookDocumentParams do
   * cell_text_documents: The text documents that represent the content
     of a notebook cell that got closed.
   """
-  
+
   typedstruct do
-    field :notebook_document, GenLSP.Structures.NotebookDocumentIdentifier.t(), enforce: true
-    field :cell_text_documents, list(GenLSP.Structures.TextDocumentIdentifier.t()), enforce: true
+    field(:notebook_document, GenLSP.Structures.NotebookDocumentIdentifier.t(), enforce: true)
+    field(:cell_text_documents, list(GenLSP.Structures.TextDocumentIdentifier.t()), enforce: true)
   end
 
   @doc false

@@ -35,7 +35,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         id: JsonRpcMock,
         start:
           {JsonRpcMock, :start_link,
-           [[success_reply: {:ok, %GenLSP.Structures.ApplyWorkspaceEditResult{applied: true}}, test_pid: self()]]}
+           [
+             [
+               success_reply: {:ok, %GenLSP.Structures.ApplyWorkspaceEditResult{applied: true}},
+               test_pid: self()
+             ]
+           ]}
       })
 
     :ok
@@ -76,7 +81,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 18, "line" => 2},
@@ -150,7 +156,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 5, "line" => 5},
@@ -224,7 +231,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 5, "line" => 5},
@@ -523,7 +531,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "start" => %{"line" => 2, "character" => 4},
@@ -627,7 +636,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                    }
                  )
 
-        assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+        assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                        GenLSP.Requests.WorkspaceApplyEdit}
 
         expected_range = %{
           "end" => %{"character" => 5, "line" => 5},
@@ -697,7 +707,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 18, "line" => 2},
@@ -797,7 +808,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 41, "line" => 4},
@@ -870,7 +882,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 23, "line" => 2},
@@ -944,7 +957,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 5, "line" => 5},
@@ -1016,7 +1030,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 25, "line" => 2},
@@ -1089,7 +1104,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                    }
                  )
 
-        assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+        assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                        GenLSP.Requests.WorkspaceApplyEdit}
 
         expected_range = %{
           "end" => %{"character" => 18, "line" => 3},
@@ -1192,7 +1208,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params}, GenLSP.Requests.WorkspaceApplyEdit}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 18, "line" => 3},

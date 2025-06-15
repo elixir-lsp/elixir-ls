@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.DocumentHighlight do
   * range: The range this highlight applies to.
   * kind: The highlight kind, default is {@link DocumentHighlightKind.Text text}.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :kind, GenLSP.Enumerations.DocumentHighlightKind.t()
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:kind, GenLSP.Enumerations.DocumentHighlightKind.t())
   end
 
   @doc false

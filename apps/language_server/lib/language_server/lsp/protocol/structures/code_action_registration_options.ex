@@ -22,11 +22,11 @@ defmodule GenLSP.Structures.CodeActionRegistrationOptions do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :code_action_kinds, list(GenLSP.Enumerations.CodeActionKind.t())
-    field :resolve_provider, boolean()
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:code_action_kinds, list(GenLSP.Enumerations.CodeActionKind.t()))
+    field(:resolve_provider, boolean())
   end
 
   @doc false

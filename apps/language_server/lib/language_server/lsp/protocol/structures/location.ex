@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.Location do
   * uri
   * range
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :range, GenLSP.Structures.Range.t(), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
   end
 
   @doc false

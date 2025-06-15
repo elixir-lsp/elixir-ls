@@ -22,13 +22,13 @@ defmodule GenLSP.Structures.WorkspaceFullDocumentDiagnosticReport do
     same document.
   * items: The actual items.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :version, integer() | nil, enforce: true
-    field :kind, String.t(), enforce: true
-    field :result_id, String.t()
-    field :items, list(GenLSP.Structures.Diagnostic.t()), enforce: true
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:version, integer() | nil, enforce: true)
+    field(:kind, String.t(), enforce: true)
+    field(:result_id, String.t())
+    field(:items, list(GenLSP.Structures.Diagnostic.t()), enforce: true)
   end
 
   @doc false

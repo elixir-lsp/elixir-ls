@@ -13,11 +13,10 @@ defmodule GenLSP.Notifications.WorkspaceDidCreateFiles do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/didCreateFiles"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.CreateFilesParams.t()
+    field(:method, String.t(), default: "workspace/didCreateFiles")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.CreateFilesParams.t())
   end
 
   @doc false

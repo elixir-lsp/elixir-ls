@@ -10,12 +10,11 @@ defmodule GenLSP.Requests.TextDocumentCodeLens do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/codeLens"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.CodeLensParams.t()
+    field(:method, String.t(), default: "textDocument/codeLens")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.CodeLensParams.t())
   end
 
   @type result :: list(GenLSP.Structures.CodeLens.t()) | nil

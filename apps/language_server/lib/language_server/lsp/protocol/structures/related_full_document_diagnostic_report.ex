@@ -26,17 +26,17 @@ defmodule GenLSP.Structures.RelatedFullDocumentDiagnosticReport do
     same document.
   * items: The actual items.
   """
-  
+
   typedstruct do
-    field :related_documents, %{
+    field(:related_documents, %{
       GenLSP.BaseTypes.document_uri() =>
         GenLSP.Structures.FullDocumentDiagnosticReport.t()
         | GenLSP.Structures.UnchangedDocumentDiagnosticReport.t()
-    }
+    })
 
-    field :kind, String.t(), enforce: true
-    field :result_id, String.t()
-    field :items, list(GenLSP.Structures.Diagnostic.t()), enforce: true
+    field(:kind, String.t(), enforce: true)
+    field(:result_id, String.t())
+    field(:items, list(GenLSP.Structures.Diagnostic.t()), enforce: true)
   end
 
   @doc false

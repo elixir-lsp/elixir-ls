@@ -41,17 +41,17 @@ defmodule GenLSP.Structures.PrivateInitializeParams do
   * trace: The initial trace setting. If omitted trace is disabled ('off').
   * work_done_token: An optional token that a server can use to report work done progress.
   """
-  
+
   typedstruct do
-    field :process_id, integer() | nil, enforce: true
-    field :client_info, map()
-    field :locale, String.t()
-    field :root_path, String.t() | nil
-    field :root_uri, GenLSP.BaseTypes.document_uri() | nil, enforce: true
-    field :capabilities, GenLSP.Structures.ClientCapabilities.t(), enforce: true
-    field :initialization_options, GenLSP.TypeAlias.LSPAny.t()
-    field :trace, GenLSP.Enumerations.TraceValues.t()
-    field :work_done_token, GenLSP.TypeAlias.ProgressToken.t()
+    field(:process_id, integer() | nil, enforce: true)
+    field(:client_info, map())
+    field(:locale, String.t())
+    field(:root_path, String.t() | nil)
+    field(:root_uri, GenLSP.BaseTypes.document_uri() | nil, enforce: true)
+    field(:capabilities, GenLSP.Structures.ClientCapabilities.t(), enforce: true)
+    field(:initialization_options, GenLSP.TypeAlias.LSPAny.t())
+    field(:trace, GenLSP.Enumerations.TraceValues.t())
+    field(:work_done_token, GenLSP.TypeAlias.ProgressToken.t())
   end
 
   @doc false

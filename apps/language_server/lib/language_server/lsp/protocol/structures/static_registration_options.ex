@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.StaticRegistrationOptions do
   * id: The id used to register the request. The id can be used to deregister
     the request again. See also Registration#id.
   """
-  
+
   typedstruct do
-    field :id, String.t()
+    field(:id, String.t())
   end
 
   @doc false

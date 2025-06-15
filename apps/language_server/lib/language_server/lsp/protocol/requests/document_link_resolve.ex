@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.DocumentLinkResolve do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "documentLink/resolve"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.DocumentLink.t()
+    field(:method, String.t(), default: "documentLink/resolve")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.DocumentLink.t())
   end
 
   @type result :: GenLSP.Structures.DocumentLink.t()

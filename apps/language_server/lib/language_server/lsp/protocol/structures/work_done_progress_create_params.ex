@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.WorkDoneProgressCreateParams do
 
   * token: The token to be used to report progress.
   """
-  
+
   typedstruct do
-    field :token, GenLSP.TypeAlias.ProgressToken.t(), enforce: true
+    field(:token, GenLSP.TypeAlias.ProgressToken.t(), enforce: true)
   end
 
   @doc false

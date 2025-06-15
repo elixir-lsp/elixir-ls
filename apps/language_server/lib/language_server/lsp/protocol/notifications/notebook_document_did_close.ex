@@ -12,11 +12,10 @@ defmodule GenLSP.Notifications.NotebookDocumentDidClose do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "notebookDocument/didClose"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.DidCloseNotebookDocumentParams.t()
+    field(:method, String.t(), default: "notebookDocument/didClose")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.DidCloseNotebookDocumentParams.t())
   end
 
   @doc false

@@ -16,12 +16,12 @@ defmodule GenLSP.Structures.Color do
   * blue: The blue component of this color in the range [0-1].
   * alpha: The alpha component of this color in the range [0-1].
   """
-  
+
   typedstruct do
-    field :red, float(), enforce: true
-    field :green, float(), enforce: true
-    field :blue, float(), enforce: true
-    field :alpha, float(), enforce: true
+    field(:red, float(), enforce: true)
+    field(:green, float(), enforce: true)
+    field(:blue, float(), enforce: true)
+    field(:alpha, float(), enforce: true)
   end
 
   @doc false

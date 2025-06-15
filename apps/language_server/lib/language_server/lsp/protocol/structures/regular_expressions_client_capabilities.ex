@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.RegularExpressionsClientCapabilities do
   * engine: The engine's name.
   * version: The engine's version.
   """
-  
+
   typedstruct do
-    field :engine, String.t(), enforce: true
-    field :version, String.t()
+    field(:engine, String.t(), enforce: true)
+    field(:version, String.t())
   end
 
   @doc false

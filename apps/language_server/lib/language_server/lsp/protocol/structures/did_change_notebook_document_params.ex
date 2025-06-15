@@ -31,12 +31,13 @@ defmodule GenLSP.Structures.DidChangeNotebookDocumentParams do
     - apply the `NotebookChangeEvent`s in a single notification in the order
       you receive them.
   """
-  
-  typedstruct do
-    field :notebook_document, GenLSP.Structures.VersionedNotebookDocumentIdentifier.t(),
-      enforce: true
 
-    field :change, GenLSP.Structures.NotebookDocumentChangeEvent.t(), enforce: true
+  typedstruct do
+    field(:notebook_document, GenLSP.Structures.VersionedNotebookDocumentIdentifier.t(),
+      enforce: true
+    )
+
+    field(:change, GenLSP.Structures.NotebookDocumentChangeEvent.t(), enforce: true)
   end
 
   @doc false

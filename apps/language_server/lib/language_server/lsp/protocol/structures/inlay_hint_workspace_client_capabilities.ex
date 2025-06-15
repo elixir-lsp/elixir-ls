@@ -21,9 +21,9 @@ defmodule GenLSP.Structures.InlayHintWorkspaceClientCapabilities do
     is useful for situation where a server for example detects a project wide
     change that requires such a calculation.
   """
-  
+
   typedstruct do
-    field :refresh_support, boolean()
+    field(:refresh_support, boolean())
   end
 
   @doc false

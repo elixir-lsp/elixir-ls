@@ -27,16 +27,16 @@ defmodule GenLSP.Structures.RelatedUnchangedDocumentDiagnosticReport do
   * result_id: A result id which will be sent on the next
     diagnostic request for the same document.
   """
-  
+
   typedstruct do
-    field :related_documents, %{
+    field(:related_documents, %{
       GenLSP.BaseTypes.document_uri() =>
         GenLSP.Structures.FullDocumentDiagnosticReport.t()
         | GenLSP.Structures.UnchangedDocumentDiagnosticReport.t()
-    }
+    })
 
-    field :kind, String.t(), enforce: true
-    field :result_id, String.t(), enforce: true
+    field(:kind, String.t(), enforce: true)
+    field(:result_id, String.t(), enforce: true)
   end
 
   @doc false

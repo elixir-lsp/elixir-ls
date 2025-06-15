@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.NotebookDocumentIdentifier do
 
   * uri: The notebook document's uri.
   """
-  
+
   typedstruct do
-    field :uri, GenLSP.BaseTypes.uri(), enforce: true
+    field(:uri, GenLSP.BaseTypes.uri(), enforce: true)
   end
 
   @doc false

@@ -20,11 +20,11 @@ defmodule GenLSP.Structures.InlineValueVariableLookup do
   * variable_name: If specified the name of the variable to look up.
   * case_sensitive_lookup: How to perform the lookup.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :variable_name, String.t()
-    field :case_sensitive_lookup, boolean(), enforce: true
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:variable_name, String.t())
+    field(:case_sensitive_lookup, boolean(), enforce: true)
   end
 
   @doc false

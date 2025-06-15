@@ -21,11 +21,11 @@ defmodule GenLSP.Structures.SignatureHelpRegistrationOptions do
 
     @since 3.15.0
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :trigger_characters, list(String.t())
-    field :retrigger_characters, list(String.t())
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:trigger_characters, list(String.t()))
+    field(:retrigger_characters, list(String.t()))
   end
 
   @doc false

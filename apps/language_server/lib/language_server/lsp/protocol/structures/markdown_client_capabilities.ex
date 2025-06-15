@@ -20,11 +20,11 @@ defmodule GenLSP.Structures.MarkdownClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :parser, String.t(), enforce: true
-    field :version, String.t()
-    field :allowed_tags, list(String.t())
+    field(:parser, String.t(), enforce: true)
+    field(:version, String.t())
+    field(:allowed_tags, list(String.t()))
   end
 
   @doc false

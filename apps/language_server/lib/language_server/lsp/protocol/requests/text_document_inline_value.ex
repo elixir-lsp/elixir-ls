@@ -14,12 +14,11 @@ defmodule GenLSP.Requests.TextDocumentInlineValue do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/inlineValue"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.InlineValueParams.t()
+    field(:method, String.t(), default: "textDocument/inlineValue")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.InlineValueParams.t())
   end
 
   @type result :: list(GenLSP.TypeAlias.InlineValue.t()) | nil

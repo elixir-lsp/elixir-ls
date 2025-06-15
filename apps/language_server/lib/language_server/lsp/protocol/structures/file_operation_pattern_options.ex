@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.FileOperationPatternOptions do
 
   * ignore_case: The pattern should be matched ignoring casing.
   """
-  
+
   typedstruct do
-    field :ignore_case, boolean()
+    field(:ignore_case, boolean())
   end
 
   @doc false

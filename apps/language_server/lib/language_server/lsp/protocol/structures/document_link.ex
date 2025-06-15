@@ -24,12 +24,12 @@ defmodule GenLSP.Structures.DocumentLink do
   * data: A data entry field that is preserved on a document link between a
     DocumentLinkRequest and a DocumentLinkResolveRequest.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :target, String.t()
-    field :tooltip, String.t()
-    field :data, GenLSP.TypeAlias.LSPAny.t()
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:target, String.t())
+    field(:tooltip, String.t())
+    field(:data, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.RenameOptions do
     @since version 3.12.0
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :prepare_provider, boolean()
-    field :work_done_progress, boolean()
+    field(:prepare_provider, boolean())
+    field(:work_done_progress, boolean())
   end
 
   @doc false

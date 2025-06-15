@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.InlayHintClientCapabilities do
   * resolve_support: Indicates which properties a client can resolve lazily on an inlay
     hint.
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :resolve_support, map()
+    field(:dynamic_registration, boolean())
+    field(:resolve_support, map())
   end
 
   @doc false

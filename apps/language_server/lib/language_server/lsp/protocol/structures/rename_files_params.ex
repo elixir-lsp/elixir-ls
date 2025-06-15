@@ -17,9 +17,9 @@ defmodule GenLSP.Structures.RenameFilesParams do
   * files: An array of all files/folders renamed in this operation. When a folder is renamed, only
     the folder will be included, and not its children.
   """
-  
+
   typedstruct do
-    field :files, list(GenLSP.Structures.FileRename.t()), enforce: true
+    field(:files, list(GenLSP.Structures.FileRename.t()), enforce: true)
   end
 
   @doc false

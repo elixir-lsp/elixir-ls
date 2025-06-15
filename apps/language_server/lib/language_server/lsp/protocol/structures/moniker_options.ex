@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.MonikerOptions do
 
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :work_done_progress, boolean()
+    field(:work_done_progress, boolean())
   end
 
   @doc false

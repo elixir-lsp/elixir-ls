@@ -136,8 +136,16 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     # so there's no need to pass the list
     tag_support =
       case :persistent_term.get(:language_server_client_capabilities) do
-        %GenLSP.Structures.ClientCapabilities{workspace: %GenLSP.Structures.WorkspaceClientCapabilities{symbol: %{tag_support: tag_support}}} when tag_support != nil -> true
-        _ -> false
+        %GenLSP.Structures.ClientCapabilities{
+          workspace: %GenLSP.Structures.WorkspaceClientCapabilities{
+            symbol: %{tag_support: tag_support}
+          }
+        }
+        when tag_support != nil ->
+          true
+
+        _ ->
+          false
       end
 
     {:noreply, %{state | project_dir: project_dir, tag_support: tag_support}}
@@ -623,6 +631,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           symbol_information_t
   defp build_result(key, symbol, path, annotation, metadata, project_dir, tag_support) do
     range = build_range(annotation)
+
     location = %GenLSP.Structures.Location{
       uri: SourceFile.Path.to_uri(path, project_dir),
       range: range

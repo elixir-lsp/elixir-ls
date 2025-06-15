@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :relative_pattern_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:relative_pattern_support, boolean())
   end
 
   @doc false

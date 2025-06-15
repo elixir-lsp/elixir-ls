@@ -20,14 +20,14 @@ defmodule GenLSP.Structures.FileOperationOptions do
   * did_delete: The server is interested in receiving didDeleteFiles file notifications.
   * will_delete: The server is interested in receiving willDeleteFiles file requests.
   """
-  
+
   typedstruct do
-    field :did_create, GenLSP.Structures.FileOperationRegistrationOptions.t()
-    field :will_create, GenLSP.Structures.FileOperationRegistrationOptions.t()
-    field :did_rename, GenLSP.Structures.FileOperationRegistrationOptions.t()
-    field :will_rename, GenLSP.Structures.FileOperationRegistrationOptions.t()
-    field :did_delete, GenLSP.Structures.FileOperationRegistrationOptions.t()
-    field :will_delete, GenLSP.Structures.FileOperationRegistrationOptions.t()
+    field(:did_create, GenLSP.Structures.FileOperationRegistrationOptions.t())
+    field(:will_create, GenLSP.Structures.FileOperationRegistrationOptions.t())
+    field(:did_rename, GenLSP.Structures.FileOperationRegistrationOptions.t())
+    field(:will_rename, GenLSP.Structures.FileOperationRegistrationOptions.t())
+    field(:did_delete, GenLSP.Structures.FileOperationRegistrationOptions.t())
+    field(:will_delete, GenLSP.Structures.FileOperationRegistrationOptions.t())
   end
 
   @doc false

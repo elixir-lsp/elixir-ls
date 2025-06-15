@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.ExecuteCommandOptions do
   * commands: The commands to be executed on the server
   * work_done_progress
   """
-  
+
   typedstruct do
-    field :commands, list(String.t()), enforce: true
-    field :work_done_progress, boolean()
+    field(:commands, list(String.t()), enforce: true)
+    field(:work_done_progress, boolean())
   end
 
   @doc false

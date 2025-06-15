@@ -26,11 +26,11 @@ defmodule GenLSP.Structures.FileOperationPattern do
     Matches both if undefined.
   * options: Additional options used during matching.
   """
-  
+
   typedstruct do
-    field :glob, String.t(), enforce: true
-    field :matches, GenLSP.Enumerations.FileOperationPatternKind.t()
-    field :options, GenLSP.Structures.FileOperationPatternOptions.t()
+    field(:glob, String.t(), enforce: true)
+    field(:matches, GenLSP.Enumerations.FileOperationPatternKind.t())
+    field(:options, GenLSP.Structures.FileOperationPatternOptions.t())
   end
 
   @doc false

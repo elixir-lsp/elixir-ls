@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.Unregistration do
     provided during the register request.
   * method: The method to unregister for.
   """
-  
+
   typedstruct do
-    field :id, String.t(), enforce: true
-    field :method, String.t(), enforce: true
+    field(:id, String.t(), enforce: true)
+    field(:method, String.t(), enforce: true)
   end
 
   @doc false

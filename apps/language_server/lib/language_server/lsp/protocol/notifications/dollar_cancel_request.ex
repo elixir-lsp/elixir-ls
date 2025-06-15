@@ -4,11 +4,10 @@ defmodule GenLSP.Notifications.DollarCancelRequest do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "$/cancelRequest"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :params, GenLSP.Structures.CancelParams.t()
+    field(:method, String.t(), default: "$/cancelRequest")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:params, GenLSP.Structures.CancelParams.t())
   end
 
   @doc false

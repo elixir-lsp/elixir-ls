@@ -13,12 +13,11 @@ defmodule GenLSP.Requests.TextDocumentDocumentSymbol do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/documentSymbol"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.DocumentSymbolParams.t()
+    field(:method, String.t(), default: "textDocument/documentSymbol")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.DocumentSymbolParams.t())
   end
 
   @type result ::

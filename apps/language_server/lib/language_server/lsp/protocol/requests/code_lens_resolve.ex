@@ -10,12 +10,11 @@ defmodule GenLSP.Requests.CodeLensResolve do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "codeLens/resolve"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.CodeLens.t()
+    field(:method, String.t(), default: "codeLens/resolve")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.CodeLens.t())
   end
 
   @type result :: GenLSP.Structures.CodeLens.t()

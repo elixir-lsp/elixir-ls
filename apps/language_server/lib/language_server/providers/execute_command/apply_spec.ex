@@ -88,10 +88,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
             edit: %GenLSP.Structures.WorkspaceEdit{
               changes: %{
                 # we don't care about utf16 positions here as we send 0
-                uri => [%GenLSP.Structures.TextEdit{
-                  range: range(line - 1, 0, line - 1, 0),
-                  new_text: formatted
-                }]
+                uri => [
+                  %GenLSP.Structures.TextEdit{
+                    range: range(line - 1, 0, line - 1, 0),
+                    new_text: formatted
+                  }
+                ]
               }
             }
           }

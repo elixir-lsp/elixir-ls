@@ -14,12 +14,11 @@ defmodule GenLSP.Requests.Initialize do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "initialize"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.InitializeParams.t()
+    field(:method, String.t(), default: "initialize")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.InitializeParams.t())
   end
 
   @type result :: GenLSP.Structures.InitializeResult.t()

@@ -20,13 +20,15 @@ defmodule GenLSP.Structures.TextDocumentEdit do
     @since 3.16.0 - support for AnnotatedTextEdit. This is guarded using a
     client capability.
   """
-  
-  typedstruct do
-    field :text_document, GenLSP.Structures.OptionalVersionedTextDocumentIdentifier.t(),
-      enforce: true
 
-    field :edits, list(GenLSP.Structures.TextEdit.t() | GenLSP.Structures.AnnotatedTextEdit.t()),
+  typedstruct do
+    field(:text_document, GenLSP.Structures.OptionalVersionedTextDocumentIdentifier.t(),
       enforce: true
+    )
+
+    field(:edits, list(GenLSP.Structures.TextEdit.t() | GenLSP.Structures.AnnotatedTextEdit.t()),
+      enforce: true
+    )
   end
 
   @doc false

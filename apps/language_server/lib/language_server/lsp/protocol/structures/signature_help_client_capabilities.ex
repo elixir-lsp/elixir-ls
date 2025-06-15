@@ -21,11 +21,11 @@ defmodule GenLSP.Structures.SignatureHelpClientCapabilities do
 
     @since 3.15.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :signature_information, map()
-    field :context_support, boolean()
+    field(:dynamic_registration, boolean())
+    field(:signature_information, map())
+    field(:context_support, boolean())
   end
 
   @doc false

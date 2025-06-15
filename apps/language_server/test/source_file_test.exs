@@ -550,15 +550,19 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     assert %GenLSP.Structures.Range{
              end: %GenLSP.Structures.Position{character: 1, line: 0}
            } = SourceFile.full_range(new("a"))
+
     assert %GenLSP.Structures.Range{
              end: %GenLSP.Structures.Position{character: 0, line: 1}
            } = SourceFile.full_range(new("\n"))
+
     assert %GenLSP.Structures.Range{
              end: %GenLSP.Structures.Position{character: 2, line: 1}
            } = SourceFile.full_range(new("a\naa"))
+
     assert %GenLSP.Structures.Range{
              end: %GenLSP.Structures.Position{character: 2, line: 1}
            } = SourceFile.full_range(new("a\r\naa"))
+
     assert %GenLSP.Structures.Range{
              end: %GenLSP.Structures.Position{character: 8, line: 1}
            } = SourceFile.full_range(new("a\naa🏳️‍🌈"))

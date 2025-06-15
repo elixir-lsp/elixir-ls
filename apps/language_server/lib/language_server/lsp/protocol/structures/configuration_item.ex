@@ -10,10 +10,10 @@ defmodule GenLSP.Structures.ConfigurationItem do
   * scope_uri: The scope to get the configuration section for.
   * section: The configuration section asked for.
   """
-  
+
   typedstruct do
-    field :scope_uri, String.t()
-    field :section, String.t()
+    field(:scope_uri, String.t())
+    field(:section, String.t())
   end
 
   @doc false

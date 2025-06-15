@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.SemanticTokensLegend do
   * token_types: The token types a server uses.
   * token_modifiers: The token modifiers a server uses.
   """
-  
+
   typedstruct do
-    field :token_types, list(String.t()), enforce: true
-    field :token_modifiers, list(String.t()), enforce: true
+    field(:token_types, list(String.t()), enforce: true)
+    field(:token_modifiers, list(String.t()), enforce: true)
   end
 
   @doc false

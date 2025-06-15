@@ -12,12 +12,11 @@ defmodule GenLSP.Requests.TextDocumentDiagnostic do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/diagnostic"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.DocumentDiagnosticParams.t()
+    field(:method, String.t(), default: "textDocument/diagnostic")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.DocumentDiagnosticParams.t())
   end
 
   @type result :: GenLSP.TypeAlias.DocumentDiagnosticReport.t()

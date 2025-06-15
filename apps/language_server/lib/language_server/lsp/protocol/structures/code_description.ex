@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.CodeDescription do
 
   * href: An URI to open with more information about the diagnostic error.
   """
-  
+
   typedstruct do
-    field :href, GenLSP.BaseTypes.uri(), enforce: true
+    field(:href, GenLSP.BaseTypes.uri(), enforce: true)
   end
 
   @doc false

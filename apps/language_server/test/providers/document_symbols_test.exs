@@ -8,12 +8,19 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
   defp get_document_symbols(uri, text, flat) do
     results = DocumentSymbols.symbols(uri, text, flat)
+
     case results do
       {:ok, results} ->
-        assert match?({:ok, _dumped}, Schematic.dump(GenLSP.Requests.TextDocumentDocumentSymbol.result(), results)), inspect(results)
+        assert match?(
+                 {:ok, _dumped},
+                 Schematic.dump(GenLSP.Requests.TextDocumentDocumentSymbol.result(), results)
+               ),
+               inspect(results)
+
       _ ->
         :ok
     end
+
     results
   end
 

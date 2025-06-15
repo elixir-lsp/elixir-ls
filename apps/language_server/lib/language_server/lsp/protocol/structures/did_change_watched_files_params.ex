@@ -13,9 +13,9 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesParams do
 
   * changes: The actual file events.
   """
-  
+
   typedstruct do
-    field :changes, list(GenLSP.Structures.FileEvent.t()), enforce: true
+    field(:changes, list(GenLSP.Structures.FileEvent.t()), enforce: true)
   end
 
   @doc false

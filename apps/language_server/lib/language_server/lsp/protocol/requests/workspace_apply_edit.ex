@@ -10,12 +10,11 @@ defmodule GenLSP.Requests.WorkspaceApplyEdit do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "workspace/applyEdit"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.ApplyWorkspaceEditParams.t()
+    field(:method, String.t(), default: "workspace/applyEdit")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.ApplyWorkspaceEditParams.t())
   end
 
   @type result :: GenLSP.Structures.ApplyWorkspaceEditResult.t()

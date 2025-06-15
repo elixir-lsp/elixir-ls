@@ -22,14 +22,14 @@ defmodule GenLSP.Structures.ClientCapabilities do
     @since 3.16.0
   * experimental: Experimental client capabilities.
   """
-  
+
   typedstruct do
-    field :workspace, GenLSP.Structures.WorkspaceClientCapabilities.t()
-    field :text_document, GenLSP.Structures.TextDocumentClientCapabilities.t()
-    field :notebook_document, GenLSP.Structures.NotebookDocumentClientCapabilities.t()
-    field :window, GenLSP.Structures.WindowClientCapabilities.t()
-    field :general, GenLSP.Structures.GeneralClientCapabilities.t()
-    field :experimental, GenLSP.TypeAlias.LSPAny.t()
+    field(:workspace, GenLSP.Structures.WorkspaceClientCapabilities.t())
+    field(:text_document, GenLSP.Structures.TextDocumentClientCapabilities.t())
+    field(:notebook_document, GenLSP.Structures.NotebookDocumentClientCapabilities.t())
+    field(:window, GenLSP.Structures.WindowClientCapabilities.t())
+    field(:general, GenLSP.Structures.GeneralClientCapabilities.t())
+    field(:experimental, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

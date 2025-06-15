@@ -10,12 +10,11 @@ defmodule GenLSP.Requests.TextDocumentSemanticTokensRange do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/semanticTokens/range"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.SemanticTokensRangeParams.t()
+    field(:method, String.t(), default: "textDocument/semanticTokens/range")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.SemanticTokensRangeParams.t())
   end
 
   @type result :: GenLSP.Structures.SemanticTokens.t() | nil

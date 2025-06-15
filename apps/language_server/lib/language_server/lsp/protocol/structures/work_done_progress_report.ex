@@ -24,12 +24,12 @@ defmodule GenLSP.Structures.WorkDoneProgressReport do
     The value should be steadily rising. Clients are free to ignore values
     that are not following this rule. The value range is [0, 100]
   """
-  
+
   typedstruct do
-    field :kind, String.t(), enforce: true
-    field :cancellable, boolean()
-    field :message, String.t()
-    field :percentage, GenLSP.BaseTypes.uinteger()
+    field(:kind, String.t(), enforce: true)
+    field(:cancellable, boolean())
+    field(:message, String.t())
+    field(:percentage, GenLSP.BaseTypes.uinteger())
   end
 
   @doc false

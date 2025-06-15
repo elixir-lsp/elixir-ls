@@ -23,12 +23,12 @@ defmodule GenLSP.Structures.WorkspaceSymbolClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :symbol_kind, map()
-    field :tag_support, map()
-    field :resolve_support, map()
+    field(:dynamic_registration, boolean())
+    field(:symbol_kind, map())
+    field(:tag_support, map())
+    field(:resolve_support, map())
   end
 
   @doc false

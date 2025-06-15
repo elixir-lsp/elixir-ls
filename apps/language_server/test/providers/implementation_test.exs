@@ -7,7 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.ImplementationTest do
   alias ElixirLS.LanguageServer.Test.ParserContextBuilder
   require ElixirLS.Test.TextLoc
   import ElixirLS.LanguageServer.RangeUtils
-  
+
   test "find implementations" do
     # force load as currently only loaded or loadable modules that are a part
     # of an application are found

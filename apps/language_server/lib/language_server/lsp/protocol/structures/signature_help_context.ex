@@ -26,12 +26,12 @@ defmodule GenLSP.Structures.SignatureHelpContext do
     The `activeSignatureHelp` has its `SignatureHelp.activeSignature` field updated based on
     the user navigating through available signatures.
   """
-  
+
   typedstruct do
-    field :trigger_kind, GenLSP.Enumerations.SignatureHelpTriggerKind.t(), enforce: true
-    field :trigger_character, String.t()
-    field :is_retrigger, boolean(), enforce: true
-    field :active_signature_help, GenLSP.Structures.SignatureHelp.t()
+    field(:trigger_kind, GenLSP.Enumerations.SignatureHelpTriggerKind.t(), enforce: true)
+    field(:trigger_character, String.t())
+    field(:is_retrigger, boolean(), enforce: true)
+    field(:active_signature_help, GenLSP.Structures.SignatureHelp.t())
   end
 
   @doc false

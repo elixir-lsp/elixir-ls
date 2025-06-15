@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.DiagnosticRelatedInformation do
   * location: The location of this related diagnostic information.
   * message: The message of this related diagnostic information.
   """
-  
+
   typedstruct do
-    field :location, GenLSP.Structures.Location.t(), enforce: true
-    field :message, String.t(), enforce: true
+    field(:location, GenLSP.Structures.Location.t(), enforce: true)
+    field(:message, String.t(), enforce: true)
   end
 
   @doc false

@@ -34,17 +34,17 @@ defmodule GenLSP.Structures.Diagnostic do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :severity, GenLSP.Enumerations.DiagnosticSeverity.t()
-    field :code, integer() | String.t()
-    field :code_description, GenLSP.Structures.CodeDescription.t()
-    field :source, String.t()
-    field :message, String.t(), enforce: true
-    field :tags, list(GenLSP.Enumerations.DiagnosticTag.t())
-    field :related_information, list(GenLSP.Structures.DiagnosticRelatedInformation.t())
-    field :data, GenLSP.TypeAlias.LSPAny.t()
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:severity, GenLSP.Enumerations.DiagnosticSeverity.t())
+    field(:code, integer() | String.t())
+    field(:code_description, GenLSP.Structures.CodeDescription.t())
+    field(:source, String.t())
+    field(:message, String.t(), enforce: true)
+    field(:tags, list(GenLSP.Enumerations.DiagnosticTag.t()))
+    field(:related_information, list(GenLSP.Structures.DiagnosticRelatedInformation.t()))
+    field(:data, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

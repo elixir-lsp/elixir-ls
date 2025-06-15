@@ -19,9 +19,9 @@ defmodule GenLSP.Structures.CodeLensWorkspaceClientCapabilities do
     useful for situation where a server for example detect a project wide
     change that requires such a calculation.
   """
-  
+
   typedstruct do
-    field :refresh_support, boolean()
+    field(:refresh_support, boolean())
   end
 
   @doc false

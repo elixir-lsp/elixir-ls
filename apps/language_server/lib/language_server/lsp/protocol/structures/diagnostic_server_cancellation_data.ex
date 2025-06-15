@@ -15,9 +15,9 @@ defmodule GenLSP.Structures.DiagnosticServerCancellationData do
 
   * retrigger_request
   """
-  
+
   typedstruct do
-    field :retrigger_request, boolean(), enforce: true
+    field(:retrigger_request, boolean(), enforce: true)
   end
 
   @doc false

@@ -36,13 +36,13 @@ defmodule GenLSP.Structures.CompletionRegistrationOptions do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :trigger_characters, list(String.t())
-    field :all_commit_characters, list(String.t())
-    field :resolve_provider, boolean()
-    field :completion_item, map()
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:trigger_characters, list(String.t()))
+    field(:all_commit_characters, list(String.t()))
+    field(:resolve_provider, boolean())
+    field(:completion_item, map())
   end
 
   @doc false

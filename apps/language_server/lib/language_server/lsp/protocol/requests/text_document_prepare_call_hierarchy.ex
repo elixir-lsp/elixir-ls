@@ -13,12 +13,11 @@ defmodule GenLSP.Requests.TextDocumentPrepareCallHierarchy do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/prepareCallHierarchy"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.CallHierarchyPrepareParams.t()
+    field(:method, String.t(), default: "textDocument/prepareCallHierarchy")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.CallHierarchyPrepareParams.t())
   end
 
   @type result :: list(GenLSP.Structures.CallHierarchyItem.t()) | nil

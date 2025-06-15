@@ -17,10 +17,10 @@ defmodule GenLSP.Structures.SemanticTokens do
     send a delta.
   * data: The actual tokens.
   """
-  
+
   typedstruct do
-    field :result_id, String.t()
-    field :data, list(GenLSP.BaseTypes.uinteger()), enforce: true
+    field(:result_id, String.t())
+    field(:data, list(GenLSP.BaseTypes.uinteger()), enforce: true)
   end
 
   @doc false

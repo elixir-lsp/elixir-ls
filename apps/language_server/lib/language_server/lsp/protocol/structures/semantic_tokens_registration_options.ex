@@ -20,13 +20,13 @@ defmodule GenLSP.Structures.SemanticTokensRegistrationOptions do
     of a document.
   * full: Server supports providing semantic tokens for a full document.
   """
-  
+
   typedstruct do
-    field :id, String.t()
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :legend, GenLSP.Structures.SemanticTokensLegend.t(), enforce: true
-    field :range, boolean() | map()
-    field :full, boolean() | map()
+    field(:id, String.t())
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:legend, GenLSP.Structures.SemanticTokensLegend.t(), enforce: true)
+    field(:range, boolean() | map())
+    field(:full, boolean() | map())
   end
 
   @doc false

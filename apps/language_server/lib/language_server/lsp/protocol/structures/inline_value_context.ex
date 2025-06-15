@@ -15,10 +15,10 @@ defmodule GenLSP.Structures.InlineValueContext do
   * stopped_location: The document range where execution has stopped.
     Typically the end position of the range denotes the line where the inline values are shown.
   """
-  
+
   typedstruct do
-    field :frame_id, integer(), enforce: true
-    field :stopped_location, GenLSP.Structures.Range.t(), enforce: true
+    field(:frame_id, integer(), enforce: true)
+    field(:stopped_location, GenLSP.Structures.Range.t(), enforce: true)
   end
 
   @doc false

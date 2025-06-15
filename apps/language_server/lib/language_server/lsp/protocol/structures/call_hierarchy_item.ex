@@ -25,16 +25,16 @@ defmodule GenLSP.Structures.CallHierarchyItem do
   * data: A data entry field that is preserved between a call hierarchy prepare and
     incoming calls or outgoing calls requests.
   """
-  
+
   typedstruct do
-    field :name, String.t(), enforce: true
-    field :kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true
-    field :tags, list(GenLSP.Enumerations.SymbolTag.t())
-    field :detail, String.t()
-    field :uri, GenLSP.BaseTypes.document_uri(), enforce: true
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :selection_range, GenLSP.Structures.Range.t(), enforce: true
-    field :data, GenLSP.TypeAlias.LSPAny.t()
+    field(:name, String.t(), enforce: true)
+    field(:kind, GenLSP.Enumerations.SymbolKind.t(), enforce: true)
+    field(:tags, list(GenLSP.Enumerations.SymbolTag.t()))
+    field(:detail, String.t())
+    field(:uri, GenLSP.BaseTypes.document_uri(), enforce: true)
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:selection_range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:data, GenLSP.TypeAlias.LSPAny.t())
   end
 
   @doc false

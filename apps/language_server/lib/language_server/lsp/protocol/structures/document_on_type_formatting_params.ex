@@ -21,12 +21,12 @@ defmodule GenLSP.Structures.DocumentOnTypeFormattingParams do
     characters as well (e.g. like automatic brace completion).
   * options: The formatting options.
   """
-  
+
   typedstruct do
-    field :text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true
-    field :position, GenLSP.Structures.Position.t(), enforce: true
-    field :ch, String.t(), enforce: true
-    field :options, GenLSP.Structures.FormattingOptions.t(), enforce: true
+    field(:text_document, GenLSP.Structures.TextDocumentIdentifier.t(), enforce: true)
+    field(:position, GenLSP.Structures.Position.t(), enforce: true)
+    field(:ch, String.t(), enforce: true)
+    field(:options, GenLSP.Structures.FormattingOptions.t(), enforce: true)
   end
 
   @doc false

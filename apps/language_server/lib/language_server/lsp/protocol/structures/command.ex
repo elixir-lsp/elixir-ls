@@ -19,11 +19,11 @@ defmodule GenLSP.Structures.Command do
   * arguments: Arguments that the command handler should be
     invoked with.
   """
-  
+
   typedstruct do
-    field :title, String.t(), enforce: true
-    field :command, String.t(), enforce: true
-    field :arguments, list(GenLSP.TypeAlias.LSPAny.t())
+    field(:title, String.t(), enforce: true)
+    field(:command, String.t(), enforce: true)
+    field(:arguments, list(GenLSP.TypeAlias.LSPAny.t()))
   end
 
   @doc false

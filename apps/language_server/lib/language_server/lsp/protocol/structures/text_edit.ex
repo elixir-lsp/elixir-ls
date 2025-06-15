@@ -16,10 +16,10 @@ defmodule GenLSP.Structures.TextEdit do
   * new_text: The string to be inserted. For delete operations use an
     empty string.
   """
-  
+
   typedstruct do
-    field :range, GenLSP.Structures.Range.t(), enforce: true
-    field :new_text, String.t(), enforce: true
+    field(:range, GenLSP.Structures.Range.t(), enforce: true)
+    field(:new_text, String.t(), enforce: true)
   end
 
   @doc false

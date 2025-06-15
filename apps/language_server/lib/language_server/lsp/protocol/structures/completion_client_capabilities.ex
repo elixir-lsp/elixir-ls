@@ -27,14 +27,14 @@ defmodule GenLSP.Structures.CompletionClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :completion_item, map()
-    field :completion_item_kind, map()
-    field :insert_text_mode, GenLSP.Enumerations.InsertTextMode.t()
-    field :context_support, boolean()
-    field :completion_list, map()
+    field(:dynamic_registration, boolean())
+    field(:completion_item, map())
+    field(:completion_item_kind, map())
+    field(:insert_text_mode, GenLSP.Enumerations.InsertTextMode.t())
+    field(:context_support, boolean())
+    field(:completion_list, map())
   end
 
   @doc false

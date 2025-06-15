@@ -25,13 +25,13 @@ defmodule GenLSP.Structures.DiagnosticRegistrationOptions do
     most programming languages and typically uncommon for linters.
   * workspace_diagnostics: The server provides support for workspace diagnostics as well.
   """
-  
+
   typedstruct do
-    field :id, String.t()
-    field :document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true
-    field :identifier, String.t()
-    field :inter_file_dependencies, boolean(), enforce: true
-    field :workspace_diagnostics, boolean(), enforce: true
+    field(:id, String.t())
+    field(:document_selector, GenLSP.TypeAlias.DocumentSelector.t() | nil, enforce: true)
+    field(:identifier, String.t())
+    field(:inter_file_dependencies, boolean(), enforce: true)
+    field(:workspace_diagnostics, boolean(), enforce: true)
   end
 
   @doc false

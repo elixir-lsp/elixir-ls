@@ -8,7 +8,7 @@ defmodule GenLSP.Structures.InitializedParams do
   ## Fields
 
   """
-  
+
   typedstruct do
   end
 

@@ -40,15 +40,15 @@ defmodule GenLSP.Structures.CodeActionClientCapabilities do
 
     @since 3.16.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :code_action_literal_support, map()
-    field :is_preferred_support, boolean()
-    field :disabled_support, boolean()
-    field :data_support, boolean()
-    field :resolve_support, map()
-    field :honors_change_annotations, boolean()
+    field(:dynamic_registration, boolean())
+    field(:code_action_literal_support, map())
+    field(:is_preferred_support, boolean())
+    field(:disabled_support, boolean())
+    field(:data_support, boolean())
+    field(:resolve_support, map())
+    field(:honors_change_annotations, boolean())
   end
 
   @doc false

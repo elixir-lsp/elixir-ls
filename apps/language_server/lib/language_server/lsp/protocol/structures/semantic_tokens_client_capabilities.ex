@@ -44,17 +44,17 @@ defmodule GenLSP.Structures.SemanticTokensClientCapabilities do
 
     @since 3.17.0
   """
-  
+
   typedstruct do
-    field :dynamic_registration, boolean()
-    field :requests, map(), enforce: true
-    field :token_types, list(String.t()), enforce: true
-    field :token_modifiers, list(String.t()), enforce: true
-    field :formats, list(GenLSP.Enumerations.TokenFormat.t()), enforce: true
-    field :overlapping_token_support, boolean()
-    field :multiline_token_support, boolean()
-    field :server_cancel_support, boolean()
-    field :augments_syntax_tokens, boolean()
+    field(:dynamic_registration, boolean())
+    field(:requests, map(), enforce: true)
+    field(:token_types, list(String.t()), enforce: true)
+    field(:token_modifiers, list(String.t()), enforce: true)
+    field(:formats, list(GenLSP.Enumerations.TokenFormat.t()), enforce: true)
+    field(:overlapping_token_support, boolean())
+    field(:multiline_token_support, boolean())
+    field(:server_cancel_support, boolean())
+    field(:augments_syntax_tokens, boolean())
   end
 
   @doc false

@@ -9,9 +9,9 @@ defmodule GenLSP.Structures.RegistrationParams do
 
   * registrations
   """
-  
+
   typedstruct do
-    field :registrations, list(GenLSP.Structures.Registration.t()), enforce: true
+    field(:registrations, list(GenLSP.Structures.Registration.t()), enforce: true)
   end
 
   @doc false

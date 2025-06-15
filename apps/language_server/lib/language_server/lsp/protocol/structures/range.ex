@@ -24,10 +24,10 @@ defmodule GenLSP.Structures.Range do
   * start: The range's start position.
   * end: The range's end position.
   """
-  
+
   typedstruct do
-    field :start, GenLSP.Structures.Position.t(), enforce: true
-    field :end, GenLSP.Structures.Position.t(), enforce: true
+    field(:start, GenLSP.Structures.Position.t(), enforce: true)
+    field(:end, GenLSP.Structures.Position.t(), enforce: true)
   end
 
   @doc false

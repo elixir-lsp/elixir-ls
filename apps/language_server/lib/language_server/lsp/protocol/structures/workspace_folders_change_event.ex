@@ -14,10 +14,10 @@ defmodule GenLSP.Structures.WorkspaceFoldersChangeEvent do
   * added: The array of added workspace folders
   * removed: The array of the removed workspace folders
   """
-  
+
   typedstruct do
-    field :added, list(GenLSP.Structures.WorkspaceFolder.t()), enforce: true
-    field :removed, list(GenLSP.Structures.WorkspaceFolder.t()), enforce: true
+    field(:added, list(GenLSP.Structures.WorkspaceFolder.t()), enforce: true)
+    field(:removed, list(GenLSP.Structures.WorkspaceFolder.t()), enforce: true)
   end
 
   @doc false

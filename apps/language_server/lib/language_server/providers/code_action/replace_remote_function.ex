@@ -14,7 +14,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
 
   import ElixirLS.LanguageServer.Providers.CodeAction.Helpers
 
-  @spec apply(SourceFile.t(), String.t(), [GenLSP.Structures.Diagnostic.t()]) :: [GenLSP.Structures.CodeAction.t()]
+  @spec apply(SourceFile.t(), String.t(), [GenLSP.Structures.Diagnostic.t()]) :: [
+          GenLSP.Structures.CodeAction.t()
+        ]
   def apply(%SourceFile{} = source_file, uri, diagnostics) do
     Enum.flat_map(diagnostics, fn diagnostic ->
       with {:ok, module, function, arity, line_number} <- extract_function_and_line(diagnostic),

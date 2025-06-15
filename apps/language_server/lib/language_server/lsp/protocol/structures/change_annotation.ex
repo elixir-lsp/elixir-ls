@@ -20,11 +20,11 @@ defmodule GenLSP.Structures.ChangeAnnotation do
   * description: A human-readable string which is rendered less prominent in
     the user interface.
   """
-  
+
   typedstruct do
-    field :label, String.t(), enforce: true
-    field :needs_confirmation, boolean()
-    field :description, String.t()
+    field(:label, String.t(), enforce: true)
+    field(:needs_confirmation, boolean())
+    field(:description, String.t())
   end
 
   @doc false

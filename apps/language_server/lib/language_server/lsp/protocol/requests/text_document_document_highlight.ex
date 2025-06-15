@@ -13,12 +13,11 @@ defmodule GenLSP.Requests.TextDocumentDocumentHighlight do
 
   use TypedStruct
 
-  
   typedstruct do
-    field :method, String.t(), default: "textDocument/documentHighlight"
-    field :jsonrpc, String.t(), default: "2.0"
-    field :id, integer(), enforce: true
-    field :params, GenLSP.Structures.DocumentHighlightParams.t()
+    field(:method, String.t(), default: "textDocument/documentHighlight")
+    field(:jsonrpc, String.t(), default: "2.0")
+    field(:id, integer(), enforce: true)
+    field(:params, GenLSP.Structures.DocumentHighlightParams.t())
   end
 
   @type result :: list(GenLSP.Structures.DocumentHighlight.t()) | nil
