@@ -23,6 +23,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
+      elixirc_paths: elixirc_paths(Mix.env()),
       # if we consolidate here debugged code will not work correctly
       # and debugged protocol implementation will not be available
       consolidate_protocols: false,
@@ -46,4 +47,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
        github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end

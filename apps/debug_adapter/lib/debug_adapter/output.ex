@@ -9,7 +9,7 @@ defmodule ElixirLS.DebugAdapter.Output do
   """
   alias ElixirLS.Utils.WireProtocol
   use GenServer
-  use ElixirLS.DebugAdapter.Protocol
+  import ElixirLS.DebugAdapter.Protocol.Basic
 
   ## Client API
 

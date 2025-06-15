@@ -19,7 +19,6 @@ defmodule ElixirLS.DebugAdapter.Server do
   alias ElixirLS.DebugAdapter.{
     Output,
     Stacktrace,
-    Protocol,
     Variables,
     Utils,
     BreakpointCondition,
@@ -32,8 +31,8 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   alias ElixirLS.DebugAdapter.Stacktrace.Frame
   alias ElixirLS.Utils.Launch
+  import ElixirLS.DebugAdapter.Protocol.Basic
   use GenServer
-  use Protocol
 
   @temp_beam_dir ".elixir_ls/temp_beams"
 
