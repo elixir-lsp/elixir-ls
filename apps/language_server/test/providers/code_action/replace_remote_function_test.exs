@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
   alias ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction
   alias ElixirLS.LanguageServer.SourceFile
 
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   @default_message """
   Enum.counts/1 is undefined or private. Did you mean:
@@ -25,9 +25,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
     range = range(line_number, 0, line_number + 1, 0)
 
     diagnostics = [
-      %{
-        "message" => message,
-        "range" => range
+      %GenLSP.Structures.Diagnostic{
+        message: message,
+        range: range
       }
     ]
 

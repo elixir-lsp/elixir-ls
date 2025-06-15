@@ -4,7 +4,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscoreTest
   alias ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscore
   alias ElixirLS.LanguageServer.SourceFile
 
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   def apply_code_mod(original_text, options) do
     variable = Keyword.get(options, :variable, :unused)
@@ -22,9 +22,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceWithUnderscoreTest
     range = range(line_number, 0, line_number + 1, 0)
 
     diagnostics = [
-      %{
-        "message" => message,
-        "range" => range
+      %GenLSP.Structures.Diagnostic{
+        message: message,
+        range: range
       }
     ]
 
