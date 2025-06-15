@@ -120,7 +120,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       %Info{
         type: type,
         name: symbol || module_name,
-        detail: if(defname == :defimpl_transformed, do: :defimpl, else: defname),
+        detail: if(defname == :defimpl_transformed, do: :defimpl, else: defname) |> to_string,
         location: location,
         selection_location: module_name_location,
         children: module_symbols,
@@ -156,7 +156,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: :struct,
       name: "#{defname} #{module_name}",
-      detail: defname,
+      detail: defname |> to_string,
       location: location,
       children: children
     }
@@ -237,7 +237,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
       name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
-      detail: defname,
+      detail: defname |> to_string,
       location: location,
       selection_location: head_location,
       children: []
@@ -261,7 +261,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
       name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
-      detail: defname,
+      detail: defname |> to_string,
       location: location,
       selection_location: head_location,
       children: []
@@ -287,7 +287,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: :class,
       name: "#{name}",
-      detail: :defrecord,
+      detail: :defrecord |> to_string,
       location: location |> Keyword.merge(Keyword.take(alias_location, [:line, :column])),
       children: children
     }
@@ -298,7 +298,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: :function,
       name: Macro.to_string(name),
-      detail: :test,
+      detail: :test |> to_string,
       location: location,
       children: []
     }
@@ -331,7 +331,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: :function,
       name: Macro.to_string(name),
-      detail: :describe,
+      detail: :describe |> to_string,
       location: location,
       children: module_symbols
     }

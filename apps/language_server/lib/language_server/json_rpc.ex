@@ -121,8 +121,6 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   def log_message(type, message) do
     if not String.starts_with?(to_string(message), "Failed to lookup telemetry handlers") do
-      IO.puts(:stderr, "log_message: #{inspect(message)}")
-
       notification = %GenLSP.Notifications.WindowLogMessage{
         params: %GenLSP.Structures.LogMessageParams{
           type: message_type_to_genlsp(type),
