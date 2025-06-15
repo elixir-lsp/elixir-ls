@@ -98,9 +98,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
         raise "merged_ranges are not increasingly narrowing"
       end
 
-      res = to_nested_lsp_message(merged_ranges, lines)
-      IO.puts(:stderr, "res: #{inspect(res)}")
-      res
+      to_nested_lsp_message(merged_ranges, lines)
     end
   end
 

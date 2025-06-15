@@ -6,7 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
   import ElixirLS.LanguageServer.RangeUtils
 
   defp get_ranges(text, line, character) do
-    SelectionRanges.selection_ranges(text, [%{"line" => line, "character" => character}])
+    SelectionRanges.selection_ranges(text, [%GenLSP.Structures.Position{line: line, character: character}])
     |> hd
     |> flatten
   end
