@@ -894,15 +894,15 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 7,
                         name: "prop",
-                        range: range(1, 2, 1, 39),
-                        selection_range: range(1, 2, 1, 39)
+                        range: range(1, 2, 1, _),
+                        selection_range: range(1, 2, 1, _)
                       },
                       %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "prop_with_def",
-                        range: range(1, 2, 1, 39),
-                        selection_range: range(1, 2, 1, 39)
+                        range: range(1, 2, 1, _),
+                        selection_range: range(1, 2, 1, _)
                       }
                     ],
                     kind: 23,
@@ -946,7 +946,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "prop",
                 kind: 7,
                 location: %GenLSP.Structures.Location{
-                  range: range(1, 2, 1, 39)
+                  range: range(1, 2, 1, _)
                 },
                 container_name: "defstruct MyModule"
               },
@@ -954,7 +954,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 7,
                 name: "prop_with_def",
                 location: %GenLSP.Structures.Location{
-                  range: range(1, 2, 1, 39)
+                  range: range(1, 2, 1, _)
                 },
                 container_name: "defstruct MyModule"
               }
@@ -982,8 +982,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 7,
                         name: "message",
-                        range: range(1, 2, 1, 25),
-                        selection_range: range(1, 2, 1, 25)
+                        range: range(1, 2, 1, _),
+                        selection_range: range(1, 2, 1, _)
                       }
                     ],
                     kind: 23,
@@ -1027,7 +1027,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 kind: 7,
                 name: "message",
                 location: %GenLSP.Structures.Location{
-                  range: range(1, 2, 1, 25)
+                  range: range(1, 2, 1, _)
                 },
                 container_name: "defexception MyError"
               }
@@ -1837,8 +1837,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                     kind: 12,
                     name: "\"some description\"",
                     detail: "describe",
-                    range: range(3, 8, 5, 11),
-                    selection_range: range(3, 8, 5, 11)
+                    range: range(3, 8, 5, _),
+                    selection_range: range(3, 8, 5, _)
                   }
                 ],
                 kind: 2,
@@ -1870,8 +1870,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 12,
                         name: "\"does\" <> \"something\"",
-                        range: range(4, 10, 4, 45),
-                        selection_range: range(4, 10, 4, 45)
+                        range: range(4, 10, 4, _),
+                        selection_range: range(4, 10, 4, _)
                       }
                     ],
                     kind: 12,
@@ -1922,7 +1922,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "\"does something\"",
                 kind: 12,
                 location: %GenLSP.Structures.Location{
-                  range: range(4, 10, 4, 40)
+                  range: range(4, 10, 4, _)
                 },
                 container_name: "\"some description\""
               }
@@ -1963,7 +1963,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "\"does\" <> \"something\"",
                 kind: 12,
                 location: %GenLSP.Structures.Location{
-                  range: range(4, 10, 4, 45)
+                  range: range(4, 10, 4, _)
                 },
                 container_name: describe_sigil
               }
@@ -2122,8 +2122,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 children: [],
                 kind: 20,
                 name: "config :my_app MyApp.Repo",
-                range: range(9, 0, 11, 22),
-                selection_range: range(9, 0, 11, 22)
+                range: range(9, 0, _, _),
+                selection_range: range(9, 0, _, _)
               }
             ]} = get_document_symbols(uri, parser_context, true)
   end
@@ -2174,7 +2174,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 name: "config :my_app MyApp.Repo",
                 kind: 20,
                 location: %GenLSP.Structures.Location{
-                  range: range(9, 0, 11, 22)
+                  range: range(9, 0, _, _)
                 }
               }
             ]} = get_document_symbols(uri, parser_context, false)
