@@ -248,14 +248,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 35, 9)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "@my_mod_var",
                 kind: 22,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(2, 8, 2, 37)
                 },
                 container_name: "MyModule"
@@ -263,7 +263,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "my_fn/1",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(3, 8, 3, 31)
                 },
                 container_name: "MyModule"
@@ -286,7 +286,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "my_guard/1",
                 kind: 14,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(7, 8, 7, 47)
                 },
                 container_name: "MyModule"
@@ -299,7 +299,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "my_delegate/1",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(9, 8, 9, 61)
                 },
                 container_name: "MyModule"
@@ -322,7 +322,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "my_fn_with_more_blocks/1",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(13, 8, 23, 11)
                 },
                 container_name: "MyModule"
@@ -395,14 +395,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 5, 9)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "SubModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(2, 8, 4, 11)
                 },
                 container_name: "MyModule"
@@ -477,7 +477,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 3, 9)
                 }
               },
@@ -489,7 +489,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyOtherModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(4, 6, 6, 9)
                 }
               },
@@ -544,7 +544,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 3, 9)
                 }
               },
@@ -599,7 +599,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "unquote(var)",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 3, 9)
                 }
               },
@@ -654,7 +654,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "my_module",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 3, 9)
                 }
               },
@@ -828,14 +828,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyProtocol",
                 kind: 11,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(0, 0, 3, 3)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "size/1",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(2, 2, 2, 16)
                 },
                 container_name: "MyProtocol"
@@ -843,14 +843,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 kind: 2,
                 name: "MyProtocol, for: BitString",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(5, 0, 7, 3)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "size/1",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(6, 2, 6, 41)
                 },
                 container_name: "MyProtocol, for: BitString"
@@ -858,14 +858,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 kind: 2,
                 name: "MyProtocol, for: [List, MyList]",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(9, 0, 11, 3)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 kind: 12,
                 name: "size/1",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(10, 2, 10, 36)
                 },
                 container_name: "MyProtocol, for: [List, MyList]"
@@ -937,7 +937,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "defstruct MyModule",
                 kind: 23,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 39)
                 },
                 container_name: "MyModule"
@@ -945,7 +945,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "prop",
                 kind: 7,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 39)
                 },
                 container_name: "defstruct MyModule"
@@ -953,7 +953,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 kind: 7,
                 name: "prop_with_def",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 39)
                 },
                 container_name: "defstruct MyModule"
@@ -1018,7 +1018,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 kind: 23,
                 name: "defexception MyError",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 25)
                 },
                 container_name: "MyError"
@@ -1026,7 +1026,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 kind: 7,
                 name: "message",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 25)
                 },
                 container_name: "defexception MyError"
@@ -1148,7 +1148,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 kind: 5,
                 name: "my_simple/0",
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 28)
                 },
                 container_name: "MyModule"
@@ -1290,7 +1290,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "my_callback/2",
                 kind: 24,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 52)
                 },
                 container_name: "MyModule"
@@ -1440,7 +1440,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 4, 9)
                 }
               },
@@ -1452,7 +1452,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 container_name: ":user",
                 kind: 7,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(3, 15, 3, 55),
                   uri: "file:///project/file.ex"
                 },
@@ -1461,7 +1461,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 container_name: ":user",
                 kind: 7,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(3, 15, 3, 55),
                   uri: "file:///project/file.ex"
                 },
@@ -1657,14 +1657,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModule",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(0, 0, 18, 3)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "@optional_callbacks",
                 kind: 22,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 2, 1, 58)
                 },
                 container_name: "MyModule"
@@ -1792,14 +1792,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 4, 9)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "\"does something\"",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(3, 8, 3, 38)
                 },
                 container_name: "MyModuleTest"
@@ -1906,14 +1906,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 6, 9)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "\"some description\"",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(3, 8, 5, 11)
                 },
                 container_name: "MyModuleTest"
@@ -1921,7 +1921,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "\"does something\"",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(4, 10, 4, 40)
                 },
                 container_name: "\"some description\""
@@ -1947,14 +1947,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 6, 6, 9)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: describe_sigil,
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(3, 8, 5, 11)
                 },
                 container_name: "MyModuleTest"
@@ -1962,7 +1962,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "\"does\" <> \"something\"",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(4, 10, 4, 45)
                 },
                 container_name: describe_sigil
@@ -2045,14 +2045,14 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "MyModuleTest",
                 kind: 2,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(0, 0, 9, 3)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "setup",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(2, 2, 4, 5)
                 },
                 container_name: "MyModuleTest"
@@ -2060,7 +2060,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "setup",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(5, 2, 5, 31)
                 },
                 container_name: "MyModuleTest"
@@ -2068,7 +2068,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "setup_all",
                 kind: 12,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(6, 2, 8, 5)
                 },
                 container_name: "MyModuleTest"
@@ -2095,29 +2095,37 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     parser_context = ParserContextBuilder.from_string(text)
 
-    assert {:ok, symbols} = get_document_symbols(uri, parser_context, true)
-
-    # Check we have the expected symbols, ignoring position differences and optional fields
-    symbol_names = Enum.map(symbols, & &1.name)
-
-    assert symbol_names == [
-             "config :logger :console",
-             "config :app :key",
-             "config :my_app [:ecto_repos]",
-             "config :my_app MyApp.Repo"
-           ]
-
-    # Check that all symbols have the expected basic structure
-    for symbol <- symbols do
-      assert %GenLSP.Structures.DocumentSymbol{
-               children: [],
-               kind: 20,
-               name: name
-             } = symbol
-
-      assert is_binary(name)
-      assert String.starts_with?(name, "config ")
-    end
+    assert {:ok,
+            [
+              %GenLSP.Structures.DocumentSymbol{
+                children: [],
+                kind: 20,
+                name: "config :logger :console",
+                range: range(1, 0, 5, 23),
+                selection_range: range(1, 0, 5, 23)
+              },
+              %GenLSP.Structures.DocumentSymbol{
+                children: [],
+                kind: 20,
+                name: "config :app :key",
+                range: range(6, 0, 6, 25),
+                selection_range: range(6, 0, 6, 25)
+              },
+              %GenLSP.Structures.DocumentSymbol{
+                children: [],
+                kind: 20,
+                name: "config :my_app [:ecto_repos]",
+                range: range(7, 0, 8, 26),
+                selection_range: range(7, 0, 8, 26)
+              },
+              %GenLSP.Structures.DocumentSymbol{
+                children: [],
+                kind: 20,
+                name: "config :my_app MyApp.Repo",
+                range: range(9, 0, 11, 22),
+                selection_range: range(9, 0, 11, 22)
+              }
+            ]} = get_document_symbols(uri, parser_context, true)
   end
 
   test "[flat] handles config" do
@@ -2144,28 +2152,28 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
               %GenLSP.Structures.SymbolInformation{
                 name: "config :logger :console",
                 kind: 20,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(1, 0, 5, 23)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "config :app :key",
                 kind: 20,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(6, 0, 6, 25)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "config :my_app [:ecto_repos]",
                 kind: 20,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(7, 0, 8, 26)
                 }
               },
               %GenLSP.Structures.SymbolInformation{
                 name: "config :my_app MyApp.Repo",
                 kind: 20,
-                location: %GenLSP.Structures.Location{
+                location: %{
                   range: range(9, 0, 11, 22)
                 }
               }
