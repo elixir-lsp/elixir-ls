@@ -613,12 +613,13 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(
          %GenLSP.Notifications.TextDocumentDidOpen{
-           params: %GenLSP.Structures.TextDocumentItem{
+           params: %GenLSP.Structures.DidOpenTextDocumentParams{
+             text_document: %GenLSP.Structures.TextDocumentItem{
              uri: uri,
              language_id: language_id,
              version: version,
              text: text
-           }
+           }}
          },
          state = %__MODULE__{}
        ) do
@@ -654,8 +655,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(
          %GenLSP.Notifications.TextDocumentDidClose{
-           params: %GenLSP.Structures.TextDocumentIdentifier{
-             uri: uri
+           params: %GenLSP.Structures.DidCloseTextDocumentParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             }
            }
          },
          state = %__MODULE__{}
@@ -737,8 +740,10 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_notification(
          %GenLSP.Notifications.TextDocumentDidSave{
-           params: %GenLSP.Structures.TextDocumentIdentifier{
-             uri: uri
+           params: %GenLSP.Structures.DidSaveTextDocumentParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             }
            }
          },
          state = %__MODULE__{}

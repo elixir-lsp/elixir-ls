@@ -106,6 +106,38 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
   end
 
   def fake_initialize(server, mix_project? \\ true) do
+    # Store default client capabilities for tests
+    default_client_capabilities = %GenLSP.Structures.ClientCapabilities{
+      text_document: %GenLSP.Structures.TextDocumentClientCapabilities{
+        completion: %GenLSP.Structures.CompletionClientCapabilities{
+          completion_item: %{
+            snippet_support: true,
+            deprecated_support: true,
+            tag_support: %{value_set: [1]}
+          }
+        },
+        hover: %GenLSP.Structures.HoverClientCapabilities{},
+        signature_help: %GenLSP.Structures.SignatureHelpClientCapabilities{},
+        document_symbol: %GenLSP.Structures.DocumentSymbolClientCapabilities{
+          hierarchical_document_symbol_support: true
+        }
+      },
+      workspace: %GenLSP.Structures.WorkspaceClientCapabilities{
+        configuration: true,
+        did_change_configuration: %GenLSP.Structures.DidChangeConfigurationClientCapabilities{
+          dynamic_registration: true
+        },
+        did_change_watched_files: %GenLSP.Structures.DidChangeWatchedFilesClientCapabilities{
+          dynamic_registration: true
+        },
+        symbol: %GenLSP.Structures.WorkspaceSymbolClientCapabilities{
+          tag_support: %{value_set: [1]}
+        }
+      }
+    }
+    
+    ClientCapabilities.store(default_client_capabilities)
+    
     :sys.replace_state(server, fn state ->
       %{state | server_instance_id: "123", project_dir: File.cwd!(), mix_project?: mix_project?}
     end)
