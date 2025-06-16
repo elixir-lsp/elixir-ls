@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.CompletionParams do
   Completion parameters
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -29,7 +29,7 @@ defmodule GenLSP.Structures.CompletionParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"context", :context}) => GenLSP.Structures.CompletionContext.schematic(),

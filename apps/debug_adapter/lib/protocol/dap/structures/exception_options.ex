@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ExceptionOptions do
   An `ExceptionOptions` assigns configuration options to a set of exceptions.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -24,7 +24,7 @@ defmodule GenDAP.Structures.ExceptionOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"breakMode", :break_mode} => GenDAP.Enumerations.ExceptionBreakMode.schematic(),

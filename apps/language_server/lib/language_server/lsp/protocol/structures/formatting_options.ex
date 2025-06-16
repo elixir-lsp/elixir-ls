@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.FormattingOptions do
   Value-object describing what options formatting should use.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -33,7 +33,7 @@ defmodule GenLSP.Structures.FormattingOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"tabSize", :tab_size} => int(),

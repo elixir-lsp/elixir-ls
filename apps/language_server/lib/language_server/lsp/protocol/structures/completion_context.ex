@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.CompletionContext do
   Contains additional information about the context in which a completion request is triggered.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Structures.CompletionContext do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"triggerKind", :trigger_kind} => GenLSP.Enumerations.CompletionTriggerKind.schematic(),

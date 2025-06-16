@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions do
   Describe options to be used when registered for text document change events.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"watchers", :watchers} => list(GenLSP.Structures.FileSystemWatcher.schematic())

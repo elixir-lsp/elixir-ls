@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DefinitionRegistrationOptions do
   Registration options for a {@link DefinitionRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -20,7 +20,7 @@ defmodule GenLSP.Structures.DefinitionRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"documentSelector", :document_selector} =>

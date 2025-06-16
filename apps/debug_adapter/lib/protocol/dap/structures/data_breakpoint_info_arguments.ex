@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.DataBreakpointInfoArguments do
   Arguments for `dataBreakpointInfo` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -37,7 +37,7 @@ defmodule GenDAP.Structures.DataBreakpointInfoArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"asAddress", :as_address}) => bool(),

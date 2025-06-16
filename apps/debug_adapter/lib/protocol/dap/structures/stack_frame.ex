@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.StackFrame do
   A Stackframe contains the source location.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -43,7 +43,7 @@ defmodule GenDAP.Structures.StackFrame do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"canRestart", :can_restart}) => bool(),

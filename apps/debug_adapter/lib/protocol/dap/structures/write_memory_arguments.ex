@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.WriteMemoryArguments do
   Arguments for `writeMemory` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -28,7 +28,7 @@ defmodule GenDAP.Structures.WriteMemoryArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"allowPartial", :allow_partial}) => bool(),

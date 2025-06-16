@@ -10,7 +10,7 @@ defmodule GenLSP.Enumerations.SemanticTokenTypes do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec namespace() :: String.t()
   def namespace, do: "namespace"
@@ -89,7 +89,7 @@ defmodule GenLSP.Enumerations.SemanticTokenTypes do
   def decorator, do: "decorator"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "namespace",

@@ -6,14 +6,14 @@ defmodule GenLSP.TypeAlias.WorkspaceDocumentDiagnosticReport do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t ::
           GenLSP.Structures.WorkspaceFullDocumentDiagnosticReport.t()
           | GenLSP.Structures.WorkspaceUnchangedDocumentDiagnosticReport.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       GenLSP.Structures.WorkspaceFullDocumentDiagnosticReport.schematic(),

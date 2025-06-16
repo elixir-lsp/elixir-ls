@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.DisassembledInstruction do
   Represents a single disassembled instruction.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -43,7 +43,7 @@ defmodule GenDAP.Structures.DisassembledInstruction do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"address", :address} => str(),

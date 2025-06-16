@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.DocumentHighlight do
   the background color of its range.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Structures.DocumentHighlight do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"range", :range} => GenLSP.Structures.Range.schematic(),

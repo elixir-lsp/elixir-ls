@@ -10,7 +10,7 @@ defmodule GenLSP.Requests.TextDocumentDeclaration do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -25,7 +25,7 @@ defmodule GenLSP.Requests.TextDocumentDeclaration do
           GenLSP.TypeAlias.Declaration.t() | list(GenLSP.TypeAlias.DeclarationLink.t()) | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/declaration",
@@ -36,7 +36,7 @@ defmodule GenLSP.Requests.TextDocumentDeclaration do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([

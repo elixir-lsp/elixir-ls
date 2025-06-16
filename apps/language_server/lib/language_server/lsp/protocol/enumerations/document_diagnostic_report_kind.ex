@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.DocumentDiagnosticReportKind do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   A diagnostic report with a full
@@ -25,7 +25,7 @@ defmodule GenLSP.Enumerations.DocumentDiagnosticReportKind do
   def unchanged, do: "unchanged"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "full",

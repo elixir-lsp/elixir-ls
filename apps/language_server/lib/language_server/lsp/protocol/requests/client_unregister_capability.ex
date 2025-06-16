@@ -7,7 +7,7 @@ defmodule GenLSP.Requests.ClientUnregisterCapability do
   Message Direction: serverToClient
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Requests.ClientUnregisterCapability do
   @type result :: nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "client/unregisterCapability",
@@ -32,7 +32,7 @@ defmodule GenLSP.Requests.ClientUnregisterCapability do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       nil,

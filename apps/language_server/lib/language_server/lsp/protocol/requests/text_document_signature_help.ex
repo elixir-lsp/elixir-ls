@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Requests.TextDocumentSignatureHelp do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -14,7 +14,7 @@ defmodule GenLSP.Requests.TextDocumentSignatureHelp do
   @type result :: GenLSP.Structures.SignatureHelp.t() | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/signatureHelp",
@@ -25,7 +25,7 @@ defmodule GenLSP.Requests.TextDocumentSignatureHelp do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([GenLSP.Structures.SignatureHelp.schematic(), nil]),

@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.CancelArguments do
   Arguments for `cancel` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -25,7 +25,7 @@ defmodule GenDAP.Structures.CancelArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"progressId", :progress_id}) => str(),

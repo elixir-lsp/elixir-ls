@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ResourceOperation do
   A generic resource operation.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Structures.ResourceOperation do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"kind", :kind} => str(),

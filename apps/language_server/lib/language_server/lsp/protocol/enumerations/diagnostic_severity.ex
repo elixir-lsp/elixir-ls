@@ -6,7 +6,7 @@ defmodule GenLSP.Enumerations.DiagnosticSeverity do
 
   @type t :: 1 | 2 | 3 | 4
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Reports an error.
@@ -33,7 +33,7 @@ defmodule GenLSP.Enumerations.DiagnosticSeverity do
   def hint, do: 4
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

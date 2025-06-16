@@ -8,7 +8,7 @@ defmodule GenLSP.Requests.TypeHierarchySubtypes do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Requests.TypeHierarchySubtypes do
   @type result :: list(GenLSP.Structures.TypeHierarchyItem.t()) | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "typeHierarchy/subtypes",
@@ -33,7 +33,7 @@ defmodule GenLSP.Requests.TypeHierarchySubtypes do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([list(GenLSP.Structures.TypeHierarchyItem.schematic()), nil]),

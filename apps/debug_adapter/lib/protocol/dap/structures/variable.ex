@@ -10,7 +10,7 @@ defmodule GenDAP.Structures.Variable do
   The client can use this information to present the children in a paged UI and fetch them in chunks.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -59,7 +59,7 @@ defmodule GenDAP.Structures.Variable do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"declarationLocationReference", :declaration_location_reference}) => int(),

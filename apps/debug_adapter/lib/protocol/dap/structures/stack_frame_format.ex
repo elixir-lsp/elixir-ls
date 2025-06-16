@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.StackFrameFormat do
   Provides formatting information for a stack frame.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -35,7 +35,7 @@ defmodule GenDAP.Structures.StackFrameFormat do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"hex", :hex}) => bool(),

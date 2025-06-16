@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.SignatureHelpOptions do
   Server Capabilities for a {@link SignatureHelpRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -28,7 +28,7 @@ defmodule GenLSP.Structures.SignatureHelpOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"triggerCharacters", :trigger_characters}) => list(str()),

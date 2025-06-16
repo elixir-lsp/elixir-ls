@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ExecuteCommandRegistrationOptions do
   Registration options for a {@link ExecuteCommandRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.ExecuteCommandRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"commands", :commands} => list(str())

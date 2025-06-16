@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.TerminateArguments do
   Arguments for `terminate` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.TerminateArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"restart", :restart}) => bool()

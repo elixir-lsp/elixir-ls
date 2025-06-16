@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.PrivateInitializeParams do
   The initialize parameters
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -55,7 +55,7 @@ defmodule GenLSP.Structures.PrivateInitializeParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"processId", :process_id} => oneof([int(), nil]),

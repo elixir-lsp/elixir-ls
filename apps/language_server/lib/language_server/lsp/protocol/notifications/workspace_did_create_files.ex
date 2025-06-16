@@ -9,7 +9,7 @@ defmodule GenLSP.Notifications.WorkspaceDidCreateFiles do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -20,7 +20,7 @@ defmodule GenLSP.Notifications.WorkspaceDidCreateFiles do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "workspace/didCreateFiles",

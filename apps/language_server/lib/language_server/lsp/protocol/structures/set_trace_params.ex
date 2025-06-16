@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.SetTraceParams do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -15,7 +15,7 @@ defmodule GenLSP.Structures.SetTraceParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"value", :value} => GenLSP.Enumerations.TraceValues.schematic()

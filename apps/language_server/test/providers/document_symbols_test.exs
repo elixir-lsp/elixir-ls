@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
       {:ok, results} ->
         assert match?(
                  {:ok, _dumped},
-                 Schematic.dump(GenLSP.Requests.TextDocumentDocumentSymbol.result(), results)
+                 SchematicV.dump(GenLSP.Requests.TextDocumentDocumentSymbol.result(), results)
                ),
                inspect(results)
 

@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.CompletionItem do
   proposed to complete text that is being typed.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -135,7 +135,7 @@ defmodule GenLSP.Structures.CompletionItem do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"label", :label} => str(),

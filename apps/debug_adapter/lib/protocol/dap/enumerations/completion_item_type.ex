@@ -7,7 +7,7 @@ defmodule GenDAP.Enumerations.CompletionItemType do
   @typedoc "A type defining DAP enumeration CompletionItemType"
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec method() :: String.t()
   def method, do: "method"
@@ -67,7 +67,7 @@ defmodule GenDAP.Enumerations.CompletionItemType do
   def customcolor, do: "customcolor"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "method",

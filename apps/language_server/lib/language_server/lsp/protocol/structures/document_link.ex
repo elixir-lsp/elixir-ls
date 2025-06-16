@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.DocumentLink do
   text document or a web site.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -33,7 +33,7 @@ defmodule GenLSP.Structures.DocumentLink do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"range", :range} => GenLSP.Structures.Range.schematic(),

@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Notifications do
-  import Schematic
+  import SchematicV
 
   def new(notification) do
     unify(

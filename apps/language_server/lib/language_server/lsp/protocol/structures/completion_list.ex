@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.CompletionList do
   in the editor.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -39,7 +39,7 @@ defmodule GenLSP.Structures.CompletionList do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"isIncomplete", :is_incomplete} => bool(),

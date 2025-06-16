@@ -2,7 +2,7 @@
 defmodule GenLSP.Enumerations.FailureHandlingKind do
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Applying the workspace change is simply aborted if one of the changes provided
@@ -34,7 +34,7 @@ defmodule GenLSP.Enumerations.FailureHandlingKind do
   def undo, do: "undo"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "abort",

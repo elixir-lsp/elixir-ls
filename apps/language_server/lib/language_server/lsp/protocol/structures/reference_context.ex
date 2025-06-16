@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.ReferenceContext do
   requesting references.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -20,7 +20,7 @@ defmodule GenLSP.Structures.ReferenceContext do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"includeDeclaration", :include_declaration} => bool()

@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.InitializeResult do
   The result returned from an initialize request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Structures.InitializeResult do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"capabilities", :capabilities} => GenLSP.Structures.ServerCapabilities.schematic(),

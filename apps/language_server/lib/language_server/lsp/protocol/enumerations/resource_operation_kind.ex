@@ -2,7 +2,7 @@
 defmodule GenLSP.Enumerations.ResourceOperationKind do
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Supports creating new files and folders.
@@ -23,7 +23,7 @@ defmodule GenLSP.Enumerations.ResourceOperationKind do
   def delete, do: "delete"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "create",

@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.ServerCapabilities do
   server.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -236,7 +236,7 @@ defmodule GenLSP.Structures.ServerCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"positionEncoding", :position_encoding}) =>

@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.VariablePresentationHint do
   Properties of a variable that can be used to determine how to render the variable in the UI.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -29,7 +29,7 @@ defmodule GenDAP.Structures.VariablePresentationHint do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"attributes", :attributes}) =>

@@ -7,7 +7,7 @@ defmodule GenDAP.Structures.ColumnDescriptor do
   It is only used if the underlying UI actually supports this level of customization.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -31,7 +31,7 @@ defmodule GenDAP.Structures.ColumnDescriptor do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"attributeName", :attribute_name} => str(),

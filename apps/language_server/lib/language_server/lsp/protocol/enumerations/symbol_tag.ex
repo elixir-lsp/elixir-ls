@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.SymbolTag do
 
   @type t :: 1
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Render a symbol as obsolete, usually using a strike-out.
@@ -17,7 +17,7 @@ defmodule GenLSP.Enumerations.SymbolTag do
   def deprecated, do: 1
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1

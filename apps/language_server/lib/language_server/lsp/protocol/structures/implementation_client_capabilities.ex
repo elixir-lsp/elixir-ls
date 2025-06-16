@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ImplementationClientCapabilities do
   @since 3.6.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -25,7 +25,7 @@ defmodule GenLSP.Structures.ImplementationClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"dynamicRegistration", :dynamic_registration}) => bool(),

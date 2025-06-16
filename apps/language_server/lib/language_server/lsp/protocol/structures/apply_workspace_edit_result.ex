@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.ApplyWorkspaceEditResult do
   @since 3.17 renamed from ApplyWorkspaceEditResponse
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -29,7 +29,7 @@ defmodule GenLSP.Structures.ApplyWorkspaceEditResult do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"applied", :applied} => bool(),

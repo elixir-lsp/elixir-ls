@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.CodeActionOptions do
   Provider options for a {@link CodeActionRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -29,7 +29,7 @@ defmodule GenLSP.Structures.CodeActionOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"codeActionKinds", :code_action_kinds}) =>

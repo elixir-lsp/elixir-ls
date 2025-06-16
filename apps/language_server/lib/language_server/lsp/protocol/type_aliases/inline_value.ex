@@ -10,7 +10,7 @@ defmodule GenLSP.TypeAlias.InlineValue do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t ::
           GenLSP.Structures.InlineValueText.t()
@@ -18,7 +18,7 @@ defmodule GenLSP.TypeAlias.InlineValue do
           | GenLSP.Structures.InlineValueEvaluatableExpression.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       GenLSP.Structures.InlineValueText.schematic(),

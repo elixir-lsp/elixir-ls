@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DocumentHighlightParams do
   Parameters for a {@link DocumentHighlightRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -26,7 +26,7 @@ defmodule GenLSP.Structures.DocumentHighlightParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"workDoneToken", :work_done_token}) => GenLSP.TypeAlias.ProgressToken.schematic(),

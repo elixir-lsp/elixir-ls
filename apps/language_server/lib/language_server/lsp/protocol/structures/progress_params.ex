@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.ProgressParams do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -17,7 +17,7 @@ defmodule GenLSP.Structures.ProgressParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"token", :token} => GenLSP.TypeAlias.ProgressToken.schematic(),

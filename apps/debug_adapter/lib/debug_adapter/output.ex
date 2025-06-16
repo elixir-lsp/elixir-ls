@@ -129,7 +129,7 @@ defmodule ElixirLS.DebugAdapter.Output do
   @impl GenServer
   def handle_call({:send_response, request_packet, body = %struct{}}, _from, seq) do
     {:ok, dumped_body} =
-      Schematic.dump(struct.schematic(), %{body | seq: seq, request_seq: request_packet["seq"]})
+      SchematicV.dump(struct.schematic(), %{body | seq: seq, request_seq: request_packet["seq"]})
 
     res = WireProtocol.send(dumped_body)
 
@@ -148,7 +148,7 @@ defmodule ElixirLS.DebugAdapter.Output do
         seq
       ) do
     {:ok, dumped_error} =
-      Schematic.dump(
+      SchematicV.dump(
         GenDAP.Structures.ErrorResponse.schematic(),
         %GenDAP.Structures.ErrorResponse{
           seq: seq,
@@ -177,7 +177,7 @@ defmodule ElixirLS.DebugAdapter.Output do
 
   def handle_call({:send_event, body = %struct{seq: _}}, _from, seq) do
     # IO.warn(inspect(%{body | seq: seq}))
-    {:ok, dumped_event} = Schematic.dump(struct.schematic(), %{body | seq: seq})
+    {:ok, dumped_event} = SchematicV.dump(struct.schematic(), %{body | seq: seq})
     # IO.warn(inspect(dumped_event))
     res = WireProtocol.send(dumped_event)
     {:reply, res, seq + 1}

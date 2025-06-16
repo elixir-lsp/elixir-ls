@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.FileSystemWatcher do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.FileSystemWatcher do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"globPattern", :glob_pattern} => GenLSP.TypeAlias.GlobPattern.schematic(),

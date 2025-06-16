@@ -2,7 +2,7 @@
 defmodule GenLSP.Enumerations.LSPErrorCodes do
   @type t :: -32803 | -32802 | -32801 | -32800
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   A request failed but it was syntactically correct, e.g the
@@ -46,7 +46,7 @@ defmodule GenLSP.Enumerations.LSPErrorCodes do
   def request_cancelled, do: -32800
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       -32803,

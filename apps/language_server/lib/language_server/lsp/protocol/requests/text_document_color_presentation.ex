@@ -9,7 +9,7 @@ defmodule GenLSP.Requests.TextDocumentColorPresentation do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Requests.TextDocumentColorPresentation do
   @type result :: list(GenLSP.Structures.ColorPresentation.t())
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/colorPresentation",
@@ -34,7 +34,7 @@ defmodule GenLSP.Requests.TextDocumentColorPresentation do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       list(GenLSP.Structures.ColorPresentation.schematic()),

@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DidChangeWorkspaceFoldersParams do
   The parameters of a `workspace/didChangeWorkspaceFolders` notification.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.DidChangeWorkspaceFoldersParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"event", :event} => GenLSP.Structures.WorkspaceFoldersChangeEvent.schematic()

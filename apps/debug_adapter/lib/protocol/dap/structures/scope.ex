@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.Scope do
   A `Scope` is a named container for variables. Optionally a scope can map to a source or a range within a source.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -43,7 +43,7 @@ defmodule GenDAP.Structures.Scope do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"column", :column}) => int(),

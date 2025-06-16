@@ -8,7 +8,7 @@ defmodule GenLSP.Requests.WorkspaceDiagnostic do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Requests.WorkspaceDiagnostic do
   @type result :: GenLSP.Structures.WorkspaceDiagnosticReport.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "workspace/diagnostic",
@@ -33,7 +33,7 @@ defmodule GenLSP.Requests.WorkspaceDiagnostic do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       GenLSP.Structures.WorkspaceDiagnosticReport.schematic(),

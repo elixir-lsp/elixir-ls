@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.SignatureHelp do
   active and only one active parameter.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -39,7 +39,7 @@ defmodule GenLSP.Structures.SignatureHelp do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"signatures", :signatures} => list(GenLSP.Structures.SignatureInformation.schematic()),

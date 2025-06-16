@@ -1,11 +1,11 @@
 # codegen: do not edit
 defmodule GenLSP.TypeAlias.PrepareRenameResult do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: GenLSP.Structures.Range.t() | map() | map()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       GenLSP.Structures.Range.schematic(),

@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DidOpenTextDocumentParams do
   The parameters sent in an open text document notification
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.DidOpenTextDocumentParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"textDocument", :text_document} => GenLSP.Structures.TextDocumentItem.schematic()

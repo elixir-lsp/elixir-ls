@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.SymbolInformation do
   interfaces etc.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -45,7 +45,7 @@ defmodule GenLSP.Structures.SymbolInformation do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"deprecated", :deprecated}) => bool(),

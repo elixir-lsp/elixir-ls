@@ -2,7 +2,7 @@
 defmodule GenLSP.Enumerations.WatchKind do
   @type t :: 1 | 2 | 4
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Interested in create events.
@@ -23,7 +23,7 @@ defmodule GenLSP.Enumerations.WatchKind do
   def delete, do: 4
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

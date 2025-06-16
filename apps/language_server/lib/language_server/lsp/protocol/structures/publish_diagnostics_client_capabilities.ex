@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.PublishDiagnosticsClientCapabilities do
   The publish diagnostic client capabilities.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -39,7 +39,7 @@ defmodule GenLSP.Structures.PublishDiagnosticsClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"relatedInformation", :related_information}) => bool(),

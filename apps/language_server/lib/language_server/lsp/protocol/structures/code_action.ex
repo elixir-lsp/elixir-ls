@@ -7,7 +7,7 @@ defmodule GenLSP.Structures.CodeAction do
   A CodeAction must set either `edit` and/or a `command`. If both are supplied, the `edit` is applied first, then the `command` is executed.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -63,7 +63,7 @@ defmodule GenLSP.Structures.CodeAction do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"title", :title} => str(),

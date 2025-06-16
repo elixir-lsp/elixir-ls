@@ -15,7 +15,7 @@ defmodule GenLSP.Structures.WorkspaceEdit do
   the client capability: `workspace.workspaceEdit.failureHandling`
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -60,7 +60,7 @@ defmodule GenLSP.Structures.WorkspaceEdit do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"changes", :changes}) =>

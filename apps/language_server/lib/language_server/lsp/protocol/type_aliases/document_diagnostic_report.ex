@@ -10,14 +10,14 @@ defmodule GenLSP.TypeAlias.DocumentDiagnosticReport do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t ::
           GenLSP.Structures.RelatedFullDocumentDiagnosticReport.t()
           | GenLSP.Structures.RelatedUnchangedDocumentDiagnosticReport.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       GenLSP.Structures.RelatedFullDocumentDiagnosticReport.schematic(),

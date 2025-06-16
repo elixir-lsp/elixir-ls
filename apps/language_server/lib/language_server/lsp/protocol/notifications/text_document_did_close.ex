@@ -12,7 +12,7 @@ defmodule GenLSP.Notifications.TextDocumentDidClose do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Notifications.TextDocumentDidClose do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/didClose",

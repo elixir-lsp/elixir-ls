@@ -8,7 +8,7 @@ defmodule GenLSP.Requests.CallHierarchyIncomingCalls do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Requests.CallHierarchyIncomingCalls do
   @type result :: list(GenLSP.Structures.CallHierarchyIncomingCall.t()) | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "callHierarchy/incomingCalls",
@@ -33,7 +33,7 @@ defmodule GenLSP.Requests.CallHierarchyIncomingCalls do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([list(GenLSP.Structures.CallHierarchyIncomingCall.schematic()), nil]),

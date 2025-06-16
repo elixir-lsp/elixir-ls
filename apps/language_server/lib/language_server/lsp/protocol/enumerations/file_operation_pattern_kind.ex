@@ -9,7 +9,7 @@ defmodule GenLSP.Enumerations.FileOperationPatternKind do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   The pattern matches a file only.
@@ -24,7 +24,7 @@ defmodule GenLSP.Enumerations.FileOperationPatternKind do
   def folder, do: "folder"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "file",

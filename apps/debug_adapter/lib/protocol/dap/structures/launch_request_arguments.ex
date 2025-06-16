@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.LaunchRequestArguments do
   Arguments for `launch` request. Additional attributes are implementation specific.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @typedoc "A type defining DAP structure LaunchRequestArguments"
   @type t() :: %{
@@ -16,7 +16,7 @@ defmodule GenDAP.Structures.LaunchRequestArguments do
         }
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     all([
       map(%{

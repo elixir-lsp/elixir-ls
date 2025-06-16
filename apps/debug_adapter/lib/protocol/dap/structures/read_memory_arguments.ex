@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ReadMemoryArguments do
   Arguments for `readMemory` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -25,7 +25,7 @@ defmodule GenDAP.Structures.ReadMemoryArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"count", :count} => int(),

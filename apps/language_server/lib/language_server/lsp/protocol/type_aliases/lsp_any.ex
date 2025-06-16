@@ -9,14 +9,14 @@ defmodule GenLSP.TypeAlias.LSPAny do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: any()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
-    %Schematic{
+    %SchematicV{
       kind: "lspany",
       unify: fn x, dir ->
         case x do

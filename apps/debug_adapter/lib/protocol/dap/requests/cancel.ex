@@ -15,7 +15,7 @@ defmodule GenDAP.Requests.CancelRequest do
   Message Direction: client -> adapter
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -38,7 +38,7 @@ defmodule GenDAP.Requests.CancelRequest do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),
@@ -56,7 +56,7 @@ defmodule GenDAP.Requests.CancelResponse do
   Message Direction: adapter -> client
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -87,7 +87,7 @@ defmodule GenDAP.Requests.CancelResponse do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),

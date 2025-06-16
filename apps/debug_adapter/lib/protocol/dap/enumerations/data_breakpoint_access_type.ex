@@ -7,7 +7,7 @@ defmodule GenDAP.Enumerations.DataBreakpointAccessType do
   @typedoc "A type defining DAP enumeration DataBreakpointAccessType"
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec read() :: String.t()
   def read, do: "read"
@@ -19,7 +19,7 @@ defmodule GenDAP.Enumerations.DataBreakpointAccessType do
   def read_write, do: "readWrite"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "read",

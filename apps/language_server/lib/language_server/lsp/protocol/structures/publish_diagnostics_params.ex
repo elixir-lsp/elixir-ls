@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.PublishDiagnosticsParams do
   The publish diagnostic notification's parameters.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -25,7 +25,7 @@ defmodule GenLSP.Structures.PublishDiagnosticsParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"uri", :uri} => str(),

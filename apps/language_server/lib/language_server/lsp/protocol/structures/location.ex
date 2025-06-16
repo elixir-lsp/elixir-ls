@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.Location do
   inside a text file.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Structures.Location do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"uri", :uri} => str(),

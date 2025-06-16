@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DidChangeTextDocumentParams do
   The change text document notification's parameters.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -36,7 +36,7 @@ defmodule GenLSP.Structures.DidChangeTextDocumentParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"textDocument", :text_document} =>

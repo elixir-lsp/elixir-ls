@@ -32,7 +32,7 @@ defmodule GenLSP.Enumerations.SymbolKind do
           | 25
           | 26
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec file() :: 1
   def file, do: 1
@@ -113,7 +113,7 @@ defmodule GenLSP.Enumerations.SymbolKind do
   def type_parameter, do: 26
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

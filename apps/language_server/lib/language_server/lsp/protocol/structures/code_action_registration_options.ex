@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.CodeActionRegistrationOptions do
   Registration options for a {@link CodeActionRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -30,7 +30,7 @@ defmodule GenLSP.Structures.CodeActionRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"documentSelector", :document_selector} =>

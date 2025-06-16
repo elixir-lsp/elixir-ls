@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.RenameFile do
   Rename file operation
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -29,7 +29,7 @@ defmodule GenLSP.Structures.RenameFile do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"kind", :kind} => "rename",

@@ -72,7 +72,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
   defp initialize_req_(seq, arguments \\ initialize_req_args()) do
     {:ok, rex} =
-      Schematic.dump(
+      SchematicV.dump(
         GenDAP.Requests.InitializeRequest.schematic(),
         %GenDAP.Requests.InitializeRequest{seq: seq, arguments: arguments}
       )

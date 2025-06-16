@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ExceptionBreakpointsFilter do
   An `ExceptionBreakpointsFilter` is shown in the UI as an filter option for configuring how exceptions are dealt with.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -31,7 +31,7 @@ defmodule GenDAP.Structures.ExceptionBreakpointsFilter do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"conditionDescription", :condition_description}) => str(),

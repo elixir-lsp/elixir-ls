@@ -9,7 +9,7 @@ defmodule GenLSP.Requests.TextDocumentFoldingRange do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Requests.TextDocumentFoldingRange do
   @type result :: list(GenLSP.Structures.FoldingRange.t()) | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/foldingRange",
@@ -34,7 +34,7 @@ defmodule GenLSP.Requests.TextDocumentFoldingRange do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([list(GenLSP.Structures.FoldingRange.schematic()), nil]),

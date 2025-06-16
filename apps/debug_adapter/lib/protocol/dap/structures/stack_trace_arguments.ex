@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.StackTraceArguments do
   Arguments for `stackTrace` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -28,7 +28,7 @@ defmodule GenDAP.Structures.StackTraceArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"format", :format}) => GenDAP.Structures.StackFrameFormat.schematic(),

@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.TypeHierarchySupertypesParams do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -26,7 +26,7 @@ defmodule GenLSP.Structures.TypeHierarchySupertypesParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"item", :item} => GenLSP.Structures.TypeHierarchyItem.schematic(),

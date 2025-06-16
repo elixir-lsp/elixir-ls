@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.InitializeError do
   initialize request fails.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Structures.InitializeError do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"retry", :retry} => bool()

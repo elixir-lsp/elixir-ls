@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.DiagnosticTag do
 
   @type t :: 1 | 2
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Unused or unnecessary code.
@@ -28,7 +28,7 @@ defmodule GenLSP.Enumerations.DiagnosticTag do
   def deprecated, do: 2
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

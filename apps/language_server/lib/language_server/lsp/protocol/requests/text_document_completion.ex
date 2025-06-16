@@ -14,7 +14,7 @@ defmodule GenLSP.Requests.TextDocumentCompletion do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -29,7 +29,7 @@ defmodule GenLSP.Requests.TextDocumentCompletion do
           list(GenLSP.Structures.CompletionItem.t()) | GenLSP.Structures.CompletionList.t() | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/completion",
@@ -40,7 +40,7 @@ defmodule GenLSP.Requests.TextDocumentCompletion do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([

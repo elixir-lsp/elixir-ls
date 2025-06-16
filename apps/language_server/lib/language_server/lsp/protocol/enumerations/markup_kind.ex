@@ -10,7 +10,7 @@ defmodule GenLSP.Enumerations.MarkupKind do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Plain text is supported as a content format
@@ -25,7 +25,7 @@ defmodule GenLSP.Enumerations.MarkupKind do
   def markdown, do: "markdown"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "plaintext",

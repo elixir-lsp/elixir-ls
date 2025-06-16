@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.InitializeParams do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -57,7 +57,7 @@ defmodule GenLSP.Structures.InitializeParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"processId", :process_id} => oneof([int(), nil]),

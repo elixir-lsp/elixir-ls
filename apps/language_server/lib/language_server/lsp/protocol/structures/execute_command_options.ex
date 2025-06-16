@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ExecuteCommandOptions do
   The server capabilities of a {@link ExecuteCommandRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.ExecuteCommandOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"commands", :commands} => list(str()),

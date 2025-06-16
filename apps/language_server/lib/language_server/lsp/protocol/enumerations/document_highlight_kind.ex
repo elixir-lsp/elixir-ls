@@ -6,7 +6,7 @@ defmodule GenLSP.Enumerations.DocumentHighlightKind do
 
   @type t :: 1 | 2 | 3
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   A textual occurrence.
@@ -27,7 +27,7 @@ defmodule GenLSP.Enumerations.DocumentHighlightKind do
   def write, do: 3
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

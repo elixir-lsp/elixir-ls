@@ -7,7 +7,7 @@ defmodule GenLSP.ErrorResponse do
 
   The result property of the ResponseMessage should be set to null in this case to signal a successful request.
   """
-  import Schematic
+  import SchematicV
 
   use TypedStruct
 
@@ -17,7 +17,7 @@ defmodule GenLSP.ErrorResponse do
     field(:message, String.t(), enforce: true)
   end
 
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional(:data) => oneof([str(), int(), bool(), list(), map(), nil]),

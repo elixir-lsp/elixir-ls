@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ExecuteCommandClientCapabilities do
   The client capabilities of a {@link ExecuteCommandRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.ExecuteCommandClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"dynamicRegistration", :dynamic_registration}) => bool()

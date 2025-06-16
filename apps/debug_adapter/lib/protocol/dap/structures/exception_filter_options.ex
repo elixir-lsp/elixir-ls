@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ExceptionFilterOptions do
   An `ExceptionFilterOptions` is used to specify an exception filter together with a condition for the `setExceptionBreakpoints` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -26,7 +26,7 @@ defmodule GenDAP.Structures.ExceptionFilterOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"condition", :condition}) => str(),

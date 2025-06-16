@@ -9,7 +9,7 @@ defmodule GenLSP.Requests.WorkspaceWillRenameFiles do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Requests.WorkspaceWillRenameFiles do
   @type result :: GenLSP.Structures.WorkspaceEdit.t() | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "workspace/willRenameFiles",
@@ -34,7 +34,7 @@ defmodule GenLSP.Requests.WorkspaceWillRenameFiles do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([GenLSP.Structures.WorkspaceEdit.schematic(), nil]),

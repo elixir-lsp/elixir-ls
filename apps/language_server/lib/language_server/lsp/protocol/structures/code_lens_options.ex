@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.CodeLensOptions do
   Code Lens provider options of a {@link CodeLensRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.CodeLensOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"resolveProvider", :resolve_provider}) => bool(),

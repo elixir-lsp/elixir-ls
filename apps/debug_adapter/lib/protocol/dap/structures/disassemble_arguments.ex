@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.DisassembleArguments do
   Arguments for `disassemble` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -30,7 +30,7 @@ defmodule GenDAP.Structures.DisassembleArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"instructionCount", :instruction_count} => int(),

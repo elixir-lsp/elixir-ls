@@ -8,7 +8,7 @@ defmodule GenDAP.Requests.RestartFrameRequest do
   Message Direction: client -> adapter
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -31,7 +31,7 @@ defmodule GenDAP.Requests.RestartFrameRequest do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),
@@ -49,7 +49,7 @@ defmodule GenDAP.Requests.RestartFrameResponse do
   Message Direction: adapter -> client
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -80,7 +80,7 @@ defmodule GenDAP.Requests.RestartFrameResponse do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),

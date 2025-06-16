@@ -15,12 +15,12 @@ defmodule GenLSP.TypeAlias.MarkedString do
   @deprecated use MarkupContent instead.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: String.t() | map()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       str(),

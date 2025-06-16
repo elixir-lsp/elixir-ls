@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.ParameterInformation do
   have a label and a doc-comment.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -33,7 +33,7 @@ defmodule GenLSP.Structures.ParameterInformation do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"label", :label} => oneof([str(), tuple([int(), int()], from: :list)]),

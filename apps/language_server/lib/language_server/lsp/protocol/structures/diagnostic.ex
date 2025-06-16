@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.Diagnostic do
   are only valid in the scope of a resource.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -48,7 +48,7 @@ defmodule GenLSP.Structures.Diagnostic do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"range", :range} => GenLSP.Structures.Range.schematic(),

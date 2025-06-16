@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.StepInTarget do
   A `StepInTarget` can be used in the `stepIn` request and determines into which single target the `stepIn` request should step.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -31,7 +31,7 @@ defmodule GenDAP.Structures.StepInTarget do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"column", :column}) => int(),

@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Notifications.DollarCancelRequest do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -11,7 +11,7 @@ defmodule GenLSP.Notifications.DollarCancelRequest do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "$/cancelRequest",

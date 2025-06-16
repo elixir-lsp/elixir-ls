@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.Breakpoint do
   Information about a breakpoint created in `setBreakpoints`, `setFunctionBreakpoints`, `setInstructionBreakpoints`, or `setDataBreakpoints` requests.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -47,7 +47,7 @@ defmodule GenDAP.Structures.Breakpoint do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"column", :column}) => int(),

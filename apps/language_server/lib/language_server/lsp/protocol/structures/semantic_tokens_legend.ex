@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.SemanticTokensLegend do
   @since 3.16.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.SemanticTokensLegend do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"tokenTypes", :token_types} => list(str()),

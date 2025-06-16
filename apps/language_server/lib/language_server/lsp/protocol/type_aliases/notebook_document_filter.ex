@@ -8,12 +8,12 @@ defmodule GenLSP.TypeAlias.NotebookDocumentFilter do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: map() | map() | map()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       map(%{

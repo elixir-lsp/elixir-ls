@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.AttachRequestArguments do
   Arguments for `attach` request. Additional attributes are implementation specific.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @typedoc "A type defining DAP structure AttachRequestArguments"
   @type t() :: %{
@@ -15,7 +15,7 @@ defmodule GenDAP.Structures.AttachRequestArguments do
         }
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     all([
       map(%{

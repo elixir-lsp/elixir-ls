@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.WorkspaceSymbolRegistrationOptions do
   Registration options for a {@link WorkspaceSymbolRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Structures.WorkspaceSymbolRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"resolveProvider", :resolve_provider}) => bool()

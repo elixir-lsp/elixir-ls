@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ConfigurationParams do
   The parameters of a configuration request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.ConfigurationParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"items", :items} => list(GenLSP.Structures.ConfigurationItem.schematic())

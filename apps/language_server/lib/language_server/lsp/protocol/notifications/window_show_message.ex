@@ -7,7 +7,7 @@ defmodule GenLSP.Notifications.WindowShowMessage do
   Message Direction: serverToClient
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -18,7 +18,7 @@ defmodule GenLSP.Notifications.WindowShowMessage do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "window/showMessage",

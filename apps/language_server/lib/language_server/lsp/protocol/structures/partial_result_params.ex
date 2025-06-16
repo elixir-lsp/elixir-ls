@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.PartialResultParams do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -16,7 +16,7 @@ defmodule GenLSP.Structures.PartialResultParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"partialResultToken", :partial_result_token}) =>

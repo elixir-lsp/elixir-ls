@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.NotebookDocumentIdentifier do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.NotebookDocumentIdentifier do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"uri", :uri} => str()

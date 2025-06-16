@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.WorkspaceClientCapabilities do
   Workspace specific client capabilities.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -77,7 +77,7 @@ defmodule GenLSP.Structures.WorkspaceClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"applyEdit", :apply_edit}) => bool(),

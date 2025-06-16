@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ApplyWorkspaceEditParams do
   The parameters passed via an apply workspace edit request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Structures.ApplyWorkspaceEditParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"label", :label}) => str(),

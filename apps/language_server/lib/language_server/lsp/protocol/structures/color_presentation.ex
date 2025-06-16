@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.ColorPresentation do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -24,7 +24,7 @@ defmodule GenLSP.Structures.ColorPresentation do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"label", :label} => str(),

@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.VersionedTextDocumentIdentifier do
   A text document identifier to denote a specific version of a text document.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.VersionedTextDocumentIdentifier do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"version", :version} => int(),

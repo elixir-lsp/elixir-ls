@@ -9,7 +9,7 @@ defmodule GenDAP.Requests.SetExpressionRequest do
   Message Direction: client -> adapter
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -32,7 +32,7 @@ defmodule GenDAP.Requests.SetExpressionRequest do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),
@@ -50,7 +50,7 @@ defmodule GenDAP.Requests.SetExpressionResponse do
   Message Direction: adapter -> client
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -96,7 +96,7 @@ defmodule GenDAP.Requests.SetExpressionResponse do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),

@@ -9,7 +9,7 @@ defmodule GenDAP.Requests.SetDataBreakpointsRequest do
   Message Direction: client -> adapter
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -32,7 +32,7 @@ defmodule GenDAP.Requests.SetDataBreakpointsRequest do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),
@@ -51,7 +51,7 @@ defmodule GenDAP.Requests.SetDataBreakpointsResponse do
   Message Direction: adapter -> client
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -86,7 +86,7 @@ defmodule GenDAP.Requests.SetDataBreakpointsResponse do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),

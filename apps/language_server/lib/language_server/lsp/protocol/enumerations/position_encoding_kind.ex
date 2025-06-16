@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.PositionEncodingKind do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Character offsets count UTF-8 code units.
@@ -36,7 +36,7 @@ defmodule GenLSP.Enumerations.PositionEncodingKind do
   def utf32, do: "utf-32"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "utf-8",

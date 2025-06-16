@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.AnnotatedTextEdit do
   @since 3.16.0.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -27,7 +27,7 @@ defmodule GenLSP.Structures.AnnotatedTextEdit do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"annotationId", :annotation_id} => GenLSP.TypeAlias.ChangeAnnotationIdentifier.schematic(),

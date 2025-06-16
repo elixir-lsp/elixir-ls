@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DocumentSymbolOptions do
   Provider options for a {@link DocumentSymbolRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -24,7 +24,7 @@ defmodule GenLSP.Structures.DocumentSymbolOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"label", :label}) => str(),

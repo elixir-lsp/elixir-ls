@@ -7,7 +7,7 @@ defmodule GenDAP.Enumerations.SteppingGranularity do
   @typedoc "A type defining DAP enumeration SteppingGranularity"
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   The step should allow the program to run until the current statement has finished executing.
@@ -30,7 +30,7 @@ defmodule GenDAP.Enumerations.SteppingGranularity do
   def instruction, do: "instruction"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "statement",

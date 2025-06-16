@@ -6,7 +6,7 @@ defmodule GenLSP.Requests.WorkspaceInlayHintRefresh do
   Message Direction: serverToClient
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Requests.WorkspaceInlayHintRefresh do
   @type result :: nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "workspace/inlayHint/refresh",
@@ -29,7 +29,7 @@ defmodule GenLSP.Requests.WorkspaceInlayHintRefresh do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       nil,

@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.Checksum do
   The checksum of an item calculated by the specified algorithm.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenDAP.Structures.Checksum do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"algorithm", :algorithm} => GenDAP.Enumerations.ChecksumAlgorithm.schematic(),

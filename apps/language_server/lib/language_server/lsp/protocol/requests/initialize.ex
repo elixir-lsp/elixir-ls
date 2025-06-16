@@ -10,7 +10,7 @@ defmodule GenLSP.Requests.Initialize do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -24,7 +24,7 @@ defmodule GenLSP.Requests.Initialize do
   @type result :: GenLSP.Structures.InitializeResult.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "initialize",
@@ -35,7 +35,7 @@ defmodule GenLSP.Requests.Initialize do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       GenLSP.Structures.InitializeResult.schematic(),

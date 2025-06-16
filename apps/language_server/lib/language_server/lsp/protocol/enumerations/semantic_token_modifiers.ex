@@ -10,7 +10,7 @@ defmodule GenLSP.Enumerations.SemanticTokenModifiers do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec declaration() :: String.t()
   def declaration, do: "declaration"
@@ -43,7 +43,7 @@ defmodule GenLSP.Enumerations.SemanticTokenModifiers do
   def default_library, do: "defaultLibrary"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "declaration",

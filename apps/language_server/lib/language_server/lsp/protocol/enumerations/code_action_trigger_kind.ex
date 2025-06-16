@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.CodeActionTriggerKind do
 
   @type t :: 1 | 2
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Code actions were explicitly requested by the user or by an extension.
@@ -26,7 +26,7 @@ defmodule GenLSP.Enumerations.CodeActionTriggerKind do
   def automatic, do: 2
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

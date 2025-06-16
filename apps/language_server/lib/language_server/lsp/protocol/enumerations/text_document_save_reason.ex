@@ -6,7 +6,7 @@ defmodule GenLSP.Enumerations.TextDocumentSaveReason do
 
   @type t :: 1 | 2 | 3
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Manually triggered, e.g. by the user pressing save, by starting debugging,
@@ -28,7 +28,7 @@ defmodule GenLSP.Enumerations.TextDocumentSaveReason do
   def focus_out, do: 3
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

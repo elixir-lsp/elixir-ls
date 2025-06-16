@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.CreateFileOptions do
   Options to create a file.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.CreateFileOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"overwrite", :overwrite}) => bool(),

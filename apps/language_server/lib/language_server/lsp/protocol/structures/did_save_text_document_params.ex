@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DidSaveTextDocumentParams do
   The parameters sent in a save text document notification
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Structures.DidSaveTextDocumentParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"textDocument", :text_document} => GenLSP.Structures.TextDocumentIdentifier.schematic(),

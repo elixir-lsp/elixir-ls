@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.Unregistration do
   General parameters to unregister a request or notification.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Structures.Unregistration do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"id", :id} => str(),

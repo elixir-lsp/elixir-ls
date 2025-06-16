@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DocumentHighlightOptions do
   Provider options for a {@link DocumentHighlightRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.DocumentHighlightOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"workDoneProgress", :work_done_progress}) => bool()

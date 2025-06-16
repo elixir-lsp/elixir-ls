@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.BreakpointLocation do
   Properties of a breakpoint location returned from the `breakpointLocations` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -27,7 +27,7 @@ defmodule GenDAP.Structures.BreakpointLocation do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"column", :column}) => int(),

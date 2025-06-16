@@ -2,7 +2,7 @@
 defmodule GenLSP.Enumerations.TraceValues do
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Turn tracing off.
@@ -23,7 +23,7 @@ defmodule GenLSP.Enumerations.TraceValues do
   def verbose, do: "verbose"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "off",

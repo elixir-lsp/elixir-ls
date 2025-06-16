@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.Capabilities do
   Information about the capabilities of a debug adapter.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -105,7 +105,7 @@ defmodule GenDAP.Structures.Capabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"additionalModuleColumns", :additional_module_columns}) =>

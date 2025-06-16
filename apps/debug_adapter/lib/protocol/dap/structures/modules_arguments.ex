@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ModulesArguments do
   Arguments for `modules` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenDAP.Structures.ModulesArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"moduleCount", :module_count}) => int(),

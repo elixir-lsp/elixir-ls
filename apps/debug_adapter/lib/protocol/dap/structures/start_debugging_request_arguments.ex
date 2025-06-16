@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.StartDebuggingRequestArguments do
   Arguments for `startDebugging` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenDAP.Structures.StartDebuggingRequestArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"configuration", :configuration} => map(keys: str(), values: any()),

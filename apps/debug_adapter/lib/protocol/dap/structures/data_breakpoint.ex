@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.DataBreakpoint do
   Properties of a data breakpoint passed to the `setDataBreakpoints` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -28,7 +28,7 @@ defmodule GenDAP.Structures.DataBreakpoint do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"accessType", :access_type}) =>

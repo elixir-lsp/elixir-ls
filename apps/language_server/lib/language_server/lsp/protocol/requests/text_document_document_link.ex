@@ -6,7 +6,7 @@ defmodule GenLSP.Requests.TextDocumentDocumentLink do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -20,7 +20,7 @@ defmodule GenLSP.Requests.TextDocumentDocumentLink do
   @type result :: list(GenLSP.Structures.DocumentLink.t()) | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/documentLink",
@@ -31,7 +31,7 @@ defmodule GenLSP.Requests.TextDocumentDocumentLink do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([list(GenLSP.Structures.DocumentLink.schematic()), nil]),

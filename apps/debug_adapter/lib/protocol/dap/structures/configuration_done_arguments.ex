@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ConfigurationDoneArguments do
   Arguments for `configurationDone` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.ConfigurationDoneArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{})
   end

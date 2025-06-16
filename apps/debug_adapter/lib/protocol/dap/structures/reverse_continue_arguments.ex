@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ReverseContinueArguments do
   Arguments for `reverseContinue` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenDAP.Structures.ReverseContinueArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"singleThread", :single_thread}) => bool(),

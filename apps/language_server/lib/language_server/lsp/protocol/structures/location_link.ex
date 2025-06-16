@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.LocationLink do
   including an origin range.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -32,7 +32,7 @@ defmodule GenLSP.Structures.LocationLink do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"originSelectionRange", :origin_selection_range}) =>

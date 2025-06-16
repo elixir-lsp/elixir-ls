@@ -11,7 +11,7 @@ defmodule GenLSP.Requests.WindowShowDocument do
   Message Direction: serverToClient
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -25,7 +25,7 @@ defmodule GenLSP.Requests.WindowShowDocument do
   @type result :: GenLSP.Structures.ShowDocumentResult.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "window/showDocument",
@@ -36,7 +36,7 @@ defmodule GenLSP.Requests.WindowShowDocument do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       GenLSP.Structures.ShowDocumentResult.schematic(),

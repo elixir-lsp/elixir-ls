@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenDAP.Responses do
-  import Schematic
+  import SchematicV
 
   def new(request) do
     unify(

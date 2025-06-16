@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.SourceArguments do
   Arguments for `source` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -24,7 +24,7 @@ defmodule GenDAP.Structures.SourceArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"source", :source}) => GenDAP.Structures.Source.schematic(),

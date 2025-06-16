@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.SignatureHelpParams do
   Parameters for a {@link SignatureHelpRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -28,7 +28,7 @@ defmodule GenLSP.Structures.SignatureHelpParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"context", :context}) => GenLSP.Structures.SignatureHelpContext.schematic(),

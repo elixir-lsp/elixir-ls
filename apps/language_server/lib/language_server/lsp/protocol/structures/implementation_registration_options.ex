@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.ImplementationRegistrationOptions do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.ImplementationRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"id", :id}) => str(),

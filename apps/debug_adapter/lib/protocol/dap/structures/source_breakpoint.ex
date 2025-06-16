@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.SourceBreakpoint do
   Properties of a breakpoint or logpoint passed to the `setBreakpoints` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -38,7 +38,7 @@ defmodule GenDAP.Structures.SourceBreakpoint do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"column", :column}) => int(),

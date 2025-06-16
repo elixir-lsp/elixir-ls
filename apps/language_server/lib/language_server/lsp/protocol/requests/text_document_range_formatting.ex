@@ -6,7 +6,7 @@ defmodule GenLSP.Requests.TextDocumentRangeFormatting do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -20,7 +20,7 @@ defmodule GenLSP.Requests.TextDocumentRangeFormatting do
   @type result :: list(GenLSP.Structures.TextEdit.t()) | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/rangeFormatting",
@@ -31,7 +31,7 @@ defmodule GenLSP.Requests.TextDocumentRangeFormatting do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([list(GenLSP.Structures.TextEdit.schematic()), nil]),

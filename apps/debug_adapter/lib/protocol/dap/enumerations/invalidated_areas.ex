@@ -7,7 +7,7 @@ defmodule GenDAP.Enumerations.InvalidatedAreas do
   @typedoc "A type defining DAP enumeration InvalidatedAreas"
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   All previously fetched data has become invalid and needs to be refetched.
@@ -34,7 +34,7 @@ defmodule GenDAP.Enumerations.InvalidatedAreas do
   def variables, do: "variables"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "all",

@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.DisconnectArguments do
   Arguments for `disconnect` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -29,7 +29,7 @@ defmodule GenDAP.Structures.DisconnectArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"restart", :restart}) => bool(),

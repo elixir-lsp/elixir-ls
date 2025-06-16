@@ -6,7 +6,7 @@ defmodule GenLSP.Requests.TextDocumentSemanticTokensRange do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -20,7 +20,7 @@ defmodule GenLSP.Requests.TextDocumentSemanticTokensRange do
   @type result :: GenLSP.Structures.SemanticTokens.t() | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/semanticTokens/range",
@@ -31,7 +31,7 @@ defmodule GenLSP.Requests.TextDocumentSemanticTokensRange do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([GenLSP.Structures.SemanticTokens.schematic(), nil]),

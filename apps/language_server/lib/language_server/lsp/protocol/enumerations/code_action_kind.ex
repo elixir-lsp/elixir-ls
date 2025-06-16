@@ -6,7 +6,7 @@ defmodule GenLSP.Enumerations.CodeActionKind do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Empty kind.
@@ -94,7 +94,7 @@ defmodule GenLSP.Enumerations.CodeActionKind do
   def source_fix_all, do: "source.fixAll"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "",

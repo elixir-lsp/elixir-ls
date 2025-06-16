@@ -6,7 +6,7 @@ defmodule GenLSP.Enumerations.FoldingRangeKind do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Folding range for a comment
@@ -27,7 +27,7 @@ defmodule GenLSP.Enumerations.FoldingRangeKind do
   def region, do: "region"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "comment",

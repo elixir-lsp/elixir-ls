@@ -7,14 +7,14 @@ defmodule GenLSP.TypeAlias.DocumentFilter do
   @since 3.17.0 - proposed support for NotebookCellTextDocumentFilter.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t ::
           GenLSP.TypeAlias.TextDocumentFilter.t()
           | GenLSP.Structures.NotebookCellTextDocumentFilter.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       GenLSP.TypeAlias.TextDocumentFilter.schematic(),

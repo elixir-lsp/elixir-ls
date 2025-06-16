@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenDAP.Events do
-  import Schematic
+  import SchematicV
 
   def new(event) do
     unify(

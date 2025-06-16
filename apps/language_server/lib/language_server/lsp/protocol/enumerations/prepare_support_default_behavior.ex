@@ -2,7 +2,7 @@
 defmodule GenLSP.Enumerations.PrepareSupportDefaultBehavior do
   @type t :: 1
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   The client's default behavior is to select the identifier
@@ -12,7 +12,7 @@ defmodule GenLSP.Enumerations.PrepareSupportDefaultBehavior do
   def identifier, do: 1
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1

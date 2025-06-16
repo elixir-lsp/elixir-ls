@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.SetDataBreakpointsArguments do
   Arguments for `setDataBreakpoints` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.SetDataBreakpointsArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"breakpoints", :breakpoints} => list(GenDAP.Structures.DataBreakpoint.schematic())

@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.Message do
   A structured message object. Used to return errors from requests.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -34,7 +34,7 @@ defmodule GenDAP.Structures.Message do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"format", :format} => str(),

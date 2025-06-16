@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.NotebookCellKind do
 
   @type t :: 1 | 2
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   A markup-cell is formatted source that is used for display.
@@ -23,7 +23,7 @@ defmodule GenLSP.Enumerations.NotebookCellKind do
   def code, do: 2
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

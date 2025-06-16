@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.UniquenessLevel do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   The moniker is only unique inside a document
@@ -41,7 +41,7 @@ defmodule GenLSP.Enumerations.UniquenessLevel do
   def global, do: "global"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "document",

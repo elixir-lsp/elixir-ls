@@ -7,7 +7,7 @@ defmodule GenLSP.Structures.NotebookCellTextDocumentFilter do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -30,7 +30,7 @@ defmodule GenLSP.Structures.NotebookCellTextDocumentFilter do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"notebook", :notebook} =>

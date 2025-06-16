@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.LinkedEditingRanges do
   @since 3.16.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -26,7 +26,7 @@ defmodule GenLSP.Structures.LinkedEditingRanges do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"ranges", :ranges} => list(GenLSP.Structures.Range.schematic()),

@@ -5,7 +5,7 @@ defmodule GenLSP.Structures.CodeActionContext do
   a {@link CodeActionProvider.provideCodeActions code action} is run.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -33,7 +33,7 @@ defmodule GenLSP.Structures.CodeActionContext do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"diagnostics", :diagnostics} => list(GenLSP.Structures.Diagnostic.schematic()),

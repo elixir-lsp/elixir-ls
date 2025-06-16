@@ -87,7 +87,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def notify(%module{} = notification_struct) do
-    case Schematic.dump(module.schematic(), notification_struct) do
+    case SchematicV.dump(module.schematic(), notification_struct) do
       {:ok, dumped} ->
         WireProtocol.send(dumped)
 
@@ -105,7 +105,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
     if data do
       {data_payload, data_module} = data
-      {:ok, dumped} = Schematic.dump(data_module.schematic(), data_payload)
+      {:ok, dumped} = SchematicV.dump(data_module.schematic(), data_payload)
       WireProtocol.send(error_response(id, code, message || default_message, dumped))
     else
       WireProtocol.send(error_response(id, code, message || default_message))
@@ -173,7 +173,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   def register_capability_request(server \\ __MODULE__, server_instance_id, method, options) do
     {options_payload, options_module} = options
-    {:ok, dumped} = Schematic.dump(options_module.schematic(), options_payload)
+    {:ok, dumped} = SchematicV.dump(options_module.schematic(), options_payload)
     id_string = server_instance_id <> method <> JasonV.encode!(dumped)
     registration_id = :crypto.hash(:sha, id_string) |> Base.encode16()
 
@@ -252,7 +252,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   def send_request(server \\ __MODULE__, %module{id: id} = request_struct) do
-    {:ok, dumped} = Schematic.dump(module.schematic(), request_struct)
+    {:ok, dumped} = SchematicV.dump(module.schematic(), request_struct)
     GenServer.call(server, {:request, id, dumped, module}, :infinity)
   end
 
@@ -281,7 +281,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   def handle_call({:packet, %{"id" => id, "result" => result}}, _from, state) do
     %{^id => {from, module}} = state.outgoing_requests
 
-    case Schematic.unify(module.result(), result) do
+    case SchematicV.unify(module.result(), result) do
       {:ok, error_response = %GenLSP.ErrorResponse{}} ->
         GenServer.reply(from, {:error, error_response})
 

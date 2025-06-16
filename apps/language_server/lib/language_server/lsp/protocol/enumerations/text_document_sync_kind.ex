@@ -7,7 +7,7 @@ defmodule GenLSP.Enumerations.TextDocumentSyncKind do
 
   @type t :: 0 | 1 | 2
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Documents should not be synced at all.
@@ -31,7 +31,7 @@ defmodule GenLSP.Enumerations.TextDocumentSyncKind do
   def incremental, do: 2
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       0,

@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ErrorResponse do
   On error (whenever `success` is false), the body can provide more details.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -37,7 +37,7 @@ defmodule GenDAP.Structures.ErrorResponse do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"body", :body} =>

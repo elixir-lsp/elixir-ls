@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.DiagnosticRegistrationOptions do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -35,7 +35,7 @@ defmodule GenLSP.Structures.DiagnosticRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"id", :id}) => str(),

@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.DidChangeWatchedFilesClientCapabilities do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"dynamicRegistration", :dynamic_registration}) => bool(),

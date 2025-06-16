@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.SetExceptionBreakpointsArguments do
   Arguments for `setExceptionBreakpoints` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -26,7 +26,7 @@ defmodule GenDAP.Structures.SetExceptionBreakpointsArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"exceptionOptions", :exception_options}) =>

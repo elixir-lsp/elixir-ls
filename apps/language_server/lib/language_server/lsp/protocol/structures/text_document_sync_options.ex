@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.TextDocumentSyncOptions do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -28,7 +28,7 @@ defmodule GenLSP.Structures.TextDocumentSyncOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"openClose", :open_close}) => bool(),

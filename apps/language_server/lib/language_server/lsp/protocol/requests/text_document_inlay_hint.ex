@@ -10,7 +10,7 @@ defmodule GenLSP.Requests.TextDocumentInlayHint do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -24,7 +24,7 @@ defmodule GenLSP.Requests.TextDocumentInlayHint do
   @type result :: list(GenLSP.Structures.InlayHint.t()) | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "textDocument/inlayHint",
@@ -35,7 +35,7 @@ defmodule GenLSP.Requests.TextDocumentInlayHint do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([list(GenLSP.Structures.InlayHint.schematic()), nil]),

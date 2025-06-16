@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ClientCapabilities do
   Defines the capabilities provided by the client.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -33,7 +33,7 @@ defmodule GenLSP.Structures.ClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"workspace", :workspace}) =>

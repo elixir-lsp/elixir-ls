@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.RunInTerminalRequestArguments do
   Arguments for `runInTerminal` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -31,7 +31,7 @@ defmodule GenDAP.Structures.RunInTerminalRequestArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"args", :args} => list(str()),

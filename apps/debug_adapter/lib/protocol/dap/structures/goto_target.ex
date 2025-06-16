@@ -6,7 +6,7 @@ defmodule GenDAP.Structures.GotoTarget do
   The possible goto targets can be determined via the `gotoTargets` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -34,7 +34,7 @@ defmodule GenDAP.Structures.GotoTarget do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"column", :column}) => int(),

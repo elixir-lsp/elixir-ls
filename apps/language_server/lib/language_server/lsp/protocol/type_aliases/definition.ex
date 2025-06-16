@@ -9,12 +9,12 @@ defmodule GenLSP.TypeAlias.Definition do
   by the client.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: GenLSP.Structures.Location.t() | list(GenLSP.Structures.Location.t())
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([GenLSP.Structures.Location.schematic(), list(GenLSP.Structures.Location.schematic())])
   end

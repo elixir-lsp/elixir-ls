@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.UnregistrationParams do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -15,7 +15,7 @@ defmodule GenLSP.Structures.UnregistrationParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"unregisterations", :unregisterations} =>

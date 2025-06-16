@@ -4,12 +4,12 @@ defmodule GenLSP.TypeAlias.ChangeAnnotationIdentifier do
   An identifier to refer to a change annotation stored with a workspace edit.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: String.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     str()
   end

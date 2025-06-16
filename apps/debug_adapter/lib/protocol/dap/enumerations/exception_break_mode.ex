@@ -11,7 +11,7 @@ defmodule GenDAP.Enumerations.ExceptionBreakMode do
   @typedoc "A type defining DAP enumeration ExceptionBreakMode"
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec never() :: String.t()
   def never, do: "never"
@@ -26,7 +26,7 @@ defmodule GenDAP.Enumerations.ExceptionBreakMode do
   def user_unhandled, do: "userUnhandled"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "never",

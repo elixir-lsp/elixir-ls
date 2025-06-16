@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.ShowMessageRequestClientCapabilities do
   Show message request client capabilities
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.ShowMessageRequestClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"messageActionItem", :message_action_item}) =>

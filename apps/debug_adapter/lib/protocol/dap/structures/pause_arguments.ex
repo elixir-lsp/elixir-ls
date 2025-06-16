@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.PauseArguments do
   Arguments for `pause` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.PauseArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"threadId", :thread_id} => int()

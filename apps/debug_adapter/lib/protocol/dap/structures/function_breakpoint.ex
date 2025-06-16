@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
   Properties of a breakpoint passed to the `setFunctionBreakpoints` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -28,7 +28,7 @@ defmodule GenDAP.Structures.FunctionBreakpoint do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"condition", :condition}) => str(),

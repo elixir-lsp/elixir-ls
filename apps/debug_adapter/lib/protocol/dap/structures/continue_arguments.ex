@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.ContinueArguments do
   Arguments for `continue` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenDAP.Structures.ContinueArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"singleThread", :single_thread}) => bool(),

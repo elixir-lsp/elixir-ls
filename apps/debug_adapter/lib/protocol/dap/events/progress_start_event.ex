@@ -9,7 +9,7 @@ defmodule GenDAP.Events.ProgressStartEvent do
   Message Direction: adapter -> client
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -44,7 +44,7 @@ defmodule GenDAP.Events.ProgressStartEvent do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       :seq => int(),

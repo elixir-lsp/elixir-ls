@@ -6,7 +6,7 @@ defmodule GenLSP.Requests.CodeLensResolve do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -20,7 +20,7 @@ defmodule GenLSP.Requests.CodeLensResolve do
   @type result :: GenLSP.Structures.CodeLens.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "codeLens/resolve",
@@ -31,7 +31,7 @@ defmodule GenLSP.Requests.CodeLensResolve do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       GenLSP.Structures.CodeLens.schematic(),

@@ -7,7 +7,7 @@ defmodule GenLSP.Enumerations.InsertTextFormat do
 
   @type t :: 1 | 2
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   The primary text to be inserted is treated as a plain string.
@@ -29,7 +29,7 @@ defmodule GenLSP.Enumerations.InsertTextFormat do
   def snippet, do: 2
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

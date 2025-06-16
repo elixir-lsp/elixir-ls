@@ -7,7 +7,7 @@ defmodule GenLSP.Requests.WorkspaceExecuteCommand do
   Message Direction: clientToServer
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Requests.WorkspaceExecuteCommand do
   @type result :: GenLSP.TypeAlias.LSPAny.t() | nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "workspace/executeCommand",
@@ -32,7 +32,7 @@ defmodule GenLSP.Requests.WorkspaceExecuteCommand do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       oneof([GenLSP.TypeAlias.LSPAny.schematic(), nil]),

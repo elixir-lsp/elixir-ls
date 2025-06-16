@@ -7,7 +7,7 @@ defmodule GenDAP.Enumerations.ChecksumAlgorithm do
   @typedoc "A type defining DAP enumeration ChecksumAlgorithm"
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec md5() :: String.t()
   def md5, do: "MD5"
@@ -22,7 +22,7 @@ defmodule GenDAP.Enumerations.ChecksumAlgorithm do
   def timestamp, do: "timestamp"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "MD5",

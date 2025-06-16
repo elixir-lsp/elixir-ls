@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.SignatureHelpTriggerKind do
 
   @type t :: 1 | 2 | 3
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Signature help was invoked manually by the user or by a command.
@@ -29,7 +29,7 @@ defmodule GenLSP.Enumerations.SignatureHelpTriggerKind do
   def content_change, do: 3
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

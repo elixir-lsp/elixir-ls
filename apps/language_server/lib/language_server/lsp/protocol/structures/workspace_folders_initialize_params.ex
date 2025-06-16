@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.WorkspaceFoldersInitializeParams do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Structures.WorkspaceFoldersInitializeParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"workspaceFolders", :workspace_folders}) =>

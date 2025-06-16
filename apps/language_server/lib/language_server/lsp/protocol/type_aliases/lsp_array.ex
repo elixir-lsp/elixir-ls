@@ -5,12 +5,12 @@ defmodule GenLSP.TypeAlias.LSPArray do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: list(any())
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     list(any())
   end

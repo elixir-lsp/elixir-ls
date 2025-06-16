@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Requests do
-  import Schematic
+  import SchematicV
 
   def new(request) do
     unify(

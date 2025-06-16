@@ -7,7 +7,7 @@ defmodule GenDAP.Enumerations.BreakpointModeApplicability do
   @typedoc "A type defining DAP enumeration BreakpointModeApplicability"
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   In `SourceBreakpoint`s
@@ -34,7 +34,7 @@ defmodule GenDAP.Enumerations.BreakpointModeApplicability do
   def instruction, do: "instruction"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "source",

@@ -9,7 +9,7 @@ defmodule GenLSP.Enumerations.InsertTextMode do
 
   @type t :: 1 | 2
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   The insertion or replace strings is taken as it is. If the
@@ -34,7 +34,7 @@ defmodule GenLSP.Enumerations.InsertTextMode do
   def adjust_indentation, do: 2
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

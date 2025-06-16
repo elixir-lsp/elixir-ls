@@ -6,7 +6,7 @@ defmodule GenLSP.Enumerations.ErrorCodes do
 
   @type t :: -32700 | -32600 | -32601 | -32602 | -32603 | -32002 | -32001
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec parse_error() :: -32700
   def parse_error, do: -32700
@@ -34,7 +34,7 @@ defmodule GenLSP.Enumerations.ErrorCodes do
   def unknown_error_code, do: -32001
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       -32700,

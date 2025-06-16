@@ -7,7 +7,7 @@ defmodule GenLSP.Structures.TextDocumentEdit do
   kind of ordering. However the edits must be non overlapping.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -32,7 +32,7 @@ defmodule GenLSP.Structures.TextDocumentEdit do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"textDocument", :text_document} =>

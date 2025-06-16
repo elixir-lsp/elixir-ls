@@ -5,12 +5,12 @@ defmodule GenLSP.TypeAlias.LSPObject do
   @since 3.17.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: %{String.t() => any()}
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     map(keys: str(), values: any())
   end

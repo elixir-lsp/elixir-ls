@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.WorkspaceFoldersServerCapabilities do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Structures.WorkspaceFoldersServerCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"supported", :supported}) => bool(),

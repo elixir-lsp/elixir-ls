@@ -6,7 +6,7 @@ defmodule GenDAP.Structures.Source do
   It is returned from the debug adapter as part of a `StackFrame` and it is used by clients when specifying breakpoints.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -42,7 +42,7 @@ defmodule GenDAP.Structures.Source do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"adapterData", :adapter_data}) =>

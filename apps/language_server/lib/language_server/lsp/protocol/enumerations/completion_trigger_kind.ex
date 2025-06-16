@@ -6,7 +6,7 @@ defmodule GenLSP.Enumerations.CompletionTriggerKind do
 
   @type t :: 1 | 2 | 3
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   Completion was triggered by typing an identifier (24x7 code
@@ -29,7 +29,7 @@ defmodule GenLSP.Enumerations.CompletionTriggerKind do
   def trigger_for_incomplete_completions, do: 3
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

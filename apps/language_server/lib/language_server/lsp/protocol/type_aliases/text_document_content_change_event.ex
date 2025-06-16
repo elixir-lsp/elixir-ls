@@ -5,12 +5,12 @@ defmodule GenLSP.TypeAlias.TextDocumentContentChangeEvent do
   it is considered to be the full content of the document.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: map() | map()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       map(%{

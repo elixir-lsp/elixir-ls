@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.TerminateThreadsArguments do
   Arguments for `terminateThreads` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenDAP.Structures.TerminateThreadsArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"threadIds", :thread_ids}) => list(int())

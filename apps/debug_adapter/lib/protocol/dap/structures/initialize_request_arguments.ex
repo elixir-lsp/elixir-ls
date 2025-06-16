@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
   Arguments for `initialize` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -53,7 +53,7 @@ defmodule GenDAP.Structures.InitializeRequestArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"adapterID", :adapter_i_d} => str(),

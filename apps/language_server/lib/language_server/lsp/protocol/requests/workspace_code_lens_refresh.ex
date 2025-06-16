@@ -8,7 +8,7 @@ defmodule GenLSP.Requests.WorkspaceCodeLensRefresh do
   Message Direction: serverToClient
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -21,7 +21,7 @@ defmodule GenLSP.Requests.WorkspaceCodeLensRefresh do
   @type result :: nil
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       method: "workspace/codeLens/refresh",
@@ -31,7 +31,7 @@ defmodule GenLSP.Requests.WorkspaceCodeLensRefresh do
   end
 
   @doc false
-  @spec result() :: Schematic.t()
+  @spec result() :: SchematicV.t()
   def result() do
     oneof([
       nil,

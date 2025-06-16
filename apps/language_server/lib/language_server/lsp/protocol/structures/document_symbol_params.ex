@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DocumentSymbolParams do
   Parameters for a {@link DocumentSymbolRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -24,7 +24,7 @@ defmodule GenLSP.Structures.DocumentSymbolParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"textDocument", :text_document} => GenLSP.Structures.TextDocumentIdentifier.schematic(),

@@ -31,7 +31,7 @@ defmodule GenLSP.Enumerations.CompletionItemKind do
           | 24
           | 25
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @spec text() :: 1
   def text, do: 1
@@ -109,7 +109,7 @@ defmodule GenLSP.Enumerations.CompletionItemKind do
   def type_parameter, do: 25
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

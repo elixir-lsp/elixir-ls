@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.DidChangeConfigurationRegistrationOptions do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -15,7 +15,7 @@ defmodule GenLSP.Structures.DidChangeConfigurationRegistrationOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"section", :section}) => oneof([str(), list(str())])

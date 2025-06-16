@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.LoadedSourcesArguments do
   Arguments for `loadedSources` request.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenDAP.Structures.LoadedSourcesArguments do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{})
   end

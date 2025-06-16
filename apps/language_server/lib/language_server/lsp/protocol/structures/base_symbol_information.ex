@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.BaseSymbolInformation do
   A base for all symbol information.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -30,7 +30,7 @@ defmodule GenLSP.Structures.BaseSymbolInformation do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"name", :name} => str(),

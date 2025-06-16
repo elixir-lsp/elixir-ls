@@ -47,7 +47,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
   end
 
   defp range_to_lsp(range) do
-    {:ok, range} = Schematic.unify(GenLSP.Structures.Range.schematic(), range)
+    {:ok, range} = SchematicV.unify(GenLSP.Structures.Range.schematic(), range)
     range
   end
 

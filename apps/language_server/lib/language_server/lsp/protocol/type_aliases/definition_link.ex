@@ -7,12 +7,12 @@ defmodule GenLSP.TypeAlias.DefinitionLink do
   the defining symbol
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @type t :: GenLSP.Structures.LocationLink.t()
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     GenLSP.Structures.LocationLink.schematic()
   end

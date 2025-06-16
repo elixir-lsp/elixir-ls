@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.RenameOptions do
   Provider options for a {@link RenameRequest}.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -23,7 +23,7 @@ defmodule GenLSP.Structures.RenameOptions do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"prepareProvider", :prepare_provider}) => bool(),

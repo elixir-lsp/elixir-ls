@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesParams do
   The watched files change notification's parameters.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -19,7 +19,7 @@ defmodule GenLSP.Structures.DidChangeWatchedFilesParams do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"changes", :changes} => list(GenLSP.Structures.FileEvent.schematic())

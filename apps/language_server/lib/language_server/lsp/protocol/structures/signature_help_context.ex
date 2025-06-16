@@ -6,7 +6,7 @@ defmodule GenLSP.Structures.SignatureHelpContext do
   @since 3.15.0
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -35,7 +35,7 @@ defmodule GenLSP.Structures.SignatureHelpContext do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"triggerKind", :trigger_kind} => GenLSP.Enumerations.SignatureHelpTriggerKind.schematic(),

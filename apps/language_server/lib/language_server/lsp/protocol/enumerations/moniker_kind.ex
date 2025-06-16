@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.MonikerKind do
 
   @type t :: String.t()
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   The moniker represent a symbol that is imported into a project
@@ -30,7 +30,7 @@ defmodule GenLSP.Enumerations.MonikerKind do
   def local, do: "local"
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       "import",

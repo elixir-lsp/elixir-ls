@@ -1,6 +1,6 @@
 # codegen: do not edit
 defmodule GenLSP.Structures.WorkspaceEditClientCapabilities do
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -38,7 +38,7 @@ defmodule GenLSP.Structures.WorkspaceEditClientCapabilities do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       optional({"documentChanges", :document_changes}) => bool(),

@@ -4,7 +4,7 @@ defmodule GenLSP.Structures.WorkspaceFolder do
   A workspace folder inside a client.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -22,7 +22,7 @@ defmodule GenLSP.Structures.WorkspaceFolder do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"uri", :uri} => str(),

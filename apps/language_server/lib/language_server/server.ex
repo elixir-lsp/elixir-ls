@@ -231,7 +231,7 @@ defmodule ElixirLS.LanguageServer.Server do
             response_body =
               if function_exported?(request_module, :result, 0) do
                 dumped_body =
-                  case Schematic.dump(request_module.result(), result) do
+                  case SchematicV.dump(request_module.result(), result) do
                     {:ok, dumped_body} ->
                       dumped_body
 
@@ -892,7 +892,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # Use request module's result schematic if available (GenLSP requests)
           response_body =
             if function_exported?(request_module, :result, 0) do
-              {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
+              {:ok, dumped_body} = SchematicV.dump(request_module.result(), result)
               dumped_body
             else
               result
@@ -1000,7 +1000,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # Use request module's result schematic if available (GenLSP requests)
           response_body =
             if function_exported?(request_module, :result, 0) do
-              {:ok, dumped_body} = Schematic.dump(request_module.result(), result)
+              {:ok, dumped_body} = SchematicV.dump(request_module.result(), result)
               dumped_body
             else
               result

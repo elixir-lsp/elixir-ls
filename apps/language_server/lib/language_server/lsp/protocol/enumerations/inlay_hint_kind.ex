@@ -8,7 +8,7 @@ defmodule GenLSP.Enumerations.InlayHintKind do
 
   @type t :: 1 | 2
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   @doc """
   An inlay hint that for a type annotation.
@@ -23,7 +23,7 @@ defmodule GenLSP.Enumerations.InlayHintKind do
   def parameter, do: 2
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     oneof([
       1,

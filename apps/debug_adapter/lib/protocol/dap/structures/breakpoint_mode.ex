@@ -5,7 +5,7 @@ defmodule GenDAP.Structures.BreakpointMode do
   A `BreakpointMode` is provided as a option when setting breakpoints on sources or instructions.
   """
 
-  import Schematic, warn: false
+  import SchematicV, warn: false
 
   use TypedStruct
 
@@ -27,7 +27,7 @@ defmodule GenDAP.Structures.BreakpointMode do
   end
 
   @doc false
-  @spec schematic() :: Schematic.t()
+  @spec schematic() :: SchematicV.t()
   def schematic() do
     schema(__MODULE__, %{
       {"appliesTo", :applies_to} =>
