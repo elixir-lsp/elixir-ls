@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
   alias ElixirLS.LanguageServer.JsonRpc
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.WorkspaceSymbols
+  alias ElixirLS.LanguageServer.ClientCapabilities
   alias ElixirLS.Utils.PacketCapture
   use ElixirLS.LanguageServer.Protocol
 
@@ -135,9 +136,9 @@ defmodule ElixirLS.LanguageServer.Test.ServerTestHelpers do
         }
       }
     }
-    
+
     ClientCapabilities.store(default_client_capabilities)
-    
+
     :sys.replace_state(server, fn state ->
       %{state | server_instance_id: "123", project_dir: File.cwd!(), mix_project?: mix_project?}
     end)

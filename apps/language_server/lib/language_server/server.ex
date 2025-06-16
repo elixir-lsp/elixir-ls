@@ -615,11 +615,12 @@ defmodule ElixirLS.LanguageServer.Server do
          %GenLSP.Notifications.TextDocumentDidOpen{
            params: %GenLSP.Structures.DidOpenTextDocumentParams{
              text_document: %GenLSP.Structures.TextDocumentItem{
-             uri: uri,
-             language_id: language_id,
-             version: version,
-             text: text
-           }}
+               uri: uri,
+               language_id: language_id,
+               version: version,
+               text: text
+             }
+           }
          },
          state = %__MODULE__{}
        ) do
@@ -1153,7 +1154,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(
          %GenLSP.Requests.TextDocumentDefinition{
-           params: %GenLSP.Structures.TextDocumentPositionParams{
+           params: %GenLSP.Structures.DefinitionParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
                uri: uri
              },
@@ -1178,7 +1179,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(
          %GenLSP.Requests.TextDocumentDeclaration{
-           params: %GenLSP.Structures.TextDocumentPositionParams{
+           params: %GenLSP.Structures.DeclarationParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
                uri: uri
              },
@@ -1203,7 +1204,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(
          %GenLSP.Requests.TextDocumentImplementation{
-           params: %GenLSP.Structures.TextDocumentPositionParams{
+           params: %GenLSP.Structures.ImplementationParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
                uri: uri
              },
@@ -1265,7 +1266,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(
          %GenLSP.Requests.TextDocumentHover{
-           params: %GenLSP.Structures.TextDocumentPositionParams{
+           params: %GenLSP.Structures.HoverParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
                uri: uri
              },
@@ -1332,7 +1333,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(
          %GenLSP.Requests.TextDocumentCompletion{
-           params: %GenLSP.Structures.TextDocumentPositionParams{
+           params: %GenLSP.Structures.CompletionParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
                uri: uri
              },
@@ -1418,7 +1419,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp handle_request(
          %GenLSP.Requests.TextDocumentSignatureHelp{
-           params: %GenLSP.Structures.TextDocumentPositionParams{
+           params: %GenLSP.Structures.SignatureHelpParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
                uri: uri
              },
