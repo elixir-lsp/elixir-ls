@@ -293,6 +293,12 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
              ) == "[Up and running](http://example.com/foo.md)"
     end
 
+    test "extra page unknown app" do
+      assert MarkdownUtils.transform_ex_doc_links(
+               "[Up](e:unknown_app:foo.md)"
+             ) == "[Up](https://hexdocs.pm/unknown_app/foo.html)"
+    end
+
     if System.otp_release() |> String.to_integer() >= 27 do
       test "erlang extra page" do
         assert MarkdownUtils.transform_ex_doc_links(

@@ -368,7 +368,14 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
       end
 
     if app_vsn do
-      {app, _vsn} = app_vsn
+      app =
+        case app_vsn do
+          {app, _vsn} ->
+            app
+
+          app when is_atom(app) or is_binary(app) ->
+            app
+        end
 
       if app in @all_otp_apps and @erlang_ex_doc? do
         # TODO not sure how the docs will handle versions app/vsn does not work as of June 2024
