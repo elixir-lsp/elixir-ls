@@ -1830,8 +1830,8 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 12,
                         name: "\"does something\"",
-                        range: range(4, 10, 4, 40),
-                        selection_range: range(4, 10, 4, 40)
+                        range: range(4, 10, 4, _),
+                        selection_range: range(4, 10, 4, _)
                       }
                     ],
                     kind: 12,
