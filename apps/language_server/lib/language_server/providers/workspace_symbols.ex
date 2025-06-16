@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
   """
   use GenServer
 
+  alias ElixirLS.LanguageServer.ClientCapabilities
   alias ElixirLS.LanguageServer.ErlangSourceFile
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.SymbolUtils
@@ -132,21 +133,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @impl GenServer
   def handle_cast({:notify_settings_stored, project_dir}, state) do
-    # as of LSP 3.17 only one tag is defined and clients are required to silently ignore unknown tags
+    # as of LSP 3.18 only one tag is defined and clients are required to silently ignore unknown tags
     # so there's no need to pass the list
-    tag_support =
-      case :persistent_term.get(:language_server_client_capabilities) do
-        %GenLSP.Structures.ClientCapabilities{
-          workspace: %GenLSP.Structures.WorkspaceClientCapabilities{
-            symbol: %{tag_support: tag_support}
-          }
-        }
-        when tag_support != nil ->
-          true
-
-        _ ->
-          false
-      end
+    tag_support = ClientCapabilities.workspace_symbol_tag_support?()
 
     {:noreply, %{state | project_dir: project_dir, tag_support: tag_support}}
   end

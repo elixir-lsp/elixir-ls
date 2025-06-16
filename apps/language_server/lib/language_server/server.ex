@@ -21,6 +21,7 @@ defmodule ElixirLS.LanguageServer.Server do
   alias ElixirLS.LanguageServer.{
     SourceFile,
     Build,
+    ClientCapabilities,
     JsonRpc,
     Dialyzer,
     DialyzerIncremental,
@@ -57,7 +58,6 @@ defmodule ElixirLS.LanguageServer.Server do
     :server_instance_id,
     :build_ref,
     :dialyzer_sup,
-    :client_capabilities,
     :root_uri,
     :project_dir,
     :settings,
@@ -510,10 +510,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     supports_dynamic_configuration_change_registration =
-      state.client_capabilities &&
-        state.client_capabilities.workspace &&
-        state.client_capabilities.workspace.did_change_configuration &&
-        state.client_capabilities.workspace.did_change_configuration.dynamic_registration
+      ClientCapabilities.supports_dynamic_configuration_change_registration?()
 
     if supports_dynamic_configuration_change_registration do
       Logger.info("Registering for workspace/didChangeConfiguration notifications")
@@ -523,10 +520,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     supports_dynamic_file_watcher_registration =
-      state.client_capabilities &&
-        state.client_capabilities.workspace &&
-        state.client_capabilities.workspace.did_change_watched_files &&
-        state.client_capabilities.workspace.did_change_watched_files.dynamic_registration
+      ClientCapabilities.supports_dynamic_file_watcher_registration?()
 
     if supports_dynamic_file_watcher_registration do
       Logger.info("Registering for workspace/didChangeWatchedFiles notifications")
@@ -539,10 +533,13 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         %GenLSP.Notifications.DollarCancelRequest{params: params},
+         %GenLSP.Notifications.DollarCancelRequest{
+           params: %GenLSP.Structures.CancelParams{
+             id: id
+           }
+         },
          %__MODULE__{requests: requests, requests_ids_by_pid: requests_ids_by_pid} = state
        ) do
-    id = params.id
     {request, updated_requests} = Map.pop(requests, id)
 
     updated_requests_ids_by_pid =
@@ -570,10 +567,13 @@ defmodule ElixirLS.LanguageServer.Server do
   # the `projectDir` or `mixEnv` settings.
   # note that clients supporting `workspace/configuration` will send nil and we need to pull
   defp handle_notification(
-         %GenLSP.Notifications.WorkspaceDidChangeConfiguration{params: params},
+         %GenLSP.Notifications.WorkspaceDidChangeConfiguration{
+           params: %GenLSP.Structures.DidChangeConfigurationParams{
+             settings: changed_settings
+           }
+         },
          state = %__MODULE__{}
        ) do
-    changed_settings = params.settings
     Logger.info("Received workspace/didChangeConfiguration")
     prev_settings = state.settings || %{}
 
@@ -612,14 +612,16 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         %GenLSP.Notifications.TextDocumentDidOpen{params: params},
+         %GenLSP.Notifications.TextDocumentDidOpen{
+           params: %GenLSP.Structures.TextDocumentItem{
+             uri: uri,
+             language_id: language_id,
+             version: version,
+             text: text
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    language_id = params.text_document.language_id
-    version = params.text_document.version
-    text = params.text_document.text
-
     if Map.has_key?(state.source_files, uri) do
       # An open notification must not be sent more than once without a corresponding
       # close notification send before
@@ -651,11 +653,13 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         %GenLSP.Notifications.TextDocumentDidClose{params: params},
+         %GenLSP.Notifications.TextDocumentDidClose{
+           params: %GenLSP.Structures.TextDocumentIdentifier{
+             uri: uri
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-
     if not Map.has_key?(state.source_files, uri) do
       # A close notification requires a previous open notification to be sent
       Logger.warning(
@@ -677,13 +681,17 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         %GenLSP.Notifications.TextDocumentDidChange{params: params},
+         %GenLSP.Notifications.TextDocumentDidChange{
+           params: %GenLSP.Structures.DidChangeTextDocumentParams{
+             text_document: %GenLSP.Structures.VersionedTextDocumentIdentifier{
+               uri: uri,
+               version: version
+             },
+             content_changes: content_changes
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-    version = params.text_document.version
-    content_changes = params.content_changes
-
     if not Map.has_key?(state.source_files, uri) do
       # The source file was not marked as open either due to a bug in the
       # client or a restart of the server. So just ignore the message and do
@@ -728,11 +736,13 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         %GenLSP.Notifications.TextDocumentDidSave{params: params},
+         %GenLSP.Notifications.TextDocumentDidSave{
+           params: %GenLSP.Structures.TextDocumentIdentifier{
+             uri: uri
+           }
+         },
          state = %__MODULE__{}
        ) do
-    uri = params.text_document.uri
-
     if not Map.has_key?(state.source_files, uri) do
       Logger.warning(
         "Received textDocument/didSave for file that is not open. Received uri: #{inspect(uri)}"
@@ -747,11 +757,14 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_notification(
-         %GenLSP.Notifications.WorkspaceDidChangeWatchedFiles{params: params},
+         %GenLSP.Notifications.WorkspaceDidChangeWatchedFiles{
+           params: %GenLSP.Structures.DidChangeWatchedFilesParams{
+             changes: changes
+           }
+         },
          state = %__MODULE__{project_dir: project_dir}
        )
        when is_binary(project_dir) do
-    changes = params.changes
     changes = Enum.filter(changes, &String.starts_with?(&1.uri, "file:"))
 
     # `settings` may not always be available here, like during testing
@@ -775,7 +788,7 @@ defmodule ElixirLS.LanguageServer.Server do
       end)
 
     deleted_paths =
-      for change <- changes,
+      for change = %GenLSP.Structures.FileEvent{} <- changes,
           change.type == GenLSP.Enumerations.FileChangeType.deleted(),
           do: SourceFile.Path.from_uri(change.uri)
 
@@ -1112,13 +1125,12 @@ defmodule ElixirLS.LanguageServer.Server do
           state
       end
 
+    ClientCapabilities.store(client_capabilities)
+
     state = %{
       state
-      | client_capabilities: client_capabilities,
-        server_instance_id: server_instance_id
+      | server_instance_id: server_instance_id
     }
-
-    :persistent_term.put(:language_server_client_capabilities, client_capabilities)
 
     {:ok,
      %GenLSP.Structures.InitializeResult{
@@ -1284,12 +1296,7 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      hierarchical? =
-        (state.client_capabilities &&
-           state.client_capabilities.text_document &&
-           state.client_capabilities.text_document.document_symbol &&
-           state.client_capabilities.text_document.document_symbol.hierarchical_document_symbol_support) ||
-          false
+      hierarchical? = ClientCapabilities.hierarchical_document_symbol_support?()
 
       if String.ends_with?(uri, [".ex", ".exs", ".eex"]) or
            source_file.language_id in ["elixir", "eex", "html-eex"] do
@@ -1336,37 +1343,14 @@ defmodule ElixirLS.LanguageServer.Server do
 
     source_file = get_source_file(state, uri)
 
-    # TODO: GenLSP
-
-    snippets_supported =
-      !!(state.client_capabilities &&
-           state.client_capabilities.text_document &&
-           state.client_capabilities.text_document.completion &&
-           state.client_capabilities.text_document.completion.completion_item &&
-           state.client_capabilities.text_document.completion.completion_item.snippet_support)
+    snippets_supported = ClientCapabilities.snippets_supported?()
 
     # deprecated as of Language Server Protocol Specification - 3.15
-    deprecated_supported =
-      !!(state.client_capabilities &&
-           state.client_capabilities.text_document &&
-           state.client_capabilities.text_document.completion &&
-           state.client_capabilities.text_document.completion.completion_item &&
-           state.client_capabilities.text_document.completion.completion_item.deprecated_support)
+    deprecated_supported = ClientCapabilities.deprecated_supported?()
 
-    tags_supported =
-      case state.client_capabilities &&
-             state.client_capabilities.text_document &&
-             state.client_capabilities.text_document.completion &&
-             state.client_capabilities.text_document.completion.completion_item &&
-             state.client_capabilities.text_document.completion.completion_item.tag_support do
-        nil -> []
-        %{value_set: value_set} -> value_set
-      end
+    tags_supported = ClientCapabilities.tags_supported()
 
-    signature_help_supported =
-      !!(state.client_capabilities &&
-           state.client_capabilities.text_document &&
-           state.client_capabilities.text_document.signature_help)
+    signature_help_supported = ClientCapabilities.signature_help_supported?()
 
     locals_without_parens =
       case SourceFile.formatter_for(uri, state.project_dir, state.mix_project?) do
@@ -2670,8 +2654,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
   defp pull_configuration(state) do
     supports_get_configuration =
-      state.client_capabilities.workspace &&
-        state.client_capabilities.workspace.configuration
+      ClientCapabilities.supports_configuration?()
 
     if supports_get_configuration do
       response = JsonRpc.get_configuration_request(state.root_uri, "elixirLS")
