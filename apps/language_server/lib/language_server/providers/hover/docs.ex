@@ -251,9 +251,6 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
         {line, column} = context.end
         call_arity = Metadata.get_call_arity(metadata, mod, fun, line, column) || :any
         get_all_docs({mod, fun, call_arity}, metadata, env, kind)
-
-      _ ->
-        nil
     end
   end
 

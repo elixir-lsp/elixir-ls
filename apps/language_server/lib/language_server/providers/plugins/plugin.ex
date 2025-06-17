@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Plugin do
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.State
-  @type suggestion :: ElixirLS.LanguageServer.Providers.Suggestion.generic()
+  @type suggestion :: ElixirLS.LanguageServer.Providers.Completion.Suggestion.generic()
 
   @type context :: term
   @type acc :: %{context: context(), result: list(suggestion())}
