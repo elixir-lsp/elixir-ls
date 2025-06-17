@@ -23,21 +23,29 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
           String.t()
         ) ::
           {:ok, {module, atom}} | {:error, :limit_reached}
-  def register_condition(name \\ __MODULE__, module, line, env, condition, log_message, hit_count) do
+  def register_condition(
+        name \\ __MODULE__,
+        module,
+        lines,
+        env,
+        condition,
+        log_message,
+        hit_count
+      ) do
     GenServer.call(
       name,
-      {:register_condition, {module, line}, env, condition, log_message, hit_count}
+      {:register_condition, {module, lines}, env, condition, log_message, hit_count}
     )
   end
 
   @spec unregister_condition(module, module, [non_neg_integer]) :: :ok
-  def unregister_condition(name \\ __MODULE__, module, line) do
-    GenServer.cast(name, {:unregister_condition, {module, line}})
+  def unregister_condition(name \\ __MODULE__, module, lines) do
+    GenServer.cast(name, {:unregister_condition, {module, lines}})
   end
 
   @spec has_condition?(module, module, non_neg_integer) :: boolean
-  def has_condition?(name \\ __MODULE__, module, line) do
-    GenServer.call(name, {:has_condition?, {module, line}})
+  def has_condition?(name \\ __MODULE__, module, lines) do
+    GenServer.call(name, {:has_condition?, {module, lines}})
   end
 
   @spec get_condition(module, non_neg_integer) ::
