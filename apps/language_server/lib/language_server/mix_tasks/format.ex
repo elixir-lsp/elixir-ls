@@ -859,7 +859,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
   end
 
   @doc false
-  @spec text_diff_format(String.t(), String.t()) :: iolist()
+  @spec text_diff_format(String.t(), String.t(), keyword()) :: iolist()
   def text_diff_format(old, new, opts \\ [])
 
   def text_diff_format(code, code, _opts), do: []
