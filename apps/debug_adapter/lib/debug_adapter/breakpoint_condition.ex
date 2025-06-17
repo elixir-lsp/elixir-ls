@@ -17,6 +17,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
           module,
           module,
           non_neg_integer,
+          Macro.Env.t(),
           String.t(),
           String.t() | nil,
           String.t()
@@ -29,7 +30,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
     )
   end
 
-  @spec unregister_condition(module, module, non_neg_integer) :: :ok
+  @spec unregister_condition(module, module, [non_neg_integer]) :: :ok
   def unregister_condition(name \\ __MODULE__, module, line) do
     GenServer.cast(name, {:unregister_condition, {module, line}})
   end
@@ -40,7 +41,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   end
 
   @spec get_condition(module, non_neg_integer) ::
-          {String.t(), String.t(), non_neg_integer, non_neg_integer}
+          {Macro.Env.t(), String.t(), String.t(), String.t(), non_neg_integer}
   def get_condition(name \\ __MODULE__, number) do
     GenServer.call(name, {:get_condition, number})
   end
