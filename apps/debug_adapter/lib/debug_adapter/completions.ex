@@ -10,7 +10,7 @@ defmodule ElixirLS.DebugAdapter.Completions do
         snippet: snippet
       })
       when type in [:function, :macro] do
-    %{
+    %GenDAP.Structures.CompletionItem{
       type: "function",
       detail: Atom.to_string(type),
       label: "#{name}/#{arity}",
@@ -29,7 +29,7 @@ defmodule ElixirLS.DebugAdapter.Completions do
         other -> other
       end
 
-    %{
+    %GenDAP.Structures.CompletionItem{
       type: "module",
       detail: if(subtype != nil, do: Atom.to_string(subtype)),
       label: name,
@@ -41,7 +41,7 @@ defmodule ElixirLS.DebugAdapter.Completions do
         type: :variable,
         name: name
       }) do
-    %{
+    %GenDAP.Structures.CompletionItem{
       type: "variable",
       label: name
     }
@@ -58,7 +58,7 @@ defmodule ElixirLS.DebugAdapter.Completions do
         :map_key -> "map key"
       end
 
-    %{
+    %GenDAP.Structures.CompletionItem{
       type: "field",
       detail: detail,
       label: name

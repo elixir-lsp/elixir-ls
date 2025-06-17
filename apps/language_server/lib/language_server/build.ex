@@ -138,7 +138,21 @@ defmodule ElixirLS.LanguageServer.Build do
           :ok
         catch
           kind, err ->
-            {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+            stacktrace = __STACKTRACE__
+
+            {payload, stacktrace} =
+              try do
+                Exception.blame(kind, err, stacktrace)
+              catch
+                kind_1, error_1 ->
+                  # in case of error in Exception.blame we want to use the original error and stacktrace
+                  Logger.error(
+                    "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                  )
+
+                  {err, stacktrace}
+              end
+
             {:error, kind, payload, stacktrace}
         end
       end)
@@ -300,7 +314,21 @@ defmodule ElixirLS.LanguageServer.Build do
               :ok
             catch
               kind, err ->
-                {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+                stacktrace = __STACKTRACE__
+
+                {payload, stacktrace} =
+                  try do
+                    Exception.blame(kind, err, stacktrace)
+                  catch
+                    kind_1, error_1 ->
+                      # in case of error in Exception.blame we want to use the original error and stacktrace
+                      Logger.error(
+                        "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                      )
+
+                      {err, stacktrace}
+                  end
+
                 {:error, kind, payload, stacktrace}
             end
           end)
@@ -360,7 +388,21 @@ defmodule ElixirLS.LanguageServer.Build do
           :ok
         catch
           kind, err ->
-            {payload, stacktrace} = Exception.blame(kind, err, __STACKTRACE__)
+            stacktrace = __STACKTRACE__
+
+            {payload, stacktrace} =
+              try do
+                Exception.blame(kind, err, stacktrace)
+              catch
+                kind_1, error_1 ->
+                  # in case of error in Exception.blame we want to use the original error and stacktrace
+                  Logger.error(
+                    "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                  )
+
+                  {err, stacktrace}
+              end
+
             {:error, kind, payload, stacktrace}
         after
           # reset log config
@@ -434,7 +476,21 @@ defmodule ElixirLS.LanguageServer.Build do
             Mix.Project.deps_paths()
           catch
             kind, payload ->
-              {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+              stacktrace = __STACKTRACE__
+
+              {payload, stacktrace} =
+                try do
+                  Exception.blame(kind, payload, stacktrace)
+                catch
+                  kind_1, error_1 ->
+                    # in case of error in Exception.blame we want to use the original error and stacktrace
+                    Logger.error(
+                      "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                    )
+
+                    {payload, stacktrace}
+                end
+
               message = Exception.format(kind, payload, stacktrace)
               Logger.warning("Unable to prune mix project: #{message}")
               []
@@ -448,7 +504,21 @@ defmodule ElixirLS.LanguageServer.Build do
               end)
             catch
               kind, payload ->
-                {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+                stacktrace = __STACKTRACE__
+
+                {payload, stacktrace} =
+                  try do
+                    Exception.blame(kind, payload, stacktrace)
+                  catch
+                    kind_1, error_1 ->
+                      # in case of error in Exception.blame we want to use the original error and stacktrace
+                      Logger.error(
+                        "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                      )
+
+                      {payload, stacktrace}
+                  end
+
                 message = Exception.format(kind, payload, stacktrace)
                 Logger.warning("Unable to prune mix project module for #{app}: #{message}")
                 nil

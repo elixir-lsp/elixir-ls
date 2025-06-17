@@ -1398,8 +1398,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp get_struct_info(_, _metadata), do: {"", %{}}
-
   defp match_map_fields(fields, hint, type, %State.Env{} = _env, %Metadata{} = metadata) do
     {subtype, origin, types, doc, meta} =
       case type do

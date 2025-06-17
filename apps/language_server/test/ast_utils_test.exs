@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.AstUtilsTest do
   use ExUnit.Case
 
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
   import ElixirLS.LanguageServer.AstUtils
 
   defp get_range(code) do

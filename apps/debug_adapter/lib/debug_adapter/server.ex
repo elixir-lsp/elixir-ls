@@ -19,50 +19,42 @@ defmodule ElixirLS.DebugAdapter.Server do
   alias ElixirLS.DebugAdapter.{
     Output,
     Stacktrace,
-    Protocol,
     Variables,
     Utils,
     BreakpointCondition,
     Binding,
-    ModuleInfoCache
+    ModuleInfoCache,
+    IdManager,
+    VariableRegistry,
+    ThreadRegistry
   }
 
   alias ElixirLS.DebugAdapter.Stacktrace.Frame
   alias ElixirLS.Utils.Launch
+  import ElixirLS.DebugAdapter.Protocol.Basic
   use GenServer
-  use Protocol
 
   @temp_beam_dir ".elixir_ls/temp_beams"
+
+  defmodule PausedProcess do
+    defstruct stack: nil,
+              registry: %ElixirLS.DebugAdapter.VariableRegistry{},
+              ref: nil
+  end
 
   defstruct client_info: nil,
             config: %{},
             dbg_session: nil,
             task_ref: nil,
             update_threads_ref: nil,
-            thread_ids_to_pids: %{},
-            pids_to_thread_ids: %{},
-            paused_processes: %{
-              evaluator: %{
-                var_ids_to_vars: %{},
-                vars_to_var_ids: %{}
-              }
-            },
+            thread_registry: %ThreadRegistry{},
+            paused_processes: %{},
             requests: %{},
             requests_seqs_by_pid: %{},
             progresses: MapSet.new(),
-            next_id: 1,
             output: Output,
             breakpoints: %{},
             function_breakpoints: %{}
-
-  defmodule PausedProcess do
-    defstruct stack: nil,
-              frame_ids_to_frames: %{},
-              frames_to_frame_ids: %{},
-              var_ids_to_vars: %{},
-              vars_to_var_ids: %{},
-              ref: nil
-  end
 
   ## Client API
 
@@ -177,12 +169,20 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   @impl GenServer
   def init(opts) do
+    IdManager.init()
     state = if opts[:output], do: %__MODULE__{output: opts[:output]}, else: %__MODULE__{}
+
+    # Initialize the evaluator process entry
+    evaluator_process = %PausedProcess{}
+    state = put_in(state.paused_processes[:evaluator], evaluator_process)
+
     {:ok, state}
   end
 
   @impl GenServer
   def terminate(reason, _state) do
+    IdManager.cleanup()
+
     case reason do
       :normal ->
         :ok
@@ -305,8 +305,10 @@ defmodule ElixirLS.DebugAdapter.Server do
     paused_process = %PausedProcess{stack: stacktrace, ref: ref}
     state = put_in(state.paused_processes[pid], paused_process)
 
-    body = %{"reason" => "breakpoint", "threadId" => thread_id, "allThreadsStopped" => false}
-    Output.send_event("stopped", body)
+    Output.send_event(%GenDAP.Events.StoppedEvent{
+      seq: nil,
+      body: %{reason: "breakpoint", thread_id: thread_id, all_threads_stopped: false}
+    })
 
     {:noreply, %{state | dbg_session: from}}
   end
@@ -328,8 +330,11 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         updated_progresses =
           if MapSet.member?(state.progresses, seq) do
-            Output.send_event("progressEnd", %{
-              "progressId" => seq
+            Output.send_event(%GenDAP.Events.ProgressEndEvent{
+              seq: nil,
+              body: %{
+                progress_id: to_string(seq)
+              }
             })
 
             MapSet.delete(state.progresses, seq)
@@ -376,21 +381,26 @@ defmodule ElixirLS.DebugAdapter.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call(
-        {:get_variable_reference, child_type, pid, value},
-        _from,
+  @impl GenServer
+  def handle_cast(
+        {:receive_packet, request(seq, "disconnect" = command) = packet},
         state = %__MODULE__{}
       ) do
-    if Map.has_key?(state.paused_processes, pid) do
-      {state, var_id} = get_variable_reference(child_type, state, pid, value)
-      {:reply, {:ok, var_id}, state}
-    else
-      {:reply, {:error, :not_paused}, state}
-    end
-  end
+    case GenDAP.Requests.new(packet) do
+      {:ok, _} ->
+        :ok
 
-  @impl GenServer
-  def handle_cast({:receive_packet, request(_, "disconnect") = packet}, state = %__MODULE__{}) do
+      {:error, "unexpected request payload"} ->
+        :ok
+
+      {:error, e} ->
+        e |> IO.inspect(label: "#{command}: #{seq}")
+        # Process.sleep(200)
+        System.halt(1)
+        # raise "#{command}: #{seq}"
+        e |> IO.inspect(label: "#{command}: #{seq}")
+    end
+
     Output.debugger_console("Received disconnect request\n")
 
     Output.telemetry("dap_request", %{"elixir_ls.dap_command" => "disconnect"}, %{
@@ -413,7 +423,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     # disable logger so we do not get unexpected
     # [notice] SIGTERM received - shutting down
     Logger.configure(level: :none)
-    Output.send_response(packet, %{})
+    Output.send_response(packet, %GenDAP.Requests.DisconnectResponse{seq: 0, request_seq: 0})
 
     {:noreply, state, {:continue, :disconnect}}
   end
@@ -421,11 +431,20 @@ defmodule ElixirLS.DebugAdapter.Server do
   def handle_cast({:receive_packet, request(seq, command) = packet}, state = %__MODULE__{}) do
     start_time = System.monotonic_time(:millisecond)
 
+    struct =
+      case GenDAP.Requests.new(packet) do
+        {:ok, struct} ->
+          struct
+
+        {:error, "unexpected request payload"} ->
+          packet
+      end
+
     try do
       if state.client_info == nil do
         case packet do
           request(_, "initialize") ->
-            {response_body, state} = handle_request(packet, state)
+            {response_body, state} = handle_request(struct, state)
             elapsed = System.monotonic_time(:millisecond) - start_time
             Output.send_response(packet, response_body)
 
@@ -447,7 +466,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         end
       else
         state =
-          case handle_request(packet, state) do
+          case handle_request(struct, state) do
             {response_body, state} ->
               elapsed = System.monotonic_time(:millisecond) - start_time
               Output.send_response(packet, response_body)
@@ -488,7 +507,21 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:noreply, state}
     catch
       kind, error ->
-        {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, error, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Output.debugger_console(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {error, stacktrace}
+          end
+
         message = Exception.format(kind, payload, stacktrace)
         Output.debugger_console(message)
         Output.send_error_response(packet, "internalServerError", message, %{}, true, false)
@@ -497,6 +530,20 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   @impl GenServer
+  def handle_cast({:merge_registry, pid, registry}, state = %__MODULE__{}) do
+    case Map.fetch(state.paused_processes, pid) do
+      {:ok, paused_process = %PausedProcess{}} ->
+        merged_registry = VariableRegistry.merge(paused_process.registry, registry)
+        paused_process = %{paused_process | registry: merged_registry}
+        state = put_in(state.paused_processes[pid], paused_process)
+        {:noreply, state}
+
+      :error ->
+        # Process might have been resumed or exited, ignore
+        {:noreply, state}
+    end
+  end
+
   def handle_cast({event, pid}, state = %__MODULE__{})
       when event in [:breakpoint_reached, :paused] do
     # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
@@ -522,8 +569,11 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         reason = get_stop_reason(state, event, paused_process.stack)
 
-        body = %{"reason" => reason, "threadId" => thread_id, "allThreadsStopped" => false}
-        Output.send_event("stopped", body)
+        Output.send_event(%GenDAP.Events.StoppedEvent{
+          seq: nil,
+          body: %{reason: reason, thread_id: thread_id, all_threads_stopped: false}
+        })
+
         state
       else
         Process.monitor(pid)
@@ -564,8 +614,8 @@ defmodule ElixirLS.DebugAdapter.Server do
       )
     end
 
-    Output.send_event("terminated", %{"restart" => false})
-    Output.send_event("exited", %{"exitCode" => exit_code})
+    Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+    Output.send_event(%GenDAP.Events.ExitedEvent{seq: nil, body: %{exit_code: exit_code}})
 
     {:noreply, %{state | task_ref: nil}}
   end
@@ -601,8 +651,11 @@ defmodule ElixirLS.DebugAdapter.Server do
         # no MapSet.pop...
         updated_progresses =
           if MapSet.member?(state.progresses, seq) do
-            Output.send_event("progressEnd", %{
-              "progressId" => seq
+            Output.send_event(%GenDAP.Events.ProgressEndEvent{
+              seq: nil,
+              body: %{
+                progress_id: to_string(seq)
+              }
             })
 
             MapSet.delete(state.progresses, seq)
@@ -669,9 +722,14 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   ## Helpers
 
-  defp handle_request(initialize_req(_, client_info), %__MODULE__{client_info: nil} = state) do
+  defp handle_request(
+         %GenDAP.Requests.InitializeRequest{
+           arguments: %GenDAP.Structures.InitializeRequestArguments{} = args
+         },
+         %__MODULE__{client_info: nil} = state
+       ) do
     # linesStartAt1 is true by default and we only support 1-based indexing
-    if client_info["linesStartAt1"] == false do
+    if args.lines_start_at1 == false do
       raise ServerError,
         message: "invalidRequest",
         format: "0-based lines are not supported",
@@ -680,7 +738,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
 
     # columnsStartAt1 is true by default and we only support 1-based indexing
-    if client_info["columnsStartAt1"] == false do
+    if args.columns_start_at1 == false do
       raise ServerError,
         message: "invalidRequest",
         format: "0-based columns are not supported",
@@ -689,27 +747,38 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
 
     # pathFormat is `path` by default and we do not support other, e.g. `uri`
-    if client_info["pathFormat"] not in [nil, "path"] do
+    if args.path_format not in [nil, "path"] do
       raise ServerError,
         message: "invalidRequest",
         format: "pathFormat {pathFormat} is not supported",
-        variables: %{"pathFormat" => client_info["pathFormat"]},
+        variables: %{"pathFormat" => args.path_format},
         show_user: true
     end
 
-    {capabilities(), %{state | client_info: client_info}}
+    {%GenDAP.Requests.InitializeResponse{seq: 0, request_seq: 0, body: capabilities()},
+     %{state | client_info: args}}
   end
 
-  defp handle_request(initialize_req(_, _client_info), _state = %__MODULE__{}) do
+  defp handle_request(%GenDAP.Requests.InitializeRequest{}, _state = %__MODULE__{}) do
     raise ServerError,
       message: "invalidRequest",
       format: "Debugger request initialize was not expected",
       variables: %{}
   end
 
-  defp handle_request(cancel_req(_, args), %__MODULE__{requests: requests} = state) do
+  defp handle_request(
+         %GenDAP.Requests.CancelRequest{arguments: args = %GenDAP.Structures.CancelArguments{}},
+         %__MODULE__{requests: requests} = state
+       ) do
     # in or case progressId is requestId so choose first not null
-    request_or_progress_id = args["requestId"] || args["progressId"]
+    request_or_progress_id = args.request_id || args.progress_id
+
+    request_or_progress_id =
+      if is_binary(request_or_progress_id) do
+        String.to_integer(request_or_progress_id)
+      else
+        request_or_progress_id
+      end
 
     {request, updated_requests} = Map.pop(requests, request_or_progress_id)
 
@@ -724,8 +793,11 @@ defmodule ElixirLS.DebugAdapter.Server do
         # send progressEnd if cancelling a progress
         updated_progresses =
           if MapSet.member?(state.progresses, request_or_progress_id) do
-            Output.send_event("progressEnd", %{
-              "progressId" => request_or_progress_id
+            Output.send_event(%GenDAP.Events.ProgressEndEvent{
+              seq: nil,
+              body: %{
+                progress_id: to_string(request_or_progress_id)
+              }
             })
 
             MapSet.delete(state.progresses, request_or_progress_id)
@@ -751,10 +823,10 @@ defmodule ElixirLS.DebugAdapter.Server do
         progresses: updated_progresses
     }
 
-    {%{}, state}
+    {%GenDAP.Requests.CancelResponse{seq: 0, request_seq: 0}, state}
   end
 
-  defp handle_request(launch_req(_, config), state = %__MODULE__{}) do
+  defp handle_request(%GenDAP.Requests.LaunchRequest{arguments: config}, state = %__MODULE__{}) do
     server = self()
 
     {_, ref} = spawn_monitor(fn -> launch(config, server) end)
@@ -764,7 +836,8 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:ok, config} ->
           # sending `initialized` signals that we are ready to receive configuration requests
           # setBreakpoints, setFunctionBreakpoints and configurationDone
-          Output.send_event("initialized", %{})
+          Output.send_event(%GenDAP.Events.InitializedEvent{seq: nil})
+          # Process.sleep(30000)
           send(self(), :update_threads)
 
           Output.telemetry(
@@ -799,8 +872,12 @@ defmodule ElixirLS.DebugAdapter.Server do
 
             {%ServerError{} = error, stack} ->
               exit_code = 1
-              Output.send_event("terminated", %{"restart" => false})
-              Output.send_event("exited", %{"exitCode" => exit_code})
+              Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+
+              Output.send_event(%GenDAP.Events.ExitedEvent{
+                seq: nil,
+                body: %{exit_code: exit_code}
+              })
 
               reraise error, stack
 
@@ -810,8 +887,12 @@ defmodule ElixirLS.DebugAdapter.Server do
               Output.debugger_console(message)
 
               exit_code = 1
-              Output.send_event("terminated", %{"restart" => false})
-              Output.send_event("exited", %{"exitCode" => exit_code})
+              Output.send_event(%GenDAP.Events.TerminatedEvent{seq: nil, body: %{restart: false}})
+
+              Output.send_event(%GenDAP.Events.ExitedEvent{
+                seq: nil,
+                body: %{exit_code: exit_code}
+              })
 
               raise ServerError,
                 message: "launchError",
@@ -822,10 +903,10 @@ defmodule ElixirLS.DebugAdapter.Server do
           end
       end
 
-    {%{}, %{state | config: config}}
+    {%GenDAP.Requests.LaunchResponse{seq: 0, request_seq: 0}, %{state | config: config}}
   end
 
-  defp handle_request(attach_req(_, config), state = %__MODULE__{}) do
+  defp handle_request(%GenDAP.Requests.AttachRequest{arguments: config}, state = %__MODULE__{}) do
     server = self()
 
     :net_kernel.monitor_nodes(true, %{
@@ -841,7 +922,7 @@ defmodule ElixirLS.DebugAdapter.Server do
         {:ok, config} ->
           # sending `initialized` signals that we are ready to receive configuration requests
           # setBreakpoints, setFunctionBreakpoints and configurationDone
-          Output.send_event("initialized", %{})
+          Output.send_event(%GenDAP.Events.InitializedEvent{seq: nil})
           send(self(), :update_threads)
 
           Output.telemetry(
@@ -868,7 +949,10 @@ defmodule ElixirLS.DebugAdapter.Server do
               :ok
 
             {%ServerError{} = error, stack} ->
-              Output.send_event("terminated", %{"restart" => false})
+              Output.send_event(%GenDAP.Events.TerminatedEvent{
+                seq: nil,
+                body: %{restart: false}
+              })
 
               reraise error, stack
 
@@ -877,7 +961,10 @@ defmodule ElixirLS.DebugAdapter.Server do
 
               Output.debugger_console(message)
 
-              Output.send_event("terminated", %{"restart" => false})
+              Output.send_event(%GenDAP.Events.TerminatedEvent{
+                seq: nil,
+                body: %{restart: false}
+              })
 
               raise ServerError,
                 message: "attachError",
@@ -888,14 +975,15 @@ defmodule ElixirLS.DebugAdapter.Server do
           end
       end
 
-    {%{}, %{state | config: config}}
+    {%GenDAP.Requests.AttachResponse{seq: 0, request_seq: 0}, %{state | config: config}}
   end
 
   defp handle_request(
-         source_req(_, args),
+         %GenDAP.Requests.SourceRequest{arguments: args = %GenDAP.Structures.SourceArguments{}},
          state = %__MODULE__{}
        ) do
-    path = args["source"]["path"]
+    source = %GenDAP.Structures.Source{} = args.source
+    path = source.path
 
     content =
       cond do
@@ -913,11 +1001,11 @@ defmodule ElixirLS.DebugAdapter.Server do
           File.read!(path)
       end
 
-    {%{"content" => content}, state}
+    {%GenDAP.Requests.SourceResponse{seq: 0, request_seq: 0, body: %{content: content}}, state}
   end
 
   defp handle_request(
-         set_breakpoints_req(_, %{"path" => _path}, _breakpoints),
+         %GenDAP.Requests.SetBreakpointsRequest{},
          %__MODULE__{config: %{"noDebug" => true}}
        ) do
     raise ServerError,
@@ -928,14 +1016,18 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp handle_request(
-         set_breakpoints_req(_, %{"path" => path}, breakpoints),
+         %GenDAP.Requests.SetBreakpointsRequest{
+           arguments: args = %GenDAP.Structures.SetBreakpointsArguments{}
+         },
          state = %__MODULE__{}
        ) do
-    path = Path.absname(path)
-    new_lines = for %{"line" => line} <- breakpoints, do: line
+    source = %GenDAP.Structures.Source{} = args.source
+    path = Path.absname(source.path)
+    new_lines = for %GenDAP.Structures.SourceBreakpoint{line: line} <- args.breakpoints, do: line
 
     new_conditions =
-      for b <- breakpoints, do: {b["condition"], b["logMessage"], b["hitCondition"]}
+      for b = %GenDAP.Structures.SourceBreakpoint{} <- args.breakpoints,
+          do: {b.condition, b.log_message, b.hit_condition}
 
     existing_bps = state.breakpoints[path] || []
     existing_bp_lines = for {_modules, line} <- existing_bps, do: line
@@ -957,17 +1049,24 @@ defmodule ElixirLS.DebugAdapter.Server do
         put_in(state.breakpoints[path], new_bps)
       end
 
-    breakpoints_json =
+    breakpoints_result =
       Enum.map(result, fn
-        {:ok, _, _} -> %{"verified" => true}
-        {:error, error} -> %{"verified" => false, "message" => error, "reason" => "failed"}
+        {:ok, _, _} ->
+          %GenDAP.Structures.Breakpoint{verified: true}
+
+        {:error, error} ->
+          %GenDAP.Structures.Breakpoint{verified: false, message: error, reason: "failed"}
       end)
 
-    {%{"breakpoints" => breakpoints_json}, state}
+    {%GenDAP.Requests.SetBreakpointsResponse{
+       seq: 0,
+       request_seq: 0,
+       body: %{breakpoints: breakpoints_result}
+     }, state}
   end
 
   defp handle_request(
-         set_function_breakpoints_req(_, _breakpoints),
+         %GenDAP.Requests.SetFunctionBreakpointsRequest{},
          %__MODULE__{config: %{"noDebug" => true}}
        ) do
     raise ServerError,
@@ -978,12 +1077,14 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp handle_request(
-         set_function_breakpoints_req(_, breakpoints),
+         %GenDAP.Requests.SetFunctionBreakpointsRequest{
+           arguments: args = %GenDAP.Structures.SetFunctionBreakpointsArguments{}
+         },
          state = %__MODULE__{}
        ) do
     mfas =
-      for %{"name" => name} = breakpoint <- breakpoints do
-        {Utils.parse_mfa(name), {breakpoint["condition"], breakpoint["hitCondition"]}}
+      for %GenDAP.Structures.FunctionBreakpoint{name: name} = breakpoint <- args.breakpoints do
+        {Utils.parse_mfa(name), {breakpoint.condition, breakpoint.hit_condition}}
       end
 
     parsed_mfas_conditions = for {{:ok, mfa}, condition} <- mfas, into: %{}, do: {mfa, condition}
@@ -1089,64 +1190,90 @@ defmodule ElixirLS.DebugAdapter.Server do
       | function_breakpoints: successful
     }
 
-    breakpoints_json =
+    breakpoints_result =
       Enum.map(mfas, fn
         {{:ok, mfa}, _} ->
           case results[mfa] do
             {:ok, _} ->
-              %{"verified" => true}
+              %GenDAP.Structures.Breakpoint{verified: true}
 
             {:error, error} ->
-              %{"verified" => false, "message" => inspect(error), "reason" => "failed"}
+              %GenDAP.Structures.Breakpoint{
+                verified: false,
+                message: inspect(error),
+                reason: "failed"
+              }
           end
 
         {{:error, error}, _} ->
-          %{"verified" => false, "message" => error, "reason" => "failed"}
+          %GenDAP.Structures.Breakpoint{verified: false, message: error, reason: "failed"}
       end)
 
-    {%{"breakpoints" => breakpoints_json}, state}
+    {%GenDAP.Requests.SetFunctionBreakpointsResponse{
+       seq: 0,
+       request_seq: 0,
+       body: %{breakpoints: breakpoints_result}
+     }, state}
   end
 
-  defp handle_request(configuration_done_req(_), state = %__MODULE__{}) do
+  defp handle_request(
+         %GenDAP.Requests.ConfigurationDoneRequest{},
+         state = %__MODULE__{}
+       ) do
     unless state.config["noDebug"] do
       :int.auto_attach([:break], build_attach_mfa(:breakpoint_reached))
     end
 
     {_pid, task_ref} = spawn_monitor(fn -> launch_task(state.config) end)
 
-    {%{}, %{state | task_ref: task_ref}}
+    {%GenDAP.Requests.ConfigurationDoneResponse{seq: 0, request_seq: 0},
+     %{state | task_ref: task_ref}}
   end
 
-  defp handle_request(threads_req(_), state = %__MODULE__{}) do
+  defp handle_request(
+         %GenDAP.Requests.ThreadsRequest{},
+         state = %__MODULE__{}
+       ) do
     snapshot_by_pid = get_snapshot_by_pid()
     {state, thread_ids} = update_threads(state, snapshot_by_pid)
 
     threads =
       for thread_id <- thread_ids,
-          pid = state.thread_ids_to_pids[thread_id],
+          {:ok, pid} = ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id),
           (process_name = get_process_name(pid, snapshot_by_pid)) != nil do
         full_name = "#{process_name} #{:erlang.pid_to_list(pid)}"
-        %{"id" => thread_id, "name" => full_name}
+        %GenDAP.Structures.Thread{id: thread_id, name: full_name}
       end
-      |> Enum.sort_by(fn %{"name" => name} -> name end)
+      |> Enum.sort_by(fn %GenDAP.Structures.Thread{name: name} -> name end)
 
-    {%{"threads" => threads}, state}
-  end
-
-  defp handle_request(terminate_threads_req(_, thread_ids), state = %__MODULE__{}) do
-    for {id, pid} <- state.thread_ids_to_pids,
-        id in thread_ids do
-      # :kill is untrappable
-      # do not need to cleanup here, :DOWN message handler will do it
-      Process.monitor(pid)
-      Process.exit(pid, :kill)
-    end
-
-    {%{}, state}
+    {%GenDAP.Requests.ThreadsResponse{seq: 0, request_seq: 0, body: %{threads: threads}}, state}
   end
 
   defp handle_request(
-         pause_req(_, _thread_id),
+         %GenDAP.Requests.TerminateThreadsRequest{
+           arguments: args = %GenDAP.Structures.TerminateThreadsArguments{}
+         },
+         state = %__MODULE__{}
+       ) do
+    for thread_id <- args.thread_ids do
+      case ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) do
+        {:ok, pid} ->
+          # :kill is untrappable
+          # do not need to cleanup here, :DOWN message handler will do it
+          Process.monitor(pid)
+          Process.exit(pid, :kill)
+
+        :error ->
+          # thread_id not found, treat as already terminated
+          :ok
+      end
+    end
+
+    {%GenDAP.Requests.TerminateThreadsResponse{seq: 0, request_seq: 0}, state}
+  end
+
+  defp handle_request(
+         %GenDAP.Requests.PauseRequest{},
          %__MODULE__{config: %{"noDebug" => true}}
        ) do
     raise ServerError,
@@ -1157,19 +1284,24 @@ defmodule ElixirLS.DebugAdapter.Server do
       show_user: true
   end
 
-  defp handle_request(pause_req(_, thread_id), state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id, true)
+  defp handle_request(
+         %GenDAP.Requests.PauseRequest{arguments: args = %GenDAP.Structures.PauseArguments{}},
+         state = %__MODULE__{}
+       ) do
+    pid = get_pid_by_thread_id!(state, args.thread_id, true)
 
     :int.attach(pid, build_attach_mfa(:paused))
 
-    {%{}, state}
+    {%GenDAP.Requests.PauseResponse{seq: 0, request_seq: 0}, state}
   end
 
   defp handle_request(
-         request(_, "stackTrace", %{"threadId" => thread_id} = args),
+         %GenDAP.Requests.StackTraceRequest{
+           arguments: args = %GenDAP.Structures.StackTraceArguments{}
+         },
          state = %__MODULE__{}
        ) do
-    pid = get_pid_by_thread_id!(state, thread_id, false)
+    pid = get_pid_by_thread_id!(state, args.thread_id, false)
 
     case state.paused_processes[pid] do
       %PausedProcess{} = paused_process ->
@@ -1177,67 +1309,82 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         start_frame =
           case args do
-            %{"startFrame" => start_frame} when is_integer(start_frame) -> start_frame
-            _ -> 0
+            %GenDAP.Structures.StackTraceArguments{start_frame: start_frame}
+            when is_integer(start_frame) ->
+              start_frame
+
+            _ ->
+              0
           end
 
         end_frame =
           case args do
-            %{"levels" => levels} when is_integer(levels) and levels > 0 -> start_frame + levels
-            _ -> -1
+            %GenDAP.Structures.StackTraceArguments{levels: levels}
+            when is_integer(levels) and levels > 0 ->
+              start_frame + levels
+
+            _ ->
+              -1
           end
 
         stack_frames = Enum.slice(paused_process.stack, start_frame..end_frame//1)
         {state, frame_ids} = ensure_frame_ids(state, pid, stack_frames)
 
-        stack_frames_json =
+        stack_frames_result =
           for {%Frame{} = stack_frame, frame_id} <- Enum.zip([stack_frames, frame_ids]) do
-            %{
-              "id" => frame_id,
-              "name" => Stacktrace.Frame.name(stack_frame),
-              "line" => stack_frame.line,
-              "column" => 0,
-              "source" => %{"path" => stack_frame.file}
+            %GenDAP.Structures.StackFrame{
+              id: frame_id,
+              name: Stacktrace.Frame.name(stack_frame),
+              line: stack_frame.line,
+              column: 0,
+              source: %GenDAP.Structures.Source{path: stack_frame.file}
             }
           end
 
-        {%{"stackFrames" => stack_frames_json, "totalFrames" => total_frames}, state}
+        {%GenDAP.Requests.StackTraceResponse{
+           seq: 0,
+           request_seq: 0,
+           body: %{stack_frames: stack_frames_result, total_frames: total_frames}
+         }, state}
 
       nil ->
         raise ServerError,
           message: "invalidArgument",
           format: "Process with threadId {threadId} and pid {pid} is not paused",
           variables: %{
-            "threadId" => inspect(thread_id),
+            "threadId" => inspect(args.thread_id),
             "pid" => inspect(pid)
           },
           send_telemetry: false
     end
   end
 
-  defp handle_request(request(_, "scopes", %{"frameId" => frame_id}), state = %__MODULE__{}) do
+  defp handle_request(
+         %GenDAP.Requests.ScopesRequest{arguments: args = %GenDAP.Structures.ScopesArguments{}},
+         state = %__MODULE__{}
+       ) do
     {state, scopes} =
-      case find_frame(state.paused_processes, frame_id) do
+      case find_frame(state.paused_processes, args.frame_id) do
         {pid, %Frame{dbg_frame?: true} = frame} ->
           {state, bindings_id} = ensure_var_id(state, pid, frame.bindings)
-          process_info = Process.info(pid)
+          process_info = Process.info(pid) || []
           {state, process_info_id} = ensure_var_id(state, pid, process_info)
 
-          vars_scope = %{
-            "name" => "variables",
-            "presentationHint" => "locals",
-            "variablesReference" => bindings_id,
-            "namedVariables" => Enum.count(frame.bindings),
-            "indexedVariables" => 0,
-            "expensive" => false
+          vars_scope = %GenDAP.Structures.Scope{
+            name: "variables",
+            presentation_hint: "locals",
+            variables_reference: bindings_id,
+            named_variables: Enum.count(frame.bindings),
+            indexed_variables: 0,
+            expensive: false
           }
 
-          process_info_scope = %{
-            "name" => "process info",
-            "variablesReference" => process_info_id,
-            "namedVariables" => length(process_info),
-            "indexedVariables" => 0,
-            "expensive" => false
+          process_info_scope = %GenDAP.Structures.Scope{
+            name: "process info",
+            variables_reference: process_info_id,
+            named_variables: length(process_info),
+            indexed_variables: 0,
+            expensive: false
           }
 
           scopes =
@@ -1254,7 +1401,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           process_info =
             try do
-              Process.info(pid)
+              Process.info(pid) || []
             rescue
               ArgumentError ->
                 # remote pid
@@ -1263,51 +1410,51 @@ defmodule ElixirLS.DebugAdapter.Server do
 
           {state, process_info_id} = ensure_var_id(state, pid, process_info)
 
-          vars_scope = %{
-            "name" => "variables",
-            "presentationHint" => "locals",
-            "variablesReference" => vars_id,
-            "namedVariables" => map_size(variables),
-            "indexedVariables" => 0,
-            "expensive" => false
+          vars_scope = %GenDAP.Structures.Scope{
+            name: "variables",
+            presentation_hint: "locals",
+            variables_reference: vars_id,
+            named_variables: map_size(variables),
+            indexed_variables: 0,
+            expensive: false
           }
 
-          versioned_vars_scope = %{
-            "name" => "versioned variables",
-            "presentationHint" => "locals",
-            "variablesReference" => versioned_vars_id,
-            "namedVariables" => Enum.count(frame.bindings),
-            "indexedVariables" => 0,
-            "expensive" => false
+          versioned_vars_scope = %GenDAP.Structures.Scope{
+            name: "versioned variables",
+            presentation_hint: "locals",
+            variables_reference: versioned_vars_id,
+            named_variables: Enum.count(frame.bindings),
+            indexed_variables: 0,
+            expensive: false
           }
 
           args_scope =
             if frame.args != :undefined do
-              %{
-                "name" => "arguments",
-                "presentationHint" => "arguments",
-                "variablesReference" => args_id,
-                "namedVariables" => 0,
-                "indexedVariables" => Enum.count(frame.args),
-                "expensive" => false
+              %GenDAP.Structures.Scope{
+                name: "arguments",
+                presentation_hint: "arguments",
+                variables_reference: args_id,
+                named_variables: 0,
+                indexed_variables: Enum.count(frame.args),
+                expensive: false
               }
             end
 
-          messages_scope = %{
-            "name" => "messages",
-            "variablesReference" => messages_id,
-            "namedVariables" => 0,
-            "indexedVariables" => Enum.count(frame.messages),
-            "expensive" => false
+          messages_scope = %GenDAP.Structures.Scope{
+            name: "messages",
+            variables_reference: messages_id,
+            named_variables: 0,
+            indexed_variables: Enum.count(frame.messages),
+            expensive: false
           }
 
-          process_info_scope = %{
-            "name" => "process info",
-            "presentationHint" => "registers",
-            "variablesReference" => process_info_id,
-            "namedVariables" => length(process_info),
-            "indexedVariables" => 0,
-            "expensive" => false
+          process_info_scope = %GenDAP.Structures.Scope{
+            name: "process info",
+            presentation_hint: "registers",
+            variables_reference: process_info_id,
+            named_variables: length(process_info),
+            indexed_variables: 0,
+            expensive: false
           }
 
           scopes =
@@ -1326,39 +1473,68 @@ defmodule ElixirLS.DebugAdapter.Server do
             message: "invalidArgument",
             format: "frameId not found: {frameId}",
             variables: %{
-              "frameId" => inspect(frame_id)
+              "frameId" => inspect(args.frame_id)
             },
             send_telemetry: false
       end
 
-    {%{"scopes" => scopes}, state}
+    {%GenDAP.Requests.ScopesResponse{seq: 0, request_seq: 0, body: %{scopes: scopes}}, state}
   end
 
   defp handle_request(
-         request(_, "variables", %{"variablesReference" => var_id} = args),
+         %GenDAP.Requests.VariablesRequest{
+           arguments: args = %GenDAP.Structures.VariablesArguments{}
+         },
          state = %__MODULE__{}
        ) do
     async_fn = fn ->
-      {pid, var} = find_var!(state.paused_processes, var_id)
-      vars_json = variables(state, pid, var, args["start"], args["count"], args["filter"])
-      %{"variables" => vars_json}
+      {pid, var} = find_var!(state.paused_processes, args.variables_reference)
+
+      # Get the existing registry from the paused process
+      existing_registry =
+        case Map.fetch!(state.paused_processes, pid) do
+          %PausedProcess{registry: registry} -> registry
+        end
+
+      {updated_registry, variables} =
+        variables_async(
+          var,
+          args.start,
+          args.count,
+          args.filter,
+          state.client_info,
+          existing_registry
+        )
+
+      # Merge the registry back to the server state
+      GenServer.cast(__MODULE__, {:merge_registry, pid, updated_registry})
+
+      %GenDAP.Requests.VariablesResponse{seq: 0, request_seq: 0, body: %{variables: variables}}
     end
 
     {:async, async_fn, state}
   end
 
   defp handle_request(
-         request(seq, "evaluate", %{"expression" => expr} = args),
-         state = %__MODULE__{}
+         %GenDAP.Requests.EvaluateRequest{
+           arguments: args = %GenDAP.Structures.EvaluateArguments{},
+           seq: seq
+         },
+         state = %__MODULE__{
+           client_info: client_info = %GenDAP.Structures.InitializeRequestArguments{}
+         }
        ) do
     state =
-      if state.client_info["supportsProgressReporting"] do
-        Output.send_event("progressStart", %{
-          "progressId" => seq,
-          "title" => "Evaluating expression",
-          "message" => expr,
-          "requestId" => seq,
-          "cancellable" => true
+      if client_info.supports_progress_reporting do
+        Output.send_event(%GenDAP.Events.ProgressStartEvent{
+          seq: nil,
+          body: %{
+            progress_id: to_string(seq),
+            title: "Evaluating expression",
+            message: args.expression,
+            request_id: seq,
+            cancellable: true
+          }
         })
 
         %{state | progresses: MapSet.put(state.progresses, seq)}
@@ -1367,32 +1543,48 @@ defmodule ElixirLS.DebugAdapter.Server do
       end
 
     async_fn = fn ->
-      frame = frame_for_eval(state.paused_processes, args["frameId"])
+      frame = frame_for_eval(state.paused_processes, args.frame_id)
       {_metadata, _env, binding, env_for_eval} = binding_and_env(state.paused_processes, frame)
-      value = evaluate_code_expression(expr, binding, env_for_eval)
+      value = evaluate_code_expression(args.expression, binding, env_for_eval)
+
+      # Get the existing evaluator registry
+      existing_registry =
+        case Map.fetch!(state.paused_processes, :evaluator) do
+          %PausedProcess{registry: registry} -> registry
+        end
+
+      {updated_registry, var_id} =
+        VariableRegistry.get_variable_reference(existing_registry, value)
+
+      # Merge the registry back to the server state
+      GenServer.cast(__MODULE__, {:merge_registry, :evaluator, updated_registry})
 
       child_type = Variables.child_type(value)
-      # we need to call here as get_variable_reference modifies the state
-      {:ok, var_id} =
-        GenServer.call(
-          __MODULE__,
-          {:get_variable_reference, child_type, :evaluator, value},
-          60_000
-        )
 
-      %{
-        "result" => inspect(value),
-        "variablesReference" => var_id
-      }
-      |> maybe_append_children_number(state.client_info, child_type, value)
-      |> maybe_append_variable_type(state.client_info, value)
+      variable =
+        %{
+          result: inspect(value),
+          variables_reference: var_id,
+          type: nil,
+          indexed_variables: nil,
+          named_variables: nil
+        }
+        |> maybe_append_children_number(state.client_info, child_type, value)
+        |> maybe_append_variable_type(state.client_info, value)
+
+      %GenDAP.Requests.EvaluateResponse{seq: 0, request_seq: 0, body: variable}
     end
 
     {:async, async_fn, state}
   end
 
-  defp handle_request(continue_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id, true)
+  defp handle_request(
+         %GenDAP.Requests.ContinueRequest{
+           arguments: args = %GenDAP.Structures.ContinueArguments{}
+         },
+         state = %__MODULE__{}
+       ) do
+    pid = get_pid_by_thread_id!(state, args.thread_id, true)
 
     state =
       case state.dbg_session do
@@ -1412,11 +1604,18 @@ defmodule ElixirLS.DebugAdapter.Server do
 
     processes_paused? = state.paused_processes |> Map.keys() |> Enum.any?(&is_pid/1)
 
-    {%{"allThreadsContinued" => not processes_paused?}, state}
+    {%GenDAP.Requests.ContinueResponse{
+       seq: 0,
+       request_seq: 0,
+       body: %{all_threads_continued: not processes_paused?}
+     }, state}
   end
 
-  defp handle_request(next_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id, true)
+  defp handle_request(
+         %GenDAP.Requests.NextRequest{arguments: args = %GenDAP.Structures.NextArguments{}},
+         state = %__MODULE__{}
+       ) do
+    pid = get_pid_by_thread_id!(state, args.thread_id, true)
 
     state =
       if match?({^pid, _ref}, state.dbg_session) do
@@ -1432,13 +1631,19 @@ defmodule ElixirLS.DebugAdapter.Server do
       |> remove_paused_process(pid)
       |> maybe_continue_other_processes(args)
 
-    {%{}, state}
+    {%GenDAP.Requests.NextResponse{seq: 0, request_seq: 0}, state}
   end
 
-  defp handle_request(step_in_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id, true)
+  defp handle_request(
+         %GenDAP.Requests.StepInRequest{
+           command: command,
+           arguments: args = %GenDAP.Structures.StepInArguments{}
+         },
+         state = %__MODULE__{}
+       ) do
+    pid = get_pid_by_thread_id!(state, args.thread_id, true)
 
-    validate_dbg_pid!(state, pid, "stepIn")
+    validate_dbg_pid!(state, pid, command)
 
     safe_int_action(pid, :step)
 
@@ -1447,13 +1652,19 @@ defmodule ElixirLS.DebugAdapter.Server do
       |> remove_paused_process(pid)
       |> maybe_continue_other_processes(args)
 
-    {%{}, state}
+    {%GenDAP.Requests.StepInResponse{seq: 0, request_seq: 0}, state}
   end
 
-  defp handle_request(step_out_req(_, thread_id) = args, state = %__MODULE__{}) do
-    pid = get_pid_by_thread_id!(state, thread_id, true)
+  defp handle_request(
+         %GenDAP.Requests.StepOutRequest{
+           command: command,
+           arguments: args = %GenDAP.Structures.StepOutArguments{}
+         },
+         state = %__MODULE__{}
+       ) do
+    pid = get_pid_by_thread_id!(state, args.thread_id, true)
 
-    validate_dbg_pid!(state, pid, "stepOut")
+    validate_dbg_pid!(state, pid, command)
 
     safe_int_action(pid, :finish)
 
@@ -1462,18 +1673,23 @@ defmodule ElixirLS.DebugAdapter.Server do
       |> remove_paused_process(pid)
       |> maybe_continue_other_processes(args)
 
-    {%{}, state}
+    {%GenDAP.Requests.StepOutResponse{seq: 0, request_seq: 0}, state}
   end
 
-  defp handle_request(completions_req(_, text) = args, state = %__MODULE__{}) do
+  defp handle_request(
+         %GenDAP.Requests.CompletionsRequest{
+           arguments: args = %GenDAP.Structures.CompletionsArguments{}
+         },
+         state = %__MODULE__{}
+       ) do
     async_fn = fn ->
       # assume that the position is 1-based
-      line = (args["arguments"]["line"] || 1) - 1
-      column = (args["arguments"]["column"] || 1) - 1
+      line = (args.line || 1) - 1
+      column = (args.column || 1) - 1
 
       # for simplicity take only text from the given line up to column
       line =
-        text
+        args.text
         |> String.split(["\r\n", "\n", "\r"])
         |> Enum.at(line, "")
 
@@ -1482,7 +1698,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       column = Utils.dap_character_to_elixir(line, column)
       prefix = String.slice(line, 0, column)
 
-      frame = frame_for_eval(state.paused_processes, args["arguments"]["frameId"])
+      frame = frame_for_eval(state.paused_processes, args.frame_id)
 
       {metadata, env, _binding, _env_for_eval} = binding_and_env(state.paused_processes, frame)
 
@@ -1497,13 +1713,13 @@ defmodule ElixirLS.DebugAdapter.Server do
         |> Enum.map(&ElixirLS.DebugAdapter.Completions.map/1)
         |> Enum.reject(&is_nil/1)
 
-      %{"targets" => results}
+      %GenDAP.Requests.CompletionsResponse{seq: 0, request_seq: 0, body: %{targets: results}}
     end
 
     {:async, async_fn, state}
   end
 
-  defp handle_request(request(_, command), %__MODULE__{}) when is_binary(command) do
+  defp handle_request(%_{command: command}, %__MODULE__{}) do
     raise ServerError,
       message: "notSupported",
       format: "Debugger request #{command} is currently not supported",
@@ -1511,7 +1727,15 @@ defmodule ElixirLS.DebugAdapter.Server do
       show_user: true
   end
 
-  defp maybe_continue_other_processes(state, %{"singleThread" => true}) do
+  defp handle_request(request(_seq, command), %__MODULE__{}) do
+    raise ServerError,
+      message: "notSupported",
+      format: "Debugger request #{command} is currently not supported",
+      variables: %{},
+      show_user: true
+  end
+
+  defp maybe_continue_other_processes(state, %{single_thread: true}) do
     # continue dbg debug session
     state =
       case state.dbg_session do
@@ -1556,8 +1780,11 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp get_pid_by_thread_id!(state = %__MODULE__{}, thread_id, show_message_on_error?) do
-    case state.thread_ids_to_pids[thread_id] do
-      nil ->
+    case ThreadRegistry.get_pid_by_thread_id(state.thread_registry, thread_id) do
+      {:ok, pid} ->
+        pid
+
+      :error ->
         raise ServerError,
           message: "invalidArgument",
           format: "Unable to find process pid for DAP threadId {threadId}",
@@ -1566,9 +1793,6 @@ defmodule ElixirLS.DebugAdapter.Server do
           },
           send_telemetry: false,
           show_user: show_message_on_error?
-
-      pid ->
-        pid
     end
   end
 
@@ -1582,59 +1806,63 @@ defmodule ElixirLS.DebugAdapter.Server do
     %{state | paused_processes: paused_processes}
   end
 
-  defp variables(state = %__MODULE__{}, pid, var, start, count, filter) do
+  defp variables_async(var, start, count, filter, client_info, registry) do
     var_child_type = Variables.child_type(var)
 
-    if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
-      []
-    else
-      Variables.children(var, start, count)
-    end
-    |> Enum.reduce([], fn {name, value}, acc ->
-      child_type = Variables.child_type(value)
-
-      case GenServer.call(__MODULE__, {:get_variable_reference, child_type, pid, value}, 60_000) do
-        {:ok, var_id} ->
-          json =
-            %{
-              "name" => to_string(name),
-              "value" => inspect(value),
-              "variablesReference" => var_id
-            }
-            |> maybe_append_children_number(state.client_info, child_type, value)
-            |> maybe_append_variable_type(state.client_info, value)
-
-          [json | acc]
-
-        {:error, :not_paused} ->
-          raise ServerError,
-            message: "runtimeError",
-            format: "process with pid {pid} is not paused",
-            variables: %{
-              "pid" => inspect(pid)
-            },
-            send_telemetry: false
+    children =
+      if var_child_type == nil or (filter != nil and Atom.to_string(var_child_type) != filter) do
+        []
+      else
+        Variables.children(var, start, count)
       end
-    end)
-    |> Enum.reverse()
+
+    {updated_registry, variables} =
+      Enum.reduce(children, {registry, []}, fn {name, value}, {registry_acc, acc} ->
+        {registry_acc, var_id} = VariableRegistry.get_variable_reference(registry_acc, value)
+        child_type = Variables.child_type(value)
+
+        json =
+          %GenDAP.Structures.Variable{
+            name: to_string(name),
+            value: inspect(value),
+            variables_reference: var_id
+          }
+          |> maybe_append_children_number(client_info, child_type, value)
+          |> maybe_append_variable_type(client_info, value)
+
+        {registry_acc, [json | acc]}
+      end)
+
+    {updated_registry, Enum.reverse(variables)}
   end
 
-  defp get_variable_reference(nil, state, _pid, _value), do: {state, 0}
+  defp maybe_append_children_number(
+         variable,
+         %GenDAP.Structures.InitializeRequestArguments{supports_variable_paging: true},
+         :indexed,
+         value
+       ),
+       do: %{variable | indexed_variables: Variables.num_children(value)}
 
-  defp get_variable_reference(_child_type, state, pid, value),
-    do: ensure_var_id(state, pid, value)
+  defp maybe_append_children_number(
+         variable,
+         %GenDAP.Structures.InitializeRequestArguments{supports_variable_paging: true},
+         :named,
+         value
+       ),
+       do: %{variable | named_variables: Variables.num_children(value)}
 
-  defp maybe_append_children_number(map, %{"supportsVariablePaging" => true}, atom, value)
-       when atom in [:indexed, :named],
-       do: Map.put(map, Atom.to_string(atom) <> "Variables", Variables.num_children(value))
+  defp maybe_append_children_number(variable, _, _, _value), do: variable
 
-  defp maybe_append_children_number(map, _, _, _value), do: map
-
-  defp maybe_append_variable_type(map, %{"supportsVariableType" => true}, value) do
-    Map.put(map, "type", Variables.type(value))
+  defp maybe_append_variable_type(
+         variable,
+         %GenDAP.Structures.InitializeRequestArguments{supports_variable_type: true},
+         value
+       ) do
+    %{variable | type: Variables.type(value)}
   end
 
-  defp maybe_append_variable_type(map, _, _value), do: map
+  defp maybe_append_variable_type(variable, _, _value), do: variable
 
   defp evaluate_code_expression(expr, binding, env_or_opts) do
     try do
@@ -1644,7 +1872,21 @@ defmodule ElixirLS.DebugAdapter.Server do
       term
     catch
       kind, error ->
-        {payload, stacktrace} = Exception.blame(kind, error, prune_stacktrace(__STACKTRACE__))
+        stacktrace = prune_stacktrace(__STACKTRACE__)
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, error, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Output.debugger_console(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {error, stacktrace}
+          end
+
         message = Exception.format(kind, payload, stacktrace)
 
         reraise(
@@ -1687,7 +1929,7 @@ defmodule ElixirLS.DebugAdapter.Server do
           []
 
         {_pid, %PausedProcess{} = paused_process} ->
-          Map.values(paused_process.frame_ids_to_frames)
+          Map.values(paused_process.registry.frame_ids_to_frames)
       end)
       |> Enum.filter(&match?(%Frame{bindings: bindings} when is_map(bindings), &1))
       |> Enum.flat_map(fn %Frame{bindings: bindings} ->
@@ -1732,8 +1974,11 @@ defmodule ElixirLS.DebugAdapter.Server do
   defp find_var!(paused_processes, var_id) do
     result =
       Enum.find_value(paused_processes, fn
-        {pid, %{var_ids_to_vars: %{^var_id => var}}} ->
-          {pid, var}
+        {pid, %PausedProcess{registry: registry}} ->
+          case VariableRegistry.find_var(registry, var_id) do
+            {:ok, var} -> {pid, var}
+            :error -> nil
+          end
 
         _ ->
           nil
@@ -1756,8 +2001,11 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp find_frame(paused_processes, frame_id) do
     Enum.find_value(paused_processes, fn
-      {pid, %{frame_ids_to_frames: %{^frame_id => frame}}} when is_pid(pid) ->
-        {pid, frame}
+      {pid, %{registry: registry}} when is_pid(pid) ->
+        case VariableRegistry.find_frame(registry, frame_id) do
+          {:ok, frame} -> {pid, frame}
+          :error -> nil
+        end
 
       _ ->
         nil
@@ -1765,44 +2013,27 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp ensure_thread_id(state = %__MODULE__{}, pid, new_ids) when is_pid(pid) do
-    case state.pids_to_thread_ids do
-      %{^pid => thread_id} ->
-        {state, thread_id, new_ids}
+    {updated_registry, thread_id, new_ids} =
+      ThreadRegistry.ensure_thread_id(state.thread_registry, pid, new_ids)
 
-      _ ->
-        id = state.next_id
-        state = put_in(state.thread_ids_to_pids[id], pid)
-        state = put_in(state.pids_to_thread_ids[pid], id)
-        state = put_in(state.next_id, id + 1)
-        {state, id, [id | new_ids]}
-    end
+    state = %{state | thread_registry: updated_registry}
+    {state, thread_id, new_ids}
   end
 
   defp ensure_thread_ids(state = %__MODULE__{}, pids) do
-    {state, ids, new_ids} =
-      Enum.reduce(pids, {state, [], []}, fn pid, {state, ids, new_ids} ->
-        {state, id, new_ids} = ensure_thread_id(state, pid, new_ids)
-        {state, [id | ids], new_ids}
-      end)
+    {updated_registry, thread_ids, new_ids} =
+      ThreadRegistry.ensure_thread_ids(state.thread_registry, pids)
 
-    {state, Enum.reverse(ids), Enum.reverse(new_ids)}
+    state = %{state | thread_registry: updated_registry}
+    {state, thread_ids, new_ids}
   end
 
   defp ensure_var_id(state = %__MODULE__{}, pid, var) when is_pid(pid) or pid == :evaluator do
-    paused_process = Map.fetch!(state.paused_processes, pid)
-
-    case paused_process.vars_to_var_ids do
-      %{^var => var_id} ->
-        {state, var_id}
-
-      _ ->
-        id = state.next_id
-        paused_process = put_in(paused_process.var_ids_to_vars[id], var)
-        paused_process = put_in(paused_process.vars_to_var_ids[var], id)
-        state = put_in(state.paused_processes[pid], paused_process)
-        state = put_in(state.next_id, id + 1)
-        {state, id}
-    end
+    paused_process = %PausedProcess{} = Map.fetch!(state.paused_processes, pid)
+    {registry, var_id} = VariableRegistry.ensure_var_id(paused_process.registry, var)
+    paused_process = %{paused_process | registry: registry}
+    state = put_in(state.paused_processes[pid], paused_process)
+    {state, var_id}
   end
 
   defp ensure_frame_ids(state = %__MODULE__{}, pid, stack_frames) do
@@ -1813,23 +2044,15 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp ensure_frame_id(state = %__MODULE__{}, pid, %Frame{} = frame) when is_pid(pid) do
-    paused_process = Map.fetch!(state.paused_processes, pid)
-
-    case paused_process.frames_to_frame_ids do
-      %{^frame => frame_id} ->
-        {state, frame_id}
-
-      _ ->
-        id = state.next_id
-        paused_process = put_in(paused_process.frame_ids_to_frames[id], frame)
-        paused_process = put_in(paused_process.frames_to_frame_ids[frame], id)
-        state = put_in(state.paused_processes[pid], paused_process)
-        state = put_in(state.next_id, id + 1)
-        {state, id}
-    end
+    paused_process = %PausedProcess{} = Map.fetch!(state.paused_processes, pid)
+    {registry, frame_id} = VariableRegistry.ensure_frame_id(paused_process.registry, frame)
+    paused_process = %{paused_process | registry: registry}
+    state = put_in(state.paused_processes[pid], paused_process)
+    {state, frame_id}
   end
 
   defp launch(config, server) do
+    # IO.warn(config |> Map.from_struct |> inspect)
     project_dir = config["projectDir"]
 
     project_dir =
@@ -2269,33 +2492,33 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp capabilities do
-    %{
-      "supportsConfigurationDoneRequest" => true,
-      "supportsFunctionBreakpoints" => true,
-      "supportsConditionalBreakpoints" => true,
-      "supportsHitConditionalBreakpoints" => true,
-      "supportsLogPoints" => true,
-      "exceptionBreakpointFilters" => [],
-      "supportsStepBack" => false,
-      "supportsSetVariable" => false,
-      "supportsRestartFrame" => false,
-      "supportsGotoTargetsRequest" => false,
-      "supportsStepInTargetsRequest" => false,
-      "supportsCompletionsRequest" => true,
-      "completionTriggerCharacters" => [".", "&", "%", "^", ":", "!", "-", "~"],
-      "supportsModulesRequest" => false,
-      "additionalModuleColumns" => [],
-      "supportedChecksumAlgorithms" => [],
-      "supportsRestartRequest" => false,
-      "supportsExceptionOptions" => false,
-      "supportsValueFormattingOptions" => false,
-      "supportsExceptionInfoRequest" => false,
-      "supportsTerminateThreadsRequest" => true,
-      "supportsSingleThreadExecutionRequests" => true,
-      "supportsEvaluateForHovers" => true,
-      "supportsClipboardContext" => true,
-      "supportTerminateDebuggee" => false,
-      "supportsCancelRequest" => true
+    %GenDAP.Structures.Capabilities{
+      supports_configuration_done_request: true,
+      supports_function_breakpoints: true,
+      supports_conditional_breakpoints: true,
+      supports_hit_conditional_breakpoints: true,
+      supports_log_points: true,
+      exception_breakpoint_filters: [],
+      supports_step_back: false,
+      supports_set_variable: false,
+      supports_restart_frame: false,
+      supports_goto_targets_request: false,
+      supports_step_in_targets_request: false,
+      supports_completions_request: true,
+      completion_trigger_characters: [".", "&", "%", "^", ":", "!", "-", "~"],
+      supports_modules_request: false,
+      additional_module_columns: [],
+      supported_checksum_algorithms: [],
+      supports_restart_request: false,
+      supports_exception_options: false,
+      supports_value_formatting_options: false,
+      supports_exception_info_request: false,
+      supports_terminate_threads_request: true,
+      supports_single_thread_execution_requests: true,
+      supports_evaluate_for_hovers: true,
+      supports_clipboard_context: true,
+      support_terminate_debuggee: false,
+      supports_cancel_request: true
     }
   end
 
@@ -2668,13 +2891,16 @@ defmodule ElixirLS.DebugAdapter.Server do
     {state, thread_ids, new_ids} = ensure_thread_ids(state, pids)
 
     for thread_id <- new_ids do
-      Output.send_event("thread", %{
-        "reason" => "started",
-        "threadId" => thread_id
+      Output.send_event(%GenDAP.Events.ThreadEvent{
+        seq: nil,
+        body: %{
+          reason: "started",
+          thread_id: thread_id
+        }
       })
     end
 
-    exited_pids = Map.keys(state.pids_to_thread_ids) -- pids
+    exited_pids = ThreadRegistry.all_pids(state.thread_registry) -- pids
 
     state =
       Enum.reduce(exited_pids, state, fn pid, state ->
@@ -2685,19 +2911,20 @@ defmodule ElixirLS.DebugAdapter.Server do
   end
 
   defp handle_process_exit(state = %__MODULE__{}, pid) when is_pid(pid) do
-    {thread_id, pids_to_thread_ids} = Map.pop(state.pids_to_thread_ids, pid)
+    # Get thread_id before removing from registry
+    {thread_id, updated_registry} = ThreadRegistry.remove_pid(state.thread_registry, pid)
+    state = %{state | thread_registry: updated_registry}
+
+    # Remove from paused processes
     state = remove_paused_process(state, pid)
 
-    state = %__MODULE__{
-      state
-      | thread_ids_to_pids: Map.delete(state.thread_ids_to_pids, thread_id),
-        pids_to_thread_ids: pids_to_thread_ids
-    }
-
     if thread_id do
-      Output.send_event("thread", %{
-        "reason" => "exited",
-        "threadId" => thread_id
+      Output.send_event(%GenDAP.Events.ThreadEvent{
+        seq: nil,
+        body: %{
+          reason: "exited",
+          thread_id: thread_id
+        }
       })
     end
 
@@ -2836,7 +3063,21 @@ defmodule ElixirLS.DebugAdapter.Server do
             #     ** (MatchError) no match of right hand side value: {:error, :on_load_failure}
             # (debugger 5.3) int.erl:531: anonymous fn_3 in :int.load_2
             # (debugger 5.3) int.erl:527: :int.load_2
-            {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+            stacktrace = __STACKTRACE__
+
+            {payload, stacktrace} =
+              try do
+                Exception.blame(kind, error, stacktrace)
+              catch
+                kind_1, error_1 ->
+                  # in case of error in Exception.blame we want to use the original error and stacktrace
+                  Output.debugger_console(
+                    "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                  )
+
+                  {error, stacktrace}
+              end
+
             message = Exception.format(kind, payload, stacktrace)
 
             Output.debugger_console(
@@ -2926,7 +3167,21 @@ defmodule ElixirLS.DebugAdapter.Server do
             {:error, e}
         catch
           kind, error ->
-            {payload, stacktrace} = Exception.blame(kind, error, __STACKTRACE__)
+            stacktrace = __STACKTRACE__
+
+            {payload, stacktrace} =
+              try do
+                Exception.blame(kind, error, stacktrace)
+              catch
+                kind_1, error_1 ->
+                  # in case of error in Exception.blame we want to use the original error and stacktrace
+                  Output.debugger_console(
+                    "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                  )
+
+                  {error, stacktrace}
+              end
+
             message = Exception.format(kind, payload, stacktrace)
             Output.debugger_console(message)
 
@@ -2952,7 +3207,21 @@ defmodule ElixirLS.DebugAdapter.Server do
       end
     rescue
       error ->
-        {payload, stacktrace} = Exception.blame(:error, error, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(:error, error, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Output.debugger_console(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {error, stacktrace}
+          end
+
         message = Exception.format(:error, payload, stacktrace)
 
         Output.debugger_console(

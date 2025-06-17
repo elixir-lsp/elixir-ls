@@ -1,3 +1,11 @@
+# Handle elixir_check early to avoid Mix and installer interference
+if System.get_env("ELS_MODE") == "elixir_check" do
+  # Simply exit successfully if we reach this point, 
+  # meaning elixir is working and available
+  System.halt(0)
+end
+
+# Continue with normal startup for language_server and debug_adapter
 Application.put_env(:elixir, :ansi_enabled, false)
 Code.eval_file("#{__DIR__}/installer.exs")
 

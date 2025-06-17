@@ -7,32 +7,37 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   with the Language Server Protocol. We also attempt to determine the context based on the line
   text before the cursor so we can filter out suggestions that are not relevant.
   """
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
-  import ElixirLS.LanguageServer.Protocol, only: [range: 4]
   alias ElixirLS.Utils.Matcher
   alias ElixirSense.Core.State
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirLS.LanguageServer.MarkdownUtils
   require Logger
 
-  @enforce_keys [:label, :kind, :insert_text, :priority, :tags]
+  defmodule CompletionItem do
+    @enforce_keys [:label, :kind, :insert_text, :tags]
+    defstruct [
+      :label,
+      :kind,
+      :detail,
+      :documentation,
+      :insert_text,
+      :insert_text_mode,
+      :filter_text,
+      :label_details,
+      :tags,
+      :command,
+      {:preselect, false},
+      :additional_text_edit,
+      :text_edit
+    ]
+  end
+
+  @enforce_keys [:priority, :completion_item]
   defstruct [
-    :label,
-    :kind,
-    :detail,
-    :documentation,
-    :insert_text,
-    :insert_text_mode,
-    :filter_text,
     # Lower priority is shown higher in the result list
     :priority,
-    :label_details,
-    :tags,
-    :command,
-    {:preselect, false},
-    :additional_text_edit,
-    :text_edit
+    :completion_item
   ]
 
   @func_snippets %{
@@ -280,6 +285,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> maybe_add_keywords(context)
       |> Enum.reject(&is_nil/1)
       |> sort_items()
+      |> Enum.map(& &1.completion_item)
 
     # add trigger signatures to arity 0 if there are higher arity completions that would trigger
     commands =
@@ -294,24 +300,26 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     items =
       items
       |> Enum.map(fn
-        %{command: nil, kind: kind} = item when kind in [:function, :constant, :class] ->
-          command = commands[{kind, item.label}]
+        %CompletionItem{command: nil, kind: kind} = completion_item
+        when kind in [:function, :constant, :class] ->
+          command = commands[{kind, completion_item.label}]
 
           if command do
-            %{item | command: command, insert_text: "#{item.label}($1)$0"}
+            %{completion_item | command: command, insert_text: "#{completion_item.label}($1)$0"}
           else
-            item
+            completion_item
           end
 
-        item ->
-          item
+        completion_item ->
+          completion_item
       end)
 
-    items_json =
-      items
-      |> items_to_json(options)
+    completion_list = %GenLSP.Structures.CompletionList{
+      is_incomplete: is_incomplete(items),
+      items: items_to_gen_lsp(items, options)
+    }
 
-    {:ok, %{"isIncomplete" => is_incomplete(items_json), "items" => items_json}}
+    {:ok, completion_list}
   end
 
   defp maybe_add_do(completion_items, context, options) do
@@ -323,23 +331,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     if hint in ["d", "do"] do
       item = %__MODULE__{
-        label: "do",
-        kind: :keyword,
-        detail: "reserved word",
-        insert_text:
-          if String.trim(context.text_after_cursor) == "" do
-            if Keyword.get(options, :snippets_supported, false) do
-              "do\n  $0\nend"
-            else
-              "do"
-            end
-          else
-            "do: "
-          end,
-        tags: [],
         priority: 0,
-        # force selection over other longer not exact completions
-        preselect: hint == "do"
+        completion_item: %CompletionItem{
+          label: "do",
+          kind: :keyword,
+          detail: "reserved word",
+          insert_text:
+            if String.trim(context.text_after_cursor) == "" do
+              if Keyword.get(options, :snippets_supported, false) do
+                "do\n  $0\nend"
+              else
+                "do"
+              end
+            else
+              "do: "
+            end,
+          tags: [],
+          # force selection over other longer not exact completions
+          preselect: hint == "do"
+        }
       }
 
       [item | completion_items]
@@ -364,20 +374,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
               keyword in ~w(rescue catch else after) ->
                 if String.trim(context.text_after_cursor) == "" do
                   {nil,
-                   %{
-                     "range" => %{
-                       "start" => %{
-                         "line" => context.line - 1,
-                         "character" =>
+                   %GenLSP.Structures.TextEdit{
+                     range: %GenLSP.Structures.Range{
+                       start: %GenLSP.Structures.Position{
+                         line: context.line - 1,
+                         character:
                            context.character - String.length(hint) - 1 -
                              max(context.line_indent - context.do_block_indent, 0)
                        },
-                       "end" => %{
-                         "line" => context.line - 1,
-                         "character" => context.character - 1
+                       end: %GenLSP.Structures.Position{
+                         line: context.line - 1,
+                         character: context.character - 1
                        }
                      },
-                     "newText" => "#{keyword}\n  "
+                     new_text: "#{keyword}\n  "
                    }}
                 else
                   {"#{keyword}: ", nil}
@@ -388,17 +398,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
               keyword == "end" ->
                 {nil,
-                 %{
-                   "range" => %{
-                     "start" => %{
-                       "line" => context.line - 1,
-                       "character" =>
+                 %GenLSP.Structures.TextEdit{
+                   range: %GenLSP.Structures.Range{
+                     start: %GenLSP.Structures.Position{
+                       line: context.line - 1,
+                       character:
                          context.character - String.length(hint) - 1 -
                            max(context.line_indent - context.do_block_indent, 0)
                      },
-                     "end" => %{"line" => context.line - 1, "character" => context.character - 1}
+                     end: %GenLSP.Structures.Position{
+                       line: context.line - 1,
+                       character: context.character - 1
+                     }
                    },
-                   "newText" => "end\n"
+                   new_text: "end\n"
                  }}
 
               true ->
@@ -406,15 +419,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
             end
 
           %__MODULE__{
-            label: keyword,
-            kind: :keyword,
-            detail: "reserved word",
-            insert_text: insert_text,
-            text_edit: text_edit,
-            tags: [],
             priority: 0,
-            insert_text_mode: 2,
-            preselect: hint == keyword
+            completion_item: %CompletionItem{
+              label: keyword,
+              kind: :keyword,
+              detail: "reserved word",
+              insert_text: insert_text,
+              text_edit: text_edit,
+              tags: [],
+              insert_text_mode: GenLSP.Enumerations.InsertTextMode.adjust_indentation(),
+              preselect: hint == keyword
+            }
           }
         end
 
@@ -478,14 +493,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: name,
-      kind: :enum_member,
-      detail: "module attribute",
-      documentation: name <> "\n" <> if(summary, do: summary, else: ""),
-      insert_text: insert_text,
-      filter_text: name_only,
       priority: 14,
-      tags: []
+      completion_item: %CompletionItem{
+        label: name,
+        kind: :enum_member,
+        detail: "module attribute",
+        documentation: name <> "\n" <> if(summary, do: summary, else: ""),
+        insert_text: insert_text,
+        filter_text: name_only,
+        tags: []
+      }
     }
   end
 
@@ -499,12 +516,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
          _options
        ) do
     %__MODULE__{
-      label: to_string(name),
-      kind: :variable,
-      detail: "variable",
-      insert_text: name,
       priority: 13,
-      tags: []
+      completion_item: %CompletionItem{
+        label: to_string(name),
+        kind: :variable,
+        detail: "variable",
+        insert_text: name,
+        tags: []
+      }
     }
   end
 
@@ -516,13 +535,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     snippet = Regex.replace(~r/"\$\{(.*)\}\$"/U, snippet, "${\\1}")
 
     %__MODULE__{
-      label: description,
-      kind: :value,
-      detail: "return value",
-      documentation: spec,
-      insert_text: snippet,
       priority: 15,
-      tags: []
+      completion_item: %CompletionItem{
+        label: description,
+        kind: :value,
+        detail: "return value",
+        documentation: spec,
+        insert_text: snippet,
+        tags: []
+      }
     }
   end
 
@@ -566,20 +587,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     label_details =
       Map.update!(
-        completion_without_additional_text_edit.label_details,
+        completion_without_additional_text_edit.completion_item.label_details,
         "description",
         &("alias " <> &1)
       )
 
     %__MODULE__{
-      completion_without_additional_text_edit
-      | additional_text_edit: %TextEdit{
-          range: range(line_to_insert_alias, 0, line_to_insert_alias, 0),
-          newText: alias_edit
-        },
-        documentation: name <> "\n" <> summary,
-        label_details: label_details,
-        priority: 24
+      priority: 24,
+      completion_item: %CompletionItem{
+        completion_without_additional_text_edit.completion_item
+        | additional_text_edit: %GenLSP.Structures.TextEdit{
+            range: %GenLSP.Structures.Range{
+              start: %GenLSP.Structures.Position{line: line_to_insert_alias, character: 0},
+              end: %GenLSP.Structures.Position{line: line_to_insert_alias, character: 0}
+            },
+            new_text: alias_edit
+          },
+          documentation: name <> "\n" <> summary,
+          label_details: label_details
+      }
     }
   end
 
@@ -635,15 +661,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: name,
-      kind: kind,
-      detail: detail,
-      documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
-      insert_text: insert_text,
-      filter_text: name,
-      label_details: label_details,
       priority: priority,
-      tags: metadata_to_tags(metadata)
+      completion_item: %CompletionItem{
+        label: name,
+        kind: kind,
+        detail: detail,
+        documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
+        insert_text: insert_text,
+        filter_text: name,
+        label_details: label_details,
+        tags: metadata_to_tags(metadata)
+      }
     }
   end
 
@@ -686,14 +714,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         end
 
       %__MODULE__{
-        label: label,
-        kind: :interface,
-        detail: "#{origin} #{subtype}",
-        documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
-        insert_text: insert_text,
         priority: 12,
-        filter_text: filter_text,
-        tags: metadata_to_tags(metadata)
+        completion_item: %CompletionItem{
+          label: label,
+          kind: :interface,
+          detail: "#{origin} #{subtype}",
+          documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
+          insert_text: insert_text,
+          filter_text: filter_text,
+          tags: metadata_to_tags(metadata)
+        }
       }
     end
   end
@@ -720,14 +750,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       label = "#{def_str}#{name}/#{arity}"
 
       %__MODULE__{
-        label: label,
-        kind: :interface,
-        detail: "#{origin} protocol function",
-        documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
-        insert_text: insert_text,
         priority: 12,
-        filter_text: name,
-        tags: metadata_to_tags(metadata)
+        completion_item: %CompletionItem{
+          label: label,
+          kind: :interface,
+          detail: "#{origin} protocol function",
+          documentation: summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata),
+          insert_text: insert_text,
+          filter_text: name,
+          tags: metadata_to_tags(metadata)
+        }
       }
     end
   end
@@ -769,13 +801,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: to_string(name),
-      detail: detail,
-      insert_text: if(call?, do: name, else: "#{name}: "),
-      documentation: summary <> formatted_spec,
       priority: 10,
-      kind: :field,
-      tags: []
+      completion_item: %CompletionItem{
+        label: to_string(name),
+        detail: detail,
+        insert_text: if(call?, do: name, else: "#{name}: "),
+        documentation: summary <> formatted_spec,
+        kind: :field,
+        tags: []
+      }
     }
   end
 
@@ -802,15 +836,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
         subtype == :keyword ->
           {"",
-           %{
-             "range" => %{
-               "start" => %{
-                 "line" => context.line,
-                 "character" => context.character - String.length(context.prefix)
+           %GenLSP.Structures.TextEdit{
+             range: %GenLSP.Structures.Range{
+               start: %GenLSP.Structures.Position{
+                 line: context.line,
+                 character: context.character - String.length(context.prefix)
                },
-               "end" => %{"line" => context.line, "character" => context.character}
+               end: %GenLSP.Structures.Position{
+                 line: context.line,
+                 character: context.character
+               }
              },
-             "newText" => "#{name}: "
+             new_text: "#{name}: "
            }}
 
         match?(":" <> _, context.prefix) ->
@@ -821,14 +858,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: to_string(name),
-      detail: "#{origin} option",
-      documentation: formatted_spec,
-      insert_text: insert_text,
-      text_edit: text_edit,
       priority: 10,
-      kind: :field,
-      tags: []
+      completion_item: %CompletionItem{
+        label: to_string(name),
+        detail: "#{origin} option",
+        documentation: formatted_spec,
+        insert_text: insert_text,
+        text_edit: text_edit,
+        kind: :field,
+        tags: []
+      }
     }
   end
 
@@ -853,12 +892,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: name,
-      detail: "bitstring option",
-      insert_text: insert_text,
       priority: 10,
-      kind: :type_parameter,
-      tags: []
+      completion_item: %CompletionItem{
+        label: name,
+        detail: "bitstring option",
+        insert_text: insert_text,
+        kind: :type_parameter,
+        tags: []
+      }
     }
   end
 
@@ -905,18 +946,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: name,
-      detail: "typespec #{signature}",
-      label_details: %{
-        "detail" => "(#{Enum.join(args_list, ", ")})",
-        "description" => if(origin, do: "#{origin}.#{name}/#{arity}", else: "#{name}/#{arity}")
-      },
-      documentation: "#{doc}\n\n#{MarkdownUtils.get_metadata_md(metadata)}\n\n#{formatted_spec}",
-      insert_text: snippet,
       priority: 10,
-      kind: :class,
-      tags: metadata_to_tags(metadata),
-      command: command
+      completion_item: %CompletionItem{
+        label: name,
+        detail: "typespec #{signature}",
+        label_details: %{
+          "detail" => "(#{Enum.join(args_list, ", ")})",
+          "description" => if(origin, do: "#{origin}.#{name}/#{arity}", else: "#{name}/#{arity}")
+        },
+        documentation:
+          "#{doc}\n\n#{MarkdownUtils.get_metadata_md(metadata)}\n\n#{formatted_spec}",
+        insert_text: snippet,
+        kind: :class,
+        tags: metadata_to_tags(metadata),
+        command: command
+      }
     }
   end
 
@@ -934,15 +978,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     %__MODULE__{
-      label: label,
-      detail: suggestion[:detail] || "",
-      documentation: suggestion[:documentation] || "",
-      insert_text: insert_text,
-      filter_text: suggestion[:filter_text],
       priority: suggestion[:priority] || 0,
-      kind: kind,
-      command: suggestion[:command],
-      tags: []
+      completion_item: %CompletionItem{
+        label: label,
+        detail: suggestion[:detail] || "",
+        documentation: suggestion[:documentation] || "",
+        insert_text: insert_text,
+        filter_text: suggestion[:filter_text],
+        kind: kind,
+        command: suggestion[:command],
+        tags: []
+      }
     }
   end
 
@@ -977,7 +1023,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     if completion do
       completion =
         if name in @operators do
-          %__MODULE__{completion | kind: :operator}
+          %__MODULE__{
+            completion
+            | completion_item: %CompletionItem{completion.completion_item | kind: :operator}
+          }
         else
           completion
         end
@@ -995,18 +1044,27 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
           label_details =
             Map.update!(
-              completion.label_details,
+              completion.completion_item.label_details,
               "description",
               &("require " <> &1)
             )
 
           %__MODULE__{
             completion
-            | additional_text_edit: %TextEdit{
-                range: range(line_to_insert_require, 0, line_to_insert_require, 0),
-                newText: require_edit
-              },
-              label_details: label_details
+            | completion_item: %CompletionItem{
+                completion.completion_item
+                | additional_text_edit: %GenLSP.Structures.TextEdit{
+                    range: %GenLSP.Structures.Range{
+                      start: %GenLSP.Structures.Position{
+                        line: line_to_insert_require,
+                        character: 0
+                      },
+                      end: %GenLSP.Structures.Position{line: line_to_insert_require, character: 0}
+                    },
+                    new_text: require_edit
+                  },
+                  label_details: label_details
+              }
           }
         else
           completion
@@ -1015,7 +1073,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       file_path = Keyword.get(options, :file_path)
 
       if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
-        %__MODULE__{completion | insert_text: snippet, label: name}
+        %__MODULE__{
+          completion
+          | completion_item: %CompletionItem{
+              completion.completion_item
+              | insert_text: snippet,
+                label: name
+            }
+        }
       else
         completion
       end
@@ -1227,44 +1292,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     text != ""
   end
 
-  # LSP CompletionItemKind enumeration
-  defp completion_kind(kind) do
-    case kind do
-      :text -> 1
-      :method -> 2
-      :function -> 3
-      :constructor -> 4
-      :field -> 5
-      :variable -> 6
-      :class -> 7
-      :interface -> 8
-      :module -> 9
-      :property -> 10
-      :unit -> 11
-      :value -> 12
-      :enum -> 13
-      :keyword -> 14
-      :snippet -> 15
-      :color -> 16
-      :file -> 17
-      :reference -> 18
-      :folder -> 19
-      :enum_member -> 20
-      :constant -> 21
-      :struct -> 22
-      :event -> 23
-      :operator -> 24
-      :type_parameter -> 25
-    end
-  end
-
-  defp insert_text_format(type) do
-    case type do
-      :plain_text -> 1
-      :snippet -> 2
-    end
-  end
-
   defp get_prefix(text_before_cursor) do
     regex = ~r/[\w0-9\._!\?\:@\->]+$/u
 
@@ -1369,19 +1396,21 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
     if label == name or remote_calls? do
       %__MODULE__{
-        label: label,
-        kind: if(type == :function, do: :function, else: :constant),
-        detail: to_string(type),
-        label_details: %{
-          "detail" => "(#{Enum.join(args_list, ", ")})",
-          "description" => "#{origin}.#{label}/#{arity}"
-        },
-        documentation:
-          summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata) <> "\n\n" <> footer,
-        insert_text: insert_text,
         priority: 17,
-        tags: metadata_to_tags(metadata),
-        command: command
+        completion_item: %CompletionItem{
+          label: label,
+          kind: if(type == :function, do: :function, else: :constant),
+          detail: to_string(type),
+          label_details: %{
+            "detail" => "(#{Enum.join(args_list, ", ")})",
+            "description" => "#{origin}.#{label}/#{arity}"
+          },
+          documentation:
+            summary <> "\n\n" <> MarkdownUtils.get_metadata_md(metadata) <> "\n\n" <> footer,
+          insert_text: insert_text,
+          tags: metadata_to_tags(metadata),
+          command: command
+        }
       }
     end
   end
@@ -1393,10 +1422,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp sort_items(items) do
-    Enum.sort_by(items, fn %__MODULE__{priority: priority, label: label} = item ->
+    Enum.sort_by(items, fn %__MODULE__{priority: priority, completion_item: completion_item} ->
       # deprioritize deprecated
       priority =
-        if item.tags |> Enum.any?(&(&1 == :deprecated)) do
+        if completion_item.tags |> Enum.any?(&(&1 == :deprecated)) do
           priority + 30
         else
           priority
@@ -1409,113 +1438,172 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       # _underscored_function
       # __MODULE__
       # operators
-      {priority, label =~ ~r/^[^\p{L}]/u, label}
+      {priority, completion_item.label =~ ~r/^[^\p{L}]/u, completion_item.label}
     end)
   end
 
-  defp items_to_json(items, options) do
+  defp items_to_gen_lsp(items, options) do
     snippets_supported = Keyword.get(options, :snippets_supported, false)
 
     items =
-      Enum.reject(items, fn item ->
-        not snippets_supported and snippet?(item)
+      Enum.reject(items, fn completion_item ->
+        not snippets_supported and snippet?(completion_item)
       end)
 
     for {item, idx} <- Enum.with_index(items) do
-      item_to_json(item, idx, options)
+      item_to_gen_lsp(item, idx, options)
     end
   end
 
-  defp item_to_json(item, idx, options) do
-    kind =
-      try do
-        completion_kind(item.kind)
-      rescue
-        _ ->
-          raise "unexpected kind #{inspect(item.kind)} in completion #{inspect(item)}"
-      end
+  defp item_to_gen_lsp(%CompletionItem{} = completion_item, idx, options) do
+    kind = completion_kind_gen_lsp(completion_item.kind)
 
-    json = %{
-      "label" => item.label,
-      "kind" => kind,
-      "detail" => item.detail,
-      "documentation" => %{"value" => item.documentation || "", kind: "markdown"},
-      "labelDetails" => item.label_details,
-      "filterText" => item.filter_text,
-      "sortText" => String.pad_leading(to_string(idx), 8, "0"),
-      "insertText" => item.insert_text,
-      "additionalTextEdits" =>
-        if item.additional_text_edit do
-          [item.additional_text_edit]
-        else
-          nil
-        end,
-      "command" => item.command,
-      "insertTextFormat" =>
-        if Keyword.get(options, :snippets_supported, false) do
-          insert_text_format(:snippet)
-        else
-          insert_text_format(:plain_text)
-        end,
-      # adjustIndentation
-      "insertTextMode" => 2
+    base_item = %GenLSP.Structures.CompletionItem{
+      label: completion_item.label,
+      kind: kind,
+      detail: completion_item.detail,
+      sort_text: String.pad_leading(to_string(idx), 8, "0"),
+      filter_text: completion_item.filter_text,
+      insert_text: completion_item.insert_text,
+      preselect: if(completion_item.preselect, do: true, else: nil),
+      command:
+        if(completion_item.command, do: command_to_gen_lsp(completion_item.command), else: nil)
     }
 
-    json =
-      if item.preselect do
-        Map.put(json, "preselect", true)
+    base_item =
+      if completion_item.documentation do
+        %{
+          base_item
+          | documentation: %GenLSP.Structures.MarkupContent{
+              kind: GenLSP.Enumerations.MarkupKind.markdown(),
+              value: completion_item.documentation
+            }
+        }
       else
-        json
+        base_item
       end
 
-    json =
-      if item.insert_text_mode do
-        Map.put(json, "insertTextMode", item.insert_text_mode)
+    base_item =
+      if completion_item.label_details do
+        %{
+          base_item
+          | label_details: %GenLSP.Structures.CompletionItemLabelDetails{
+              detail: completion_item.label_details["detail"],
+              description: completion_item.label_details["description"]
+            }
+        }
       else
-        json
+        base_item
       end
 
-    json =
-      if item.text_edit do
-        Map.put(json, "textEdit", item.text_edit)
+    base_item =
+      if completion_item.additional_text_edit do
+        %{base_item | additional_text_edits: [completion_item.additional_text_edit]}
       else
-        json
+        base_item
       end
 
-    # deprecated as of Language Server Protocol Specification - 3.15
-    json =
-      if Keyword.get(options, :deprecated_supported, false) do
-        Map.merge(json, %{
-          "deprecated" => item.tags |> Enum.any?(&(&1 == :deprecated))
-        })
+    base_item =
+      if completion_item.text_edit do
+        %{base_item | text_edit: completion_item.text_edit}
       else
-        json
+        base_item
+      end
+
+    base_item =
+      if completion_item.insert_text_mode do
+        %{base_item | insert_text_mode: completion_item.insert_text_mode}
+      else
+        base_item
+      end
+
+    base_item =
+      if Keyword.get(options, :snippets_supported, false) do
+        %{base_item | insert_text_format: GenLSP.Enumerations.InsertTextFormat.snippet()}
+      else
+        %{base_item | insert_text_format: GenLSP.Enumerations.InsertTextFormat.plain_text()}
       end
 
     tags_supported = options |> Keyword.get(:tags_supported, [])
 
-    json =
+    base_item =
       if tags_supported != [] do
-        Map.merge(json, %{
-          "tags" => item.tags |> Enum.map(&tag_to_code/1) |> Enum.filter(&(&1 in tags_supported))
-        })
+        completion_tags =
+          completion_item.tags
+          |> Enum.map(&tag_to_gen_lsp/1)
+          |> Enum.filter(&(&1 != nil))
+          |> Enum.filter(&(&1 in tags_supported))
+
+        %{base_item | tags: if(completion_tags != [], do: completion_tags, else: nil)}
       else
-        json
+        base_item
       end
 
-    for {k, v} <- json, not is_nil(v), into: %{}, do: {k, v}
+    # deprecated as of Language Server Protocol Specification - 3.15
+    base_item =
+      if Keyword.get(options, :deprecated_supported, false) do
+        %{
+          base_item
+          | deprecated:
+              if(completion_item.tags |> Enum.any?(&(&1 == :deprecated)), do: true, else: nil)
+        }
+      else
+        base_item
+      end
+
+    base_item
   end
 
-  defp snippet?(item) do
-    item.kind == :snippet ||
-      (item.insert_text != nil and String.match?(item.insert_text, ~r/\${?\d/u))
+  defp snippet?(completion_item = %CompletionItem{}) do
+    completion_item.kind == :snippet ||
+      (completion_item.insert_text != nil and
+         String.match?(completion_item.insert_text, ~r/\${?\d/u))
   end
 
-  # As defined by CompletionItemTag in https://microsoft.github.io/language-server-protocol/specifications/specification-current/
-  defp tag_to_code(:deprecated), do: 1
+  # GenLSP helper functions
+  defp completion_kind_gen_lsp(kind) do
+    case kind do
+      :text -> GenLSP.Enumerations.CompletionItemKind.text()
+      :method -> GenLSP.Enumerations.CompletionItemKind.method()
+      :function -> GenLSP.Enumerations.CompletionItemKind.function()
+      :constructor -> GenLSP.Enumerations.CompletionItemKind.constructor()
+      :field -> GenLSP.Enumerations.CompletionItemKind.field()
+      :variable -> GenLSP.Enumerations.CompletionItemKind.variable()
+      :class -> GenLSP.Enumerations.CompletionItemKind.class()
+      :interface -> GenLSP.Enumerations.CompletionItemKind.interface()
+      :module -> GenLSP.Enumerations.CompletionItemKind.module()
+      :property -> GenLSP.Enumerations.CompletionItemKind.property()
+      :unit -> GenLSP.Enumerations.CompletionItemKind.unit()
+      :value -> GenLSP.Enumerations.CompletionItemKind.value()
+      :enum -> GenLSP.Enumerations.CompletionItemKind.enum()
+      :keyword -> GenLSP.Enumerations.CompletionItemKind.keyword()
+      :snippet -> GenLSP.Enumerations.CompletionItemKind.snippet()
+      :color -> GenLSP.Enumerations.CompletionItemKind.color()
+      :file -> GenLSP.Enumerations.CompletionItemKind.file()
+      :reference -> GenLSP.Enumerations.CompletionItemKind.reference()
+      :folder -> GenLSP.Enumerations.CompletionItemKind.folder()
+      :enum_member -> GenLSP.Enumerations.CompletionItemKind.enum_member()
+      :constant -> GenLSP.Enumerations.CompletionItemKind.constant()
+      :struct -> GenLSP.Enumerations.CompletionItemKind.struct()
+      :event -> GenLSP.Enumerations.CompletionItemKind.event()
+      :operator -> GenLSP.Enumerations.CompletionItemKind.operator()
+      :type_parameter -> GenLSP.Enumerations.CompletionItemKind.type_parameter()
+    end
+  end
+
+  defp tag_to_gen_lsp(:deprecated), do: GenLSP.Enumerations.CompletionItemTag.deprecated()
+  defp tag_to_gen_lsp(_), do: nil
+
+  defp command_to_gen_lsp(command) when is_map(command) do
+    %GenLSP.Structures.Command{
+      title: command["title"],
+      command: command["command"],
+      arguments: command["arguments"]
+    }
+  end
 
   defp metadata_to_tags(metadata) do
-    # As of Language Server Protocol Specification - 3.15 only one tag is supported
+    # As of Language Server Protocol Specification - 3.18 only one tag is supported
     case metadata[:deprecated] do
       nil -> []
       _ -> [:deprecated]
@@ -1523,9 +1611,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   defp function_name_with_parens?(name, arity, locals_without_parens) do
-    (locals_without_parens || MapSet.new())
-    |> MapSet.member?({String.to_atom(name), arity})
-    |> Kernel.not()
+    locals_without_parens = locals_without_parens || MapSet.new()
+    name = String.to_atom(name)
+
+    not (MapSet.member?(locals_without_parens, {name, arity}) or
+           MapSet.member?(locals_without_parens, {name, :*}))
   end
 
   defp sanitize_function_name(name, origin) when origin in ["Kernel", "Kernel.SpecialForms"],

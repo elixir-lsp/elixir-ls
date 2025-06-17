@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
   Code folding based on pairs of tokens
 
   Certain pairs of tokens, like `do` and `end`, natrually define ranges.
-  These ranges all have `kind?: :region`.
+  These ranges all have `kind: "region"`.
 
   Note that we exclude the line that the 2nd of the pair, e.g. `end`, is on.
   This is so that when collapsed, both tokens are visible.
@@ -43,8 +43,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
       iex> FoldingRange.convert_text_to_input(text)
       ...> |> TokenPair.provide_ranges()
       {:ok, [
-        %{startLine: 0, endLine: 3, kind?: :region},
-        %{startLine: 1, endLine: 2, kind?: :region}
+        %GenLSP.Structures.FoldingRange{start_line: 0, end_line: 3, kind: "region"},
+        %GenLSP.Structures.FoldingRange{start_line: 1, end_line: 2, kind: "region"}
       ]}
   """
   @spec provide_ranges(FoldingRange.input()) :: {:ok, [FoldingRange.t()]}
@@ -106,7 +106,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.TokenPair do
     end)
     |> Enum.filter(fn {start_line, end_line} -> end_line > start_line end)
     |> Enum.map(fn {start_line, end_line} ->
-      %{startLine: start_line, endLine: end_line, kind?: :region}
+      %GenLSP.Structures.FoldingRange{
+        start_line: start_line,
+        end_line: end_line,
+        kind: GenLSP.Enumerations.FoldingRangeKind.region()
+      }
     end)
   end
 end

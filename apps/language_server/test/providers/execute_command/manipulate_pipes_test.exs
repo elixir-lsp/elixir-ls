@@ -3,7 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
   alias ElixirLS.LanguageServer.{Server, SourceFile}
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
+  alias GenLSP.Structures.TextEdit
 
   defmodule JsonRpcMock do
     use GenServer
@@ -35,10 +35,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         id: JsonRpcMock,
         start:
           {JsonRpcMock, :start_link,
-           [[success_reply: {:ok, %{"applied" => true}}, test_pid: self()]]}
+           [
+             [
+               success_reply: {:ok, %GenLSP.Structures.ApplyWorkspaceEditResult{applied: true}},
+               test_pid: self()
+             ]
+           ]}
       })
 
     :ok
+  end
+
+  defp range_to_lsp(range) do
+    {:ok, range} = SchematicV.unify(GenLSP.Structures.Range.schematic(), range)
+    range
   end
 
   describe "execute/2 toPipe" do
@@ -71,7 +81,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 18, "line" => 2},
@@ -84,9 +95,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -108,7 +119,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -145,7 +156,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 5, "line" => 5},
@@ -158,9 +170,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -182,7 +194,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -219,7 +231,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 5, "line" => 5},
@@ -232,9 +245,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -256,7 +269,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -518,7 +531,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "start" => %{"line" => 2, "character" => 4},
@@ -531,9 +545,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -556,7 +570,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -622,7 +636,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                    }
                  )
 
-        assert_receive {:request, "workspace/applyEdit", params}
+        assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                        GenLSP.Requests.WorkspaceApplyEdit}
 
         expected_range = %{
           "end" => %{"character" => 5, "line" => 5},
@@ -635,9 +650,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  "edit" => %{
                    "changes" => %{
                      uri => [
-                       %TextEdit{
-                         newText: expected_substitution,
-                         range: expected_range
+                       %{
+                         "newText" => expected_substitution,
+                         "range" => expected_range
                        }
                      ]
                    }
@@ -659,7 +674,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         assert edited_text ==
                  ElixirLS.LanguageServer.SourceFile.apply_edit(
                    text,
-                   expected_range,
+                   range_to_lsp(expected_range),
                    expected_substitution
                  )
       end
@@ -692,7 +707,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 18, "line" => 2},
@@ -705,9 +721,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -727,7 +743,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -792,7 +808,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 41, "line" => 4},
@@ -805,9 +822,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -829,7 +846,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -865,7 +882,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 23, "line" => 2},
@@ -878,9 +896,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -902,7 +920,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -939,7 +957,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 5, "line" => 5},
@@ -952,9 +971,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -976,7 +995,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -1011,7 +1030,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 25, "line" => 2},
@@ -1024,9 +1044,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -1049,7 +1069,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -1084,7 +1104,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                    }
                  )
 
-        assert_receive {:request, "workspace/applyEdit", params}
+        assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                        GenLSP.Requests.WorkspaceApplyEdit}
 
         expected_range = %{
           "end" => %{"character" => 18, "line" => 3},
@@ -1097,9 +1118,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  "edit" => %{
                    "changes" => %{
                      uri => [
-                       %TextEdit{
-                         newText: expected_substitution,
-                         range: expected_range
+                       %{
+                         "newText" => expected_substitution,
+                         "range" => expected_range
                        }
                      ]
                    }
@@ -1121,7 +1142,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
         assert edited_text ==
                  ElixirLS.LanguageServer.SourceFile.apply_edit(
                    text,
-                   expected_range,
+                   range_to_lsp(expected_range),
                    expected_substitution
                  )
       end
@@ -1187,7 +1208,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                  }
                )
 
-      assert_receive {:request, "workspace/applyEdit", params}
+      assert_receive {:request, _id, %{"method" => "workspace/applyEdit", "params" => params},
+                      GenLSP.Requests.WorkspaceApplyEdit}
 
       expected_range = %{
         "end" => %{"character" => 18, "line" => 3},
@@ -1200,9 +1222,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
                "edit" => %{
                  "changes" => %{
                    uri => [
-                     %TextEdit{
-                       newText: expected_substitution,
-                       range: expected_range
+                     %{
+                       "newText" => expected_substitution,
+                       "range" => expected_range
                      }
                    ]
                  }
@@ -1222,7 +1244,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
       assert ElixirLS.LanguageServer.SourceFile.apply_edit(
                text,
-               expected_range,
+               range_to_lsp(expected_range),
                expected_substitution
              ) == edited_text
     end
@@ -1248,7 +1270,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipesTest d
 
           case result do
             {:ok, _} ->
-              assert_receive {:request, _, _}
+              assert_receive {:request, _, _, _}
 
             _ ->
               nil

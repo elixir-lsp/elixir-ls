@@ -46,7 +46,10 @@ defmodule ElixirLS.LanguageServer.MixProject do
       {:path_glob_vendored,
        github: "elixir-lsp/path_glob", ref: @dep_versions[:path_glob_vendored]},
       {:patch, "~> 0.12.0", only: [:dev, :test], runtime: false},
-      {:benchee, "~> 1.0", only: :dev, runtime: false}
+      {:benchee, "~> 1.0", only: :dev, runtime: false},
+      {:schematic_v,
+       github: "elixir-lsp/schematic_vendored", ref: @dep_versions[:schematic_vendored]},
+      {:typed_struct, "~> 0.3"}
     ]
   end
 

@@ -23,6 +23,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
+      elixirc_paths: elixirc_paths(Mix.env()),
       # if we consolidate here debugged code will not work correctly
       # and debugged protocol implementation will not be available
       consolidate_protocols: false,
@@ -38,10 +39,16 @@ defmodule ElixirLS.DebugAdapter.MixProject do
   defp deps do
     [
       {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
+      {:schematic_v,
+       github: "elixir-lsp/schematic_vendored", ref: @dep_versions[:schematic_vendored]},
+      {:typed_struct, "~> 0.3"},
       {:elixir_ls_utils, in_umbrella: true},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:dialyxir_vendored,
        github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end

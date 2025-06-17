@@ -8,7 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   """
 
   alias ElixirLS.LanguageServer.SourceFile
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   def format(%SourceFile{} = source_file, line, character, "\n", _options) when line >= 1 do
     # we don't care about utf16 positions here as we only pass character back to client
@@ -41,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
       edited_text = SourceFile.apply_edit(source_file.text, range, new_text)
 
       if indentation_suggests_edit? or terminators_correct?(edited_text) do
-        {:ok, [%{"range" => range, "newText" => new_text}]}
+        {:ok, [%GenLSP.Structures.TextEdit{range: range, new_text: new_text}]}
       else
         {:ok, nil}
       end
@@ -76,9 +76,15 @@ defmodule ElixirLS.LanguageServer.Providers.OnTypeFormatting do
   defp insert_end_edit(indentation, line, character, insert_on_next_line?) do
     # we don't care about utf16 positions here as we either use 0 or what the client sent
     if insert_on_next_line? do
-      {range(line + 1, 0, line + 1, 0), "#{indentation}end\n"}
+      {
+        range(line + 1, 0, line + 1, 0),
+        "#{indentation}end\n"
+      }
     else
-      {range(line, character, line, character), "\n#{indentation}end"}
+      {
+        range(line, character, line, character),
+        "\n#{indentation}end"
+      }
     end
   end
 end

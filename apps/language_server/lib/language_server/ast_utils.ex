@@ -1,7 +1,7 @@
 # This code has originally been a part of https://github.com/elixir-lsp/elixir_sense
 
 defmodule ElixirLS.LanguageServer.AstUtils do
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.SourceFile
 
   @binary_operators ~w[| . ** * / + - ++ -- +++ --- .. <> in |> <<< >>> <<~ ~>> <~ ~> <~> < > <= >= == != === !== =~ && &&& and || ||| or = => :: when <- -> \\]a

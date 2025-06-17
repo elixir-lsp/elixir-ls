@@ -10,7 +10,6 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   """
 
   alias ElixirLS.LanguageServer.{SourceFile, Build, Parser}
-  import ElixirLS.LanguageServer.Protocol
   alias ElixirLS.LanguageServer.Providers.References.Locator
   require Logger
 
@@ -46,11 +45,14 @@ defmodule ElixirLS.LanguageServer.Providers.References do
         {end_line, end_column} =
           SourceFile.elixir_position_to_lsp(text, {ref.range.end.line, ref.range.end.column})
 
-        range = range(start_line, start_column, end_line, end_column)
+        uri = build_uri(ref, current_file_uri, project_dir)
 
-        %{
-          "range" => range,
-          "uri" => build_uri(ref, current_file_uri, project_dir)
+        %GenLSP.Structures.Location{
+          uri: uri,
+          range: %GenLSP.Structures.Range{
+            start: %GenLSP.Structures.Position{line: start_line, character: start_column},
+            end: %GenLSP.Structures.Position{line: end_line, character: end_column}
+          }
         }
 
       {:error, :nofile} ->

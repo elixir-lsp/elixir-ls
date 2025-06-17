@@ -4,9 +4,6 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
   similar names
   """
 
-  use ElixirLS.LanguageServer.Protocol
-
-  alias ElixirLS.LanguageServer.Providers.CodeAction.CodeActionResult
   alias ElixirLS.LanguageServer.Providers.CodeMod.Ast
   alias ElixirLS.LanguageServer.Providers.CodeMod.Diff
   alias ElixirLS.LanguageServer.Providers.CodeMod.Text
@@ -17,7 +14,9 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
 
   import ElixirLS.LanguageServer.Providers.CodeAction.Helpers
 
-  @spec apply(SourceFile.t(), String.t(), [map()]) :: [CodeActionResult.t()]
+  @spec apply(SourceFile.t(), String.t(), [GenLSP.Structures.Diagnostic.t()]) :: [
+          GenLSP.Structures.CodeAction.t()
+        ]
   def apply(%SourceFile{} = source_file, uri, diagnostics) do
     Enum.flat_map(diagnostics, fn diagnostic ->
       with {:ok, module, function, arity, line_number} <- extract_function_and_line(diagnostic),
@@ -29,11 +28,11 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
     end)
   end
 
-  defp extract_function_and_line(diagnostic) do
+  defp extract_function_and_line(diagnostic = %GenLSP.Structures.Diagnostic{}) do
     message = diagnostic_to_message(diagnostic)
 
     with {:ok, module, function, arity} <- extract_function(message) do
-      {:ok, module, function, arity, diagnostic["range"]["start"]["line"]}
+      {:ok, module, function, arity, diagnostic.range.start.line}
     end
   end
 
@@ -97,8 +96,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
         {:ok, [_ | _] = text_edits} ->
           text_edits = Enum.map(text_edits, &update_line(&1, line_number))
 
-          code_action =
-            CodeActionResult.new("Rename to #{suggestion}", "quickfix", text_edits, uri)
+          code_action = %GenLSP.Structures.CodeAction{
+            title: "Rename to #{suggestion}",
+            kind: "quickfix",
+            edit: %GenLSP.Structures.WorkspaceEdit{
+              changes: %{uri => text_edits}
+            }
+          }
 
           [code_action | acc]
 

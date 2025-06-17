@@ -34,10 +34,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
       iex> FoldingRange.convert_text_to_input(text)
       ...> |> FoldingRange.Indentation.provide_ranges()
       {:ok, [
-        %{startLine: 0, endLine: 12, kind?: :region},
-        %{startLine: 1, endLine: 11, kind?: :region},
-        %{startLine: 7, endLine: 9, kind?: :region},
-        %{startLine: 2, endLine: 5, kind?: :region},
+        %GenLSP.Structures.FoldingRange{start_line: 0, end_line: 12, kind: "region"},
+        %GenLSP.Structures.FoldingRange{start_line: 1, end_line: 11, kind: "region"},
+        %GenLSP.Structures.FoldingRange{start_line: 7, end_line: 9, kind: "region"},
+        %GenLSP.Structures.FoldingRange{start_line: 2, end_line: 5, kind: "region"},
       ]}
 
   Note that the empty lines 6 and 10 do not appear in the inner most ranges.
@@ -103,10 +103,10 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Indentation do
   defp pairs_to_ranges(pairs) do
     pairs
     |> Enum.map(fn {{r1, _}, {r2, _}} ->
-      %{
-        startLine: r1,
-        endLine: r2 - 1,
-        kind?: :region
+      %GenLSP.Structures.FoldingRange{
+        start_line: r1,
+        end_line: r2 - 1,
+        kind: GenLSP.Enumerations.FoldingRangeKind.region()
       }
     end)
   end

@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
   """
 
   alias ElixirLS.LanguageServer.{JsonRpc, SourceFile}
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.Server
   require Logger
 
@@ -81,18 +81,26 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ApplySpec do
         end
 
       edit_result =
-        JsonRpc.send_request("workspace/applyEdit", %{
-          "label" => "Add @spec to #{mod}.#{fun}/#{arity}",
-          "edit" => %{
-            "changes" => %{
-              # we don't care about utf16 positions here as we send 0
-              uri => [%{"range" => range(line - 1, 0, line - 1, 0), "newText" => formatted}]
+        JsonRpc.send_request(%GenLSP.Requests.WorkspaceApplyEdit{
+          id: System.unique_integer([:positive]),
+          params: %GenLSP.Structures.ApplyWorkspaceEditParams{
+            label: "Add @spec to #{mod}.#{fun}/#{arity}",
+            edit: %GenLSP.Structures.WorkspaceEdit{
+              changes: %{
+                # we don't care about utf16 positions here as we send 0
+                uri => [
+                  %GenLSP.Structures.TextEdit{
+                    range: range(line - 1, 0, line - 1, 0),
+                    new_text: formatted
+                  }
+                ]
+              }
             }
           }
         })
 
       case edit_result do
-        {:ok, %{"applied" => true}} ->
+        {:ok, %GenLSP.Structures.ApplyWorkspaceEditResult{applied: true}} ->
           {:ok, nil}
 
         other ->

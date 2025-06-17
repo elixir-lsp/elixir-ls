@@ -46,7 +46,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   ## Notes
 
   Each pass may return ranges in any order.
-  But all ranges are valid, i.e. endLine > startLine.
+  But all ranges are valid, i.e. end_line > start_line.
   """
 
   alias __MODULE__
@@ -56,13 +56,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
           lines: [FoldingRange.Line.t()]
         }
 
-  @type t :: %{
-          required(:startLine) => non_neg_integer(),
-          required(:endLine) => non_neg_integer(),
-          optional(:startCharacter?) => non_neg_integer(),
-          optional(:endCharacter?) => non_neg_integer(),
-          optional(:kind?) => :comment | :imports | :region
-        }
+  @type t :: GenLSP.Structures.FoldingRange.t()
 
   @doc """
   Provides folding ranges for a source file
@@ -79,8 +73,8 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
       ...> \"""
       iex> FoldingRange.provide(%{text: text})
       {:ok, [
-        %{startLine: 0, endLine: 3, kind?: :region},
-        %{startLine: 1, endLine: 2, kind?: :region}
+        %GenLSP.Structures.FoldingRange{start_line: 0, end_line: 3, kind: "region"},
+        %GenLSP.Structures.FoldingRange{start_line: 1, end_line: 2, kind: "region"}
       ]}
 
   """
@@ -128,14 +122,14 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   defp merge_ranges_with_priorities(range_lists_with_priorities) do
     range_lists_with_priorities
     |> Enum.flat_map(fn {priority, ranges} -> Enum.zip(Stream.cycle([priority]), ranges) end)
-    |> Enum.group_by(fn {_priority, range} -> range.startLine end)
+    |> Enum.group_by(fn {_priority, range} -> range.start_line end)
     |> Enum.map(fn {_start, ranges_with_priority} ->
       {_priority, range} =
         ranges_with_priority
-        |> Enum.max_by(fn {priority, range} -> {priority, range.endLine} end)
+        |> Enum.max_by(fn {priority, range} -> {priority, range.end_line} end)
 
       range
     end)
-    |> Enum.sort_by(& &1.startLine)
+    |> Enum.sort_by(& &1.start_line)
   end
 end

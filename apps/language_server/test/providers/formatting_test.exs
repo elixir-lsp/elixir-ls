@@ -2,10 +2,11 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
   use ElixirLS.Utils.MixTest.Case, async: false
   import ElixirLS.LanguageServer.Test.PlatformTestHelpers
   alias ElixirLS.LanguageServer.Providers.Formatting
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
+  alias GenLSP.Structures.TextEdit
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.MixProjectCache
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
+  import ElixirLS.LanguageServer.RangeUtils
 
   setup do
     {:ok, _} = start_supervised(MixProjectCache)
@@ -40,24 +41,18 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: ")",
-                 range: %{
-                   "end" => %{"character" => 23, "line" => 4},
-                   "start" => %{"character" => 23, "line" => 4}
-                 }
+                 new_text: ")",
+                 range: range(4, 23, 4, 23)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 16, "line" => 4},
-                   "start" => %{"character" => 15, "line" => 4}
-                 }
+                 new_text: "(",
+                 range: range(4, 15, 4, 16)
                }
              ]
 
       assert Enum.all?(changes, fn change ->
-               assert_position_type(change.range["end"]) and
-                 assert_position_type(change.range["start"])
+               assert_position_type(change.range.end) and
+                 assert_position_type(change.range.start)
              end)
     end)
   end
@@ -90,24 +85,18 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: ")",
-                 range: %{
-                   "end" => %{"character" => 23, "line" => 4},
-                   "start" => %{"character" => 23, "line" => 4}
-                 }
+                 new_text: ")",
+                 range: range(4, 23, 4, 23)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 16, "line" => 4},
-                   "start" => %{"character" => 15, "line" => 4}
-                 }
+                 new_text: "(",
+                 range: range(4, 15, 4, 16)
                }
              ]
 
       assert Enum.all?(changes, fn change ->
-               assert_position_type(change.range["end"]) and
-                 assert_position_type(change.range["start"])
+               assert_position_type(change.range.end) and
+                 assert_position_type(change.range.start)
              end)
     end)
   end
@@ -141,24 +130,18 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: ")",
-                 range: %{
-                   "end" => %{"character" => 23, "line" => 4},
-                   "start" => %{"character" => 23, "line" => 4}
-                 }
+                 new_text: ")",
+                 range: range(4, 23, 4, 23)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 16, "line" => 4},
-                   "start" => %{"character" => 15, "line" => 4}
-                 }
+                 new_text: "(",
+                 range: range(4, 15, 4, 16)
                }
              ]
 
       assert Enum.all?(changes, fn change ->
-               assert_position_type(change.range["end"]) and
-                 assert_position_type(change.range["start"])
+               assert_position_type(change.range.end) and
+                 assert_position_type(change.range.start)
              end)
     end)
   end
@@ -194,59 +177,38 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: "\n",
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 7},
-                   "start" => %{"character" => 3, "line" => 6}
-                 }
+                 new_text: "\n",
+                 range: range(6, 3, 7, 0)
                },
                %TextEdit{
-                 newText: "\n",
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 6},
-                   "start" => %{"character" => 5, "line" => 5}
-                 }
+                 new_text: "\n",
+                 range: range(5, 5, 6, 0)
                },
                %TextEdit{
-                 newText: ")\n",
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 5},
-                   "start" => %{"character" => 23, "line" => 4}
-                 }
+                 new_text: ")\n",
+                 range: range(4, 23, 5, 0)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 16, "line" => 4},
-                   "start" => %{"character" => 15, "line" => 4}
-                 }
+                 new_text: "(",
+                 range: range(4, 15, 4, 16)
                },
                %TextEdit{
-                 newText: "\n",
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 4},
-                   "start" => %{"character" => 25, "line" => 3}
-                 }
+                 new_text: "\n",
+                 range: range(3, 25, 4, 0)
                },
                %TextEdit{
-                 newText: "\n\n",
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 3},
-                   "start" => %{"character" => 16, "line" => 1}
-                 }
+                 new_text: "\n\n",
+                 range: range(1, 16, 3, 0)
                },
                %TextEdit{
-                 newText: "\n",
-                 range: %{
-                   "end" => %{"character" => 0, "line" => 1},
-                   "start" => %{"character" => 21, "line" => 0}
-                 }
+                 new_text: "\n",
+                 range: range(0, 21, 1, 0)
                }
              ]
 
       assert Enum.all?(changes, fn change ->
-               assert_position_type(change.range["end"]) and
-                 assert_position_type(change.range["start"])
+               assert_position_type(change.range.end) and
+                 assert_position_type(change.range.start)
              end)
     end)
   end
@@ -314,29 +276,23 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: ")",
-                 range: %{
-                   "end" => %{"character" => 2, "line" => 7},
-                   "start" => %{"character" => 2, "line" => 7}
-                 }
+                 new_text: ")",
+                 range: range(7, 2, 7, 2)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 20, "line" => 4},
-                   "start" => %{"character" => 15, "line" => 4}
-                 }
+                 new_text: "(",
+                 range: range(4, 15, 4, 20)
                }
              ]
 
       assert Enum.all?(changes, fn change ->
-               assert_position_type(change.range["end"]) and
-                 assert_position_type(change.range["start"])
+               assert_position_type(change.range.end) and
+                 assert_position_type(change.range.start)
              end)
     end)
   end
 
-  defp assert_position_type(%{"character" => ch, "line" => line}),
+  defp assert_position_type(%GenLSP.Structures.Position{character: ch, line: line}),
     do: is_integer(ch) and is_integer(line)
 
   @tag :fixture
@@ -392,18 +348,12 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: ")",
-                 range: %{
-                   "end" => %{"character" => 12, "line" => 0},
-                   "start" => %{"character" => 12, "line" => 0}
-                 }
+                 new_text: ")",
+                 range: range(0, 12, 0, 12)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 8, "line" => 0},
-                   "start" => %{"character" => 7, "line" => 0}
-                 }
+                 new_text: "(",
+                 range: range(0, 7, 0, 8)
                }
              ]
     end)
@@ -432,18 +382,12 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: ")",
-                 range: %{
-                   "end" => %{"character" => 16, "line" => 0},
-                   "start" => %{"character" => 16, "line" => 0}
-                 }
+                 new_text: ")",
+                 range: range(0, 16, 0, 16)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 8, "line" => 0},
-                   "start" => %{"character" => 7, "line" => 0}
-                 }
+                 new_text: "(",
+                 range: range(0, 7, 0, 8)
                }
              ]
     end)
@@ -472,18 +416,12 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert changes == [
                %TextEdit{
-                 newText: ")",
-                 range: %{
-                   "end" => %{"character" => 213, "line" => 0},
-                   "start" => %{"character" => 213, "line" => 0}
-                 }
+                 new_text: ")",
+                 range: range(0, 213, 0, 213)
                },
                %TextEdit{
-                 newText: "(",
-                 range: %{
-                   "end" => %{"character" => 8, "line" => 0},
-                   "start" => %{"character" => 7, "line" => 0}
-                 }
+                 new_text: "(",
+                 range: range(0, 7, 0, 8)
                }
              ]
     end)
@@ -518,7 +456,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
   def assert_formatted(path, project_dir, mix_file?) do
     assert match?(
-             {:ok, [%ElixirLS.LanguageServer.Protocol.TextEdit{} | _]},
+             {:ok, [%GenLSP.Structures.TextEdit{} | _]},
              format(path, project_dir, mix_file?)
            ),
            "expected '#{path}' to be formatted"

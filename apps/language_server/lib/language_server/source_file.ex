@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.SourceFile do
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
+  alias GenLSP.Structures.TextEdit
 
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.JsonRpc
   require ElixirSense.Core.Introspection, as: Introspection
   require Logger
@@ -50,24 +50,27 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   def apply_content_changes(%__MODULE__{} = source_file, [edit | rest]) do
     source_file =
-      case maybe_convert_text_edit(edit) do
-        %{"range" => edited_range, "text" => new_text} when not is_nil(edited_range) ->
+      case normalize_text_edit(edit) do
+        # GenLSP.TypeAlias.TextDocumentContentChangeEvent with range
+        %{range: edited_range, text: new_text} when not is_nil(edited_range) ->
           update_in(source_file.text, fn text ->
             apply_edit(text, edited_range, new_text)
           end)
 
-        %{"text" => new_text} ->
+        # GenLSP.TypeAlias.TextDocumentContentChangeEvent without range
+        %{text: new_text} ->
           put_in(source_file.text, new_text)
       end
 
     apply_content_changes(source_file, rest)
   end
 
-  defp maybe_convert_text_edit(%TextEdit{range: range, newText: new_text}) do
-    %{"range" => range, "text" => new_text}
+  defp normalize_text_edit(%TextEdit{range: range, new_text: new_text}) do
+    # return a map with the same fields as GenLSP.TypeAlias.TextDocumentContentChangeEvent
+    %{range: range, text: new_text}
   end
 
-  defp maybe_convert_text_edit(edit) do
+  defp normalize_text_edit(edit) do
     edit
   end
 
@@ -292,7 +295,21 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       end
     catch
       kind, payload ->
-        {payload, stacktrace} = Exception.blame(kind, payload, __STACKTRACE__)
+        stacktrace = __STACKTRACE__
+
+        {payload, stacktrace} =
+          try do
+            Exception.blame(kind, payload, stacktrace)
+          catch
+            kind_1, error_1 ->
+              # in case of error in Exception.blame we want to use the original error and stacktrace
+              Logger.error(
+                "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+              )
+
+              {payload, stacktrace}
+          end
+
         message = Exception.format(kind, payload, stacktrace)
 
         Logger.warning("Unable to get formatter options for #{path}: #{message}")
@@ -327,7 +344,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     String.length(partial_utf8) + 1
   end
 
-  # “Clamp” helper. 
+  # "Clamp" helper. 
   # - If offset is out of bounds, keep it within [0, max_bytes].
   # - Then check if we landed *immediately* after a high surrogate (0xD800..0xDBFF);
   #   if so, subtract 2 to avoid slicing in the middle.

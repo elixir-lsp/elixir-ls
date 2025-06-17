@@ -13,7 +13,6 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   @default_server LanguageServer.Server
 
   defstruct language_server: @default_server,
-            next_id: 1,
             outgoing_requests: %{}
 
   ## Macros
@@ -87,6 +86,16 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     WireProtocol.send(notification(method, params))
   end
 
+  def notify(%module{} = notification_struct) do
+    case SchematicV.dump(module.schematic(), notification_struct) do
+      {:ok, dumped} ->
+        WireProtocol.send(dumped)
+
+      {:error, error} ->
+        IO.puts(:stderr, "Error dumping notification: #{inspect(error)}")
+    end
+  end
+
   def respond(id, result) do
     WireProtocol.send(response(id, result))
   end
@@ -95,18 +104,36 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     {code, default_message} = error_code_and_message(type)
 
     if data do
-      WireProtocol.send(error_response(id, code, message || default_message, data))
+      {data_payload, data_module} = data
+      {:ok, dumped} = SchematicV.dump(data_module.schematic(), data_payload)
+      WireProtocol.send(error_response(id, code, message || default_message, dumped))
     else
       WireProtocol.send(error_response(id, code, message || default_message))
     end
   end
 
   def show_message(type, message) do
-    notify("window/showMessage", %{type: message_type_code(type), message: to_string(message)})
+    notification = %GenLSP.Notifications.WindowShowMessage{
+      params: %GenLSP.Structures.ShowMessageParams{
+        type: message_type_to_genlsp(type),
+        message: to_string(message)
+      }
+    }
+
+    notify(notification)
   end
 
   def log_message(type, message) do
-    notify("window/logMessage", %{type: message_type_code(type), message: to_string(message)})
+    if not String.starts_with?(to_string(message), "Failed to lookup telemetry handlers") do
+      notification = %GenLSP.Notifications.WindowLogMessage{
+        params: %GenLSP.Structures.LogMessageParams{
+          type: message_type_to_genlsp(type),
+          message: to_string(message)
+        }
+      }
+
+      notify(notification)
+    end
   end
 
   def telemetry(name, properties, measurements) do
@@ -133,44 +160,75 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
       "elixir_ls.mix_target" => mix_target
     }
 
-    notify("telemetry/event", %{
-      name: name,
-      properties: Map.merge(common_properties, properties),
-      measurements: measurements
-    })
+    notification = %GenLSP.Notifications.TelemetryEvent{
+      params: %{
+        name: name,
+        properties: Map.merge(common_properties, properties),
+        measurements: measurements
+      }
+    }
+
+    notify(notification)
   end
 
   def register_capability_request(server \\ __MODULE__, server_instance_id, method, options) do
-    id = server_instance_id <> method <> JasonV.encode!(options)
+    {options_payload, options_module} = options
+    {:ok, dumped} = SchematicV.dump(options_module.schematic(), options_payload)
+    id_string = server_instance_id <> method <> JasonV.encode!(dumped)
+    registration_id = :crypto.hash(:sha, id_string) |> Base.encode16()
 
-    send_request(server, "client/registerCapability", %{
-      "registrations" => [
-        %{
-          "id" => :crypto.hash(:sha, id) |> Base.encode16(),
-          "method" => method,
-          "registerOptions" => options
-        }
-      ]
-    })
+    # Generate a unique request ID
+    request_id = System.unique_integer([:positive])
+
+    request = %GenLSP.Requests.ClientRegisterCapability{
+      id: request_id,
+      params: %GenLSP.Structures.RegistrationParams{
+        registrations: [
+          %GenLSP.Structures.Registration{
+            id: registration_id,
+            method: method,
+            register_options: options_payload
+          }
+        ]
+      }
+    }
+
+    send_request(server, request)
   end
 
   def get_configuration_request(server \\ __MODULE__, scope_uri, section) do
-    send_request(server, "workspace/configuration", %{
-      "items" => [
-        %{
-          "scopeUri" => scope_uri,
-          "section" => section
-        }
-      ]
-    })
+    # Generate a unique request ID
+    request_id = System.unique_integer([:positive])
+
+    request = %GenLSP.Requests.WorkspaceConfiguration{
+      id: request_id,
+      params: %GenLSP.Structures.ConfigurationParams{
+        items: [
+          %GenLSP.Structures.ConfigurationItem{
+            scope_uri: scope_uri,
+            section: section
+          }
+        ]
+      }
+    }
+
+    send_request(server, request)
   end
 
   def show_message_request(server \\ __MODULE__, type, message, actions) do
-    send_request(server, "window/showMessageRequest", %{
-      "type" => message_type_code(type),
-      "message" => message,
-      "actions" => actions
-    })
+    # Generate a unique request ID
+    request_id = System.unique_integer([:positive])
+
+    request = %GenLSP.Requests.WindowShowMessageRequest{
+      id: request_id,
+      params: %GenLSP.Structures.ShowMessageRequestParams{
+        type: message_type_to_genlsp(type),
+        message: message,
+        actions: actions
+      }
+    }
+
+    send_request(server, request)
   end
 
   # Used to intercept :user/:standard_io output
@@ -193,8 +251,9 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
     GenServer.call(server, {:packet, packet}, :infinity)
   end
 
-  def send_request(server \\ __MODULE__, method, params) do
-    GenServer.call(server, {:request, method, params}, :infinity)
+  def send_request(server \\ __MODULE__, %module{id: id} = request_struct) do
+    {:ok, dumped} = SchematicV.dump(module.schematic(), request_struct)
+    GenServer.call(server, {:request, id, dumped, module}, :infinity)
   end
 
   ## Server callbacks
@@ -219,37 +278,39 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   end
 
   @impl GenServer
-  def handle_call({:packet, response(id, result)}, _from, state) do
-    %{^id => from} = state.outgoing_requests
-    GenServer.reply(from, {:ok, result})
+  def handle_call({:packet, %{"id" => id, "result" => result}}, _from, state) do
+    %{^id => {from, module}} = state.outgoing_requests
+
+    case SchematicV.unify(module.result(), result) do
+      {:ok, error_response = %GenLSP.ErrorResponse{}} ->
+        GenServer.reply(from, {:error, error_response})
+
+      {:ok, loaded} ->
+        GenServer.reply(from, {:ok, loaded})
+
+      {:error, error} ->
+        GenServer.reply(from, {:error, error})
+    end
+
     state = update_in(state.outgoing_requests, &Map.delete(&1, id))
     {:reply, :ok, state}
   end
 
   @impl GenServer
-  def handle_call({:packet, error_response(id, code, message)}, _from, state) do
-    %{^id => from} = state.outgoing_requests
-    GenServer.reply(from, {:error, code, message})
-    state = update_in(state.outgoing_requests, &Map.delete(&1, id))
-    {:reply, :ok, state}
-  end
-
-  @impl GenServer
-  def handle_call({:request, method, params}, from, state) do
-    WireProtocol.send(request(state.next_id, method, params))
-    state = update_in(state.outgoing_requests, &Map.put(&1, state.next_id, from))
-    state = %__MODULE__{state | next_id: state.next_id + 1}
+  def handle_call({:request, id, dumped, module}, from, state) do
+    WireProtocol.send(dumped)
+    state = update_in(state.outgoing_requests, &Map.put(&1, id, {from, module}))
     {:noreply, state}
   end
 
   ## Helpers
 
-  defp message_type_code(type) do
+  defp message_type_to_genlsp(type) do
     case type do
-      :error -> 1
-      :warning -> 2
-      :info -> 3
-      :log -> 4
+      :error -> GenLSP.Enumerations.MessageType.error()
+      :warning -> GenLSP.Enumerations.MessageType.warning()
+      :info -> GenLSP.Enumerations.MessageType.info()
+      :log -> GenLSP.Enumerations.MessageType.log()
     end
   end
 

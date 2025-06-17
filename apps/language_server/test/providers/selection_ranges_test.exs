@@ -3,10 +3,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
 
   alias ElixirLS.LanguageServer.Providers.SelectionRanges
   alias ElixirLS.LanguageServer.{SourceFile}
-  import ElixirLS.LanguageServer.Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
   defp get_ranges(text, line, character) do
-    SelectionRanges.selection_ranges(text, [%{"line" => line, "character" => character}])
+    SelectionRanges.selection_ranges(text, [
+      %GenLSP.Structures.Position{line: line, character: character}
+    ])
     |> hd
     |> flatten
   end
@@ -17,7 +19,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
 
   defp flatten(nil, acc), do: acc
 
-  defp flatten(%{"range" => range, "parent" => parent}, acc) do
+  defp flatten(%GenLSP.Structures.SelectionRange{range: range, parent: parent}, acc) do
     flatten(parent, [range | acc])
   end
 

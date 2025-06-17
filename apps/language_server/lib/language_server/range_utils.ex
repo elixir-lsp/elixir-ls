@@ -3,7 +3,20 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
   Utilities for working with ranges.
   """
 
-  import ElixirLS.LanguageServer.Protocol
+  defmacro range(start_line, start_character, end_line, end_character) do
+    quote do
+      %GenLSP.Structures.Range{
+        start: %GenLSP.Structures.Position{
+          line: unquote(start_line),
+          character: unquote(start_character)
+        },
+        end: %GenLSP.Structures.Position{
+          line: unquote(end_line),
+          character: unquote(end_character)
+        }
+      }
+    end
+  end
 
   # this function differs from the one in SourceFile - it returns utf8 ranges
   def full_range(lines = [_ | _]) do

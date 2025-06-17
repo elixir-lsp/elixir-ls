@@ -19,7 +19,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.FoldingRange
-  import ElixirLS.LanguageServer.Protocol
   import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.AstUtils
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
@@ -67,7 +66,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
       |> Enum.map(&FoldingRange.Indentation.extract_cell/1)
       |> FoldingRange.Indentation.pair_cells()
 
-    for %{"line" => line, "character" => character} <- positions do
+    for %GenLSP.Structures.Position{line: line, character: character} <- positions do
       {line, character} = SourceFile.lsp_position_to_elixir(lines, {line, character})
       # for convenance the code in this module uses 0 based indexing
       {line, character} = {line - 1, character - 1}
@@ -122,9 +121,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
           {end_line_elixir + 1, end_character_elixir + 1}
         )
 
-      %{
-        "range" => range(start_line_lsp, start_character_lsp, end_line_lsp, end_character_lsp),
-        "parent" => parent
+      %GenLSP.Structures.SelectionRange{
+        range: %GenLSP.Structures.Range{
+          start: %GenLSP.Structures.Position{line: start_line_lsp, character: start_character_lsp},
+          end: %GenLSP.Structures.Position{line: end_line_lsp, character: end_character_lsp}
+        },
+        parent: parent
       }
     end)
   end

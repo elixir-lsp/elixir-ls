@@ -3,6 +3,7 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
   use ExUnitProperties
 
   alias ElixirLS.LanguageServer.SourceFile
+  import ElixirLS.LanguageServer.RangeUtils
 
   test "format_spec/2 with nil" do
     assert SourceFile.format_spec(nil, []) == ""
@@ -105,19 +106,19 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       high = map_size(line_offsets)
 
       if high == 0 do
-        %{"line" => 0, "character" => offset}
+        %GenLSP.Structures.Position{line: 0, character: offset}
       else
         low = find_low_high(low, high, offset, line_offsets)
 
         # low is the least x for which the line offset is larger than the current offset
         # or array.length if no line offset is larger than the current offset
         line = low - 1
-        %{"line" => line, "character" => offset - line_offsets[line]}
+        %GenLSP.Structures.Position{line: line, character: offset - line_offsets[line]}
       end
     end
 
     def position_create(l, c) do
-      %{"line" => l, "character" => c}
+      %GenLSP.Structures.Position{line: l, character: c}
     end
 
     def position_after_substring(text, sub_text) do
@@ -128,19 +129,15 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     def range_for_substring(source_file, sub_text) do
       index = index_of(source_file.text, sub_text)
 
-      %{
-        "start" => position_at(source_file.text, index),
-        "end" => position_at(source_file.text, index + (String.to_charlist(sub_text) |> length))
+      %GenLSP.Structures.Range{
+        start: position_at(source_file.text, index),
+        end: position_at(source_file.text, index + (String.to_charlist(sub_text) |> length))
       }
     end
 
     def range_after_substring(source_file, sub_text) do
       pos = position_after_substring(source_file.text, sub_text)
-      %{"start" => pos, "end" => pos}
-    end
-
-    def range_create(sl, sc, el, ec) do
-      %{"start" => position_create(sl, sc), "end" => position_create(el, ec)}
+      %GenLSP.Structures.Range{start: pos, end: pos}
     end
 
     test "empty update" do
@@ -150,12 +147,12 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
 
     test "full update" do
       assert %SourceFile{text: "efg456"} =
-               SourceFile.apply_content_changes(new("abc123"), [%{"text" => "efg456"}])
+               SourceFile.apply_content_changes(new("abc123"), [%{text: "efg456"}])
 
       assert %SourceFile{text: "world"} =
                SourceFile.apply_content_changes(new("abc123"), [
-                 %{"text" => "hello"},
-                 %{"text" => "world"}
+                 %{text: "hello"},
+                 %{text: "world"}
                ])
     end
 
@@ -165,8 +162,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "function abc() {\n  console.log(\"\");\n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "",
-                   "range" => range_for_substring(sf, "hello, world!")
+                   text: "",
+                   range: range_for_substring(sf, "hello, world!")
                  }
                ])
     end
@@ -177,8 +174,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "function abc() {\n  \n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "",
-                   "range" => range_for_substring(sf, "  foo();\n  bar();\n")
+                   text: "",
+                   range: range_for_substring(sf, "  foo();\n  bar();\n")
                  }
                ])
     end
@@ -189,8 +186,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "function abc() {\n  \n  \n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "",
-                   "range" => range_for_substring(sf, "foo();\n  bar();")
+                   text: "",
+                   range: range_for_substring(sf, "foo();\n  bar();")
                  }
                ])
     end
@@ -203,8 +200,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => ", world!",
-                   "range" => range_after_substring(sf, "hello")
+                   text: ", world!",
+                   range: range_after_substring(sf, "hello")
                  }
                ])
     end
@@ -217,8 +214,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "\n    bar();",
-                   "range" => range_after_substring(sf, "foo();")
+                   text: "\n    bar();",
+                   range: range_after_substring(sf, "foo();")
                  }
                ])
     end
@@ -231,8 +228,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "hello, test case!!!",
-                   "range" => range_for_substring(sf, "hello, world!")
+                   text: "hello, test case!!!",
+                   range: range_for_substring(sf, "hello, world!")
                  }
                ])
     end
@@ -243,8 +240,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "function abc() {\n  console.log(\"hey\");\n}"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "hey",
-                   "range" => range_for_substring(sf, "hello, world!")
+                   text: "hey",
+                   range: range_for_substring(sf, "hello, world!")
                  }
                ])
     end
@@ -257,8 +254,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "world, hello!",
-                   "range" => range_for_substring(sf, "hello, world!")
+                   text: "world, hello!",
+                   range: range_for_substring(sf, "hello, world!")
                  }
                ])
     end
@@ -271,8 +268,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "\n//hello\nfunction d(){",
-                   "range" => range_for_substring(sf, "function abc() {")
+                   text: "\n//hello\nfunction d(){",
+                   range: range_for_substring(sf, "function abc() {")
                  }
                ])
     end
@@ -283,8 +280,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "a1\nb1\na2\nb2xx\nyy"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "xx\nyy",
-                   "range" => range_for_substring(sf, "\na3\nb3\na4\nb4\n")
+                   text: "xx\nyy",
+                   range: range_for_substring(sf, "\na3\nb3\na4\nb4\n")
                  }
                ])
     end
@@ -295,8 +292,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "a1\nb1\n\nxx1\nxx2\nb3\na4\nb4\n"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "\nxx1\nxx2",
-                   "range" => range_for_substring(sf, "a2\nb2\na3")
+                   text: "\nxx1\nxx2",
+                   range: range_for_substring(sf, "a2\nb2\na3")
                  }
                ])
     end
@@ -307,8 +304,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "a1\nb1\n\ny\n\nb3\na4\nb4\n"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "\ny\n",
-                   "range" => range_for_substring(sf, "a2\nb2\na3")
+                   text: "\ny\n",
+                   range: range_for_substring(sf, "a2\nb2\na3")
                  }
                ])
     end
@@ -320,8 +317,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: res} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => text,
-                   "range" => range_for_substring(sf, "\ncc")
+                   text: text,
+                   range: range_for_substring(sf, "\ncc")
                  }
                ])
 
@@ -336,16 +333,16 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
              } =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "defg",
-                   "range" => range_create(0, 12, 0, 12)
+                   text: "defg",
+                   range: range(0, 12, 0, 12)
                  },
                  %{
-                   "text" => "hello, test case!!!",
-                   "range" => range_create(1, 15, 1, 28)
+                   text: "hello, test case!!!",
+                   range: range(1, 15, 1, 28)
                  },
                  %{
-                   "text" => "hij",
-                   "range" => range_create(0, 16, 0, 16)
+                   text: "hij",
+                   range: range(0, 16, 0, 16)
                  }
                ])
     end
@@ -356,8 +353,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\nbar some extra content\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => " some extra content",
-                   "range" => range_create(1, 3, 1, 3)
+                   text: " some extra content",
+                   range: range(1, 3, 1, 3)
                  }
                ])
     end
@@ -368,8 +365,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\nbar some extra\ncontent\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => " some extra\ncontent",
-                   "range" => range_create(1, 3, 1, 3)
+                   text: " some extra\ncontent",
+                   range: range(1, 3, 1, 3)
                  }
                ])
     end
@@ -380,8 +377,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\n\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "",
-                   "range" => range_create(1, 0, 1, 3)
+                   text: "",
+                   range: range(1, 0, 1, 3)
                  }
                ])
     end
@@ -392,8 +389,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "",
-                   "range" => range_create(0, 5, 1, 3)
+                   text: "",
+                   range: range(0, 5, 1, 3)
                  }
                ])
     end
@@ -404,8 +401,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\nbaz\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "z",
-                   "range" => range_create(1, 2, 1, 3)
+                   text: "z",
+                   range: range(1, 2, 1, 3)
                  }
                ])
     end
@@ -416,8 +413,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foo\nfoobar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "foobar",
-                   "range" => range_create(1, 0, 1, 3)
+                   text: "foobar",
+                   range: range(1, 0, 1, 3)
                  }
                ])
     end
@@ -428,8 +425,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\r\nbaz\rbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "z",
-                   "range" => range_create(1, 2, 1, 3)
+                   text: "z",
+                   range: range(1, 2, 1, 3)
                  }
                ])
     end
@@ -440,8 +437,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\nbaz\r\nz\rz\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "z\r\nz\rz",
-                   "range" => range_create(1, 2, 1, 3)
+                   text: "z\r\nz\rz",
+                   range: range(1, 2, 1, 3)
                  }
                ])
     end
@@ -452,8 +449,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\nb🏳️‍🌈z\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "z",
-                   "range" => range_create(1, 7, 1, 8)
+                   text: "z",
+                   range: range(1, 7, 1, 8)
                  }
                ])
     end
@@ -464,8 +461,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foooo\nbaz🏳️‍🌈z\nbaz"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "z🏳️‍🌈z",
-                   "range" => range_create(1, 2, 1, 3)
+                   text: "z🏳️‍🌈z",
+                   range: range(1, 2, 1, 3)
                  }
                ])
     end
@@ -476,8 +473,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "abc123foo\nbar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "abc123",
-                   "range" => range_create(-2, 0, -1, 3)
+                   text: "abc123",
+                   range: range(-2, 0, -1, 3)
                  }
                ])
     end
@@ -488,8 +485,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foobar\nbar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "foobar",
-                   "range" => range_create(-1, 0, 0, 3)
+                   text: "foobar",
+                   range: range(-1, 0, 0, 3)
                  }
                ])
     end
@@ -500,8 +497,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foo\nfoobar"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "foobar",
-                   "range" => range_create(1, 0, 1, 10)
+                   text: "foobar",
+                   range: range(1, 0, 1, 10)
                  }
                ])
     end
@@ -512,8 +509,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "foo\nbarabc123"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "abc123",
-                   "range" => range_create(3, 0, 6, 10)
+                   text: "abc123",
+                   range: range(3, 0, 6, 10)
                  }
                ])
     end
@@ -524,8 +521,8 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       assert %SourceFile{text: "entirely new content"} =
                SourceFile.apply_content_changes(sf, [
                  %{
-                   "text" => "entirely new content",
-                   "range" => range_create(-1, 1, 2, 10000)
+                   text: "entirely new content",
+                   range: range(-1, 1, 2, 10000)
                  }
                ])
     end
@@ -545,16 +542,30 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
   end
 
   test "full_range" do
-    assert %{
-             "end" => %{"character" => 0, "line" => 0},
-             "start" => %{"character" => 0, "line" => 0}
+    assert %GenLSP.Structures.Range{
+             end: %GenLSP.Structures.Position{character: 0, line: 0},
+             start: %GenLSP.Structures.Position{character: 0, line: 0}
            } = SourceFile.full_range(new(""))
 
-    assert %{"end" => %{"character" => 1, "line" => 0}} = SourceFile.full_range(new("a"))
-    assert %{"end" => %{"character" => 0, "line" => 1}} = SourceFile.full_range(new("\n"))
-    assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\naa"))
-    assert %{"end" => %{"character" => 2, "line" => 1}} = SourceFile.full_range(new("a\r\naa"))
-    assert %{"end" => %{"character" => 8, "line" => 1}} = SourceFile.full_range(new("a\naa🏳️‍🌈"))
+    assert %GenLSP.Structures.Range{
+             end: %GenLSP.Structures.Position{character: 1, line: 0}
+           } = SourceFile.full_range(new("a"))
+
+    assert %GenLSP.Structures.Range{
+             end: %GenLSP.Structures.Position{character: 0, line: 1}
+           } = SourceFile.full_range(new("\n"))
+
+    assert %GenLSP.Structures.Range{
+             end: %GenLSP.Structures.Position{character: 2, line: 1}
+           } = SourceFile.full_range(new("a\naa"))
+
+    assert %GenLSP.Structures.Range{
+             end: %GenLSP.Structures.Position{character: 2, line: 1}
+           } = SourceFile.full_range(new("a\r\naa"))
+
+    assert %GenLSP.Structures.Range{
+             end: %GenLSP.Structures.Position{character: 8, line: 1}
+           } = SourceFile.full_range(new("a\naa🏳️‍🌈"))
   end
 
   describe "lines_with_endings/1" do

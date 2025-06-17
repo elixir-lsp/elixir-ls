@@ -44,6 +44,7 @@ defmodule ElixirLS.LanguageServer.Application do
     :ok
   end
 
+  @spec restart() :: no_return()
   def restart() do
     Application.put_env(:language_server, :restart, true)
     System.halt(0)

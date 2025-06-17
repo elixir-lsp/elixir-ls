@@ -8,9 +8,12 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
   defstruct [:uri, :range]
 
   alias ElixirLS.LanguageServer.SourceFile
-  require ElixirLS.LanguageServer.Protocol, as: Protocol
+  import ElixirLS.LanguageServer.RangeUtils
 
-  def new(
+  @doc """
+  Converts an ElixirLS.LanguageServer.Location to a GenLSP.Structures.Location
+  """
+  def to_gen_lsp(
         %ElixirLS.LanguageServer.Location{
           file: file,
           line: line,
@@ -37,9 +40,9 @@ defmodule ElixirLS.LanguageServer.Protocol.Location do
     {line, column} = SourceFile.elixir_position_to_lsp(text, {line, column})
     {end_line, end_column} = SourceFile.elixir_position_to_lsp(text, {end_line, end_column})
 
-    %Protocol.Location{
+    %GenLSP.Structures.Location{
       uri: uri,
-      range: Protocol.range(line, column, end_line, end_column)
+      range: range(line, column, end_line, end_column)
     }
   end
 end

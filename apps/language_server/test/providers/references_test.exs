@@ -8,6 +8,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
   alias ElixirLS.LanguageServer.Build
   alias ElixirLS.LanguageServer.Test.ParserContextBuilder
   require ElixirLS.Test.TextLoc
+  import ElixirLS.LanguageServer.RangeUtils
 
   setup_all context do
     {:ok, pid} = Tracer.start_link([])
@@ -57,9 +58,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 3
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_imported.ex")))
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_remote.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_imported.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_referenced.ex")))
   end
 
   test "finds local, remote and imported references to a macro" do
@@ -80,9 +81,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 3
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_remote.ex")))
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_imported.ex")))
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_remote.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_imported.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_referenced.ex")))
   end
 
   test "find a references to a macro generated function call" do
@@ -100,12 +101,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
-             %{
-               "range" => %{
-                 "end" => %{"character" => 16, "line" => 6},
-                 "start" => %{"character" => 4, "line" => 6}
-               },
-               "uri" => uri
+             %GenLSP.Structures.Location{
+               range: range(6, 4, 6, 16),
+               uri: uri
              }
            ]
   end
@@ -125,12 +123,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
-             %{
-               "range" => %{
-                 "start" => %{"line" => 10, "character" => 4},
-                 "end" => %{"line" => 10, "character" => 22}
-               },
-               "uri" => uri
+             %GenLSP.Structures.Location{
+               range: range(10, 4, 10, 22),
+               uri: uri
              }
            ]
   end
@@ -150,19 +145,13 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
-             %{
-               "range" => %{
-                 "end" => %{"character" => 23, "line" => 2},
-                 "start" => %{"character" => 4, "line" => 2}
-               },
-               "uri" => uri
+             %GenLSP.Structures.Location{
+               range: range(2, 4, 2, 23),
+               uri: uri
              },
-             %{
-               "range" => %{
-                 "end" => %{"character" => 31, "line" => 4},
-                 "start" => %{"character" => 12, "line" => 4}
-               },
-               "uri" => uri
+             %GenLSP.Structures.Location{
+               range: range(4, 12, 4, 31),
+               uri: uri
              }
            ]
   end
@@ -182,19 +171,13 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
     assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
-             %{
-               "range" => %{
-                 "end" => %{"character" => 23, "line" => 24},
-                 "start" => %{"character" => 2, "line" => 24}
-               },
-               "uri" => uri
+             %GenLSP.Structures.Location{
+               range: range(24, 2, 24, 23),
+               uri: uri
              },
-             %{
-               "range" => %{
-                 "end" => %{"character" => 25, "line" => 27},
-                 "start" => %{"character" => 4, "line" => 27}
-               },
-               "uri" => uri
+             %GenLSP.Structures.Location{
+               range: range(27, 4, 27, 25),
+               uri: uri
              }
            ]
   end
@@ -217,8 +200,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 2
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_erlang.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_referenced.ex")))
   end
 
   test "finds remote references to erlang module" do
@@ -239,8 +222,8 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     list = References.references(parser_context, uri, line, char, true, File.cwd!())
 
     assert length(list) == 2
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_erlang.ex")))
-    assert Enum.any?(list, &(&1["uri"] |> String.ends_with?("references_referenced.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_erlang.ex")))
+    assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_referenced.ex")))
   end
 
   test "finds alias references" do
@@ -260,9 +243,9 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
 
     list =
       References.references(parser_context, uri, line, char, true, File.cwd!())
-      |> Enum.filter(&String.ends_with?(&1["uri"], "references_alias.ex"))
+      |> Enum.filter(&String.ends_with?(&1.uri, "references_alias.ex"))
 
-    references_lines = Enum.map(list, & &1["range"]["start"]["line"])
+    references_lines = Enum.map(list, & &1.range.start.line)
 
     assert references_lines == [1, 2, 3, 3, 4, 4, 7, 11, 15, 19, 20]
   end

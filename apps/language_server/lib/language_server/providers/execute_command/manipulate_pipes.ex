@@ -5,11 +5,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
 
   Returns a formatted source fragment.
   """
-  import ElixirLS.LanguageServer.Protocol
 
   alias ElixirLS.LanguageServer.{JsonRpc, Server}
   alias ElixirLS.LanguageServer.SourceFile
-  alias ElixirLS.LanguageServer.Protocol.TextEdit
+  import ElixirLS.LanguageServer.RangeUtils
 
   alias __MODULE__.AST
 
@@ -39,13 +38,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
           from_pipe_at_cursor(source_file.text, line, col)
       end
 
-    with {:ok, %TextEdit{} = text_edit} <- processing_result,
-         {:ok, %{"applied" => true}} <-
-           JsonRpc.send_request("workspace/applyEdit", %{
-             "label" => label,
-             "edit" => %{
-               "changes" => %{
-                 uri => [text_edit]
+    with {:ok, %GenLSP.Structures.TextEdit{} = text_edit} <- processing_result,
+         {:ok, %GenLSP.Structures.ApplyWorkspaceEditResult{applied: true}} <-
+           JsonRpc.send_request(%GenLSP.Requests.WorkspaceApplyEdit{
+             id: System.unique_integer([:positive]),
+             params: %GenLSP.Structures.ApplyWorkspaceEditParams{
+               label: label,
+               edit: %GenLSP.Structures.WorkspaceEdit{
+                 changes: %{
+                   uri => [text_edit]
+                 }
                }
              }
            }) do
@@ -103,7 +105,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     with {:result, %{function_call: function_call, range: range}}
          when not is_nil(function_call) and not is_nil(range) <- {:result, result},
          {:ok, piped_text} <- AST.to_pipe(function_call) do
-      text_edit = %TextEdit{newText: piped_text, range: range}
+      text_edit = %GenLSP.Structures.TextEdit{new_text: piped_text, range: range}
       {:ok, text_edit}
     else
       {:result, %{function_call: nil}} ->
@@ -147,7 +149,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ManipulatePipes do
     with {:result, %{pipe_call: pipe_call, range: range}}
          when not is_nil(pipe_call) and not is_nil(range) <- {:result, result},
          {:ok, unpiped_text} <- AST.from_pipe(pipe_call) do
-      text_edit = %TextEdit{newText: unpiped_text, range: range}
+      text_edit = %GenLSP.Structures.TextEdit{new_text: unpiped_text, range: range}
       {:ok, text_edit}
     else
       {:result, %{pipe_call: nil}} ->

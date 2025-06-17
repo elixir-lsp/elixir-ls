@@ -94,12 +94,12 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-        Server.receive_packet(server, notification("initialized"))
+        Server.receive_packet(server, notification("initialized", %{}))
         uri = root_uri()
 
         assert_receive(
           %{
-            "id" => 1,
+            "id" => id,
             "method" => "workspace/configuration",
             "params" => %{"items" => [%{"scopeUri" => ^uri, "section" => "elixirLS"}]}
           },
@@ -107,7 +107,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         JsonRpc.receive_packet(
-          response(1, [
+          response(id, [
             %{
               "mixEnv" => "dev",
               "autoBuild" => false,
@@ -136,7 +136,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-        Server.receive_packet(server, notification("initialized"))
+        Server.receive_packet(server, notification("initialized", %{}))
         uri = root_uri()
 
         assert_receive(
@@ -198,7 +198,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-        Server.receive_packet(server, notification("initialized"))
+        Server.receive_packet(server, notification("initialized", %{}))
         uri = root_uri()
 
         refute_receive(
@@ -249,7 +249,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         )
 
         assert_receive(%{"id" => 1, "result" => %{"capabilities" => %{}}}, 1000)
-        Server.receive_packet(server, notification("initialized"))
+        Server.receive_packet(server, notification("initialized", %{}))
 
         assert_receive(
           %{
@@ -909,7 +909,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                            "type" => 2
                          }
                        },
-                       1000
+                       3000
 
         state = :sys.get_state(server)
         refute Map.has_key?(state.source_files, uri)
@@ -1308,14 +1308,16 @@ defmodule ElixirLS.LanguageServer.ServerTest do
   test "auto complete", %{server: server} do
     in_fixture(__DIR__, "clean", fn ->
       uri = "file:///file.ex"
-      code = ~S(
-    defmodule MyModule do
-      def my_fn, do: GenSer
-    end
-    )
+
+      code = """
+      defmodule MyModule do
+        def my_fn, do: GenServe
+      end
+      """
+
       fake_initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
-      Server.receive_packet(server, completion_req(1, uri, 2, 25))
+      Server.receive_packet(server, completion_req(1, uri, 1, 22))
 
       resp = assert_receive(%{"id" => 1}, 10000)
 
@@ -1568,7 +1570,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       initialize(server)
       Server.receive_packet(server, did_open(uri, "elixir", 1, code))
       wait_until_compiled(server)
-      Server.receive_packet(server, formatting_req(2, uri, %{}))
+
+      Server.receive_packet(
+        server,
+        formatting_req(2, uri, %{
+          "tabSize" => 2,
+          "insertSpaces" => true
+        })
+      )
 
       resp = assert_receive(%{"id" => 2}, 1000)
 
@@ -1592,7 +1601,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       # Now try it in a subdirectory with its own .formatter.exs file that does not define a max line length.
       subdir_uri = Path.join([root_uri(), "lib/file.ex"])
       Server.receive_packet(server, did_open(subdir_uri, "elixir", 1, code))
-      Server.receive_packet(server, formatting_req(3, subdir_uri, %{}))
+
+      Server.receive_packet(
+        server,
+        formatting_req(3, subdir_uri, %{
+          "tabSize" => 2,
+          "insertSpaces" => true
+        })
+      )
 
       resp = assert_receive(%{"id" => 3}, 1000)
 
@@ -2204,7 +2220,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     test "single file", %{server: server} do
       in_fixture(__DIR__, "no_mixfile", fn ->
         Server.receive_packet(server, initialize_req(1, nil, %{}))
-        Server.receive_packet(server, notification("initialized"))
+        Server.receive_packet(server, notification("initialized", %{}))
 
         Server.receive_packet(
           server,
