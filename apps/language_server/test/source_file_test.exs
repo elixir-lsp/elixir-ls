@@ -647,6 +647,14 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
     end
   end
 
+  describe "characters_to_binary!/3" do
+    test "raises for invalid utf8" do
+      assert_raise ArgumentError, ~r/could not convert characters/, fn ->
+        SourceFile.line_length_utf16(<<0x80>>)
+      end
+    end
+  end
+
   describe "positions" do
     test "lsp_position_to_elixir empty" do
       assert {1, 1} == SourceFile.lsp_position_to_elixir("", {0, 0})

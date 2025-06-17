@@ -160,7 +160,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   defp characters_to_binary!(binary, from, to) do
     case :unicode.characters_to_binary(binary, from, to) do
-      result when is_binary(result) -> result
+      result when is_binary(result) ->
+        result
+
+      other ->
+        raise ArgumentError,
+          message: "could not convert characters to binary: #{inspect(other)}"
     end
   end
 
