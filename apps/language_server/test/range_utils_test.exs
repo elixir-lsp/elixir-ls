@@ -526,6 +526,26 @@ defmodule ElixirLS.LanguageServer.RangeUtilsTest do
 
       assert merge_ranges_lists(range_1, range_2) == expected
     end
+
+    test "handles empty lists" do
+      assert merge_ranges_lists([], []) == []
+    end
+
+    test "raises if ranges_1 is empty" do
+      range_2 = [range(1, 1, 5, 5)]
+
+      assert_raise ArgumentError, "ranges_1 is empty", fn ->
+        merge_ranges_lists([], range_2)
+      end
+    end
+
+    test "raises if ranges_2 is empty" do
+      range_1 = [range(1, 1, 5, 5)]
+
+      assert_raise ArgumentError, "ranges_2 is empty", fn ->
+        merge_ranges_lists(range_1, [])
+      end
+    end
   end
 
   describe "deduplicate/1" do

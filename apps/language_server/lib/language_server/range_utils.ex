@@ -120,6 +120,16 @@ defmodule ElixirLS.LanguageServer.RangeUtils do
     result
   end
 
+  def merge_ranges_lists([], []), do: []
+
+  def merge_ranges_lists([], _ranges_2) do
+    raise ArgumentError, message: "ranges_1 is empty"
+  end
+
+  def merge_ranges_lists(_ranges_1, []) do
+    raise ArgumentError, message: "ranges_2 is empty"
+  end
+
   def merge_ranges_lists(ranges_1, ranges_2) do
     if hd(ranges_1) != hd(ranges_2) do
       raise ArgumentError, message: "range list do not start with the same range"
