@@ -41,7 +41,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   end
 
   @spec get_condition(module, non_neg_integer) ::
-          {Macro.Env.t(), String.t(), String.t(), String.t(), non_neg_integer}
+          {Macro.Env.t(), String.t(), String.t() | nil, String.t(), non_neg_integer}
   def get_condition(name \\ __MODULE__, number) do
     GenServer.call(name, {:get_condition, number})
   end
