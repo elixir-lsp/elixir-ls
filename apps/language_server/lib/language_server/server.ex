@@ -1690,11 +1690,13 @@ defmodule ElixirLS.LanguageServer.Server do
         Map.get(state.settings || %{}, "enableTestLenses", false)
 
     if state.mix_project? and enabled? and MixProjectCache.loaded?() do
+      {:ok, umbrella?} = MixProjectCache.umbrella?()
+
       get_test_code_lenses(
         state,
         uri,
         source_file,
-        MixProjectCache.umbrella?()
+        umbrella?
       )
     else
       {:ok, []}
@@ -1711,16 +1713,23 @@ defmodule ElixirLS.LanguageServer.Server do
     file_path = SourceFile.Path.from_uri(uri)
 
     MixProjectCache.apps_paths()
-    |> Enum.find(fn {_app, app_path} -> under_app?(file_path, project_dir, app_path) end)
     |> case do
-      nil ->
+      {:error, :not_loaded} ->
         {:ok, []}
 
-      {app, app_path} ->
-        if is_test_file?(file_path, state, app, app_path) do
-          CodeLens.test_code_lens(parser_context, Path.join(project_dir, app_path))
-        else
-          {:ok, []}
+      {:ok, apps_paths} ->
+        apps_paths
+        |> Enum.find(fn {_app, app_path} -> under_app?(file_path, project_dir, app_path) end)
+        |> case do
+          nil ->
+            {:ok, []}
+
+          {app, app_path} ->
+            if is_test_file?(file_path, state, app, app_path) do
+              CodeLens.test_code_lens(parser_context, Path.join(project_dir, app_path))
+            else
+              {:ok, []}
+            end
         end
     end
   end
@@ -1764,15 +1773,20 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp is_test_file?(file_path, project_dir) do
-    config = MixProjectCache.config()
-    test_paths = config[:test_paths] || ["test"]
-    test_pattern = config[:test_pattern] || "*_test.exs"
+    case MixProjectCache.config() do
+      {:error, :not_loaded} ->
+        false
 
-    file_path = SourceFile.Path.expand(file_path, project_dir)
+      {:ok, config} ->
+        test_paths = config[:test_paths] || ["test"]
+        test_pattern = config[:test_pattern] || "*_test.exs"
 
-    Mix.Utils.extract_files(test_paths, test_pattern)
-    |> Enum.map(&SourceFile.Path.absname(&1, project_dir))
-    |> Enum.any?(&(&1 == file_path))
+        file_path = SourceFile.Path.expand(file_path, project_dir)
+
+        Mix.Utils.extract_files(test_paths, test_pattern)
+        |> Enum.map(&SourceFile.Path.absname(&1, project_dir))
+        |> Enum.any?(&(&1 == file_path))
+    end
   end
 
   defp under_app?(file_path, project_dir, app_path) do

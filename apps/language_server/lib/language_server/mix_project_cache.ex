@@ -20,17 +20,20 @@ defmodule ElixirLS.LanguageServer.MixProjectCache do
     GenServer.call(__MODULE__, :loaded?)
   end
 
-  @spec get() :: module | nil
+  @spec get() :: {:ok, module | nil} | {:error, :not_loaded}
   def get do
     GenServer.call(__MODULE__, {:get, :get})
   end
 
   @spec get!() :: module
   def get! do
-    get() || raise Mix.NoProjectError, []
+    case get() do
+      {:ok, project} when not is_nil(project) -> project
+      _ -> raise Mix.NoProjectError, []
+    end
   end
 
-  @spec project_file() :: binary | nil
+  @spec project_file() :: {:ok, binary | nil} | {:error, :not_loaded}
   def project_file() do
     GenServer.call(__MODULE__, {:get, :project_file})
   end
@@ -39,47 +42,47 @@ defmodule ElixirLS.LanguageServer.MixProjectCache do
   # @spec parent_umbrella_project_file() :: binary | nil
   # defdelegate parent_umbrella_project_file(), to: Mix.ProjectStack
 
-  @spec config() :: keyword
+  @spec config() :: {:ok, keyword} | {:error, :not_loaded}
   def config do
     GenServer.call(__MODULE__, {:get, :config})
   end
 
-  @spec config_files() :: [Path.t()]
+  @spec config_files() :: {:ok, [Path.t()]} | {:error, :not_loaded}
   def config_files do
     GenServer.call(__MODULE__, {:get, :config_files})
   end
 
-  @spec config_mtime() :: posix_mtime when posix_mtime: integer()
+  @spec config_mtime() :: {:ok, posix_mtime} | {:error, :not_loaded} when posix_mtime: integer()
   def config_mtime do
     GenServer.call(__MODULE__, {:get, :config_mtime})
   end
 
-  @spec umbrella?() :: boolean
+  @spec umbrella?() :: {:ok, boolean} | {:error, :not_loaded}
   def umbrella?() do
     GenServer.call(__MODULE__, {:get, :umbrella?})
   end
 
-  @spec apps_paths() :: %{optional(atom) => Path.t()} | nil
+  @spec apps_paths() :: {:ok, %{optional(atom) => Path.t()} | nil} | {:error, :not_loaded}
   def apps_paths() do
     GenServer.call(__MODULE__, {:get, :apps_paths})
   end
 
-  @spec deps_path() :: Path.t()
+  @spec deps_path() :: {:ok, Path.t()} | {:error, :not_loaded}
   def deps_path() do
     GenServer.call(__MODULE__, {:get, :deps_path})
   end
 
-  @spec deps_apps() :: [atom()]
+  @spec deps_apps() :: {:ok, [atom()]} | {:error, :not_loaded}
   def deps_apps() do
     GenServer.call(__MODULE__, {:get, :deps_apps})
   end
 
-  @spec deps_scms() :: %{optional(atom) => Mix.SCM.t()}
+  @spec deps_scms() :: {:ok, %{optional(atom) => Mix.SCM.t()}} | {:error, :not_loaded}
   def deps_scms() do
     GenServer.call(__MODULE__, {:get, :deps_scms})
   end
 
-  @spec deps_paths() :: %{optional(atom) => Path.t()}
+  @spec deps_paths() :: {:ok, %{optional(atom) => Path.t()}} | {:error, :not_loaded}
   def deps_paths() do
     GenServer.call(__MODULE__, {:get, :deps_paths})
   end
@@ -90,24 +93,25 @@ defmodule ElixirLS.LanguageServer.MixProjectCache do
   #   traverse_deps(opts, fn %{deps: deps} -> Enum.map(deps, & &1.app) end)
   # end
 
-  @spec build_path() :: Path.t()
+  @spec build_path() :: {:ok, Path.t()} | {:error, :not_loaded}
   def build_path() do
     GenServer.call(__MODULE__, {:get, :build_path})
   end
 
-  @spec manifest_path() :: Path.t()
+  @spec manifest_path() :: {:ok, Path.t()} | {:error, :not_loaded}
   def manifest_path() do
     GenServer.call(__MODULE__, {:get, :manifest_path})
   end
 
-  @spec app_path() :: Path.t()
+  @spec app_path() :: {:ok, Path.t()} | {:error, :not_loaded}
   def app_path() do
-    config = config()
+    {:ok, config} = config()
 
     config[:deps_app_path] ||
       cond do
         app = config[:app] ->
-          Path.join([build_path(), "lib", Atom.to_string(app)])
+          {:ok, build_path} = build_path()
+          Path.join([build_path, "lib", Atom.to_string(app)])
 
         config[:apps_path] ->
           raise "trying to access Mix.Project.app_path/1 for an umbrella project but umbrellas have no app"
@@ -121,9 +125,11 @@ defmodule ElixirLS.LanguageServer.MixProjectCache do
       end
   end
 
-  @spec compile_path() :: Path.t()
+  @spec compile_path() :: {:ok, Path.t()} | {:error, :not_loaded}
   def compile_path() do
-    Path.join(app_path(), "ebin")
+    with {:ok, app_path} <- app_path() do
+      {:ok, Path.join(app_path, "ebin")}
+    end
   end
 
   # @spec consolidation_path() :: Path.t()
@@ -168,8 +174,12 @@ defmodule ElixirLS.LanguageServer.MixProjectCache do
   end
 
   @impl GenServer
+  def handle_call({:get, _key}, _from, nil = state) do
+    {:reply, {:error, :not_loaded}, state}
+  end
+
   def handle_call({:get, key}, _from, state) do
-    {:reply, Map.fetch!(state, key), state}
+    {:reply, {:ok, Map.fetch!(state, key)}, state}
   end
 
   def handle_call({:store, state}, _from, _state) do
