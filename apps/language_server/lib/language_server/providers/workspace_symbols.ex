@@ -38,7 +38,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   ## Client API
 
-  @spec symbols(String.t()) :: {:ok, [symbol_information_t]}
+  @spec symbols(String.t(), GenServer.server()) :: {:ok, [symbol_information_t]}
   def symbols(query, server \\ __MODULE__) do
     results = query(query, server)
 
@@ -60,7 +60,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end
   end
 
-  @spec notify_uris_modified([String.t()]) :: :ok | nil
+  @spec notify_uris_modified([String.t()], GenServer.server()) :: :ok | nil
   def notify_uris_modified(uris, server \\ __MODULE__) do
     unless :persistent_term.get(:language_server_test_mode, false) and
              not :persistent_term.get(:language_server_override_test_mode, false) do
