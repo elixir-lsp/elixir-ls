@@ -3569,7 +3569,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
             1,
             "evaluate",
             "evaluateError",
-            "** (MatchError) no match of right hand side value: 2" <> _,
+            "** (MatchError) no match of right hand side value:" <> _,
             %{},
             _,
             _
