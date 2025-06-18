@@ -26,7 +26,8 @@ defmodule ElixirLS.DebugAdapter.Server do
     ModuleInfoCache,
     IdManager,
     VariableRegistry,
-    ThreadRegistry
+    ThreadRegistry,
+    ErrorDictionary
   }
 
   alias ElixirLS.DebugAdapter.Stacktrace.Frame
@@ -346,6 +347,7 @@ defmodule ElixirLS.DebugAdapter.Server do
           {:error, e = %ServerError{}} ->
             Output.send_error_response(
               packet,
+              ErrorDictionary.code(e.message),
               e.message,
               e.format,
               e.variables,
@@ -497,6 +499,7 @@ defmodule ElixirLS.DebugAdapter.Server do
       e in ServerError ->
         Output.send_error_response(
           packet,
+          ErrorDictionary.code(e.message),
           e.message,
           e.format,
           e.variables,
@@ -524,7 +527,17 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         message = Exception.format(kind, payload, stacktrace)
         Output.debugger_console(message)
-        Output.send_error_response(packet, "internalServerError", message, %{}, true, false)
+
+        Output.send_error_response(
+          packet,
+          ErrorDictionary.code("internalServerError"),
+          "internalServerError",
+          message,
+          %{},
+          true,
+          false
+        )
+
         {:noreply, state}
     end
   end
@@ -641,6 +654,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
         Output.send_error_response(
           packet,
+          ErrorDictionary.code("internalServerError"),
           "internalServerError",
           "Request handler exited with reason #{Exception.format_exit(reason)}",
           %{},
@@ -788,7 +802,16 @@ defmodule ElixirLS.DebugAdapter.Server do
         # flush as we are not interested in :DOWN message anymore
         Process.demonitor(ref, [:flush])
         Process.exit(pid, :cancelled)
-        Output.send_error_response(packet, "cancelled", "cancelled", %{}, false, false)
+
+        Output.send_error_response(
+          packet,
+          ErrorDictionary.code("cancelled"),
+          "cancelled",
+          "cancelled",
+          %{},
+          false,
+          false
+        )
 
         # send progressEnd if cancelling a progress
         updated_progresses =

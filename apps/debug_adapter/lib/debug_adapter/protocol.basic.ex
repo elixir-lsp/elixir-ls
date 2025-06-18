@@ -68,7 +68,7 @@ defmodule ElixirLS.DebugAdapter.Protocol.Basic do
         "message" => unquote(message),
         "body" => %{
           "error" => %{
-            "id" => unquote(seq),
+            "id" => ElixirLS.DebugAdapter.ErrorDictionary.code(unquote(message)),
             "format" => unquote(format),
             "variables" => unquote(variables),
             "showUser" => unquote(show_user),

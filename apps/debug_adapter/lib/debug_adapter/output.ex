@@ -24,6 +24,7 @@ defmodule ElixirLS.DebugAdapter.Output do
   def send_error_response(
         server \\ __MODULE__,
         request_packet,
+        error_code,
         message,
         format,
         variables,
@@ -32,8 +33,8 @@ defmodule ElixirLS.DebugAdapter.Output do
       ) do
     GenServer.call(
       server,
-      {:send_error_response, request_packet, message, format, variables, send_telemetry,
-       show_user},
+      {:send_error_response, request_packet, error_code, message, format, variables,
+       send_telemetry, show_user},
       :infinity
     )
   end
@@ -142,8 +143,8 @@ defmodule ElixirLS.DebugAdapter.Output do
   end
 
   def handle_call(
-        {:send_error_response, request_packet, message, format, variables, send_telemetry,
-         show_user},
+        {:send_error_response, request_packet, error_code, message, format, variables,
+         send_telemetry, show_user},
         _from,
         seq
       ) do
@@ -159,8 +160,7 @@ defmodule ElixirLS.DebugAdapter.Output do
           message: message,
           body: %{
             error: %GenDAP.Structures.Message{
-              # TODO unique ids
-              id: 1,
+              id: error_code,
               format: format,
               variables: variables,
               send_telemetry: send_telemetry,
