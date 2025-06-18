@@ -222,7 +222,6 @@ defmodule ElixirLS.LanguageServer.SourceFile do
       case format_code(spec, line_length: line_length) do
         {:ok, code} ->
           code
-          |> to_string()
 
         {:error, _} ->
           spec
@@ -322,7 +321,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   defp format_code(code, opts) do
     try do
-      {:ok, Code.format_string!(code, opts)}
+      {:ok, Code.format_string!(code, opts) |> IO.iodata_to_binary()}
     rescue
       e ->
         {:error, e}
