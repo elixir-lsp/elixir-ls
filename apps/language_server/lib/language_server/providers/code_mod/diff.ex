@@ -43,7 +43,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeMod.Diff do
          ]
        )
        when byte_size(insert_text) > 0 do
-    collapsed_edit = %TextEdit{delete_edit | new_text: insert_text}
+    collapsed_edit = %{delete_edit | new_text: insert_text}
     [collapsed_edit | rest]
   end
 
