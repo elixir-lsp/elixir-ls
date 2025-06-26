@@ -488,11 +488,12 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
                 call.mod == Kernel and 
                 call.func in [:def, :defp, :defmacro, :defmacrop]
               
-              # Exclude alias references (they have nil func)
-              is_alias_reference = call.func == nil and call.kind == :alias_reference
+              # Exclude alias references and other non-function calls
+              # Aliases have nil func, and may have various kinds like :alias, :alias_reference, etc.
+              is_non_function_call = call.func == nil
               
               !is_function_definition and
-                !is_alias_reference and
+                !is_non_function_call and
                 call_line >= start_line and 
                 (end_line == nil or call_line <= end_line)
             end)
