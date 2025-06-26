@@ -418,10 +418,13 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
   defp build_range_from_call(call) do
     {line, column} = call.position
     func_length = String.length(to_string(call.func))
+    
+    # Handle nil column
+    column = column || 1
 
     %{
-      start: %{line: line, column: column},
-      end: %{line: line, column: column + func_length}
+      start: %{line: line || 1, column: column},
+      end: %{line: line || 1, column: column + func_length}
     }
   end
 
