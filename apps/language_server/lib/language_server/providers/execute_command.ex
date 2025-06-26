@@ -11,7 +11,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     "manipulatePipes" => ExecuteCommand.ManipulatePipes,
     "restart" => ExecuteCommand.Restart,
     "mixClean" => ExecuteCommand.MixClean,
-    "getExUnitTestsInFile" => ExecuteCommand.GetExUnitTestsInFile
+    "getExUnitTestsInFile" => ExecuteCommand.GetExUnitTestsInFile,
+    "llmDefinition" => ExecuteCommand.LlmDefinition
   }
 
   @callback execute([any], %ElixirLS.LanguageServer.Server{}) ::
