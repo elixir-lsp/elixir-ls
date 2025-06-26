@@ -294,9 +294,8 @@ defmodule ElixirLS.LanguageServer.MarkdownUtilsTest do
     end
 
     test "extra page unknown app" do
-      assert MarkdownUtils.transform_ex_doc_links(
-               "[Up](e:unknown_app:foo.md)"
-             ) == "[Up](https://hexdocs.pm/unknown_app/foo.html)"
+      assert MarkdownUtils.transform_ex_doc_links("[Up](e:unknown_app:foo.md)") ==
+               "[Up](https://hexdocs.pm/unknown_app/foo.html)"
     end
 
     if System.otp_release() |> String.to_integer() >= 27 do

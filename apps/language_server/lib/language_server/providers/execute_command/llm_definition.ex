@@ -58,20 +58,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
       String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*\/\d+$/) ->
         [module_fun, arity_str] = String.split(symbol, "/")
         [module_str, function_str] = String.split(module_fun, ".", parts: 2)
-        
+
         module = Module.concat([module_str])
         function = String.to_atom(function_str)
         arity = String.to_integer(arity_str)
-        
+
         {:ok, :function, {module, function, arity}}
 
       # Function without arity: Module.function
       String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*$/) ->
         [module_str, function_str] = String.split(symbol, ".", parts: 2)
-        
+
         module = Module.concat([module_str])
         function = String.to_atom(function_str)
-        
+
         {:ok, :function, {module, function, nil}}
 
       # Module only: Module or Module.SubModule
@@ -103,9 +103,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
   defp find_definition(:function, {module, function, arity}, _state) do
     # Try to find function definition
     case Location.find_mod_fun_source(module, function, arity) do
-      %Location{} = location -> 
+      %Location{} = location ->
         {:ok, location}
-      _ -> 
+
+      _ ->
         # If arity is nil, try to find any matching function
         if arity == nil do
           case find_any_arity(module, function) do
@@ -128,82 +129,88 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
     end) || {:error, :not_found}
   end
 
-  defp read_definition_source(%Location{file: file, line: start_line, column: start_column, 
-                                       end_line: end_line, end_column: end_column}) do
+  defp read_definition_source(%Location{
+         file: file,
+         line: start_line,
+         column: start_column,
+         end_line: end_line,
+         end_column: end_column
+       }) do
     case File.read(file) do
       {:ok, content} ->
         lines = String.split(content, "\n")
-        
+
         # Extract text based on the Location range
-        extracted_text = cond do
-          # Single line extraction
-          start_line == end_line ->
-            line = Enum.at(lines, start_line - 1, "")
-            # Use the full line if columns are nil, otherwise slice
-            if start_column && end_column do
-              String.slice(line, (start_column - 1)..(end_column - 2))
-            else
-              line
-            end
-            
-          # Multi-line extraction
-          true ->
-            # Get the lines in the range (convert from 1-based to 0-based indexing)
-            extracted_lines = Enum.slice(lines, (start_line - 1)..(end_line - 1))
-            
-            # Apply column restrictions if available
-            extracted_lines = 
-              extracted_lines
-              |> Enum.with_index()
-              |> Enum.map(fn {line, idx} ->
-                cond do
-                  # First line - slice from start_column to end
-                  idx == 0 && start_column ->
-                    String.slice(line, (start_column - 1)..-1//1)
-                    
-                  # Last line - slice from beginning to end_column
-                  idx == length(extracted_lines) - 1 && end_column ->
-                    String.slice(line, 0..(end_column - 2)//1)
-                    
-                  # Middle lines - keep full line
-                  true ->
-                    line
-                end
-              end)
-            
-            Enum.join(extracted_lines, "\n")
-        end
-        
+        extracted_text =
+          cond do
+            # Single line extraction
+            start_line == end_line ->
+              line = Enum.at(lines, start_line - 1, "")
+              # Use the full line if columns are nil, otherwise slice
+              if start_column && end_column do
+                String.slice(line, (start_column - 1)..(end_column - 2))
+              else
+                line
+              end
+
+            # Multi-line extraction
+            true ->
+              # Get the lines in the range (convert from 1-based to 0-based indexing)
+              extracted_lines = Enum.slice(lines, (start_line - 1)..(end_line - 1))
+
+              # Apply column restrictions if available
+              extracted_lines =
+                extracted_lines
+                |> Enum.with_index()
+                |> Enum.map(fn {line, idx} ->
+                  cond do
+                    # First line - slice from start_column to end
+                    idx == 0 && start_column ->
+                      String.slice(line, (start_column - 1)..-1//1)
+
+                    # Last line - slice from beginning to end_column
+                    idx == length(extracted_lines) - 1 && end_column ->
+                      String.slice(line, 0..(end_column - 2)//1)
+
+                    # Middle lines - keep full line
+                    true ->
+                      line
+                  end
+                end)
+
+              Enum.join(extracted_lines, "\n")
+          end
+
         # Look for additional context (e.g., @doc, @spec) before the definition
         context_lines = extract_context(lines, start_line - 1)
-        
+
         # Combine context and definition
-        full_definition = 
+        full_definition =
           if context_lines != [] do
             Enum.join(context_lines ++ [extracted_text], "\n")
           else
             extracted_text
           end
-        
+
         # Format the result
         result = """
         # Definition found in #{file}:#{start_line}
-        
+
         #{full_definition}
         """
-        
+
         {:ok, result}
 
       {:error, reason} ->
         {:error, "Cannot read file #{file}: #{reason}"}
     end
   end
-  
+
   # Extract @doc, @spec, and other attributes before the definition
   defp extract_context(lines, start_idx) do
     # Look backwards for related attributes (up to 20 lines)
     search_start = max(0, start_idx - 20)
-    
+
     search_start..(start_idx - 1)
     |> Enum.map(fn idx -> Enum.at(lines, idx, "") end)
     |> Enum.reverse()
