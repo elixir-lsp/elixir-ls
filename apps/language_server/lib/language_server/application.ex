@@ -16,7 +16,9 @@ defmodule ElixirLS.LanguageServer.Application do
         {LanguageServer.Tracer, []},
         {LanguageServer.MixProjectCache, []},
         {LanguageServer.Parser, []},
-        {LanguageServer.ExUnitTestTracer, []}
+        {LanguageServer.ExUnitTestTracer, []},
+        # Start our simple MCP TCP server
+        {ElixirLS.LanguageServer.MCP.TCPServerV2, port: 3798}
       ]
       |> Enum.reject(&is_nil/1)
 

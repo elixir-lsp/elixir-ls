@@ -12,7 +12,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     "restart" => ExecuteCommand.Restart,
     "mixClean" => ExecuteCommand.MixClean,
     "getExUnitTestsInFile" => ExecuteCommand.GetExUnitTestsInFile,
-    "llmDefinition" => ExecuteCommand.LlmDefinition
+    "llmDefinition" => ExecuteCommand.LlmDefinition,
+    "getEnvironment" => ExecuteCommand.GetEnvironment
   }
 
   @callback execute([any], %ElixirLS.LanguageServer.Server{}) ::

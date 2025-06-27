@@ -51,7 +51,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
     cond do
       # Erlang module format :module
       String.starts_with?(symbol, ":") ->
-        module_atom = String.slice(symbol, 1..-1) |> String.to_atom()
+        module_atom = String.slice(symbol, 1..-1//-1) |> String.to_atom()
         {:ok, :erlang_module, module_atom}
 
       # Function with arity: Module.function/arity
