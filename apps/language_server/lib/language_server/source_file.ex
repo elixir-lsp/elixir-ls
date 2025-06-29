@@ -246,11 +246,16 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
       if mix_project? do
         if MixProjectCache.loaded?() do
+          {:ok, deps_paths} = MixProjectCache.deps_paths()
+          {:ok, manifest_path} = MixProjectCache.manifest_path()
+          {:ok, config_mtime} = MixProjectCache.config_mtime()
+          {:ok, mix_project} = MixProjectCache.get()
+
           opts = [
-            deps_paths: MixProjectCache.deps_paths(),
-            manifest_path: MixProjectCache.manifest_path(),
-            config_mtime: MixProjectCache.config_mtime(),
-            mix_project: MixProjectCache.get(),
+            deps_paths: deps_paths,
+            manifest_path: manifest_path,
+            config_mtime: config_mtime,
+            mix_project: mix_project,
             root: project_dir,
             plugin_loader: fn plugins ->
               for plugin <- plugins do

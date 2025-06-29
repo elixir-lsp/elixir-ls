@@ -2253,6 +2253,24 @@ defmodule ElixirLS.LanguageServer.ServerTest do
     end
   end
 
+  describe "MixProjectCache not loaded" do
+    @tag :fixture
+    test "code lens request before project load returns empty list", %{server: server} do
+      in_fixture(__DIR__, "no_mixfile", fn ->
+        initialize(server, %{"enableTestLenses" => true, "dialyzerEnabled" => false})
+
+        file_path = "a.ex"
+        file_uri = SourceFile.Path.to_uri(file_path)
+        text = File.read!(file_path)
+
+        Server.receive_packet(server, did_open(file_uri, "elixir", 1, text))
+        Server.receive_packet(server, code_lens_req(4, file_uri))
+
+        assert_receive(%{"id" => 4, "result" => []}, 1000)
+      end)
+    end
+  end
+
   defp with_new_server(packet_capture, func) do
     server = start_supervised!({Server, nil})
     {:ok, mix_project} = start_supervised(MixProjectCache)
