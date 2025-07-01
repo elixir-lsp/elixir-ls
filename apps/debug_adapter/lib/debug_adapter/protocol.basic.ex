@@ -61,8 +61,8 @@ defmodule ElixirLS.DebugAdapter.Protocol.Basic do
     message_value = Macro.expand_once(message, __CALLER__)
     error_id =
       case message_value do
-        value when is_binary(value) -> ErrorDictionary.code(value)
-        _ -> quote(do: ErrorDictionary.code(unquote(message)))
+        value when is_binary(value) -> ElixirLS.DebugAdapter.ErrorDictionary.code(value)
+        _ -> quote(do: ElixirLS.DebugAdapter.ErrorDictionary.code(unquote(message)))
       end
 
     quote do
