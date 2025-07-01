@@ -58,6 +58,13 @@ defmodule ElixirLS.DebugAdapter.Protocol.Basic do
              send_telemetry,
              show_user
            ) do
+    message_value = Macro.expand_once(message, __CALLER__)
+    error_id =
+      case message_value do
+        value when is_binary(value) -> ElixirLS.DebugAdapter.ErrorDictionary.code(value)
+        _ -> quote(do: ElixirLS.DebugAdapter.ErrorDictionary.code(unquote(message)))
+      end
+
     quote do
       %{
         "type" => "response",
@@ -68,7 +75,7 @@ defmodule ElixirLS.DebugAdapter.Protocol.Basic do
         "message" => unquote(message),
         "body" => %{
           "error" => %{
-            "id" => unquote(seq),
+            "id" => unquote(error_id),
             "format" => unquote(format),
             "variables" => unquote(variables),
             "showUser" => unquote(show_user),
