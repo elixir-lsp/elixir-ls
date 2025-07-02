@@ -68,5 +68,11 @@ defmodule ElixirLS.DebugAdapter.UtilsTest do
       assert 6 == Utils.dap_character_to_elixir("Hello 🙌 World", 7)
       assert 7 == Utils.dap_character_to_elixir("Hello 🙌 World", 8)
     end
+
+    test "dap_character_to_elixir invalid utf8" do
+      assert_raise ArgumentError, ~r/could not convert characters/, fn ->
+        Utils.dap_character_to_elixir(<<0x80>>, 1)
+      end
+    end
   end
 end
