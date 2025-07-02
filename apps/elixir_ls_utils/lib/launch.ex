@@ -36,10 +36,10 @@ defmodule ElixirLS.Utils.Launch do
 
   def get_versions do
     %{
-      current_elixir_version: inspect(System.build_info()[:build]),
-      current_otp_version: inspect(System.otp_release()),
-      compile_elixir_version: inspect(@compiled_elixir_version),
-      compile_otp_version: inspect(@compiled_otp_version)
+      current_elixir_version: to_string(System.build_info()[:build]),
+      current_otp_version: to_string(System.otp_release()),
+      compile_elixir_version: to_string(@compiled_elixir_version),
+      compile_otp_version: to_string(@compiled_otp_version)
     }
   end
 
