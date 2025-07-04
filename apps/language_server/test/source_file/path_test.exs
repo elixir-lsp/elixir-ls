@@ -191,4 +191,18 @@ defmodule ElixirLS.LanguageServer.SourceFile.PathTest do
       end
     end
   end
+
+  describe "path_in_dir?/2" do
+    test "matches regardless of trailing slash" do
+      assert path_in_dir?("/foo/bar.ex", "/foo")
+      assert path_in_dir?("/foo/bar.ex", "/foo/")
+      assert path_in_dir?("c:/foo/bar.ex", "c:/foo")
+      assert path_in_dir?("c:/foo/bar.ex", "c:/foo/")
+    end
+
+    test "non-matching paths" do
+      refute path_in_dir?("/foobar/baz.ex", "/foo")
+      refute path_in_dir?("/foobar/baz.ex", "/foo/")
+    end
+  end
 end
