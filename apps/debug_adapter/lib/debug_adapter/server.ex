@@ -2942,10 +2942,19 @@ defmodule ElixirLS.DebugAdapter.Server do
     rescue
       ArgumentError ->
         # remote process
-        process_name_from_snapshot(Map.fetch!(snapshot_by_pid, pid))
+        case Map.get(snapshot_by_pid, pid) do
+          nil -> nil
+          snapshot -> process_name_from_snapshot(snapshot)
+        end
     else
-      nil -> nil
-      process_info -> process_name_from_info(process_info)
+      nil ->
+        case Map.get(snapshot_by_pid, pid) do
+          nil -> nil
+          snapshot -> process_name_from_snapshot(snapshot)
+        end
+
+      process_info ->
+        process_name_from_info(process_info)
     end
   end
 
