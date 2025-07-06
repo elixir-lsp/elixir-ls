@@ -168,6 +168,10 @@ defmodule ElixirLS.LanguageServer.MixProjectCache do
   end
 
   @impl GenServer
+  def handle_call({:get, key}, _from, nil) do
+    {:reply, nil, nil}
+  end
+
   def handle_call({:get, key}, _from, state) do
     {:reply, Map.fetch!(state, key), state}
   end
