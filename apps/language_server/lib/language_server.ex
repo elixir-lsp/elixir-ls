@@ -143,16 +143,23 @@ defmodule ElixirLS.LanguageServer do
     enum_ex_path = Enum.module_info()[:compile][:source]
 
     elixir_sources_available =
-      unless File.exists?(enum_ex_path, [:raw]) do
-        dir = Path.join(enum_ex_path, "../../../..") |> Path.expand()
+      cond do
+        is_nil(enum_ex_path) ->
+          Logger.notice("Elixir sources not found. Code navigation to Elixir modules disabled.")
 
-        Logger.notice(
-          "Elixir sources not found (checking in #{dir}). Code navigation to Elixir modules disabled."
-        )
+          false
 
-        false
-      else
-        true
+        File.exists?(enum_ex_path, [:raw]) ->
+          dir = Path.join(enum_ex_path, "../../../..") |> Path.expand()
+
+          Logger.notice(
+            "Elixir sources not found (checking in #{dir}). Code navigation to Elixir modules disabled."
+          )
+
+          false
+
+        :otherwise ->
+          true
       end
 
     JsonRpc.telemetry(
