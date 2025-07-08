@@ -13,7 +13,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     "mixClean" => ExecuteCommand.MixClean,
     "getExUnitTestsInFile" => ExecuteCommand.GetExUnitTestsInFile,
     "llmDefinition" => ExecuteCommand.LlmDefinition,
-    "getEnvironment" => ExecuteCommand.GetEnvironment
+    "getEnvironment" => ExecuteCommand.GetEnvironment,
+    "getModuleDependencies" => ExecuteCommand.GetModuleDependencies,
+    "llmImplementationFinder" => ExecuteCommand.LlmImplementationFinder,
+    "llmDocsAggregator" => ExecuteCommand.LlmDocsAggregator,
+    "llmTypeInfo" => ExecuteCommand.LlmTypeInfo
   }
 
   @callback execute([any], %ElixirLS.LanguageServer.Server{}) ::
