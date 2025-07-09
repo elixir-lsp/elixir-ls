@@ -33,8 +33,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
           _ -> Module.concat([module_name])
         end
       
-      Logger.debug("Processing module: #{inspect(module)} from name: #{module_name}")
-      
       # Ensure module is loaded and compiled
       case Code.ensure_compiled(module) do
         {:module, actual_module} ->
