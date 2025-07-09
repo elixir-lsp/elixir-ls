@@ -38,8 +38,6 @@ defmodule ElixirLS.Utils.PacketStream do
           :ok
 
         {:error, reason} ->
-          "Unable to read from input device: #{inspect(reason)}"
-
           error_message =
             unless Process.alive?(pid) do
               receive do
