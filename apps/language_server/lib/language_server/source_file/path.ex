@@ -147,6 +147,8 @@ defmodule ElixirLS.LanguageServer.SourceFile.Path do
 
   # This function expects absolute paths with universal separators
   def path_in_dir?(file, dir) do
+    dir = if dir == "/", do: "/", else: String.trim_trailing(dir, "/")
+
     case String.starts_with?(file, dir) do
       true ->
         # Get the grapheme after the directory in the file path
