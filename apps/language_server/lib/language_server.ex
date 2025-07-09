@@ -143,8 +143,9 @@ defmodule ElixirLS.LanguageServer do
     enum_ex_path = Enum.module_info()[:compile][:source]
 
     elixir_sources_available =
-      unless File.exists?(enum_ex_path, [:raw]) do
-        dir = Path.join(enum_ex_path, "../../../..") |> Path.expand()
+      # handle possible nil from deterministic build of elixir
+      unless enum_ex_path && File.exists?(enum_ex_path, [:raw]) do
+        dir = (enum_ex_path || ~c"/") |> Path.join("../../../..") |> Path.expand()
 
         Logger.notice(
           "Elixir sources not found (checking in #{dir}). Code navigation to Elixir modules disabled."
