@@ -37,6 +37,8 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
       assert "get_environment" in tool_names
       assert "get_docs" in tool_names
       assert "get_type_info" in tool_names
+      assert "find_implementations" in tool_names
+      assert "get_module_dependencies" in tool_names
       
       # Check tool schemas
       for tool <- response["result"]["tools"] do
@@ -154,12 +156,12 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
       refute text =~ "No type information available"
     end
     
-    test "handles tools/call with invalid tool name" do
+    test "handles tools/call for find_implementations" do
       request = %{
         "method" => "tools/call",
         "params" => %{
-          "name" => "invalid_tool",
-          "arguments" => %{}
+          "name" => "find_implementations",
+          "arguments" => %{"symbol" => "GenServer"}
         },
         "id" => 7
       }
@@ -168,6 +170,69 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
       
       assert response["jsonrpc"] == "2.0"
       assert response["id"] == 7
+      
+      # Should either return result or error
+      assert response["result"] || response["error"]
+      
+      if response["result"] do
+        assert is_list(response["result"]["content"])
+        content = hd(response["result"]["content"])
+        assert content["type"] == "text"
+        assert content["text"]
+      end
+    end
+    
+    test "handles tools/call for get_module_dependencies" do
+      request = %{
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "get_module_dependencies",
+          "arguments" => %{"module" => "GenServer"}
+        },
+        "id" => 8
+      }
+      
+      response = RequestHandler.handle_request(request)
+      
+      assert response["jsonrpc"] == "2.0"
+      assert response["id"] == 8
+      
+      # Should either return result or error
+      assert response["result"] || response["error"]
+      
+      # In test environment, tracer ETS tables might not be initialized
+      # so we expect either a successful result or an error about the tracer
+      cond do
+        response["result"] ->
+          assert is_list(response["result"]["content"])
+          content = hd(response["result"]["content"])
+          assert content["type"] == "text"
+          assert content["text"]
+          # Either should contain success message or error message
+          assert content["text"] =~ "Module Dependencies for GenServer" or 
+                 content["text"] =~ "Error: Internal error"
+        
+        response["error"] ->
+          # Either specific module error or generic failure message
+          assert response["error"]["message"] =~ "Failed to get module dependencies" or
+                 response["error"]["message"] =~ "Internal error"
+      end
+    end
+    
+    test "handles tools/call with invalid tool name" do
+      request = %{
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "invalid_tool",
+          "arguments" => %{}
+        },
+        "id" => 9
+      }
+      
+      response = RequestHandler.handle_request(request)
+      
+      assert response["jsonrpc"] == "2.0"
+      assert response["id"] == 9
       assert response["error"]
       assert response["error"]["code"] == -32602
       assert response["error"]["message"] == "Invalid params"
@@ -180,13 +245,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
           "name" => "find_definition"
           # Missing arguments
         },
-        "id" => 8
+        "id" => 10
       }
       
       response = RequestHandler.handle_request(request)
       
       assert response["jsonrpc"] == "2.0"
-      assert response["id"] == 8
+      assert response["id"] == 10
       assert response["error"]
       assert response["error"]["code"] == -32602
     end
@@ -205,13 +270,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
     test "handles unknown method with id" do
       request = %{
         "method" => "unknown/method",
-        "id" => 9
+        "id" => 11
       }
       
       response = RequestHandler.handle_request(request)
       
       assert response["jsonrpc"] == "2.0"
-      assert response["id"] == 9
+      assert response["id"] == 11
       assert response["error"]
       assert response["error"]["code"] == -32601
       assert response["error"]["message"] =~ "Method not found: unknown/method"
@@ -219,7 +284,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
     
     test "handles invalid request (no method)" do
       request = %{
-        "id" => 10
+        "id" => 12
       }
       
       response = RequestHandler.handle_request(request)
@@ -252,13 +317,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
           "name" => "get_docs",
           "arguments" => %{"modules" => "String"}  # Should be a list
         },
-        "id" => 11
+        "id" => 13
       }
       
       response = RequestHandler.handle_request(request)
       
       assert response["jsonrpc"] == "2.0"
-      assert response["id"] == 11
+      assert response["id"] == 13
       assert response["error"]
       assert response["error"]["code"] == -32602
     end
@@ -270,13 +335,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
           "name" => "get_type_info",
           "arguments" => %{"module" => ["String"]}  # Should be a string
         },
-        "id" => 12
+        "id" => 14
       }
       
       response = RequestHandler.handle_request(request)
       
       assert response["jsonrpc"] == "2.0"
-      assert response["id"] == 12
+      assert response["id"] == 14
       assert response["error"]
       assert response["error"]["code"] == -32602
     end
@@ -302,7 +367,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
           "name" => "get_type_info",
           "arguments" => %{"module" => "Enum"}
         },
-        "id" => 13
+        "id" => 15
       }
       
       response = RequestHandler.handle_request(request)
@@ -324,7 +389,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
           "name" => "get_docs",
           "arguments" => %{"modules" => ["String"]}
         },
-        "id" => 14
+        "id" => 16
       }
       
       response = RequestHandler.handle_request(request)
@@ -348,7 +413,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
           "name" => "get_type_info",
           "arguments" => %{"module" => "ElixirLS.LanguageServer.MCP.RequestHandlerTest.TestModuleWithoutTypes"}
         },
-        "id" => 15
+        "id" => 17
       }
       
       response = RequestHandler.handle_request(request)

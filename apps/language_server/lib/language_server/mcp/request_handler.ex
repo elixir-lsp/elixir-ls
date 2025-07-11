@@ -10,7 +10,9 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.{
     LlmDocsAggregator,
     LlmTypeInfo,
-    LlmDefinition
+    LlmDefinition,
+    LlmImplementationFinder,
+    LlmModuleDependencies
   }
 
   @doc """
@@ -133,6 +135,34 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
               },
               "required" => ["module"]
             }
+          },
+          %{
+            "name" => "find_implementations",
+            "description" => "Find implementations of behaviours, protocols, and defdelegate targets",
+            "inputSchema" => %{
+              "type" => "object",
+              "properties" => %{
+                "symbol" => %{
+                  "type" => "string",
+                  "description" => "The symbol to find implementations for"
+                }
+              },
+              "required" => ["symbol"]
+            }
+          },
+          %{
+            "name" => "get_module_dependencies",
+            "description" => "Get module dependency information including direct dependencies, reverse dependencies, and transitive dependencies",
+            "inputSchema" => %{
+              "type" => "object",
+              "properties" => %{
+                "module" => %{
+                  "type" => "string",
+                  "description" => "The module name to get dependencies for"
+                }
+              },
+              "required" => ["module"]
+            }
           }
         ]
       },
@@ -153,6 +183,12 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
         
       %{"name" => "get_type_info", "arguments" => %{"module" => module}} when is_binary(module) ->
         handle_get_type_info(module, id)
+        
+      %{"name" => "find_implementations", "arguments" => %{"symbol" => symbol}} when is_binary(symbol) ->
+        handle_find_implementations(symbol, id)
+        
+      %{"name" => "get_module_dependencies", "arguments" => %{"module" => module}} when is_binary(module) ->
+        handle_get_module_dependencies(module, id)
         
       _ ->
         %{
@@ -282,6 +318,86 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           "error" => %{
             "code" => -32603,
             "message" => "Failed to get type information"
+          },
+          "id" => id
+        }
+    end
+  end
+
+  defp handle_find_implementations(symbol, id) do
+    case LlmImplementationFinder.execute([symbol], %{}) do
+      {:ok, %{implementations: implementations}} ->
+        text = format_implementations_result(implementations)
+        
+        %{
+          "jsonrpc" => "2.0",
+          "result" => %{
+            "content" => [
+              %{
+                "type" => "text",
+                "text" => text
+              }
+            ]
+          },
+          "id" => id
+        }
+        
+      {:ok, %{error: error}} ->
+        %{
+          "jsonrpc" => "2.0",
+          "error" => %{
+            "code" => -32603,
+            "message" => error
+          },
+          "id" => id
+        }
+        
+      _ ->
+        %{
+          "jsonrpc" => "2.0",
+          "error" => %{
+            "code" => -32603,
+            "message" => "Failed to find implementations"
+          },
+          "id" => id
+        }
+    end
+  end
+
+  defp handle_get_module_dependencies(module, id) do
+    case LlmModuleDependencies.execute([module], %{}) do
+      {:ok, %{error: error}} ->
+        %{
+          "jsonrpc" => "2.0",
+          "error" => %{
+            "code" => -32603,
+            "message" => error
+          },
+          "id" => id
+        }
+        
+      {:ok, result} ->
+        text = format_module_dependencies_result(result)
+        
+        %{
+          "jsonrpc" => "2.0",
+          "result" => %{
+            "content" => [
+              %{
+                "type" => "text",
+                "text" => text
+              }
+            ]
+          },
+          "id" => id
+        }
+        
+      _ ->
+        %{
+          "jsonrpc" => "2.0",
+          "error" => %{
+            "code" => -32603,
+            "message" => "Failed to get module dependencies"
           },
           "id" => id
         }
@@ -446,5 +562,219 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
       end
 
     Enum.join(parts, "\n")
+  end
+
+  defp format_implementations_result(implementations) do
+    if Enum.empty?(implementations) do
+      "No implementations found."
+    else
+      header = "# Implementations Found\n\n"
+      
+      implementations_text = implementations
+      |> Enum.map(&format_single_implementation/1)
+      |> Enum.join("\n\n")
+      
+      header <> implementations_text
+    end
+  end
+
+  defp format_single_implementation(impl) do
+    case impl do
+      %{error: error} ->
+        "Error: #{error}"
+      
+      %{module: module, function: function, arity: arity, file: file, line: line} ->
+        """
+        ## #{module}.#{function}/#{arity}
+        
+        **Location**: #{file}:#{line}
+        """
+      
+      %{module: module, file: file, line: line} ->
+        """
+        ## #{module}
+        
+        **Location**: #{file}:#{line}
+        """
+      
+      _ ->
+        "Unknown implementation format: #{inspect(impl)}"
+    end
+  end
+
+  defp format_module_dependencies_result(%{error: error}) do
+    "Error: #{error}"
+  end
+
+  defp format_module_dependencies_result(result) do
+    header = "# Module Dependencies for #{result.module}\n\n"
+    
+    parts = [header]
+    
+    # Add location if available
+    parts = if result[:location] do
+      parts ++ ["**Location**: #{result.location.uri}\n"]
+    else
+      parts
+    end
+    
+    # Direct dependencies
+    parts = if has_dependencies?(result.direct_dependencies) do
+      parts ++ [
+        "## Direct Dependencies\n",
+        format_dependency_section(result.direct_dependencies),
+        "\n"
+      ]
+    else
+      parts
+    end
+    
+    # Reverse dependencies
+    parts = if has_dependencies?(result.reverse_dependencies) do
+      parts ++ [
+        "## Reverse Dependencies (Modules that depend on this module)\n",
+        format_dependency_section(result.reverse_dependencies),
+        "\n"
+      ]
+    else
+      parts
+    end
+    
+    # Transitive dependencies
+    parts = if result[:transitive_dependencies] && !Enum.empty?(result.transitive_dependencies) do
+      parts ++ [
+        "## Transitive Dependencies\n",
+        format_module_list_section(result.transitive_dependencies),
+        "\n"
+      ]
+    else
+      parts
+    end
+    
+    # Reverse transitive dependencies
+    parts = if result[:reverse_transitive_dependencies] && !Enum.empty?(result.reverse_transitive_dependencies) do
+      parts ++ [
+        "## Reverse Transitive Dependencies\n",
+        format_module_list_section(result.reverse_transitive_dependencies),
+        "\n"
+      ]
+    else
+      parts
+    end
+    
+    # Show empty state if no dependencies
+    if length(parts) == 1 do
+      parts ++ ["This module has no tracked dependencies."]
+    else
+      parts
+    end
+    |> Enum.join("")
+  end
+
+  defp has_dependencies?(deps) do
+    case deps do
+      %{compile_dependencies: compile, runtime_dependencies: runtime, exports_dependencies: exports} ->
+        !Enum.empty?(compile) || !Enum.empty?(runtime) || !Enum.empty?(exports)
+      _ ->
+        false
+    end
+  end
+
+  defp format_dependency_section(deps) do
+    sections = []
+    
+    sections = if deps.compile_dependencies && !Enum.empty?(deps.compile_dependencies) do
+      sections ++ [
+        "### Compile-time Dependencies\n",
+        format_module_list_section(deps.compile_dependencies),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    sections = if deps.runtime_dependencies && !Enum.empty?(deps.runtime_dependencies) do
+      sections ++ [
+        "### Runtime Dependencies\n",
+        format_module_list_section(deps.runtime_dependencies),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    sections = if deps.exports_dependencies && !Enum.empty?(deps.exports_dependencies) do
+      sections ++ [
+        "### Export Dependencies\n",
+        format_module_list_section(deps.exports_dependencies),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    sections = if deps.imports && !Enum.empty?(deps.imports) do
+      sections ++ [
+        "### Imports\n",
+        format_function_list_section(deps.imports),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    sections = if deps.function_calls && !Enum.empty?(deps.function_calls) do
+      sections ++ [
+        "### Function Calls\n",
+        format_function_list_section(deps.function_calls),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    sections = if deps.aliases && !Enum.empty?(deps.aliases) do
+      sections ++ [
+        "### Aliases\n",
+        format_module_list_section(deps.aliases),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    sections = if deps.requires && !Enum.empty?(deps.requires) do
+      sections ++ [
+        "### Requires\n",
+        format_module_list_section(deps.requires),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    sections = if deps.struct_expansions && !Enum.empty?(deps.struct_expansions) do
+      sections ++ [
+        "### Struct Expansions\n",
+        format_module_list_section(deps.struct_expansions),
+        "\n"
+      ]
+    else
+      sections
+    end
+    
+    Enum.join(sections, "")
+  end
+
+  defp format_module_list_section(modules) when is_list(modules) do
+    modules
+    |> Enum.map(&"- #{&1}")
+    |> Enum.join("\n")
+  end
+
+  defp format_function_list_section(functions) when is_list(functions) do
+    functions
+    |> Enum.map(&"- #{&1}")
+    |> Enum.join("\n")
   end
 end
