@@ -5,7 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
   """
 
   alias ElixirLS.LanguageServer.Location
-  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserV2
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
 
   require Logger
 
@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
   def execute([symbol], state) when is_binary(symbol) do
     try do
       # Parse the symbol to determine type
-      case SymbolParserV2.parse(symbol) do
+      case SymbolParser.parse(symbol) do
         {:ok, type, parsed} ->
           # Find the definition
           case find_definition(type, parsed, state) do

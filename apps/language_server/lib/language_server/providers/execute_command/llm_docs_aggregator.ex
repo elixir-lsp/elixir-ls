@@ -12,7 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   alias ElixirSense.Core.BuiltinFunctions
   alias ElixirSense.Core.BuiltinTypes
   alias ElixirSense.Core.BuiltinAttributes
-  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserV2
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
 
   require Logger
 
@@ -22,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   def execute([modules], _state) when is_list(modules) do
     try do
       results = Enum.map(modules, fn module_name ->
-        case SymbolParserV2.parse(module_name) do
+        case SymbolParser.parse(module_name) do
           {:ok, type, parsed} ->
             case get_documentation(type, parsed) do
               {:ok, docs} ->

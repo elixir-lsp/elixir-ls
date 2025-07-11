@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserV2 do
+defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
   @moduledoc """
   Symbol parser V2 using Code.Fragment.cursor_context/2.
   

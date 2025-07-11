@@ -10,7 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   alias ElixirSense.Core.Normalized.Typespec
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.TypeInfo
-  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserV2
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
   require Logger
 
   @doc """
@@ -26,7 +26,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   """
   def execute([symbol_name], state) when is_binary(symbol_name) do
     try do
-      case SymbolParserV2.parse(symbol_name) do
+      case SymbolParser.parse(symbol_name) do
         {:ok, symbol_type, parsed} ->
           case extract_type_info_for_symbol(symbol_type, parsed, state) do
             {:ok, type_info} -> {:ok, type_info}
