@@ -20,11 +20,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
   def execute([module_name], state) when is_binary(module_name) do
     try do
       module = parse_module_name(module_name)
-      
-      case get_module_dependencies(module, state) do
-        {:ok, deps} -> {:ok, deps}
-        {:error, reason} -> {:ok, %{error: reason}}
-      end
+      get_module_dependencies(module, state)
     rescue
       error ->
         Logger.error("Error in llmModuleDependencies: #{inspect(error)}")
