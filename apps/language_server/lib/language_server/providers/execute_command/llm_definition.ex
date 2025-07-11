@@ -5,6 +5,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
   """
 
   alias ElixirLS.LanguageServer.Location
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserV2
 
   require Logger
 
@@ -14,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
   def execute([symbol], state) when is_binary(symbol) do
     try do
       # Parse the symbol to determine type
-      case parse_symbol(symbol) do
+      case SymbolParserV2.parse(symbol) do
         {:ok, type, parsed} ->
           # Find the definition
           case find_definition(type, parsed, state) do
@@ -33,7 +34,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
           end
 
         {:error, reason} ->
-          {:ok, %{error: "Invalid symbol format: #{reason}"}}
+          {:ok, %{error: reason}}
       end
     rescue
       error ->
@@ -46,44 +47,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
     {:ok, %{error: "Invalid arguments: expected [symbol_string]"}}
   end
 
-  # Parse symbol strings like "MyModule", "MyModule.my_function", "MyModule.my_function/2"
-  defp parse_symbol(symbol) do
-    cond do
-      # Erlang module format :module
-      String.starts_with?(symbol, ":") ->
-        module_atom = String.slice(symbol, 1..-1//-1) |> String.to_atom()
-        {:ok, :erlang_module, module_atom}
-
-      # Function with arity: Module.function/arity
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*\/\d+$/) ->
-        [module_fun, arity_str] = String.split(symbol, "/")
-        [module_str, function_str] = String.split(module_fun, ".", parts: 2)
-
-        module = Module.concat([module_str])
-        function = String.to_atom(function_str)
-        arity = String.to_integer(arity_str)
-
-        {:ok, :function, {module, function, arity}}
-
-      # Function without arity: Module.function
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*$/) ->
-        [module_str, function_str] = String.split(symbol, ".", parts: 2)
-
-        module = Module.concat([module_str])
-        function = String.to_atom(function_str)
-
-        {:ok, :function, {module, function, nil}}
-
-      # Module only: Module or Module.SubModule
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*$/) ->
-        module = Module.concat(String.split(symbol, "."))
-        {:ok, :module, module}
-
-      true ->
-        {:error, "Unrecognized symbol format"}
-    end
-  end
-
   defp find_definition(:module, module, _state) do
     # Try to find module definition
     case Location.find_mod_fun_source(module, nil, nil) do
@@ -92,16 +55,29 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
     end
   end
 
-  defp find_definition(:erlang_module, module, _state) do
-    # Try to find Erlang module
-    case Location.find_mod_fun_source(module, nil, nil) do
-      %Location{} = location -> {:ok, location}
-      _ -> {:error, "Erlang module #{inspect(module)} not found"}
+  defp find_definition(:local_call, {function, arity}, _state) do
+    # For local calls, try Kernel import first, then builtin type
+    # Try Kernel function/macro first
+    case Location.find_mod_fun_source(Kernel, function, arity) do
+      %Location{} = location ->
+        {:ok, location}
+
+      _ ->
+        # If arity is nil, try to find any matching Kernel function
+        if arity == nil do
+          case find_any_arity(Kernel, function) do
+            {:ok, location} -> {:ok, location}
+            _ -> try_builtin_type(function)
+          end
+        else
+          try_builtin_type(function)
+        end
     end
   end
 
-  defp find_definition(:function, {module, function, arity}, _state) do
-    # Try to find function definition
+  defp find_definition(:remote_call, {module, function, arity}, _state) do
+    # For remote calls, try function/macro first, then type
+    # Try function/macro first
     case Location.find_mod_fun_source(module, function, arity) do
       %Location{} = location ->
         {:ok, location}
@@ -111,11 +87,46 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
         if arity == nil do
           case find_any_arity(module, function) do
             {:ok, location} -> {:ok, location}
-            _ -> {:error, "Function #{module}.#{function} not found"}
+            _ -> try_type_definition(module, function)
           end
         else
-          {:error, "Function #{module}.#{function}/#{arity} not found"}
+          try_type_definition(module, function)
         end
+    end
+  end
+
+  defp find_definition(:attribute, attribute, _state) do
+    # Module attributes don't have specific definitions, return info about the attribute
+    {:error, "Module attribute @#{attribute} - attributes are defined within modules"}
+  end
+
+  defp try_builtin_type(function) do
+    # Try to find builtin type definitions
+    # Most builtin types are documented in the basic types section
+    case function do
+      :atom -> {:error, "atom() is a builtin type - see Elixir documentation for basic types"}
+      :binary -> {:error, "binary() is a builtin type - see Elixir documentation for basic types"}
+      :boolean -> {:error, "boolean() is a builtin type - see Elixir documentation for basic types"}
+      :integer -> {:error, "integer() is a builtin type - see Elixir documentation for basic types"}
+      :float -> {:error, "float() is a builtin type - see Elixir documentation for basic types"}
+      :list -> {:error, "list() is a builtin type - see Elixir documentation for basic types"}
+      :map -> {:error, "map() is a builtin type - see Elixir documentation for basic types"}
+      :tuple -> {:error, "tuple() is a builtin type - see Elixir documentation for basic types"}
+      :pid -> {:error, "pid() is a builtin type - see Elixir documentation for basic types"}
+      :port -> {:error, "port() is a builtin type - see Elixir documentation for basic types"}
+      :reference -> {:error, "reference() is a builtin type - see Elixir documentation for basic types"}
+      :fun -> {:error, "fun() is a builtin type - see Elixir documentation for basic types"}
+      _ -> {:error, "Local call #{function} not found in Kernel and not a builtin type"}
+    end
+  end
+
+  defp try_type_definition(module, type_name) do
+    # For types, try to find the module and look for type definitions there
+    case Location.find_mod_fun_source(module, nil, nil) do
+      %Location{} = location -> 
+        # Return the module location - the type definition will be found within the module
+        {:ok, location}
+      _ -> {:error, "Type #{module}.#{type_name} not found - module #{inspect(module)} not found"}
     end
   end
 
@@ -211,7 +222,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
     # Look backwards for related attributes (up to 20 lines)
     search_start = max(0, start_idx - 20)
 
-    search_start..(start_idx - 1)
+    search_start..(start_idx - 1)//1
     |> Enum.map(fn idx -> Enum.at(lines, idx, "") end)
     |> Enum.reverse()
     |> Enum.take_while(fn line ->

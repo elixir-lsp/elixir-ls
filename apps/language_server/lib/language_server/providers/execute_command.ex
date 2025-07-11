@@ -13,8 +13,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand do
     "mixClean" => ExecuteCommand.MixClean,
     "getExUnitTestsInFile" => ExecuteCommand.GetExUnitTestsInFile,
     "llmDefinition" => ExecuteCommand.LlmDefinition,
-    "getEnvironment" => ExecuteCommand.GetEnvironment,
-    "getModuleDependencies" => ExecuteCommand.GetModuleDependencies,
+    "llmEnvironment" => ExecuteCommand.LlmEnvironment,
+    "llmModuleDependencies" => ExecuteCommand.LlmModuleDependencies,
     "llmImplementationFinder" => ExecuteCommand.LlmImplementationFinder,
     "llmDocsAggregator" => ExecuteCommand.LlmDocsAggregator,
     "llmTypeInfo" => ExecuteCommand.LlmTypeInfo

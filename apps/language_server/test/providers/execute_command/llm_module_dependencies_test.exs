@@ -1,7 +1,7 @@
-defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependenciesTest do
+defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependenciesTest do
   use ExUnit.Case, async: false
 
-  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Test.FixtureHelpers
   alias ElixirLS.LanguageServer.Tracer
@@ -40,7 +40,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
     test "returns direct dependencies for a module" do
       state = %{source_files: %{}}
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
       
       assert result.module == "ElixirLS.Test.ModuleDepsA"
 
@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
     test "returns reverse dependencies" do
       state = %{source_files: %{}}
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsC"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsC"], state)
       
       assert result.module == "ElixirLS.Test.ModuleDepsC"
 
@@ -112,7 +112,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
     test "returns transitive compile dependencies" do
       state = %{source_files: %{}}
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
       
       # ModuleDepsA compile depends on B and C
       # B depends on E
@@ -127,7 +127,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
     test "returns reverse transitive compile dependencies" do
       state = %{source_files: %{}}
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsE"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsE"], state)
       
       # ModuleDepsA compile depends on B and C
       # B depends on E
@@ -143,7 +143,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
       state = %{source_files: %{}}
       
       # Test with :erlang module
-      assert {:ok, result} = GetModuleDependencies.execute([":erlang"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute([":erlang"], state)
       assert result.module == ":erlang"
       
       # Should have reverse dependencies from modules using :erlang
@@ -161,7 +161,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
       ]
       
       for {input, expected} <- test_cases do
-        assert {:ok, result} = GetModuleDependencies.execute([input], state)
+        assert {:ok, result} = LlmModuleDependencies.execute([input], state)
         assert result.module == expected
       end
     end
@@ -169,24 +169,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
     test "returns error for invalid module name" do
       state = %{source_files: %{}}
       
-      assert {:ok, %{error: error}} = GetModuleDependencies.execute(["NonExistentModule"], state)
+      assert {:ok, %{error: error}} = LlmModuleDependencies.execute(["NonExistentModule"], state)
       assert error =~ "Internal error"
     end
     
     test "returns error for invalid arguments" do
       state = %{source_files: %{}}
       
-      assert {:ok, %{error: error}} = GetModuleDependencies.execute([], state)
+      assert {:ok, %{error: error}} = LlmModuleDependencies.execute([], state)
       assert error =~ "Invalid arguments"
       
-      assert {:ok, %{error: error}} = GetModuleDependencies.execute([123], state)
+      assert {:ok, %{error: error}} = LlmModuleDependencies.execute([123], state)
       assert error =~ "Invalid arguments"
     end
     
     test "correctly identifies compile-time vs runtime dependencies" do
       state = %{source_files: %{}}
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsB"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsB"], state)
       
       # Macros and aliases should be compile-time
       compile_time = result.compile_time_dependencies
@@ -201,7 +201,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
     test "detects struct dependencies" do
       state = %{source_files: %{}}
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsD"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsD"], state)
       
       # Check that struct usage is detected as compile-time dependency
       assert "ElixirLS.Test.ModuleDepsC" in result.compile_time_dependencies
@@ -226,7 +226,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
         }
       }
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
       
       # Should include location information
       assert result.location
@@ -236,7 +236,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
     test "formats function calls correctly" do
       state = %{source_files: %{}}
       
-      assert {:ok, result} = GetModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
+      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
       
       # Check that function calls are properly formatted
       assert is_list(result.direct_dependencies.function_calls)

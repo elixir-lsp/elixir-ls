@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironment do
+defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
   @moduledoc """
   This module implements a custom command for getting environment information
   at a specific position in code, optimized for LLM consumption.
@@ -31,7 +31,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironment do
       end
     rescue
       error ->
-        Logger.error("Error in getEnvironment: #{inspect(error)}")
+        Logger.error("Error in llmEnvironment: #{inspect(error)}")
         {:ok, %{error: "Internal error: #{Exception.message(error)}"}}
     end
   end

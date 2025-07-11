@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
 
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Behaviours
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserV2
 
   require Logger
 
@@ -15,7 +16,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
   def execute([symbol], _state) when is_binary(symbol) do
     try do
-      case parse_symbol(symbol) do
+      case SymbolParserV2.parse(symbol) do
         {:ok, type, parsed} ->
           case find_implementations(type, parsed) do
             {:ok, implementations} ->
@@ -32,7 +33,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
           end
 
         {:error, reason} ->
-          {:ok, %{error: "Invalid symbol format: #{reason}"}}
+          {:ok, %{error: reason}}
       end
     rescue
       error ->
@@ -45,44 +46,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
     {:ok, %{error: "Invalid arguments: expected [symbol_string]"}}
   end
 
-  # Parse symbol strings like "MyBehaviour", "MyProtocol", "MyModule.callback_name", "MyModule.callback_name/2"
-  defp parse_symbol(symbol) do
-    cond do
-      # Erlang module format :module
-      String.starts_with?(symbol, ":") ->
-        module_atom = String.slice(symbol, 1..-1//1) |> String.to_atom()
-        {:ok, :erlang_module, module_atom}
-
-      # Callback with arity: Module.callback/arity
-      # TODO: unicode support in function names
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*\/\d+$/) ->
-        [module_fun, arity_str] = String.split(symbol, "/")
-        [module_str, function_str] = String.split(module_fun, ".", parts: 2)
-
-        module = Module.concat(String.split(module_str, "."))
-        function = String.to_atom(function_str)
-        arity = String.to_integer(arity_str)
-
-        {:ok, :callback, {module, function, arity}}
-
-      # Callback without arity: Module.callback
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*$/) ->
-        [module_str, function_str] = String.split(symbol, ".", parts: 2)
-
-        module = Module.concat(String.split(module_str, "."))
-        function = String.to_atom(function_str)
-
-        {:ok, :callback, {module, function, nil}}
-
-      # Module only: Module or Module.SubModule (behaviour or protocol)
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*$/) ->
-        module = Module.concat(String.split(symbol, "."))
-        {:ok, :module, module}
-
-      true ->
-        {:error, "Unrecognized symbol format. Expected: ModuleName, ModuleName.callback, or ModuleName.callback/arity"}
-    end
-  end
 
   defp find_implementations(:module, module) do
     # Check if it's a behaviour or protocol
@@ -106,11 +69,28 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
     end
   end
 
-  defp find_implementations(:erlang_module, module) do
-    find_implementations(:module, module)
+  defp find_implementations(:local_call, {function, arity}) do
+    # For local calls, try to find implementations in Kernel or common behaviours
+    # This is likely not very useful for implementation finding, but we handle it
+    cond do
+      is_behaviour?(Kernel) ->
+        # Try to find implementations of Kernel callbacks (rare case)
+        implementations = get_behaviour_implementations(Kernel)
+        locations = Enum.flat_map(implementations, fn impl_module ->
+          case find_callback_implementation(impl_module, function, arity) do
+            nil -> []
+            location -> [{impl_module, location}]
+          end
+        end)
+        {:ok, locations}
+
+      true ->
+        {:error, "Local call #{function}/#{arity || "?"} - no implementations found"}
+    end
   end
 
-  defp find_implementations(:callback, {module, function, arity}) do
+  defp find_implementations(:remote_call, {module, function, arity}) do
+    # For implementation finder, we treat functions as potential callbacks
     # Find implementations of a specific callback
     cond do
       # TODO: protocol is a behaviour, this needs to be reordered
@@ -132,8 +112,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
         {:ok, implementations}
 
       true ->
-        {:error, "#{module}.#{function} is not a callback or protocol function"}
+        {:error, "#{module}.#{function}/#{arity || "?"} is not a callback or protocol function"}
     end
+  end
+
+  defp find_implementations(:attribute, attribute) do
+    {:error, "Module attribute @#{attribute} - attributes don't have implementations"}
   end
 
   defp is_behaviour?(module) do

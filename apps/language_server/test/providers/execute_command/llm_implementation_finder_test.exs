@@ -101,7 +101,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
       assert {:ok, result} = LlmImplementationFinder.execute(["not_a_valid_module"], %{})
       
       assert Map.has_key?(result, :error)
-      assert String.contains?(result.error, "Invalid symbol format")
+      # V2 parser successfully parses this as a local call but finds no implementations
+      assert String.contains?(result.error, "Local call") and 
+             String.contains?(result.error, "no implementations found")
     end
 
     test "returns error for invalid arguments" do

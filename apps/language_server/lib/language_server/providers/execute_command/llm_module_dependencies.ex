@@ -1,4 +1,4 @@
-defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies do
+defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies do
   @moduledoc """
   This module implements a custom command for getting module dependency information,
   optimized for LLM consumption.
@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetModuleDependencies
       end
     rescue
       error ->
-        Logger.error("Error in getModuleDependencies: #{inspect(error)}")
+        Logger.error("Error in llmModuleDependencies: #{inspect(error)}")
         {:ok, %{error: "Internal error: #{Exception.message(error)}"}}
     end
   end

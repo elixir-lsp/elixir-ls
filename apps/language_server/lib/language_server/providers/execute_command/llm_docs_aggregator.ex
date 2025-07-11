@@ -12,6 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   alias ElixirSense.Core.BuiltinFunctions
   alias ElixirSense.Core.BuiltinTypes
   alias ElixirSense.Core.BuiltinAttributes
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserV2
 
   require Logger
 
@@ -21,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   def execute([modules], _state) when is_list(modules) do
     try do
       results = Enum.map(modules, fn module_name ->
-        case parse_symbol(module_name) do
+        case SymbolParserV2.parse(module_name) do
           {:ok, type, parsed} ->
             case get_documentation(type, parsed) do
               {:ok, docs} ->
@@ -37,7 +38,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
             end
 
           {:error, reason} ->
-            %{name: module_name, error: "Invalid symbol format: #{reason}"}
+            %{name: module_name, error: reason}
         end
       end)
 
@@ -53,97 +54,72 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     {:ok, %{error: "Invalid arguments: expected [modules_list]"}}
   end
 
-  # Parse symbol strings like "MyModule", "MyModule.my_function", "MyModule.my_function/2", "@attribute"
-  defp parse_symbol(symbol) do
-    cond do
-      # Attribute format @attribute
-      String.starts_with?(symbol, "@") ->
-        attribute_name = String.slice(symbol, 1..-1//1) |> String.to_atom()
-        {:ok, :attribute, attribute_name}
-
-      # Erlang module format :module (but not invalid patterns like :::invalid:::)
-      String.starts_with?(symbol, ":") && !String.starts_with?(symbol, "::") ->
-        module_str = String.slice(symbol, 1..-1//1)
-        # Validate it's a proper module name
-        if String.match?(module_str, ~r/^[a-z][a-z0-9_]*$/) do
-          module_atom = String.to_atom(module_str)
-          {:ok, :erlang_module, module_atom}
-        else
-          {:error, "Unrecognized symbol format"}
-        end
-
-      # Type with arity: Module.t/1 (check this before function patterns)
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.t\/\d+$/) ->
-        [module_type, arity_str] = String.split(symbol, "/")
-        module_str = String.replace_suffix(module_type, ".t", "")
-
-        module = Module.concat(String.split(module_str, "."))
-        arity = String.to_integer(arity_str)
-
-        {:ok, :type, {module, :t, arity}}
-
-      # Function with arity: Module.function/arity
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*\/\d+$/) ->
-        [module_fun, arity_str] = String.split(symbol, "/")
-        [module_str, function_str] = String.split(module_fun, ".", parts: 2)
-
-        module = Module.concat(String.split(module_str, "."))
-        function = String.to_atom(function_str)
-        arity = String.to_integer(arity_str)
-
-        {:ok, :function, {module, function, arity}}
-
-      # Function without arity: Module.function
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*\.[a-z_][a-z0-9_?!]*$/) ->
-        [module_str, function_str] = String.split(symbol, ".", parts: 2)
-
-        module = Module.concat(String.split(module_str, "."))
-        function = String.to_atom(function_str)
-
-        {:ok, :function, {module, function, nil}}
-
-      # Module only: Module or Module.SubModule
-      String.match?(symbol, ~r/^[A-Z][A-Za-z0-9_.]*$/) ->
-        module = Module.concat(String.split(symbol, "."))
-        {:ok, :module, module}
-
-      # Builtin type: atom(), list(), etc.
-      String.match?(symbol, ~r/^[a-z_][a-z0-9_]*\(\)$/) ->
-        type_name = String.replace_suffix(symbol, "()", "") |> String.to_atom()
-        {:ok, :builtin_type, type_name}
-
-      true ->
-        {:error, "Unrecognized symbol format"}
-    end
-  end
 
   defp get_documentation(:module, module) do
     docs = aggregate_module_docs(module)
     {:ok, docs}
   end
 
-  defp get_documentation(:erlang_module, module) do
-    get_documentation(:module, module)
+  defp get_documentation(:local_call, {function, arity}) do
+    # For local calls, try Kernel first, then check if it's a builtin type
+    case get_documentation(:remote_call, {Kernel, function, arity}) do
+      {:ok, docs} -> {:ok, docs}
+      _ ->
+        # Try as builtin type
+        if arity == nil or arity == 0 do
+          case BuiltinTypes.get_builtin_type_doc(function) do
+            doc when doc != "" ->
+              {:ok, %{
+                type: "#{function}()",
+                documentation: doc
+              }}
+            _ ->
+              # Check if it's a builtin function or try other modules
+              case BuiltinFunctions.get_docs({function, arity}) do
+                "" -> {:error, "Local call #{function}/#{arity || "?"} - no documentation found"}
+                builtin_docs when is_binary(builtin_docs) -> {
+                  :ok, %{
+                    function: Atom.to_string(function),
+                    arity: arity,
+                    documentation: builtin_docs
+                  }
+                }
+              end
+          end
+        else
+          {:error, "Local call #{function}/#{arity || "?"} - no documentation found"}
+        end
+    end
   end
 
-  defp get_documentation(:function, {module, function, arity}) do
-    docs = aggregate_function_docs(module, function, arity)
-    {:ok, docs}
+  defp get_documentation(:remote_call, {module, function, arity}) do
+    # Try function/macro documentation first
+    case aggregate_function_docs(module, function, arity) do
+      %{documentation: doc} when doc != "" ->
+        {:ok, %{
+          module: inspect(module),
+          function: Atom.to_string(function),
+          arity: arity,
+          documentation: doc
+        }}
+      _ ->
+        # Try as type
+        case aggregate_type_docs(module, function, arity) do
+          %{documentation: doc} when doc != "" ->
+            {:ok, %{
+              module: inspect(module),
+              type: Atom.to_string(function),
+              arity: arity,
+              documentation: doc
+            }}
+          _ ->
+            {:error, "Remote call #{module}.#{function}/#{arity || "?"} - no documentation found"}
+        end
+    end
   end
 
-  defp get_documentation(:type, {module, type, arity}) do
-    docs = aggregate_type_docs(module, type, arity)
-    {:ok, docs}
-  end
-
-  # TODO: How?
   defp get_documentation(:attribute, attribute) do
     docs = aggregate_attribute_docs(attribute)
-    {:ok, docs}
-  end
-
-  defp get_documentation(:builtin_type, type) do
-    docs = aggregate_builtin_type_docs(type)
     {:ok, docs}
   end
 
@@ -364,18 +340,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     }
   end
 
-  defp aggregate_builtin_type_docs(type) do
-    # Use get_builtin_type_doc which returns the doc string directly
-    builtin_doc = BuiltinTypes.get_builtin_type_doc(type)
-    
-    # get_builtin_type_doc returns empty string when not found
-    doc = if builtin_doc == "", do: nil, else: builtin_doc
-    
-    %{
-      type: "#{type}()",
-      documentation: doc || "No documentation available for #{type}()"
-    }
-  end
 
   defp ensure_loaded(module) do
     Code.ensure_loaded?(module)

@@ -1,7 +1,7 @@
-defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironmentTest do
+defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironmentTest do
   use ExUnit.Case
   
-  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironment
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment
   alias ElixirLS.LanguageServer.SourceFile
   
   describe "execute/2" do
@@ -36,7 +36,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironmentTest do
       # Test inside function
       location = "#{uri}:9:5"
       
-      assert {:ok, result} = GetEnvironment.execute([location], state)
+      assert {:ok, result} = LlmEnvironment.execute([location], state)
       
       # Check basic structure
       assert result.location.uri == uri
@@ -67,7 +67,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironmentTest do
       ]
       
       for {input, expected_path_end, expected_line, expected_column} <- test_cases do
-        assert {:ok, result} = GetEnvironment.execute([input], state)
+        assert {:ok, result} = LlmEnvironment.execute([input], state)
         
         # Will get file not found, but check parsing worked
         assert result.error =~ "File not found"
@@ -78,17 +78,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironmentTest do
     test "returns error for invalid location format" do
       state = %{source_files: %{}}
       
-      assert {:ok, %{error: error}} = GetEnvironment.execute(["invalid"], state)
+      assert {:ok, %{error: error}} = LlmEnvironment.execute(["invalid"], state)
       assert error =~ "Invalid location format"
     end
     
     test "returns error for invalid arguments" do
       state = %{source_files: %{}}
       
-      assert {:ok, %{error: error}} = GetEnvironment.execute([], state)
+      assert {:ok, %{error: error}} = LlmEnvironment.execute([], state)
       assert error =~ "Invalid arguments"
       
-      assert {:ok, %{error: error}} = GetEnvironment.execute([123], state)
+      assert {:ok, %{error: error}} = LlmEnvironment.execute([123], state)
       assert error =~ "Invalid arguments"
     end
   end
@@ -108,7 +108,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.GetEnvironmentTest do
       ]
       
       for format <- valid_formats do
-        assert {:ok, result} = GetEnvironment.execute([format], state)
+        assert {:ok, result} = LlmEnvironment.execute([format], state)
         # Should get file not found, not parsing error
         assert result.error =~ "File not found" or result.error =~ "Internal error"
       end
