@@ -271,6 +271,46 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
       end
     end
 
+    test "handles builtin types using ElixirSense.Core.BuiltinTypes" do
+      # Test basic builtin types
+      basic_types = [
+        "atom",
+        "binary",
+        "boolean",
+        "integer",
+        "float", 
+        "list",
+        "map",
+        "tuple",
+        "pid",
+        "port",
+        "reference",
+        "fun"
+      ]
+      
+      for type <- basic_types do
+        result = LlmDefinition.execute([type], %{})
+        assert {:ok, response} = result
+        assert Map.has_key?(response, :definition)
+        assert response.definition =~ "Builtin type #{type}()"
+        assert response.definition =~ "@type"
+        assert response.definition =~ "Elixir built-in type"
+      end
+
+      # Test parameterized builtin types
+      result = LlmDefinition.execute(["list"], %{})
+      assert {:ok, response} = result
+      assert Map.has_key?(response, :definition)
+      # Should show both parameterized and non-parameterized versions
+      assert response.definition =~ "list()"
+      
+      result = LlmDefinition.execute(["keyword"], %{})
+      assert {:ok, response} = result
+      assert Map.has_key?(response, :definition)
+      # Should show both parameterized and non-parameterized versions
+      assert response.definition =~ "keyword()"
+    end
+
     test "handles various symbol patterns appropriately" do
       # Some patterns that should result in errors or not-found
       patterns_expecting_errors = [

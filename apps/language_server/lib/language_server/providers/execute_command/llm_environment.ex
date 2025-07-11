@@ -183,6 +183,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
     |> Enum.sort_by(& &1.name)
   end
   
+  # TODO: tuple, list
+  # TODO: map, struct are wrong
   defp format_var_type({:integer, value}), do: %{type: "integer", value: value}
   defp format_var_type({:atom, atom}), do: %{type: "atom", value: atom}
   defp format_var_type({:map, fields}), do: %{type: "map", fields: fields}

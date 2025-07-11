@@ -92,6 +92,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     end
   end
 
+  # TODO: callbacks
+
   defp get_documentation(:remote_call, {module, function, arity}) do
     # Try function/macro documentation first
     case aggregate_function_docs(module, function, arity) do
@@ -133,6 +135,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       {_, doc} when is_binary(doc) ->
         doc
       # Erlang module format
+      # TODO: WTF?
       {_, doc, _metadata} when is_binary(doc) ->
         doc
       _ ->
@@ -190,17 +193,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     behaviours = get_module_behaviours(module)
     sections = if behaviours != [], do: [{:behaviours, behaviours} | sections], else: sections
 
-    # For Erlang modules like :lists, keep the atom format
-    module_name = if is_atom(module) do
-      module_str = Atom.to_string(module)
-      if String.starts_with?(module_str, "Elixir.") do
-        inspect(module)
-      else
-        ":#{module}"
-      end
-    else
-      inspect(module)
-    end
+    module_name = inspect(module)
     
     %{
       module: module_name,
@@ -224,6 +217,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     specs = get_function_specs(module, function, arity)
 
     # Check if it's a builtin
+    # TODO: WTF? Kernel has normal docs
     builtin_docs = if module == Kernel or module == Kernel.SpecialForms do
       BuiltinFunctions.get_docs({function, arity})
     else
@@ -340,6 +334,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     }
   end
 
+  # TODO: aggregate_callback_docs
+
 
   defp ensure_loaded(module) do
     Code.ensure_loaded?(module)
@@ -364,6 +360,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         }
 
       # Erlang module format
+      # TODO: WTF?
       {{name, arity}, _line, :function, _signatures, doc, metadata} ->
         specs = get_function_specs(module, name, arity)
         
@@ -398,6 +395,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp format_callback_doc(_module, doc_entry) do
     case doc_entry do
       # Handle the actual format returned by NormalizedCode.get_docs for callbacks
+      # TODO: WTF?
       {{name, arity}, _line, :callback, doc, _metadata} ->
         %{
           callback: Atom.to_string(name),
@@ -422,6 +420,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     |> Enum.filter(fn
       {{kind, ^function, doc_arity}, _, _, _, _} when kind in [:function, :macro] ->
         arity == nil or doc_arity == arity
+        # TODO: handle default args
       _ ->
         false
     end)

@@ -82,12 +82,14 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
       transitive_dependencies: format_module_list(transitive_deps),
       reverse_transitive_dependencies: format_module_list(reverse_transitive_deps),
       # Add top-level convenience fields for backward compatibility
+      # TODO: Remove duplicated info
       compile_time_dependencies: formatted_direct.compile_dependencies,
       runtime_dependencies: formatted_direct.runtime_dependencies,
       exports_dependencies: formatted_direct.exports_dependencies
     }}
   end
 
+  # TODO: WTF? don't need that
   defp get_module_info(module, state) do
     # Try to find module definition in source files
     case find_module_in_sources(module, state) do
@@ -230,32 +232,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
     
     deps
   end
-
-  # defp get_reverse_dependencies(module) do
-  #   # Get all calls to this module
-  #   calls = Tracer.get_trace()
-  #           |> Enum.filter(fn {{callee_module, _, _}, _} ->
-  #             callee_module == module
-  #           end)
-    
-  #   # Find unique caller modules
-  #   caller_modules = 
-  #     Enum.reduce(calls, MapSet.new(), fn {_callee, call_infos}, acc ->
-  #       Enum.reduce(call_infos, acc, fn info, inner_acc ->
-  #         MapSet.put(inner_acc, info.caller_module)
-  #         # TODO: WTF? info.caller_module
-  #         # case get_caller_module(info.file) do
-  #         #   nil -> inner_acc
-  #         #   caller_module -> MapSet.put(inner_acc, caller_module)
-  #         # end
-  #       end)
-  #     end)
-    
-  #   %{
-  #     modules: caller_modules,
-  #     function_calls: extract_function_calls_to_module(module)
-  #   }
-  # end
 
   defp get_caller_module(file) do
     # Get module that owns this file from Tracer

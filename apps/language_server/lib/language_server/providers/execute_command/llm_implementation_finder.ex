@@ -70,6 +70,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
   end
 
   defp find_implementations(:local_call, {function, arity}) do
+    # TODO: return error, that does not make sense
     # For local calls, try to find implementations in Kernel or common behaviours
     # This is likely not very useful for implementation finding, but we handle it
     cond do

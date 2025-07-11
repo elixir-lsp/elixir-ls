@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
 
   alias ElixirLS.LanguageServer.Location
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
+  alias ElixirSense.Core.BuiltinTypes
 
   require Logger
 
@@ -28,6 +29,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
                 {:error, reason} ->
                   {:ok, %{error: "Failed to read source: #{reason}"}}
               end
+
+            {:ok, %{definition: _} = result} ->
+              # Already formatted result (e.g., from builtin types)
+              {:ok, result}
 
             {:error, reason} ->
               {:ok, %{error: "Definition not found: #{reason}"}}
@@ -101,22 +106,58 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
   end
 
   defp try_builtin_type(function) do
-    # Try to find builtin type definitions
-    # Most builtin types are documented in the basic types section
-    case function do
-      :atom -> {:error, "atom() is a builtin type - see Elixir documentation for basic types"}
-      :binary -> {:error, "binary() is a builtin type - see Elixir documentation for basic types"}
-      :boolean -> {:error, "boolean() is a builtin type - see Elixir documentation for basic types"}
-      :integer -> {:error, "integer() is a builtin type - see Elixir documentation for basic types"}
-      :float -> {:error, "float() is a builtin type - see Elixir documentation for basic types"}
-      :list -> {:error, "list() is a builtin type - see Elixir documentation for basic types"}
-      :map -> {:error, "map() is a builtin type - see Elixir documentation for basic types"}
-      :tuple -> {:error, "tuple() is a builtin type - see Elixir documentation for basic types"}
-      :pid -> {:error, "pid() is a builtin type - see Elixir documentation for basic types"}
-      :port -> {:error, "port() is a builtin type - see Elixir documentation for basic types"}
-      :reference -> {:error, "reference() is a builtin type - see Elixir documentation for basic types"}
-      :fun -> {:error, "fun() is a builtin type - see Elixir documentation for basic types"}
-      _ -> {:error, "Local call #{function} not found in Kernel and not a builtin type"}
+    # Try to find builtin type definitions using ElixirSense.Core.BuiltinTypes
+    if BuiltinTypes.builtin_type?(function) do
+      # Get the documentation for the builtin type
+      doc = BuiltinTypes.get_builtin_type_doc(function)
+      
+      # Get type info to check if it has parameters
+      type_info = BuiltinTypes.get_builtin_type_info(function)
+      
+      # Create a comprehensive builtin type definition
+      type_definitions = 
+        type_info
+        |> Enum.map(fn info ->
+          signature = Map.get(info, :signature, "#{function}()")
+          params = Map.get(info, :params, [])
+          spec = Map.get(info, :spec)
+          
+          spec_string = if spec do
+            try do
+              "@type #{Macro.to_string(spec)}"
+            rescue
+              _ -> "@type #{signature}"
+            end
+          else
+            "@type #{signature}"
+          end
+          
+          param_docs = if params != [] do
+            param_list = Enum.map(params, &Atom.to_string/1) |> Enum.join(", ")
+            "\n\nParameters: #{param_list}"
+          else
+            ""
+          end
+          
+          """
+          #{spec_string}
+          
+          #{doc}#{param_docs}
+          """
+        end)
+        |> Enum.join("\n---\n")
+      
+      result = """
+      # Builtin type #{function}() - Elixir built-in type
+      
+      #{type_definitions}
+      
+      For more information, see the Elixir documentation on basic types and built-in types.
+      """
+      
+      {:ok, %{definition: result}}
+    else
+      {:error, "Local call #{function} not found in Kernel and not a builtin type"}
     end
   end
 
