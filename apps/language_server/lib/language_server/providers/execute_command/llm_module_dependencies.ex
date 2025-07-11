@@ -75,13 +75,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
 
     reverse_transitive_deps = get_reverse_transitive_dependencies_from_direct(module, reverse_deps, :compile)
 
+    formatted_direct = format_dependencies(direct_deps)
+    formatted_reverse = format_dependencies(reverse_deps)
+    
     {:ok, %{
       module: inspect(module),
       location: module_info[:location],
-      direct_dependencies: format_dependencies(direct_deps),
-      reverse_dependencies: format_dependencies(reverse_deps),
+      direct_dependencies: formatted_direct,
+      reverse_dependencies: formatted_reverse,
       transitive_dependencies: format_module_list(transitive_deps),
       reverse_transitive_dependencies: format_module_list(reverse_transitive_deps),
+      # Add top-level convenience fields for backward compatibility
+      compile_time_dependencies: formatted_direct.compile_dependencies,
+      runtime_dependencies: formatted_direct.runtime_dependencies,
+      exports_dependencies: formatted_direct.exports_dependencies
     }}
   end
 
@@ -286,7 +293,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
         :runtime -> direct_dependencies.runtime_deps
       end
 
-    Enum.reduce(all_direct_modules |> dbg, MapSet.new([module]), fn dep, acc ->
+    Enum.reduce(all_direct_modules, MapSet.new([module]), fn dep, acc ->
       get_transitive_dependencies(dep, type, acc)
     end)
     |> MapSet.delete(module)
@@ -321,7 +328,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
         :runtime -> direct_dependencies.runtime_deps
       end
 
-    Enum.reduce(all_direct_modules |> dbg, MapSet.new([module]), fn dep, acc ->
+    Enum.reduce(all_direct_modules, MapSet.new([module]), fn dep, acc ->
       get_reverse_transitive_dependencies(dep, type, acc)
     end)
     |> MapSet.delete(module)
