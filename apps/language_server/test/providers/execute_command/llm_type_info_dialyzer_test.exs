@@ -1,5 +1,6 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTest do
   use ElixirLS.Utils.MixTest.Case, async: false
+  use ElixirLS.LanguageServer.Protocol
   
   alias ElixirLS.LanguageServer.{Server, Build, MixProjectCache, Parser, Tracer}
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo
@@ -42,33 +43,46 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
   @tag :fixture
   test "includes dialyzer contracts when PLT is available", %{server: server} do
     in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
-      # Initialize with dialyzer enabled
-      initialize(server, %{"dialyzerEnabled" => true})
+      # Get the file URI for C module
+      file_c = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
       
-      # Wait for dialyzer to finish
+      # Initialize with dialyzer enabled (incremental is default)
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "suggestSpecs" => true
+      })
+
+      # Wait for dialyzer to finish initial analysis
       assert_receive %{"method" => "textDocument/publishDiagnostics"}, 30000
       
-      # Get the server state (which should have PLT loaded)
+      # Open the file so server knows about it
+      Server.receive_packet(
+        server,
+        did_open(file_c, "elixir", 1, File.read!(Path.absname("lib/c.ex")))
+      )
+      
+      # Give dialyzer time to analyze the file
+      Process.sleep(1000)
+
+      # Get the server state which should have PLT loaded and contracts available
       state = :sys.get_state(server)
       
-      # Compile the fixture module
-      fixture_path = Path.join(__DIR__, "../../support/llm_type_info_fixture.ex")
-      Code.compile_file(fixture_path)
+      # Now test our LlmTypeInfo command with module C which has unspecced functions
+      assert {:ok, result} = LlmTypeInfo.execute(["C"], state)
       
-      # Now test with the actual state that has PLT
-      module_name = "ElixirLS.Test.LlmTypeInfoFixture.SimpleModule"
-      
-      assert {:ok, result} = LlmTypeInfo.execute([module_name], state)
-      
-      # Should have dialyzer contracts for unspecced functions
+      # Module C should have dialyzer contracts for its unspecced function
+      assert result.module == "C"
       assert is_list(result.dialyzer_contracts)
+      assert length(result.dialyzer_contracts) > 0
       
-      # The identity function should have a contract
-      if length(result.dialyzer_contracts) > 0 do
-        identity_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "identity/1"))
-        assert identity_contract
-        assert identity_contract.contract
-      end
+      # The myfun function should have a dialyzer contract
+      myfun_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "myfun/0"))
+      assert myfun_contract
+      assert myfun_contract.contract
+      assert String.contains?(myfun_contract.contract, "() -> 1")
+      
+      wait_until_compiled(server)
     end)
   end
 end

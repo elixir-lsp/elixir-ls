@@ -2,9 +2,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
   use ElixirLS.Utils.MixTest.Case, async: true
 
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo
-  alias ElixirLS.LanguageServer.{Server, Build, MixProjectCache, Parser, Tracer, Protocol}
-  import ElixirLS.LanguageServer.Test.ServerTestHelpers
-  use Protocol
 
   defmodule TestBehaviour do
     @moduledoc """
@@ -311,79 +308,5 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       assert private_type
       assert private_type.doc == ""
     end
-  end
-
-  @tag slow: true, fixture: true
-  test "extracts dialyzer contracts when dialyzer is enabled" do
-    # Set compiler options as required
-    compiler_options = Code.compiler_options()
-    Build.set_compiler_options()
-
-    on_exit(fn ->
-      Code.compiler_options(compiler_options)
-    end)
-    
-    # Setup server with required components
-    {:ok, server} = Server.start_link()
-    {:ok, _} = start_supervised(MixProjectCache)
-    {:ok, _} = start_supervised(Parser)
-    start_server(server)
-    {:ok, _tracer} = start_supervised(Tracer)
-
-    on_exit(fn ->
-      if Process.alive?(server) do
-        Process.monitor(server)
-        GenServer.stop(server)
-
-        receive do
-          {:DOWN, _, _, ^server, _} ->
-            :ok
-        end
-      end
-    end)
-    
-    # Use path relative to __DIR__ to get to test/fixtures/dialyzer
-    in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
-      # Get the file URI for C module
-      file_c = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
-      
-      # Initialize with dialyzer enabled (incremental is default)
-      initialize(server, %{
-        "dialyzerEnabled" => true,
-        "dialyzerFormat" => "dialyxir_long",
-        "suggestSpecs" => true
-      })
-
-      # Wait for dialyzer to finish initial analysis
-      assert_receive %{"method" => "textDocument/publishDiagnostics"}, 30000
-      
-      # Open the file so server knows about it
-      Server.receive_packet(
-        server,
-        did_open(file_c, "elixir", 1, File.read!(Path.absname("lib/c.ex")))
-      )
-      
-      # Give dialyzer time to analyze the file
-      Process.sleep(1000)
-
-      # Get the server state which should have PLT loaded and contracts available
-      state = :sys.get_state(server)
-      
-      # Now test our LlmTypeInfo command with module C which has unspecced functions
-      assert {:ok, result} = LlmTypeInfo.execute(["C"], state)
-      
-      # Module C should have dialyzer contracts for its unspecced function
-      assert result.module == "C"
-      assert is_list(result.dialyzer_contracts)
-      assert length(result.dialyzer_contracts) > 0
-      
-      # The myfun function should have a dialyzer contract
-      myfun_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "myfun/0"))
-      assert myfun_contract
-      assert myfun_contract.contract
-      assert String.contains?(myfun_contract.contract, "() -> 1")
-      
-      wait_until_compiled(server)
-    end)
   end
 end
