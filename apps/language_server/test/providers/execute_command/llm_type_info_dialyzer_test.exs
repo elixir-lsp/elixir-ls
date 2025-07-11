@@ -41,7 +41,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
   @tag :slow
   @tag :fixture
   test "includes dialyzer contracts when PLT is available", %{server: server} do
-    in_fixture(Path.join(__DIR__, "../../fixtures"), "dialyzer", fn ->
+    in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
       # Initialize with dialyzer enabled
       initialize(server, %{"dialyzerEnabled" => true})
       

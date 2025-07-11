@@ -210,7 +210,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     Environment information for location: #{location}
     
     Note: This is a placeholder response. The MCP server cannot directly access
-    the LanguageServer state. Use the VS Code language tool or the 'getEnvironment'
+    the LanguageServer state. Use the VS Code language tool or the 'llmEnvironment'
     command for actual environment information.
     """
     

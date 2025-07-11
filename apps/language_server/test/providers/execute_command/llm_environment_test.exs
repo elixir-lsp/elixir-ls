@@ -33,14 +33,14 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironmentTest do
         }
       }
       
-      # Test inside function
-      location = "#{uri}:9:5"
+      # Test inside function after variable assignment
+      location = "#{uri}:10:5"
       
       assert {:ok, result} = LlmEnvironment.execute([location], state)
       
       # Check basic structure
       assert result.location.uri == uri
-      assert result.location.line == 9
+      assert result.location.line == 10
       assert result.location.column == 5
       
       # Check context
