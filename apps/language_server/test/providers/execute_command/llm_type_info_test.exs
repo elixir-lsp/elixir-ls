@@ -226,7 +226,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       refute Enum.any?(result.specs, &(&1.name == "multiple_arities/2"))
 
       # try macro spec
-      mfa = "ElixirLS.Test.WithTypes.macro/0"
+      mfa = "ElixirLS.Test.WithTypes.macro/1"
 
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
@@ -242,7 +242,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       refute Enum.any?(result.callbacks, &(&1.name == "multiple_arities/2"))
 
       # try macrocallback
-      mfa = "ElixirLS.Test.WithTypes.callback_macro/0"
+      mfa = "ElixirLS.Test.WithTypes.callback_macro/1"
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
       assert %{name: "callback_macro/1", specs: "@macrocallback callback_macro(Macro.t()) :: Macro.t()"} in result.callbacks
@@ -276,12 +276,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       assert %{name: "macro/1", specs: "@spec macro(Macro.t()) :: Macro.t()"} in result.specs
 
       # try callback
-      mfa = "ElixirLS.Test.WithTypes.callback_no_arg"
+      mfa = "ElixirLS.Test.WithTypes.callback_multiple_arities"
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
       assert %{name: "callback_multiple_arities/1", specs: "@callback callback_multiple_arities(arg1 :: term()) :: {:ok, term()}"} in result.callbacks
       refute Enum.any?(result.callbacks, &(&1.name == "one_arg/1"))
-      assert Enum.any?(result.callbacks, &(&1.name == "multiple_arities/2"))
+      assert Enum.any?(result.callbacks, &(&1.name == "callback_multiple_arities/2"))
 
       # try macrocallback
       mfa = "ElixirLS.Test.WithTypes.callback_macro"

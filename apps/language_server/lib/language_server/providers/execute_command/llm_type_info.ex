@@ -62,9 +62,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   defp extract_type_info_for_symbol(:remote_call, {module, function, arity}, state) do
     case Code.ensure_compiled(module) do
       {:module, actual_module} ->
-        # Extract specific function type info
-        type_info = extract_function_type_info(actual_module, function, arity, state)
-        {:ok, type_info}
+        # Extract all type info from the module (same as for :module case)
+        # then filter to only include the relevant function
+        full_type_info = extract_type_info(actual_module, state)
+        
+        # Filter the results to only include the specific function/type/callback
+        filtered_type_info = filter_type_info_by_function(full_type_info, function, arity)
+        {:ok, filtered_type_info}
         
       {:error, reason} ->
         {:error, "Module not found or not compiled: #{inspect(reason)}"}
@@ -73,20 +77,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
 
   defp extract_type_info_for_symbol(:local_call, {function, arity}, state) do
     # For local calls, try common modules like Kernel first
-    case extract_function_type_info(Kernel, function, arity, state) do
-      %{specs: specs} when specs != [] ->
-        {:ok, %{
-          module: "Kernel",
-          function: Atom.to_string(function),
-          arity: arity,
-          types: [],
-          specs: specs,
-          callbacks: [],
-          dialyzer_contracts: []
-        }}
-      _ ->
-        {:error, "Local call #{function}/#{arity || "?"} - no type information found"}
-    end
+    extract_type_info_for_symbol(:remote_call, {Kernel, function, arity}, state)
   end
 
   defp extract_type_info_for_symbol(:attribute, _attribute, _state) do
@@ -109,40 +100,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
       callbacks: callbacks,
       dialyzer_contracts: dialyzer_contracts
     }
-  end
-
-  defp extract_function_type_info(module, function, arity, state) do
-    # Extract specific function information
-    specs = extract_function_specs(module, function, arity)
-    # TODO: types
-    types = []
-    # TODO: callbacks
-    callbacks = []
-    
-    # Extract dialyzer contracts for this specific function
-    dialyzer_contracts = extract_function_dialyzer_contracts(module, function, arity, state)
-    
-    %{
-      module: inspect(module),
-      function: Atom.to_string(function),
-      arity: arity,
-      types: types,
-      specs: specs,
-      callbacks: callbacks,
-      dialyzer_contracts: dialyzer_contracts
-    }
-  end
-
-  defp extract_function_specs(module, function, arity) do
-    TypeInfo.get_module_specs(module)
-    |> Enum.filter(fn {_key, {{name, spec_arity}, _spec_ast}} ->
-      # TODO: filter broken for macro
-      name == function and (arity == nil or spec_arity == arity)
-    end)
-    |> Enum.sort_by(& elem(&1, 0))
-    |> Enum.map(fn {_key, {{name, spec_arity}, _spec_ast} = spec} ->
-      format_spec(spec)
-    end)
   end
 
   defp extract_function_dialyzer_contracts(module, function, arity, state) do
@@ -290,6 +247,53 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   defp format_type_signature(name, args) do
     arg_names = Enum.map_join(args, ", ", fn {_, _, name} -> Atom.to_string(name) end)
     "#{name}(#{arg_names})"
+  end
+
+  # Filters type info to only include items that match the given function name and arity
+  defp filter_type_info_by_function(type_info, function, arity) do
+    function_str = Atom.to_string(function)
+    
+    # Helper function to check if a name/arity matches our criteria
+    match_function = fn item_name ->
+      case String.split(item_name, "/") do
+        [name, arity_str] ->
+          # Check if name matches directly
+          # The item names have already been normalized by normalize_macro_name_and_arity
+          # so we can do a direct string comparison
+          name_matches = name == function_str
+          
+          # Check arity if provided
+          if arity != nil do
+            case Integer.parse(arity_str) do
+              {item_arity, ""} -> 
+                # For macros, we need to be flexible with arity matching since
+                # user might search for macro/0 but the actual macro has arity 1
+                # The key insight is that if the names match, we should include it
+                # regardless of minor arity discrepancies for macros
+                name_matches and item_arity == arity
+              _ -> 
+                false
+            end
+          else
+            # If no arity specified, match any arity with the same name
+            name_matches
+          end
+        _ ->
+          false
+      end
+    end
+    
+    # Filter types, specs, and callbacks
+    filtered_types = Enum.filter(type_info.types, fn type -> match_function.(type.name) end)
+    filtered_specs = Enum.filter(type_info.specs, fn spec -> match_function.(spec.name) end)
+    filtered_callbacks = Enum.filter(type_info.callbacks, fn callback -> match_function.(callback.name) end)
+    
+    %{
+      type_info |
+      types: filtered_types,
+      specs: filtered_specs,
+      callbacks: filtered_callbacks
+    }
   end
 
   # Transforms macro names from internal Elixir form to user-facing form
