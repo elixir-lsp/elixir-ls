@@ -248,7 +248,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   end
 
   defp format_spec({{name, arity}, specs}) do
-    signature = "#{name}/#{arity}"
+    # Transform macro names from internal form (MACRO-name/arity+1) to user-facing form (name/arity)
+    {display_name, display_arity} = normalize_macro_name_and_arity(name, arity)
+    signature = "#{display_name}/#{display_arity}"
 
     formatted_specs = Introspection.spec_to_string({{name, arity}, specs}, :spec)
     
@@ -259,8 +261,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   end
 
   defp format_callback({{name, arity}, specs}) do
-    signature = "#{name}/#{arity}"
-    kind = if String.starts_with?(to_string(name), "MACRO_") do
+    # Transform macro names from internal form (MACRO-name/arity+1) to user-facing form (name/arity)
+    {display_name, display_arity} = normalize_macro_name_and_arity(name, arity)
+    signature = "#{display_name}/#{display_arity}"
+    
+    kind = if String.starts_with?(to_string(name), "MACRO-") do
       :macrocallback
     else
       :callback
@@ -285,5 +290,22 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   defp format_type_signature(name, args) do
     arg_names = Enum.map_join(args, ", ", fn {_, _, name} -> Atom.to_string(name) end)
     "#{name}(#{arg_names})"
+  end
+
+  # Transforms macro names from internal Elixir form to user-facing form
+  # Internal: "MACRO-macro_name" with arity + 1
+  # User-facing: "macro_name" with original arity
+  defp normalize_macro_name_and_arity(name, arity) do
+    name_str = to_string(name)
+    
+    if String.starts_with?(name_str, "MACRO-") do
+      # Remove "MACRO-" prefix and subtract 1 from arity
+      display_name = String.replace_prefix(name_str, "MACRO-", "")
+      display_arity = arity - 1
+      {display_name, display_arity}
+    else
+      # Regular function, no transformation needed
+      {name_str, arity}
+    end
   end
 end

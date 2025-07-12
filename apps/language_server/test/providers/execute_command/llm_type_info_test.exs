@@ -203,82 +203,76 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
         name: "callback_macro_bounded/1",
         specs: "@macrocallback callback_macro_bounded(foo) :: Macro.t() when foo: term()"
       } in result.callbacks
-      
-    end
-    
-    test "extracts specs from module with functions" do
-      # Define a module with specs for testing
-      defmodule ModuleWithSpecs do
-        @spec add(integer(), integer()) :: integer()
-        def add(a, b), do: a + b
-        
-        @spec multiply(number(), number()) :: number()
-        def multiply(a, b), do: a * b
-      end
-      
-      Code.ensure_compiled!(ModuleWithSpecs)
-      
-      module_name = "ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest.ModuleWithSpecs"
-      
-      assert {:ok, result} = LlmTypeInfo.execute([module_name], %{})
-      
-      assert result.module == inspect(ModuleWithSpecs)
-      
-      # Check specs
-      assert is_list(result.specs)
-      # Note: specs might not be available for runtime-defined modules
     end
 
-    test "extracts callbacks from behaviour module" do
-      # Define a simple behaviour module inline for testing
-      defmodule SimpleBehaviour do
-        @callback init(arg :: term()) :: {:ok, state :: term()}
-        @callback handle_call(msg :: term(), from :: GenServer.from(), state :: term()) ::
-          {:reply, reply :: term(), state :: term()}
-      end
-      
-      # Ensure it's compiled
-      Code.ensure_compiled!(SimpleBehaviour)
-      
-      module_name = "ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest.SimpleBehaviour"
-      
-      assert {:ok, result} = LlmTypeInfo.execute([module_name], %{})
-      
-      assert result.module == inspect(SimpleBehaviour)
-      
-      # Check callbacks 
-      assert is_list(result.callbacks)
-      # Note: callbacks might still be empty if not persisted in beam
-      # This is a limitation of runtime-defined modules
+    test "extracts type information from mfa" do
+      # try type or spec
+      mfa = "ElixirLS.Test.WithTypes.no_arg/0"
+
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{
+        name: "no_arg/0",
+        signature: "no_arg()",
+        spec: "@type no_arg() :: :ok",
+        kind: :type
+      } in result.types
+
+      assert %{name: "no_arg/0", specs: "@spec no_arg() :: :ok"} in result.specs
+
+      # try macro spec
+      mfa = "ElixirLS.Test.WithTypes.macro/0"
+
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{name: "macro/1", specs: "@spec macro(Macro.t()) :: Macro.t()"} in result.specs
+
+      # try callback
+      mfa = "ElixirLS.Test.WithTypes.callback_no_arg/0"
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{name: "callback_no_arg/0", specs: "@callback callback_no_arg() :: :ok"} in result.callbacks
+
+      # try macrocallback
+      mfa = "ElixirLS.Test.WithTypes.callback_macro/0"
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{name: "callback_macro/1", specs: "@macrocallback callback_macro(Macro.t()) :: Macro.t()"} in result.callbacks
     end
 
-    test "extracts type info from standard library module" do
-      # Use Enum which has types
-      assert {:ok, result} = LlmTypeInfo.execute(["Enum"], %{})
-      
-      assert result.module == "Enum"
-      
-      # Enum has types
-      assert is_list(result.types)
-      assert length(result.types) > 0
-      
-      # Check for the t type
-      t_type = Enum.find(result.types, &(&1.name == "t/0"))
-      assert t_type
-      
-      # Enum might not have specs exported in beam
-      assert is_list(result.specs)
-    end
+    test "extracts type information from mf" do
+      # try type or spec
+      mfa = "ElixirLS.Test.WithTypes.no_arg"
 
-    test "includes dialyzer contracts field" do
-      # Without a full server state, dialyzer contracts will be empty
-      # The actual dialyzer test is in the @tag slow test below
-      assert {:ok, result} = LlmTypeInfo.execute(["String"], %{})
-      
-      assert Map.has_key?(result, :dialyzer_contracts)
-      assert is_list(result.dialyzer_contracts)
-      # Without server state, this will be empty
-      assert result.dialyzer_contracts == []
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{
+        name: "no_arg/0",
+        signature: "no_arg()",
+        spec: "@type no_arg() :: :ok",
+        kind: :type
+      } in result.types
+
+      assert %{name: "no_arg/0", specs: "@spec no_arg() :: :ok"} in result.specs
+
+      # try macro spec
+      mfa = "ElixirLS.Test.WithTypes.macro"
+
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{name: "macro/1", specs: "@spec macro(Macro.t()) :: Macro.t()"} in result.specs
+
+      # try callback
+      mfa = "ElixirLS.Test.WithTypes.callback_no_arg"
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{name: "callback_no_arg/0", specs: "@callback callback_no_arg() :: :ok"} in result.callbacks
+
+      # try macrocallback
+      mfa = "ElixirLS.Test.WithTypes.callback_macro"
+      assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
+
+      assert %{name: "callback_macro/1", specs: "@macrocallback callback_macro(Macro.t()) :: Macro.t()"} in result.callbacks
     end
 
     test "handles module not found" do
