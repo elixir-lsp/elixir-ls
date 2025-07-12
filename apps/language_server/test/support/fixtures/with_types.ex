@@ -5,6 +5,9 @@ defmodule ElixirLS.Test.WithTypes do
   @opaque opaque_type :: {:ok, any()}
   @typep private_type :: {:ok, any()}
 
+  @type multiple_arities(t) :: {:ok, t}
+  @type multiple_arities(t, u) :: {:ok, t, u}
+
   @spec no_arg() :: :ok
   def no_arg, do: :ok
   @spec one_arg(term()) :: {:ok, term()}
@@ -16,6 +19,16 @@ defmodule ElixirLS.Test.WithTypes do
   @spec multiple_specs(term(), integer()) :: {:ok, term(), integer()}
   @spec multiple_specs(term(), float()) :: {:ok, term(), float()}
   def multiple_specs(arg1, arg2) do
+    {:ok, arg1, arg2}
+  end
+
+  @spec multiple_arities(arg1 :: term()) :: {:ok, term()}
+  def multiple_arities(arg1) do
+    {:ok, arg1}
+  end
+
+  @spec multiple_arities(arg1 :: term(), arg2 :: term()) :: {:ok, term(), term()}
+  def multiple_arities(arg1, arg2) do
     {:ok, arg1, arg2}
   end
 
@@ -42,4 +55,7 @@ defmodule ElixirLS.Test.WithTypes do
   @callback callback_bounded_fun(foo) :: {:ok, term()} when foo: term()
   @macrocallback callback_macro(Macro.t()) :: Macro.t()
   @macrocallback callback_macro_bounded(foo) :: Macro.t() when foo: term()
+
+  @callback callback_multiple_arities(arg1 :: term()) :: {:ok, term()}
+  @callback callback_multiple_arities(arg1 :: term(), arg2 :: term()) :: {:ok, term(), term()}
 end

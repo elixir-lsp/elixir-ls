@@ -207,18 +207,23 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
 
     test "extracts type information from mfa" do
       # try type or spec
-      mfa = "ElixirLS.Test.WithTypes.no_arg/0"
+      mfa = "ElixirLS.Test.WithTypes.multiple_arities/1"
 
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
       assert %{
-        name: "no_arg/0",
-        signature: "no_arg()",
-        spec: "@type no_arg() :: :ok",
+        name: "multiple_arities/1",
+        signature: "multiple_arities(t)",
+        spec: "@type multiple_arities(t) :: {:ok, t}",
         kind: :type
       } in result.types
 
-      assert %{name: "no_arg/0", specs: "@spec no_arg() :: :ok"} in result.specs
+      assert %{name: "multiple_arities/1", specs: "@spec multiple_arities(arg1 :: term()) :: {:ok, term()}"} in result.specs
+      refute Enum.any?(result.types, &(&1.name == "one_arg/1"))
+      refute Enum.any?(result.types, &(&1.name == "multiple_arities/2"))
+
+      refute Enum.any?(result.specs, &(&1.name == "one_arg/1"))
+      refute Enum.any?(result.specs, &(&1.name == "multiple_arities/2"))
 
       # try macro spec
       mfa = "ElixirLS.Test.WithTypes.macro/0"
@@ -226,12 +231,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
       assert %{name: "macro/1", specs: "@spec macro(Macro.t()) :: Macro.t()"} in result.specs
+      refute Enum.any?(result.specs, &(&1.name == "one_arg/1"))
 
       # try callback
-      mfa = "ElixirLS.Test.WithTypes.callback_no_arg/0"
+      mfa = "ElixirLS.Test.WithTypes.callback_multiple_arities/1"
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
-      assert %{name: "callback_no_arg/0", specs: "@callback callback_no_arg() :: :ok"} in result.callbacks
+      assert %{name: "callback_multiple_arities/1", specs: "@callback callback_multiple_arities(arg1 :: term()) :: {:ok, term()}"} in result.callbacks
+      refute Enum.any?(result.callbacks, &(&1.name == "one_arg/1"))
+      refute Enum.any?(result.callbacks, &(&1.name == "multiple_arities/2"))
 
       # try macrocallback
       mfa = "ElixirLS.Test.WithTypes.callback_macro/0"
@@ -242,18 +250,23 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
 
     test "extracts type information from mf" do
       # try type or spec
-      mfa = "ElixirLS.Test.WithTypes.no_arg"
+      mfa = "ElixirLS.Test.WithTypes.multiple_arities"
 
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
       assert %{
-        name: "no_arg/0",
-        signature: "no_arg()",
-        spec: "@type no_arg() :: :ok",
+        name: "multiple_arities/1",
+        signature: "multiple_arities(t)",
+        spec: "@type multiple_arities(t) :: {:ok, t}",
         kind: :type
       } in result.types
 
-      assert %{name: "no_arg/0", specs: "@spec no_arg() :: :ok"} in result.specs
+      assert %{name: "multiple_arities/1", specs: "@spec multiple_arities(arg1 :: term()) :: {:ok, term()}"} in result.specs
+      refute Enum.any?(result.types, &(&1.name == "one_arg/1"))
+      assert Enum.any?(result.types, &(&1.name == "multiple_arities/2"))
+
+      refute Enum.any?(result.specs, &(&1.name == "one_arg/1"))
+      assert Enum.any?(result.specs, &(&1.name == "multiple_arities/2"))
 
       # try macro spec
       mfa = "ElixirLS.Test.WithTypes.macro"
@@ -266,7 +279,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       mfa = "ElixirLS.Test.WithTypes.callback_no_arg"
       assert {:ok, result} = LlmTypeInfo.execute([mfa], %{})
 
-      assert %{name: "callback_no_arg/0", specs: "@callback callback_no_arg() :: :ok"} in result.callbacks
+      assert %{name: "callback_multiple_arities/1", specs: "@callback callback_multiple_arities(arg1 :: term()) :: {:ok, term()}"} in result.callbacks
+      refute Enum.any?(result.callbacks, &(&1.name == "one_arg/1"))
+      assert Enum.any?(result.callbacks, &(&1.name == "multiple_arities/2"))
 
       # try macrocallback
       mfa = "ElixirLS.Test.WithTypes.callback_macro"
