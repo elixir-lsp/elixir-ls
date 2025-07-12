@@ -165,6 +165,34 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
         assert result.module == expected
       end
     end
+
+    test "handles remote call symbols by extracting module" do
+      state = %{source_files: %{}}
+      
+      # Test that remote call symbols like "String.split/2" extract the module part correctly
+      assert {:ok, result} = LlmModuleDependencies.execute(["String.split/2"], state)
+      assert result.module == "String"
+      
+      # Test another remote call  
+      assert {:ok, result} = LlmModuleDependencies.execute(["Enum.map/2"], state)
+      assert result.module == "Enum"
+      
+      # Test erlang remote call
+      assert {:ok, result} = LlmModuleDependencies.execute([":lists.append/2"], state)
+      assert result.module == ":lists"
+    end
+    
+    test "rejects unsupported symbol types" do
+      state = %{source_files: %{}}
+      
+      # Test that local calls return an error
+      assert {:ok, %{error: error}} = LlmModuleDependencies.execute(["my_function"], state)
+      assert error =~ "Symbol type local_call is not supported"
+      
+      # Test that module attributes return an error
+      assert {:ok, %{error: error}} = LlmModuleDependencies.execute(["@doc"], state)
+      assert error =~ "Symbol type attribute is not supported"
+    end
     
     test "handles non-existent module gracefully" do
       state = %{source_files: %{}}

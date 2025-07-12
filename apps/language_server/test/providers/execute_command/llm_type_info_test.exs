@@ -78,11 +78,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       :ok
     end
 
-    test "extracts type information from a module" do
+    test "extracts type information from a standard library module" do
       # Use GenServer for types
       module_name = "GenServer"
       
       assert {:ok, result} = LlmTypeInfo.execute([module_name], %{})
+
+      dbg(result)
       
       assert result.module == "GenServer"
       
@@ -97,6 +99,111 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       assert from_type.kind == :type
       assert from_type.spec
       assert from_type.signature
+    end
+
+    test "extracts type information from a module" do
+      # Use ElixirLS.Test.WithTypes for types
+      module_name = "ElixirLS.Test.WithTypes"
+      
+      assert {:ok, result} = LlmTypeInfo.execute([module_name], %{})
+
+      dbg(result)
+      
+      assert result.module == "ElixirLS.Test.WithTypes"
+      
+      # Check types
+      assert is_list(result.types) and length(result.types) > 0
+      assert %{
+        name: "no_arg/0",
+        signature: "no_arg()",
+        spec: "@type no_arg() :: :ok",
+        kind: :type
+      } in result.types
+
+      assert %{
+        name: "one_arg/1",
+        signature: "one_arg(t)",
+        spec: "@type one_arg(t) :: {:ok, t}",
+        kind: :type
+      } in result.types
+
+      assert %{
+        name: "one_arg_named/1",
+        signature: "one_arg_named(t)",
+        spec: "@type one_arg_named(t) :: {:ok, t, bar :: integer()}",
+        kind: :type
+      } in result.types
+
+      # opaque type has definition hidden
+      assert %{
+        name: "opaque_type/0",
+        signature: "opaque_type()",
+        spec: "@opaque opaque_type()",
+        kind: :opaque
+      } in result.types
+
+      # private type should not be included
+      refute Enum.any?(result.types, &(&1.name == "private_type/0"))
+
+      # Check specs
+      assert is_list(result.specs) and length(result.specs) > 0
+
+      # functions
+      
+      assert %{name: "no_arg/0", specs: "@spec no_arg() :: :ok"} in result.specs
+      assert %{name: "one_arg/1", specs: "@spec one_arg(term()) :: {:ok, term()}"} in result.specs
+      assert %{
+        name: "one_arg_named/2",
+        specs: "@spec one_arg_named(foo :: term(), bar :: integer()) :: {:ok, term(), baz :: integer()}"
+      } in result.specs
+      assert %{
+        name: "multiple_specs/2",
+        specs: "@spec multiple_specs(term(), integer()) :: {:ok, term(), integer()}\n@spec multiple_specs(term(), float()) :: {:ok, term(), float()}"
+      } in result.specs
+      assert %{
+        name: "bounded_fun/1",
+        specs: "@spec bounded_fun(foo) :: {:ok, term()} when foo: term()"
+      } in result.specs
+
+      # macros
+      assert %{name: "macro/1", specs: "@spec macro(Macro.t()) :: Macro.t()"} in result.specs
+      assert %{
+        name: "macro_bounded/1",
+        specs: "@spec macro_bounded(foo) :: Macro.t() when foo: term()"
+      } in result.specs
+
+      # Check callbacks
+      assert is_list(result.callbacks) and length(result.callbacks) > 0
+
+      # callbacks
+      
+      assert %{name: "callback_no_arg/0", specs: "@callback callback_no_arg() :: :ok"} in result.callbacks
+      assert %{
+        name: "callback_one_arg/1",
+        specs: "@callback callback_one_arg(term()) :: {:ok, term()}"
+      } in result.callbacks
+      assert %{
+        name: "callback_one_arg_named/2",
+        specs: "@callback callback_one_arg_named(foo :: term(), bar :: integer()) :: {:ok, term(), baz :: integer()}"
+      } in result.callbacks
+      assert %{
+        name: "callback_multiple_specs/2",
+        specs: "@callback callback_multiple_specs(term(), integer()) :: {:ok, term(), integer()}\n@callback callback_multiple_specs(term(), float()) :: {:ok, term(), float()}"
+      } in result.callbacks
+      assert %{
+        name: "callback_bounded_fun/1",
+        specs: "@callback callback_bounded_fun(foo) :: {:ok, term()} when foo: term()"
+      } in result.callbacks
+      # macrocallbacks
+      assert %{
+        name: "callback_macro/1",
+        specs: "@macrocallback callback_macro(Macro.t()) :: Macro.t()"
+      } in result.callbacks
+      assert %{
+        name: "callback_macro_bounded/1",
+        specs: "@macrocallback callback_macro_bounded(foo) :: Macro.t() when foo: term()"
+      } in result.callbacks
+      
     end
     
     test "extracts specs from module with functions" do
@@ -253,7 +360,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       # Private function should not have docs
       private_spec = Enum.find(result.specs, &(&1.name == "private_fun/1"))
       assert private_spec
-      assert private_spec.doc == ""
     end
 
     test "extracts callbacks from behaviour module" do
@@ -280,7 +386,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       # handle_cast should be there but without docs
       handle_cast_callback = Enum.find(result.callbacks, &(&1.name == "handle_cast/2"))
       assert handle_cast_callback
-      assert handle_cast_callback.doc == ""
     end
 
     test "extracts all type information from implementation module" do
@@ -306,7 +411,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       # private_type should not be included (has @typedoc false)
       private_type = Enum.find(result.types, &(&1.name == "private_type/0"))
       assert private_type
-      assert private_type.doc == ""
     end
   end
 end

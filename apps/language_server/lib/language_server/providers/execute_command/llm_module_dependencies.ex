@@ -12,15 +12,28 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
   """
 
   alias ElixirLS.LanguageServer.{SourceFile, Tracer}
+  alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
   require Logger
 
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
-  def execute([module_name], state) when is_binary(module_name) do
+  def execute([symbol], state) when is_binary(symbol) do
     try do
-      module = parse_module_name(module_name)
-      get_module_dependencies(module, state)
+      case SymbolParser.parse(symbol) do
+        {:ok, :module, module} ->
+          get_module_dependencies(module, state)
+        
+        {:ok, :remote_call, {module, _, _}} ->
+          # For remote calls, analyze the module part
+          get_module_dependencies(module, state)
+          
+        {:ok, type, _parsed} ->
+          {:ok, %{error: "Symbol type #{type} is not supported. Only modules are supported for dependency analysis."}}
+          
+        {:error, reason} ->
+          {:ok, %{error: "Failed to parse symbol: #{reason}"}}
+      end
     rescue
       error ->
         Logger.error("Error in llmModuleDependencies: #{inspect(error)}")
@@ -29,32 +42,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
   end
 
   def execute(_args, _state) do
-    {:ok, %{error: "Invalid arguments: expected [module_name]. Example: 'MyApp.MyModule' or 'Enum'"}}
+    {:ok, %{error: "Invalid arguments: expected [symbol]. Example: 'MyApp.MyModule', 'Enum', or 'String.split/2'"}}
   end
 
-  def parse_module_name(module_name) do
-    # Handle various module name formats
-    module_name = String.trim(module_name)
-    
-    # Try to parse as module
-    case Code.string_to_quoted(module_name) do
-      {:ok, {:__aliases__, _, parts}} ->
-        Module.concat(parts)
-        
-      {:ok, atom} when is_atom(atom) ->
-        atom
-        
-      _ ->
-        # Try adding Elixir. prefix for standard lib modules
-        if String.starts_with?(module_name, ":") do
-          module_name
-          |> String.trim_leading(":")
-          |> String.to_atom()
-        else
-          Module.concat([module_name])
-        end
-    end
-  end
 
   defp get_module_dependencies(module, state) do
     # Get direct dependencies from Tracer

@@ -10,6 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   alias ElixirSense.Core.Normalized.Typespec
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.TypeInfo
+  alias ElixirSense.Core.Introspection
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
   require Logger
 
@@ -113,7 +114,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   defp extract_function_type_info(module, function, arity, state) do
     # Extract specific function information
     specs = extract_function_specs(module, function, arity)
+    # TODO: types
     types = []
+    # TODO: callbacks
     callbacks = []
     
     # Extract dialyzer contracts for this specific function
@@ -131,26 +134,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   end
 
   defp extract_function_specs(module, function, arity) do
-    result = Typespec.get_specs(module)
-    
-    case result do
-      specs when is_list(specs) and length(specs) > 0 ->
-        function_docs = get_function_docs(module)
-        
-        specs
-        |> Enum.filter(fn {{name, spec_arity}, _spec_ast} ->
-          name == function and (arity == nil or spec_arity == arity)
-        end)
-        |> Enum.map(fn {{name, spec_arity}, _spec_ast} = spec ->
-          spec_info = format_spec(spec)
-          doc = Map.get(function_docs, {name, spec_arity}, "")
-          Map.put(spec_info, :doc, doc)
-        end)
-        |> Enum.sort_by(& &1.name)
-        
-      _ ->
-        []
-    end
+    TypeInfo.get_module_specs(module)
+    |> Enum.filter(fn {_key, {{name, spec_arity}, _spec_ast}} ->
+      # TODO: filter broken for macro
+      name == function and (arity == nil or spec_arity == arity)
+    end)
+    |> Enum.sort_by(& elem(&1, 0))
+    |> Enum.map(fn {_key, {{name, spec_arity}, _spec_ast} = spec} ->
+      format_spec(spec)
+    end)
   end
 
   defp extract_function_dialyzer_contracts(module, function, arity, state) do
@@ -173,16 +165,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
     result = Typespec.get_types(module)
     
     case result do
-      types when is_list(types) and length(types) > 0 ->
-        type_docs = get_type_docs(module)
-        
+      types when is_list(types) and length(types) > 0 ->        
         types
         |> Enum.filter(fn {kind, _} -> kind in [:type, :opaque] end)
         |> Enum.map(fn {_kind, {name, _, args}} = typedef ->
-          type_info = format_type(typedef)
-          arity = length(args)
-          doc = Map.get(type_docs, {name, arity}, "")
-          Map.put(type_info, :doc, doc)
+          format_type(typedef)
         end)
         |> Enum.sort_by(& &1.name)
         
@@ -192,84 +179,19 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   end
 
   defp extract_specs(module) do
-    result = Typespec.get_specs(module)
-    
-    case result do
-      specs when is_list(specs) and length(specs) > 0 ->
-        function_docs = get_function_docs(module)
-        
-        specs
-        |> Enum.map(fn {{name, arity}, _spec_ast} = spec ->
-          spec_info = format_spec(spec)
-          doc = Map.get(function_docs, {name, arity}, "")
-          Map.put(spec_info, :doc, doc)
-        end)
-        |> Enum.sort_by(& &1.name)
-        
-      _ ->
-        []
-    end
-  end
-  
-  defp get_function_docs(module) do
-    case NormalizedCode.get_docs(module, :docs) do
-      docs when is_list(docs) ->
-        docs
-        |> Enum.filter(fn doc_entry ->
-          case doc_entry do
-            {{:function, _, _}, _, _, _, _} -> true
-            _ -> false
-          end
-        end)
-        |> Enum.map(fn {{:function, name, arity}, _, _, doc, _} ->
-          {{name, arity}, doc || ""}
-        end)
-        |> Map.new()
-      _ ->
-        %{}
-    end
+    TypeInfo.get_module_specs(module)
+    |> Enum.map(fn {_key, {{_name, _arity}, _spec_ast} = spec} ->
+      format_spec(spec)
+    end)
+    |> Enum.sort_by(& &1.name)
   end
 
   defp extract_callbacks(module) do
-    result = Typespec.get_callbacks(module)
-    
-    case result do
-      callbacks when is_list(callbacks) and length(callbacks) > 0 ->
-        callback_docs = get_callback_docs(module)
-        
-        callbacks
-        |> Enum.map(fn {{name, arity}, _spec_ast} = callback ->
-          callback_info = format_callback(callback)
-          doc = Map.get(callback_docs, {name, arity}, "")
-          Map.put(callback_info, :doc, doc)
-        end)
-        |> Enum.sort_by(& &1.name)
-        
-      _ ->
-        []
-    end
-  end
-  
-  defp get_callback_docs(module) do
-    case NormalizedCode.get_docs(module, :callback_docs) do
-      docs when is_list(docs) ->
-        docs
-        |> Enum.map(fn entry ->
-          case entry do
-            {{name, arity}, _, _, doc, _metadata} ->
-              {{name, arity}, doc || ""}
-            {{:type, _, _}, _, _, _, _} ->
-              # Skip callback types
-              nil
-            _ ->
-              nil
-          end
-        end)
-        |> Enum.reject(&is_nil/1)
-        |> Map.new()
-      _ ->
-        %{}
-    end
+    result = TypeInfo.get_module_callbacks(module)
+    |> Enum.map(fn {_key, {{_name, _arity}, _spec_ast} = callback} ->
+      format_callback(callback)
+    end)
+    |> Enum.sort_by(& &1.name)
   end
 
   defp extract_dialyzer_contracts(module, state) do
@@ -311,8 +233,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   defp format_type({kind, {name, _ast, args}} = typedef) do
     arity = length(args)
     signature = format_type_signature(name, args)
-    spec = TypeInfo.format_type_spec(typedef, line_length: 75)
-    
+    spec = try do
+      TypeInfo.format_type_spec(typedef, line_length: 75)
+    catch
+      _ -> "@#{kind} #{name}/#{arity}"
+    end
+
     %{
       name: "#{name}/#{arity}",
       kind: kind,
@@ -323,20 +249,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
 
   defp format_spec({{name, arity}, specs}) do
     signature = "#{name}/#{arity}"
-    
-    # Format all specs for this function
-    formatted_specs = 
-      specs
-      |> Enum.map(fn spec_ast ->
-        try do
-          # Convert from Erlang AST to Elixir AST
-          quoted = Typespec.spec_to_quoted(name, spec_ast)
-          TypeInfo.format_type_spec_ast(quoted, :spec, line_length: 75)
-        rescue
-          _ -> "@spec #{name}/#{arity}"
-        end
-      end)
-      |> Enum.join("\n")
+
+    formatted_specs = Introspection.spec_to_string({{name, arity}, specs}, :spec)
     
     %{
       name: signature,
@@ -346,20 +260,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
 
   defp format_callback({{name, arity}, specs}) do
     signature = "#{name}/#{arity}"
-    
-    # Format all callback specs
-    formatted_specs = 
-      specs
-      |> Enum.map(fn spec_ast ->
-        try do
-          # Convert from Erlang AST to Elixir AST
-          quoted = Typespec.spec_to_quoted(name, spec_ast)
-          TypeInfo.format_type_spec_ast(quoted, :callback, line_length: 75)
-        rescue
-          _ -> "@callback #{name}/#{arity}"
-        end
-      end)
-      |> Enum.join("\n")
+    kind = if String.starts_with?(to_string(name), "MACRO_") do
+      :macrocallback
+    else
+      :callback
+    end
+
+    formatted_specs = Introspection.spec_to_string({{name, arity}, specs}, kind)
     
     %{
       name: signature,
@@ -378,17 +285,5 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   defp format_type_signature(name, args) do
     arg_names = Enum.map_join(args, ", ", fn {_, _, name} -> Atom.to_string(name) end)
     "#{name}(#{arg_names})"
-  end
-
-
-  defp get_type_docs(module) do
-    case NormalizedCode.get_docs(module, :type_docs) do
-      docs when is_list(docs) ->
-        Map.new(docs, fn {{name, arity}, _, _, doc, _metadata} ->
-          {{name, arity}, doc || ""}
-        end)
-      _ ->
-        %{}
-    end
   end
 end
