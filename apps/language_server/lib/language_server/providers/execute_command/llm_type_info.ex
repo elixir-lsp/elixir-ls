@@ -8,7 +8,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   """
 
   alias ElixirSense.Core.Normalized.Typespec
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Introspection
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
@@ -103,21 +102,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
     }
   end
 
-  defp extract_function_dialyzer_contracts(module, function, arity, state) do
-    all_contracts = extract_dialyzer_contracts(module, state)
-    function_str = Atom.to_string(function)
-    
-    all_contracts
-    |> Enum.filter(fn contract ->
-      case String.split(contract.name, "/") do
-        [^function_str, arity_str] ->
-          contract_arity = String.to_integer(arity_str)
-          arity == nil or contract_arity == arity
-        _ ->
-          false
-      end
-    end)
-  end
 
   defp extract_types(module) do
     result = Typespec.get_types(module)
@@ -126,9 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
       types when is_list(types) and length(types) > 0 ->        
         types
         |> Enum.filter(fn {kind, _} -> kind in [:type, :opaque] end)
-        |> Enum.map(fn {_kind, {name, _, args}} = typedef ->
-          format_type(typedef)
-        end)
+        |> Enum.map(&format_type/1)
         |> Enum.sort_by(& &1.name)
         
       _ ->
@@ -145,7 +127,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   end
 
   defp extract_callbacks(module) do
-    result = TypeInfo.get_module_callbacks(module)
+    TypeInfo.get_module_callbacks(module)
     |> Enum.map(fn {_key, {{_name, _arity}, _spec_ast} = callback} ->
       format_callback(callback)
     end)
@@ -290,16 +272,18 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
       end
     end
     
-    # Filter types, specs, and callbacks
+    # Filter types, specs, callbacks, and dialyzer contracts
     filtered_types = Enum.filter(type_info.types, fn type -> match_function.(type.name) end)
     filtered_specs = Enum.filter(type_info.specs, fn spec -> match_function.(spec.name) end)
     filtered_callbacks = Enum.filter(type_info.callbacks, fn callback -> match_function.(callback.name) end)
+    filtered_dialyzer_contracts = Enum.filter(type_info.dialyzer_contracts, fn contract -> match_function.(contract.name) end)
     
     %{
       type_info |
       types: filtered_types,
       specs: filtered_specs,
-      callbacks: filtered_callbacks
+      callbacks: filtered_callbacks,
+      dialyzer_contracts: filtered_dialyzer_contracts
     }
   end
 

@@ -139,4 +139,119 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
       wait_until_compiled(server)
     end)
   end
+
+  @tag :slow
+  @tag :fixture
+  test "filters dialyzer contracts by specific arity (MFA)", %{server: server} do
+    in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
+      # Get the file URI for Suggest module
+      file_suggest = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/suggest.ex"))
+      
+      # Initialize with dialyzer enabled
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "suggestSpecs" => true
+      })
+
+      # Wait for dialyzer to finish initial analysis
+      assert_receive %{"method" => "textDocument/publishDiagnostics"}, 30000
+      
+      # Open the file so server knows about it
+      Server.receive_packet(
+        server,
+        did_open(file_suggest, "elixir", 1, File.read!(Path.absname("lib/suggest.ex")))
+      )
+      
+      # Give dialyzer time to analyze the file
+      Process.sleep(1000)
+
+      # Get the server state
+      state = :sys.get_state(server)
+
+      # Test MFA - should return contracts only for specific arity
+      assert {:ok, result} = LlmTypeInfo.execute(["Suggest.multiple_arities/1"], state)
+
+      assert result.module == "Suggest"
+      assert is_list(result.dialyzer_contracts)
+      
+      # Should only include contracts for multiple_arities/1, not multiple_arities/2
+      arity_1_contracts = Enum.filter(result.dialyzer_contracts, &(&1.name == "multiple_arities/1"))
+      arity_2_contracts = Enum.filter(result.dialyzer_contracts, &(&1.name == "multiple_arities/2"))
+      
+      # Should have the arity 1 contract
+      assert length(arity_1_contracts) == 1
+      arity_1_contract = hd(arity_1_contracts)
+      assert String.contains?(arity_1_contract.contract, "multiple_arities(")
+      assert String.contains?(arity_1_contract.contract, "::")
+      
+      # Should NOT have the arity 2 contract
+      assert length(arity_2_contracts) == 0
+      
+      # Should not have contracts for other functions
+      refute Enum.any?(result.dialyzer_contracts, &(&1.name == "no_arg/0"))
+      refute Enum.any?(result.dialyzer_contracts, &(&1.name == "one_arg/1"))
+      
+      wait_until_compiled(server)
+    end)
+  end
+
+  @tag :slow
+  @tag :fixture
+  test "filters dialyzer contracts by function name (MF)", %{server: server} do
+    in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
+      # Get the file URI for Suggest module
+      file_suggest = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/suggest.ex"))
+      
+      # Initialize with dialyzer enabled
+      initialize(server, %{
+        "dialyzerEnabled" => true,
+        "dialyzerFormat" => "dialyxir_long",
+        "suggestSpecs" => true
+      })
+
+      # Wait for dialyzer to finish initial analysis
+      assert_receive %{"method" => "textDocument/publishDiagnostics"}, 30000
+      
+      # Open the file so server knows about it
+      Server.receive_packet(
+        server,
+        did_open(file_suggest, "elixir", 1, File.read!(Path.absname("lib/suggest.ex")))
+      )
+      
+      # Give dialyzer time to analyze the file
+      Process.sleep(1000)
+
+      # Get the server state
+      state = :sys.get_state(server)
+
+      # Test MF - should return contracts for all arities of the function
+      assert {:ok, result} = LlmTypeInfo.execute(["Suggest.multiple_arities"], state)
+
+      assert result.module == "Suggest"
+      assert is_list(result.dialyzer_contracts)
+      
+      # Should include contracts for both multiple_arities/1 and multiple_arities/2
+      arity_1_contracts = Enum.filter(result.dialyzer_contracts, &(&1.name == "multiple_arities/1"))
+      arity_2_contracts = Enum.filter(result.dialyzer_contracts, &(&1.name == "multiple_arities/2"))
+      
+      # Should have both arity contracts
+      assert length(arity_1_contracts) == 1
+      assert length(arity_2_contracts) == 1
+      
+      arity_1_contract = hd(arity_1_contracts)
+      assert String.contains?(arity_1_contract.contract, "multiple_arities(")
+      assert String.contains?(arity_1_contract.contract, "::")
+      
+      arity_2_contract = hd(arity_2_contracts)
+      assert String.contains?(arity_2_contract.contract, "multiple_arities(")
+      assert String.contains?(arity_2_contract.contract, "::")
+      
+      # Should not have contracts for other functions
+      refute Enum.any?(result.dialyzer_contracts, &(&1.name == "no_arg/0"))
+      refute Enum.any?(result.dialyzer_contracts, &(&1.name == "one_arg/1"))
+      
+      wait_until_compiled(server)
+    end)
+  end
 end
