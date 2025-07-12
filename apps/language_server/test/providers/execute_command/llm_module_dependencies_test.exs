@@ -220,11 +220,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
       assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsB"], state)
       
       # Macros and aliases should be compile-time
-      compile_time = result.compile_time_dependencies
+      compile_time = result.direct_dependencies.compile_dependencies
       assert "Logger" in compile_time  # require Logger
       
       # Function calls should be runtime
-      runtime = result.runtime_dependencies
+      runtime = result.direct_dependencies.runtime_dependencies
       assert "ElixirLS.Test.ModuleDepsC" in runtime
       assert "ElixirLS.Test.ModuleDepsD" in runtime
     end
@@ -235,33 +235,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
       assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsD"], state)
       
       # Check that struct usage is detected as compile-time dependency
-      assert "ElixirLS.Test.ModuleDepsC" in result.compile_time_dependencies
-    end
-    
-    test "includes location when module is in source files" do
-      # Create a mock state with source files
-      uri = "file:///path/to/module_deps_a.ex"
-      source_text = """
-      defmodule ElixirLS.Test.ModuleDepsA do
-        def test, do: :ok
-      end
-      """
-      
-      state = %{
-        source_files: %{
-          uri => %SourceFile{
-            text: source_text,
-            version: 1,
-            language_id: "elixir"
-          }
-        }
-      }
-      
-      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
-      
-      # Should include location information
-      assert result.location
-      assert result.location.uri == uri
+      assert "ElixirLS.Test.ModuleDepsC" in result.direct_dependencies.compile_dependencies
     end
     
     test "formats function calls correctly" do

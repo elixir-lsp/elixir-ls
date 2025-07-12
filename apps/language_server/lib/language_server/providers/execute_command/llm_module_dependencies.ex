@@ -18,15 +18,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
   @behaviour ElixirLS.LanguageServer.Providers.ExecuteCommand
 
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
-  def execute([symbol], state) when is_binary(symbol) do
+  def execute([symbol], _state) when is_binary(symbol) do
     try do
       case SymbolParser.parse(symbol) do
         {:ok, :module, module} ->
-          get_module_dependencies(module, state)
+          get_module_dependencies(module)
         
         {:ok, :remote_call, {module, _, _}} ->
           # For remote calls, analyze the module part
-          get_module_dependencies(module, state)
+          # TODO: maybe filter direct and reverse dependencies by the function?
+          get_module_dependencies(module)
           
         {:ok, type, _parsed} ->
           {:ok, %{error: "Symbol type #{type} is not supported. Only modules are supported for dependency analysis."}}
@@ -46,15 +47,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
   end
 
 
-  defp get_module_dependencies(module, state) do
+  defp get_module_dependencies(module) do
     # Get direct dependencies from Tracer
     direct_deps = get_direct_dependencies(module)
     
     # Get reverse dependencies (modules that depend on this module)
     reverse_deps = get_reverse_dependencies(module)
-    
-    # Get module info from state if available
-    module_info = get_module_info(module, state)
     
     # Get transitive dependencies
     transitive_deps = get_transitive_dependencies_from_direct(module, direct_deps, :compile)
@@ -66,35 +64,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
     
     {:ok, %{
       module: inspect(module),
-      location: module_info[:location],
       direct_dependencies: formatted_direct,
       reverse_dependencies: formatted_reverse,
       transitive_dependencies: format_module_list(transitive_deps),
-      reverse_transitive_dependencies: format_module_list(reverse_transitive_deps),
-      # Add top-level convenience fields for backward compatibility
-      # TODO: Remove duplicated info
-      compile_time_dependencies: formatted_direct.compile_dependencies,
-      runtime_dependencies: formatted_direct.runtime_dependencies,
-      exports_dependencies: formatted_direct.exports_dependencies
+      reverse_transitive_dependencies: format_module_list(reverse_transitive_deps)
     }}
-  end
-
-  # TODO: WTF? don't need that
-  defp get_module_info(module, state) do
-    # Try to find module definition in source files
-    case find_module_in_sources(module, state) do
-      {:ok, info} -> info
-      _ -> %{}
-    end
-  end
-
-  defp find_module_in_sources(module, state) do
-    # Check all source files for module definition
-    Enum.find_value(state.source_files, fn {uri, %SourceFile{} = source_file} ->
-      if String.contains?(source_file.text, "defmodule #{inspect(module)}") do
-        {:ok, %{location: %{uri: uri}}}
-      end
-    end)
   end
 
   defp get_direct_dependencies(module) do
@@ -105,9 +79,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
               Enum.any?(call_infos, fn info ->
                 # Check if the call is from our module
                 info.caller_module == module
-                # TODO: WTF?
-                # ||
-                # (info.file && get_caller_module(info.file) == module)
               end)
             end)
     
