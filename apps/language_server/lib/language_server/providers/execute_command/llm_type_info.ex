@@ -12,6 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Introspection
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
+  alias ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
   require Logger
 
   @doc """
@@ -236,11 +237,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
     }
   end
 
-  defp format_dialyzer_contract({_file, line, {_mod, fun, arity}, success_typing, _is_macro}) do
+  defp format_dialyzer_contract({_file, line, {mod, fun, arity}, success_typing, is_macro}) do
+    # Transform macro names from internal form to user-facing form
+    {display_name, display_arity} = normalize_macro_name_and_arity(fun, arity)
+    
+    # Use ContractTranslator to convert Erlang contract to Elixir spec
+    elixir_spec = ContractTranslator.translate_contract(fun, success_typing, is_macro, mod)
+    
     %{
-      name: "#{fun}/#{arity}",
+      name: "#{display_name}/#{display_arity}",
       line: line,
-      contract: List.to_string(success_typing)
+      contract: "@spec #{elixir_spec}"
     }
   end
 

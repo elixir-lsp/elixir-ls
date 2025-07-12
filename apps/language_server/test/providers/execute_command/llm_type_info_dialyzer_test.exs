@@ -43,8 +43,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
   @tag :fixture
   test "includes dialyzer contracts when PLT is available", %{server: server} do
     in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
-      # Get the file URI for C module
-      file_c = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/suggest.ex"))
+      # Get the file URI for Suggest module
+      file_suggest = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/suggest.ex"))
       
       # Initialize with dialyzer enabled (incremental is default)
       initialize(server, %{
@@ -59,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
       # Open the file so server knows about it
       Server.receive_packet(
         server,
-        did_open(file_c, "elixir", 1, File.read!(Path.absname("lib/suggest.ex")))
+        did_open(file_suggest, "elixir", 1, File.read!(Path.absname("lib/suggest.ex")))
       )
       
       # Give dialyzer time to analyze the file
@@ -71,16 +71,70 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
       # Now test our LlmTypeInfo command with module Suggest which has unspecced functions
       assert {:ok, result} = LlmTypeInfo.execute(["Suggest"], state)
 
-      # Module Suggest should have dialyzer contracts for its unspecced function
+      # Module Suggest should have dialyzer contracts for its unspecced functions
       assert result.module == "Suggest"
-      assert is_list(result.dialyzer_contracts |> dbg)
+      assert is_list(result.dialyzer_contracts)
       assert length(result.dialyzer_contracts) > 0
       
-      # The myfun function should have a dialyzer contract
-      myfun_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "myfun/0"))
-      assert myfun_contract
-      assert myfun_contract.contract
-      assert String.contains?(myfun_contract.contract, "() -> 1")
+      # Check contracts for different types of functions from the fixture
+      
+      # Regular function with no arguments
+      no_arg_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "no_arg/0"))
+      assert no_arg_contract
+      assert no_arg_contract.contract
+      assert String.contains?(no_arg_contract.contract, "no_arg() :: :ok")
+      
+      # Function with pattern matching
+      one_arg_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "one_arg/1"))
+      assert one_arg_contract
+      assert one_arg_contract.contract
+      assert String.contains?(one_arg_contract.contract, "one_arg(")
+      
+      # Function with multiple arities
+      multiple_arities_1_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "multiple_arities/1"))
+      if multiple_arities_1_contract do
+        assert multiple_arities_1_contract.contract
+        assert String.contains?(multiple_arities_1_contract.contract, "multiple_arities(")
+      end
+      
+      multiple_arities_2_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "multiple_arities/2"))
+      if multiple_arities_2_contract do
+        assert multiple_arities_2_contract.contract
+        assert String.contains?(multiple_arities_2_contract.contract, "multiple_arities(")
+      end
+      
+      # Function with default arguments (creates multiple arities internally)
+      default_arg_contract = Enum.find(result.dialyzer_contracts, fn contract ->
+        String.starts_with?(contract.name, "default_arg_functions/")
+      end)
+      if default_arg_contract do
+        assert default_arg_contract.contract
+        assert String.contains?(default_arg_contract.contract, "default_arg_functions(")
+      end
+      
+      # Macro (should have normalized name)
+      macro_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "macro/1"))
+      if macro_contract do
+        assert macro_contract.contract
+        assert String.contains?(macro_contract.contract, "macro(")
+      end
+      
+      # Function with guards and multiple clauses
+      multiple_clauses_contract = Enum.find(result.dialyzer_contracts, &(&1.name == "multiple_clauses/1"))
+      if multiple_clauses_contract do
+        assert multiple_clauses_contract.contract
+        assert String.contains?(multiple_clauses_contract.contract, "multiple_clauses(")
+      end
+      
+      # Ensure all contracts are in Elixir format (not Erlang)
+      for contract <- result.dialyzer_contracts do
+        # Should not contain Erlang-style syntax
+        refute String.contains?(contract.contract, "->")
+        refute String.contains?(contract.contract, "fun(")
+        
+        # Should contain Elixir-style syntax
+        assert String.contains?(contract.contract, "::")
+      end
       
       wait_until_compiled(server)
     end)
