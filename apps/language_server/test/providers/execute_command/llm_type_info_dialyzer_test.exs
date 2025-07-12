@@ -44,7 +44,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
   test "includes dialyzer contracts when PLT is available", %{server: server} do
     in_fixture(Path.join(__DIR__, "../.."), "dialyzer", fn ->
       # Get the file URI for C module
-      file_c = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/c.ex"))
+      file_c = ElixirLS.LanguageServer.SourceFile.Path.to_uri(Path.absname("lib/suggest.ex"))
       
       # Initialize with dialyzer enabled (incremental is default)
       initialize(server, %{
@@ -59,7 +59,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
       # Open the file so server knows about it
       Server.receive_packet(
         server,
-        did_open(file_c, "elixir", 1, File.read!(Path.absname("lib/c.ex")))
+        did_open(file_c, "elixir", 1, File.read!(Path.absname("lib/suggest.ex")))
       )
       
       # Give dialyzer time to analyze the file
@@ -67,13 +67,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoDialyzerTe
 
       # Get the server state which should have PLT loaded and contracts available
       state = :sys.get_state(server)
-      
-      # Now test our LlmTypeInfo command with module C which has unspecced functions
-      assert {:ok, result} = LlmTypeInfo.execute(["C"], state)
-      
-      # Module C should have dialyzer contracts for its unspecced function
-      assert result.module == "C"
-      assert is_list(result.dialyzer_contracts)
+
+      # Now test our LlmTypeInfo command with module Suggest which has unspecced functions
+      assert {:ok, result} = LlmTypeInfo.execute(["Suggest"], state)
+
+      # Module Suggest should have dialyzer contracts for its unspecced function
+      assert result.module == "Suggest"
+      assert is_list(result.dialyzer_contracts |> dbg)
       assert length(result.dialyzer_contracts) > 0
       
       # The myfun function should have a dialyzer contract
