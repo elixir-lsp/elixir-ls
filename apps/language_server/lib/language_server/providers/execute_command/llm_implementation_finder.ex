@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
 
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Behaviours
+  alias ElixirSense.Core.Introspection
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
 
   require Logger
@@ -48,10 +49,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
 
 
   defp find_implementations(:module, module) do
-    # Check if it's a behaviour or protocol
-    cond do
-      # TODO: protocol is a behaviour, this needs to be reordered
-      is_behaviour?(module) ->
+    # Check if it's a protocol first, then behaviour (protocol is a type of behaviour)
+    case Introspection.get_module_subtype(module) do
+      :protocol ->
+        # Find all protocol implementations
+        implementations = get_behaviour_implementations(module)
+        locations = Enum.map(implementations, fn impl_module ->
+          {impl_module, Location.find_mod_fun_source(impl_module, nil, nil)}
+        end)
+        {:ok, locations}
+
+      :behaviour ->
         # Find all modules implementing this behaviour
         implementations = get_behaviour_implementations(module)
         locations = Enum.map(implementations, fn impl_module ->
@@ -59,43 +67,21 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
         end)
         {:ok, locations}
 
-      is_protocol?(module) ->
-        # Find all protocol implementations
-        implementations = find_protocol_implementations(module)
-        {:ok, implementations}
-
-      true ->
+      _ ->
         {:error, "#{inspect(module)} is not a behaviour or protocol"}
     end
   end
 
   defp find_implementations(:local_call, {function, arity}) do
-    # TODO: return error, that does not make sense
-    # For local calls, try to find implementations in Kernel or common behaviours
-    # This is likely not very useful for implementation finding, but we handle it
-    cond do
-      is_behaviour?(Kernel) ->
-        # Try to find implementations of Kernel callbacks (rare case)
-        implementations = get_behaviour_implementations(Kernel)
-        locations = Enum.flat_map(implementations, fn impl_module ->
-          case find_callback_implementation(impl_module, function, arity) do
-            nil -> []
-            location -> [{impl_module, location}]
-          end
-        end)
-        {:ok, locations}
-
-      true ->
-        {:error, "Local call #{function}/#{arity || "?"} - no implementations found"}
-    end
+    # Local calls don't have implementations in the context of behaviours/protocols
+    {:error, "Local call #{function}/#{arity || "?"} - no implementations found"}
   end
 
   defp find_implementations(:remote_call, {module, function, arity}) do
     # For implementation finder, we treat functions as potential callbacks
     # Find implementations of a specific callback
-    cond do
-      # TODO: protocol is a behaviour, this needs to be reordered
-      is_behaviour?(module) ->
+    case Introspection.get_module_subtype(module) do
+      subtype when subtype in [:protocol, :behaviour] ->
         implementations = get_behaviour_implementations(module)
         
         locations = Enum.flat_map(implementations, fn impl_module ->
@@ -107,12 +93,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
         
         {:ok, locations}
 
-      is_protocol?(module) ->
-        # For protocol functions, find all implementations
-        implementations = find_protocol_implementations(module)
-        {:ok, implementations}
-
-      true ->
+      _ ->
         {:error, "#{module}.#{function}/#{arity || "?"} is not a callback or protocol function"}
     end
   end
@@ -121,101 +102,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
     {:error, "Module attribute @#{attribute} - attributes don't have implementations"}
   end
 
-  defp is_behaviour?(module) do
-    # A module is a behaviour if:
-    # 1. It exports behaviour_info/1, or
-    # 2. It has callback definitions
-    Code.ensure_loaded?(module) and
-      (function_exported?(module, :behaviour_info, 1) or
-       has_callback_attributes?(module))
-  rescue
-    _ -> false
-  end
-
-  # TODO: WTF?
-  defp has_callback_attributes?(module) do
-    # Check if module has @callback or @macrocallback attributes
-    # This is a simplified check - in practice, we'd need to inspect the module's attributes
-    # For now, we'll use a heuristic: check if common behaviours match
-    module in [GenServer, Supervisor, Application, Agent, Task] or
-      String.contains?(inspect(module), "Behaviour")
-  rescue
-    _ -> false
-  end
-
-  defp is_protocol?(module) do
-    # Check if module defines __protocol__/1
-    Code.ensure_loaded?(module) and function_exported?(module, :__protocol__, 1)
-  rescue
-    _ -> false
-  end
 
   defp get_behaviour_implementations(behaviour) do
-    # Try ElixirSense first
-    case Behaviours.get_all_behaviour_implementations(behaviour) do
-      [] ->
-        # Fallback: search for modules that claim to implement this behaviour
-        # TODO: this is redundant
-        find_modules_with_behaviour(behaviour)
-      implementations ->
-        implementations
-    end
+    # Use ElixirSense Behaviours module which handles both behaviour and protocol implementations
+    Behaviours.get_all_behaviour_implementations(behaviour)
   end
 
-  defp find_modules_with_behaviour(behaviour) do
-    # This is a simplified implementation
-    # In a real implementation, we'd need to scan loaded modules or use metadata
-    :code.all_loaded()
-    |> Enum.filter(fn {module, _} ->
-      Code.ensure_loaded?(module) and implements_behaviour?(module, behaviour)
-    end)
-    |> Enum.map(fn {module, _} -> module end)
-  end
-
-  defp implements_behaviour?(module, behaviour) do
-    # Check if the module implements the behaviour
-    module_behaviours = module.module_info(:attributes)[:behaviour] || []
-    behaviour in module_behaviours
-  rescue
-    _ -> false
-  end
-
-  defp find_protocol_implementations(protocol) do
-    # Get all implementations of a protocol
-    try do
-      # Use protocol consolidation info if available
-      # TODO: this will not work, ElixirLS is not doing protocol consolidation
-      implementations = protocol.__protocol__(:impls)
-      
-      case implementations do
-        {:consolidated, impl_list} ->
-          Enum.map(impl_list, fn impl ->
-            impl_module = Module.concat([protocol, impl])
-            {impl_module, Location.find_mod_fun_source(impl_module, nil, nil)}
-          end)
-          
-        :not_consolidated ->
-          # Try to find implementations by module naming convention
-          find_protocol_implementations_by_convention(protocol)
-      end
-    rescue
-      _ -> []
-    end
-  end
-
-  defp find_protocol_implementations_by_convention(protocol) do
-    # Look for modules matching Protocol.Type pattern
-    prefix = "#{inspect(protocol)}."
-    
-    :code.all_loaded()
-    |> Enum.filter(fn {module, _} ->
-      module_str = inspect(module)
-      String.starts_with?(module_str, prefix)
-    end)
-    |> Enum.map(fn {module, _} ->
-      {module, Location.find_mod_fun_source(module, nil, nil)}
-    end)
-  end
 
   defp find_callback_implementation(module, function, arity) do
     # Try to find the specific function implementation
