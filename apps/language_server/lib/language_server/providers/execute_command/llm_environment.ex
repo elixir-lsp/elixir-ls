@@ -183,13 +183,174 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
     |> Enum.sort_by(& &1.name)
   end
   
-  # TODO: tuple, list
-  # TODO: map, struct are wrong
-  defp format_var_type({:integer, value}), do: %{type: "integer", value: value}
+  # Basic atomic types
+  defp format_var_type(:none), do: %{type: "none"}
+  defp format_var_type(:empty), do: %{type: "empty"}
+  defp format_var_type(:no_spec), do: %{type: "no_spec"}
+  defp format_var_type(nil), do: %{type: "any"}
+
+  # Basic value types
   defp format_var_type({:atom, atom}), do: %{type: "atom", value: atom}
-  defp format_var_type({:map, fields}), do: %{type: "map", fields: fields}
-  defp format_var_type({:struct, fields, module}), do: %{type: "struct", module: inspect(module), fields: fields}
-  defp format_var_type(_), do: "any"
+  defp format_var_type({:integer, value}), do: %{type: "integer", value: value}
+  defp format_var_type({:boolean, value}), do: %{type: "boolean", value: value}
+  defp format_var_type({:binary, _}), do: %{type: "binary"}
+  defp format_var_type({:bitstring, _}), do: %{type: "bitstring"}
+  defp format_var_type({:number, _}), do: %{type: "number"}
+
+  # Container types
+  defp format_var_type({:map, fields, updated_map}) do
+    %{
+      type: "map",
+      fields: format_type_fields(fields),
+      updated_from: format_var_type(updated_map)
+    }
+  end
+
+  defp format_var_type({:map, fields}) do
+    %{
+      type: "map", 
+      fields: format_type_fields(fields)
+    }
+  end
+
+  defp format_var_type({:struct, fields, struct_type, updated_struct}) do
+    %{
+      type: "struct",
+      module: format_struct_type(struct_type),
+      fields: format_type_fields(fields),
+      updated_from: format_var_type(updated_struct)
+    }
+  end
+
+  defp format_var_type({:struct, fields, struct_type}) do
+    %{
+      type: "struct",
+      module: format_struct_type(struct_type),
+      fields: format_type_fields(fields)
+    }
+  end
+
+  defp format_var_type({:tuple, size, fields}) do
+    %{
+      type: "tuple",
+      size: size,
+      elements: Enum.map(fields, &format_var_type/1)
+    }
+  end
+
+  defp format_var_type({:list, element_type}) do
+    %{
+      type: "list",
+      element_type: format_var_type(element_type)
+    }
+  end
+
+  # Variable and reference types
+  defp format_var_type({:variable, name, version}) do
+    %{
+      type: "variable",
+      name: name,
+      version: version
+    }
+  end
+
+  defp format_var_type({:attribute, attribute}) do
+    %{
+      type: "attribute",
+      name: attribute
+    }
+  end
+
+  # Function call types
+  defp format_var_type({:call, target, function, arguments}) do
+    %{
+      type: "call",
+      target: format_var_type(target),
+      function: function,
+      arguments: Enum.map(arguments, &format_var_type/1)
+    }
+  end
+
+  defp format_var_type({:local_call, function, position, arguments}) do
+    %{
+      type: "local_call",
+      function: function,
+      position: position,
+      arguments: Enum.map(arguments, &format_var_type/1)
+    }
+  end
+
+  # Access and manipulation types
+  defp format_var_type({:map_key, map_candidate, key_candidate}) do
+    %{
+      type: "map_key",
+      map: format_var_type(map_candidate),
+      key: format_var_type(key_candidate)
+    }
+  end
+
+  defp format_var_type({:tuple_nth, tuple_candidate, n}) do
+    %{
+      type: "tuple_nth",
+      tuple: format_var_type(tuple_candidate),
+      index: n
+    }
+  end
+
+  defp format_var_type({:for_expression, list_candidate}) do
+    %{
+      type: "for_expression",
+      enumerable: format_var_type(list_candidate)
+    }
+  end
+
+  defp format_var_type({:list_head, list_candidate}) do
+    %{
+      type: "list_head",
+      list: format_var_type(list_candidate)
+    }
+  end
+
+  defp format_var_type({:list_tail, list_candidate}) do
+    %{
+      type: "list_tail",
+      list: format_var_type(list_candidate)
+    }
+  end
+
+  # Composite types
+  defp format_var_type({:union, types}) do
+    %{
+      type: "union",
+      types: Enum.map(types, &format_var_type/1)
+    }
+  end
+
+  defp format_var_type({:intersection, types}) do
+    %{
+      type: "intersection",
+      types: Enum.map(types, &format_var_type/1)
+    }
+  end
+
+  # Fallback for unknown types
+  defp format_var_type(other) do
+    %{type: "unknown", raw: inspect(other)}
+  end
+
+  # Helper functions
+  defp format_type_fields(fields) when is_list(fields) do
+    Enum.map(fields, fn {key, type} ->
+      %{key: key, type: format_var_type(type)}
+    end)
+  end
+
+  defp format_type_fields(other), do: inspect(other)
+
+  defp format_struct_type({:atom, module}), do: inspect(module)
+  defp format_struct_type({:attribute, attr}), do: "@#{attr}"
+  defp format_struct_type(nil), do: nil
+  defp format_struct_type(other), do: inspect(other)
 
   defp format_attributes(attributes) do
     attributes
