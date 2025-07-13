@@ -26,12 +26,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           {:ok, type, parsed} ->
             case get_documentation(type, parsed) do
               {:ok, docs} ->
-                %{
-                  name: module_name,
-                  module: docs[:module],
-                  moduledoc: docs[:moduledoc],
-                  functions: docs[:functions] || []
-                }
+                docs
 
               {:error, reason} ->
                 %{name: module_name, error: "Failed to get documentation: #{reason}"}
@@ -132,10 +127,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
     # Module documentation
     moduledoc_content = case NormalizedCode.get_docs(module, :moduledoc) do
-      {_, doc} when is_binary(doc) ->
-        doc
-      # Erlang module format
-      # TODO: WTF?
       {_, doc, _metadata} when is_binary(doc) ->
         doc
       _ ->
@@ -194,6 +185,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     sections = if behaviours != [], do: [{:behaviours, behaviours} | sections], else: sections
 
     module_name = inspect(module)
+
+    dbg(sections)
     
     %{
       module: module_name,
@@ -302,6 +295,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     type_doc = case NormalizedCode.get_docs(module, :type_docs) do
       docs when is_list(docs) ->
         Enum.find(docs, fn
+          # TODO: invalid pattern
           {{:type, ^type, ^arity}, _, _, _, _} -> true
           _ -> false
         end)
@@ -345,29 +339,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
   defp format_function_doc(module, doc_entry) do
     case doc_entry do
-      # Elixir module format
-      {{kind, name, arity}, _anno, _signatures, doc, metadata} when kind in [:function, :macro] ->
+      {{name, arity}, _line, kind, _signatures, doc, metadata} when kind in [:function, :macro] ->
         specs = get_function_specs(module, name, arity)
         
         %{
           function: Atom.to_string(name),
           arity: arity,
           kind: kind,
-          signature: format_function_signature(module, name, arity, metadata),
-          doc: extract_doc(doc),
-          specs: specs,
-          metadata: metadata
-        }
-
-      # Erlang module format
-      # TODO: WTF?
-      {{name, arity}, _line, :function, _signatures, doc, metadata} ->
-        specs = get_function_specs(module, name, arity)
-        
-        %{
-          function: Atom.to_string(name),
-          arity: arity,
-          kind: :function,
           signature: format_function_signature(module, name, arity, metadata),
           doc: extract_doc(doc),
           specs: specs,
@@ -381,6 +359,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
   defp format_type_doc(_module, doc_entry) do
     case doc_entry do
+      # TODO: invalid pattern
       {{:type, name, arity}, _anno, _signatures, doc, _metadata} ->
         %{
           type: Atom.to_string(name),
@@ -396,20 +375,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     case doc_entry do
       # Handle the actual format returned by NormalizedCode.get_docs for callbacks
       # TODO: WTF?
-      {{name, arity}, _line, :callback, doc, _metadata} ->
-        %{
-          callback: Atom.to_string(name),
-          arity: arity,
-          kind: :callback,
-          doc: extract_doc(doc)
-        }
-      {{kind, name, arity}, _anno, _signatures, doc, _metadata} when kind in [:callback, :macrocallback] ->
-        %{
-          callback: Atom.to_string(name),
-          arity: arity,
-          kind: kind,
-          doc: extract_doc(doc)
-        }
+      # {{name, arity}, _line, :callback, doc, _metadata} ->
+      #   %{
+      #     callback: Atom.to_string(name),
+      #     arity: arity,
+      #     kind: :callback,
+      #     doc: extract_doc(doc)
+      #   }
+      # {{kind, name, arity}, _anno, _signatures, doc, _metadata} when kind in [:callback, :macrocallback] ->
+      #   %{
+      #     callback: Atom.to_string(name),
+      #     arity: arity,
+      #     kind: kind,
+      #     doc: extract_doc(doc)
+      #   }
       _ ->
         nil
     end
@@ -418,6 +397,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp find_function_docs(docs, function, arity) do
     docs
     |> Enum.filter(fn
+      # TODO: invalid pattern
       {{kind, ^function, doc_arity}, _, _, _, _} when kind in [:function, :macro] ->
         arity == nil or doc_arity == arity
         # TODO: handle default args
@@ -490,22 +470,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         []
 
       {:functions, functions} ->
-        # Convert each function to a string representation
         Enum.map(functions, fn f ->
           "#{f.function}/#{f.arity}"
         end)
 
-      {:types, _types} ->
-        # Types are not part of the functions list
-        []
+      {:types, types} ->
+        Enum.map(types, fn f ->
+          "#{f.type}/#{f.arity}"
+        end)
 
-      {:callbacks, _callbacks} ->
-        # Callbacks are not part of the functions list
-        []
+      {:callbacks, callbacks} ->
+        Enum.map(callbacks, fn f ->
+          "#{f.callback}/#{f.arity}"
+        end)
 
-      {:behaviours, _behaviours} ->
-        # Behaviours are not part of the functions list
-        []
+      {:behaviours, behaviours} ->
+        Enum.map(behaviours, fn f ->
+          inspect(f.behaviour)
+        end)
     end)
   end
 

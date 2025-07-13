@@ -4,6 +4,79 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator
 
   describe "execute/2" do
+    test "gets module documentation" do
+      modules = ["Atom"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      # Check Atom module
+      atom_result = Enum.find(result.results, &(&1.module == "Atom"))
+      assert atom_result |> dbg
+      assert is_binary(atom_result.moduledoc)
+      assert is_list(atom_result.functions)
+      assert length(atom_result.functions) > 0
+    end
+
+    test "gets module function and macro list" do
+      modules = ["Kernel"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      # Check Kernel module
+      kernel_result = Enum.find(result.results, &(&1.module == "Kernel"))
+      assert kernel_result
+      assert is_list(kernel_result.functions)
+      assert length(kernel_result.functions) > 0
+
+      assert is_list(kernel_result.macros)
+      assert length(kernel_result.macros) > 0
+
+      assert "send/1" in kernel_result.functions
+
+      assert "defdelegate/2" in kernel_result.macros
+    end
+
+    test "gets module type list" do
+      modules = ["Date"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      # Check Date module
+      date_result = Enum.find(result.results, &(&1.module == "Date"))
+      assert date_result
+      assert is_list(date_result.types)
+      assert length(date_result.types) > 0
+
+      assert "t/0" in date_result.types
+    end
+
+    test "gets module callback list" do
+      modules = ["Access"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      # Check Access module
+      access_result = Enum.find(result.results, &(&1.module == "Access"))
+      assert access_result
+      assert is_list(access_result.callbacks)
+      assert length(access_result.callbacks) > 0
+
+      assert "fetch/2" in access_result.callbacks
+    end
+
+
     test "aggregates documentation for multiple modules" do
       modules = ["String", "Enum"]
       
@@ -148,19 +221,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       test_result = hd(result.results)
       assert test_result.name == module_name
       # Module exists but may not have documentation
-    end
-
-    test "handles nested module names" do
-      modules = ["GenServer"]
-      
-      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
-      assert Map.has_key?(result, :results)
-      assert length(result.results) == 1
-      
-      genserver_result = hd(result.results)
-      assert genserver_result.module == "GenServer"
-      assert genserver_result.moduledoc
     end
 
     test "returns error for invalid arguments" do
