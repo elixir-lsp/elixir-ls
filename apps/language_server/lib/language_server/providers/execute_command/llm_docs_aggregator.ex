@@ -144,17 +144,23 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
     sections = if module_doc, do: [module_doc | sections], else: sections
 
-    # Get all functions and their docs
-    functions = case NormalizedCode.get_docs(module, :docs) do
+    # Get all functions and macros and their docs
+    {functions, macros} = case NormalizedCode.get_docs(module, :docs) do
       docs when is_list(docs) ->
-        docs
+        formatted_docs = docs
         |> Enum.map(fn doc -> format_function_doc(module, doc) end)
         |> Enum.reject(&is_nil/1)
+        
+        # Separate functions and macros
+        functions = Enum.filter(formatted_docs, &(&1.kind == :function))
+        macros = Enum.filter(formatted_docs, &(&1.kind == :macro))
+        {functions, macros}
       _ ->
-        []
+        {[], []}
     end
 
     sections = if functions != [], do: [{:functions, functions} | sections], else: sections
+    sections = if macros != [], do: [{:macros, macros} | sections], else: sections
 
     # Get all types and their docs
     types = case NormalizedCode.get_docs(module, :type_docs) do
@@ -186,12 +192,48 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
     module_name = inspect(module)
 
-    dbg(sections)
+    # dbg(sections)
+    
+    # Extract functions and macros lists from sections
+    functions_list = case Enum.find(sections, fn 
+      {:functions, _} -> true
+      _ -> false 
+    end) do
+      {:functions, functions} -> Enum.map(functions, &"#{&1.function}/#{&1.arity}")
+      _ -> []
+    end
+    
+    macros_list = case Enum.find(sections, fn 
+      {:macros, _} -> true
+      _ -> false 
+    end) do
+      {:macros, macros} -> Enum.map(macros, &"#{&1.function}/#{&1.arity}")
+      _ -> []
+    end
+    
+    types_list = case Enum.find(sections, fn 
+      {:types, _} -> true
+      _ -> false 
+    end) do
+      {:types, types} -> Enum.map(types, &"#{&1.type}/#{&1.arity}")
+      _ -> []
+    end
+    
+    callbacks_list = case Enum.find(sections, fn 
+      {:callbacks, _} -> true
+      _ -> false 
+    end) do
+      {:callbacks, callbacks} -> Enum.map(callbacks, &"#{&1.callback}/#{&1.arity}")
+      _ -> []
+    end
     
     %{
       module: module_name,
       moduledoc: moduledoc_content,
-      functions: format_sections_as_list(Enum.reverse(sections))
+      functions: functions_list,
+      macros: macros_list,
+      types: types_list,
+      callbacks: callbacks_list
     }
   end
 
@@ -471,6 +513,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
       {:functions, functions} ->
         Enum.map(functions, fn f ->
+          "#{f.function}/#{f.arity}"
+        end)
+        
+      {:macros, macros} ->
+        Enum.map(macros, fn f ->
           "#{f.function}/#{f.arity}"
         end)
 

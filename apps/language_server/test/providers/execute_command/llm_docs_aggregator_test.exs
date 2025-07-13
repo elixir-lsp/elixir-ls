@@ -37,7 +37,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert is_list(kernel_result.macros)
       assert length(kernel_result.macros) > 0
 
-      assert "send/1" in kernel_result.functions
+      assert "send/2" in kernel_result.functions
 
       assert "defdelegate/2" in kernel_result.macros
     end
