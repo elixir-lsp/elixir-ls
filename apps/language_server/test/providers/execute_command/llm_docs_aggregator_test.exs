@@ -43,12 +43,20 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
     end
 
     test "gets module type list" do
-      modules = ["Date"]
+      modules = ["Macro", "Date"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results) == 1
+      assert length(result.results) == 2
+
+      # Check Macro module
+      macro_result = Enum.find(result.results, &(&1.module == "Macro"))
+      assert macro_result
+      assert is_list(macro_result.types)
+      assert length(macro_result.types) > 0
+
+      assert "metadata/0" in macro_result.types
 
       # Check Date module
       date_result = Enum.find(result.results, &(&1.module == "Date"))
@@ -60,12 +68,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
     end
 
     test "gets module callback list" do
-      modules = ["Access"]
+      modules = ["Access", "Protocol"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results) == 1
+      assert length(result.results) == 2
 
       # Check Access module
       access_result = Enum.find(result.results, &(&1.module == "Access"))
@@ -74,8 +82,32 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert length(access_result.callbacks) > 0
 
       assert "fetch/2" in access_result.callbacks
+
+      # Check Protocol module
+      protocol_result = Enum.find(result.results, &(&1.module == "Protocol"))
+      assert protocol_result
+      assert is_list(protocol_result.macrocallbacks)
+      assert length(protocol_result.macrocallbacks) > 0
+
+      assert "__deriving__/2" in protocol_result.macrocallbacks
     end
 
+    test "gets module behaviours" do
+      modules = ["DynamicSupervisor"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      # Check DynamicSupervisor module
+      dynamic_supervisor_result = Enum.find(result.results, &(&1.module == "DynamicSupervisor"))
+      assert dynamic_supervisor_result
+      assert is_list(dynamic_supervisor_result.behaviours)
+      assert length(dynamic_supervisor_result.behaviours) > 0
+
+      assert "GenServer" in dynamic_supervisor_result.behaviours
+    end
 
     test "aggregates documentation for multiple modules" do
       modules = ["String", "Enum"]

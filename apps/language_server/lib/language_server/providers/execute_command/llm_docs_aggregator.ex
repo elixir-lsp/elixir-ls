@@ -36,7 +36,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
             %{name: module_name, error: reason}
         end
       end)
-
       {:ok, %{results: results}}
     rescue
       error ->
@@ -168,14 +167,14 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         docs
         |> Enum.map(fn doc -> format_type_doc(module, doc) end)
         |> Enum.reject(&is_nil/1)
-      _ ->
+      other ->
         []
     end
 
     sections = if types != [], do: [{:types, types} | sections], else: sections
 
     # Get callbacks if it's a behaviour
-    callbacks = case NormalizedCode.get_docs(module, :callback_docs) do
+    all_callbacks = case NormalizedCode.get_docs(module, :callback_docs) do
       docs when is_list(docs) ->
         docs
         |> Enum.map(fn doc -> format_callback_doc(module, doc) end)
@@ -184,7 +183,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         []
     end
 
+    # Separate callbacks and macrocallbacks
+    callbacks = Enum.filter(all_callbacks, &(&1.kind == :callback))
+    macrocallbacks = Enum.filter(all_callbacks, &(&1.kind == :macrocallback))
+
     sections = if callbacks != [], do: [{:callbacks, callbacks} | sections], else: sections
+    sections = if macrocallbacks != [], do: [{:macrocallbacks, macrocallbacks} | sections], else: sections
 
     # Get behaviour info
     behaviours = get_module_behaviours(module)
@@ -192,7 +196,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
     module_name = inspect(module)
 
-    # dbg(sections)
     
     # Extract functions and macros lists from sections
     functions_list = case Enum.find(sections, fn 
@@ -227,13 +230,31 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       _ -> []
     end
     
+    macrocallbacks_list = case Enum.find(sections, fn 
+      {:macrocallbacks, _} -> true
+      _ -> false 
+    end) do
+      {:macrocallbacks, macrocallbacks} -> Enum.map(macrocallbacks, &"#{&1.callback}/#{&1.arity}")
+      _ -> []
+    end
+    
+    behaviours_list = case Enum.find(sections, fn 
+      {:behaviours, _} -> true
+      _ -> false 
+    end) do
+      {:behaviours, behaviours} -> behaviours
+      _ -> []
+    end
+    
     %{
       module: module_name,
       moduledoc: moduledoc_content,
       functions: functions_list,
       macros: macros_list,
       types: types_list,
-      callbacks: callbacks_list
+      callbacks: callbacks_list,
+      macrocallbacks: macrocallbacks_list,
+      behaviours: behaviours_list
     }
   end
 
@@ -401,8 +422,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
   defp format_type_doc(_module, doc_entry) do
     case doc_entry do
-      # TODO: invalid pattern
-      {{:type, name, arity}, _anno, _signatures, doc, _metadata} ->
+      # Pattern: {{name, arity}, line, :type, doc_string, metadata}
+      {{name, arity}, _line, :type, doc, _metadata} ->
         %{
           type: Atom.to_string(name),
           arity: arity,
@@ -415,22 +436,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
   defp format_callback_doc(_module, doc_entry) do
     case doc_entry do
-      # Handle the actual format returned by NormalizedCode.get_docs for callbacks
-      # TODO: WTF?
-      # {{name, arity}, _line, :callback, doc, _metadata} ->
-      #   %{
-      #     callback: Atom.to_string(name),
-      #     arity: arity,
-      #     kind: :callback,
-      #     doc: extract_doc(doc)
-      #   }
-      # {{kind, name, arity}, _anno, _signatures, doc, _metadata} when kind in [:callback, :macrocallback] ->
-      #   %{
-      #     callback: Atom.to_string(name),
-      #     arity: arity,
-      #     kind: kind,
-      #     doc: extract_doc(doc)
-      #   }
+      {{name, arity}, _line, kind, doc, _metadata} when kind in [:callback, :macrocallback] ->
+        %{
+          callback: Atom.to_string(name),
+          arity: arity,
+          kind: kind,
+          doc: extract_doc(doc)
+        }
       _ ->
         nil
     end
