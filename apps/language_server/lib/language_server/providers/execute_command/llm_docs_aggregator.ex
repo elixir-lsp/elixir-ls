@@ -35,12 +35,14 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
                 # Single result
                 [docs]
 
-              {:error, reason} ->
-                [%{name: module_name, error: "Failed to get documentation: #{reason}"}]
+              {:error, _reason} ->
+                # Filter out invalid modules by returning empty list
+                []
             end
 
-          {:error, reason} ->
-            [%{name: module_name, error: reason}]
+          {:error, _reason} ->
+            # Filter out invalid modules by returning empty list
+            []
         end
       end)
       {:ok, %{results: results}}
@@ -57,8 +59,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
 
   defp get_documentation(:module, module) do
-    docs = aggregate_module_docs(module)
-    {:ok, docs}
+    if ensure_loaded(module) do
+      docs = aggregate_module_docs(module)
+      {:ok, docs}
+    else
+      {:error, "Module #{inspect(module)} not found"}
+    end
   end
 
   defp get_documentation(:local_call, {function, arity}) do
@@ -278,7 +284,31 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         macros = Enum.filter(formatted_docs, &(&1.kind == :macro))
         {functions, macros}
       _ ->
-        {[], []}
+        # Even if there are no docs, we should check if there are functions available
+        # by inspecting the module's exports
+        try do
+          exports = module.module_info(:exports)
+          # Filter out module_info functions and other special functions
+          functions = exports
+          |> Enum.filter(fn {name, arity} -> 
+            name not in [:module_info, :__info__] and 
+            not String.starts_with?(Atom.to_string(name), "__")
+          end)
+          |> Enum.map(fn {name, arity} -> 
+            %{
+              function: Atom.to_string(name),
+              arity: arity,
+              kind: :function,
+              signature: "#{name}/#{arity}",
+              doc: nil,
+              specs: [],
+              metadata: %{}
+            }
+          end)
+          {functions, []}
+        rescue
+          _ -> {[], []}
+        end
     end
 
     sections = if functions != [], do: [{:functions, functions} | sections], else: sections
@@ -391,7 +421,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         find_function_docs(docs, function, arity)
       _ ->
         []
-    end |> dbg
+    end
 
     # Get specs
     specs = get_function_specs(module, function, arity)
@@ -470,7 +500,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       module: inspect(module),
       function: Atom.to_string(function),
       arity: arity,
-      documentation: format_function_sections(sections |> dbg)
+      documentation: format_function_sections(sections)
     }
   end
 

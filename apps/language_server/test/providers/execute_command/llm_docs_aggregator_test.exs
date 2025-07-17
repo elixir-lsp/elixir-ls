@@ -118,7 +118,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert length(result.results) == 2
       
       # Check String module
-      string_result = Enum.find(result.results, &(&1.name == "String"))
+      string_result = Enum.find(result.results, &(&1.module == "String"))
       assert string_result
       assert string_result.module == "String"
       assert string_result.moduledoc
@@ -126,7 +126,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert length(string_result.functions) > 0
       
       # Check Enum module
-      enum_result = Enum.find(result.results, &(&1.name == "Enum"))
+      enum_result = Enum.find(result.results, &(&1.module == "Enum"))
       assert enum_result
       assert enum_result.module == "Enum"
       assert enum_result.moduledoc
