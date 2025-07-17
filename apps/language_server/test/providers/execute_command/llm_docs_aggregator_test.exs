@@ -14,7 +14,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
       # Check Atom module
       atom_result = Enum.find(result.results, &(&1.module == "Atom"))
-      assert atom_result |> dbg
+      assert atom_result
       assert is_binary(atom_result.moduledoc)
       assert is_list(atom_result.functions)
       assert length(atom_result.functions) > 0
@@ -139,7 +139,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
-      assert Map.has_key?(result |> dbg, :results)
+      assert Map.has_key?(result, :results)
       assert length(result.results) == 1
       
       func_result = hd(result.results)
@@ -177,7 +177,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results |> dbg) == 1
+      assert length(result.results) == 1
 
       func_result = hd(result.results)
       assert func_result.module == "Enumerable"
@@ -193,7 +193,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results |> dbg) == 2
+      assert length(result.results) == 2
 
       arity_0_result = result.results |> Enum.find(&(&1.arity == 0))
       assert arity_0_result.module == "Enumerable"
@@ -224,7 +224,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
-      assert Map.has_key?(result |> dbg, :results)
+      assert Map.has_key?(result, :results)
       assert length(result.results) == 1
       
       func_result = hd(result.results)
@@ -264,6 +264,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles invalid symbol gracefully" do
       modules = [":::invalid:::"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 0
+    end
+
+    test "handles non existing module symbol gracefully" do
+      modules = ["NonExisting.non_existing_function/1"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 0
+    end
+
+    test "handles non existing function symbol gracefully" do
+      modules = ["String.non_existing_function/1"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       

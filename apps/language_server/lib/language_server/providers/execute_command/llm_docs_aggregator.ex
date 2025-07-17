@@ -530,7 +530,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       type: Atom.to_string(type),
       arity: arity,
       spec: type_spec,
-      documentation: doc_content || "No documentation available for #{type}/#{arity}"
+      documentation: doc_content || ""
     }
   end
 
