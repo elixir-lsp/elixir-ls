@@ -12,6 +12,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   alias ElixirSense.Core.BuiltinFunctions
   alias ElixirSense.Core.BuiltinTypes
   alias ElixirSense.Core.BuiltinAttributes
+  alias ElixirSense.Core.TypeInfo
+  require ElixirSense.Core.Introspection, as: Introspection
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
 
   require Logger
@@ -247,6 +249,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     end
     
     %{
+      # TODO: metadata
       module: module_name,
       moduledoc: moduledoc_content,
       functions: functions_list,
@@ -267,7 +270,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         find_function_docs(docs, function, arity)
       _ ->
         []
-    end
+    end |> dbg
 
     # Get specs
     specs = get_function_specs(module, function, arity)
@@ -284,12 +287,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       cond do
         function_docs != [] ->
           function_docs
-          |> Enum.map(fn doc ->
-            {{_kind, name, doc_arity}, _anno, _signatures, doc, metadata} = doc
+          |> Enum.map(fn {{name, doc_arity}, _anno, kind, _signatures, doc, metadata} ->
             # Get specs for this specific arity
             doc_specs = get_function_specs(module, name, doc_arity)
             %{
-              type: "function",
+              type: kind,
               signature: "#{function}/#{doc_arity}",
               doc: extract_doc(doc),
               metadata: metadata,
@@ -347,7 +349,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       module: inspect(module),
       function: Atom.to_string(function),
       arity: arity,
-      documentation: format_function_sections(sections)
+      documentation: format_function_sections(sections |> dbg)
     }
   end
 
@@ -451,32 +453,52 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp find_function_docs(docs, function, arity) do
     docs
     |> Enum.filter(fn
-      # TODO: invalid pattern
-      {{kind, ^function, doc_arity}, _, _, _, _} when kind in [:function, :macro] ->
+      {{^function, doc_arity}, _anno, kind, _spec, _doc, _meta} when kind in [:function, :macro] ->
         arity == nil or doc_arity == arity
         # TODO: handle default args
-      _ ->
+      _ = h ->
         false
     end)
   end
 
   defp get_function_specs(module, function, arity) do
-    # Get all specs for the module
-    case Typespec.get_specs(module) do
-      specs when is_list(specs) ->
-        specs
-        |> Enum.filter(fn
-          {{^function, spec_arity}, _} ->
-            arity == nil or spec_arity == arity
-          _ ->
-            false
-        end)
-        |> Enum.map(fn {_, spec} ->
-          format_spec(spec)
-        end)
+    # Get all specs for the module using TypeInfo.get_module_specs to match llm_type_info.ex
+    module_specs = TypeInfo.get_module_specs(module)
+    
+    # Filter specs for the function/arity
+    filtered_specs = module_specs
+    |> Enum.filter(fn 
+      {{^function, spec_arity}, _} ->
+        arity == nil or spec_arity == arity
       _ ->
-        []
-    end
+        false
+    end)
+    
+    # Group by function/arity and format each group
+    filtered_specs
+    |> Enum.group_by(fn {{name, spec_arity}, _} -> {name, spec_arity} end)
+    |> Enum.flat_map(fn {{name, spec_arity}, specs} ->
+      # Collect all spec ASTs for this function/arity
+      spec_asts = Enum.map(specs, fn {_, {{_, _}, spec_ast}} -> spec_ast end)
+      
+      # Flatten the spec_asts as they come nested from TypeInfo.get_module_specs
+      flattened_spec_asts = List.flatten(spec_asts)
+      
+      # Use Introspection.spec_to_string to properly format Erlang specs to Elixir format
+      try do
+        case Introspection.spec_to_string({{name, spec_arity}, flattened_spec_asts}, :spec) do
+          formatted_specs when is_list(formatted_specs) ->
+            formatted_specs
+          formatted_spec when is_binary(formatted_spec) ->
+            [formatted_spec]
+          _ ->
+            []
+        end
+      catch
+        _kind, _error ->
+          []
+      end
+    end)
   end
 
   defp get_type_spec(module, type, arity) do
@@ -497,9 +519,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   end
 
   defp format_spec(spec_ast) do
-    Macro.to_string(spec_ast)
-  rescue
-    _ -> inspect(spec_ast)
+    # For type specs, try to format them properly
+    try do
+      Macro.to_string(spec_ast)
+    rescue
+      _ -> inspect(spec_ast)
+    end
   end
 
   defp format_function_signature(module, name, arity, metadata) do

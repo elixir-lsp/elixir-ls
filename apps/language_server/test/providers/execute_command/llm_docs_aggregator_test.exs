@@ -135,29 +135,42 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
     end
 
     test "handles function documentation with arity" do
-      modules = ["String.split/2"]
+      modules = ["String.split/1"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
-      assert Map.has_key?(result, :results)
+      assert Map.has_key?(result |> dbg, :results)
       assert length(result.results) == 1
       
       func_result = hd(result.results)
-      assert func_result.name == "String.split/2"
+
+      assert func_result.module == "String"
+      assert func_result.function == "split"
+      assert func_result.arity == 1
+      assert func_result.documentation =~ "Divides a string into substrings"
+
+      assert func_result.documentation =~ "@spec split(t()) :: [t()]"
       # For functions, we might get module and function info
       # depending on how get_documentation handles it
     end
 
     test "handles function documentation without arity" do
-      modules = ["Enum.map"]
+      modules = ["String.split"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results) == 1
+      assert length(result.results |> dbg) == 1
       
-      func_result = hd(result.results)
-      assert func_result.name == "Enum.map"
+      arity_1_result = result.results |> Enum.find(&(&1.arity == 1))
+      assert arity_1_result.module == "String"
+      assert arity_1_result.function == "split"
+      assert arity_1_result.arity == 1
+
+      arity_3_result = result.results |> Enum.find(&(&1.arity == 3))
+      assert arity_3_result.module == "String"
+      assert arity_3_result.function == "split"
+      assert arity_3_result.arity == 3
     end
 
     test "handles type documentation" do
