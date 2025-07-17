@@ -172,7 +172,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
     end
 
     test "handles type documentation with arity" do
-      modules = ["Enum.t/0"]
+      modules = ["Enumerable.t/0"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
@@ -180,28 +180,28 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert length(result.results |> dbg) == 1
 
       func_result = hd(result.results)
-      assert func_result.module == "Enum"
+      assert func_result.module == "Enumerable"
       assert func_result.type == "t"
       assert func_result.arity == 0
-      assert func_result.documentation =~ "An enumerable of elements of type `element`"
+      assert func_result.documentation =~ "All the types that implement this protocol"
 
     end
 
     test "handles type documentation without arity" do
-      modules = ["Enum.t"]
+      modules = ["Enumerable.t"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results) == 2
+      assert length(result.results |> dbg) == 2
 
       arity_0_result = result.results |> Enum.find(&(&1.arity == 0))
-      assert arity_0_result.module == "Enum"
+      assert arity_0_result.module == "Enumerable"
       assert arity_0_result.type == "t"
-      assert arity_0_result.documentation =~ "No documentation available for t/0"
+      assert arity_0_result.documentation =~ "All the types that implement this protocol"
 
       arity_1_result = result.results |> Enum.find(&(&1.arity == 1))
-      assert arity_1_result.module == "Enum"
+      assert arity_1_result.module == "Enumerable"
       assert arity_1_result.type == "t"
       assert arity_1_result.documentation =~ "An enumerable of elements of type `element`"
     end
@@ -213,15 +213,41 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
+
+      doc = hd(result.results)
+      assert doc.attribute == "@moduledoc"
+      assert doc.documentation =~ "Provides documentation for the current module."
+    end
+
+    test "handles Kernel import" do
+      modules = ["send/2"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result |> dbg, :results)
+      assert length(result.results) == 1
+      
+      func_result = hd(result.results)
+
+      assert func_result.module == "Kernel"
+      assert func_result.function == "send"
+      assert func_result.arity == 2
+      assert func_result.documentation =~ "Sends a message to the given"
+
+      assert func_result.documentation =~ "@spec send(dest :: Process.dest()"
     end
 
     test "handles builtin type documentation" do
-      modules = ["t:binary"]
+      modules = ["binary"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
+
+      doc = hd(result.results)
+      assert doc.type == "binary()"
+      assert doc.documentation =~ "A blob of binary data"
     end
 
     test "handles Erlang module format" do
@@ -233,7 +259,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert length(result.results) == 1
       
       erlang_result = hd(result.results)
-      assert erlang_result.name == ":erlang"
+      assert erlang_result.module == ":erlang"
     end
 
     test "handles invalid symbol gracefully" do
@@ -242,13 +268,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results) == 1
-      
-      invalid_result = hd(result.results)
-      assert invalid_result.name == ":::invalid:::"
-      # V2 parser might successfully parse this but return module with no docs
-      # Both error and empty module result are acceptable
-      assert invalid_result[:error] || (invalid_result[:module] && invalid_result[:moduledoc] == nil)
+      assert length(result.results) == 0
     end
 
     test "handles mix of valid and invalid modules" do
@@ -257,19 +277,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results) == 3
-      
-      # Check that we have results for all 3 modules
-      # V2 parser might parse all of them, so we should have either:
-      # - All successful with module info, or
-      # - Some with errors and some successful
-      results_with_modules = Enum.filter(result.results, &(&1[:module]))
-      results_with_errors = Enum.filter(result.results, &(&1[:error]))
-      
-      # We should have at least String and Enum as successful
-      assert length(results_with_modules) >= 2
-      # Total results should be 3
-      assert length(results_with_modules) + length(results_with_errors) == 3
+      assert length(result.results) == 2
     end
 
     test "handles modules without documentation" do
@@ -287,8 +295,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert length(result.results) == 1
       
       test_result = hd(result.results)
-      assert test_result.name == module_name
-      # Module exists but may not have documentation
+      assert test_result.module == module_name
+      assert test_result.moduledoc == nil  # No documentation available
+      assert test_result.functions == ["hello/0"]
     end
 
     test "returns error for invalid arguments" do

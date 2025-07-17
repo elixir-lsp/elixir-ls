@@ -134,7 +134,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp get_documentation_for_all_arities(module, function) do
     ensure_loaded(module)
     
-    # Get all documented arities
+    # Get all documented arities from function docs
     documented_arities = case NormalizedCode.get_docs(module, :docs) do
       docs when is_list(docs) ->
         docs
@@ -150,7 +150,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         []
     end
     
-    # Also get arities from specs
+    # Also get arities from function specs
     spec_arities = case Typespec.get_specs(module) do
       specs when is_list(specs) ->
         specs
@@ -164,8 +164,37 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         []
     end
     
+    # Get arities from type docs
+    type_doc_arities = case NormalizedCode.get_docs(module, :type_docs) do
+      docs when is_list(docs) ->
+        docs
+        |> Enum.filter(fn
+          {{^function, arity}, _, _, _, _} -> true
+          _ -> false
+        end)
+        |> Enum.map(fn {{_name, arity}, _, _, _, _} -> arity end)
+        |> Enum.uniq()
+      _ ->
+        []
+    end
+    
+    # Get arities from type specs
+    type_spec_arities = case Typespec.get_types(module) do
+      types when is_list(types) ->
+        types
+        |> Enum.filter(fn
+          {kind, {^function, _, args}} when kind in [:type, :typep, :opaque] ->
+            true
+          _ -> false
+        end)
+        |> Enum.map(fn {_kind, {_name, _, args}} -> length(args) end)
+        |> Enum.uniq()
+      _ ->
+        []
+    end
+    
     # Combine and get unique arities
-    all_arities = (documented_arities ++ spec_arities) |> Enum.uniq() |> Enum.sort()
+    all_arities = (documented_arities ++ spec_arities ++ type_doc_arities ++ type_spec_arities) |> Enum.uniq() |> Enum.sort()
     
     if all_arities == [] do
       {:error, "Remote call #{module}.#{function} - no documentation found"}
@@ -192,11 +221,18 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
                   documentation: doc
                 }
               _ ->
-                nil
+                # If no documentation found, but we know this arity exists,
+                # return a result with "No documentation available"
+                function_str = Atom.to_string(function)
+                %{
+                  module: inspect(module),
+                  type: function_str,
+                  arity: arity,
+                  documentation: "No documentation available for #{function_str}/#{arity}"
+                }
             end
         end
       end)
-      |> Enum.reject(&is_nil/1)
       
       if results == [] do
         {:error, "Remote call #{module}.#{function} - no documentation found"}
@@ -445,8 +481,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     type_doc = case NormalizedCode.get_docs(module, :type_docs) do
       docs when is_list(docs) ->
         Enum.find(docs, fn
-          # TODO: invalid pattern
-          {{:type, ^type, ^arity}, _, _, _, _} -> true
+          {{^type, ^arity}, _, _, _, _} -> true
           _ -> false
         end)
       _ ->
@@ -457,7 +492,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     type_spec = get_type_spec(module, type, arity)
 
     doc_content = case type_doc do
-      {{:type, _, _}, _, _, doc, _} -> extract_doc(doc)
+      {{_, _}, _, _, doc, _} -> extract_doc(doc)
       _ -> nil
     end
 
