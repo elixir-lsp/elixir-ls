@@ -150,8 +150,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert func_result.documentation =~ "Divides a string into substrings"
 
       assert func_result.documentation =~ "@spec split(t()) :: [t()]"
-      # For functions, we might get module and function info
-      # depending on how get_documentation handles it
     end
 
     test "handles function documentation without arity" do
@@ -160,7 +158,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results |> dbg) == 1
+      assert length(result.results) == 2
       
       arity_1_result = result.results |> Enum.find(&(&1.arity == 1))
       assert arity_1_result.module == "String"
@@ -173,14 +171,39 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert arity_3_result.arity == 3
     end
 
-    test "handles type documentation" do
-      # Types are typically accessed with module.t format
-      modules = ["String.t"]
+    test "handles type documentation with arity" do
+      modules = ["Enum.t/0"]
       
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
       
       assert Map.has_key?(result, :results)
-      assert length(result.results) == 1
+      assert length(result.results |> dbg) == 1
+
+      func_result = hd(result.results)
+      assert func_result.module == "Enum"
+      assert func_result.type == "t"
+      assert func_result.arity == 0
+      assert func_result.documentation =~ "An enumerable of elements of type `element`"
+
+    end
+
+    test "handles type documentation without arity" do
+      modules = ["Enum.t"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 2
+
+      arity_0_result = result.results |> Enum.find(&(&1.arity == 0))
+      assert arity_0_result.module == "Enum"
+      assert arity_0_result.type == "t"
+      assert arity_0_result.documentation =~ "No documentation available for t/0"
+
+      arity_1_result = result.results |> Enum.find(&(&1.arity == 1))
+      assert arity_1_result.module == "Enum"
+      assert arity_1_result.type == "t"
+      assert arity_1_result.documentation =~ "An enumerable of elements of type `element`"
     end
 
     test "handles attribute documentation" do

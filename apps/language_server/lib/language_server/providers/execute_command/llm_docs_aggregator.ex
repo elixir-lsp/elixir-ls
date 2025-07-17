@@ -23,19 +23,24 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   @impl ElixirLS.LanguageServer.Providers.ExecuteCommand
   def execute([modules], _state) when is_list(modules) do
     try do
-      results = Enum.map(modules, fn module_name ->
+      results = Enum.flat_map(modules, fn module_name ->
         case SymbolParser.parse(module_name) do
           {:ok, type, parsed} ->
             case get_documentation(type, parsed) do
-              {:ok, docs} ->
+              {:ok, docs} when is_list(docs) ->
+                # Multiple results (e.g., for different arities)
                 docs
 
+              {:ok, docs} ->
+                # Single result
+                [docs]
+
               {:error, reason} ->
-                %{name: module_name, error: "Failed to get documentation: #{reason}"}
+                [%{name: module_name, error: "Failed to get documentation: #{reason}"}]
             end
 
           {:error, reason} ->
-            %{name: module_name, error: reason}
+            [%{name: module_name, error: reason}]
         end
       end)
       {:ok, %{results: results}}
@@ -91,34 +96,114 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   # TODO: callbacks
 
   defp get_documentation(:remote_call, {module, function, arity}) do
-    # Try function/macro documentation first
-    case aggregate_function_docs(module, function, arity) do
-      %{documentation: doc} when doc != "" ->
-        {:ok, %{
-          module: inspect(module),
-          function: Atom.to_string(function),
-          arity: arity,
-          documentation: doc
-        }}
-      _ ->
-        # Try as type
-        case aggregate_type_docs(module, function, arity) do
-          %{documentation: doc} when doc != "" ->
-            {:ok, %{
-              module: inspect(module),
-              type: Atom.to_string(function),
-              arity: arity,
-              documentation: doc
-            }}
-          _ ->
-            {:error, "Remote call #{module}.#{function}/#{arity || "?"} - no documentation found"}
-        end
+    if arity == nil do
+      # When arity is nil, we need to return separate results for each arity
+      get_documentation_for_all_arities(module, function)
+    else
+      # Try function/macro documentation first
+      case aggregate_function_docs(module, function, arity) do
+        %{documentation: doc} when doc != "" ->
+          {:ok, %{
+            module: inspect(module),
+            function: Atom.to_string(function),
+            arity: arity,
+            documentation: doc
+          }}
+        _ ->
+          # Try as type
+          case aggregate_type_docs(module, function, arity) do
+            %{documentation: doc} when doc != "" ->
+              {:ok, %{
+                module: inspect(module),
+                type: Atom.to_string(function),
+                arity: arity,
+                documentation: doc
+              }}
+            _ ->
+              {:error, "Remote call #{module}.#{function}/#{arity || "?"} - no documentation found"}
+          end
+      end
     end
   end
 
   defp get_documentation(:attribute, attribute) do
     docs = aggregate_attribute_docs(attribute)
     {:ok, docs}
+  end
+
+  defp get_documentation_for_all_arities(module, function) do
+    ensure_loaded(module)
+    
+    # Get all documented arities
+    documented_arities = case NormalizedCode.get_docs(module, :docs) do
+      docs when is_list(docs) ->
+        docs
+        |> Enum.filter(fn
+          {{^function, arity}, _anno, kind, _signatures, _doc, _metadata} when kind in [:function, :macro] ->
+            true
+          _ ->
+            false
+        end)
+        |> Enum.map(fn {{_name, arity}, _, _, _, _, _} -> arity end)
+        |> Enum.uniq()
+      _ ->
+        []
+    end
+    
+    # Also get arities from specs
+    spec_arities = case Typespec.get_specs(module) do
+      specs when is_list(specs) ->
+        specs
+        |> Enum.filter(fn
+          {{^function, arity}, _} -> true
+          _ -> false
+        end)
+        |> Enum.map(fn {{_name, arity}, _} -> arity end)
+        |> Enum.uniq()
+      _ ->
+        []
+    end
+    
+    # Combine and get unique arities
+    all_arities = (documented_arities ++ spec_arities) |> Enum.uniq() |> Enum.sort()
+    
+    if all_arities == [] do
+      {:error, "Remote call #{module}.#{function} - no documentation found"}
+    else
+      # Get documentation for each arity
+      results = all_arities
+      |> Enum.map(fn arity ->
+        case aggregate_function_docs(module, function, arity) do
+          %{documentation: doc} when doc != "" ->
+            %{
+              module: inspect(module),
+              function: Atom.to_string(function),
+              arity: arity,
+              documentation: doc
+            }
+          _ ->
+            # Try as type
+            case aggregate_type_docs(module, function, arity) do
+              %{documentation: doc} when doc != "" ->
+                %{
+                  module: inspect(module),
+                  type: Atom.to_string(function),
+                  arity: arity,
+                  documentation: doc
+                }
+              _ ->
+                nil
+            end
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+      
+      if results == [] do
+        {:error, "Remote call #{module}.#{function} - no documentation found"}
+      else
+        {:ok, results}
+      end
+    end
   end
 
   defp aggregate_module_docs(module) do
