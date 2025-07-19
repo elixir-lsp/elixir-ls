@@ -109,7 +109,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
         "id" => 5
       }
 
-      response = RequestHandler.handle_request(request) |> dbg
+      response = RequestHandler.handle_request(request)
 
       assert response["jsonrpc"] == "2.0"
       assert response["id"] == 5

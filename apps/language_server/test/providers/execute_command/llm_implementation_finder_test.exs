@@ -30,7 +30,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
 
     test "finds behaviour implementations by module name" do
       # GenServer is a well-known behaviour
-      assert {:ok, result} = LlmImplementationFinder.execute(["GenServer"], %{}) |> dbg
+      assert {:ok, result} = LlmImplementationFinder.execute(["GenServer"], %{})
 
       assert Map.has_key?(result, :implementations)
       assert is_list(result.implementations)
