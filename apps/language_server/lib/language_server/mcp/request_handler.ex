@@ -80,13 +80,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
         "tools" => [
           %{
             "name" => "find_definition",
-            "description" => "Find and retrieve source code definitions",
+            "description" => "Find and retrieve the source code definition of Elixir/Erlang symbols including modules, functions, types, and macros. Returns the actual source code with file location.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "symbol" => %{
                   "type" => "string",
-                  "description" => "The symbol to find"
+                  "description" => "The symbol to find. Supports: modules ('MyModule'), functions ('MyModule.function', 'MyModule.function/2'), Erlang modules (':gen_server'), Erlang functions (':lists.map/2'), local functions ('function_name/1'). Use qualified names for better results."
                 }
               },
               "required" => ["symbol"]
@@ -94,13 +94,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           },
           %{
             "name" => "get_environment",
-            "description" => "Get environment information at a specific location",
+            "description" => "Get comprehensive environment information at a specific code location including current module/function context, available aliases, imports, requires, variables in scope with types, module attributes, implemented behaviours, and definitions in the file.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "location" => %{
                   "type" => "string",
-                  "description" => "Location in format 'file.ex:line:column' or 'file.ex:line'"
+                  "description" => "Location in the code to analyze. Formats supported: 'file.ex:line:column', 'file.ex:line', 'lib/my_module.ex:25:10', 'file:///absolute/path/file.ex:10:5'. Use specific line/column for better context analysis."
                 }
               },
               "required" => ["location"]
@@ -109,13 +109,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           %{
             "name" => "get_docs",
             "description" =>
-              "Aggregate and return documentation for multiple Elixir modules or functions",
+              "Aggregate and return comprehensive documentation for multiple Elixir modules, functions, types, callbacks, or attributes in a single request. Supports both module-level documentation (with function/type listings) and specific symbol documentation.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "modules" => %{
                   "type" => "array",
-                  "description" => "List of module or function names to get documentation for",
+                  "description" => "List of symbols to get documentation for. Supports: modules ('Enum', 'GenServer'), functions ('String.split/2', 'Enum.map'), types ('Enum.t/0'), callbacks ('GenServer.handle_call'), attributes ('@moduledoc'). Mix module and specific symbol requests for comprehensive coverage.",
                   "items" => %{
                     "type" => "string"
                   }
@@ -127,13 +127,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           %{
             "name" => "get_type_info",
             "description" =>
-              "Extract type information from Elixir modules including types, specs, callbacks, and Dialyzer contracts",
+              "Extract comprehensive type information from Elixir modules including @type definitions, @spec annotations, @callback specifications, and Dialyzer inferred contracts. Essential for understanding module interfaces and type safety.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "module" => %{
                   "type" => "string",
-                  "description" => "The module name to get type information for"
+                  "description" => "The module name to analyze. Supports Elixir modules ('GenServer', 'MyApp.MyModule') and Erlang modules (':gen_server'). Returns detailed type specifications, function signatures, and callback definitions."
                 }
               },
               "required" => ["module"]
@@ -142,13 +142,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           %{
             "name" => "find_implementations",
             "description" =>
-              "Find implementations of behaviours, protocols, and defdelegate targets",
+              "Find all implementations of Elixir behaviours, protocols, callbacks, and delegated functions across the codebase. Useful for discovering how interfaces are implemented and finding concrete implementations of abstract patterns.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "symbol" => %{
                   "type" => "string",
-                  "description" => "The symbol to find implementations for"
+                  "description" => "The symbol to find implementations for. Supports: behaviours ('GenServer', 'Application'), protocols ('Enumerable', 'Inspect'), callbacks ('GenServer.handle_call', 'Application.start'), functions with @impl annotations. Returns file locations and implementation details."
                 }
               },
               "required" => ["symbol"]
@@ -157,13 +157,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           %{
             "name" => "get_module_dependencies",
             "description" =>
-              "Get module dependency information including direct dependencies, reverse dependencies, and transitive dependencies",
+              "Analyze comprehensive module dependency relationships including direct/reverse dependencies, transitive dependencies, compile-time vs runtime dependencies, imports, aliases, requires, function calls, and struct expansions. Essential for understanding code architecture and impact analysis.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "module" => %{
                   "type" => "string",
-                  "description" => "The module name to get dependencies for"
+                  "description" => "The module name to analyze dependencies for. Supports Elixir modules ('MyApp.MyModule', 'GenServer') and Erlang modules (':gen_server'). Returns detailed dependency breakdown with categorization by dependency type and relationship direction."
                 }
               },
               "required" => ["module"]
