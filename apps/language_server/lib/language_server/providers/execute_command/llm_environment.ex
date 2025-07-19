@@ -2,7 +2,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
   @moduledoc """
   This module implements a custom command for getting environment information
   at a specific position in code, optimized for LLM consumption.
-  
+
   Returns information about the current context including:
   - Module and function context
   - Available aliases and imports
@@ -25,7 +25,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
       case parse_location(location) do
         {:ok, uri, line, column} ->
           get_environment_at_position(uri, line, column, state)
-          
+
         {:error, reason} ->
           {:ok, %{error: "Invalid location format: #{reason}"}}
       end
@@ -37,7 +37,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
   end
 
   def execute(_args, _state) do
-    {:ok, %{error: "Invalid arguments: expected [location_string]. Examples: 'file.ex:10:5' or 'lib/my_module.ex:25'"}}
+    {:ok,
+     %{
+       error:
+         "Invalid arguments: expected [location_string]. Examples: 'file.ex:10:5' or 'lib/my_module.ex:25'"
+     }}
   end
 
   # Parse location strings like:
@@ -51,37 +55,37 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
         parts = String.split(location, ":")
         uri = Enum.slice(parts, 0..-3//1) |> Enum.join(":")
         [line_str, column_str] = Enum.slice(parts, -2..-1)
-        
+
         {:ok, uri, String.to_integer(line_str), String.to_integer(column_str)}
-        
+
       # URI format with line only
       String.match?(location, ~r/^file:\/\/.*:\d+$/) ->
         parts = String.split(location, ":")
         uri = Enum.slice(parts, 0..-2//1) |> Enum.join(":")
         line_str = List.last(parts)
-        
+
         {:ok, uri, String.to_integer(line_str), 1}
-        
+
       # Path format with line and column
       String.match?(location, ~r/^.*\.exs?:\d+:\d+$/) ->
         parts = String.split(location, ":")
         path = Enum.slice(parts, 0..-3//1) |> Enum.join(":")
         [line_str, column_str] = Enum.slice(parts, -2..-1)
-        
+
         # Convert to file URI
         uri = SourceFile.Path.to_uri(path)
         {:ok, uri, String.to_integer(line_str), String.to_integer(column_str)}
-        
+
       # Path format with line only
       String.match?(location, ~r/^.*\.exs?:\d+$/) ->
         parts = String.split(location, ":")
         path = Enum.slice(parts, 0..-2//1) |> Enum.join(":")
         line_str = List.last(parts)
-        
+
         # Convert to file URI
         uri = SourceFile.Path.to_uri(path)
         {:ok, uri, String.to_integer(line_str), 1}
-        
+
       true ->
         {:error, "Unrecognized location format. Use 'file.ex:line:column' or 'file.ex:line'"}
     end
@@ -92,29 +96,36 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
       %SourceFile{text: text} ->
         # Parse the file
         metadata = Parser.parse_string(text, true, false, {line, column})
-        
+
         # Get context at cursor
         context = NormalizedCode.Fragment.surround_context(text, {line, column})
-        
+
         # Get environment
-        env = if context != :none do
-          Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
-        else
-          # Fallback to just position
-          Metadata.get_cursor_env(metadata, {line, column})
-        end
-        
+        env =
+          if context != :none do
+            Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
+          else
+            # Fallback to just position
+            Metadata.get_cursor_env(metadata, {line, column})
+          end
+
         # Format environment for LLM consumption
         env_info = format_environment(env, metadata, uri, line, column)
-        
+
         {:ok, env_info}
-        
+
       nil ->
         {:ok, %{error: "File not found in workspace: #{uri}"}}
     end
   end
 
-  defp format_environment(env = %ElixirSense.Core.State.Env{}, metadata = %ElixirSense.Core.Metadata{}, uri, line, column) do
+  defp format_environment(
+         env = %ElixirSense.Core.State.Env{},
+         metadata = %ElixirSense.Core.Metadata{},
+         uri,
+         line,
+         column
+       ) do
     # Extract the most useful information for LLMs
     %{
       location: %{
@@ -182,7 +193,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
     end)
     |> Enum.sort_by(& &1.name)
   end
-  
+
   # Basic atomic types
   defp format_var_type(:none), do: %{type: "none"}
   defp format_var_type(:empty), do: %{type: "empty"}
@@ -208,7 +219,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
 
   defp format_var_type({:map, fields}) do
     %{
-      type: "map", 
+      type: "map",
       fields: format_type_fields(fields)
     }
   end
@@ -370,7 +381,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
     end)
     |> Enum.sort()
   end
-  
+
   defp extract_modules_from_metadata(metadata = %ElixirSense.Core.Metadata{}) do
     metadata.mods_funs_to_positions
     |> Map.keys()
@@ -389,7 +400,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
     |> Enum.sort()
     |> Enum.map(fn {mod, fun, arity} -> "#{inspect(mod)}.#{fun}/#{arity}" end)
   end
-  
+
   defp format_types_from_metadata(metadata = %ElixirSense.Core.Metadata{}) do
     metadata.types
     |> Map.keys()
@@ -400,7 +411,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
 
   defp format_callbacks_from_metadata(metadata) do
     metadata.specs
-    |> Enum.filter(fn {{_mod, fun, _}, %State.SpecInfo{} = info} -> info.kind in [:callback, :macrocallback] end)
+    |> Enum.filter(fn {{_mod, fun, _}, %State.SpecInfo{} = info} ->
+      info.kind in [:callback, :macrocallback]
+    end)
     |> Enum.map(fn {{mod, fun, arity}, _info} -> {mod, fun, arity} end)
     |> Enum.sort()
     |> Enum.map(fn {mod, fun, arity} -> "#{inspect(mod)}.#{fun}/#{arity}" end)

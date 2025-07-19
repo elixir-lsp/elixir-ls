@@ -1320,7 +1320,7 @@ defmodule ElixirLS.LanguageServer.Server do
        ) do
     fun = fn ->
       source_file = get_or_load_source_file(state, uri)
-      
+
       {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
       parser_context = Parser.parse_immediate(uri, source_file, {line, character})
 
@@ -1362,7 +1362,7 @@ defmodule ElixirLS.LanguageServer.Server do
        ) do
     fun = fn ->
       source_file = get_or_load_source_file(state, uri)
-      
+
       {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
       parser_context = Parser.parse_immediate(uri, source_file, {line, character})
 
@@ -2777,10 +2777,10 @@ defmodule ElixirLS.LanguageServer.Server do
       nil ->
         # File is not open in the editor, try to load it from the filesystem
         parsed_uri = URI.parse(uri)
-        
+
         if parsed_uri.scheme == "file" do
           path = SourceFile.Path.from_uri(parsed_uri)
-          
+
           case File.read(path) do
             {:ok, text} ->
               # Create a temporary source file structure
@@ -2791,7 +2791,7 @@ defmodule ElixirLS.LanguageServer.Server do
                 # Try to detect language_id from file extension
                 language_id: detect_language_id(path)
               }
-              
+
             {:error, reason} ->
               Logger.warning("Failed to read file #{uri}: #{inspect(reason)}")
               raise InvalidParamError, uri
@@ -2805,7 +2805,7 @@ defmodule ElixirLS.LanguageServer.Server do
         source_file
     end
   end
-  
+
   defp detect_language_id(path) do
     case Path.extname(path) do
       ".ex" -> "elixir"

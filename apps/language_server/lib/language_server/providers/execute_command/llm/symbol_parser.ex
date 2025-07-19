@@ -1,7 +1,7 @@
 defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
   @moduledoc """
   Symbol parser V2 using Code.Fragment.cursor_context/2.
-  
+
   Parses various Elixir symbol formats into structured data:
   - Remote calls: `Module.function`, `Module.function/2`, `:erlang.function/1` → `{:ok, :remote_call, {module, function, arity}}`
   - Local calls: `function`, `function/2` → `{:ok, :local_call, {function, arity}}`
@@ -9,7 +9,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
   - Erlang modules: `:erlang`, `:lists` → `{:ok, :module, atom}`
   - Operators: `+`, `+/2`, `==`, `!=/2` → `{:ok, :local_call, {operator, arity}}`
   - Attributes: `@moduledoc`, `@doc` → `{:ok, :attribute, atom}`
-  
+
   Cannot distinguish between function and type - both are parsed as calls.
   """
 
@@ -33,10 +33,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
   def parse(symbol) when is_binary(symbol) do
     # Pre-process to extract arity if present
     {base_symbol, arity} = extract_arity(symbol)
-    
+
     # For cursor_context, we need to position the cursor at the end of the symbol
     code = String.to_charlist(base_symbol)
-    
+
     case NormalizedCode.Fragment.cursor_context(code) do
       {:alias, hint} ->
         # Module name like MyModule or MyModule.SubModule
@@ -86,6 +86,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
         rescue
           _ -> {symbol, nil}
         end
+
       _ ->
         {symbol, nil}
     end
@@ -157,7 +158,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
         rescue
           _ -> {:error, "Invalid operator format"}
         end
-      
+
       true ->
         {:error, "Unrecognized symbol format: #{symbol}"}
     end
@@ -188,5 +189,4 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
         {:error, "Unsupported module path format"}
     end
   end
-
 end

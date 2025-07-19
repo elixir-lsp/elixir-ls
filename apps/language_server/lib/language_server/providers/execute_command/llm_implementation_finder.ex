@@ -22,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
           case find_implementations(type, parsed) do
             {:ok, implementations} ->
               # Convert locations to detailed implementation info
-              formatted_implementations = 
+              formatted_implementations =
                 implementations
                 |> Enum.map(&format_implementation/1)
                 |> Enum.reject(&is_nil/1)
@@ -47,24 +47,29 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
     {:ok, %{error: "Invalid arguments: expected [symbol_string]"}}
   end
 
-
   defp find_implementations(:module, module) do
     # Check if it's a protocol first, then behaviour (protocol is a type of behaviour)
     case Introspection.get_module_subtype(module) do
       :protocol ->
         # Find all protocol implementations
         implementations = get_behaviour_implementations(module)
-        locations = Enum.map(implementations, fn impl_module ->
-          {impl_module, Location.find_mod_fun_source(impl_module, nil, nil)}
-        end)
+
+        locations =
+          Enum.map(implementations, fn impl_module ->
+            {impl_module, Location.find_mod_fun_source(impl_module, nil, nil)}
+          end)
+
         {:ok, locations}
 
       :behaviour ->
         # Find all modules implementing this behaviour
         implementations = get_behaviour_implementations(module)
-        locations = Enum.map(implementations, fn impl_module ->
-          {impl_module, Location.find_mod_fun_source(impl_module, nil, nil)}
-        end)
+
+        locations =
+          Enum.map(implementations, fn impl_module ->
+            {impl_module, Location.find_mod_fun_source(impl_module, nil, nil)}
+          end)
+
         {:ok, locations}
 
       _ ->
@@ -83,14 +88,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
     case Introspection.get_module_subtype(module) do
       subtype when subtype in [:protocol, :behaviour] ->
         implementations = get_behaviour_implementations(module)
-        
-        locations = Enum.flat_map(implementations, fn impl_module ->
-          case find_callback_implementation(impl_module, function, arity) do
-            nil -> []
-            location -> [{impl_module, location}]
-          end
-        end)
-        
+
+        locations =
+          Enum.flat_map(implementations, fn impl_module ->
+            case find_callback_implementation(impl_module, function, arity) do
+              nil -> []
+              location -> [{impl_module, location}]
+            end
+          end)
+
         {:ok, locations}
 
       _ ->
@@ -102,12 +108,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
     {:error, "Module attribute @#{attribute} - attributes don't have implementations"}
   end
 
-
   defp get_behaviour_implementations(behaviour) do
     # Use ElixirSense Behaviours module which handles both behaviour and protocol implementations
     Behaviours.get_all_behaviour_implementations(behaviour)
   end
-
 
   defp find_callback_implementation(module, function, arity) do
     # Try to find the specific function implementation
@@ -192,7 +196,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
           end
 
         # For implementations, try to get the full module or function definition
-        full_implementation = 
+        full_implementation =
           if start_column == nil and end_column == nil do
             # Read the entire module/function
             extract_full_implementation(lines, start_line - 1)
@@ -213,7 +217,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
     # In a more sophisticated implementation, we could parse to find the end
     lines
     |> Enum.drop(start_idx)
-    |> Enum.take(50)  # Reasonable limit for display
+    # Reasonable limit for display
+    |> Enum.take(50)
     |> Enum.join("\n")
   end
 end

@@ -110,51 +110,53 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
     if BuiltinTypes.builtin_type?(function) do
       # Get the documentation for the builtin type
       doc = BuiltinTypes.get_builtin_type_doc(function)
-      
+
       # Get type info to check if it has parameters
       type_info = BuiltinTypes.get_builtin_type_info(function)
-      
+
       # Create a comprehensive builtin type definition
-      type_definitions = 
+      type_definitions =
         type_info
         |> Enum.map(fn info ->
           signature = Map.get(info, :signature, "#{function}()")
           params = Map.get(info, :params, [])
           spec = Map.get(info, :spec)
-          
-          spec_string = if spec do
-            try do
-              "@type #{Macro.to_string(spec)}"
-            rescue
-              _ -> "@type #{signature}"
+
+          spec_string =
+            if spec do
+              try do
+                "@type #{Macro.to_string(spec)}"
+              rescue
+                _ -> "@type #{signature}"
+              end
+            else
+              "@type #{signature}"
             end
-          else
-            "@type #{signature}"
-          end
-          
-          param_docs = if params != [] do
-            param_list = Enum.map(params, &Atom.to_string/1) |> Enum.join(", ")
-            "\n\nParameters: #{param_list}"
-          else
-            ""
-          end
-          
+
+          param_docs =
+            if params != [] do
+              param_list = Enum.map(params, &Atom.to_string/1) |> Enum.join(", ")
+              "\n\nParameters: #{param_list}"
+            else
+              ""
+            end
+
           """
           #{spec_string}
-          
+
           #{doc}#{param_docs}
           """
         end)
         |> Enum.join("\n---\n")
-      
+
       result = """
       # Builtin type #{function}() - Elixir built-in type
-      
+
       #{type_definitions}
-      
+
       For more information, see the Elixir documentation on basic types and built-in types.
       """
-      
+
       {:ok, %{definition: result}}
     else
       {:error, "Local call #{function} not found in Kernel and not a builtin type"}
@@ -164,10 +166,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinition do
   defp try_type_definition(module, type_name) do
     # For types, try to find the module and look for type definitions there
     case Location.find_mod_fun_source(module, nil, nil) do
-      %Location{} = location -> 
+      %Location{} = location ->
         # Return the module location - the type definition will be found within the module
         {:ok, location}
-      _ -> {:error, "Type #{module}.#{type_name} not found - module #{inspect(module)} not found"}
+
+      _ ->
+        {:error, "Type #{module}.#{type_name} not found - module #{inspect(module)} not found"}
     end
   end
 

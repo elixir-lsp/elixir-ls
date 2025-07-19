@@ -196,23 +196,26 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchyTest do
       project_dir = FixtureHelpers.get_path("")
 
       # Line 4 is where function_in_b is defined
-      result = CallHierarchy.outgoing_calls(
-        uri, 
-        "ElixirLS.Test.CallHierarchyB.function_in_b/0", 
-        :function,
-        3,  # line (0-indexed)
-        2,  # column 
-        project_dir,
-        source_file,
-        parser_context
-      )
-      
+      result =
+        CallHierarchy.outgoing_calls(
+          uri,
+          "ElixirLS.Test.CallHierarchyB.function_in_b/0",
+          :function,
+          # line (0-indexed)
+          3,
+          # column 
+          2,
+          project_dir,
+          source_file,
+          parser_context
+        )
+
       # Should find only the actual function call, not the alias
       assert length(result) == 1
-      
+
       callee_names = result |> Enum.map(& &1.to.name) |> Enum.sort()
       assert "ElixirLS.Test.CallHierarchyA.called_from_other_modules/0" in callee_names
-      
+
       # Verify the alias line is not included
       refute Enum.any?(callee_names, &String.contains?(&1, "CallHierarchyA./"))
     end

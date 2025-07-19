@@ -13,8 +13,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserTest 
     test "parses nested module" do
       assert {:ok, :module, String.Chars} = SymbolParser.parse("String.Chars")
       assert {:ok, :module, Mix.Project} = SymbolParser.parse("Mix.Project")
-      assert {:ok, :module, Some.Deeply.Nested.Module} = 
-        SymbolParser.parse("Some.Deeply.Nested.Module")
+
+      assert {:ok, :module, Some.Deeply.Nested.Module} =
+               SymbolParser.parse("Some.Deeply.Nested.Module")
     end
 
     test "parses module with numbers" do
@@ -39,7 +40,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParserTest 
     end
 
     test "parses nested module remote call" do
-      assert {:ok, :remote_call, {String.Chars, :to_string, 1}} = SymbolParser.parse("String.Chars.to_string/1")
+      assert {:ok, :remote_call, {String.Chars, :to_string, 1}} =
+               SymbolParser.parse("String.Chars.to_string/1")
     end
 
     test "parses erlang remote call" do

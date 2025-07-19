@@ -294,14 +294,14 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
     else
       all_calls = metadata.calls |> Map.values() |> List.flatten()
 
-    filtered_calls =
-      all_calls
-      |> Enum.filter(fn call ->
-        # Check for the specific function, module and arity
-        call.func == function and
-          call.mod == module and
-          (arity == :any or call.arity == arity)
-      end)
+      filtered_calls =
+        all_calls
+        |> Enum.filter(fn call ->
+          # Check for the specific function, module and arity
+          call.func == function and
+            call.mod == module and
+            (arity == :any or call.arity == arity)
+        end)
 
       group_calls_by_caller(filtered_calls, metadata)
     end
@@ -339,7 +339,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
   defp group_trace_calls_by_caller(trace_calls) do
     # Group trace calls by file first
     calls_by_file = Enum.group_by(trace_calls, & &1.file)
-    
+
     # For each file, parse it to get metadata and find containing functions
     calls_by_file
     |> Enum.flat_map(fn {file, calls} ->
@@ -347,7 +347,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
         {:ok, code} ->
           # Parse the file to get metadata
           metadata = Parser.parse_string(code, true, false, {1, 1})
-          
+
           # Group calls by their containing function
           calls
           |> Enum.group_by(fn call ->
@@ -358,13 +358,13 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
           |> Enum.map(fn {caller_info, calls} ->
             # Update caller_info with the file URI
             caller_info_with_uri = Map.put(caller_info, :uri, file)
-            
+
             %{
               from: caller_info_with_uri,
               from_ranges: Enum.map(calls, &build_range_from_trace_call/1)
             }
           end)
-          
+
         {:error, _} ->
           # If we can't read the file, skip these calls
           []
@@ -418,7 +418,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
   defp build_range_from_call(call) do
     {line, column} = call.position
     func_length = String.length(to_string(call.func))
-    
+
     # Handle nil column
     column = column || 1
 
@@ -445,37 +445,38 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
       []
     else
       # Get info about our function to find its line ranges
-      our_function_info = 
+      our_function_info =
         metadata.mods_funs_to_positions
         |> Enum.find_value(fn
           {{^module, ^function, ^arity}, info} -> info
           {{^module, ^function, _}, info} when arity == :any -> info
           _ -> nil
         end)
-      
+
       if our_function_info do
         # Get start and end positions for our function
         positions = Map.get(our_function_info, :positions, [])
         end_positions = Map.get(our_function_info, :end_positions, [])
-        
+
         if positions != [] do
           {start_line, _start_col} = List.first(positions)
-          
+
           # Find the last end position that's not nil
-          end_line = 
+          end_line =
             if end_positions != [] do
               end_positions
               |> Enum.zip(positions)
               |> Enum.reverse()
               |> Enum.find_value(fn
-                {nil, {pos_line, _}} -> pos_line + 10  # Heuristic: assume 10 lines if no end position
+                # Heuristic: assume 10 lines if no end position
+                {nil, {pos_line, _}} -> pos_line + 10
                 {{end_line, _}, _} -> end_line
               end)
             else
               # If no end positions, use next function as boundary
               find_next_function_line(metadata.mods_funs_to_positions, module, start_line)
             end
-          
+
           # Find all calls within our function's range
           calls =
             metadata.calls
@@ -484,20 +485,21 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
             |> Enum.filter(fn call ->
               {call_line, _} = call.position
               # Exclude def/defp/defmacro calls on the function definition line
-              is_function_definition = call_line == start_line and 
-                call.mod == Kernel and 
-                call.func in [:def, :defp, :defmacro, :defmacrop]
-              
+              is_function_definition =
+                call_line == start_line and
+                  call.mod == Kernel and
+                  call.func in [:def, :defp, :defmacro, :defmacrop]
+
               # Exclude alias references and other non-function calls
               # Aliases have nil func, and may have various kinds like :alias, :alias_reference, etc.
               is_non_function_call = call.func == nil
-              
+
               !is_function_definition and
                 !is_non_function_call and
-                call_line >= start_line and 
+                call_line >= start_line and
                 (end_line == nil or call_line <= end_line)
             end)
-          
+
           # Group by callee
           calls
           |> Enum.group_by(fn call ->
@@ -527,14 +529,15 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
       end
     end
   end
-  
+
   defp find_next_function_line(mods_funs, module, after_line) do
     mods_funs
     |> Enum.filter(fn
-      {{^module, _, _}, info} -> 
+      {{^module, _, _}, info} ->
         positions = Map.get(info, :positions, [])
         positions != [] and List.first(positions) |> elem(0) > after_line
-      _ -> 
+
+      _ ->
         false
     end)
     |> Enum.map(fn {_, info} ->

@@ -49,7 +49,8 @@ defmodule ElixirLS.Test.WithTypes do
 
   @callback callback_no_arg() :: :ok
   @callback callback_one_arg(term()) :: {:ok, term()}
-  @callback callback_one_arg_named(foo :: term(), bar :: integer()) :: {:ok, term(), baz :: integer()}
+  @callback callback_one_arg_named(foo :: term(), bar :: integer()) ::
+              {:ok, term(), baz :: integer()}
   @callback callback_multiple_specs(term(), integer()) :: {:ok, term(), integer()}
   @callback callback_multiple_specs(term(), float()) :: {:ok, term(), float()}
   @callback callback_bounded_fun(foo) :: {:ok, term()} when foo: term()

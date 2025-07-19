@@ -6,9 +6,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
   describe "execute/2" do
     test "gets module documentation" do
       modules = ["Atom"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -22,9 +22,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "gets module function and macro list" do
       modules = ["Kernel"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -44,9 +44,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "gets module type list" do
       modules = ["Macro", "Date"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 2
 
@@ -69,9 +69,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "gets module callback list" do
       modules = ["Access", "Protocol"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 2
 
@@ -94,9 +94,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "gets module behaviours" do
       modules = ["DynamicSupervisor"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -111,12 +111,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "aggregates documentation for multiple modules" do
       modules = ["String", "Enum"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 2
-      
+
       # Check String module
       string_result = Enum.find(result.results, &(&1.module == "String"))
       assert string_result
@@ -124,7 +124,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert string_result.moduledoc
       assert is_list(string_result.functions)
       assert length(string_result.functions) > 0
-      
+
       # Check Enum module
       enum_result = Enum.find(result.results, &(&1.module == "Enum"))
       assert enum_result
@@ -136,12 +136,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles function documentation with arity" do
       modules = ["String.split/1"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
-      
+
       func_result = hd(result.results)
 
       assert func_result.module == "String"
@@ -154,12 +154,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles function documentation without arity" do
       modules = ["String.split"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 2
-      
+
       arity_1_result = result.results |> Enum.find(&(&1.arity == 1))
       assert arity_1_result.module == "String"
       assert arity_1_result.function == "split"
@@ -173,9 +173,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles type documentation with arity" do
       modules = ["Enumerable.t/0"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -184,14 +184,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert result.type == "t"
       assert result.arity == 0
       assert result.documentation =~ "All the types that implement this protocol"
-
     end
 
     test "handles type documentation without arity" do
       modules = ["Enumerable.t"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 2
 
@@ -208,9 +207,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles callback documentation with arity" do
       modules = ["GenServer.handle_info/2"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -219,14 +218,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert result.callback == "handle_info"
       assert result.arity == 2
       assert result.documentation =~ "handle all other messages"
-
     end
 
     test "handles callback documentation without arity" do
       modules = ["GenServer.handle_info"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -238,9 +236,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles attribute documentation" do
       modules = ["@moduledoc"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -251,12 +249,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles Kernel import" do
       modules = ["send/2"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
-      
+
       func_result = hd(result.results)
 
       assert func_result.module == "Kernel"
@@ -269,9 +267,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles builtin type documentation" do
       modules = ["binary"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
@@ -282,48 +280,48 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "handles Erlang module format" do
       modules = [":erlang"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
-      
+
       erlang_result = hd(result.results)
       assert erlang_result.module == ":erlang"
     end
 
     test "handles invalid symbol gracefully" do
       modules = [":::invalid:::"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 0
     end
 
     test "handles non existing module symbol gracefully" do
       modules = ["NonExisting.non_existing_function/1"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 0
     end
 
     test "handles non existing function symbol gracefully" do
       modules = ["String.non_existing_function/1"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 0
     end
 
     test "handles mix of valid and invalid modules" do
       modules = ["String", ":::invalid:::", "Enum"]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 2
     end
@@ -333,18 +331,21 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       defmodule TestModuleWithoutDocs do
         def hello, do: :world
       end
-      
-      module_name = "ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest.TestModuleWithoutDocs"
+
+      module_name =
+        "ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest.TestModuleWithoutDocs"
+
       modules = [module_name]
-      
+
       assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
-      
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
-      
+
       test_result = hd(result.results)
       assert test_result.module == module_name
-      assert test_result.moduledoc == nil  # No documentation available
+      # No documentation available
+      assert test_result.moduledoc == nil
       assert test_result.functions == ["hello/0"]
     end
 
@@ -353,12 +354,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert {:ok, result} = LlmDocsAggregator.execute("String", %{})
       assert Map.has_key?(result, :error)
       assert result.error == "Invalid arguments: expected [modules_list]"
-      
+
       # Test with empty arguments
       assert {:ok, result} = LlmDocsAggregator.execute([], %{})
       assert Map.has_key?(result, :error)
       assert result.error == "Invalid arguments: expected [modules_list]"
-      
+
       # Test with nil
       assert {:ok, result} = LlmDocsAggregator.execute(nil, %{})
       assert Map.has_key?(result, :error)

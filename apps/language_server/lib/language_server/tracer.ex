@@ -225,7 +225,8 @@ defmodule ElixirLS.LanguageServer.Tracer do
     register_call(meta, module, nil, nil, :alias, event, env)
   end
 
-  def trace({kind, meta, module, _opts} = event, %Macro.Env{} = env) when kind in [:import, :require] do
+  def trace({kind, meta, module, _opts} = event, %Macro.Env{} = env)
+      when kind in [:import, :require] do
     register_call(meta, module, nil, nil, kind, event, env)
   end
 
@@ -299,7 +300,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     # Determine reference type based on kind (similar to Mix.Tasks.Xref)
     reference_type = determine_reference_type(event, env)
-    
+
     # Store call info with reference type
     call_info = %{
       kind: kind,
@@ -315,15 +316,17 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     :ets.insert(table_name(:calls), {{callee, env.file, line, column}, call_info})
   end
-  
+
   # Determine reference type based on trace kind (following Mix.Tasks.Xref logic)
-  def determine_reference_type({:alias_reference, _meta, module}, %Macro.Env{} = env) when env.module != module do
+  def determine_reference_type({:alias_reference, _meta, module}, %Macro.Env{} = env)
+      when env.module != module do
     case env do
       %Macro.Env{function: nil} -> :compile
       %Macro.Env{context: nil} -> :runtime
       %Macro.Env{} -> nil
     end
   end
+
   def determine_reference_type({:require, meta, _module, _opts}, _env),
     do: require_mode(meta)
 
@@ -357,7 +360,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     try do
       :ets.tab2list(table)
-      |> Enum.map(fn 
+      |> Enum.map(fn
         # Handle new format with call_info map
         {{callee, file, line, column}, %{} = call_info} ->
           %{

@@ -11,7 +11,7 @@ defmodule ElixirLS.Test.LlmTypeInfoFixture do
 
     @doc """
     Initialize the server state.
-    
+
     This callback is called when the server starts.
     """
     @callback init(args :: term()) :: {:ok, state :: term()} | {:error, reason :: term()}
@@ -64,9 +64,9 @@ defmodule ElixirLS.Test.LlmTypeInfoFixture do
 
     @doc """
     Creates a new user with the given name and age.
-    
+
     ## Examples
-    
+
         iex> create_user("Alice", 30)
         %{name: "Alice", age: 30}
     """
