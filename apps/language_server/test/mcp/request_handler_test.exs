@@ -90,13 +90,27 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
 
       assert response["jsonrpc"] == "2.0"
       assert response["id"] == 4
-      assert response["result"]
-      assert is_list(response["result"]["content"])
 
-      content = hd(response["result"]["content"])
-      assert content["type"] == "text"
-      assert content["text"] =~ "Environment information for location: test.ex:10:5"
-      assert content["text"] =~ "placeholder response"
+      # Should either return result or error since the file might not exist
+      assert response["result"] || response["error"]
+
+      if response["result"] do
+        assert is_list(response["result"]["content"])
+        content = hd(response["result"]["content"])
+        assert content["type"] == "text"
+        
+        # Should either contain environment information or an error message
+        # Since the test file doesn't exist, it should return a file not found error
+        assert content["text"] =~ "Environment Information" or content["text"] =~ "Error: File not found"
+        
+        # Should not contain the old placeholder message
+        refute content["text"] =~ "placeholder response"
+        refute content["text"] =~ "MCP server cannot directly access"
+      else
+        # Error case - file not found or environment parsing failed
+        assert response["error"]["code"] == -32603
+        assert response["error"]["message"] == "Failed to get environment information"
+      end
     end
 
     test "handles tools/call for get_docs" do

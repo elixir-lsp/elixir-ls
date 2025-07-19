@@ -12,7 +12,8 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     LlmTypeInfo,
     LlmDefinition,
     LlmImplementationFinder,
-    LlmModuleDependencies
+    LlmModuleDependencies,
+    LlmEnvironment
   }
 
   @doc """
@@ -247,27 +248,33 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
   end
 
   defp handle_get_environment(location, id) do
-    # Placeholder response for now
-    text = """
-    Environment information for location: #{location}
+    case LlmEnvironment.execute([location], %{source_files: %{}}) do
+      {:ok, result} ->
+        text = format_environment_result(result)
 
-    Note: This is a placeholder response. The MCP server cannot directly access
-    the LanguageServer state. Use the VS Code language tool or the 'llmEnvironment'
-    command for actual environment information.
-    """
+        %{
+          "jsonrpc" => "2.0",
+          "result" => %{
+            "content" => [
+              %{
+                "type" => "text",
+                "text" => text
+              }
+            ]
+          },
+          "id" => id
+        }
 
-    %{
-      "jsonrpc" => "2.0",
-      "result" => %{
-        "content" => [
-          %{
-            "type" => "text",
-            "text" => text
-          }
-        ]
-      },
-      "id" => id
-    }
+      _ ->
+        %{
+          "jsonrpc" => "2.0",
+          "error" => %{
+            "code" => -32603,
+            "message" => "Failed to get environment information"
+          },
+          "id" => id
+        }
+    end
   end
 
   defp handle_get_docs(modules, id) do
@@ -881,4 +888,139 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     |> Enum.map(&"- #{&1}")
     |> Enum.join("\n")
   end
+
+  defp format_environment_result(%{error: error}) do
+    "Error: #{error}"
+  end
+
+  defp format_environment_result(result) do
+    parts = ["# Environment Information"]
+
+    # Location
+    if result[:location] do
+      location = result.location
+      parts = parts ++ ["\n**Location**: #{location.uri}:#{location.line}:#{location.column}"]
+    end
+
+    # Context
+    if result[:context] do
+      context = result.context
+      context_parts = ["\n## Context"]
+
+      if context[:module] do
+        context_parts = context_parts ++ ["**Module**: #{inspect(context.module)}"]
+      end
+
+      if context[:function] do
+        context_parts = context_parts ++ ["**Function**: #{context.function}"]
+      end
+
+      if context[:context_type] do
+        context_parts = context_parts ++ ["**Context Type**: #{context.context_type}"]
+      end
+
+      parts = parts ++ context_parts
+    end
+
+    # Aliases
+    if result[:aliases] && !Enum.empty?(result.aliases) do
+      alias_lines = Enum.map(result.aliases, fn alias_info ->
+        "- #{alias_info.alias} → #{alias_info.module}"
+      end)
+      parts = parts ++ ["\n## Aliases"] ++ alias_lines
+    end
+
+    # Imports
+    if result[:imports] && !Enum.empty?(result.imports) do
+      import_lines = Enum.map(result.imports, fn import_info ->
+        "- #{import_info.module}.#{import_info.function}"
+      end)
+      parts = parts ++ ["\n## Imports"] ++ import_lines
+    end
+
+    # Requires
+    if result[:requires] && !Enum.empty?(result.requires) do
+      require_lines = Enum.map(result.requires, fn mod ->
+        "- #{inspect(mod)}"
+      end)
+      parts = parts ++ ["\n## Requires"] ++ require_lines
+    end
+
+    # Variables
+    if result[:variables] && !Enum.empty?(result.variables) do
+      var_lines = Enum.map(result.variables, fn var ->
+        type_str = format_variable_type_for_display(var.type)
+        "- #{var.name} (#{type_str})"
+      end)
+      parts = parts ++ ["\n## Variables in Scope"] ++ var_lines
+    end
+
+    # Attributes
+    if result[:attributes] && !Enum.empty?(result.attributes) do
+      attr_lines = Enum.map(result.attributes, fn attr ->
+        type_str = format_variable_type_for_display(attr.type)
+        "- @#{attr.name} (#{type_str})"
+      end)
+      parts = parts ++ ["\n## Module Attributes"] ++ attr_lines
+    end
+
+    # Behaviours
+    if result[:behaviours_implemented] && !Enum.empty?(result.behaviours_implemented) do
+      behaviour_lines = Enum.map(result.behaviours_implemented, fn behaviour ->
+        "- #{inspect(behaviour)}"
+      end)
+      parts = parts ++ ["\n## Behaviours Implemented"] ++ behaviour_lines
+    end
+
+    # Definitions in this file
+    if result[:definitions] do
+      defs = result.definitions
+
+      if defs[:modules_defined] && !Enum.empty?(defs.modules_defined) do
+        mod_lines = Enum.map(defs.modules_defined, &"- #{inspect(&1)}")
+        parts = parts ++ ["\n## Modules Defined"] ++ mod_lines
+      end
+
+      if defs[:functions_defined] && !Enum.empty?(defs.functions_defined) do
+        fun_lines = Enum.map(defs.functions_defined, &"- #{&1}")
+        parts = parts ++ ["\n## Functions Defined"] ++ fun_lines
+      end
+
+      if defs[:types_defined] && !Enum.empty?(defs.types_defined) do
+        type_lines = Enum.map(defs.types_defined, &"- #{&1}")
+        parts = parts ++ ["\n## Types Defined"] ++ type_lines
+      end
+
+      if defs[:callbacks_defined] && !Enum.empty?(defs.callbacks_defined) do
+        callback_lines = Enum.map(defs.callbacks_defined, &"- #{&1}")
+        parts = parts ++ ["\n## Callbacks Defined"] ++ callback_lines
+      end
+    end
+
+    Enum.join(parts, "\n")
+  end
+
+  defp format_variable_type_for_display(%{type: type}) when is_binary(type), do: type
+  defp format_variable_type_for_display(%{type: type, value: value}), do: "#{type}(#{inspect(value)})"
+  defp format_variable_type_for_display(%{type: "map", fields: fields}) when is_list(fields) do
+    if Enum.empty?(fields) do
+      "map"
+    else
+      field_count = length(fields)
+      "map(#{field_count} fields)"
+    end
+  end
+  defp format_variable_type_for_display(%{type: "struct", module: module}) when is_binary(module), do: "struct(#{module})"
+  defp format_variable_type_for_display(%{type: "tuple", size: size}), do: "tuple(#{size})"
+  defp format_variable_type_for_display(%{type: "list", element_type: elem_type}) do
+    elem_str = format_variable_type_for_display(elem_type)
+    "list(#{elem_str})"
+  end
+  defp format_variable_type_for_display(%{type: "variable", name: name}), do: "var(#{name})"
+  defp format_variable_type_for_display(%{type: "union", types: types}) when is_list(types) do
+    type_strs = Enum.map(types, &format_variable_type_for_display/1)
+    "union(#{Enum.join(type_strs, " | ")})"
+  end
+  defp format_variable_type_for_display(%{type: type}), do: type
+  defp format_variable_type_for_display(other), do: inspect(other)
 end
