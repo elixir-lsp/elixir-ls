@@ -116,17 +116,28 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
             documentation: doc
           }}
         _ ->
-          # Try as type
-          case aggregate_type_docs(module, function, arity) do
+          # Try as callback second
+          case aggregate_callback_docs(module, function, arity) do
             %{documentation: doc} when doc != "" ->
               {:ok, %{
                 module: inspect(module),
-                type: Atom.to_string(function),
+                callback: Atom.to_string(function),
                 arity: arity,
                 documentation: doc
               }}
             _ ->
-              {:error, "Remote call #{module}.#{function}/#{arity || "?"} - no documentation found"}
+              # Try as type third
+              case aggregate_type_docs(module, function, arity) do
+                %{documentation: doc} when doc != "" ->
+                  {:ok, %{
+                    module: inspect(module),
+                    type: Atom.to_string(function),
+                    arity: arity,
+                    documentation: doc
+                  }}
+                _ ->
+                  {:error, "Remote call #{module}.#{function}/#{arity || "?"} - no documentation found"}
+              end
           end
       end
     end
@@ -199,8 +210,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         []
     end
     
+    # Get arities from callbacks
+    callback_arities = 
+      Introspection.get_callbacks_with_docs(module)
+      |> Enum.filter(fn %{name: name} -> name == function end)
+      |> Enum.map(fn %{arity: arity} -> arity end)
+      |> Enum.uniq()
+    
     # Combine and get unique arities
-    all_arities = (documented_arities ++ spec_arities ++ type_doc_arities ++ type_spec_arities) |> Enum.uniq() |> Enum.sort()
+    all_arities = (documented_arities ++ spec_arities ++ type_doc_arities ++ type_spec_arities ++ callback_arities) |> Enum.uniq() |> Enum.sort()
     
     if all_arities == [] do
       {:error, "Remote call #{module}.#{function} - no documentation found"}
@@ -217,25 +235,36 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
               documentation: doc
             }
           _ ->
-            # Try as type
-            case aggregate_type_docs(module, function, arity) do
+            # Try as callback second
+            case aggregate_callback_docs(module, function, arity) do
               %{documentation: doc} when doc != "" ->
                 %{
                   module: inspect(module),
-                  type: Atom.to_string(function),
+                  callback: Atom.to_string(function),
                   arity: arity,
                   documentation: doc
                 }
               _ ->
-                # If no documentation found, but we know this arity exists,
-                # return a result with "No documentation available"
-                function_str = Atom.to_string(function)
-                %{
-                  module: inspect(module),
-                  type: function_str,
-                  arity: arity,
-                  documentation: "No documentation available for #{function_str}/#{arity}"
-                }
+                # Try as type third
+                case aggregate_type_docs(module, function, arity) do
+                  %{documentation: doc} when doc != "" ->
+                    %{
+                      module: inspect(module),
+                      type: Atom.to_string(function),
+                      arity: arity,
+                      documentation: doc
+                    }
+                  _ ->
+                    # If no documentation found, but we know this arity exists,
+                    # return a result with "No documentation available"
+                    function_str = Atom.to_string(function)
+                    %{
+                      module: inspect(module),
+                      type: function_str,
+                      arity: arity,
+                      documentation: "No documentation available for #{function_str}/#{arity}"
+                    }
+                end
             end
         end
       end)
@@ -426,14 +455,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     # Get specs
     specs = get_function_specs(module, function, arity)
 
-    # Check if it's a builtin
-    # TODO: WTF? Kernel has normal docs
-    builtin_docs = if module == Kernel or module == Kernel.SpecialForms do
-      BuiltinFunctions.get_docs({function, arity})
-    else
-      nil
-    end
-
     sections = 
       cond do
         function_docs != [] ->
@@ -449,14 +470,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
               specs: doc_specs
             }
           end)
-
-        builtin_docs ->
-          [%{
-            type: "builtin_function",
-            signature: "#{function}/#{arity || "?"}",
-            doc: builtin_docs[:docs],
-            specs: builtin_docs[:specs] || []
-          }]
 
         true ->
           # No docs found, but still return specs if available
@@ -609,6 +622,38 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       _ = h ->
         false
     end)
+  end
+
+  defp aggregate_callback_docs(module, callback, arity) do
+    ensure_loaded(module)
+    
+    # Get callback documentation using Introspection
+    callback_docs = Introspection.get_callbacks_with_docs(module)
+    
+    # Find the specific callback by name and arity
+    callback_info = Enum.find(callback_docs, fn
+      %{name: ^callback, arity: ^arity} -> true
+      _ -> false
+    end)
+    
+    case callback_info do
+      %{doc: doc, callback: spec, kind: kind} ->
+        %{
+          callback: Atom.to_string(callback),
+          arity: arity,
+          spec: spec,
+          kind: kind,
+          documentation: extract_doc(doc) || ""
+        }
+      _ ->
+        %{
+          callback: Atom.to_string(callback),
+          arity: arity,
+          spec: nil,
+          kind: :callback,
+          documentation: ""
+        }
+    end
   end
 
   defp get_function_specs(module, function, arity) do

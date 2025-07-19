@@ -179,11 +179,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
 
-      func_result = hd(result.results)
-      assert func_result.module == "Enumerable"
-      assert func_result.type == "t"
-      assert func_result.arity == 0
-      assert func_result.documentation =~ "All the types that implement this protocol"
+      result = hd(result.results)
+      assert result.module == "Enumerable"
+      assert result.type == "t"
+      assert result.arity == 0
+      assert result.documentation =~ "All the types that implement this protocol"
 
     end
 
@@ -204,6 +204,36 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert arity_1_result.module == "Enumerable"
       assert arity_1_result.type == "t"
       assert arity_1_result.documentation =~ "An enumerable of elements of type `element`"
+    end
+
+    test "handles callback documentation with arity" do
+      modules = ["GenServer.handle_info/2"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      result = hd(result.results)
+      assert result.module == "GenServer"
+      assert result.callback == "handle_info"
+      assert result.arity == 2
+      assert result.documentation =~ "handle all other messages"
+
+    end
+
+    test "handles callback documentation without arity" do
+      modules = ["GenServer.handle_info"]
+      
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      result = result.results |> hd
+      assert result.module == "GenServer"
+      assert result.callback == "handle_info"
+      assert result.documentation =~ "handle all other messages"
     end
 
     test "handles attribute documentation" do
