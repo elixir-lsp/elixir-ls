@@ -434,7 +434,8 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
 
   defp format_single_doc_result(result) do
     case result do
-      %{module: module, functions: functions} ->
+      # Module documentation
+      %{module: module, moduledoc: _} ->
         parts = ["# Module: #{module}"]
 
         parts =
@@ -444,21 +445,70 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
             parts
           end
 
-        parts =
-          if functions && length(functions) > 0 do
-            function_parts = Enum.map(functions, &format_function_doc/1)
-            parts ++ ["\n## Functions\n"] ++ function_parts
+        # Add various sections if they exist
+        sections = [
+          {:functions, "Functions"},
+          {:macros, "Macros"}, 
+          {:types, "Types"},
+          {:callbacks, "Callbacks"},
+          {:macrocallbacks, "Macro Callbacks"},
+          {:behaviours, "Behaviours"}
+        ]
+
+        parts = Enum.reduce(sections, parts, fn {key, title}, acc ->
+          if result[key] && length(result[key]) > 0 do
+            items = Enum.map(result[key], &"- #{&1}")
+            acc ++ ["\n## #{title}\n"] ++ items
           else
-            parts
+            acc
           end
+        end)
 
         Enum.join(parts, "\n")
 
+      # Function documentation
+      %{function: function, module: module, arity: arity, documentation: doc} ->
+        title = "# Function: #{module}.#{function}/#{arity}"
+        if doc && doc != "" do
+          "#{title}\n\n#{doc}"
+        else
+          "#{title}\n\nNo documentation available."
+        end
+
+      # Callback documentation
+      %{callback: callback, module: module, arity: arity, documentation: doc} ->
+        title = "# Callback: #{module}.#{callback}/#{arity}"
+        if doc && doc != "" do
+          "#{title}\n\n#{doc}"
+        else
+          "#{title}\n\nNo documentation available."
+        end
+
+      # Type documentation
+      %{type: type, module: module, arity: arity, documentation: doc} ->
+        title = "# Type: #{module}.#{type}/#{arity}"
+        if doc && doc != "" do
+          "#{title}\n\n#{doc}"
+        else
+          "#{title}\n\nNo documentation available."
+        end
+
+      # Attribute documentation
+      %{attribute: attribute, documentation: doc} ->
+        title = "# Attribute: #{attribute}"
+        if doc && doc != "" do
+          "#{title}\n\n#{doc}"
+        else
+          "#{title}\n\nNo documentation available."
+        end
+
+      # Error case
       %{error: error} ->
         "Error: #{error}"
 
+      # Unknown format
       _ ->
-        "Unknown result format"
+        "Unknown result format: #{inspect(result)}"
     end
   end
 
