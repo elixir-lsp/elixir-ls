@@ -8,13 +8,13 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
         %GenLSP.Structures.TextEdit{range: %GenLSP.Structures.Range{} = range} = text_edit,
         line_number
       ) do
-    %GenLSP.Structures.TextEdit{
+    %GenLSP.Structures.Position{} = start_pos = range.start
+    %GenLSP.Structures.Position{} = end_pos = range.end
+    
+    %{
       text_edit
-      | range: %{
-          range
-          | start: %{range.start | line: line_number},
-            end: %{range.end | line: line_number}
-        }
+      | range: %{range | start: %{start_pos | line: line_number},
+                        end: %{end_pos | line: line_number}}
     }
   end
 

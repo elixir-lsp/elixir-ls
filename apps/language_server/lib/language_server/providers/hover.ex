@@ -280,7 +280,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   defp format_header(text) do
     text
     |> Code.format_string!(line_length: 40)
-    |> to_string
+    |> IO.iodata_to_binary()
   rescue
     _ ->
       # Code.format_string! can raise SyntaxError e.g.

@@ -708,7 +708,7 @@ defmodule ElixirLS.LanguageServer.Server do
       state
     else
       state =
-        update_in(state.source_files[uri], fn source_file ->
+        update_in(state.source_files[uri], fn %SourceFile{} = source_file ->
           # LSP 3.17: The version number points to the version after all provided content changes have
           # been applied
           %SourceFile{} = source_file
@@ -819,7 +819,7 @@ defmodule ElixirLS.LanguageServer.Server do
             %SourceFile{text: source_file_text, dirty?: true} = source_file ->
               case File.read(SourceFile.Path.from_uri(uri)) do
                 {:ok, ^source_file_text} ->
-                  Map.put(acc, uri, %SourceFile{source_file | dirty?: false})
+                  Map.put(acc, uri, %{source_file | dirty?: false})
 
                 {:ok, _} ->
                   acc
@@ -2139,7 +2139,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # diagnostics without file are meaningless in LSP, try to point to mixfile instead
           if project_dir != nil and mix_project? do
             file = Path.join(project_dir, MixfileHelpers.mix_exs())
-            %Diagnostics{diagnostic | file: file, source: file, position: 0}
+            %{diagnostic | file: file, source: file, position: 0}
           end
         end
       end)

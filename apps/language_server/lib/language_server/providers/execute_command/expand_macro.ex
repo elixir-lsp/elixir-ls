@@ -31,11 +31,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.ExpandMacro do
             |> Macro.camelize()
             |> String.replace("Expand", "expand")
 
-          formatted = 
-            case Code.format_string!(value) do
-              list when is_list(list) -> List.to_string(list)
-              string when is_binary(string) -> string
-            end
+          formatted = value |> Code.format_string!() |> IO.iodata_to_binary()
           {key, formatted <> "\n"}
         end)
 

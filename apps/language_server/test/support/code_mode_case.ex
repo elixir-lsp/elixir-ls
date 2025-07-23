@@ -56,9 +56,8 @@ defmodule ElixirLS.LanguageServer.Test.CodeMod.Case do
     |> maybe_trim(opts)
   end
 
-  @indent_re ~r/^\s*/
   defp indent(first_line) do
-    case Regex.scan(@indent_re, first_line) do
+    case Regex.scan(~r/^\s*/, first_line) do
       [[indent]] -> indent
       _ -> ""
     end

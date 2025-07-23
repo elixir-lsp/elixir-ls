@@ -3272,10 +3272,10 @@ defmodule ElixirLS.DebugAdapter.Server do
     vars =
       for var_name <- Enum.uniq(env_var_names ++ binding_var_names) do
         case {Keyword.fetch(binding, var_name), Map.fetch(env_vars, var_name)} do
-          {{:ok, binding_value}, {:ok, env_var}} ->
+          {{:ok, binding_value}, {:ok, env_var = %ElixirSense.Core.State.VarInfo{}}} ->
             # var both in env and in binding - prefer type from binding
             type = ElixirSense.Core.Binding.from_var(binding_value)
-            %ElixirSense.Core.State.VarInfo{env_var | type: type}
+            %{env_var | type: type}
 
           {_, {:ok, env_var}} ->
             # var only in env - keep it, binding may not have everything

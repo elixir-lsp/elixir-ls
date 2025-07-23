@@ -593,11 +593,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       )
 
     %CompletionItem{} = completion_item = completion_without_additional_text_edit.completion_item
+    
     %__MODULE__{
       priority: 24,
-      completion_item: %{
-        completion_item
-        | additional_text_edit: %GenLSP.Structures.TextEdit{
+      completion_item: %{completion_item | additional_text_edit: %GenLSP.Structures.TextEdit{
             range: %GenLSP.Structures.Range{
               start: %GenLSP.Structures.Position{line: line_to_insert_alias, character: 0},
               end: %GenLSP.Structures.Position{line: line_to_insert_alias, character: 0}
@@ -1024,9 +1023,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     if completion do
       completion =
         if name in @operators do
+          %CompletionItem{} = completion_item = completion.completion_item
           %__MODULE__{
             completion
-            | completion_item: %CompletionItem{completion.completion_item | kind: :operator}
+            | completion_item: %{completion_item | kind: :operator}
           }
         else
           completion
@@ -1050,11 +1050,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
               &("require " <> &1)
             )
 
+          %CompletionItem{} = completion_item = completion.completion_item
           %__MODULE__{
             completion
-            | completion_item: %CompletionItem{
-                completion.completion_item
-                | additional_text_edit: %GenLSP.Structures.TextEdit{
+            | completion_item: %{completion_item | additional_text_edit: %GenLSP.Structures.TextEdit{
                     range: %GenLSP.Structures.Range{
                       start: %GenLSP.Structures.Position{
                         line: line_to_insert_require,
@@ -1074,13 +1073,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       file_path = Keyword.get(options, :file_path)
 
       if snippet = snippet_for({origin, name}, Map.put(context, :file_path, file_path)) do
+        %CompletionItem{} = completion_item = completion.completion_item
         %__MODULE__{
           completion
-          | completion_item: %CompletionItem{
-              completion.completion_item
-              | insert_text: snippet,
-                label: name
-            }
+          | completion_item: %{completion_item | insert_text: snippet, label: name}
         }
       else
         completion

@@ -148,7 +148,7 @@ defmodule ElixirLS.LanguageServer.Parser do
         %Context{source_file: %SourceFile{version: old_version}} = old_file
         when current_version > old_version ->
           # replace updated file with new version
-          %Context{old_file | source_file: source_file}
+          %{old_file | source_file: source_file}
 
         %Context{} = old_file ->
           # ignore this request - this or newer version already in state
@@ -192,7 +192,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
             %Context{source_file: %SourceFile{version: old_version}} = old_file
             when old_version <= current_version ->
-              %Context{old_file | source_file: source_file}
+              %{old_file | source_file: source_file}
           end
 
         {pid, ref} =
