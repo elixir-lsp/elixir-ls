@@ -37,6 +37,7 @@ defmodule ElixirLS.LanguageServer.Server do
     Declaration,
     Implementation,
     References,
+    CallHierarchy,
     Formatting,
     SignatureHelp,
     DocumentSymbols,
@@ -1265,6 +1266,125 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
+         %GenLSP.Requests.TextDocumentPrepareCallHierarchy{
+           params: %GenLSP.Structures.CallHierarchyPrepareParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             position: %GenLSP.Structures.Position{
+               line: line,
+               character: character
+             }
+           }
+         },
+         state = %__MODULE__{}
+       ) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+
+      result =
+        CallHierarchy.prepare(
+          parser_context,
+          uri,
+          line,
+          character,
+          state.project_dir
+        )
+
+      {:ok, result}
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(
+         %GenLSP.Requests.CallHierarchyIncomingCalls{
+           params: %GenLSP.Structures.CallHierarchyIncomingCallsParams{
+             item: %GenLSP.Structures.CallHierarchyItem{
+               uri: uri,
+               name: name,
+               kind: kind,
+               range: %GenLSP.Structures.Range{
+                 start: %GenLSP.Structures.Position{
+                   line: line,
+                   character: character
+                 }
+               }
+             }
+           }
+         },
+         state = %__MODULE__{}
+       ) do
+    fun = fn ->
+      source_file = get_or_load_source_file(state, uri)
+
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+
+      result =
+        CallHierarchy.incoming_calls(
+          uri,
+          name,
+          kind,
+          line,
+          character,
+          state.project_dir,
+          source_file,
+          parser_context
+        )
+
+      {:ok, result}
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(
+         %GenLSP.Requests.CallHierarchyOutgoingCalls{
+           params: %GenLSP.Structures.CallHierarchyOutgoingCallsParams{
+             item: %GenLSP.Structures.CallHierarchyItem{
+               uri: uri,
+               name: name,
+               kind: kind,
+               range: %GenLSP.Structures.Range{
+                 start: %GenLSP.Structures.Position{
+                   line: line,
+                   character: character
+                 }
+               }
+             }
+           }
+         },
+         state = %__MODULE__{}
+       ) do
+    fun = fn ->
+      source_file = get_or_load_source_file(state, uri)
+
+      {line, character} = SourceFile.lsp_position_to_elixir(source_file.text, {line, character})
+      parser_context = Parser.parse_immediate(uri, source_file, {line, character})
+
+      result =
+        CallHierarchy.outgoing_calls(
+          uri,
+          name,
+          kind,
+          line,
+          character,
+          state.project_dir,
+          source_file,
+          parser_context
+        )
+
+      {:ok, result}
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(
          %GenLSP.Requests.TextDocumentHover{
            params: %GenLSP.Structures.HoverParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
@@ -1669,7 +1789,8 @@ defmodule ElixirLS.LanguageServer.Server do
         }
       },
       folding_range_provider: true,
-      code_action_provider: true
+      code_action_provider: true,
+      call_hierarchy_provider: true
     }
   end
 
@@ -2662,6 +2783,50 @@ defmodule ElixirLS.LanguageServer.Server do
 
       source_file ->
         source_file
+    end
+  end
+
+  defp get_or_load_source_file(state = %__MODULE__{}, uri) do
+    case state.source_files[uri] do
+      nil ->
+        # File is not open in the editor, try to load it from the filesystem
+        parsed_uri = URI.parse(uri)
+
+        if parsed_uri.scheme == "file" do
+          path = SourceFile.Path.from_uri(parsed_uri)
+
+          case File.read(path) do
+            {:ok, text} ->
+              # Create a temporary source file structure
+              %SourceFile{
+                text: text,
+                # Version is nil for files loaded from disk
+                version: nil,
+                # Try to detect language_id from file extension
+                language_id: detect_language_id(path)
+              }
+
+            {:error, reason} ->
+              Logger.warning("Failed to read file #{uri}: #{inspect(reason)}")
+              raise InvalidParamError, uri
+          end
+        else
+          # Non-file URI schemes are not supported for loading
+          raise InvalidParamError, uri
+        end
+
+      source_file ->
+        source_file
+    end
+  end
+
+  defp detect_language_id(path) do
+    case Path.extname(path) do
+      ".ex" -> "elixir"
+      ".exs" -> "elixir"
+      ".eex" -> "elixir"
+      ".heex" -> "elixir"
+      _ -> "elixir"
     end
   end
 
