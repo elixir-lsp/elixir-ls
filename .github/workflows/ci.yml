@@ -10,8 +10,8 @@ on:
 
 jobs:
   # Quick smoke test with latest versions
-  smoke_test:
-    name: Smoke test (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
+  smoke_test_language_server:
+    name: Smoke test language server (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -38,13 +38,53 @@ jobs:
           mix local.hex --force
           mix local.rebar --force
           mix deps.get --only test
-      - run: mix test
+      - run: |
+          cd apps/elixir_ls_utils
+          mix test
+      - run: |
+          cd apps/language_server
+          mix test
+
+  smoke_test_debug_adapter:
+    name: Smoke test debug adapter (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - elixir: 1.18.x
+            otp: 27.x
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build
+            deps
+          key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-
+      - name: Install Dependencies
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get --only test
+      - run: |
+          cd apps/elixir_ls_utils
+          mix test
+      - run: |
+          cd apps/debug_adapter
+          mix test
 
   # Core compatibility matrix - test minimum, LTS, and latest versions
   compatibility_test:
     name: Compatibility test (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}} | ${{matrix.os}})
     runs-on: ${{matrix.os}}
-    needs: smoke_test  # Only run if smoke test passes
+    needs: [smoke_test_language_server, smoke_test_debug_adapter]  # Only run if smoke test passes
     strategy:
       fail-fast: false
       matrix:
@@ -64,9 +104,10 @@ jobs:
             otp: 26.x
             os: windows-2022
           # Latest versions
-          - elixir: 1.18.x
-            otp: 27.x
-            os: ubuntu-22.04          
+          # covered by smoke_test
+          # - elixir: 1.18.x
+          #   otp: 27.x
+          #   os: ubuntu-22.04          
           - elixir: 1.18.x
             otp: 27.x
             os: windows-2022
@@ -102,12 +143,14 @@ jobs:
     name: Comprehensive test (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'comprehensive-tests')
+    needs: compatibility_test
     strategy:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.14.x
-            otp: 24.x
+          # covered by compatibility_test
+          # - elixir: 1.14.x
+          #   otp: 24.x
           - elixir: 1.14.x
             otp: 25.x
           - elixir: 1.14.x
@@ -122,8 +165,9 @@ jobs:
             otp: 24.x
           - elixir: 1.16.x
             otp: 25.x
-          - elixir: 1.16.x
-            otp: 26.x
+          # covered by compatibility_test
+          # - elixir: 1.16.x
+          #   otp: 26.x
           - elixir: 1.17.x
             otp: 25.x
           - elixir: 1.17.x
@@ -134,8 +178,9 @@ jobs:
             otp: 25.x
           - elixir: 1.18.x
             otp: 26.x
-          - elixir: 1.18.x
-            otp: 27.x
+          # covered by smoke_test
+          # - elixir: 1.18.x
+          #   otp: 27.x
     env:
       MIX_ENV: test
     steps:
