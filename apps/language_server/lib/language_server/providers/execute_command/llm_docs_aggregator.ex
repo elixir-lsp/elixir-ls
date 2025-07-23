@@ -171,7 +171,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         docs when is_list(docs) ->
           docs
           |> Enum.filter(fn
-            {{^function, arity}, _anno, kind, _signatures, _doc, _metadata}
+            {{^function, _arity}, _anno, kind, _signatures, _doc, _metadata}
             when kind in [:function, :macro] ->
               true
 
@@ -191,7 +191,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         specs when is_list(specs) ->
           specs
           |> Enum.filter(fn
-            {{^function, arity}, _} -> true
+            {{^function, _arity}, _} -> true
             _ -> false
           end)
           |> Enum.map(fn {{_name, arity}, _} -> arity end)
@@ -207,7 +207,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         docs when is_list(docs) ->
           docs
           |> Enum.filter(fn
-            {{^function, arity}, _, _, _, _} -> true
+            {{^function, _arity}, _, _, _, _} -> true
             _ -> false
           end)
           |> Enum.map(fn {{_name, arity}, _, _, _, _} -> arity end)
@@ -223,7 +223,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         types when is_list(types) ->
           types
           |> Enum.filter(fn
-            {kind, {^function, _, args}} when kind in [:type, :typep, :opaque] ->
+            {kind, {^function, _, _args}} when kind in [:type, :typep, :opaque] ->
               true
 
             _ ->
@@ -361,9 +361,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
             # Filter out module_info functions and other special functions
             functions =
               exports
-              |> Enum.filter(fn {name, arity} ->
-                name not in [:module_info, :__info__] and
-                  not String.starts_with?(Atom.to_string(name), "__")
+              |> Enum.filter(fn {name, _arity} ->
+                name not in [:module_info, :__info__, :behaviour_info] and
+                  not String.starts_with?(Atom.to_string(name), "_")
               end)
               |> Enum.map(fn {name, arity} ->
                 %{
@@ -394,7 +394,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           |> Enum.map(fn doc -> format_type_doc(module, doc) end)
           |> Enum.reject(&is_nil/1)
 
-        other ->
+        _other ->
           []
       end
 
@@ -684,7 +684,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       when kind in [:function, :macro] ->
         arity == nil or doc_arity == arity
 
-      _ = h ->
+      _ ->
         false
     end)
   end
@@ -806,40 +806,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     |> Enum.map(&inspect/1)
   rescue
     _ -> []
-  end
-
-  defp format_sections_as_list(sections) do
-    sections
-    |> Enum.flat_map(fn
-      %{type: "moduledoc", content: _content} ->
-        # Moduledoc is handled separately, not included in functions list
-        []
-
-      {:functions, functions} ->
-        Enum.map(functions, fn f ->
-          "#{f.function}/#{f.arity}"
-        end)
-
-      {:macros, macros} ->
-        Enum.map(macros, fn f ->
-          "#{f.function}/#{f.arity}"
-        end)
-
-      {:types, types} ->
-        Enum.map(types, fn f ->
-          "#{f.type}/#{f.arity}"
-        end)
-
-      {:callbacks, callbacks} ->
-        Enum.map(callbacks, fn f ->
-          "#{f.callback}/#{f.arity}"
-        end)
-
-      {:behaviours, behaviours} ->
-        Enum.map(behaviours, fn f ->
-          inspect(f.behaviour)
-        end)
-    end)
   end
 
   defp extract_doc(%{"en" => doc}) when is_binary(doc), do: doc

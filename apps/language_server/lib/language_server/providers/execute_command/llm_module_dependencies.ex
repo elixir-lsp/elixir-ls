@@ -281,7 +281,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
     # Get all calls from this module
     calls =
       Tracer.get_trace()
-      |> Enum.filter(fn {{callee_module, _, _}, call_infos} ->
+      |> Enum.filter(fn {{callee_module, _, _}, _call_infos} ->
         # Check if the call is to our module
         callee_module == module
       end)

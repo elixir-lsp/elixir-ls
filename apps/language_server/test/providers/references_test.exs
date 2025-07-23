@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    list = References.references(parser_context, uri, line, char, true, File.cwd!())
+    list = References.references(parser_context, uri, line, char, false, File.cwd!())
 
     assert length(list) == 3
     assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_remote.ex")))
@@ -78,7 +78,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    list = References.references(parser_context, uri, line, char, true, File.cwd!())
+    list = References.references(parser_context, uri, line, char, false, File.cwd!())
 
     assert length(list) == 3
     assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_remote.ex")))
@@ -100,7 +100,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
+    assert References.references(parser_context, uri, line, char, false, File.cwd!()) == [
              %GenLSP.Structures.Location{
                range: range(6, 4, 6, 16),
                uri: uri
@@ -122,7 +122,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    assert References.references(parser_context, uri, line, char, true, File.cwd!()) == [
+    assert References.references(parser_context, uri, line, char, false, File.cwd!()) == [
              %GenLSP.Structures.Location{
                range: range(10, 4, 10, 22),
                uri: uri
@@ -219,7 +219,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    list = References.references(parser_context, uri, line, char, true, File.cwd!())
+    list = References.references(parser_context, uri, line, char, false, File.cwd!())
 
     assert length(list) == 2
     assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_erlang.ex")))
@@ -241,7 +241,7 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
     {line, char} =
       SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
 
-    list = References.references(parser_context, uri, line, char, true, File.cwd!())
+    list = References.references(parser_context, uri, line, char, false, File.cwd!())
 
     assert length(list) == 2
     assert Enum.any?(list, &(&1.uri |> String.ends_with?("references_erlang.ex")))

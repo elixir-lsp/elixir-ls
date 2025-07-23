@@ -1795,7 +1795,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       Server.receive_packet(
         server,
-        references_req(4, file_uri, 1, 8, true)
+        references_req(4, file_uri, 1, 8, false)
       )
 
       resp = assert_receive(%{"id" => 4}, 5000)
@@ -1829,7 +1829,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       Server.receive_packet(
         server,
-        references_req(4, file_uri, 1, 9, true)
+        references_req(4, file_uri, 1, 9, false)
       )
 
       resp = assert_receive(%{"id" => 4}, 5000)

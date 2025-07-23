@@ -374,14 +374,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
     |> Enum.sort_by(& &1.name)
   end
 
-  defp format_types(types) do
-    types
-    |> Enum.map(fn {{module, name, arity}, _info} ->
-      "#{inspect(module)}.#{name}/#{arity}"
-    end)
-    |> Enum.sort()
-  end
-
   defp extract_modules_from_metadata(metadata = %ElixirSense.Core.Metadata{}) do
     metadata.mods_funs_to_positions
     |> Map.keys()
@@ -411,7 +403,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
 
   defp format_callbacks_from_metadata(metadata) do
     metadata.specs
-    |> Enum.filter(fn {{_mod, fun, _}, %State.SpecInfo{} = info} ->
+    |> Enum.filter(fn {{_mod, _fun, _}, %State.SpecInfo{} = info} ->
       info.kind in [:callback, :macrocallback]
     end)
     |> Enum.map(fn {{mod, fun, arity}, _info} -> {mod, fun, arity} end)

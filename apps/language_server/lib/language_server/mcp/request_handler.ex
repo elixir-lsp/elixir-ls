@@ -616,31 +616,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     end
   end
 
-  defp format_function_doc(func) when is_binary(func) do
-    "- #{func}"
-  end
-
-  defp format_function_doc(func) when is_map(func) do
-    parts = ["### #{func.function}/#{func.arity}"]
-
-    parts =
-      if func[:specs] && length(func.specs) > 0 do
-        specs = Enum.join(func.specs, "\n")
-        parts ++ ["\n```elixir\n#{specs}\n```"]
-      else
-        parts
-      end
-
-    parts =
-      if func[:doc] do
-        parts ++ ["\n#{func.doc}"]
-      else
-        parts
-      end
-
-    Enum.join(parts, "\n")
-  end
-
   defp format_type_info_result(%{error: error}) do
     "Error: #{error}"
   end
@@ -994,10 +969,13 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     parts = ["# Environment Information"]
 
     # Location
-    if result[:location] do
-      location = result.location
-      parts = parts ++ ["\n**Location**: #{location.uri}:#{location.line}:#{location.column}"]
-    end
+    parts =
+      if result[:location] do
+        location = result.location
+        parts ++ ["\n**Location**: #{location.uri}:#{location.line}:#{location.column}"]
+      else
+        parts
+      end
 
     # Context
     parts =
