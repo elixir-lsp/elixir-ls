@@ -330,6 +330,90 @@ Remote debugger has several limitations compared to local debugger:
 
 ElixirLS debug adapter interprets modules with [`:int.ni/1`](https://www.erlang.org/doc/apps/debugger/int.html#ni/1) on all connected nodes. It attempts to uninterpret all modules on debug session end but that may not be possible due to loss of connectivity. This may affect production workloads. Use remote debugging with caution.
 
+## MCP (Model Context Protocol) Server
+
+ElixirLS includes a built-in MCP server that enables Large Language Models (LLMs) like Claude to interact with Elixir codebases through a standardized protocol. The MCP server provides tools for code intelligence, documentation retrieval, dependency analysis, and more.
+
+### Overview
+
+The MCP server exposes several tools that allow LLMs to:
+
+- **Find definitions**: Locate and retrieve source code for modules, functions, types, and macros
+- **Get environment info**: Analyze code context including aliases, imports, variables in scope, and module attributes
+- **Retrieve documentation**: Access comprehensive documentation for modules, functions, types, and callbacks
+- **Analyze dependencies**: Examine module dependency relationships and impact analysis
+- **Find implementations**: Discover concrete implementations of behaviours, protocols, and callbacks
+- **Get type information**: Extract type definitions, specs, and Dialyzer contracts
+
+### Available MCP Tools
+
+#### `find_definition`
+Find and retrieve the source code definition of Elixir/Erlang symbols including modules, functions, types, and macros. Returns the actual source code with file location.
+
+**Parameters:**
+- `symbol`: The symbol to find (e.g., `MyModule`, `MyModule.function/2`, `:gen_server`, `String.split/2`)
+
+#### `get_environment` 
+Get comprehensive environment information at a specific code location including current module/function context, available aliases, imports, requires, variables in scope with types, module attributes, implemented behaviours, and definitions in the file.
+
+**Parameters:**
+- `location`: Location in the code to analyze (e.g., `file.ex:line:column`, `lib/my_module.ex:25:10`)
+
+#### `get_docs`
+Aggregate and return comprehensive documentation for multiple Elixir modules, functions, types, callbacks, or attributes in a single request.
+
+**Parameters:**
+- `modules`: Array of symbols to get documentation for (e.g., `["Enum", "String.split/2", "GenServer.handle_call"]`)
+
+#### `get_type_info`
+Extract comprehensive type information from Elixir modules including @type definitions, @spec annotations, @callback specifications, and Dialyzer inferred contracts.
+
+**Parameters:**
+- `module`: The module name to analyze (e.g., `GenServer`, `MyApp.MyModule`, `:gen_server`)
+
+#### `find_implementations`
+Find all implementations of Elixir behaviours, protocols, callbacks, and delegated functions across the codebase.
+
+**Parameters:**
+- `symbol`: The symbol to find implementations for (e.g., `GenServer`, `Enumerable`, `GenServer.handle_call`)
+
+#### `get_module_dependencies`
+Analyze comprehensive module dependency relationships including direct/reverse dependencies, transitive dependencies, compile-time vs runtime dependencies, imports, aliases, requires, function calls, and struct expansions.
+
+**Parameters:**
+- `module`: The module name to analyze dependencies for (e.g., `MyApp.MyModule`, `GenServer`, `:gen_server`)
+
+### Setup and Configuration
+
+#### TCP-to-STDIO Bridge
+
+ElixirLS includes a TCP-to-STDIO bridge script located at `scripts/tcp_to_stdio_bridge.exs`. This bridge enables LLMs like Claude to communicate with the ElixirLS MCP server by converting between STDIO (used by LLMs) and TCP (used by the MCP server).
+
+The bridge:
+- Connects to the ElixirLS MCP server running on TCP port 3798
+- Forwards messages bidirectionally between STDIO and TCP
+- Uses binary mode with latin1 encoding for proper communication
+- Handles connection lifecycle and error conditions
+
+#### MCP Configuration Example
+
+To use ElixirLS with Claude Code or other MCP-compatible tools, create an `mcp.json` configuration file:
+
+```json
+{
+  "mcpServers": {
+    "elixir-ls-bridge": {
+      "command": "elixir",
+      "args": [
+        "/absolute/path/to/elixir-ls/scripts/tcp_to_stdio_bridge.exs"
+      ]
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/elixir-ls/` with the actual path to your ElixirLS installation.
+
 ## Automatic builds and error reporting
 
 ElixirLS provides automatic builds and error reporting. By default, builds are triggered automatically when files are saved, but you can also enable "autosave" in your IDE to trigger builds as you type. If you prefer to disable automatic builds, you can set the `elixirLS.autoBuild` configuration option to `false`.
