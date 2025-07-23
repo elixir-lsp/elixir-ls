@@ -9,37 +9,42 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    name: Create draft release
+  # Validate that the tag matches VERSION file
+  validate:
+    name: Validate release
     runs-on: ubuntu-22.04
-    outputs:
-      upload_url: ${{steps.create_release.outputs.upload_url}}
-
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: true
-          prerelease: ${{ contains(github.ref, '-rc.') }}
-
-  build:
-    name: Build and publish release asset
-    runs-on: ubuntu-22.04
-    needs: release
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate version
+      - name: Validate version consistency
         run: |
-          VERSION="$(cat ./VERSION)"
-          if [[ "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
-              echo "VERSION $VERSION does not match commit tag $GITHUB_REF_NAME"
+          VERSION="$(cat ./VERSION | tr -d '[:space:]')"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "$VERSION" != "$TAG_VERSION" ]]; then
+              echo "❌ VERSION file ($VERSION) does not match tag ($TAG_VERSION)"
               exit 1
+          fi
+          echo "✅ Version validation passed: $VERSION"
+
+  # Build the release artifacts
+  build:
+    name: Build release artifacts
+    runs-on: ubuntu-22.04
+    needs: validate
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Extract version info
+        id: version
+        run: |
+          VERSION="$(cat ./VERSION | tr -d '[:space:]')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if [[ "$VERSION" == *"-rc."* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up BEAM
@@ -47,6 +52,16 @@ jobs:
         with:
           elixir-version: 1.18.x
           otp-version: 27.x
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build
+            deps
+          key: release-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            release-
 
       - name: Install dependencies
         run: mix deps.get
@@ -56,12 +71,83 @@ jobs:
           mix elixir_ls.release2 -o ./release
           zip -jr elixir-ls.zip ./release
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: elixir-ls-${{ steps.version.outputs.version }}
+          path: elixir-ls.zip
+          retention-days: 30
+
+  # Create GitHub release
+  release:
+    name: Create GitHub release
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for changelog generation
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: elixir-ls-${{ needs.build.outputs.version }}
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION="${{ needs.build.outputs.version }}"
+          
+          # Extract changelog section for this version
+          if grep -q "### v$VERSION:" CHANGELOG.md; then
+            # Get the section for this version
+            CHANGELOG_SECTION=$(awk "/### v$VERSION:/,/### v[0-9]/{if(/### v[0-9]/ && !/### v$VERSION:/) exit; print}" CHANGELOG.md | head -n -1)
+            
+            # Remove the version header line and clean up
+            CHANGELOG_CONTENT=$(echo "$CHANGELOG_SECTION" | tail -n +2 | sed '/^$/N;/^\n$/d')
+            
+            # Save to file and output
+            echo "$CHANGELOG_CONTENT" > release_notes.md
+            echo "changelog_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changelog found for version $VERSION" > release_notes.md
+            echo "changelog_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: elixir-ls.zip
+          body_path: release_notes.md
+          draft: true
+          prerelease: ${{ needs.build.outputs.is_prerelease == 'true' }}
+          name: "ElixirLS ${{ needs.build.outputs.version }}"
+          tag_name: "v${{ needs.build.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Run final validation tests on the release
+  test_release:
+    name: Test release artifact
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ./elixir-ls.zip
-          asset_name: elixir-ls-${{ github.ref_name }}.zip
-          asset_content_type: application/zip
+          name: elixir-ls-${{ needs.build.outputs.version }}
+
+      - name: Test release artifact
+        run: |
+          # Basic smoke test - extract and verify structure
+          unzip -q elixir-ls.zip
+          
+          # Check that essential files exist
+          test -f language_server.sh || exit 1
+          test -f debug_adapter.sh || exit 1
+          
+          # Check that the scripts are executable
+          test -x language_server.sh || exit 1
+          test -x debug_adapter.sh || exit 1
+          
+          echo "✅ Release artifact validation passed"
