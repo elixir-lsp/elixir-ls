@@ -199,43 +199,44 @@ defmodule ElixirLS.LanguageServer.Tracer do
     :ok
   end
 
-  def trace({kind, meta, module, name, arity}, %Macro.Env{} = env)
+  def trace({kind, meta, module, name, arity} = event, %Macro.Env{} = env)
       when kind in [:imported_function, :imported_macro, :remote_function, :remote_macro] do
-    register_call(meta, module, name, arity, kind, env)
+    register_call(meta, module, name, arity, kind, event, env)
   end
 
-  def trace({:imported_quoted, meta, module, name, arities}, env) do
+  def trace({:imported_quoted, meta, module, name, arities} = event, %Macro.Env{} = env) do
     for arity <- arities do
-      register_call(meta, module, name, arity, :imported_quoted, env)
+      register_call(meta, module, name, arity, :imported_quoted, event, env)
     end
 
     :ok
   end
 
-  def trace({kind, meta, name, arity}, %Macro.Env{} = env)
+  def trace({kind, meta, name, arity} = event, %Macro.Env{} = env)
       when kind in [:local_function, :local_macro] do
-    register_call(meta, env.module, name, arity, kind, env)
+    register_call(meta, env.module, name, arity, kind, event, env)
   end
 
-  def trace({:alias_reference, meta, module}, %Macro.Env{} = env) do
-    register_call(meta, module, nil, nil, :alias_reference, env)
+  def trace({:alias_reference, meta, module} = event, %Macro.Env{} = env) do
+    register_call(meta, module, nil, nil, :alias_reference, event, env)
   end
 
-  def trace({:alias, meta, module, _as, _opts}, %Macro.Env{} = env) do
-    register_call(meta, module, nil, nil, :alias, env)
+  def trace({:alias, meta, module, _as, _opts} = event, %Macro.Env{} = env) do
+    register_call(meta, module, nil, nil, :alias, event, env)
   end
 
-  def trace({kind, meta, module, _opts}, %Macro.Env{} = env) when kind in [:import, :require] do
-    register_call(meta, module, nil, nil, kind, env)
+  def trace({kind, meta, module, _opts} = event, %Macro.Env{} = env)
+      when kind in [:import, :require] do
+    register_call(meta, module, nil, nil, kind, event, env)
   end
 
-  def trace({:struct_expansion, meta, name, _assocs}, %Macro.Env{} = env) do
-    register_call(meta, name, nil, nil, :struct_expansion, env)
+  def trace({:struct_expansion, meta, name, _assocs} = event, %Macro.Env{} = env) do
+    register_call(meta, name, nil, nil, :struct_expansion, event, env)
   end
 
-  def trace({:alias_expansion, meta, as, alias}, %Macro.Env{} = env) do
-    register_call(meta, as, nil, nil, :alias_expansion_as, env)
-    register_call(meta, alias, nil, nil, :alias_expansion, env)
+  def trace({:alias_expansion, meta, as, alias} = event, %Macro.Env{} = env) do
+    register_call(meta, as, nil, nil, :alias_expansion_as, event, env)
+    register_call(meta, alias, nil, nil, :alias_expansion, event, env)
   end
 
   def trace(_trace, _env) do
@@ -283,27 +284,74 @@ defmodule ElixirLS.LanguageServer.Tracer do
     }
   end
 
-  defp register_call(meta, module, name, arity, kind, env) do
+  defp register_call(meta, module, name, arity, kind, event, env) do
     if in_project_sources?(env.file) do
-      do_register_call(meta, module, name, arity, kind, env)
+      do_register_call(meta, module, name, arity, kind, event, env)
     end
 
     :ok
   end
 
-  defp do_register_call(meta, module, name, arity, kind, env) do
+  defp do_register_call(meta, module, name, arity, kind, event, env) do
     callee = {module, name, arity}
 
     line = meta[:line]
     column = meta[:column]
+
+    # Determine reference type based on kind (similar to Mix.Tasks.Xref)
+    reference_type = determine_reference_type(event, env)
+
+    # Store call info with reference type
+    call_info = %{
+      kind: kind,
+      reference_type: reference_type,
+      caller_module: env.module,
+      caller_function: env.function
+    }
 
     # TODO meta can have last or maybe other?
     # last
     # end_of_expression
     # closing
 
-    :ets.insert(table_name(:calls), {{callee, env.file, line, column}, kind})
+    :ets.insert(table_name(:calls), {{callee, env.file, line, column}, call_info})
   end
+
+  # Determine reference type based on trace kind (following Mix.Tasks.Xref logic)
+  def determine_reference_type({:alias_reference, _meta, module}, %Macro.Env{} = env)
+      when env.module != module do
+    case env do
+      %Macro.Env{function: nil} -> :compile
+      %Macro.Env{context: nil} -> :runtime
+      %Macro.Env{} -> nil
+    end
+  end
+
+  def determine_reference_type({:require, meta, _module, _opts}, _env),
+    do: require_mode(meta)
+
+  def determine_reference_type({:struct_expansion, _meta, _module, _keys}, _env),
+    do: :export
+
+  def determine_reference_type({:remote_function, _meta, _module, _function, _arity}, env),
+    do: mode(env)
+
+  def determine_reference_type({:remote_macro, _meta, _module, _function, _arity}, _env),
+    do: :compile
+
+  def determine_reference_type({:imported_function, _meta, _module, _function, _arity}, env),
+    do: mode(env)
+
+  def determine_reference_type({:imported_macro, _meta, _module, _function, _arity}, _env),
+    do: :compile
+
+  def determine_reference_type(_event, _env),
+    do: nil
+
+  defp require_mode(meta), do: if(meta[:from_macro], do: :compile, else: :export)
+
+  defp mode(%Macro.Env{function: nil}), do: :compile
+  defp mode(_), do: :runtime
 
   def get_trace do
     # TODO get by callee
@@ -312,14 +360,19 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
     try do
       :ets.tab2list(table)
-      |> Enum.map(fn {{callee, file, line, column}, kind} ->
-        %{
-          callee: callee,
-          file: file,
-          line: line,
-          column: column,
-          kind: kind
-        }
+      |> Enum.map(fn
+        # Handle new format with call_info map
+        {{callee, file, line, column}, %{} = call_info} ->
+          %{
+            callee: callee,
+            file: file,
+            line: line,
+            column: column,
+            kind: call_info.kind,
+            reference_type: call_info.reference_type,
+            caller_module: call_info.caller_module,
+            caller_function: call_info.caller_function
+          }
       end)
       |> Enum.group_by(fn %{callee: callee} -> callee end)
     after
