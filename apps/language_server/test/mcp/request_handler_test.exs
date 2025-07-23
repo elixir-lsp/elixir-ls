@@ -98,11 +98,12 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
         assert is_list(response["result"]["content"])
         content = hd(response["result"]["content"])
         assert content["type"] == "text"
-        
+
         # Should either contain environment information or an error message
         # Since the test file doesn't exist, it should return a file not found error
-        assert content["text"] =~ "Environment Information" or content["text"] =~ "Error: File not found"
-        
+        assert content["text"] =~ "Environment Information" or
+                 content["text"] =~ "Error: File not found"
+
         # Should not contain the old placeholder message
         refute content["text"] =~ "placeholder response"
         refute content["text"] =~ "MCP server cannot directly access"

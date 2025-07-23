@@ -80,13 +80,15 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
         "tools" => [
           %{
             "name" => "find_definition",
-            "description" => "Find and retrieve the source code definition of Elixir/Erlang symbols including modules, functions, types, and macros. Returns the actual source code with file location.",
+            "description" =>
+              "Find and retrieve the source code definition of Elixir/Erlang symbols including modules, functions, types, and macros. Returns the actual source code with file location.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "symbol" => %{
                   "type" => "string",
-                  "description" => "The symbol to find. Supports: modules ('MyModule'), functions ('MyModule.function', 'MyModule.function/2'), Erlang modules (':gen_server'), Erlang functions (':lists.map/2'), local functions ('function_name/1'). Use qualified names for better results."
+                  "description" =>
+                    "The symbol to find. Supports: modules ('MyModule'), functions ('MyModule.function', 'MyModule.function/2'), Erlang modules (':gen_server'), Erlang functions (':lists.map/2'), local functions ('function_name/1'). Use qualified names for better results."
                 }
               },
               "required" => ["symbol"]
@@ -94,13 +96,15 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           },
           %{
             "name" => "get_environment",
-            "description" => "Get comprehensive environment information at a specific code location including current module/function context, available aliases, imports, requires, variables in scope with types, module attributes, implemented behaviours, and definitions in the file.",
+            "description" =>
+              "Get comprehensive environment information at a specific code location including current module/function context, available aliases, imports, requires, variables in scope with types, module attributes, implemented behaviours, and definitions in the file.",
             "inputSchema" => %{
               "type" => "object",
               "properties" => %{
                 "location" => %{
                   "type" => "string",
-                  "description" => "Location in the code to analyze. Formats supported: 'file.ex:line:column', 'file.ex:line', 'lib/my_module.ex:25:10', 'file:///absolute/path/file.ex:10:5'. Use specific line/column for better context analysis."
+                  "description" =>
+                    "Location in the code to analyze. Formats supported: 'file.ex:line:column', 'file.ex:line', 'lib/my_module.ex:25:10'. Use workspace-relative paths (e.g., 'lib/my_module.ex:25:10') for best results. Absolute paths are supported but workspace-relative paths are preferred."
                 }
               },
               "required" => ["location"]
@@ -115,7 +119,8 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
               "properties" => %{
                 "modules" => %{
                   "type" => "array",
-                  "description" => "List of symbols to get documentation for. Supports: modules ('Enum', 'GenServer'), functions ('String.split/2', 'Enum.map'), types ('Enum.t/0'), callbacks ('GenServer.handle_call'), attributes ('@moduledoc'). Mix module and specific symbol requests for comprehensive coverage.",
+                  "description" =>
+                    "List of symbols to get documentation for. Supports: modules ('Enum', 'GenServer'), functions ('String.split/2', 'Enum.map'), types ('Enum.t/0'), callbacks ('GenServer.handle_call'), attributes ('@moduledoc'). Mix module and specific symbol requests for comprehensive coverage.",
                   "items" => %{
                     "type" => "string"
                   }
@@ -133,7 +138,8 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
               "properties" => %{
                 "module" => %{
                   "type" => "string",
-                  "description" => "The module name to analyze. Supports Elixir modules ('GenServer', 'MyApp.MyModule') and Erlang modules (':gen_server'). Returns detailed type specifications, function signatures, and callback definitions."
+                  "description" =>
+                    "The module name to analyze. Supports Elixir modules ('GenServer', 'MyApp.MyModule') and Erlang modules (':gen_server'). Returns detailed type specifications, function signatures, and callback definitions."
                 }
               },
               "required" => ["module"]
@@ -148,7 +154,8 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
               "properties" => %{
                 "symbol" => %{
                   "type" => "string",
-                  "description" => "The symbol to find implementations for. Supports: behaviours ('GenServer', 'Application'), protocols ('Enumerable', 'Inspect'), callbacks ('GenServer.handle_call', 'Application.start'), functions with @impl annotations. Returns file locations and implementation details."
+                  "description" =>
+                    "The symbol to find implementations for. Supports: behaviours ('GenServer', 'Application'), protocols ('Enumerable', 'Inspect'), callbacks ('GenServer.handle_call', 'Application.start'), functions with @impl annotations. Returns file locations and implementation details."
                 }
               },
               "required" => ["symbol"]
@@ -163,7 +170,8 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
               "properties" => %{
                 "module" => %{
                   "type" => "string",
-                  "description" => "The module name to analyze dependencies for. Supports Elixir modules ('MyApp.MyModule', 'GenServer') and Erlang modules (':gen_server'). Returns detailed dependency breakdown with categorization by dependency type and relationship direction."
+                  "description" =>
+                    "The module name to analyze dependencies for. Supports Elixir modules ('MyApp.MyModule', 'GenServer') and Erlang modules (':gen_server'). Returns detailed dependency breakdown with categorization by dependency type and relationship direction."
                 }
               },
               "required" => ["module"]
@@ -248,7 +256,10 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
   end
 
   defp handle_get_environment(location, id) do
-    case LlmEnvironment.execute([location], %{source_files: %{}}) do
+    # Try to load the file if it's not in the workspace state
+    state = load_source_file_for_location(location)
+
+    case LlmEnvironment.execute([location], state) do
       {:ok, result} ->
         text = format_environment_result(result)
 
@@ -425,6 +436,87 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     nil
   end
 
+  # Helper function to load source file for MCP operations
+  defp load_source_file_for_location(location) do
+    try do
+      # Parse the location to extract the file URI
+      case parse_location_for_uri(location) do
+        {:ok, uri} ->
+          # Try to load the file content
+          case load_file_content(uri) do
+            {:ok, content} ->
+              # Create a SourceFile struct
+              source_file = %ElixirLS.LanguageServer.SourceFile{
+                text: content,
+                version: 1,
+                language_id: "elixir",
+                dirty?: false
+              }
+
+              # Create a minimal server state with the required fields
+              %ElixirLS.LanguageServer.Server{
+                source_files: %{uri => source_file},
+                project_dir: File.cwd!(),
+                root_uri: ElixirLS.LanguageServer.SourceFile.Path.to_uri(File.cwd!()),
+                settings: %{},
+                server_instance_id: "mcp",
+                analysis_ready?: true
+              }
+
+            {:error, _reason} ->
+              %ElixirLS.LanguageServer.Server{source_files: %{}}
+          end
+
+        {:error, _reason} ->
+          %ElixirLS.LanguageServer.Server{source_files: %{}}
+      end
+    rescue
+      _ ->
+        %ElixirLS.LanguageServer.Server{source_files: %{}}
+    end
+  end
+
+  # Parse location string to extract URI
+  defp parse_location_for_uri(location) do
+    cond do
+      # URI format
+      String.match?(location, ~r/^file:\/\/.*:\d+/) ->
+        parts = String.split(location, ":")
+        uri = Enum.slice(parts, 0..-2//1) |> Enum.join(":")
+        {:ok, uri}
+
+      # Path format - convert to URI
+      String.match?(location, ~r/^.*\.exs?:\d+/) ->
+        parts = String.split(location, ":")
+        path = Enum.slice(parts, 0..-2//1) |> Enum.join(":")
+        uri = ElixirLS.LanguageServer.SourceFile.Path.to_uri(path)
+        {:ok, uri}
+
+      true ->
+        {:error, "Invalid location format"}
+    end
+  end
+
+  # Load file content from disk
+  defp load_file_content(uri) do
+    try do
+      # Convert URI to local file path
+      path = ElixirLS.LanguageServer.SourceFile.Path.from_uri(uri)
+
+      # Check if file exists and read it
+      if File.exists?(path) do
+        case File.read(path) do
+          {:ok, content} -> {:ok, content}
+          {:error, reason} -> {:error, reason}
+        end
+      else
+        {:error, :enoent}
+      end
+    rescue
+      _ -> {:error, :invalid_path}
+    end
+  end
+
   # Formatting functions
 
   defp format_docs_result(%{error: error}) do
@@ -455,27 +547,29 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
         # Add various sections if they exist
         sections = [
           {:functions, "Functions"},
-          {:macros, "Macros"}, 
+          {:macros, "Macros"},
           {:types, "Types"},
           {:callbacks, "Callbacks"},
           {:macrocallbacks, "Macro Callbacks"},
           {:behaviours, "Behaviours"}
         ]
 
-        parts = Enum.reduce(sections, parts, fn {key, title}, acc ->
-          if result[key] && length(result[key]) > 0 do
-            items = Enum.map(result[key], &"- #{&1}")
-            acc ++ ["\n## #{title}\n"] ++ items
-          else
-            acc
-          end
-        end)
+        parts =
+          Enum.reduce(sections, parts, fn {key, title}, acc ->
+            if result[key] && length(result[key]) > 0 do
+              items = Enum.map(result[key], &"- #{&1}")
+              acc ++ ["\n## #{title}\n"] ++ items
+            else
+              acc
+            end
+          end)
 
         Enum.join(parts, "\n")
 
       # Function documentation
       %{function: function, module: module, arity: arity, documentation: doc} ->
         title = "# Function: #{module}.#{function}/#{arity}"
+
         if doc && doc != "" do
           "#{title}\n\n#{doc}"
         else
@@ -485,6 +579,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
       # Callback documentation
       %{callback: callback, module: module, arity: arity, documentation: doc} ->
         title = "# Callback: #{module}.#{callback}/#{arity}"
+
         if doc && doc != "" do
           "#{title}\n\n#{doc}"
         else
@@ -494,6 +589,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
       # Type documentation
       %{type: type, module: module, arity: arity, documentation: doc} ->
         title = "# Type: #{module}.#{type}/#{arity}"
+
         if doc && doc != "" do
           "#{title}\n\n#{doc}"
         else
@@ -503,6 +599,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
       # Attribute documentation
       %{attribute: attribute, documentation: doc} ->
         title = "# Attribute: #{attribute}"
+
         if doc && doc != "" do
           "#{title}\n\n#{doc}"
         else
@@ -903,105 +1000,164 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     end
 
     # Context
-    if result[:context] do
-      context = result.context
-      context_parts = ["\n## Context"]
+    parts =
+      if result[:context] do
+        context = result.context
+        context_parts = ["\n## Context"]
 
-      if context[:module] do
-        context_parts = context_parts ++ ["**Module**: #{inspect(context.module)}"]
+        context_parts =
+          if context[:module] do
+            context_parts ++ ["**Module**: #{inspect(context.module)}"]
+          else
+            context_parts
+          end
+
+        context_parts =
+          if context[:function] do
+            context_parts ++ ["**Function**: #{context.function}"]
+          else
+            context_parts
+          end
+
+        context_parts =
+          if context[:context_type] do
+            context_parts ++ ["**Context Type**: #{context.context_type}"]
+          else
+            context_parts
+          end
+
+        parts ++ context_parts
+      else
+        parts
       end
-
-      if context[:function] do
-        context_parts = context_parts ++ ["**Function**: #{context.function}"]
-      end
-
-      if context[:context_type] do
-        context_parts = context_parts ++ ["**Context Type**: #{context.context_type}"]
-      end
-
-      parts = parts ++ context_parts
-    end
 
     # Aliases
-    if result[:aliases] && !Enum.empty?(result.aliases) do
-      alias_lines = Enum.map(result.aliases, fn alias_info ->
-        "- #{alias_info.alias} → #{alias_info.module}"
-      end)
-      parts = parts ++ ["\n## Aliases"] ++ alias_lines
-    end
+    parts =
+      if result[:aliases] && !Enum.empty?(result.aliases) do
+        alias_lines =
+          Enum.map(result.aliases, fn alias_info ->
+            "- #{alias_info.alias} → #{alias_info.module}"
+          end)
+
+        parts ++ ["\n## Aliases"] ++ alias_lines
+      else
+        parts
+      end
 
     # Imports
-    if result[:imports] && !Enum.empty?(result.imports) do
-      import_lines = Enum.map(result.imports, fn import_info ->
-        "- #{import_info.module}.#{import_info.function}"
-      end)
-      parts = parts ++ ["\n## Imports"] ++ import_lines
-    end
+    parts =
+      if result[:imports] && !Enum.empty?(result.imports) do
+        import_lines =
+          Enum.map(result.imports, fn import_info ->
+            "- #{import_info.module}.#{import_info.function}"
+          end)
+
+        parts ++ ["\n## Imports"] ++ import_lines
+      else
+        parts
+      end
 
     # Requires
-    if result[:requires] && !Enum.empty?(result.requires) do
-      require_lines = Enum.map(result.requires, fn mod ->
-        "- #{inspect(mod)}"
-      end)
-      parts = parts ++ ["\n## Requires"] ++ require_lines
-    end
+    parts =
+      if result[:requires] && !Enum.empty?(result.requires) do
+        require_lines =
+          Enum.map(result.requires, fn mod ->
+            "- #{inspect(mod)}"
+          end)
+
+        parts ++ ["\n## Requires"] ++ require_lines
+      else
+        parts
+      end
 
     # Variables
-    if result[:variables] && !Enum.empty?(result.variables) do
-      var_lines = Enum.map(result.variables, fn var ->
-        type_str = format_variable_type_for_display(var.type)
-        "- #{var.name} (#{type_str})"
-      end)
-      parts = parts ++ ["\n## Variables in Scope"] ++ var_lines
-    end
+    parts =
+      if result[:variables] && !Enum.empty?(result.variables) do
+        var_lines =
+          Enum.map(result.variables, fn var ->
+            type_str = format_variable_type_for_display(var.type)
+            "- #{var.name} (#{type_str})"
+          end)
+
+        parts ++ ["\n## Variables in Scope"] ++ var_lines
+      else
+        parts
+      end
 
     # Attributes
-    if result[:attributes] && !Enum.empty?(result.attributes) do
-      attr_lines = Enum.map(result.attributes, fn attr ->
-        type_str = format_variable_type_for_display(attr.type)
-        "- @#{attr.name} (#{type_str})"
-      end)
-      parts = parts ++ ["\n## Module Attributes"] ++ attr_lines
-    end
+    parts =
+      if result[:attributes] && !Enum.empty?(result.attributes) do
+        attr_lines =
+          Enum.map(result.attributes, fn attr ->
+            type_str = format_variable_type_for_display(attr.type)
+            "- @#{attr.name} (#{type_str})"
+          end)
+
+        parts ++ ["\n## Module Attributes"] ++ attr_lines
+      else
+        parts
+      end
 
     # Behaviours
-    if result[:behaviours_implemented] && !Enum.empty?(result.behaviours_implemented) do
-      behaviour_lines = Enum.map(result.behaviours_implemented, fn behaviour ->
-        "- #{inspect(behaviour)}"
-      end)
-      parts = parts ++ ["\n## Behaviours Implemented"] ++ behaviour_lines
-    end
+    parts =
+      if result[:behaviours_implemented] && !Enum.empty?(result.behaviours_implemented) do
+        behaviour_lines =
+          Enum.map(result.behaviours_implemented, fn behaviour ->
+            "- #{inspect(behaviour)}"
+          end)
+
+        parts ++ ["\n## Behaviours Implemented"] ++ behaviour_lines
+      else
+        parts
+      end
 
     # Definitions in this file
-    if result[:definitions] do
-      defs = result.definitions
+    parts =
+      if result[:definitions] do
+        defs = result.definitions
 
-      if defs[:modules_defined] && !Enum.empty?(defs.modules_defined) do
-        mod_lines = Enum.map(defs.modules_defined, &"- #{inspect(&1)}")
-        parts = parts ++ ["\n## Modules Defined"] ++ mod_lines
-      end
+        parts =
+          if defs[:modules_defined] && !Enum.empty?(defs.modules_defined) do
+            mod_lines = Enum.map(defs.modules_defined, &"- #{inspect(&1)}")
+            parts ++ ["\n## Modules Defined"] ++ mod_lines
+          else
+            parts
+          end
 
-      if defs[:functions_defined] && !Enum.empty?(defs.functions_defined) do
-        fun_lines = Enum.map(defs.functions_defined, &"- #{&1}")
-        parts = parts ++ ["\n## Functions Defined"] ++ fun_lines
-      end
+        parts =
+          if defs[:functions_defined] && !Enum.empty?(defs.functions_defined) do
+            fun_lines = Enum.map(defs.functions_defined, &"- #{&1}")
+            parts ++ ["\n## Functions Defined"] ++ fun_lines
+          else
+            parts
+          end
 
-      if defs[:types_defined] && !Enum.empty?(defs.types_defined) do
-        type_lines = Enum.map(defs.types_defined, &"- #{&1}")
-        parts = parts ++ ["\n## Types Defined"] ++ type_lines
-      end
+        parts =
+          if defs[:types_defined] && !Enum.empty?(defs.types_defined) do
+            type_lines = Enum.map(defs.types_defined, &"- #{&1}")
+            parts ++ ["\n## Types Defined"] ++ type_lines
+          else
+            parts
+          end
 
-      if defs[:callbacks_defined] && !Enum.empty?(defs.callbacks_defined) do
-        callback_lines = Enum.map(defs.callbacks_defined, &"- #{&1}")
-        parts = parts ++ ["\n## Callbacks Defined"] ++ callback_lines
+        if defs[:callbacks_defined] && !Enum.empty?(defs.callbacks_defined) do
+          callback_lines = Enum.map(defs.callbacks_defined, &"- #{&1}")
+          parts ++ ["\n## Callbacks Defined"] ++ callback_lines
+        else
+          parts
+        end
+      else
+        parts
       end
-    end
 
     Enum.join(parts, "\n")
   end
 
   defp format_variable_type_for_display(%{type: type}) when is_binary(type), do: type
-  defp format_variable_type_for_display(%{type: type, value: value}), do: "#{type}(#{inspect(value)})"
+
+  defp format_variable_type_for_display(%{type: type, value: value}),
+    do: "#{type}(#{inspect(value)})"
+
   defp format_variable_type_for_display(%{type: "map", fields: fields}) when is_list(fields) do
     if Enum.empty?(fields) do
       "map"
@@ -1010,17 +1166,24 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
       "map(#{field_count} fields)"
     end
   end
-  defp format_variable_type_for_display(%{type: "struct", module: module}) when is_binary(module), do: "struct(#{module})"
+
+  defp format_variable_type_for_display(%{type: "struct", module: module}) when is_binary(module),
+    do: "struct(#{module})"
+
   defp format_variable_type_for_display(%{type: "tuple", size: size}), do: "tuple(#{size})"
+
   defp format_variable_type_for_display(%{type: "list", element_type: elem_type}) do
     elem_str = format_variable_type_for_display(elem_type)
     "list(#{elem_str})"
   end
+
   defp format_variable_type_for_display(%{type: "variable", name: name}), do: "var(#{name})"
+
   defp format_variable_type_for_display(%{type: "union", types: types}) when is_list(types) do
     type_strs = Enum.map(types, &format_variable_type_for_display/1)
     "union(#{Enum.join(type_strs, " | ")})"
   end
+
   defp format_variable_type_for_display(%{type: type}), do: type
   defp format_variable_type_for_display(other), do: inspect(other)
 end

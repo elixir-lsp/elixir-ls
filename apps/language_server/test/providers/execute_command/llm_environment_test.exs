@@ -65,7 +65,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironmentTest do
 
       for location_format <- test_cases do
         assert {:ok, result} = LlmEnvironment.execute([location_format], state)
-        
+
         # Should get file not found error
         assert result.error =~ "File not found"
       end
