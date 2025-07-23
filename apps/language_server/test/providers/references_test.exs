@@ -156,6 +156,28 @@ defmodule ElixirLS.LanguageServer.Providers.ReferencesTest do
            ]
   end
 
+  test "respects includeDeclaration flag for variables" do
+    file_path = FixtureHelpers.get_path("references_referenced.ex")
+    parser_context = ParserContextBuilder.from_path(file_path)
+    uri = SourceFile.Path.to_uri(file_path)
+    {line, char} = {4, 14}
+
+    ElixirLS.Test.TextLoc.annotate_assert(file_path, line, char, """
+        IO.puts(referenced_variable + 1)
+                  ^
+    """)
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert References.references(parser_context, uri, line, char, false, File.cwd!()) == [
+             %GenLSP.Structures.Location{
+               range: range(4, 12, 4, 31),
+               uri: uri
+             }
+           ]
+  end
+
   test "finds references to an attribute" do
     file_path = FixtureHelpers.get_path("references_referenced.ex")
     parser_context = ParserContextBuilder.from_path(file_path)

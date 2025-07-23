@@ -3,8 +3,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   This module provides textDocument/references support. Currently its able to find references to
   functions, macros, variables and module attributes
 
-  Does not support configuring "includeDeclaration" and assumes it is always
-  `true`
+  Supports configuring "includeDeclaration" as defined by the LSP.
 
   https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#textDocument_references
   """
@@ -13,27 +12,57 @@ defmodule ElixirLS.LanguageServer.Providers.References do
   alias ElixirLS.LanguageServer.Providers.References.Locator
   require Logger
 
+  alias ElixirLS.LanguageServer.Providers.{Definition, Declaration}
+
   def references(
-        %Parser.Context{source_file: source_file, metadata: metadata},
+        parser_context = %Parser.Context{source_file: source_file, metadata: metadata},
         uri,
         line,
         character,
-        _include_declaration,
+        include_declaration,
         project_dir
       ) do
     Build.with_build_lock(fn ->
       trace = ElixirLS.LanguageServer.Tracer.get_trace()
 
-      Locator.references(source_file.text, line, character, trace, metadata: metadata)
-      |> Enum.map(fn elixir_sense_reference ->
-        elixir_sense_reference
-        |> build_reference(uri, source_file.text, project_dir)
-      end)
-      |> Enum.filter(&(not is_nil(&1)))
-      # Returned references come from both compile tracer and current buffer
-      # There may be duplicates
-      |> Enum.uniq()
+      base_refs =
+        Locator.references(source_file.text, line, character, trace, metadata: metadata)
+        |> Enum.map(fn elixir_sense_reference ->
+          elixir_sense_reference
+          |> build_reference(uri, source_file.text, project_dir)
+        end)
+        |> Enum.filter(&(not is_nil(&1)))
+
+      {definition_locations, declaration_locations} =
+        definition_and_declaration_locations(uri, parser_context, line, character, project_dir)
+
+      references =
+        if include_declaration do
+          base_refs ++ definition_locations ++ declaration_locations
+        else
+          locations_to_exclude = MapSet.new(definition_locations ++ declaration_locations)
+          Enum.reject(base_refs, fn ref -> ref in locations_to_exclude end)
+        end
+        |> Enum.uniq()
+
+      references
     end)
+  end
+
+  defp definition_and_declaration_locations(uri, parser_context, line, character, project_dir) do
+    definition_locations =
+      case Definition.definition(uri, parser_context, line, character, project_dir) do
+        {:ok, def_loc} -> List.wrap(def_loc || [])
+        _ -> []
+      end
+
+    declaration_locations =
+      case Declaration.declaration(uri, parser_context, line, character, project_dir) do
+        {:ok, decl_loc} -> List.wrap(decl_loc || [])
+        _ -> []
+      end
+
+    {definition_locations, declaration_locations}
   end
 
   defp build_reference(ref, current_file_uri, current_file_text, project_dir) do
