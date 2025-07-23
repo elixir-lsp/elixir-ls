@@ -2711,6 +2711,14 @@ defmodule ElixirLS.DebugAdapter.Server do
               # prefer metadata modules if valid and loaded
               [metadata_module]
 
+            metadata_module != nil and env.protocol == nil ->
+              # In Elixir 1.19+, modules are not automatically loaded after compilation
+              # Try to load the metadata module and use it if successful
+              case Code.ensure_loaded(metadata_module) do
+                {:module, ^metadata_module} -> [metadata_module]
+                {:error, _} -> loaded_modules_from_path
+              end
+
             env.protocol != nil ->
               {protocol, implementations} = env.protocol
 
