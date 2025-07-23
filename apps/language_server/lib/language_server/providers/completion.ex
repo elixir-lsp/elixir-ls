@@ -592,10 +592,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         &("alias " <> &1)
       )
 
+    %CompletionItem{} = completion_item = completion_without_additional_text_edit.completion_item
     %__MODULE__{
       priority: 24,
-      completion_item: %CompletionItem{
-        completion_without_additional_text_edit.completion_item
+      completion_item: %{
+        completion_item
         | additional_text_edit: %GenLSP.Structures.TextEdit{
             range: %GenLSP.Structures.Range{
               start: %GenLSP.Structures.Position{line: line_to_insert_alias, character: 0},

@@ -711,8 +711,9 @@ defmodule ElixirLS.LanguageServer.Server do
         update_in(state.source_files[uri], fn source_file ->
           # LSP 3.17: The version number points to the version after all provided content changes have
           # been applied
+          %SourceFile{} = source_file
           updated_source_file =
-            %SourceFile{source_file | version: version, dirty?: true}
+            %{source_file | version: version, dirty?: true}
             |> SourceFile.apply_content_changes(content_changes)
 
           Parser.parse_with_debounce(uri, updated_source_file)

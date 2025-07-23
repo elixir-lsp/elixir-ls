@@ -229,6 +229,12 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
   end
 
   @impl GenServer
+  def handle_info({:EXIT, _pid, :normal}, state) do
+    # Handle normal exit of linked processes (e.g., analysis process)
+    {:noreply, state}
+  end
+
+  @impl GenServer
   def terminate(reason, _state) do
     case reason do
       :normal ->

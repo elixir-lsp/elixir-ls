@@ -1231,7 +1231,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                function: :create_file,
                module: Mix.Generator,
                metadata: %{defaults: 1},
-               specs: ["@spec create_file(Path.t(), iodata(), keyword()) :: boolean()"],
+               specs: ["@spec create_file(Path.t(), iodata(), " <> _],
                kind: :function
              } = doc
 

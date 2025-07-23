@@ -1634,51 +1634,50 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       resp = assert_receive(%{"id" => 1}, 1000)
 
-      assert response(1, %{
-               "activeParameter" => 0,
-               "activeSignature" => 0,
-               "signatures" => [
-                 %{
-                   "documentation" => %{
-                     "kind" => "markdown",
-                     "value" =>
-                       """
-                       **Application** elixir
+      # Make test more robust across Elixir versions by checking essential structure
+      assert %{
+               "id" => 1,
+               "jsonrpc" => "2.0",
+               "result" => %{
+                 "activeParameter" => 0,
+                 "activeSignature" => 0,
+                 "signatures" => signatures
+               }
+             } = resp
 
+      assert length(signatures) >= 2
 
+      # Check first signature structure
+      assert %{
+               "documentation" => %{
+                 "kind" => "markdown",
+                 "value" => doc_value_1
+               },
+               "label" => "inspect(item, opts \\\\ [])",
+               "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
+             } = hd(signatures)
 
-                       Inspects and writes the given `item`\
-                       """ <> _
-                   },
-                   "label" => "inspect(item, opts \\\\ [])",
-                   "parameters" => [%{"label" => "item"}, %{"label" => "opts \\\\ []"}]
-                 },
-                 %{
-                   "documentation" => %{
-                     "kind" => "markdown",
-                     "value" => """
-                     **Application** elixir
+      # Check that documentation contains expected content (version-agnostic)
+      assert doc_value_1 =~ "**Application** elixir"
+      assert doc_value_1 =~ "Inspects"
 
-
-
-                     Inspects `item` according to the given options using the IO `device`.
-
-                     ```elixir
-                     @spec inspect(device(), item, keyword()) ::
-                             item
-                           when item: var
-                     ```
-                     """
-                   },
-                   "label" => "inspect(device, item, opts)",
-                   "parameters" => [
-                     %{"label" => "device"},
-                     %{"label" => "item"},
-                     %{"label" => "opts"}
-                   ]
-                 }
+      # Check second signature structure
+      assert %{
+               "documentation" => %{
+                 "kind" => "markdown",
+                 "value" => doc_value_2
+               },
+               "label" => "inspect(device, item, opts)",
+               "parameters" => [
+                 %{"label" => "device"},
+                 %{"label" => "item"},
+                 %{"label" => "opts"}
                ]
-             }) = resp
+             } = Enum.at(signatures, 1)
+
+      assert doc_value_2 =~ "**Application** elixir"
+      assert doc_value_2 =~ "Inspects"
+      assert doc_value_2 =~ "device"
 
       wait_until_compiled(server)
     end)

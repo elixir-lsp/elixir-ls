@@ -1523,7 +1523,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                    params: ["device", "item", "opts"],
                    documentation:
                      "Inspects `item` according to the given options using the IO `device`.",
-                   spec: "@spec inspect(device(), item, keyword()) :: item when item: var"
+                   spec: "@spec inspect(device(), item, " <> _
                  }
                ]
              } = Signature.signature(code, 2, 24)

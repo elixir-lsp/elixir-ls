@@ -5,15 +5,15 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.Helpers do
   @spec update_line(GenLSP.Structures.TextEdit.t(), non_neg_integer()) ::
           GenLSP.Structures.TextEdit.t()
   def update_line(
-        %GenLSP.Structures.TextEdit{range: range} = text_edit,
+        %GenLSP.Structures.TextEdit{range: %GenLSP.Structures.Range{} = range} = text_edit,
         line_number
       ) do
     %GenLSP.Structures.TextEdit{
       text_edit
-      | range: %GenLSP.Structures.Range{
+      | range: %{
           range
-          | start: %GenLSP.Structures.Position{range.start | line: line_number},
-            end: %GenLSP.Structures.Position{range.end | line: line_number}
+          | start: %{range.start | line: line_number},
+            end: %{range.end | line: line_number}
         }
     }
   end
