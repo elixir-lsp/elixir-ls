@@ -712,6 +712,7 @@ defmodule ElixirLS.LanguageServer.Server do
           # LSP 3.17: The version number points to the version after all provided content changes have
           # been applied
           %SourceFile{} = source_file
+
           updated_source_file =
             %{source_file | version: version, dirty?: true}
             |> SourceFile.apply_content_changes(content_changes)

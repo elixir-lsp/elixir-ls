@@ -85,7 +85,9 @@ if System.otp_release() |> String.to_integer() >= 26 do
 
         # Make dialyzer error message test more robust across Elixir versions
         error_msg_lower = String.downcase(error_message2)
-        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and error_msg_lower =~ "error"
+
+        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and
+                 error_msg_lower =~ "error"
 
         # Fix file B. It should recompile and re-analyze A and B only
         b_text = """
@@ -148,7 +150,9 @@ if System.otp_release() |> String.to_integer() >= 26 do
 
         # Make dialyzer error message test more robust across Elixir versions
         error_msg_lower = String.downcase(error_message2)
-        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and error_msg_lower =~ "error"
+
+        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and
+                 error_msg_lower =~ "error"
 
         wait_until_compiled(server)
       end)
@@ -187,7 +191,10 @@ if System.otp_release() |> String.to_integer() >= 26 do
         assert error_message1 == "Function fun/0 has no local return."
         # Make dialyzer error message test more robust across Elixir versions
         error_msg_lower = String.downcase(error_message2)
-        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and error_msg_lower =~ "error"
+
+        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and
+                 error_msg_lower =~ "error"
+
         wait_until_compiled(server)
       end)
     end
@@ -262,7 +269,10 @@ if System.otp_release() |> String.to_integer() >= 26 do
         assert error_message1 == "Function check_error/0 has no local return."
         # Make dialyzer error message test more robust across Elixir versions
         error_msg_lower = String.downcase(error_message2)
-        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and error_msg_lower =~ "error"
+
+        assert error_msg_lower =~ "pattern" and error_msg_lower =~ "never match" and
+                 error_msg_lower =~ "error"
+
         wait_until_compiled(server)
       end)
     end
