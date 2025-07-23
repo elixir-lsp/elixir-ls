@@ -387,7 +387,7 @@ Analyze comprehensive module dependency relationships including direct/reverse d
 
 #### TCP-to-STDIO Bridge
 
-ElixirLS includes a TCP-to-STDIO bridge script located at `apps/language_server/lib/language_server/mcp/tcp_to_stdio_bridge.exs`. This bridge enables LLMs like Claude to communicate with the ElixirLS MCP server by converting between STDIO (used by LLMs) and TCP (used by the MCP server).
+ElixirLS includes a TCP-to-STDIO bridge script located at `scripts/tcp_to_stdio_bridge.exs`. This bridge enables LLMs like Claude to communicate with the ElixirLS MCP server by converting between STDIO (used by LLMs) and TCP (used by the MCP server).
 
 The bridge:
 - Connects to the ElixirLS MCP server running on TCP port 3798
@@ -402,71 +402,17 @@ To use ElixirLS with Claude Code or other MCP-compatible tools, create an `mcp.j
 ```json
 {
   "mcpServers": {
-    "elixir-ls": {
-      "command": "elixir",
-      "args": [
-        "--no-halt",
-        "--eval",
-        "Application.ensure_all_started(:elixir_ls); ElixirLS.LanguageServer.MCP.TCPServer.start_link(3798); Process.sleep(:infinity)"
-      ],
-      "env": {
-        "MIX_ENV": "dev"
-      }
-    },
     "elixir-ls-bridge": {
       "command": "elixir",
       "args": [
-        "/absolute/path/to/elixir-ls/apps/language_server/lib/language_server/mcp/tcp_to_stdio_bridge.exs"
-      ],
-      "env": {
-        "MIX_ENV": "dev"
-      }
+        "/absolute/path/to/elixir-ls/scripts/tcp_to_stdio_bridge.exs"
+      ]
     }
   }
 }
 ```
 
 Replace `/absolute/path/to/elixir-ls/` with the actual path to your ElixirLS installation.
-
-#### Starting the MCP Server
-
-1. **Start the ElixirLS MCP server** (runs on TCP port 3798):
-   ```bash
-   cd /path/to/your/elixir/project
-   elixir --no-halt --eval "Application.ensure_all_started(:elixir_ls); ElixirLS.LanguageServer.MCP.TCPServer.start_link(3798); Process.sleep(:infinity)"
-   ```
-
-2. **Use the TCP-to-STDIO bridge** for LLM communication:
-   ```bash
-   elixir /path/to/elixir-ls/apps/language_server/lib/language_server/mcp/tcp_to_stdio_bridge.exs
-   ```
-
-#### Project Context
-
-For best results, start the MCP server from within your Elixir project directory. This ensures that:
-- The correct Mix project is loaded
-- Dependencies are available for analysis
-- Code intelligence features work with your project's modules
-- Compilation artifacts are accessible for dependency analysis
-
-#### Environment Variables
-
-When configuring the MCP server, you may want to set:
-- `MIX_ENV`: The Mix environment to use (default: `dev`)
-- `MIX_TARGET`: Mix target for cross-compilation scenarios
-- Project-specific environment variables required by your application
-
-### Integration with Claude Code
-
-When using with Claude Code, the MCP tools are automatically registered and available for the LLM to use. The tools provide comprehensive code intelligence that helps with:
-
-- Understanding code structure and relationships
-- Navigating large codebases
-- Analyzing dependencies and impact of changes
-- Exploring API documentation and type signatures
-- Finding implementations and usage patterns
-
-The MCP server maintains the same level of code intelligence as the LSP server, providing accurate and up-to-date information about your Elixir codebase.
 
 ## Automatic builds and error reporting
 
