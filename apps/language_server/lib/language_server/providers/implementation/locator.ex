@@ -19,48 +19,31 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
+  alias ElixirLS.LanguageServer.Providers.LocatorUtils
 
   require ElixirSense.Core.Introspection, as: Introspection
 
   def implementations(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case LocatorUtils.build(code, line, column, options) do
+      nil ->
         []
 
-      context ->
-        metadata =
-          Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, false, {line, column})
-          end)
-
-        env = Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
-
-        find(
-          context,
-          env,
-          metadata
-        )
+      info ->
+        find(info)
     end
   end
 
   @doc """
   Finds out where a callback, protocol or delegate was implemented.
   """
-  @spec find(
-          any(),
-          State.Env.t(),
-          Metadata.t()
-        ) :: [%Location{}]
-  def find(
-        context,
-        %State.Env{
-          module: module
-        } = env,
-        metadata
-      ) do
-    binding_env = Binding.from_env(env, metadata, context.begin)
-
-    type = SurroundContext.to_binding(context.context, module)
+  @spec find(LocatorUtils.t()) :: [%Location{}]
+  def find(%{
+        context: context,
+        env: %State.Env{module: module} = env,
+        metadata: metadata,
+        binding_env: binding_env,
+        type: type
+      }) do
 
     case type do
       nil ->
