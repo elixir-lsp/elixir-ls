@@ -1535,7 +1535,14 @@ defmodule ElixirLS.LanguageServer.Server do
          state = %__MODULE__{}
        ) do
     source_file = get_source_file(state, uri)
-    fun = fn -> Formatting.format(source_file, uri, state.project_dir, state.mix_project?) end
+    dot_formatter = Map.get(state.settings || %{}, "dotFormatter")
+
+    fun = fn ->
+      Formatting.format(source_file, uri, state.project_dir, state.mix_project?,
+        dot_formatter: dot_formatter
+      )
+    end
+
     {:async, fun, state}
   end
 

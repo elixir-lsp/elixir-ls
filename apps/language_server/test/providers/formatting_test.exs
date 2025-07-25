@@ -503,4 +503,24 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
     MixProjectCache.store(state)
   end
+
+  @tag :fixture
+  test "custom dot formatter path is used" do
+    in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      store_mix_cache()
+      project_dir = Path.expand(".")
+      path = Path.join(project_dir, "lib/custom.ex")
+      File.write!(path, "foo 1")
+      source_file = %SourceFile{text: "foo 1", version: 1, dirty?: true}
+      uri = SourceFile.Path.to_uri(path)
+
+      assert {:ok, [%TextEdit{}, %TextEdit{}]} =
+               Formatting.format(source_file, uri, project_dir, true)
+
+      assert {:ok, []} =
+               Formatting.format(source_file, uri, project_dir, true,
+                 dot_formatter: Path.join(project_dir, "lib/.formatter.exs")
+               )
+    end)
+  end
 end
