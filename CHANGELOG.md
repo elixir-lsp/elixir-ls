@@ -1,4 +1,5 @@
 ### Unreleased
+- Added option `elixirLS.dotFormatter` to specify path to custom `.formatter.exs`
 
 ### v0.28.1: 24 May 2025
 
