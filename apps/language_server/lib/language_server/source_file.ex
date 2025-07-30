@@ -235,9 +235,12 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     """
   end
 
-  @spec formatter_for(String.t(), String.t() | nil, boolean) ::
+  @spec formatter_for(String.t(), String.t() | nil, boolean, keyword()) ::
           {:ok, {function | nil, keyword()}} | {:error, any}
-  def formatter_for(uri = "file:" <> _, project_dir, mix_project?) when is_binary(project_dir) do
+  def formatter_for(uri, project_dir, mix_project?, opts \\ [])
+
+  def formatter_for(uri = "file:" <> _, project_dir, mix_project?, opts)
+      when is_binary(project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
     try do
@@ -250,7 +253,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
           {:ok, config_mtime} = MixProjectCache.config_mtime()
           {:ok, mix_project} = MixProjectCache.get()
 
-          opts = [
+          formatter_opts = [
             deps_paths: deps_paths,
             manifest_path: manifest_path,
             config_mtime: config_mtime,
@@ -286,16 +289,20 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             end
           ]
 
-          {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
+          formatter_opts =
+            formatter_opts
+            |> maybe_put_dot_formatter(opts)
+
+          {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, formatter_opts)}
         else
           {:error, :project_not_loaded}
         end
       else
-        opts = [
-          root: project_dir
-        ]
+        formatter_opts =
+          [root: project_dir]
+          |> maybe_put_dot_formatter(opts)
 
-        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, opts)}
+        {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, formatter_opts)}
       end
     catch
       kind, payload ->
@@ -322,7 +329,15 @@ defmodule ElixirLS.LanguageServer.SourceFile do
     end
   end
 
-  def formatter_for(_, _, _), do: {:error, :project_dir_not_set}
+  def formatter_for(_, _, _, _), do: {:error, :project_dir_not_set}
+
+  defp maybe_put_dot_formatter(opts_list, opts) do
+    if dot = Keyword.get(opts, :dot_formatter) do
+      Keyword.put(opts_list, :dot_formatter, dot)
+    else
+      opts_list
+    end
+  end
 
   defp format_code(code, opts) do
     try do

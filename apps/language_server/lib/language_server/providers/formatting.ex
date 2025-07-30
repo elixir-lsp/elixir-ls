@@ -4,18 +4,26 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   import ElixirLS.LanguageServer.RangeUtils
   require Logger
 
-  def format(%SourceFile{} = source_file, uri = "file:" <> _, project_dir, mix_project?)
+  def format(source_file, uri, project_dir, mix_project?, opts \\ [])
+
+  def format(
+        %SourceFile{} = source_file,
+        uri = "file:" <> _,
+        project_dir,
+        mix_project?,
+        opts
+      )
       when is_binary(project_dir) do
     file_path = SourceFile.Path.absolute_from_uri(uri, project_dir)
     # file_path and project_dir are absolute paths with universal separators
     if SourceFile.Path.path_in_dir?(file_path, project_dir) do
       # file in project_dir we find formatter and options for file
-      case SourceFile.formatter_for(uri, project_dir, mix_project?) do
-        {:ok, {formatter, opts}} ->
-          formatter_exs_dir = opts[:root]
+      case SourceFile.formatter_for(uri, project_dir, mix_project?, opts) do
+        {:ok, {formatter, formatter_opts}} ->
+          formatter_exs_dir = formatter_opts[:root]
 
-          if should_format?(uri, formatter_exs_dir, opts[:inputs], project_dir) do
-            do_format(source_file, formatter, opts)
+          if should_format?(uri, formatter_exs_dir, formatter_opts[:inputs], project_dir) do
+            do_format(source_file, formatter, formatter_opts)
           else
             JsonRpc.show_message(
               :info,
@@ -47,8 +55,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     end
   end
 
-  # if project_dir is not set or schema is not file we format with default options
-  def format(%SourceFile{} = source_file, _uri, _project_dir, _mix_project?) do
+  # if project_dir is not set or scheme is not file we format with default options
+  def format(%SourceFile{} = source_file, _uri, _project_dir, _mix_project?, _opts) do
     do_format(source_file, nil, [])
   end
 
