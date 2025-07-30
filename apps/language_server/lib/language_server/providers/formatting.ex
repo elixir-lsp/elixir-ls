@@ -4,12 +4,14 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
   import ElixirLS.LanguageServer.RangeUtils
   require Logger
 
+  def format(source_file, uri, project_dir, mix_project?, opts \\ [])
+
   def format(
         %SourceFile{} = source_file,
         uri = "file:" <> _,
         project_dir,
         mix_project?,
-        opts \\ []
+        opts
       )
       when is_binary(project_dir) do
     file_path = SourceFile.Path.absolute_from_uri(uri, project_dir)
@@ -53,8 +55,8 @@ defmodule ElixirLS.LanguageServer.Providers.Formatting do
     end
   end
 
-  # if project_dir is not set or schema is not file we format with default options
-  def format(%SourceFile{} = source_file, _uri, _project_dir, _mix_project?, _opts \\ []) do
+  # if project_dir is not set or scheme is not file we format with default options
+  def format(%SourceFile{} = source_file, _uri, _project_dir, _mix_project?, _opts) do
     do_format(source_file, nil, [])
   end
 

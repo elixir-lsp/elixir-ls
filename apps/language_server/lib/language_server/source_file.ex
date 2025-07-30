@@ -237,7 +237,9 @@ defmodule ElixirLS.LanguageServer.SourceFile do
 
   @spec formatter_for(String.t(), String.t() | nil, boolean, keyword()) ::
           {:ok, {function | nil, keyword()}} | {:error, any}
-  def formatter_for(uri = "file:" <> _, project_dir, mix_project?, opts \\ [])
+  def formatter_for(uri, project_dir, mix_project?, opts \\ [])
+
+  def formatter_for(uri = "file:" <> _, project_dir, mix_project?, opts)
       when is_binary(project_dir) do
     path = __MODULE__.Path.from_uri(uri)
 
