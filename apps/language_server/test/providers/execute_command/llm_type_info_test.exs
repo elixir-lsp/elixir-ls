@@ -84,8 +84,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
 
       assert {:ok, result} = LlmTypeInfo.execute([module_name], %{})
 
-      dbg(result)
-
       assert result.module == "GenServer"
 
       # Check types
@@ -106,8 +104,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfoTest do
       module_name = "ElixirLS.Test.WithTypes"
 
       assert {:ok, result} = LlmTypeInfo.execute([module_name], %{})
-
-      dbg(result)
 
       assert result.module == "ElixirLS.Test.WithTypes"
 
