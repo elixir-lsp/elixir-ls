@@ -2557,7 +2557,7 @@ defmodule ElixirLS.DebugAdapter.Server do
     module_name
     |> prefix_module_name()
     |> Regex.escape()
-    |> String.replace("\\*", ~s(.+))
+    |> String.replace("\\*", ~s(.*))
     |> Regex.compile!()
   end
 
