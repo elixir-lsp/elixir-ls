@@ -2,11 +2,37 @@
 
 #### Highlights
 
+- Added Call hierarchy provider implementing LSP [textDocument/prepareCallHierarchy](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocument_prepareCallHierarchy), [callHierarchy/incomingCalls](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchy_incomingCalls) and [callHierarchy/outgoingCalls](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchy_outgoingCalls)
+- ElixirLS now bundles a number of experimental LLM oriented tools exposed as custom commands and a builtin MCP server. The tools focus on model friendly text interface instead of typical IDE oriented LSP API methods. Refer to [README.md](README.md) on how to connect to the MCP server. The tools include:
+  - `find_definition` - Find and retrieve the source code of symbols.
+  - `get_environment` - Retrieve environment at location with aliases, imports, requires and more.
+  - `get_docs` - Aggregate and return comprehensive documentation
+  - `get_type_info` - Extract typespecs and contracts.
+  - `find_implementations` - Find all implementations of behaviours and protocols.
+  - `get_module_dependencies` - Analyze module dependency relationships
+- Unofficial support for elixir 1.19
+
 #### Improvements
 
 - Added option `elixirLS.dotFormatter` to specify path to custom `.formatter.exs`
+- Added `elixir_check` mode to launch script
+- Respect `:*` in `locals_without_parens`
+- Language Server Protocol implementation refactored to use typed structs from `gen_lsp` library by Mitchell Hanberg
+- Debug Adapter Protocol implementation refactored to use typed structs from `gen_dap` library by Łukasz Samson
+- Debug Adapter Protocol spec compliance - introduced error codes
+- Added support for `includeDeclaration` parameter in references provider
+- Improved `*` wildcard handling in debug adapter launch config
 
 #### Fixes
+
+- Fixed crashes related to invalid iodata handling
+- Fixed unicode handling in refactoring functions
+- Fixed debug adapter crash when getting info on no longer alive processes
+- Forkaround `Exception.blame` crash
+- Fixed crash on invalid `locals_without_parens`
+- Fixed crash on invalid dialyzer settings
+- Fixed crash in markdown generation
+- Fixed crash during launch on deterministic elixir builds [Sofie](https://github.com/soupglasses)
 
 #### Breaking changes
 
