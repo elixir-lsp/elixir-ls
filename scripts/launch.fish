@@ -66,25 +66,15 @@ else
             export_stdlib_path "mise which elixir"
         else
             echo "mise not found" >&2
-            echo "Looking for rtx executable" >&2
+            echo "Looking for vfox executable" >&2
 
-            set rtx (which rtx)
-            if test -n "$rtx"
-                echo "rtx executable found at $rtx, activating" >&2
-                "$rtx" env -s fish | source
-                export_stdlib_path "rtx which elixir"
+            set vfox (which vfox)
+            if test -n "$vfox"
+                echo "vfox executable found at $vfox, activating" >&2
+                "$vfox" activate fish | source
             else
-                echo "rtx not found" >&2
-                echo "Looking for vfox executable" >&2
-
-                set vfox (which vfox)
-                if test -n "$vfox"
-                    echo "vfox executable found at $vfox, activating" >&2
-                    "$vfox" activate fish | source
-                else
-                    echo "vfox not found" >&2
-                    export_stdlib_path "which elixir"
-                end
+                echo "vfox not found" >&2
+                export_stdlib_path "which elixir"
             end
         end
     end

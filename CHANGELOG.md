@@ -1,5 +1,16 @@
 ### Unreleased
+
+#### Highlights
+
+#### Improvements
+
 - Added option `elixirLS.dotFormatter` to specify path to custom `.formatter.exs`
+
+#### Fixes
+
+#### Breaking changes
+
+- support for `rtx` in launch script dropped. Upgrade to `mise`
 
 ### v0.28.1: 24 May 2025
 

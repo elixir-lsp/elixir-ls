@@ -97,25 +97,14 @@ else
             export_stdlib_path "mise which elixir"
         else
             >&2 echo "mise not found"
-            >&2 echo "Looking for rtx executable"
+            >&2 echo "Looking for vfox executable"
 
-            # Look for rtx executable
-            if command -v rtx >/dev/null 2>&1; then
-                >&2 echo "rtx executable found at $(command -v rtx), activating"
-                eval "$($(command -v rtx) env -s "$preferred_shell")"
-                export_stdlib_path "rtx which elixir"
+            if command -v vfox >/dev/null 2>&1; then
+                >&2 echo "vfox executable found at $(command -v vfox), activating"
+                eval "$( $(command -v vfox) activate "$preferred_shell" )"
             else
-                >&2 echo "rtx not found"
-                >&2 echo "Looking for vfox executable"
-
-                # Look for vfox executable
-                if command -v vfox >/dev/null 2>&1; then
-                    >&2 echo "vfox executable found at $(command -v vfox), activating"
-                    eval "$($(command -v vfox) activate "$preferred_shell")"
-                else
-                    >&2 echo "vfox not found"
-                    export_stdlib_path "which elixir"
-                fi
+                >&2 echo "vfox not found"
+                export_stdlib_path "which elixir"
             fi
         fi
     fi
@@ -153,9 +142,9 @@ echo "" | elixir "$SCRIPTPATH/quiet_install.exs" >/dev/null || exit 1
 default_erl_opts="-kernel standard_io_encoding latin1 +sbwt none +sbwtdcpu none +sbwtdio none"
 
 if [ "$preferred_shell" = "bash" ]; then
-  source "$dirname/exec.bash"
+  . "$dirname/exec.bash"
 elif [ "$preferred_shell" = "zsh" ]; then
-  source "$dirname/exec.zsh"
+  . "$dirname/exec.zsh"
 else
   if [ -z "$ELS_ELIXIR_OPTS" ]
   then
