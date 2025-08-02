@@ -9,13 +9,25 @@ on:
       - master
 
 jobs:
-  # Quick smoke test with latest versions
+  # Quick smoke test with all supported Elixir versions on latest OTP
   smoke_test_language_server:
     name: Smoke test language server (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
+          - elixir: 1.14.x
+            otp: 26.x
+            tests_may_fail: false
+          - elixir: 1.15.x
+            otp: 26.x
+            tests_may_fail: false
+          - elixir: 1.16.x
+            otp: 26.x
+            tests_may_fail: false
+          - elixir: 1.17.x
+            otp: 27.x
+            tests_may_fail: false
           - elixir: 1.18.x
             otp: 27.x
     steps:
@@ -51,6 +63,18 @@ jobs:
     strategy:
       matrix:
         include:
+          - elixir: 1.14.x
+            otp: 26.x
+            tests_may_fail: false
+          - elixir: 1.15.x
+            otp: 26.x
+            tests_may_fail: false
+          - elixir: 1.16.x
+            otp: 26.x
+            tests_may_fail: false
+          - elixir: 1.17.x
+            otp: 27.x
+            tests_may_fail: false
           - elixir: 1.18.x
             otp: 27.x
     steps:
@@ -80,7 +104,7 @@ jobs:
           cd apps/debug_adapter
           mix test
 
-  # Core compatibility matrix - test minimum, LTS, and latest versions
+  # Test on lowest supported OTP versions
   compatibility_test:
     name: Compatibility test (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}} | ${{matrix.os}})
     runs-on: ${{matrix.os}}
@@ -90,18 +114,36 @@ jobs:
       matrix:
         include:
           # Minimum supported versions
+          # No installer available for OTP 23.x on Ubuntu 22.04
           - elixir: 1.14.x
             otp: 24.x
             os: ubuntu-22.04
           - elixir: 1.14.x
+            otp: 23.x
+            os: windows-2022
+          - elixir: 1.15.x
+            otp: 24.x
+            os: ubuntu-22.04
+          - elixir: 1.15.x
             otp: 24.x
             os: windows-2022
-          # Middle versions
           - elixir: 1.16.x
-            otp: 26.x
+            otp: 24.x
             os: ubuntu-22.04
           - elixir: 1.16.x
-            otp: 26.x
+            otp: 24.x
+            os: windows-2022
+          - elixir: 1.17.x
+            otp: 25.x
+            os: ubuntu-22.04
+          - elixir: 1.17.x
+            otp: 25.x
+            os: windows-2022
+          - elixir: 1.18.x
+            otp: 25.x
+            os: ubuntu-22.04
+          - elixir: 1.18.x
+            otp: 25.x
             os: windows-2022
           # Latest versions
           # covered by smoke_test
@@ -117,73 +159,6 @@ jobs:
       - name: Set git to use original line ending (Windows)
         if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: ${{matrix.otp}}
-          elixir-version: ${{matrix.elixir}}
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            _build
-            deps
-          key: ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-${{ hashFiles('**/mix.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-mix-${{ matrix.elixir }}-${{ matrix.otp }}-
-      - name: Install Dependencies
-        run: |
-          mix local.hex --force
-          mix local.rebar --force
-          mix deps.get --only test
-      - run: mix test
-
-  # Comprehensive matrix - only run on master branch or when specifically requested
-  comprehensive_test:
-    name: Comprehensive test (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
-    runs-on: ubuntu-22.04
-    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'comprehensive-tests')
-    needs: compatibility_test
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # covered by compatibility_test
-          # - elixir: 1.14.x
-          #   otp: 24.x
-          - elixir: 1.14.x
-            otp: 25.x
-          - elixir: 1.14.x
-            otp: 26.x
-          - elixir: 1.15.x
-            otp: 24.x
-          - elixir: 1.15.x
-            otp: 25.x
-          - elixir: 1.15.x
-            otp: 26.x
-          - elixir: 1.16.x
-            otp: 24.x
-          - elixir: 1.16.x
-            otp: 25.x
-          # covered by compatibility_test
-          # - elixir: 1.16.x
-          #   otp: 26.x
-          - elixir: 1.17.x
-            otp: 25.x
-          - elixir: 1.17.x
-            otp: 26.x
-          - elixir: 1.17.x
-            otp: 27.x
-          - elixir: 1.18.x
-            otp: 25.x
-          - elixir: 1.18.x
-            otp: 26.x
-          # covered by smoke_test
-          # - elixir: 1.18.x
-          #   otp: 27.x
-    env:
-      MIX_ENV: test
-    steps:
       - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
         with:
