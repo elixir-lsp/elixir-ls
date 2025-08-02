@@ -24,12 +24,12 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
                LlmDefinition.execute(["123Invalid"], %{})
     end
 
-    test "handles module symbol - String" do
-      result = LlmDefinition.execute(["String"], %{})
+    test "handles module symbol - ElixirSenseExample.ModuleWithDocs" do
+      result = LlmDefinition.execute(["ElixirSenseExample.ModuleWithDocs"], %{})
 
       assert {:ok, response} = result
 
-      # String module is built-in, so location might not be found
+      # Test module should be found
       assert response[:definition]
     end
 
@@ -57,35 +57,41 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
     end
 
     test "handles function with arity" do
-      result = LlmDefinition.execute(["String.split/2"], %{})
+      result = LlmDefinition.execute(["ElixirSenseExample.ModuleWithDocs.some_fun/2"], %{})
 
       assert {:ok, response} = result
       assert response[:definition]
     end
 
     test "handles function without arity" do
-      result = LlmDefinition.execute(["String.split"], %{})
+      result = LlmDefinition.execute(["ElixirSenseExample.ModuleWithDocs.some_fun"], %{})
 
       assert {:ok, response} = result
       assert response[:definition]
     end
 
     test "handles function with invalid arity" do
-      result = LlmDefinition.execute(["String.split/99"], %{})
+      result = LlmDefinition.execute(["ElixirSenseExample.ModuleWithDocs.some_fun/99"], %{})
 
       assert {:ok, response} = result
       assert response[:definition]
     end
 
     test "handles special function names with ?" do
-      result = LlmDefinition.execute(["String.valid?/1"], %{})
+      result = LlmDefinition.execute(["ElixirSenseExample.FunctionsWithTheSameName.all?/2"], %{})
 
       assert {:ok, response} = result
       assert response[:definition]
     end
 
     test "handles special function names with !" do
-      result = LlmDefinition.execute(["String.upcase!/1"], %{})
+      result =
+        LlmDefinition.execute(
+          [
+            "ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest.TestModule.test_function!/1"
+          ],
+          %{}
+        )
 
       assert {:ok, response} = result
       assert response[:definition]
@@ -145,6 +151,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
       def private_function, do: :private
 
       def function_without_docs(a, b), do: a + b
+
+      @doc "A function with ! in name"
+      def test_function!(x) do
+        x + 1
+      end
     end
 
     test "finds module definition for test module" do
@@ -213,7 +224,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
   describe "symbol parsing validation" do
     test "correctly identifies module patterns" do
       valid_modules = [
-        "String",
+        "ElixirSenseExample.ModuleWithDocs",
         "Enum",
         "GenServer",
         "Mix.Project",
@@ -229,7 +240,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
 
     test "correctly identifies function patterns" do
       valid_functions = [
-        "String.split/2",
+        "ElixirSenseExample.ModuleWithDocs.some_fun/2",
         "Enum.map/2",
         "IO.puts/1",
         "Kernel.is_nil/1",
