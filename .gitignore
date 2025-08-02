@@ -33,3 +33,6 @@ erl_crash.dump
 
 # Mkdocs static website build directory
 /site
+
+.claude
+CLAUDE.local.md
