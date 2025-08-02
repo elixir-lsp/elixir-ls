@@ -47,7 +47,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmImplementationFind
 
     test "finds protocol implementations by protocol name" do
       # Enumerable is a well-known protocol
-      assert {:ok, result} = LlmImplementationFinder.execute(["Enumerable"], %{})
+      assert {:ok, result} =
+               LlmImplementationFinder.execute(["ElixirSenseExample.ExampleProtocol"], %{})
 
       assert Map.has_key?(result, :implementations)
       assert is_list(result.implementations)

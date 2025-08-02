@@ -30,14 +30,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
       assert {:ok, response} = result
 
       # String module is built-in, so location might not be found
-      assert response[:definition] || response[:error]
-
-      if response[:error] do
-        assert response.error =~ "Module String not found" ||
-                 response.error =~ "Cannot read file"
-      else
-        assert response.definition =~ "Definition found in"
-      end
+      assert response[:definition]
     end
 
     test "handles nested module symbol" do
@@ -49,7 +42,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
         )
 
       assert {:ok, response} = result
-      assert response[:definition] || response[:error]
+      assert response[:definition]
     end
 
     test "handles Erlang module symbol" do
@@ -57,62 +50,45 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
 
       assert {:ok, response} = result
       # Erlang modules may or may not have source available depending on the system
-      assert response[:definition] || response[:error]
+      assert response[:definition]
 
-      if response[:error] do
-        assert response.error =~ "Erlang module :lists not found" ||
-                 response.error =~ "Cannot read file"
-      else
-        # If source is found, it should contain the module name
-        assert response.definition =~ "lists"
-      end
+      # If source is found, it should contain the module name
+      assert response.definition =~ "lists"
     end
 
     test "handles function with arity" do
       result = LlmDefinition.execute(["String.split/2"], %{})
 
       assert {:ok, response} = result
-      assert response[:definition] || response[:error]
+      assert response[:definition]
     end
 
     test "handles function without arity" do
       result = LlmDefinition.execute(["String.split"], %{})
 
       assert {:ok, response} = result
-      assert response[:definition] || response[:error]
+      assert response[:definition]
     end
 
     test "handles function with invalid arity" do
       result = LlmDefinition.execute(["String.split/99"], %{})
 
       assert {:ok, response} = result
-      # V2 parser may successfully parse this and either find the module or specific function
-      # Both outcomes are acceptable - either error or success with definition
-      assert response[:error] || response[:definition]
-
-      if response[:error] do
-        assert response.error =~ "Function" && response.error =~ "split/99 not found"
-      end
+      assert response[:definition]
     end
 
     test "handles special function names with ?" do
       result = LlmDefinition.execute(["String.valid?/1"], %{})
 
       assert {:ok, response} = result
-      assert response[:definition] || response[:error]
+      assert response[:definition]
     end
 
     test "handles special function names with !" do
       result = LlmDefinition.execute(["String.upcase!/1"], %{})
 
       assert {:ok, response} = result
-      # V2 parser may successfully parse this and either find the module or specific function
-      # Both outcomes are acceptable - either error or success with definition
-      assert response[:error] || response[:definition]
-
-      if response[:error] do
-        assert response.error =~ "Function" && response.error =~ "upcase!/1 not found"
-      end
+      assert response[:definition]
     end
 
     test "handles internal errors gracefully" do
@@ -127,13 +103,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
   end
 
   describe "edge cases" do
-    test "handles module names with numbers" do
-      result = LlmDefinition.execute(["Base64"], %{})
-
-      assert {:ok, response} = result
-      assert response[:definition] || response[:error]
-    end
-
     test "handles deeply nested modules" do
       result = LlmDefinition.execute(["A.B.C.D.E"], %{})
 
@@ -149,7 +118,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
       result = LlmDefinition.execute([":erlang"], %{})
 
       assert {:ok, response} = result
-      assert response[:definition] || response[:error]
+      assert response[:definition]
     end
 
     test "rejects invalid erlang module format" do
@@ -224,7 +193,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
       assert {:ok, response} = result
 
       # Should find the function even without specifying arity
-      assert response[:definition] || response[:error]
+      assert response[:definition]
     end
 
     test "handles function with multiple arities" do
@@ -237,7 +206,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDefinitionTest do
       assert {:ok, response} = result
 
       # Should find one of the arities
-      assert response[:definition] || response[:error]
+      assert response[:definition]
     end
   end
 

@@ -514,7 +514,7 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
       source_file = %SourceFile{text: "foo 1", version: 1, dirty?: true}
       uri = SourceFile.Path.to_uri(path)
 
-      assert {:ok, edits} = Formatting.format(source_file, uri, project_dir, true) 
+      assert {:ok, edits} = Formatting.format(source_file, uri, project_dir, true)
       assert length(edits) >= 1
 
       assert {:ok, []} =
