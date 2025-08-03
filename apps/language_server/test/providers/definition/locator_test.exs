@@ -1324,6 +1324,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              end_column: 18
            }
 
+    # TODO: is this still a bug?
     # `a` redefined in a case clause
     # cursor lands in the wrong clause on 1.18
     # fortunately __cursor__ inserting hacks in ElixirSense.Metadata are able to work around this

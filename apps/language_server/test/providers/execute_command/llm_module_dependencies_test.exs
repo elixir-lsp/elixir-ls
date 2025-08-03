@@ -36,6 +36,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
   end
 
   describe "execute/2" do
+    if Version.match?(System.version(), ">= 1.18.0") do
     test "returns direct dependencies for a module" do
       state = %{source_files: %{}}
 
@@ -73,7 +74,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
       # Check struct expansions
       assert "ElixirLS.Test.ModuleDepsC" in direct_deps.struct_expansions
     end
+  end
 
+  if Version.match?(System.version(), ">= 1.18.0") do
     test "returns reverse dependencies" do
       state = %{source_files: %{}}
 
@@ -107,6 +110,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
       # Check struct expansions
       assert "ElixirLS.Test.ModuleDepsB" in reverse_deps.struct_expansions
     end
+  end
 
     test "returns transitive compile dependencies" do
       state = %{source_files: %{}}
@@ -218,6 +222,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
       assert is_list(direct_deps.exports_dependencies)
     end
 
+    if Version.match?(System.version(), ">= 1.18.0") do
     test "filters reverse dependencies by function for remote calls" do
       state = %{source_files: %{}}
 
@@ -251,6 +256,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
 
       assert length(matching_imports) > 0
     end
+  end
 
     test "handles remote call with arity nil (function name only)" do
       state = %{source_files: %{}}
