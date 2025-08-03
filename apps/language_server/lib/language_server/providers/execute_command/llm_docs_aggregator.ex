@@ -111,47 +111,60 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   end
 
   defp get_documentation(:remote_call, {module, function, arity}) do
-      # Try function/macro documentation first
-      case aggregate_function_docs(module, function, arity) do
-        list = [_ | _] ->
-          {:ok,
-           %{
-             module: inspect(module),
-             function: Atom.to_string(function),
-             arity: arity,
-             documentation: doc
-           }}
+    # Try function/macro documentation first
+    case aggregate_function_docs(module, function, arity) do
+      list when is_list(list) and list != [] ->
+        # Map the list of function docs to the expected format
+        results =
+          Enum.map(list, fn section ->
+            %{
+              module: inspect(module),
+              function: Atom.to_string(function),
+              arity: section[:arity] || arity,
+              documentation: format_function_sections([section])
+            }
+          end)
 
-        _ ->
-          # Try as callback second
-          case aggregate_callback_docs(module, function, arity) do
-            list = [_ | _] ->
-              {:ok,
-               %{
-                 module: inspect(module),
-                 callback: Atom.to_string(function),
-                 arity: arity,
-                 documentation: doc
-               }}
+        {:ok, results}
 
-            _ ->
-              # Try as type third
-              case aggregate_type_docs(module, function, arity) do
-                list = [_ | _] ->
-                  {:ok,
-                   %{
-                     module: inspect(module),
-                     type: Atom.to_string(function),
-                     arity: arity,
-                     documentation: doc
-                   }}
+      _ ->
+        # Try as callback second
+        case aggregate_callback_docs(module, function, arity) do
+          list when is_list(list) and list != [] ->
+            results =
+              Enum.map(list, fn callback_info ->
+                %{
+                  module: inspect(module),
+                  callback: Atom.to_string(function),
+                  arity: callback_info[:arity] || arity,
+                  documentation: callback_info[:documentation] || ""
+                }
+              end)
 
-                _ ->
-                  {:error,
-                   "Remote call #{module}.#{function}/#{arity || "?"} - no documentation found"}
-              end
-          end
-      end
+            {:ok, results}
+
+          _ ->
+            # Try as type third
+            case aggregate_type_docs(module, function, arity) do
+              list when is_list(list) and list != [] ->
+                results =
+                  Enum.map(list, fn type_info ->
+                    %{
+                      module: inspect(module),
+                      type: Atom.to_string(function),
+                      arity: type_info[:arity] || arity,
+                      documentation: type_info[:documentation] || ""
+                    }
+                  end)
+
+                {:ok, results}
+
+              _ ->
+                {:error,
+                 "Remote call #{module}.#{function}/#{arity || "?"} - no documentation found"}
+            end
+        end
+    end
   end
 
   defp get_documentation(:attribute, attribute) do
@@ -363,15 +376,16 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     specs = get_function_specs(module, function, arity)
 
     function_docs
-          |> Enum.map(fn {{name, doc_arity}, _anno, kind, _signatures, doc, metadata} ->
-            %{
-              type: kind,
-              signature: "#{function}/#{doc_arity}",
-              doc: extract_doc(doc),
-              metadata: metadata,
-              specs: specs[{name, doc_arity}] || [],
-            }
-          end)
+    |> Enum.map(fn {{name, doc_arity}, _anno, kind, _signatures, doc, metadata} ->
+      %{
+        type: kind,
+        arity: doc_arity,
+        signature: "#{function}/#{doc_arity}",
+        doc: extract_doc(doc),
+        metadata: metadata,
+        specs: Map.get(specs, {name, doc_arity}, [])
+      }
+    end)
   end
 
   defp aggregate_type_docs(module, type, arity) do
@@ -381,29 +395,32 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     type_docs =
       case NormalizedCode.get_docs(module, :type_docs) do
         docs when is_list(docs) ->
-          Enum.find(docs, fn
+          Enum.filter(docs, fn
             {{^type, type_arity}, _, _, _, _} ->
               arity == nil or type_arity == arity
-            _ -> false
+
+            _ ->
+              false
           end)
 
         _ ->
-          nil
+          []
       end
 
     # Get type spec
     type_specs_by_name_arity = get_type_specs(module, type, arity)
 
-    Enum.map(type_docs, fn {{name, arity}, _, _, doc, metadata} ->
+    Enum.map(type_docs, fn {{name, doc_arity}, _, _, doc, metadata} ->
       doc_content = extract_doc(doc)
+
       %{
-      type: Atom.to_string(type),
-      arity: arity,
-      spec: type_specs[{name, arity}] || [],
-      documentation: doc_content,
-      metadata: type_metadata
-    }
-    end)    
+        type: Atom.to_string(name),
+        arity: doc_arity,
+        spec: Map.get(type_specs_by_name_arity, {name, doc_arity}),
+        documentation: doc_content || "",
+        metadata: metadata
+      }
+    end)
   end
 
   defp aggregate_attribute_docs(attribute) do
@@ -424,16 +441,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp format_function_doc(module, doc_entry) do
     case doc_entry do
       {{name, arity}, _line, kind, _signatures, doc, metadata} when kind in [:function, :macro] ->
-        # TODO: wtf? why call it again here?
-        specs = get_function_specs(module, name, arity)
-
         %{
           function: Atom.to_string(name),
           arity: arity,
           kind: kind,
           signature: format_function_signature(module, name, arity, metadata),
           doc: extract_doc(doc),
-          specs: specs,
+          specs: [],
           metadata: metadata
         }
 
@@ -493,27 +507,50 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp aggregate_callback_docs(module, callback, arity) do
     ensure_loaded(module)
 
+    # First try to get callback metadata from raw docs
+    callback_metadata_map =
+      case NormalizedCode.get_docs(module, :callback_docs) do
+        docs when is_list(docs) ->
+          docs
+          |> Enum.filter(fn
+            {{^callback, callback_arity}, _, _, _, _} ->
+              arity == nil or callback_arity == arity
+
+            _ ->
+              false
+          end)
+          |> Enum.map(fn {{name, cb_arity}, _, _, _, metadata} ->
+            {{name, cb_arity}, metadata}
+          end)
+          |> Map.new()
+
+        _ ->
+          %{}
+      end
+
     # Get callback documentation using Introspection
     callback_docs = Introspection.get_callbacks_with_docs(module)
 
-    # Find the specific callback by name and arity
+    # Filter callbacks by name and arity
     callback_infos =
-      Enum.find(callback_docs, fn
-        %{name: ^callback, arity: callback_arity} -> 
+      callback_docs
+      |> Enum.filter(fn
+        %{name: ^callback, arity: callback_arity} ->
           arity == nil or callback_arity == arity
-        _ -> false
+
+        _ ->
+          false
       end)
 
-    Enum.map(callback_infos, fn
-      %{doc: doc, callback: spec, kind: kind, metadata: callback_metadata} ->
-        %{
-          callback: Atom.to_string(callback),
-          arity: arity,
-          spec: spec,
-          kind: kind,
-          documentation: extract_doc(doc),
-          metadata: callback_metadata
-        }
+    Enum.map(callback_infos, fn callback_info ->
+      %{
+        callback: Atom.to_string(callback),
+        arity: callback_info.arity,
+        spec: callback_info.callback,
+        kind: callback_info.kind,
+        documentation: extract_doc(callback_info.doc),
+        metadata: Map.get(callback_metadata_map, {callback, callback_info.arity}, %{})
+      }
     end)
   end
 
@@ -521,68 +558,78 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     # Get all specs for the module using TypeInfo.get_module_specs to match llm_type_info.ex
     module_specs = TypeInfo.get_module_specs(module)
 
-    # TODO: macro specs?
-    # Filter specs for the function/arity
+    # Filter specs for the function/arity, including macro specs
     filtered_specs =
       module_specs
       |> Enum.filter(fn
-        {{^function, spec_arity}, _} ->
-          arity == nil or spec_arity == arity
+        {{spec_name, spec_arity}, _} ->
+          # Check if it's a regular function match
+          regular_match = spec_name == function and (arity == nil or spec_arity == arity)
+          
+          # Check if it's a macro match (MACRO-name/arity+1)
+          macro_name = String.to_atom("MACRO-#{function}")
+          macro_match = if arity == nil do
+            spec_name == macro_name
+          else
+            spec_name == macro_name and spec_arity == arity + 1
+          end
+          
+          regular_match or macro_match
 
         _ ->
           false
       end)
 
-    # Group by function/arity and format each group
+    # Format each spec and return as a list for compatibility with format_function_sections
     filtered_specs
-    |> Enum.group_by(fn {{name, spec_arity}, _} -> {name, spec_arity} end)
-    |> Map.new(fn {{name, spec_arity}, specs} ->
-      # Collect all spec ASTs for this function/arity
-      formatted_asts = Enum.map(specs, fn {_, {{_, _}, spec_ast}} ->
-        formatted = try do
-          Introspection.spec_to_string({{name, spec_arity}, flattened_spec_asts}, :spec)
-        catch
-        _kind, _error ->
-          nil
-        end
-
-        {{name, spec_arity}, formatted}
-      end)
-      |> Enum.reject(& is_nil(elem(&1, 1)))
+    |> Map.new(fn {_key, {{name, spec_arity}, specs}} ->
+      formatted_spec = Introspection.spec_to_string({{name, spec_arity}, specs}, :spec)
+      
+      # Normalize macro names for the result key
+      {display_name, display_arity} = normalize_macro_name_and_arity(name, spec_arity)
+      normalized_key = {String.to_atom(display_name), display_arity}
+      
+      # Return as a list containing the single spec for compatibility with Enum.map_join
+      {normalized_key, [formatted_spec]}
     end)
   end
 
   defp get_type_specs(module, type, arity) do
-    Typespec.get_types(module)
-    |> Enum.filter(fn
-      {kind, {^type, _, args}} when kind in [:type, :opaque] ->
-        arity == nil or length(args) == arity
+    case Typespec.get_types(module) do
+      types when is_list(types) ->
+        types
+        |> Enum.filter(fn
+          {kind, {^type, _, args}} when kind in [:type, :opaque] ->
+            arity == nil or length(args) == arity
+
+          _ ->
+            false
+        end)
+        |> Enum.map(fn {kind, {name, _, args}} = typedef ->
+          spec =
+            try do
+              TypeInfo.format_type_spec(typedef, line_length: 75)
+            catch
+              _ -> "@#{kind} #{name}/#{length(args)}"
+            end
+
+          {{name, length(args)}, spec}
+        end)
+        |> Map.new()
 
       _ ->
-        false
-    end)
-    |> Enum.map(fn {kind, {name, _, args}} = spec_ast ->
-      spec =
-      try do
-        TypeInfo.format_type_spec(typedef, line_length: 75)
-      catch
-        _ -> "@#{kind} #{name}/#{arity}"
-      end
-
-      {{name, length(args)}, spec}
-    end)
-    |> Map.new
+        %{}
+    end
   end
 
-
   defp format_function_signature(module, name, arity, metadata) do
-    args = 
+    args =
       try do
         Map.get(metadata, :signature, List.duplicate("arg", arity || 0))
       rescue
         _ -> List.duplicate("arg", arity || 0)
       end
-    
+
     try do
       "#{inspect(module)}.#{name}(#{Enum.join(args, ", ")})"
     rescue
@@ -630,4 +677,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
 
   defp format_metadata_section(_), do: ""
 
+  defp normalize_macro_name_and_arity(name, arity) do
+    name_str = to_string(name)
+
+    if String.starts_with?(name_str, "MACRO-") do
+      # Remove "MACRO-" prefix and subtract 1 from arity
+      display_name = String.replace_prefix(name_str, "MACRO-", "")
+      display_arity = arity - 1
+      {display_name, display_arity}
+    else
+      # Regular function, no transformation needed
+      {name_str, arity}
+    end
+  end
 end

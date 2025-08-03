@@ -55,107 +55,114 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   end
 
   # erlang name
-  defp get_metadata_entry_md({:name, _text}), do: nil
+  def get_metadata_entry_md({:name, _text}), do: nil
 
   # erlang signature
-  defp get_metadata_entry_md({:signature, _text}), do: nil
+  def get_metadata_entry_md({:signature, _text}), do: nil
 
   # erlang edit_url
-  defp get_metadata_entry_md({:edit_url, _text}), do: nil
+  def get_metadata_entry_md({:edit_url, _text}), do: nil
 
   # erlang :otp_doc_vsn
-  defp get_metadata_entry_md({:otp_doc_vsn, _text}), do: nil
+  def get_metadata_entry_md({:otp_doc_vsn, _text}), do: nil
 
   # erlang :source
-  defp get_metadata_entry_md({:source, _text}), do: nil
+  def get_metadata_entry_md({:source, _text}), do: nil
 
   # erlang :types
-  defp get_metadata_entry_md({:types, _text}), do: nil
+  def get_metadata_entry_md({:types, _text}), do: nil
 
   # erlang :group
-  defp get_metadata_entry_md({:group, _group}), do: nil
+  def get_metadata_entry_md({:group, _group}), do: nil
 
   # erlang :equiv
   # OTP < 27
-  defp get_metadata_entry_md({:equiv, {:function, name, arity}}) do
+  def get_metadata_entry_md({:equiv, {:function, name, arity}}) do
     "**Equivalent to** #{name}/#{arity}"
   end
 
   # OTP >= 27
-  defp get_metadata_entry_md({:equiv, text}) when is_binary(text) do
+  def get_metadata_entry_md({:equiv, text}) when is_binary(text) do
     "**Equivalent to** #{text}"
   end
 
-  defp get_metadata_entry_md({:deprecated, text}) when is_binary(text) do
+  def get_metadata_entry_md({:deprecated, text}) when is_binary(text) do
     "**Deprecated** #{text}"
   end
 
-  defp get_metadata_entry_md({:since, text}) when is_binary(text) do
+  def get_metadata_entry_md({:since, text}) when is_binary(text) do
     "**Since** #{text}"
   end
 
-  defp get_metadata_entry_md({:guard, true}) do
+  def get_metadata_entry_md({:guard, true}) do
     "**Guard**"
   end
 
-  defp get_metadata_entry_md({:hidden, true}) do
+  def get_metadata_entry_md({:hidden, true}) do
     "**Hidden**"
   end
 
-  defp get_metadata_entry_md({:builtin, true}) do
+  def get_metadata_entry_md({:builtin, true}) do
     "**Built-in**"
   end
 
-  defp get_metadata_entry_md({:implementing, module}) when is_atom(module) do
+  def get_metadata_entry_md({:implementing, module}) when is_atom(module) do
     "**Implementing behaviour** #{inspect(module)}"
   end
 
-  defp get_metadata_entry_md({:implementing_module_app, app}) when is_atom(app) do
+  def get_metadata_entry_md({:implementing_module_app, app}) when is_atom(app) do
     "**Behaviour defined in application** #{to_string(app)}"
   end
 
-  defp get_metadata_entry_md({:app, app}) when is_atom(app) do
+  def get_metadata_entry_md({:app, app}) when is_atom(app) do
     "**Application** #{to_string(app)}"
   end
 
-  defp get_metadata_entry_md({:optional, true}) do
+  def get_metadata_entry_md({:optional, true}) do
     "**Optional**"
   end
 
-  defp get_metadata_entry_md({:optional, false}), do: nil
+  def get_metadata_entry_md({:optional, false}), do: nil
 
-  defp get_metadata_entry_md({:overridable, true}) do
+  def get_metadata_entry_md({:overridable, true}) do
     "**Overridable**"
   end
 
-  defp get_metadata_entry_md({:overridable, false}), do: nil
+  def get_metadata_entry_md({:overridable, false}), do: nil
 
-  defp get_metadata_entry_md({:opaque, true}) do
+  def get_metadata_entry_md({:opaque, true}) do
     "**Opaque**"
   end
 
-  defp get_metadata_entry_md({:defaults, _}), do: nil
+  def get_metadata_entry_md({:defaults, _}), do: nil
 
-  defp get_metadata_entry_md({:delegate_to, {m, f, a}})
-       when is_atom(m) and is_atom(f) and is_integer(a) do
+  def get_metadata_entry_md({:delegate_to, {m, f, a}})
+      when is_atom(m) and is_atom(f) and is_integer(a) do
     "**Delegates to** #{inspect(m)}.#{f}/#{a}"
   end
 
-  defp get_metadata_entry_md({:behaviours, []}), do: nil
+  def get_metadata_entry_md({:behaviours, []}), do: nil
 
-  defp get_metadata_entry_md({:behaviours, list})
-       when is_list(list) do
+  def get_metadata_entry_md({:behaviours, list})
+      when is_list(list) do
     "**Implements** #{Enum.map_join(list, ", ", &inspect/1)}"
   end
 
-  defp get_metadata_entry_md({:source_annos, _}), do: nil
+  def get_metadata_entry_md({:source_annos, _}), do: nil
 
-  defp get_metadata_entry_md({:source_path, _}), do: nil
+  def get_metadata_entry_md({:source_path, _}), do: nil
 
-  defp get_metadata_entry_md({:spark_opts, _}), do: nil
+  def get_metadata_entry_md({:spark_opts, _}), do: nil
 
-  defp get_metadata_entry_md({key, value}) do
-    "**#{key}** #{inspect(value)}"
+  # Filter out complex attribute/spec metadata that can't be serialized
+  def get_metadata_entry_md({:attribute, _}), do: nil
+
+  def get_metadata_entry_md({key, value}) do
+    try do
+      "**#{key}** #{inspect(value)}"
+    rescue
+      _ -> nil
+    end
   end
 
   @doc """

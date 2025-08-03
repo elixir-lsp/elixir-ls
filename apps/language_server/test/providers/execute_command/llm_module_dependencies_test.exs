@@ -37,80 +37,80 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
 
   describe "execute/2" do
     if Version.match?(System.version(), ">= 1.18.0") do
-    test "returns direct dependencies for a module" do
-      state = %{source_files: %{}}
+      test "returns direct dependencies for a module" do
+        state = %{source_files: %{}}
 
-      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
+        assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsA"], state)
 
-      assert result.module == "ElixirLS.Test.ModuleDepsA"
+        assert result.module == "ElixirLS.Test.ModuleDepsA"
 
-      direct_deps = result.direct_dependencies
+        direct_deps = result.direct_dependencies
 
-      # Check imports
-      assert "Enum.filter/2" in direct_deps.imports
+        # Check imports
+        assert "Enum.filter/2" in direct_deps.imports
 
-      # Check aliases
-      assert "ElixirLS.Test.ModuleDepsB" in direct_deps.aliases
+        # Check aliases
+        assert "ElixirLS.Test.ModuleDepsB" in direct_deps.aliases
 
-      # Check requires
-      assert "Logger" in direct_deps.requires
+        # Check requires
+        assert "Logger" in direct_deps.requires
 
-      # Check compile-time dependencies
-      assert "Logger" in direct_deps.compile_dependencies
-      assert "ElixirLS.Test.ModuleDepsB" in direct_deps.compile_dependencies
+        # Check compile-time dependencies
+        assert "Logger" in direct_deps.compile_dependencies
+        assert "ElixirLS.Test.ModuleDepsB" in direct_deps.compile_dependencies
 
-      # Check runtime dependencies
-      assert "Enum" in direct_deps.runtime_dependencies
-      assert "ElixirLS.Test.ModuleDepsC" in direct_deps.runtime_dependencies
+        # Check runtime dependencies
+        assert "Enum" in direct_deps.runtime_dependencies
+        assert "ElixirLS.Test.ModuleDepsC" in direct_deps.runtime_dependencies
 
-      # Check exported dependencies
-      assert "Logger" in direct_deps.exports_dependencies
-      assert "Enum" in direct_deps.exports_dependencies
-      assert "ElixirLS.Test.ModuleDepsC" in direct_deps.exports_dependencies
+        # Check exported dependencies
+        assert "Logger" in direct_deps.exports_dependencies
+        assert "Enum" in direct_deps.exports_dependencies
+        assert "ElixirLS.Test.ModuleDepsC" in direct_deps.exports_dependencies
 
-      # Check function calls
-      assert "ElixirLS.Test.ModuleDepsC.function_in_c/0" in direct_deps.function_calls
+        # Check function calls
+        assert "ElixirLS.Test.ModuleDepsC.function_in_c/0" in direct_deps.function_calls
 
-      # Check struct expansions
-      assert "ElixirLS.Test.ModuleDepsC" in direct_deps.struct_expansions
+        # Check struct expansions
+        assert "ElixirLS.Test.ModuleDepsC" in direct_deps.struct_expansions
+      end
     end
-  end
 
-  if Version.match?(System.version(), ">= 1.18.0") do
-    test "returns reverse dependencies" do
-      state = %{source_files: %{}}
+    if Version.match?(System.version(), ">= 1.18.0") do
+      test "returns reverse dependencies" do
+        state = %{source_files: %{}}
 
-      assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsC"], state)
+        assert {:ok, result} = LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsC"], state)
 
-      assert result.module == "ElixirLS.Test.ModuleDepsC"
+        assert result.module == "ElixirLS.Test.ModuleDepsC"
 
-      reverse_deps = result.reverse_dependencies
+        reverse_deps = result.reverse_dependencies
 
-      # Check imports
-      assert "ElixirLS.Test.ModuleDepsD imports ElixirLS.Test.ModuleDepsC.function_in_c/0" in reverse_deps.imports
+        # Check imports
+        assert "ElixirLS.Test.ModuleDepsD imports ElixirLS.Test.ModuleDepsC.function_in_c/0" in reverse_deps.imports
 
-      # Check aliases
-      assert "ElixirLS.Test.ModuleDepsD" in reverse_deps.aliases
+        # Check aliases
+        assert "ElixirLS.Test.ModuleDepsD" in reverse_deps.aliases
 
-      # Check requires
-      assert "ElixirLS.Test.ModuleDepsD" in reverse_deps.requires
+        # Check requires
+        assert "ElixirLS.Test.ModuleDepsD" in reverse_deps.requires
 
-      # Check compile-time dependencies
-      assert "ElixirLS.Test.ModuleDepsD" in reverse_deps.compile_dependencies
+        # Check compile-time dependencies
+        assert "ElixirLS.Test.ModuleDepsD" in reverse_deps.compile_dependencies
 
-      # Check runtime dependencies
-      assert "ElixirLS.Test.ModuleDepsA" in reverse_deps.runtime_dependencies
+        # Check runtime dependencies
+        assert "ElixirLS.Test.ModuleDepsA" in reverse_deps.runtime_dependencies
 
-      # Check exported dependencies
-      assert "ElixirLS.Test.ModuleDepsB" in reverse_deps.exports_dependencies
+        # Check exported dependencies
+        assert "ElixirLS.Test.ModuleDepsB" in reverse_deps.exports_dependencies
 
-      # Check function calls
-      assert "ElixirLS.Test.ModuleDepsA calls ElixirLS.Test.ModuleDepsC.function_in_c/0" in reverse_deps.function_calls
+        # Check function calls
+        assert "ElixirLS.Test.ModuleDepsA calls ElixirLS.Test.ModuleDepsC.function_in_c/0" in reverse_deps.function_calls
 
-      # Check struct expansions
-      assert "ElixirLS.Test.ModuleDepsB" in reverse_deps.struct_expansions
+        # Check struct expansions
+        assert "ElixirLS.Test.ModuleDepsB" in reverse_deps.struct_expansions
+      end
     end
-  end
 
     test "returns transitive compile dependencies" do
       state = %{source_files: %{}}
@@ -223,40 +223,43 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
     end
 
     if Version.match?(System.version(), ">= 1.18.0") do
-    test "filters reverse dependencies by function for remote calls" do
-      state = %{source_files: %{}}
+      test "filters reverse dependencies by function for remote calls" do
+        state = %{source_files: %{}}
 
-      # Test filtering reverse dependencies for a specific function
-      assert {:ok, result} =
-               LlmModuleDependencies.execute(["ElixirLS.Test.ModuleDepsC.function_in_c/0"], state)
+        # Test filtering reverse dependencies for a specific function
+        assert {:ok, result} =
+                 LlmModuleDependencies.execute(
+                   ["ElixirLS.Test.ModuleDepsC.function_in_c/0"],
+                   state
+                 )
 
-      assert result.module == "ElixirLS.Test.ModuleDepsC"
-      assert result.function == "function_in_c/0"
+        assert result.module == "ElixirLS.Test.ModuleDepsC"
+        assert result.function == "function_in_c/0"
 
-      reverse_deps = result.reverse_dependencies
+        reverse_deps = result.reverse_dependencies
 
-      # Should only include reverse dependencies that specifically call function_in_c/0
-      function_calls = reverse_deps.function_calls
+        # Should only include reverse dependencies that specifically call function_in_c/0
+        function_calls = reverse_deps.function_calls
 
-      # Should include calls from ModuleDepsA and possibly others that call function_in_c/0
-      matching_calls =
-        Enum.filter(function_calls, fn call ->
-          String.contains?(call, "function_in_c/0")
-        end)
+        # Should include calls from ModuleDepsA and possibly others that call function_in_c/0
+        matching_calls =
+          Enum.filter(function_calls, fn call ->
+            String.contains?(call, "function_in_c/0")
+          end)
 
-      assert length(matching_calls) > 0
+        assert length(matching_calls) > 0
 
-      # Should include imports from ModuleDepsD that import function_in_c/0
-      imports = reverse_deps.imports
+        # Should include imports from ModuleDepsD that import function_in_c/0
+        imports = reverse_deps.imports
 
-      matching_imports =
-        Enum.filter(imports, fn import ->
-          String.contains?(import, "function_in_c/0")
-        end)
+        matching_imports =
+          Enum.filter(imports, fn import ->
+            String.contains?(import, "function_in_c/0")
+          end)
 
-      assert length(matching_imports) > 0
+        assert length(matching_imports) > 0
+      end
     end
-  end
 
     test "handles remote call with arity nil (function name only)" do
       state = %{source_files: %{}}

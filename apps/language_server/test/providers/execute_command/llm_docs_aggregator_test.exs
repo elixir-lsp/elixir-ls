@@ -83,13 +83,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
       assert "fetch/2" in access_result.callbacks
 
-      # Check Protocol module
-      protocol_result = Enum.find(result.results, &(&1.module == "Protocol"))
-      assert protocol_result
-      assert is_list(protocol_result.macrocallbacks)
-      assert length(protocol_result.macrocallbacks) > 0
+      if Version.match?(System.version(), ">= 1.18.0") do
+        # Check Protocol module
+        protocol_result = Enum.find(result.results, &(&1.module == "Protocol"))
+        assert protocol_result
+        assert is_list(protocol_result.macrocallbacks)
+        assert length(protocol_result.macrocallbacks) > 0
 
-      assert "__deriving__/2" in protocol_result.macrocallbacks
+        assert "__deriving__/2" in protocol_result.macrocallbacks
+      end
     end
 
     test "gets module behaviours" do
@@ -347,6 +349,44 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       # No documentation available
       assert test_result.moduledoc == nil
       assert test_result.functions == ["hello/0"]
+    end
+
+    test "includes metadata in documentation types" do
+      # Test module metadata
+      assert {:ok, result} =
+               LlmDocsAggregator.execute([["ElixirSenseExample.ModuleWithDocs"]], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      module_result = hd(result.results)
+      assert Map.has_key?(module_result, :moduledoc_metadata)
+      # ModuleWithDocs has a @moduledoc since: "1.2.3" 
+      assert is_map(module_result.moduledoc_metadata)
+
+      # Test function metadata
+      assert {:ok, result} =
+               LlmDocsAggregator.execute([["ElixirSenseExample.ModuleWithDocs.some_fun/2"]], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      function_result = hd(result.results)
+      assert Map.has_key?(function_result, :documentation)
+      # some_fun has @doc since: "1.1.0" so metadata should be included in formatted docs
+      assert String.contains?(function_result.documentation, "Since")
+
+      # Test type metadata (metadata is included in module aggregation, not individual type calls)
+      assert {:ok, result} =
+               LlmDocsAggregator.execute([["ElixirSenseExample.ModuleWithDocs.some_type/0"]], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      type_result = hd(result.results)
+      # Individual type calls return documentation directly, metadata is preserved in module calls
+      assert Map.has_key?(type_result, :documentation)
+      assert String.contains?(type_result.documentation, "An example type")
     end
 
     test "returns error for invalid arguments" do
