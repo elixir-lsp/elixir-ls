@@ -389,6 +389,185 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert String.contains?(type_result.documentation, "An example type")
     end
 
+    test "handles macro documentation with specs" do
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_macro/2"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      macro_result = hd(result.results)
+      assert macro_result.module == "ElixirSenseExample.ModuleWithDocs"
+      assert macro_result.function == "some_macro"
+      assert macro_result.arity == 2
+      assert macro_result.documentation =~ "An example macro"
+      
+      # Check that metadata is included (since: "1.1.0")
+      assert macro_result.documentation =~ "Since"
+      assert macro_result.documentation =~ "1.1.0"
+    end
+
+    test "handles macro documentation without arity" do
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_macro"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      # Should find at least the some_macro/2 (from the fixture)
+      assert length(result.results) >= 1
+
+      macro_result = result.results |> Enum.find(&(&1.arity == 2))
+      assert macro_result.module == "ElixirSenseExample.ModuleWithDocs"
+      assert macro_result.function == "some_macro"
+      assert macro_result.arity == 2
+      assert macro_result.documentation =~ "An example macro"
+    end
+
+    test "handles macrocallback documentation with arity" do
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_macrocallback/1"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      macrocallback_result = hd(result.results)
+      assert macrocallback_result.module == "ElixirSenseExample.ModuleWithDocs"
+      assert macrocallback_result.callback == "some_macrocallback"
+      assert macrocallback_result.arity == 1
+      assert macrocallback_result.documentation =~ "An example callback"
+      
+      # Check that we got the documentation (metadata may be formatted differently for callbacks)
+      assert macrocallback_result.documentation
+    end
+
+    test "handles macrocallback documentation without arity" do
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_macrocallback"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) >= 1
+
+      macrocallback_result = result.results |> Enum.find(&(&1.arity == 1))
+      assert macrocallback_result.module == "ElixirSenseExample.ModuleWithDocs"
+      assert macrocallback_result.callback == "some_macrocallback"
+      assert macrocallback_result.arity == 1
+      assert macrocallback_result.documentation =~ "An example callback"
+    end
+
+    test "verifies macro and macrocallback specs are included" do
+      # Test callback spec
+      assert {:ok, result} = LlmDocsAggregator.execute([["ElixirSenseExample.ModuleWithDocs.some_callback/1"]], %{})
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+      
+      callback_result = hd(result.results)
+      assert Map.has_key?(callback_result, :spec)
+      assert Map.has_key?(callback_result, :kind)
+      assert Map.has_key?(callback_result, :metadata)
+      assert callback_result.spec == "@callback some_callback(integer()) :: atom()"
+      assert callback_result.kind == :callback
+      assert callback_result.metadata.since == "1.1.0"
+      
+      # Test macrocallback spec  
+      assert {:ok, result} = LlmDocsAggregator.execute([["ElixirSenseExample.ModuleWithDocs.some_macrocallback/1"]], %{})
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+      
+      macrocallback_result = hd(result.results)
+      assert Map.has_key?(macrocallback_result, :spec)
+      assert Map.has_key?(macrocallback_result, :kind)
+      assert Map.has_key?(macrocallback_result, :metadata)
+      assert macrocallback_result.spec == "@macrocallback some_macrocallback(integer()) :: atom()"
+      assert macrocallback_result.kind == :macrocallback
+      assert macrocallback_result.metadata.since == "1.1.0"
+    end
+
+    test "verifies function documentation contains specs" do
+      # Test with ElixirSenseExample.ModuleWithDocs.some_fun/2 which has a @spec
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_fun/2"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      func_result = hd(result.results)
+      assert func_result.module == "ElixirSenseExample.ModuleWithDocs"
+      assert func_result.function == "some_fun"
+      assert func_result.arity == 2
+      assert func_result.documentation =~ "An example fun"
+      
+      # Verify that specs are included in the documentation
+      assert func_result.documentation =~ "**Specs:**"
+      assert func_result.documentation =~ "@spec some_fun"
+      assert func_result.documentation =~ "```elixir"
+      assert func_result.documentation =~ "integer()"
+    end
+
+    test "verifies macro documentation contains specs" do
+      # Test with ElixirSenseExample.ModuleWithDocs.some_macro/2 which has a @spec
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_macro/2"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      macro_result = hd(result.results)
+      assert macro_result.module == "ElixirSenseExample.ModuleWithDocs"
+      assert macro_result.function == "some_macro"
+      assert macro_result.arity == 2
+      assert macro_result.documentation =~ "An example macro"
+      
+      # Verify that specs are included in the macro documentation
+      assert macro_result.documentation =~ "**Specs:**"
+      assert macro_result.documentation =~ "@spec some_macro"
+      assert macro_result.documentation =~ "```elixir"
+      assert macro_result.documentation =~ "Macro.t()"
+    end
+
+    test "verifies function specs are properly formatted" do
+      # Test function without arity to get all arities
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_fun"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) >= 1
+
+      # Find the result with arity 2 (which has specs)
+      func_result = Enum.find(result.results, &(&1.arity == 2))
+      assert func_result
+      
+      # Verify spec formatting
+      assert func_result.documentation =~ "**Specs:**"
+      assert func_result.documentation =~ "```elixir"
+      assert func_result.documentation =~ "@spec some_fun(integer(), integer() | nil) :: integer()"
+    end
+
+    test "verifies macro specs are properly formatted" do
+      # Test macro without arity to get all arities
+      modules = ["ElixirSenseExample.ModuleWithDocs.some_macro"]
+
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+
+      assert Map.has_key?(result, :results)
+      assert length(result.results) >= 1
+
+      # Find the result with arity 2 (which has specs)
+      macro_result = Enum.find(result.results, &(&1.arity == 2))
+      assert macro_result
+      
+      # Verify spec formatting for macro
+      assert macro_result.documentation =~ "**Specs:**"
+      assert macro_result.documentation =~ "```elixir"
+      assert macro_result.documentation =~ "@spec some_macro(Macro.t(), Macro.t() | nil) :: Macro.t()"
+    end
+
+
     test "returns error for invalid arguments" do
       # Test with non-list argument
       assert {:ok, result} = LlmDocsAggregator.execute("String", %{})

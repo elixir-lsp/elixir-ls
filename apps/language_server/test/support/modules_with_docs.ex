@@ -22,6 +22,7 @@ defmodule ElixirSenseExample.ModuleWithDocs do
   An example fun
   """
   @doc since: "1.1.0"
+  @spec some_fun(integer, integer | nil) :: integer
   def some_fun(a, b \\ nil), do: a + b
   @doc false
   def some_fun_doc_false(a, b \\ nil), do: a + b
@@ -31,6 +32,7 @@ defmodule ElixirSenseExample.ModuleWithDocs do
   An example macro
   """
   @doc since: "1.1.0"
+  @spec some_macro(Macro.t(), Macro.t() | nil) :: Macro.t()
   defmacro some_macro(a, b \\ nil), do: a + b
   @doc false
   defmacro some_macro_doc_false(a, b \\ nil), do: a + b

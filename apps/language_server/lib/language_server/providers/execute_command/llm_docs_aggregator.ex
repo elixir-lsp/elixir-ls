@@ -133,12 +133,33 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           list when is_list(list) and list != [] ->
             results =
               Enum.map(list, fn callback_info ->
-                %{
+                base_result = %{
                   module: inspect(module),
                   callback: Atom.to_string(function),
                   arity: callback_info[:arity] || arity,
                   documentation: callback_info[:documentation] || ""
                 }
+                
+                # Add spec if available
+                base_result = if callback_info[:spec] do
+                  Map.put(base_result, :spec, callback_info[:spec])
+                else
+                  base_result
+                end
+                
+                # Add kind if available  
+                base_result = if callback_info[:kind] do
+                  Map.put(base_result, :kind, callback_info[:kind])
+                else
+                  base_result
+                end
+                
+                # Add metadata if available
+                if callback_info[:metadata] && callback_info[:metadata] != %{} do
+                  Map.put(base_result, :metadata, callback_info[:metadata])
+                else
+                  base_result
+                end
               end)
 
             {:ok, results}
@@ -507,27 +528,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp aggregate_callback_docs(module, callback, arity) do
     ensure_loaded(module)
 
-    # First try to get callback metadata from raw docs
-    callback_metadata_map =
-      case NormalizedCode.get_docs(module, :callback_docs) do
-        docs when is_list(docs) ->
-          docs
-          |> Enum.filter(fn
-            {{^callback, callback_arity}, _, _, _, _} ->
-              arity == nil or callback_arity == arity
-
-            _ ->
-              false
-          end)
-          |> Enum.map(fn {{name, cb_arity}, _, _, _, metadata} ->
-            {{name, cb_arity}, metadata}
-          end)
-          |> Map.new()
-
-        _ ->
-          %{}
-      end
-
     # Get callback documentation using Introspection
     callback_docs = Introspection.get_callbacks_with_docs(module)
 
@@ -543,14 +543,18 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       end)
 
     Enum.map(callback_infos, fn callback_info ->
-      %{
+      callback_result = %{
         callback: Atom.to_string(callback),
         arity: callback_info.arity,
+        documentation: extract_doc(callback_info.doc),
         spec: callback_info.callback,
         kind: callback_info.kind,
-        documentation: extract_doc(callback_info.doc),
-        metadata: Map.get(callback_metadata_map, {callback, callback_info.arity}, %{})
+        metadata: callback_info.metadata
       }
+      
+      callback_result = Map.put(callback_result, :metadata, callback_info.metadata)
+      
+      callback_result
     end)
   end
 
@@ -658,7 +662,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       spec_part =
         if section[:specs] && section.specs != [],
           do:
-            "\n\n**Specs:**\n#{Enum.map_join(section.specs, "\n", fn s -> "```elixir\n@spec #{s}\n```" end)}",
+            "\n\n**Specs:**\n#{Enum.map_join(section.specs, "\n", fn s -> "```elixir\n#{s}\n```" end)}",
           else: ""
 
       metadata_part = format_metadata_section(section[:metadata])
