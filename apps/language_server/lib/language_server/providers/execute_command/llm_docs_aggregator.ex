@@ -76,36 +76,54 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         {:ok, docs}
 
       _ ->
-        # Try as builtin type
-        if arity == nil or arity == 0 do
-          # TODO: doesn't work for types with arity > 0
-          case BuiltinTypes.get_builtin_type_doc(function) do
-            doc when doc != "" ->
-              {:ok,
-               %{
-                 type: "#{function}()",
-                 documentation: doc
-               }}
+        # Try as builtin type using the new API that returns a list
+        case BuiltinTypes.get_builtin_types_doc(function, arity || :any) do
+          [] ->
+            # No builtin types found, check if it's a builtin function using the new API
+            case BuiltinFunctions.get_builtin_functions_doc(function, arity || :any) do
+              [] ->
+                {:error, "Local call #{function}/#{arity || "?"} - no documentation found"}
 
-            _ ->
-              # Check if it's a builtin function or try other modules
-              case BuiltinFunctions.get_docs({function, arity}) do
-                "" ->
-                  {:error, "Local call #{function}/#{arity || "?"} - no documentation found"}
-
-                builtin_docs when is_binary(builtin_docs) ->
-                  {
-                    :ok,
+              builtin_functions ->
+                # Return all matching builtin functions
+                results =
+                  Enum.map(builtin_functions, fn {_function_name, func_arity, doc, specs} ->
                     %{
                       function: Atom.to_string(function),
-                      arity: arity,
-                      documentation: builtin_docs
+                      arity: func_arity,
+                      documentation: format_builtin_function_doc(doc, specs)
                     }
-                  }
-              end
-          end
-        else
-          {:error, "Local call #{function}/#{arity || "?"} - no documentation found"}
+                  end)
+
+                # Return single result if only one match, otherwise return list
+                case results do
+                  [single_result] -> {:ok, single_result}
+                  multiple_results -> {:ok, multiple_results}
+                end
+            end
+
+          builtin_types ->
+            # Return all matching builtin types
+            results =
+              Enum.map(builtin_types, fn {_type_name, type_arity, doc} ->
+                type_name =
+                  if type_arity == 0 do
+                    "#{function}()"
+                  else
+                    "#{function}/#{type_arity}"
+                  end
+
+                %{
+                  type: type_name,
+                  documentation: doc
+                }
+              end)
+
+            # Return single result if only one match, otherwise return list
+            case results do
+              [single_result] -> {:ok, single_result}
+              multiple_results -> {:ok, multiple_results}
+            end
         end
     end
   end
@@ -137,29 +155,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
                   module: inspect(module),
                   callback: Atom.to_string(function),
                   arity: callback_info[:arity] || arity,
-                  documentation: callback_info[:documentation] || ""
+                  documentation: callback_info[:documentation] || "",
+                  spec: callback_info[:spec],
+                  kind: callback_info[:kind],
+                  metadata: callback_info[:metadata] || %{}
                 }
-                
-                # Add spec if available
-                base_result = if callback_info[:spec] do
-                  Map.put(base_result, :spec, callback_info[:spec])
-                else
-                  base_result
-                end
-                
-                # Add kind if available  
-                base_result = if callback_info[:kind] do
-                  Map.put(base_result, :kind, callback_info[:kind])
-                else
-                  base_result
-                end
-                
-                # Add metadata if available
-                if callback_info[:metadata] && callback_info[:metadata] != %{} do
-                  Map.put(base_result, :metadata, callback_info[:metadata])
-                else
-                  base_result
-                end
               end)
 
             {:ok, results}
@@ -551,9 +551,9 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         kind: callback_info.kind,
         metadata: callback_info.metadata
       }
-      
+
       callback_result = Map.put(callback_result, :metadata, callback_info.metadata)
-      
+
       callback_result
     end)
   end
@@ -569,15 +569,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         {{spec_name, spec_arity}, _} ->
           # Check if it's a regular function match
           regular_match = spec_name == function and (arity == nil or spec_arity == arity)
-          
+
           # Check if it's a macro match (MACRO-name/arity+1)
           macro_name = String.to_atom("MACRO-#{function}")
-          macro_match = if arity == nil do
-            spec_name == macro_name
-          else
-            spec_name == macro_name and spec_arity == arity + 1
-          end
-          
+
+          macro_match =
+            if arity == nil do
+              spec_name == macro_name
+            else
+              spec_name == macro_name and spec_arity == arity + 1
+            end
+
           regular_match or macro_match
 
         _ ->
@@ -588,11 +590,11 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     filtered_specs
     |> Map.new(fn {_key, {{name, spec_arity}, specs}} ->
       formatted_spec = Introspection.spec_to_string({{name, spec_arity}, specs}, :spec)
-      
+
       # Normalize macro names for the result key
       {display_name, display_arity} = normalize_macro_name_and_arity(name, spec_arity)
       normalized_key = {String.to_atom(display_name), display_arity}
-      
+
       # Return as a list containing the single spec for compatibility with Enum.map_join
       {normalized_key, [formatted_spec]}
     end)
@@ -653,6 +655,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp extract_doc(doc) when is_binary(doc), do: doc
   defp extract_doc(:none), do: nil
   defp extract_doc(_), do: nil
+
+  defp format_builtin_function_doc(doc, specs) do
+    spec_part =
+      if specs != [] do
+        "\n\n**Specs:**\n#{Enum.map_join(specs, "\n", fn s -> "```elixir\n#{s}\n```" end)}"
+      else
+        ""
+      end
+
+    "#{doc}#{spec_part}"
+  end
 
   defp format_function_sections(sections) do
     sections

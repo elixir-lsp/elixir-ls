@@ -402,7 +402,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert macro_result.function == "some_macro"
       assert macro_result.arity == 2
       assert macro_result.documentation =~ "An example macro"
-      
+
       # Check that metadata is included (since: "1.1.0")
       assert macro_result.documentation =~ "Since"
       assert macro_result.documentation =~ "1.1.0"
@@ -437,7 +437,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert macrocallback_result.callback == "some_macrocallback"
       assert macrocallback_result.arity == 1
       assert macrocallback_result.documentation =~ "An example callback"
-      
+
       # Check that we got the documentation (metadata may be formatted differently for callbacks)
       assert macrocallback_result.documentation
     end
@@ -459,10 +459,15 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
 
     test "verifies macro and macrocallback specs are included" do
       # Test callback spec
-      assert {:ok, result} = LlmDocsAggregator.execute([["ElixirSenseExample.ModuleWithDocs.some_callback/1"]], %{})
+      assert {:ok, result} =
+               LlmDocsAggregator.execute(
+                 [["ElixirSenseExample.ModuleWithDocs.some_callback/1"]],
+                 %{}
+               )
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
-      
+
       callback_result = hd(result.results)
       assert Map.has_key?(callback_result, :spec)
       assert Map.has_key?(callback_result, :kind)
@@ -470,12 +475,17 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert callback_result.spec == "@callback some_callback(integer()) :: atom()"
       assert callback_result.kind == :callback
       assert callback_result.metadata.since == "1.1.0"
-      
+
       # Test macrocallback spec  
-      assert {:ok, result} = LlmDocsAggregator.execute([["ElixirSenseExample.ModuleWithDocs.some_macrocallback/1"]], %{})
+      assert {:ok, result} =
+               LlmDocsAggregator.execute(
+                 [["ElixirSenseExample.ModuleWithDocs.some_macrocallback/1"]],
+                 %{}
+               )
+
       assert Map.has_key?(result, :results)
       assert length(result.results) == 1
-      
+
       macrocallback_result = hd(result.results)
       assert Map.has_key?(macrocallback_result, :spec)
       assert Map.has_key?(macrocallback_result, :kind)
@@ -499,7 +509,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert func_result.function == "some_fun"
       assert func_result.arity == 2
       assert func_result.documentation =~ "An example fun"
-      
+
       # Verify that specs are included in the documentation
       assert func_result.documentation =~ "**Specs:**"
       assert func_result.documentation =~ "@spec some_fun"
@@ -521,7 +531,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert macro_result.function == "some_macro"
       assert macro_result.arity == 2
       assert macro_result.documentation =~ "An example macro"
-      
+
       # Verify that specs are included in the macro documentation
       assert macro_result.documentation =~ "**Specs:**"
       assert macro_result.documentation =~ "@spec some_macro"
@@ -541,11 +551,13 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       # Find the result with arity 2 (which has specs)
       func_result = Enum.find(result.results, &(&1.arity == 2))
       assert func_result
-      
+
       # Verify spec formatting
       assert func_result.documentation =~ "**Specs:**"
       assert func_result.documentation =~ "```elixir"
-      assert func_result.documentation =~ "@spec some_fun(integer(), integer() | nil) :: integer()"
+
+      assert func_result.documentation =~
+               "@spec some_fun(integer(), integer() | nil) :: integer()"
     end
 
     test "verifies macro specs are properly formatted" do
@@ -560,13 +572,51 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       # Find the result with arity 2 (which has specs)
       macro_result = Enum.find(result.results, &(&1.arity == 2))
       assert macro_result
-      
+
       # Verify spec formatting for macro
       assert macro_result.documentation =~ "**Specs:**"
       assert macro_result.documentation =~ "```elixir"
-      assert macro_result.documentation =~ "@spec some_macro(Macro.t(), Macro.t() | nil) :: Macro.t()"
+
+      assert macro_result.documentation =~
+               "@spec some_macro(Macro.t(), Macro.t() | nil) :: Macro.t()"
     end
 
+    test "handles builtin types with various arities" do
+      # Test builtin type without arity - returns all matching types
+      modules = ["list"]
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 2
+
+      # Should get both list() and list/1
+      list_result = Enum.find(result.results, &(&1.type == "list()"))
+      assert list_result
+      assert list_result.documentation == "A list"
+
+      list1_result = Enum.find(result.results, &(&1.type == "list/1"))
+      assert list1_result
+      assert list1_result.documentation == "Proper list ([]-terminated)"
+
+      # Test builtin type with arity 0
+      modules = ["list/0"]
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      list0_result = hd(result.results)
+      assert list0_result.type == "list()"
+      assert list0_result.documentation == "A list"
+
+      # Test builtin type with arity 1
+      modules = ["list/1"]
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
+
+      list1_single = hd(result.results)
+      assert list1_single.type == "list/1"
+      assert list1_single.documentation == "Proper list ([]-terminated)"
+    end
 
     test "returns error for invalid arguments" do
       # Test with non-list argument
