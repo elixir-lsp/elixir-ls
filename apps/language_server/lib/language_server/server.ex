@@ -1536,6 +1536,7 @@ defmodule ElixirLS.LanguageServer.Server do
        ) do
     source_file = get_source_file(state, uri)
     dot_formatter = Map.get(state.settings || %{}, "dotFormatter")
+    dot_formatter = if dot_formatter != "", do: dot_formatter, else: nil
 
     fun = fn ->
       Formatting.format(source_file, uri, state.project_dir, state.mix_project?,
