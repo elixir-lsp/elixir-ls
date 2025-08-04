@@ -116,11 +116,14 @@ ElixirLS generally aims to support all supported versions of Elixir on all compa
 
 |  OTP Versions   | Elixir Versions | Supports ElixirLS |                          Issue(s)                          |
 | :-------------: | :-------------: | :---------------: | :--------------------------------------------------------: |
-|      any        |     <= 1.13     |        No         |              Broken, no support for required APIs                  |
-|      22         |       1.13      |        ?        |         Erlang docs not working (requires EIP 48), May still work but no longer supported          |
-|      23         |       1.13   |        ?        |          May still work but no longer supported                            |
-|      24         |       1.13   |        ?        |          May still work but no longer supported                            |
-|      25         |      1.13.4  |        ?        |         May still work but no longer supported                            |
+|      any        |     <= 1.5     |        No         |             Latest release not compatible. Last version known to work v0.1.0    |
+|      any        |     1.6     |        No         |             Latest release not compatible. Last version known to work v0.2.24    |
+|      any        |     1.7     |        No         |             Latest release not compatible. Last version known to work v0.5.0    |
+|      any        |     1.8 - 1.9     |        No         |             Latest release not compatible. Last version known to work v0.7.0    |
+|      any        |     1.10     |        No         |             Latest release not compatible. Last version known to work v0.10.0    |
+|      any        |     1.11     |        No         |             Latest release not compatible. Last version known to work v0.12.0    |
+|      any        |     1.12     |        No         |             Latest release not compatible. Last version known to work v0.23.0                  |
+|     22 - 25        |       1.13      |    Unknown    |  Latest release may still work but no longer supported, Last version known to work v0.26.4          |
 |      23         |       1.14   |        Yes        |                            None                            |
 |      24         |   1.14 - 1.16   |        Yes        |                            None                            |
 |      25         |  1.14 - 1.18  |        Yes        |                            None                            |
@@ -130,6 +133,7 @@ ElixirLS generally aims to support all supported versions of Elixir on all compa
 |      any        |     1.15.5      |        Yes        |  Broken formatter [#975](https://github.com/elixir-lsp/elixir-ls/issues/975) |
 |      27         |    1.17 - 1.18  |        Yes        |                            None                            |
 |      28         |      1.18.4     |        Yes        |                            None                            |
+|     26 - 28     |       1.19      |      Unofficial   |                            None                             |
 
 ### Version management
 
