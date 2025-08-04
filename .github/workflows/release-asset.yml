@@ -69,13 +69,13 @@ jobs:
       - name: Build release
         run: |
           mix elixir_ls.release2 -o ./release
-          zip -jr elixir-ls.zip ./release
+          zip -jr elixir-ls-v${{ steps.version.outputs.version }}.zip ./release
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: elixir-ls-${{ steps.version.outputs.version }}
-          path: elixir-ls.zip
+          path: elixir-ls-v${{ steps.version.outputs.version }}.zip
           retention-days: 30
 
   # Create GitHub release
@@ -117,7 +117,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: elixir-ls.zip
+          files: elixir-ls-v${{ needs.build.outputs.version }}.zip
           body_path: release_notes.md
           draft: true
           prerelease: ${{ needs.build.outputs.is_prerelease == 'true' }}
@@ -140,7 +140,7 @@ jobs:
       - name: Test release artifact
         run: |
           # Basic smoke test - extract and verify structure
-          unzip -q elixir-ls.zip
+          unzip -q elixir-ls-v${{ needs.build.outputs.version }}.zip
           
           # Check that essential files exist
           test -f language_server.sh || exit 1
