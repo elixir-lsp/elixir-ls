@@ -1,5 +1,7 @@
 ### Unreleased
 
+### v0.29.0: 4 August 2025
+
 #### Highlights
 
 - Added Call hierarchy provider implementing LSP [textDocument/prepareCallHierarchy](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#textDocument_prepareCallHierarchy), [callHierarchy/incomingCalls](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchy_incomingCalls) and [callHierarchy/outgoingCalls](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/#callHierarchy_outgoingCalls)
