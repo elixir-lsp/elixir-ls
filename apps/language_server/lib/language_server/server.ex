@@ -59,6 +59,7 @@ defmodule ElixirLS.LanguageServer.Server do
     :server_instance_id,
     :build_ref,
     :dialyzer_sup,
+    :mcp_sup,
     :root_uri,
     :project_dir,
     :settings,
@@ -2365,6 +2366,11 @@ defmodule ElixirLS.LanguageServer.Server do
       Application.put_env(:language_server, :elixir_src, stdlib_src_dir)
     end
 
+    enable_mcp =
+      Map.get(settings, "mcpEnabled", true) == true
+
+    mcp_port = calculate_mcp_port(settings, state.root_uri)
+
     state =
       state
       |> maybe_set_env_vars(env_vars)
@@ -2373,6 +2379,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> set_project_dir(project_dir)
       |> Map.put(:settings, settings)
       |> set_dialyzer_enabled(enable_dialyzer)
+      |> set_mcp_enabled(enable_mcp, mcp_port)
 
     add_watched_extensions(state.server_instance_id, additional_watched_extensions)
 
@@ -2407,7 +2414,9 @@ defmodule ElixirLS.LanguageServer.Server do
           if(Map.get(settings, "dialyzerEnabled", true),
             do: Map.get(settings, "dialyzerFormat", "dialyxir_long"),
             else: ""
-          )
+          ),
+        "elixir_ls.mcpEnabled" => to_string(Map.get(settings, "mcpEnabled", true)),
+        "elixir_ls.mcpPort" => to_string(mcp_port)
       },
       %{}
     )
@@ -2510,6 +2519,36 @@ defmodule ElixirLS.LanguageServer.Server do
       true ->
         state
     end
+  end
+
+  defp set_mcp_enabled(state = %__MODULE__{}, enable_mcp, port) do
+    cond do
+      enable_mcp and state.mcp_sup == nil ->
+        {:ok, pid} = ElixirLS.LanguageServer.MCP.Supervisor.start_link(port)
+        %{state | mcp_sup: pid}
+
+      not enable_mcp and state.mcp_sup != nil ->
+        Process.exit(state.mcp_sup, :normal)
+        %{state | mcp_sup: nil}
+
+      true ->
+        state
+    end
+  end
+
+  defp calculate_mcp_port(settings, root_uri) do
+    case Map.get(settings, "mcpPort") do
+      port when is_integer(port) and port > 0 -> port
+      _ -> 3789 + hash_root_uri(root_uri)
+    end
+  end
+
+  defp hash_root_uri(nil), do: 0
+
+  defp hash_root_uri(root_uri) when is_binary(root_uri) do
+    :crypto.hash(:md5, root_uri)
+    |> :binary.decode_unsigned()
+    |> rem(1000)
   end
 
   defp maybe_set_env_vars(state = %__MODULE__{}, nil), do: state

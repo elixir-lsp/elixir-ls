@@ -24,16 +24,16 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
 
   @impl true
   def init(port) do
-    IO.puts("[MCP] Starting TCP Server on port #{port}")
+    IO.puts("[MCP] Starting TCP Server, trying port #{port}")
 
-    case :gen_tcp.listen(port, [:binary, packet: :line, active: false, reuseaddr: true]) do
-      {:ok, listen_socket} ->
-        IO.puts("[MCP] Server listening on port #{port}")
+    case find_available_port(port) do
+      {:ok, actual_port, listen_socket} ->
+        IO.puts("[MCP] Server listening on port #{actual_port}")
         send(self(), :accept)
-        {:ok, %{listen: listen_socket, clients: %{}}}
+        {:ok, %{listen: listen_socket, port: actual_port, clients: %{}}}
 
       {:error, reason} ->
-        IO.puts("[MCP] Failed to listen on port #{port}: #{inspect(reason)}")
+        IO.puts("[MCP] Failed to find available port starting from #{port}: #{inspect(reason)}")
         {:stop, reason}
     end
   end
@@ -127,6 +127,27 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
   end
 
   # Private functions
+
+  defp find_available_port(start_port, max_attempts \\ 100) do
+    find_available_port(start_port, start_port, max_attempts)
+  end
+
+  defp find_available_port(current_port, start_port, attempts_left) when attempts_left > 0 do
+    case :gen_tcp.listen(current_port, [:binary, packet: :line, active: false, reuseaddr: true]) do
+      {:ok, listen_socket} ->
+        {:ok, current_port, listen_socket}
+
+      {:error, :eaddrinuse} ->
+        find_available_port(current_port + 1, start_port, attempts_left - 1)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp find_available_port(_current_port, start_port, 0) do
+    {:error, "No available ports found starting from #{start_port}"}
+  end
 
   defp accept_connection(parent, listen_socket) do
     IO.puts("[MCP] Waiting for connection...")

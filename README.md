@@ -389,13 +389,24 @@ Analyze comprehensive module dependency relationships including direct/reverse d
 
 ### Setup and Configuration
 
+The MCP server starts automatically when ElixirLS launches (unless disabled). The server uses a predictable port assignment:
+
+- **Default behavior**: Port is calculated as `3789 + hash(workspace_path)` to ensure different workspaces use different ports
+- **Custom port**: Can be set via the `elixirLS.mcpPort` setting
+- **Port discovery**: If the calculated/configured port is busy, the server automatically finds the next available port
+
+**Finding the actual port**: Check the ElixirLS output logs for a message like:
+```
+[MCP] Server listening on port 4328
+```
+
 #### TCP-to-STDIO Bridge
 
 ElixirLS includes a TCP-to-STDIO bridge script located at `scripts/tcp_to_stdio_bridge.exs`. This bridge enables LLMs like Claude to communicate with the ElixirLS MCP server by converting between STDIO (used by LLMs) and TCP (used by the MCP server).
 
 The bridge:
-- Connects to the ElixirLS MCP server running on TCP port 3798
-- Forwards messages bidirectionally between STDIO and TCP
+- Connects to the ElixirLS MCP server running on the discovered/configured TCP port
+- Forwards messages bidirectionally between STDIO and TCP  
 - Uses binary mode with latin1 encoding for proper communication
 - Handles connection lifecycle and error conditions
 
@@ -409,14 +420,22 @@ To use ElixirLS with Claude Code or other MCP-compatible tools, create an `mcp.j
     "elixir-ls-bridge": {
       "command": "elixir",
       "args": [
-        "/absolute/path/to/elixir-ls/scripts/tcp_to_stdio_bridge.exs"
+        "/absolute/path/to/elixir-ls/scripts/tcp_to_stdio_bridge.exs",
+        "4328"
       ]
     }
   }
 }
 ```
 
-Replace `/absolute/path/to/elixir-ls/` with the actual path to your ElixirLS installation.
+Replace `/absolute/path/to/elixir-ls/` with the actual path to your ElixirLS installation and `4328` with the actual port number from the ElixirLS logs.
+
+#### MCP Settings
+
+The MCP server can be configured via ElixirLS settings:
+
+- **`elixirLS.mcpEnabled`** (boolean, default: `true`): Enable or disable the MCP server
+- **`elixirLS.mcpPort`** (integer, optional): Set a specific port for the MCP server. If not set, uses `3789 + hash(workspace_path)` for predictable port assignment per workspace
 
 ## Automatic builds and error reporting
 
@@ -491,6 +510,8 @@ Below is a list of configuration options supported by the ElixirLS language serv
 <dt>elixirLS.languageServerOverridePath</dt><dd>Absolute path to an alternative ElixirLS release that will override the packaged release</dd>
 <dt>elixirLS.stdlibSrcDir</dt><dd>Path to Elixir's std lib source code. See [here](https://github.com/elixir-lsp/elixir_sense/pull/277) for more info</dd>
 <dt>elixirLS.dotFormatter</dt><dd>Path to a custom <code>.formatter.exs</code> file used when formatting documents</dd>
+<dt>elixirLS.mcpEnabled</dt><dd>Enable or disable the MCP (Model Context Protocol) server - Defaults to <code>true</code></dd>
+<dt>elixirLS.mcpPort</dt><dd>Set a specific TCP port for the MCP server - If not set, uses <code>3789 + hash(workspace_path)</code> for predictable port assignment per workspace</dd>
 </dl>
 
 ## Debug Adapter configuration options
