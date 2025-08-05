@@ -162,9 +162,19 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
                    {:., _, [{:__aliases__, _, _}, :{}]} -> true
                    _ -> false
                  end) do
-              [{:., _, [{:__aliases__, _, outer_alias}, :{}]} | _] ->
+              [{:., _, [{:__aliases__, _, outer_alias = [head | _]}, :{}]} | _]
+              when is_atom(head) ->
                 # Combine outer alias with the one under cursor
                 expanded = Module.concat(outer_alias ++ [alias])
+                mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+
+              [{:., _, [{:__aliases__, _, [{:__MODULE__, _, _} | outer_alias_rest]}, :{}]} | _] ->
+                # Combine __MODULE__ with the one under cursor
+                expanded = Module.concat([module | outer_alias_rest] ++ [alias])
+                mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+
+              [{:., _, [{:__MODULE__, _, _}, :{}]} | _] ->
+                expanded = Module.concat([module] ++ [alias])
                 mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
 
               _ ->

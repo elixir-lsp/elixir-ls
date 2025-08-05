@@ -222,9 +222,19 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
                    {:., _, [{:__aliases__, _, _}, :{}]} -> true
                    _ -> false
                  end) do
-              [{:., _, [{:__aliases__, _, outer_alias}, :{}]} | _] ->
+              [{:., _, [{:__aliases__, _, outer_alias = [head | _]}, :{}]} | _]
+              when is_atom(head) ->
                 # Combine outer alias with the one under cursor
                 expanded = Module.concat(outer_alias ++ [alias])
+                refs_for_mod_fun.({{:atom, expanded}, nil})
+
+              [{:., _, [{:__aliases__, _, [{:__MODULE__, _, _} | outer_alias_rest]}, :{}]} | _] ->
+                # Combine __MODULE__ with the one under cursor
+                expanded = Module.concat([module | outer_alias_rest] ++ [alias])
+                refs_for_mod_fun.({{:atom, expanded}, nil})
+
+              [{:., _, [{:__MODULE__, _, _}, :{}]} | _] ->
+                expanded = Module.concat([module] ++ [alias])
                 refs_for_mod_fun.({{:atom, expanded}, nil})
 
               _ ->

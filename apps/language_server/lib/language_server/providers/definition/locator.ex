@@ -129,9 +129,33 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
                    {:., _, [{:__aliases__, _, _}, :{}]} -> true
                    _ -> false
                  end) do
-              [{:., _, [{:__aliases__, _, outer_alias}, :{}]} | _] ->
+              [{:., _, [{:__aliases__, _, outer_alias = [head | _]}, :{}]} | _]
+              when is_atom(head) ->
                 # Combine outer alias with the one under cursor
                 expanded = Module.concat(outer_alias ++ [alias])
+
+                find_function_or_module(
+                  {{:atom, expanded}, nil},
+                  context,
+                  env,
+                  metadata,
+                  binding_env
+                )
+
+              [{:., _, [{:__aliases__, _, [{:__MODULE__, _, _} | outer_alias_rest]}, :{}]} | _] ->
+                # Combine __MODULE__ with the one under cursor
+                expanded = Module.concat([module | outer_alias_rest] ++ [alias])
+
+                find_function_or_module(
+                  {{:atom, expanded}, nil},
+                  context,
+                  env,
+                  metadata,
+                  binding_env
+                )
+
+              [{:., _, [{:__MODULE__, _, _}, :{}]} | _] ->
+                expanded = Module.concat([module] ++ [alias])
 
                 find_function_or_module(
                   {{:atom, expanded}, nil},
