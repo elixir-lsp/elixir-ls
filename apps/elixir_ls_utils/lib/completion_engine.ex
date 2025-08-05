@@ -1186,7 +1186,17 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
           # assume function head is first in code and last in metadata
           head_params = Enum.at(info.params, -1)
-          args = head_params |> Enum.map(&Macro.to_string/1)
+
+          args =
+            head_params
+            |> Enum.map(fn arg ->
+              try do
+                Macro.to_string(arg)
+              rescue
+                _ -> "term"
+              end
+            end)
+
           default_args = Introspection.count_defaults(head_params)
 
           # TODO this is useless - we duplicate and then deduplicate
