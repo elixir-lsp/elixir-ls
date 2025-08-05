@@ -80,10 +80,10 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.Test do
     runnable_functions = [test: 3, test: 2, doctest: 2, doctest: 1]
 
     for func <- runnable_functions,
-        {line, _col} <- calls_to(calls_list, func) do
-      {_line, %{scope_id: scope_id, module: module}} =
-        Enum.find(lines_to_env_list, fn {env_line, _env} -> env_line == line end)
-
+        {line, _col} <- calls_to(calls_list, func),
+        {_line, %{scope_id: scope_id, module: module}} <- [
+          Enum.find(lines_to_env_list, fn {env_line, _env} -> env_line == line end)
+        ] do
       describe =
         describe_blocks
         |> Enum.find(nil, fn describe ->
