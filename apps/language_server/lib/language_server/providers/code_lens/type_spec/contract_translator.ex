@@ -3,6 +3,8 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
   alias Erl2exVendored.Convert.{Context, ErlForms}
   alias Erl2exVendored.Pipeline.{Parse, ModuleData, ExSpec}
 
+  require Logger
+
   def translate_contract(fun, contract, is_macro, mod) do
     # FIXME: Private module
     {[%ExSpec{specs: [spec]} | _], _} =
@@ -26,6 +28,11 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
     |> Code.format_string!(line_length: :infinity)
     |> IO.iodata_to_binary()
     |> String.replace_prefix("foo", to_string(fun))
+  rescue
+    CompileError ->
+      # Parse.string can raise CompileError if the spec is invalid
+      Logger.warning("Failed to translate contract for #{mod}.#{fun}/#{length(contract)}")
+      nil
   end
 
   defp tweak_specs({:list, _meta, args}) do
