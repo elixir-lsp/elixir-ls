@@ -523,4 +523,31 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
                )
     end)
   end
+
+  @tag :fixture
+  test "dot_formatter is empty string" do
+    in_fixture(Path.join(__DIR__, ".."), "formatter", fn ->
+      store_mix_cache()
+      project_dir = Path.expand(".")
+      path = Path.join(project_dir, "lib/custom.ex")
+      File.write!(path, "foo 1")
+      source_file = %SourceFile{text: "foo 1", version: 1, dirty?: true}
+      uri = SourceFile.Path.to_uri(path)
+
+      assert {:ok, edits} = Formatting.format(source_file, uri, project_dir, true)
+      assert length(edits) >= 1
+
+      assert {:ok, empty_string_edits} =
+        Formatting.format(source_file, uri, project_dir, true, dot_formatter: "")
+      assert length(empty_string_edits) >= 1
+
+      assert edits == empty_string_edits
+
+      assert {:ok, newline_string_edits} =
+        Formatting.format(source_file, uri, project_dir, true, dot_formatter: "\n")
+      assert length(newline_string_edits) >= 1
+
+      assert edits == newline_string_edits
+    end)
+  end
 end

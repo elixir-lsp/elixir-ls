@@ -332,7 +332,9 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   def formatter_for(_, _, _, _), do: {:error, :project_dir_not_set}
 
   defp maybe_put_dot_formatter(opts_list, opts) do
-    if dot = Keyword.get(opts, :dot_formatter) do
+    dot = opts |> Keyword.get(:dot_formatter) |> to_string() |> String.trim()
+
+    if dot != "" do
       Keyword.put(opts_list, :dot_formatter, dot)
     else
       opts_list
