@@ -1,5 +1,22 @@
 ### Unreleased
 
+### v0.29.1: 5 August 2025
+
+#### Improvements
+
+- Added config options for disabling MCP and setting MCP port
+
+#### Fixes
+
+- Reverted release artefact name change
+- Fixed issue when the server would not start if MCP port was used
+- Fixed crash when reading docs fail
+- Normalize empty string in `dotFormatter` setting to `nil`
+- Fixed crashes on invalid multialias
+- Plugins that fail to compile are now skipped
+- Test code lens do not crash if unable to find scope
+- Suggest contract code lens do not crash if unable to translate erlang contract
+
 ### v0.29.0: 4 August 2025
 
 #### Highlights
