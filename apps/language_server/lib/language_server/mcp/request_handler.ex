@@ -6,6 +6,7 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
 
   require Logger
   alias JasonV
+  alias ElixirLS.LanguageServer.JsonRpc
 
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.{
     LlmDocsAggregator,
@@ -23,16 +24,131 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
   def handle_request(request) do
     case request do
       %{"method" => "initialize", "id" => id} ->
-        handle_initialize(id)
+        try do
+          start_time = System.monotonic_time(:millisecond)
+          response = handle_initialize(id)
+          elapsed = System.monotonic_time(:millisecond) - start_time
+
+          JsonRpc.telemetry("mcp_request", %{"elixir_ls.mcp_command" => "initialize"}, %{
+            "elixir_ls.mcp_request_time" => elapsed
+          })
+
+          response
+        rescue
+          e ->
+            message = Exception.format(:error, e, __STACKTRACE__)
+            Logger.error("Error handling initialize: #{message}")
+
+            JsonRpc.telemetry(
+              "mcp_request_error",
+              %{
+                "elixir_ls.mcp_command" => "initialize",
+                "elixir_ls.mcp_error" => "internal_error",
+                "elixir_ls.mcp_error_message" => message
+              },
+              %{}
+            )
+
+            %{
+              "jsonrpc" => "2.0",
+              "error" => %{
+                "code" => -32603,
+                "message" => "Internal error"
+              },
+              "id" => id
+            }
+        end
 
       %{"method" => "tools/list", "id" => id} ->
-        handle_tools_list(id)
+        try do
+          start_time = System.monotonic_time(:millisecond)
+          response = handle_tools_list(id)
+
+          elapsed = System.monotonic_time(:millisecond) - start_time
+
+          JsonRpc.telemetry("mcp_request", %{"elixir_ls.mcp_command" => "tools_list"}, %{
+            "elixir_ls.mcp_request_time" => elapsed
+          })
+
+          response
+        rescue
+          e ->
+            message = Exception.format(:error, e, __STACKTRACE__)
+            Logger.error("Error handling tools list call: #{message}")
+
+            JsonRpc.telemetry(
+              "mcp_request_error",
+              %{
+                "elixir_ls.mcp_command" => "tools_list",
+                "elixir_ls.mcp_error" => "internal_error",
+                "elixir_ls.mcp_error_message" => message
+              },
+              %{}
+            )
+
+            %{
+              "jsonrpc" => "2.0",
+              "error" => %{
+                "code" => -32603,
+                "message" => "Internal error"
+              },
+              "id" => id
+            }
+        end
 
       %{"method" => "tools/call", "params" => params, "id" => id} ->
-        handle_tool_call(params, id)
+        tool_call = Map.get(params, "name", "")
+
+        try do
+          start_time = System.monotonic_time(:millisecond)
+
+          response = handle_tool_call(params, id)
+
+          elapsed = System.monotonic_time(:millisecond) - start_time
+
+          JsonRpc.telemetry(
+            "mcp_request",
+            %{"elixir_ls.mcp_command" => "tools_call_#{tool_call}"},
+            %{
+              "elixir_ls.mcp_request_time" => elapsed
+            }
+          )
+
+          response
+        rescue
+          e ->
+            message = Exception.format(:error, e, __STACKTRACE__)
+            Logger.error("Error handling tool call: #{message}")
+
+            JsonRpc.telemetry(
+              "mcp_request_error",
+              %{
+                "elixir_ls.mcp_command" => "tools_call_#{tool_call}",
+                "elixir_ls.mcp_error" => "internal_error",
+                "elixir_ls.mcp_error_message" => message
+              },
+              %{}
+            )
+
+            %{
+              "jsonrpc" => "2.0",
+              "error" => %{
+                "code" => -32603,
+                "message" => "Internal error"
+              },
+              "id" => id
+            }
+        end
 
       %{"method" => "notifications/cancelled", "params" => params} ->
-        handle_notification_cancelled(params)
+        try do
+          handle_notification_cancelled(params)
+        rescue
+          e ->
+            message = Exception.format(:error, e, __STACKTRACE__)
+            Logger.error("Error handling tool call: #{message}")
+            nil
+        end
 
       %{"method" => method, "id" => id} ->
         %{

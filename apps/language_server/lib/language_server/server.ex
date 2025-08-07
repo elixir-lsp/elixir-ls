@@ -260,7 +260,7 @@ defmodule ElixirLS.LanguageServer.Server do
                   %{
                     "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
                     "elixir_ls.lsp_error" => "serialization_error",
-                    "elixir_ls.lsp_error" => error_msg
+                    "elixir_ls.lsp_error_message" => error_msg
                   },
                   %{}
                 )
@@ -925,7 +925,7 @@ defmodule ElixirLS.LanguageServer.Server do
                 %{
                   "elixir_ls.lsp_command" => "initialize",
                   "elixir_ls.lsp_error" => "serialization_error",
-                  "elixir_ls.lsp_error" => error_msg
+                  "elixir_ls.lsp_error_message" => error_msg
                 },
                 %{}
               )
@@ -1055,7 +1055,7 @@ defmodule ElixirLS.LanguageServer.Server do
                 %{
                   "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
                   "elixir_ls.lsp_error" => "serialization_error",
-                  "elixir_ls.lsp_error" => error_msg
+                  "elixir_ls.lsp_error_message" => error_msg
                 },
                 %{}
               )
