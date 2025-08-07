@@ -79,4 +79,10 @@ defmodule TcpToStdioBridge do
 end
 
 # Start the bridge
-TcpToStdioBridge.start()
+port =
+  case System.argv() do
+    [port_str | _] -> String.to_integer(port_str)
+    [] -> 3798
+  end
+
+TcpToStdioBridge.start("localhost", port)
