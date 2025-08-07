@@ -151,7 +151,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           list when is_list(list) and list != [] ->
             results =
               Enum.map(list, fn callback_info ->
-                base_result = %{
+                %{
                   module: inspect(module),
                   callback: Atom.to_string(function),
                   arity: callback_info[:arity] || arity,
