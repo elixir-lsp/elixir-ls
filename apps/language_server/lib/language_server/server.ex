@@ -229,37 +229,42 @@ defmodule ElixirLS.LanguageServer.Server do
           {:ok, result} ->
             elapsed = System.monotonic_time(:millisecond) - start_time
 
-            # Use request module's result schematic if available (GenLSP requests)
-            response_body =
-              if function_exported?(request_module, :result, 0) do
-                dumped_body =
-                  case SchematicV.dump(request_module.result(), result) do
-                    {:ok, dumped_body} ->
-                      dumped_body
+            try do
+              response_body =
+                if function_exported?(request_module, :result, 0) do
+                  {:ok, dumped_body} = SchematicV.dump(request_module.result(), result)
 
-                    {:error, error} ->
-                      IO.puts(
-                        :stderr,
-                        "Error dumping result: #{inspect(error)} for #{inspect(result)}"
-                      )
+                  dumped_body
+                else
+                  result
+                end
 
-                      nil
-                  end
+              JsonRpc.respond(id, response_body)
 
-                dumped_body
-              else
-                result
-              end
+              JsonRpc.telemetry(
+                "lsp_request",
+                %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
+                %{
+                  "elixir_ls.lsp_request_time" => elapsed
+                }
+              )
+            rescue
+              error ->
+                error_msg = Exception.format(:error, error, __STACKTRACE__)
+                Logger.error("Error serializing response: #{error_msg} for #{inspect(result)}")
 
-            JsonRpc.respond(id, response_body)
+                JsonRpc.respond_with_error(id, :internal_error, "Response serialization failed")
 
-            JsonRpc.telemetry(
-              "lsp_request",
-              %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
-              %{
-                "elixir_ls.lsp_request_time" => elapsed
-              }
-            )
+                JsonRpc.telemetry(
+                  "lsp_request_error",
+                  %{
+                    "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                    "elixir_ls.lsp_error" => "serialization_error",
+                    "elixir_ls.lsp_error" => error_msg
+                  },
+                  %{}
+                )
+            end
         end
 
         Map.delete(state.requests_ids_by_pid, pid)
@@ -893,20 +898,38 @@ defmodule ElixirLS.LanguageServer.Server do
           request_module = struct.__struct__
           {:ok, result, state} = handle_request(struct, state)
           elapsed = System.monotonic_time(:millisecond) - start_time
-          # Use request module's result schematic if available (GenLSP requests)
-          response_body =
-            if function_exported?(request_module, :result, 0) do
-              {:ok, dumped_body} = SchematicV.dump(request_module.result(), result)
-              dumped_body
-            else
-              result
-            end
 
-          JsonRpc.respond(id, response_body)
+          try do
+            response_body =
+              if function_exported?(request_module, :result, 0) do
+                {:ok, dumped_body} = SchematicV.dump(request_module.result(), result)
+                dumped_body
+              else
+                result
+              end
 
-          JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
-            "elixir_ls.lsp_request_time" => elapsed
-          })
+            JsonRpc.respond(id, response_body)
+
+            JsonRpc.telemetry("lsp_request", %{"elixir_ls.lsp_command" => "initialize"}, %{
+              "elixir_ls.lsp_request_time" => elapsed
+            })
+          rescue
+            error ->
+              error_msg = Exception.format(:error, error, __STACKTRACE__)
+              Logger.error("Error serializing response: #{error_msg} for #{inspect(result)}")
+
+              JsonRpc.respond_with_error(id, :internal_error, "Response serialization failed")
+
+              JsonRpc.telemetry(
+                "lsp_request_error",
+                %{
+                  "elixir_ls.lsp_command" => "initialize",
+                  "elixir_ls.lsp_error" => "serialization_error",
+                  "elixir_ls.lsp_error" => error_msg
+                },
+                %{}
+              )
+          end
 
           state
         catch
@@ -1001,24 +1024,42 @@ defmodule ElixirLS.LanguageServer.Server do
           # Store the request module for proper result encoding
           request_module = struct.__struct__
           elapsed = System.monotonic_time(:millisecond) - start_time
-          # Use request module's result schematic if available (GenLSP requests)
-          response_body =
-            if function_exported?(request_module, :result, 0) do
-              {:ok, dumped_body} = SchematicV.dump(request_module.result(), result)
-              dumped_body
-            else
-              result
-            end
 
-          JsonRpc.respond(id, response_body)
+          try do
+            response_body =
+              if function_exported?(request_module, :result, 0) do
+                {:ok, dumped_body} = SchematicV.dump(request_module.result(), result)
+                dumped_body
+              else
+                result
+              end
 
-          JsonRpc.telemetry(
-            "lsp_request",
-            %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
-            %{
-              "elixir_ls.lsp_request_time" => elapsed
-            }
-          )
+            JsonRpc.respond(id, response_body)
+
+            JsonRpc.telemetry(
+              "lsp_request",
+              %{"elixir_ls.lsp_command" => String.replace(command, "/", "_")},
+              %{
+                "elixir_ls.lsp_request_time" => elapsed
+              }
+            )
+          rescue
+            error ->
+              error_msg = Exception.format(:error, error, __STACKTRACE__)
+              Logger.error("Error serializing response: #{error_msg} for #{inspect(result)}")
+
+              JsonRpc.respond_with_error(id, :internal_error, "Response serialization failed")
+
+              JsonRpc.telemetry(
+                "lsp_request_error",
+                %{
+                  "elixir_ls.lsp_command" => String.replace(command, "/", "_"),
+                  "elixir_ls.lsp_error" => "serialization_error",
+                  "elixir_ls.lsp_error" => error_msg
+                },
+                %{}
+              )
+          end
 
           state
 
