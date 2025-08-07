@@ -91,6 +91,7 @@ defmodule ElixirLS.LanguageServer.Providers.References do
       {:error, reason} ->
         # workaround for elixir tracer returning invalid paths
         # https://github.com/elixir-lang/elixir/issues/12393
+        # TODO: remove when we require Elixir >= 1.15
         Logger.warning("Unable to open reference from #{inspect(ref.uri)}: #{inspect(reason)}")
         nil
     end
