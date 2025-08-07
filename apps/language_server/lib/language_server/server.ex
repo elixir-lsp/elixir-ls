@@ -2408,7 +2408,7 @@ defmodule ElixirLS.LanguageServer.Server do
     end
 
     enable_mcp =
-      Map.get(settings, "mcpEnabled", true) == true
+      Map.get(settings, "mcpEnabled", false) == true
 
     mcp_port = calculate_mcp_port(settings, state.root_uri)
 

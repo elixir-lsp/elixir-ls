@@ -389,7 +389,7 @@ Analyze comprehensive module dependency relationships including direct/reverse d
 
 ### Setup and Configuration
 
-The MCP server starts automatically when ElixirLS launches (unless disabled). The server uses a predictable port assignment:
+The MCP server starts automatically when ElixirLS launches (if enabled). The server uses a predictable port assignment:
 
 - **Default behavior**: Port is calculated as `3789 + hash(workspace_path)` to ensure different workspaces use different ports
 - **Custom port**: Can be set via the `elixirLS.mcpPort` setting
@@ -434,7 +434,7 @@ Replace `/absolute/path/to/elixir-ls/` with the actual path to your ElixirLS ins
 
 The MCP server can be configured via ElixirLS settings:
 
-- **`elixirLS.mcpEnabled`** (boolean, default: `true`): Enable or disable the MCP server
+- **`elixirLS.mcpEnabled`** (boolean, default: `false`): Enable or disable the MCP server
 - **`elixirLS.mcpPort`** (integer, optional): Set a specific port for the MCP server. If not set, uses `3789 + hash(workspace_path)` for predictable port assignment per workspace
 
 ## Automatic builds and error reporting
