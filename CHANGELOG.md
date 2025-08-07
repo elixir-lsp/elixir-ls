@@ -1,5 +1,16 @@
 ### Unreleased
 
+### v0.29.2: 07 August 2025
+
+#### Improvements
+
+- MCP server disabled by default
+
+#### Fixes
+
+- MCP bridge script now accepts port parameter
+- Rescue serialization errors
+
 ### v0.29.1: 5 August 2025
 
 #### Improvements
