@@ -15,8 +15,9 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.Locator do
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.State.{ModFunInfo, SpecInfo}
-
+  
   require ElixirSense.Core.Introspection, as: Introspection
+  alias ElixirLS.LanguageServer.Providers.LocatorUtils
 
   @doc """
   Finds the declaration (callback or protocol definition) for the function under the cursor.
@@ -28,26 +29,23 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.Locator do
   Returns either a single `%Location{}` or a list of locations if multiple declarations are found.
   """
   def declaration(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case LocatorUtils.build(code, line, column, options) do
+      nil ->
         nil
 
-      context ->
-        metadata =
-          Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, false, {line, column})
-          end)
-
-        env = Metadata.get_cursor_env(metadata, {line, column}, {context.begin, context.end})
-        find(context, env, metadata)
+      info ->
+        find(info)
     end
   end
 
   @doc false
-  def find(context, %State.Env{module: module} = env, metadata) do
-    binding_env = Binding.from_env(env, metadata, context.begin)
-
-    type = SurroundContext.to_binding(context.context, module)
+  def find(%{
+        context: context,
+        env: %State.Env{module: module} = env,
+        metadata: metadata,
+        binding_env: binding_env,
+        type: type
+      }) do
 
     case type do
       nil ->
