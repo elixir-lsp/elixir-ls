@@ -366,7 +366,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       module_result = hd(result.results)
       assert Map.has_key?(module_result, :moduledoc_metadata)
       # ModuleWithDocs has a @moduledoc since: "1.2.3" 
-      assert is_map(module_result.moduledoc_metadata)
+      assert is_binary(module_result.moduledoc_metadata)
+      assert String.contains?(module_result.moduledoc_metadata, "Since")
 
       # Test function metadata
       assert {:ok, result} =
@@ -478,7 +479,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert Map.has_key?(callback_result, :metadata)
       assert callback_result.spec == "@callback some_callback(integer()) :: atom()"
       assert callback_result.kind == :callback
-      assert callback_result.metadata.since == "1.1.0"
+      assert String.contains?(callback_result.metadata, "Since")
+      assert String.contains?(callback_result.metadata, "1.1.0")
 
       # Test macrocallback spec  
       assert {:ok, result} =
@@ -496,7 +498,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert Map.has_key?(macrocallback_result, :metadata)
       assert macrocallback_result.spec == "@macrocallback some_macrocallback(integer()) :: atom()"
       assert macrocallback_result.kind == :macrocallback
-      assert macrocallback_result.metadata.since == "1.1.0"
+      assert String.contains?(macrocallback_result.metadata, "Since")
+      assert String.contains?(macrocallback_result.metadata, "1.1.0")
     end
 
     test "verifies function documentation contains specs" do

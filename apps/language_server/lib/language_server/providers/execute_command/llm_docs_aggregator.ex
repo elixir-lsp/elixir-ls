@@ -158,7 +158,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
                   documentation: callback_info[:documentation] || "",
                   spec: callback_info[:spec],
                   kind: callback_info[:kind],
-                  metadata: callback_info[:metadata] || %{}
+                  metadata: format_metadata_section(callback_info[:metadata])
                 }
               end)
 
@@ -213,7 +213,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         %{
           type: "moduledoc",
           content: moduledoc_content,
-          metadata: moduledoc_metadata
+          metadata: format_metadata_section(moduledoc_metadata)
         }
       else
         nil
@@ -255,7 +255,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
                   signature: "#{name}/#{arity}",
                   doc: nil,
                   specs: [],
-                  metadata: %{}
+                  metadata: ""
                 }
               end)
 
@@ -370,7 +370,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
     %{
       module: module_name,
       moduledoc: moduledoc_content,
-      moduledoc_metadata: moduledoc_metadata,
+      moduledoc_metadata: format_metadata_section(moduledoc_metadata),
       functions: functions_list,
       macros: macros_list,
       types: types_list,
@@ -403,7 +403,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         arity: doc_arity,
         signature: "#{function}/#{doc_arity}",
         doc: extract_doc(doc),
-        metadata: metadata,
+        metadata: format_metadata_section(metadata),
         specs: Map.get(specs, {name, doc_arity}, [])
       }
     end)
@@ -439,7 +439,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         arity: doc_arity,
         spec: Map.get(type_specs_by_name_arity, {name, doc_arity}),
         documentation: doc_content || "",
-        metadata: metadata
+        metadata: format_metadata_section(metadata)
       }
     end)
   end
@@ -469,7 +469,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           signature: format_function_signature(module, name, arity, metadata),
           doc: extract_doc(doc),
           specs: [],
-          metadata: metadata
+          metadata: format_metadata_section(metadata)
         }
 
       _ ->
@@ -485,7 +485,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           type: Atom.to_string(name),
           arity: arity,
           doc: extract_doc(doc),
-          metadata: metadata
+          metadata: format_metadata_section(metadata)
         }
 
       _ ->
@@ -501,7 +501,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           arity: arity,
           kind: kind,
           doc: extract_doc(doc),
-          metadata: metadata
+          metadata: format_metadata_section(metadata)
         }
 
       _ ->
@@ -549,10 +549,8 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
         documentation: extract_doc(callback_info.doc),
         spec: callback_info.callback,
         kind: callback_info.kind,
-        metadata: callback_info.metadata
+        metadata: format_metadata_section(callback_info.metadata)
       }
-
-      callback_result = Map.put(callback_result, :metadata, callback_info.metadata)
 
       callback_result
     end)
@@ -685,6 +683,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
       """
     end)
     |> Enum.join("\n")
+  end
+
+  defp format_metadata_section(metadata) when is_binary(metadata) and metadata != "" do
+    if String.trim(metadata) != "", do: metadata, else: ""
   end
 
   defp format_metadata_section(metadata) when is_map(metadata) and metadata != %{} do
