@@ -1044,7 +1044,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         metadata.mods_funs_to_positions |> Map.has_key?({mod, nil, nil}) ->
           get_metadata_module_funs(mod, include_builtin, env, metadata, cursor_position)
 
-        match?({:module, _}, ensure_loaded(mod)) ->
+        ensure_loaded?(mod) ->
           get_module_funs(mod, include_builtin)
 
         true ->
@@ -1380,8 +1380,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
         do: {{fun_name, new_arity}, arity}
   end
 
-  defp ensure_loaded(Elixir), do: {:error, :nofile}
-  defp ensure_loaded(mod), do: Code.ensure_compiled(mod)
+  defp ensure_loaded?(Elixir), do: false
+  defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
   defp get_struct_info({:atom, module}, metadata) when is_atom(module) do
     case metadata.structs[module] do

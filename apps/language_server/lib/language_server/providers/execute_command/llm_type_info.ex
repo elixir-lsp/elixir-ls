@@ -49,29 +49,25 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
   end
 
   defp extract_type_info_for_symbol(:module, module, state) do
-    case Code.ensure_compiled(module) do
-      {:module, actual_module} ->
-        type_info = extract_type_info(actual_module, state)
-        {:ok, type_info}
-
-      {:error, reason} ->
-        {:error, "Module not found or not compiled: #{inspect(reason)}"}
+    if Code.ensure_loaded?(module) do
+      type_info = extract_type_info(module, state)
+      {:ok, type_info}
+    else
+      {:error, "Module not found or not compiled"}
     end
   end
 
   defp extract_type_info_for_symbol(:remote_call, {module, function, arity}, state) do
-    case Code.ensure_compiled(module) do
-      {:module, actual_module} ->
-        # Extract all type info from the module (same as for :module case)
-        # then filter to only include the relevant function
-        full_type_info = extract_type_info(actual_module, state)
+    if Code.ensure_loaded?(module) do
+      # Extract all type info from the module (same as for :module case)
+      # then filter to only include the relevant function
+      full_type_info = extract_type_info(module, state)
 
-        # Filter the results to only include the specific function/type/callback
-        filtered_type_info = filter_type_info_by_function(full_type_info, function, arity)
-        {:ok, filtered_type_info}
-
-      {:error, reason} ->
-        {:error, "Module not found or not compiled: #{inspect(reason)}"}
+      # Filter the results to only include the specific function/type/callback
+      filtered_type_info = filter_type_info_by_function(full_type_info, function, arity)
+      {:ok, filtered_type_info}
+    else
+      {:error, "Module not found or not compiled"}
     end
   end
 

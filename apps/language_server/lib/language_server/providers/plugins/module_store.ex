@@ -86,13 +86,7 @@ defmodule ElixirLS.LanguageServer.Plugins.ModuleStore do
   defp all_loaded do
     Applications.get_modules_from_applications()
     |> Enum.filter(fn module ->
-      try do
-        _ = Code.ensure_compiled(module)
-        function_exported?(module, :module_info, 0)
-      rescue
-        _ ->
-          false
-      end
+      function_exported?(module, :module_info, 0)
     end)
   end
 
