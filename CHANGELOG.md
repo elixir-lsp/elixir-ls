@@ -1,5 +1,12 @@
 ### Unreleased
 
+### v0.29.3: 20 August 2025
+
+#### Fixes
+
+- Fixed crash in LLM docs tool
+- Removed `Code.ensure_compiled` calls as they often lead to locks
+
 ### v0.29.2: 07 August 2025
 
 #### Improvements
