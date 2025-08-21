@@ -84,7 +84,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
   end
 
   defp find_fields(type, hint) do
-    with {:module, _} <- Code.ensure_compiled(type),
+    with true <- Code.ensure_loaded?(type),
          true <- function_exported?(type, :__schema__, 1) do
       for field <- Enum.sort(type.__schema__(:fields)),
           name = to_string(field),
