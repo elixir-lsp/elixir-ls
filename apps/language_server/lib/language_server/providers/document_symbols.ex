@@ -304,6 +304,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     }
   end
 
+  # ExUnit property
+  defp extract_symbol(_current_module, {:property, location, [name | _]}) do
+    %Info{
+      type: :function,
+      name: Macro.to_string(name),
+      detail: :property |> to_string,
+      location: location,
+      children: []
+    }
+  end
+
   # ExUnit setup and setup_all callbacks
   defp extract_symbol(_current_module, {name, location, [_name | _]})
        when name in [:setup, :setup_all] do
