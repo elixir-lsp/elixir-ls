@@ -1,6 +1,6 @@
 # This file includes modified code extracted from the elixir project. Namely:
 #
-# https://github.com/elixir-lang/elixir/blob/v1.18.0/lib/mix/lib/mix/tasks/format.ex
+# https://github.com/elixir-lang/elixir/blob/2e7bb9b47ffeba1950c6209fc8f3791bc8b8732b/lib/mix/lib/mix/tasks/format.ex
 #
 # The original code is licensed as follows:
 #
@@ -53,6 +53,10 @@ defmodule Mix.Tasks.ElixirLSFormat do
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
       Patterns are expanded with `Path.wildcard/2`.
 
+    * `:excludes` (a list of paths and patterns) - specifies the files to exclude from the
+      list of inputs to this task. For example, `["config/runtime.exs", "test/**/*.{ex,exs}"]`.
+      Patterns are expanded with `Path.wildcard/2`.
+
     * `:plugins` (a list of modules) (since v1.13.0) - specifies a list of
       modules to customize how the formatter works. See the "Plugins" section
       below for more information.
@@ -100,7 +104,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
     * `--stdin-filename` - path to the file being formatted on stdin.
       This is useful if you are using plugins to support custom filetypes such
       as `.heex`. Without passing this flag, it is assumed that the code being
-      passed via stdin is valid Elixir code. Defaults to "stdin.exs".
+      passed via stdin is valid Elixir code. Defaults to `stdin.exs`.
 
     * `--migrate` - enables the `:migrate` option, which should be able to
       automatically fix some deprecation warnings but changes the AST.
@@ -549,6 +553,12 @@ defmodule Mix.Tasks.ElixirLSFormat do
   defp eval_deps_opts(deps, opts) do
     deps_paths = opts[:deps_paths] || Mix.Project.deps_paths()
 
+    if not is_map(deps_paths) do
+      Mix.raise(
+        "Expected :deps_paths to return a map of dependency paths, got: #{inspect(deps_paths)}"
+      )
+    end
+
     for dep <- deps,
         dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
         dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
@@ -660,9 +670,16 @@ defmodule Mix.Tasks.ElixirLSFormat do
       Mix.raise("Expected :inputs or :subdirectories key in #{dot_formatter}")
     end
 
+    excluded_files =
+      formatter_opts[:excludes]
+      |> List.wrap()
+      |> Enum.flat_map(&Path.wildcard(SourceFile.Path.expand(&1, cwd), match_dot: true))
+      |> MapSet.new()
+
     map =
       for input <- List.wrap(formatter_opts[:inputs]),
           file <- Path.wildcard(SourceFile.Path.expand(input, cwd), match_dot: true),
+          file not in excluded_files,
           do: {file, {dot_formatter, formatter_opts}},
           into: %{}
 
@@ -725,7 +742,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
       size = byte_size(sub)
 
       case file do
-        <<prefix::binary-size(size), dir_separator, _::binary>>
+        <<prefix::binary-size(^size), dir_separator, _::binary>>
         when prefix == sub and dir_separator in [?\\, ?/] ->
           recur_formatter_opts_for_file(file, sub, formatter_opts_and_subs)
 
@@ -749,8 +766,11 @@ defmodule Mix.Tasks.ElixirLSFormat do
       |> Enum.filter(&File.regular?/1)
 
   defp elixir_format(content, formatter_opts) do
-    case Code.format_string!(content, formatter_opts) do
-      [] -> ""
+    content
+    |> Code.format_string!(formatter_opts)
+    |> IO.iodata_to_binary()
+    |> case do
+      "" -> ""
       formatted_content -> IO.iodata_to_binary([formatted_content, ?\n])
     end
   end
