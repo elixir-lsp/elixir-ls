@@ -110,6 +110,10 @@ else
   set scriptpath $ELS_INSTALL_PREFIX
 end
 
+# Unset MIX_OS_DEPS_COMPILE_PARTITION_COUNT as it pollutes stdout
+# breaking LSP protocol. See https://github.com/elixir-lsp/elixir-ls/issues/1195
+set -e MIX_OS_DEPS_COMPILE_PARTITION_COUNT
+
 set -x MIX_ENV prod
 # Mix.install prints to stdout and reads from stdin
 # we need to make sure it doesn't interfere with LSP/DAP

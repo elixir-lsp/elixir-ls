@@ -7,6 +7,10 @@ IF EXIST "%APPDATA%\elixir_ls\setup.bat" (
     IF %ERRORLEVEL% NEQ 0 EXIT 1
 )
 
+@REM Unset MIX_OS_DEPS_COMPILE_PARTITION_COUNT as it pollutes stdout
+@REM breaking LSP protocol. See https://github.com/elixir-lsp/elixir-ls/issues/1195
+SET MIX_OS_DEPS_COMPILE_PARTITION_COUNT=
+
 SET MIX_ENV=prod
 @REM pipe echo to avoid passing protocol messages to quiet install command
 @REM intercept stdout and stderr
