@@ -124,6 +124,7 @@ ElixirLS generally aims to support all supported versions of Elixir on all compa
 |      any        |     1.11     |        No         |             Latest release not compatible. Last version known to work v0.12.0    |
 |      any        |     1.12     |        No         |             Latest release not compatible. Last version known to work v0.23.0                  |
 |     22 - 25        |       1.13      |    Unknown    |  Latest release may still work but no longer supported, Last version known to work v0.26.4          |
+|     23 - 26        |       1.14      |    Unknown    |  Latest release may still work but no longer supported, Last version known to work v0.29.3          |
 |      23         |       1.14   |        Yes        |                            None                            |
 |      24         |   1.14 - 1.16   |        Yes        |                            None                            |
 |      25         |  1.14 - 1.18  |        Yes        |                            None                            |
@@ -132,8 +133,8 @@ ElixirLS generally aims to support all supported versions of Elixir on all compa
 |   >= 26.2.0     |  1.14.5 - 1.18  |        Yes        |                            None                            |
 |      any        |     1.15.5      |        Yes        |  Broken formatter [#975](https://github.com/elixir-lsp/elixir-ls/issues/975) |
 |      27         |    1.17 - 1.18  |        Yes        |                            None                            |
-|      28         |      1.18.4     |        Yes        |                            None                            |
-|     26 - 28     |       1.19      |      Unofficial   |                            None                             |
+|      28         |      1.18.4     |      Unknown    |  Elixir retracted support for OTP 28 in 1.18, Latest release may work but is not supported    |
+|     26 - 28     |       1.19      |      Yes   |                            None                             |
 
 ### Version management
 

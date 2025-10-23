@@ -9,13 +9,11 @@ jobs:
   build:
     name: Build Mkdocs website
     runs-on: ubuntu-22.04
-    strategy:
-        max-parallel: 1
     container:
       image: squidfunk/mkdocs-material
     steps: 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Build
         run: mkdocs build -s
       - name: Upload artifact
@@ -28,13 +26,11 @@ jobs:
     needs: build
     name: Publish Mkdocs website to GH Pages
     runs-on: ubuntu-22.04
-    strategy:
-      max-parallel: 1
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: site
           path: site

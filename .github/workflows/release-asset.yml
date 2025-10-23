@@ -14,7 +14,7 @@ jobs:
     name: Validate release
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate version consistency
         run: |
           VERSION="$(cat ./VERSION | tr -d '[:space:]')"
@@ -34,7 +34,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Extract version info
         id: version
@@ -50,8 +50,8 @@ jobs:
       - name: Set up BEAM
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: 1.18.x
-          otp-version: 27.x
+          elixir-version: 1.19.x
+          otp-version: 28.x
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -84,12 +84,12 @@ jobs:
     runs-on: ubuntu-22.04
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Needed for changelog generation
 
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: elixir-ls-${{ needs.build.outputs.version }}
 
@@ -133,7 +133,7 @@ jobs:
     needs: build
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: elixir-ls-${{ needs.build.outputs.version }}
 
