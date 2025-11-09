@@ -89,7 +89,7 @@ jobs:
           fetch-depth: 0  # Needed for changelog generation
 
       - name: Download build artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: elixir-ls-${{ needs.build.outputs.version }}
 
@@ -133,7 +133,7 @@ jobs:
     needs: build
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: elixir-ls-${{ needs.build.outputs.version }}
 
