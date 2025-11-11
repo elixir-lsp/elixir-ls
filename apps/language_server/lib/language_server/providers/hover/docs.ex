@@ -20,6 +20,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.TypeInfo
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Source
+  alias ElixirLS.LanguageServer.Providers.LocatorUtils
 
   @type markdown :: String.t()
 
@@ -71,20 +72,12 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
                      |> Kernel.--([:exception, :message])
 
   def docs(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
-      :none ->
+    case LocatorUtils.build(code, line, column, options) do
+      nil ->
         nil
 
-      %{begin: begin_pos, end: end_pos} = context ->
-        metadata =
-          Keyword.get_lazy(options, :metadata, fn ->
-            Parser.parse_string(code, true, false, {line, column})
-          end)
-
-        env =
-          Metadata.get_cursor_env(metadata, {line, column}, {begin_pos, end_pos})
-
-        case all(context, env, metadata) do
+      %{context: %{begin: begin_pos, end: end_pos}} = info ->
+        case all(info) do
           [] ->
             nil
 
@@ -100,16 +93,15 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
     end
   end
 
-  defp all(
-         context,
-         %State.Env{
+  defp all(%{
+         context: context,
+         env: %State.Env{
            module: module
          } = env,
-         metadata
-       ) do
-    binding_env = Binding.from_env(env, metadata, context.begin)
-
-    type = SurroundContext.to_binding(context.context, module)
+         metadata: metadata,
+         binding_env: binding_env,
+         type: type
+       }) do
 
     case type do
       nil ->
