@@ -181,13 +181,24 @@ defmodule ElixirLS.DebugAdapter.ExUnitFormatter do
           formatter_cb = fn _key, value -> value end
 
           message =
-            ExUnit.Formatter.format_test_all_failure(
-              test_module,
-              failures,
-              state.failure_counter + 1,
-              @width,
-              formatter_cb
-            )
+            try do
+              ExUnit.Formatter.format_test_all_failure(
+                test_module,
+                failures,
+                state.failure_counter + 1,
+                @width,
+                formatter_cb
+              )
+            rescue
+              e ->
+                Output.debugger_console(
+                  "ExUnit.Formatter.format_test_all_failure failed: #{Exception.format(:error, e, __STACKTRACE__)}"
+                )
+
+                # Workaround for https://github.com/elixir-lang/elixir/issues/14900
+                # TODO remove when we require elixir >= 1.20
+                "invalid test module #{test_module}: #{inspect(failures)}"
+            end
 
           Output.ex_unit_event(%{
             "event" => "test_errored",
@@ -216,7 +227,9 @@ defmodule ElixirLS.DebugAdapter.ExUnitFormatter do
   end
 
   def handle_cast(:max_failures_reached, state) do
-    # undocumented event - we probably don't need to do anything
+    # the test run has been aborted due to reaching max failures limit set
+    # with `:max_failures` option
+    # we probably don't need to do anything
     {:noreply, state}
   end
 
