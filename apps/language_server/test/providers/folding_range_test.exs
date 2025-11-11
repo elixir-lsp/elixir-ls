@@ -526,6 +526,24 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
       assert compare_condensed_ranges(ranges, expected, text)
     end
 
+    @tag text: """
+         defmodule A do
+           def check(value) do
+             if value not in [1, 2, 3] do
+               :ok
+             end
+           end
+         end
+         """
+    test "handles 'not in' operator from Elixir 1.19+", %{
+      ranges_result: ranges_result,
+      text: text
+    } do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 5, "region"}, {1, 4, "region"}, {2, 3, "region"}]
+      assert compare_condensed_ranges(ranges, expected, text)
+    end
+
     defp fold_text(%{text: _text} = context) do
       ranges_result = FoldingRange.provide(context)
       {:ok, Map.put(context, :ranges_result, ranges_result)}

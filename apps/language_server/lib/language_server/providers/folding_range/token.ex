@@ -29,6 +29,11 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange.Token do
           {a, {b1, b2, b3}, c} ->
             {a, {b1 - 1, b2 - 1, b3}, c}
 
+          # Handle 'not in' operator token format from Elixir 1.19+
+          # {:in_op, {start_line, start_col, nil}, :"not in", {end_line, end_col, nil}}
+          {:in_op, {b1, b2, b3}, :"not in", {_d1, _d2, _d3}} ->
+            {:in_op, {b1 - 1, b2 - 1, b3}, :"not in"}
+
           {:sigil, {b1, b2, b3}, _, _, _, _, delimiter} ->
             {:sigil, {b1 - 1, b2 - 1, b3}, delimiter}
 

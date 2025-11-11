@@ -1126,4 +1126,24 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
 
     get_ranges(text, 1, 2)
   end
+
+  test "handles 'not in' operator from Elixir 1.19+" do
+    text = """
+    defmodule Test do
+      def check(value) do
+        if value not in [1, 2, 3] do
+          :ok
+        end
+      end
+    end
+    """
+
+    # Test selection range on the 'not in' operator
+    ranges = get_ranges(text, 2, 14)
+
+    # Verify that we get ranges without crashing
+    assert length(ranges) > 0
+    # Full file range should be present
+    assert_range(ranges, range(0, 0, 7, 0))
+  end
 end
