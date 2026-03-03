@@ -93,7 +93,12 @@ else
         # Look for mise executable
         if command -v mise >/dev/null 2>&1; then
             >&2 echo "mise executable found at $(command -v mise), activating"
-            eval "$($(command -v mise) env -s "$preferred_shell")"
+            # mise env does not support all shells (e.g. nushell); fall back to bash
+            case "$preferred_shell" in
+              bash|zsh|fish|elvish|xonsh|pwsh) mise_shell="$preferred_shell" ;;
+              *) mise_shell="bash" ;;
+            esac
+            eval "$($(command -v mise) env -s "$mise_shell")"
             export_stdlib_path "mise which elixir"
         else
             >&2 echo "mise not found"
