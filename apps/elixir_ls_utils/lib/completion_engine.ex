@@ -28,8 +28,20 @@
 # with some changes inspired by Alchemist.Completer (itself based on IEx.Autocomplete).
 # Since then the codebases have diverged as the requirements
 # put on editor and REPL autocomplete are different.
-# However some relevant changes have been merged back
-# from upstream Elixir (1.13).
+# Relevant correctness/feature changes from upstream Elixir have been merged
+# back through v1.20:
+# - cursor parsing is delegated to the host compiler's Code.Fragment
+#   (cursor_context/1, container_cursor_to_quoted/2), so token-level fixes
+#   from the running Elixir apply automatically (e.g. the 1.18+
+#   :block_keyword_or_binary_operator and :capture_arg contexts)
+# - struct expansion crash fixes (elixir-lang/elixir#14308 __MODULE__,
+#   #14150 runtime values)
+# - OTP 28 nominal types
+# IEx-only module-listing memory/prefix-filter optimizations (#15140, #15143)
+# are intentionally NOT adopted: this engine fuzzy-matches module names
+# (ElixirLS.Utils.Matcher) rather than prefix-matching, and caches module
+# results in :persistent_term, so the upstream collection-time prefix filter
+# does not apply.
 # Changes made to the original version include:
 # - different result format with added docs and spec
 # - built in and private funcs are not excluded
@@ -54,7 +66,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   alias ElixirSense.Core.Introspection
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
-  alias ElixirSense.Core.Source
+  alias ElixirSense.Core.Normalized.Macro.Env, as: NormalizedMacroEnv
   alias ElixirSense.Core.State
   alias ElixirSense.Core.State.StructInfo
   alias ElixirSense.Core.Struct
@@ -67,6 +79,30 @@ defmodule ElixirLS.Utils.CompletionEngine do
   @erlang_module_builtin_functions [{:module_info, 0}, {:module_info, 1}]
   @elixir_module_builtin_functions [{:__info__, 1}]
   @builtin_functions @erlang_module_builtin_functions ++ @elixir_module_builtin_functions
+
+  @bitstring_modifiers [
+    %{type: :bitstring_option, name: "big"},
+    %{type: :bitstring_option, name: "binary"},
+    %{type: :bitstring_option, name: "bitstring"},
+    %{type: :bitstring_option, name: "integer"},
+    %{type: :bitstring_option, name: "float"},
+    %{type: :bitstring_option, name: "little"},
+    %{type: :bitstring_option, name: "native"},
+    %{type: :bitstring_option, name: "signed"},
+    %{type: :bitstring_option, name: "size", arity: 1},
+    %{type: :bitstring_option, name: "unit", arity: 1},
+    %{type: :bitstring_option, name: "unsigned"},
+    %{type: :bitstring_option, name: "utf8"},
+    %{type: :bitstring_option, name: "utf16"},
+    %{type: :bitstring_option, name: "utf32"}
+  ]
+
+  @alias_only_atoms ~w(alias import require)a
+  @alias_only_charlists ~w(alias import require)c
+
+  # Block keywords that may follow a complete expression. Surfaced for the
+  # elixir >= 1.18 {:block_keyword_or_binary_operator, hint} cursor context.
+  @block_keywords ~w(do end after catch else rescue)
 
   @type attribute :: %{
           type: :attribute,
@@ -84,9 +120,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
           visibility: :public | :private,
           name: String.t(),
           needed_require: String.t() | nil,
-          needed_import: {String.t(), {String.t(), integer()}} | nil,
+          needed_import: {String.t(), list({String.t(), integer()})} | nil,
           arity: non_neg_integer,
-          def_arity: non_neg_integer,
+          default_args: non_neg_integer,
           args: String.t(),
           args_list: [String.t()],
           origin: String.t(),
@@ -111,9 +147,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
           name: String.t(),
           origin: String.t() | nil,
           call?: boolean,
-          type_spec: String.t() | nil,
-          summary: String.t(),
-          metadata: map
+          value_is_map: boolean,
+          type_spec: String.t() | nil
+        }
+
+  @type bitstring_option :: %{
+          type: :bitstring_option,
+          name: String.t(),
+          arity: non_neg_integer
         }
 
   @type t() ::
@@ -141,16 +182,20 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_erlang_modules(List.to_string(unquoted_atom), env, metadata)
 
       {:dot, path, hint} ->
-        expand_dot(
-          path,
-          List.to_string(hint),
-          false,
-          env,
-          metadata,
-          cursor_position,
-          false,
-          opts
-        )
+        if alias = alias_only(path, hint, code, env, metadata, cursor_position) do
+          expand_aliases(List.to_string(alias), env, metadata, cursor_position, false, opts)
+        else
+          expand_dot(
+            path,
+            List.to_string(hint),
+            false,
+            env,
+            metadata,
+            cursor_position,
+            false,
+            opts
+          )
+        end
 
       {:dot_arity, path, hint} ->
         expand_dot(
@@ -172,19 +217,35 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_expr(env, metadata, cursor_position, opts)
 
       :expr ->
-        # IEx calls expand_local_or_var("", env)
+        # IEx calls expand_struct_fields_or_local_or_var(code, "", env)
         # we choose to return more and handle some special cases
-        # TODO expand_expr(env) after we require elixir 1.13
-        case code do
-          [?^] -> expand_var("", env, metadata)
-          [?%] -> expand_aliases("", env, metadata, cursor_position, true, opts)
-          _ -> expand_expr(env, metadata, cursor_position, opts)
-        end
+        {results, continue?} =
+          expand_container_context(code, :expr, "", env, metadata, cursor_position)
+
+        if continue?,
+          do:
+            results ++
+              (case code do
+                 [?^] ->
+                   expand_var("", env, metadata)
+
+                 [?%] ->
+                   expand_aliases("", env, metadata, cursor_position, true, opts)
+
+                 _ ->
+                   expand_expr(env, metadata, cursor_position, opts)
+               end),
+          else: results
 
       {:local_or_var, local_or_var} ->
-        # TODO consider suggesting struct fields here when we require elixir 1.13
-        # expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
-        expand_local_or_var(List.to_string(local_or_var), env, metadata, cursor_position)
+        hint = List.to_string(local_or_var)
+
+        {results, continue?} =
+          expand_container_context(code, :expr, hint, env, metadata, cursor_position)
+
+        if continue?,
+          do: results ++ expand_local_or_var(hint, env, metadata, cursor_position),
+          else: results
 
       # elixir >= 1.18
       {:capture_arg, capture_arg} ->
@@ -193,6 +254,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, env, metadata, cursor_position)
 
+      {:local_call, local} when local in @alias_only_charlists ->
+        expand_aliases("", env, metadata, cursor_position, false, opts)
+
       {:local_call, _local} ->
         # no need to expand signatures here, we have signatures provider
         # expand_local_call(List.to_atom(local), env)
@@ -200,6 +264,16 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # expand_dot_call(path, List.to_atom(hint), env)
         # to provide signatures and falls back to expand_local_or_var
         expand_expr(env, metadata, cursor_position, opts)
+
+      {:operator, operator} when operator in ~w(:: -)c ->
+        {results, continue?} =
+          expand_container_context(code, :operator, "", env, metadata, cursor_position)
+
+        if continue?,
+          do:
+            results ++
+              expand_local(List.to_string(operator), false, env, metadata, cursor_position),
+          else: results
 
       {:operator, operator} ->
         case operator do
@@ -210,6 +284,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       {:operator_arity, operator} ->
         expand_local(List.to_string(operator), true, env, metadata, cursor_position)
+
+      {:operator_call, operator} when operator in ~w(|)c ->
+        {results, continue?} =
+          expand_container_context(code, :expr, "", env, metadata, cursor_position)
+
+        if continue?,
+          do: results ++ expand_local_or_var("", env, metadata, cursor_position),
+          else: results
 
       {:operator_call, _operator} ->
         expand_local_or_var("", env, metadata, cursor_position)
@@ -235,15 +317,24 @@ defmodule ElixirLS.Utils.CompletionEngine do
         expand_attribute(List.to_string(attribute), env, metadata)
 
       {:struct, {:local_or_var, local_or_var}} ->
-        # TODO consider suggesting struct fields here when we require elixir 1.13
-        # expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
         expand_local_or_var(List.to_string(local_or_var), env, metadata, cursor_position)
 
       {:module_attribute, attribute} ->
         expand_attribute(List.to_string(attribute), env, metadata)
 
+      # elixir >= 1.16
       {:anonymous_call, _} ->
         expand_expr(env, metadata, cursor_position, opts)
+
+      # elixir >= 1.18 — the cursor sits right after a complete expression, where
+      # a block keyword (do/end/after/catch/else/rescue) or a binary operator
+      # could follow. The engine is the precise oracle for this position; it
+      # surfaces the block keywords (binary operators are typed directly, so we
+      # don't suggest them). The LSP completion provider stays version-gated for
+      # 1.16-1.17 (where cursor_context never returns this token) and
+      # deduplicates against these results on 1.18+.
+      {:block_keyword_or_binary_operator, hint} ->
+        expand_block_keywords(List.to_string(hint))
 
       :none ->
         no()
@@ -264,17 +355,21 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
     case expand_dot_path(path, env, metadata, cursor_position) do
       {:ok, {:atom, mod}} when hint == "" ->
-        expand_aliases(
-          mod,
-          "",
-          [],
-          not only_structs,
-          env,
-          metadata,
-          cursor_position,
-          filter,
-          opts
-        )
+        if match?({:module_attribute, _attribute}, path) and not match?({_, _}, env.function) do
+          expand_require(mod, hint, exact?, env, metadata, cursor_position)
+        else
+          expand_aliases(
+            mod,
+            "",
+            [],
+            not only_structs,
+            env,
+            metadata,
+            cursor_position,
+            filter,
+            opts
+          )
+        end
 
       {:ok, {:atom, mod}} ->
         expand_require(mod, hint, exact?, env, metadata, cursor_position)
@@ -322,10 +417,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          _cursor_position
        ) do
-    alias = hint |> List.to_string() |> String.split(".") |> value_from_alias(env, metadata)
+    result =
+      hint
+      |> List.to_string()
+      |> String.split(".")
+      |> Enum.map(&String.to_atom/1)
+      |> value_from_alias(env)
 
-    case alias do
-      {:ok, atom} -> {:ok, {:atom, atom}}
+    case result do
+      {:alias, atom} -> {:ok, {:atom, atom}}
       :error -> :error
     end
   end
@@ -336,18 +436,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          _cursor_position
        ) do
-    case var do
-      ~c"__MODULE__" ->
-        alias_suffix = hint |> List.to_string() |> String.split(".")
-        alias = [{:__MODULE__, [], nil} | alias_suffix] |> value_from_alias(env, metadata)
-
-        case alias do
-          {:ok, atom} -> {:ok, {:atom, atom}}
-          :error -> :error
-        end
-
-      _ ->
-        :error
+    if var == ~c"__MODULE__" and env.module != nil and Introspection.elixir_module?(env.module) do
+      alias_suffix = hint |> List.to_string() |> String.split(".") |> Enum.map(&String.to_atom/1)
+      expanded_alias = Module.concat([env.module | alias_suffix])
+      {:ok, {:atom, expanded_alias}}
+    else
+      :error
     end
   end
 
@@ -357,22 +451,22 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          cursor_position
        ) do
-    case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position) do
-      {:ok, {:atom, atom}} ->
-        if Introspection.elixir_module?(atom) do
-          alias_suffix = hint |> List.to_string() |> String.split(".")
-          alias = (Module.split(atom) ++ alias_suffix) |> value_from_alias(env, metadata)
+    with true <- match?({_, _}, env.function),
+         {:ok, {:atom, atom}} <-
+           value_from_binding(
+             {:attribute, List.to_atom(attribute)},
+             env,
+             metadata,
+             cursor_position
+           ),
+         true <- Introspection.elixir_module?(atom) do
+      alias_suffix =
+        hint |> List.to_string() |> String.split(".") |> Enum.map(&String.to_atom/1)
 
-          case alias do
-            {:ok, atom} -> {:ok, {:atom, atom}}
-            :error -> :error
-          end
-        else
-          :error
-        end
-
-      :error ->
-        :error
+      expanded_alias = Module.concat([atom | alias_suffix])
+      {:ok, {:atom, expanded_alias}}
+    else
+      _ -> :error
     end
   end
 
@@ -432,10 +526,17 @@ defmodule ElixirLS.Utils.CompletionEngine do
     []
   end
 
+  defp expand_block_keywords(hint) do
+    for keyword <- @block_keywords, Matcher.match?(keyword, hint) do
+      %{type: :keyword, name: keyword}
+    end
+    |> format_expansion()
+  end
+
   ## Formatting
 
   defp format_expansion(entries) do
-    Enum.flat_map(entries, &to_entries/1)
+    Enum.map(entries, &to_entries/1)
   end
 
   defp expand_map_field_access(fields, hint, type, %State.Env{} = env, %Metadata{} = metadata) do
@@ -536,7 +637,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
       do: name
     )
     |> Enum.sort()
-    |> Enum.map(&%{kind: :variable, name: &1})
+    |> Enum.map(&%{type: :variable, name: &1})
   end
 
   # do not suggest attributes outside of a module
@@ -562,7 +663,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           # include module attributes in module scope
           attribute_names ++ BuiltinAttributes.all()
 
-        %State.Env{} ->
+        _ ->
           []
       end
 
@@ -575,7 +676,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     |> Enum.sort()
     |> Enum.map(
       &%{
-        kind: :attribute,
+        type: :attribute,
         name: Atom.to_string(&1),
         summary: BuiltinAttributes.docs(&1)
       }
@@ -590,7 +691,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp match_erlang_modules(hint, %State.Env{} = env, %Metadata{} = metadata) do
-    for mod <- match_modules(hint, true, env, metadata),
+    for mod <- match_modules(hint, false, env, metadata),
         usable_as_unquoted_module?(mod) do
       mod_as_atom = String.to_atom(mod)
 
@@ -612,10 +713,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
     name = inspect(module)
 
     result = %{
-      kind: :module,
+      type: :module,
       name: name,
       full_name: name,
-      type: :erlang,
+      type: :module,
       desc: desc,
       subtype: subtype
     }
@@ -625,14 +726,436 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp struct_module_filter(true, %State.Env{} = _env, %Metadata{} = metadata) do
-    fn module -> Struct.is_struct(module, metadata.structs) end
+    fn module ->
+      Struct.is_struct(module, metadata.structs) or
+        has_struct_submodule?(module, metadata.structs)
+    end
   end
 
   defp struct_module_filter(false, %State.Env{} = _env, %Metadata{} = _metadata) do
     fn _ -> true end
   end
 
-  ## Elixir modules
+  # Check if a module has any direct submodules that are structs
+  defp has_struct_submodule?(module, structs) do
+    module_str = Atom.to_string(module)
+
+    # Check metadata structs (from current buffer)
+    metadata_result =
+      Enum.any?(structs, fn {struct_module, _} ->
+        struct_module_str = Atom.to_string(struct_module)
+        String.starts_with?(struct_module_str, module_str <> ".")
+      end)
+
+    # Also check compiled modules
+    if metadata_result do
+      true
+    else
+      # Get all modules and check if any direct submodule is a struct
+      module_str_with_dot = module_str <> "."
+
+      # Get all loaded modules
+      modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+
+      # Add modules from applications if in interactive mode
+      modules =
+        case :code.get_mode() do
+          :interactive ->
+            modules ++
+              Enum.map(Applications.get_modules_from_applications(), &Atom.to_string/1)
+
+          _ ->
+            modules
+        end
+
+      # Find submodules
+      submodules =
+        for mod <- modules,
+            String.starts_with?(mod, module_str_with_dot),
+            do: String.to_atom(mod)
+
+      # Check if any submodule is a struct
+      Enum.any?(submodules, fn mod ->
+        Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
+      end)
+    end
+  end
+
+  defp struct?(mod, metadata) do
+    Struct.is_struct(mod, metadata.structs)
+    # Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
+  end
+
+  defp expand_container_context(code, context, hint, env, metadata, cursor_position) do
+    case container_context(code, env, metadata, cursor_position) do
+      {:map, map, pairs} when context == :expr ->
+        continue? = pairs == []
+        {container_context_map_fields(pairs, :map, map, hint, metadata), continue?}
+
+      {:struct, map, alias, pairs} when context == :expr ->
+        continue? = pairs == []
+        {container_context_map_fields(pairs, {:struct, alias}, map, hint, metadata), continue?}
+
+      :bitstring_modifier ->
+        existing =
+          code
+          |> List.to_string()
+          |> String.split("::")
+          |> List.last()
+          |> String.split("-")
+
+        results =
+          @bitstring_modifiers
+          |> Enum.filter(&(Matcher.match?(&1.name, hint) and &1.name not in existing))
+          |> format_expansion()
+
+        {results, false}
+
+      _ ->
+        {[], true}
+    end
+  end
+
+  defp container_context_map_fields(pairs, kind, map, hint, metadata) do
+    {keys, types, alias, doc, meta} =
+      case kind do
+        {:struct, nil} ->
+          {Map.keys(map) ++ [:__struct__], %{}, nil, "", %{}}
+
+        {:struct, alias} ->
+          keys = Struct.get_fields(alias, metadata.structs)
+          types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
+          {doc, meta} = get_struct_info({:atom, alias}, metadata)
+          {keys, types, alias, doc, meta}
+
+        _ ->
+          {Map.keys(map), %{}, nil, "", %{}}
+      end
+
+    entries =
+      for key <- keys,
+          not Keyword.has_key?(pairs, key),
+          name = Atom.to_string(key),
+          Matcher.match?(name, hint) do
+        %{
+          type: :field,
+          name: name,
+          subtype: if(kind == :map, do: :map_key, else: :struct_field),
+          value_is_map: false,
+          origin: if(kind != :map and alias != nil, do: inspect(alias)),
+          call?: false,
+          type_spec: map_field_spec(key, types, alias),
+          summary: doc,
+          metadata: meta
+        }
+      end
+
+    format_expansion(entries |> Enum.sort_by(& &1.name))
+  end
+
+  @doc """
+  Returns true when the cursor sits directly as an operand of a binary operator
+  in the given `container_cursor_to_quoted/2` AST (e.g. the right-hand side of
+  `x = ‹cursor›`, `a + ‹cursor›`, `x |> ‹cursor›`).
+
+  Block keywords (do/end/rescue/...) are never valid in such a position. This is
+  detected from the AST because `Code.Fragment.cursor_context/1` reports
+  `:local_or_var` for these positions and cannot distinguish them from a valid
+  block-keyword position.
+  """
+  @spec cursor_in_operator_operand?(Macro.t() | nil) :: boolean
+  def cursor_in_operator_operand?(nil), do: false
+
+  def cursor_in_operator_operand?(container_cursor_quoted) do
+    case Macro.path(container_cursor_quoted, &match?({:__cursor__, _, []}, &1)) do
+      [_cursor, {op, _meta, [_, _]} | _] when is_atom(op) ->
+        Macro.operator?(op, 2)
+
+      _ ->
+        false
+    end
+  end
+
+  defp container_context(code, env, metadata, cursor_position) do
+    case Code.Fragment.container_cursor_to_quoted(code) do
+      {:ok, quoted} ->
+        case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
+          [cursor, {:%{}, _, pairs}, {:%, _, [struct_module_ast, _map]} | _] ->
+            container_context_struct(
+              cursor,
+              pairs,
+              struct_module_ast,
+              env,
+              metadata,
+              cursor_position
+            )
+
+          [
+            cursor,
+            pairs,
+            {:|, _, _},
+            {:%{}, _, _},
+            {:%, _, [struct_module_ast, _map]} | _
+          ] ->
+            container_context_struct(
+              cursor,
+              pairs,
+              struct_module_ast,
+              env,
+              metadata,
+              cursor_position
+            )
+
+          [cursor, pairs, {:|, _, [expr | _]}, {:%{}, _, _} | _] ->
+            container_context_map(cursor, pairs, expr, env, metadata, cursor_position)
+
+          [cursor, {special_form, _, [cursor]} | _] when special_form in @alias_only_atoms ->
+            :alias_only
+
+          [
+            cursor,
+            {:__MODULE__, _, [cursor]},
+            {special_form, _, [{:__MODULE__, _, [cursor]}]} | _
+          ]
+          when special_form in @alias_only_atoms ->
+            :alias_only
+
+          [cursor | tail] ->
+            case remove_operators(tail, cursor) do
+              [{:"::", _, [_, _]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
+              _ -> nil
+            end
+
+          _ ->
+            nil
+        end
+
+      {:error, _} ->
+        nil
+    end
+  end
+
+  defp remove_operators([{op, _, [_, previous]} = head | tail], previous) when op in [:-],
+    do: remove_operators(tail, head)
+
+  defp remove_operators(tail, _previous),
+    do: tail
+
+  defp expand_struct_module(atom, _env, _metadata, _cursor_position) when is_atom(atom) do
+    {:ok, atom}
+  end
+
+  defp expand_struct_module(
+         {:__MODULE__, _, context},
+         env = %{module: module},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and not is_nil(module) do
+    {:ok, module}
+  end
+
+  defp expand_struct_module(
+         {:@, _, [{attribute, _, context}]},
+         env = %{function: {_, _}},
+         metadata,
+         cursor_position
+       )
+       when is_atom(context) and is_atom(attribute) do
+    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
+      {:ok, {:atom, atom}} ->
+        if Introspection.elixir_module?(atom) do
+          {:ok, atom}
+        else
+          :error
+        end
+
+      _ ->
+        :error
+    end
+  end
+
+  defp expand_struct_module(
+         {:__aliases__, meta, list = [head | tail]},
+         env,
+         metadata,
+         cursor_position
+       ) do
+    case NormalizedMacroEnv.expand_alias(State.Env.to_macro_env(env), meta, list, trace: false) do
+      {:alias, alias} ->
+        {:ok, alias}
+
+      :error ->
+        if match?({:@, _, _}, head) do
+          # alias with attribute is not supported in struct
+          :error
+        else
+          head = simple_expand(head, env, metadata, cursor_position)
+
+          if is_atom(head) do
+            {:ok, Module.concat([head | tail])}
+          else
+            :error
+          end
+        end
+    end
+  end
+
+  defp expand_struct_module(
+         {variable, _, context},
+         env = %{context: :match},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and is_atom(variable) do
+    {:ok, nil}
+  end
+
+  defp expand_struct_module(_ast, _env, _metadata, _cursor_position) do
+    :error
+  end
+
+  defp container_context_struct(cursor, pairs, ast, env, metadata, cursor_position) do
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         {:ok, alias} <- expand_struct_module(ast, env, metadata, cursor_position),
+         true <- Keyword.keyword?(pairs) and (struct?(alias, metadata) or alias == nil) do
+      {:struct, %{}, alias, pairs}
+    else
+      _ -> nil
+    end
+  end
+
+  defp simple_expand({:__ENV__, _, context}, env, _metadata, _cursor_position)
+       when is_atom(context) do
+    {:%, [], [Macro.Env, {:%{}, [], []}]}
+  end
+
+  defp simple_expand(
+         {:__MODULE__, _, context},
+         env = %{module: module},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and not is_nil(module) do
+    env.module
+  end
+
+  defp simple_expand(
+         {special, _, context} = node,
+         env = %{module: module},
+         _metadata,
+         _cursor_position
+       )
+       when is_atom(context) and special in [:__DIR__, :__STACKTRACE__, :__CALLER__] do
+    node
+  end
+
+  defp simple_expand({:@, _, [{attribute, _, context}]} = node, env, metadata, cursor_position)
+       when is_atom(context) and is_atom(attribute) do
+    case value_from_binding({:attribute, attribute}, env, metadata, cursor_position) do
+      {:ok, {:atom, atom}} ->
+        if Introspection.elixir_module?(atom) do
+          atom
+        else
+          node
+        end
+
+      _ ->
+        node
+    end
+  end
+
+  defp simple_expand(
+         {:__aliases__, meta, [head | tail] = list} = node,
+         env,
+         metadata,
+         cursor_position
+       ) do
+    case NormalizedMacroEnv.expand_alias(State.Env.to_macro_env(env), meta, list, trace: false) do
+      {:alias, alias} ->
+        alias
+
+      :error ->
+        if match?({:@, _, _}, head) and not match?({_, _}, env.function) do
+          # alias with attribute is only valid in function context
+          node
+        else
+          head = simple_expand(head, env, metadata, cursor_position)
+
+          if is_atom(head) do
+            Module.concat([head | tail])
+          else
+            node
+          end
+        end
+    end
+  end
+
+  defp simple_expand({variable, meta, context}, env, metadata, cursor_position)
+       when is_atom(variable) and is_atom(context) do
+    # put fake version to make it work with TypeInference
+    {variable, meta |> Keyword.put(:version, :any), context}
+  end
+
+  defp simple_expand(ast, _env, _metadata, _cursor_position), do: ast
+
+  defp container_context_map(cursor, pairs, expr, env, metadata, cursor_position) do
+    binding_ast =
+      expr
+      |> Macro.prewalk(fn node -> simple_expand(node, env, metadata, cursor_position) end)
+      |> ElixirSense.Core.TypeInference.type_of(env.context)
+
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         {:ok, type} <- value_from_binding(binding_ast, env, metadata, cursor_position),
+         true <- Keyword.keyword?(pairs) do
+      case type do
+        {:struct, all, {:atom, alias}, _} ->
+          {:struct, Map.new(all), alias, pairs}
+
+        {:struct, all, _origin, _} ->
+          {:struct, Map.new(all), nil, pairs}
+
+        {:map, all, _} ->
+          {:map, Map.new(all), pairs}
+
+        _ ->
+          nil
+      end
+    else
+      _ -> nil
+    end
+  end
+
+  ## Aliases and modules
+
+  defp alias_only(
+         {:var, ~c"__MODULE__"},
+         [],
+         code,
+         env = %{module: module},
+         metadata,
+         cursor_position
+       )
+       when not is_nil(module) do
+    case container_context(code, env, metadata, cursor_position) do
+      :alias_only ->
+        String.to_charlist(inspect(env.module)) ++ [?.]
+
+      _ ->
+        nil
+    end
+  end
+
+  defp alias_only(path, hint, code, env, metadata, cursor_position) do
+    # attributes are not supported in alias only context
+    with {:alias, alias} <- path,
+         [] <- hint,
+         :alias_only <- container_context(code, env, metadata, cursor_position) do
+      alias ++ [?.]
+    else
+      _ -> nil
+    end
+  end
 
   defp expand_aliases(
          all,
@@ -651,10 +1174,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       parts ->
         hint = List.last(parts)
-        list = Enum.take(parts, length(parts) - 1)
+        list = Enum.take(parts, length(parts) - 1) |> Enum.map(&String.to_atom/1)
 
-        case value_from_alias(list, env, metadata) do
-          {:ok, alias} ->
+        case value_from_alias(list, env) do
+          {:alias, alias} ->
             expand_aliases(
               alias,
               hint,
@@ -719,7 +1242,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
        ) do
     case value_from_binding({:attribute, List.to_atom(attribute)}, env, metadata, cursor_position) do
       {:ok, {:atom, atom}} ->
-        if Introspection.elixir_module?(atom) do
+        if Introspection.elixir_module?(atom) and match?({_, _}, env.function) do
           expand_aliases("#{atom}.#{hint}", env, metadata, cursor_position, only_structs, [])
         else
           no()
@@ -747,13 +1270,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
        ),
        do: no()
 
-  defp value_from_alias(mod_parts, %State.Env{} = env, %Metadata{} = _metadata) do
-    mod_parts
-    |> Enum.map(fn
-      bin when is_binary(bin) -> String.to_atom(bin)
-      other -> other
-    end)
-    |> Source.concat_module_parts(env.module, env.aliases)
+  defp value_from_alias(list = [head | _], %State.Env{} = env) do
+    case NormalizedMacroEnv.expand_alias(State.Env.to_macro_env(env), [], list, trace: false) do
+      {:alias, alias} ->
+        {:alias, alias}
+
+      :error ->
+        # we do not expect non atom aliases here
+        {:alias, Module.concat(list)}
+    end
   end
 
   defp match_aliases(hint, %State.Env{} = env, %Metadata{} = _metadata) do
@@ -761,8 +1286,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         [name] = Module.split(alias),
         Matcher.match?(name, hint) do
       %{
-        kind: :module,
-        type: :elixir,
+        type: :module,
         name: name,
         full_name: inspect(mod),
         desc: {"", %{}},
@@ -793,7 +1317,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         filter.(mod_as_atom),
         parts = String.split(mod, "."),
         depth <= length(parts),
-        name = Enum.at(parts, depth - 1),
+        [name] = [Enum.at(parts, depth - 1)],
         valid_alias_piece?("." <> name),
         concatted = parts |> Enum.take(depth) |> concat_module.(),
         filter.(concatted) do
@@ -823,8 +1347,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
           info ->
             %{
-              kind: :module,
-              type: :elixir,
+              type: :module,
               full_name: inspect(module),
               desc: {Introspection.extract_summary_from_docs(info.doc), info.meta},
               subtype: Metadata.get_module_subtype(metadata, module)
@@ -850,8 +1373,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     subtype = Introspection.get_module_subtype(module)
 
     result = %{
-      kind: :module,
-      type: :elixir,
+      type: :module,
       full_name: inspect(module),
       desc: {desc, meta},
       subtype: subtype
@@ -966,13 +1488,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
     |> Enum.filter(fn {suggestion, _required_alias} -> valid_alias_piece?("." <> suggestion) end)
   end
 
-  defp match_modules(hint, root, %State.Env{} = env, %Metadata{} = metadata) do
+  defp match_modules(hint, elixir_root?, %State.Env{} = env, %Metadata{} = metadata) do
     hint_parts = hint |> String.split(".")
     hint_parts_length = length(hint_parts)
     [hint_suffix | hint_prefix] = hint_parts |> Enum.reverse()
 
-    root
-    |> get_modules(env, metadata)
+    get_modules(elixir_root?, env, metadata)
     |> Enum.sort()
     |> Enum.dedup()
     |> Enum.filter(fn mod ->
@@ -1021,81 +1542,70 @@ defmodule ElixirLS.Utils.CompletionEngine do
          %Metadata{} = metadata,
          cursor_position
        ) do
-    falist =
+    list =
       cond do
         metadata.mods_funs_to_positions |> Map.has_key?({mod, nil, nil}) ->
-          get_metadata_module_funs(mod, include_builtin, env, metadata, cursor_position)
+          get_metadata_module_funs(
+            mod,
+            hint,
+            exact?,
+            include_builtin,
+            env,
+            metadata,
+            cursor_position
+          )
 
         ensure_loaded?(mod) ->
-          get_module_funs(mod, include_builtin)
+          get_module_funs(mod, hint, exact?, include_builtin)
 
         true ->
           []
       end
-      |> Enum.sort_by(fn {f, a, _, _, _, _, _} -> {f, -a} end)
+      |> Enum.sort_by(fn {f, _, a, _, _, _, _} -> {f, a} end)
 
-    list =
-      Enum.reduce(falist, [], fn {f, a, def_a, func_kind, {doc_str, meta}, spec, arg}, acc ->
-        doc = {Introspection.extract_summary_from_docs(doc_str), meta}
-
-        case :lists.keyfind(f, 1, acc) do
-          {f, aa, def_arities, func_kinds, docs, specs, args} ->
-            :lists.keyreplace(
-              f,
-              1,
-              acc,
-              {f, [a | aa], [def_a | def_arities], [func_kind | func_kinds], [doc | docs],
-               [spec | specs], [arg | args]}
-            )
-
-          false ->
-            [{f, [a], [def_a], [func_kind], [doc], [spec], [arg]} | acc]
+    for {fun, default_args, arity, func_kind, docs, specs, args} <- list do
+      needed_require =
+        if func_kind in [:macro, :defmacro, :defguard] and mod not in env.requires and
+             mod != Kernel.SpecialForms and mod != env.module do
+          mod
         end
-      end)
 
-    for {fun, arities, def_arities, func_kinds, docs, specs, args} <- list,
-        name = Atom.to_string(fun),
-        if(exact?, do: name == hint, else: Matcher.match?(name, hint)) do
-      needed_requires =
-        for func_kind <- func_kinds do
-          if func_kind in [:macro, :defmacro, :defguard] and mod not in env.requires and
-               mod != Kernel.SpecialForms and mod != env.module do
-            mod
+      needed_import =
+        if imported == :all do
+          nil
+        else
+          missing =
+            for a <- (arity - default_args)..arity, {fun, a} not in imported do
+              {fun, a}
+            end
+
+          if missing == [] do
+            nil
+          else
+            {mod, missing}
           end
         end
 
-      needed_imports =
-        if imported == :all do
-          arities |> Enum.map(fn _ -> nil end)
-        else
-          arities
-          |> Enum.map(fn a ->
-            if {fun, a} not in imported do
-              {mod, {fun, a}}
-            end
-          end)
-        end
-
       %{
-        kind: :function,
-        name: name,
-        arities: arities,
-        def_arities: def_arities,
+        type: :function,
+        name: Atom.to_string(fun),
+        arity: arity,
+        default_args: default_args,
         module: mod,
-        func_kinds: func_kinds,
+        func_kind: func_kind,
         docs: docs,
         specs: specs,
-        needed_requires: needed_requires,
-        needed_imports: needed_imports,
+        needed_require: needed_require,
+        needed_import: needed_import,
         args: args
       }
     end
-    |> Enum.sort_by(& &1.name)
   end
 
-  # TODO filter by hint here?
   defp get_metadata_module_funs(
          mod,
+         hint,
+         exact?,
          include_builtin,
          %State.Env{} = env,
          %Metadata{} = metadata,
@@ -1111,6 +1621,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
         for {{^mod, f, a}, %State.ModFunInfo{} = info} when is_atom(f) <-
               metadata.mods_funs_to_positions,
             a != nil,
+            name = Atom.to_string(f),
+            if(exact?, do: name == hint, else: Matcher.match?(name, hint)),
             (mod == env.module and not include_builtin) or Introspection.is_pub(info.type),
             mod != env.module or State.ModFunInfo.get_category(info) != :macro or
               List.last(info.positions) < cursor_position,
@@ -1181,17 +1693,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
           default_args = Introspection.count_defaults(head_params)
 
-          # TODO this is useless - we duplicate and then deduplicate
-          for arity <- (a - default_args)..a do
-            {f, arity, a, info.type, {docs, meta}, specs, args}
-          end
+          {f, default_args, a, info.type, {docs, meta}, specs, args}
         end
-        |> Enum.concat()
     end
   end
 
-  # TODO filter by hint here?
-  def get_module_funs(mod, include_builtin) do
+  def get_module_funs(mod, hint, exact?, include_builtin) do
     docs = NormalizedCode.get_docs(mod, :docs)
     module_specs = TypeInfo.get_module_specs(mod)
 
@@ -1203,17 +1710,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
     if docs != nil and function_exported?(mod, :__info__, 1) do
       exports = mod.__info__(:macros) ++ mod.__info__(:functions) ++ special_builtins(mod)
-      # TODO this is useless - we should only return max arity variant
       default_arg_functions = default_arg_functions(docs)
 
-      for {f, a} <- exports do
-        {f, new_arity} =
-          case default_arg_functions[{f, a}] do
-            nil -> {f, a}
-            new_arity -> {f, new_arity}
-          end
-
-        {func_kind, func_doc} = find_doc({f, new_arity}, docs)
+      for {f, a} <- exports,
+          {new_a, default_args} = Map.get(default_arg_functions, {f, a}, {a, 0}),
+          new_a == a,
+          name = Atom.to_string(f),
+          if(exact?, do: name == hint, else: Matcher.match?(name, hint)) do
+        {func_kind, func_doc} = find_doc({f, new_a}, docs)
         func_kind = func_kind || :function
 
         doc =
@@ -1233,8 +1737,8 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
         spec_key =
           case func_kind do
-            :macro -> {:"MACRO-#{f}", new_arity + 1}
-            :function -> {f, new_arity}
+            :macro -> {:"MACRO-#{f}", a + 1}
+            :function -> {f, a}
           end
 
         {_behaviour, fun_spec, spec_kind} =
@@ -1255,18 +1759,20 @@ defmodule ElixirLS.Utils.CompletionEngine do
         # have broken specs in docs
         # in that case we fill a dummy fun_args
         fun_args =
-          if length(fun_args) != new_arity do
-            format_params(nil, new_arity)
+          if length(fun_args) != a do
+            format_params(nil, a)
           else
             fun_args
           end
 
-        {f, a, new_arity, func_kind, doc, spec, fun_args}
+        {f, default_args, a, func_kind, doc, spec, fun_args}
       end
       |> Kernel.++(
         for {f, a} <- @builtin_functions,
+            name = Atom.to_string(f),
+            if(exact?, do: name == hint, else: Matcher.match?(name, hint)),
             include_builtin,
-            do: {f, a, a, :function, {"", %{}}, nil, nil}
+            do: {f, 0, a, :function, {"", %{}}, nil, nil}
       )
     else
       funs =
@@ -1278,7 +1784,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
           []
         end
 
-      for {f, a} <- funs do
+      for {f, a} <- funs,
+          name = Atom.to_string(f),
+          if(exact?, do: name == hint, else: Matcher.match?(name, hint)) do
         # we don't expect macros here
         {behaviour, fun_spec} =
           case callback_specs[{f, a}] do
@@ -1314,7 +1822,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
         params = format_params(fun_spec, a)
         spec = Introspection.spec_to_string(fun_spec, if(behaviour, do: :callback, else: :spec))
 
-        {f, a, a, :function, doc_result, spec, params}
+        {f, 0, a, :function, doc_result, spec, params}
       end
     end
   end
@@ -1357,14 +1865,68 @@ defmodule ElixirLS.Utils.CompletionEngine do
     for {{fun_name, arity}, _, _kind, args, _, _} <- docs,
         count = Introspection.count_defaults(args),
         count > 0,
-        new_arity <- (arity - count)..(arity - 1),
+        new_arity <- (arity - count)..arity,
         into: %{},
-        do: {{fun_name, new_arity}, arity}
+        do: {{fun_name, new_arity}, {arity, count}}
   end
 
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
+  defp match_map_fields(fields, hint, type, %State.Env{} = _env, %Metadata{} = metadata) do
+    {subtype, origin, types, doc, meta} =
+      case type do
+        {:struct, {:atom, mod}} ->
+          types =
+            ElixirLS.Utils.Field.get_field_types(
+              metadata,
+              mod,
+              true
+            )
+
+          {doc, meta} = get_struct_info({:atom, mod}, metadata)
+          {:struct_field, mod, types, doc, meta}
+
+        {:struct, nil} ->
+          {:struct_field, nil, %{}, "", %{}}
+
+        :map ->
+          {:map_key, nil, %{}, "", %{}}
+
+        other ->
+          raise "unexpected #{inspect(other)} for hint #{inspect(hint)}"
+      end
+
+    for {key, value} when is_atom(key) <- fields,
+        key_str = Atom.to_string(key),
+        not Regex.match?(~r/^[A-Z]/u, key_str),
+        Matcher.match?(key_str, hint) do
+      value_is_map =
+        case value do
+          {:map, _, _} -> true
+          {:struct, _, _, _} -> true
+          _ -> false
+        end
+
+      %{
+        type: :field,
+        name: key_str,
+        subtype: subtype,
+        value_is_map: value_is_map,
+        origin: if(subtype == :struct_field and origin != nil, do: inspect(origin)),
+        call?: true,
+        type_spec: map_field_spec(key, types, origin),
+        summary: doc,
+        metadata: meta
+      }
+    end
+    |> Enum.sort_by(& &1.name)
+  end
+
+  # Returns {doc, metadata} for a struct module so struct-field completions can
+  # carry the struct's @moduledoc summary and metadata (elixir-ls 1.20 feature,
+  # elixir-lsp/elixir-ls "return docs and meta on record and struct field
+  # completions").
   defp get_struct_info({:atom, module}, metadata) when is_atom(module) do
     case metadata.structs[module] do
       %StructInfo{} = info ->
@@ -1390,196 +1952,139 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp match_map_fields(fields, hint, type, %State.Env{} = _env, %Metadata{} = metadata) do
-    {subtype, origin, types, doc, meta} =
-      case type do
-        {:struct, {:atom, mod}} ->
-          types =
-            ElixirLS.Utils.Field.get_field_types(
-              metadata,
-              mod,
-              true
-            )
-
-          {doc, meta} = get_struct_info({:atom, mod}, metadata)
-          {:struct_field, inspect(mod), types, doc, meta}
-
-        {:struct, nil} ->
-          {:struct_field, nil, %{}, "", %{}}
-
-        :map ->
-          {:map_key, nil, %{}, "", %{}}
-
-        other ->
-          raise "unexpected #{inspect(other)} for hint #{inspect(hint)}"
-      end
-
-    for {key, value} when is_atom(key) <- fields,
-        key_str = Atom.to_string(key),
-        not Regex.match?(~r/^[A-Z]/u, key_str),
-        Matcher.match?(key_str, hint) do
-      value_is_map =
-        case value do
-          {:map, _, _} -> true
-          {:struct, _, _, _} -> true
-          _ -> false
+  defp map_field_spec(key, specs, alias) do
+    case specs[key] do
+      nil ->
+        case key do
+          :__struct__ -> if(alias, do: inspect(alias), else: "atom()")
+          :__exception__ -> "true"
+          _ -> nil
         end
 
-      %{
-        kind: :field,
-        name: key_str,
-        subtype: subtype,
-        value_is_map: value_is_map,
-        origin: origin,
-        type_spec: types[key],
-        summary: doc,
-        metadata: meta
-      }
+      some ->
+        Introspection.to_string_with_parens(some)
     end
-    |> Enum.sort_by(& &1.name)
   end
 
   ## Ad-hoc conversions
-  @spec to_entries(map) :: [t()]
-  defp to_entries(%{
-         kind: :field,
-         subtype: subtype,
-         name: name,
-         origin: origin,
-         type_spec: type_spec,
-         summary: summary,
-         metadata: metadata
-       }) do
-    [
-      %{
-        type: :field,
-        name: name,
-        subtype: subtype,
-        origin: origin,
-        call?: true,
-        type_spec: if(type_spec, do: Macro.to_string(type_spec)),
-        summary: summary,
-        metadata: metadata
-      }
-    ]
+  @spec to_entries(map) :: t()
+
+  defp to_entries(%{type: :bitstring_option} = option) do
+    option
+  end
+
+  defp to_entries(%{type: :keyword} = option) do
+    option
+  end
+
+  defp to_entries(%{type: :field} = option) do
+    option
   end
 
   defp to_entries(
          %{
-           kind: :module,
+           type: :module,
            name: name,
            full_name: full_name,
            desc: {desc, metadata},
            subtype: subtype
          } = map
        ) do
-    [
-      %{
-        type: :module,
-        name: name,
-        full_name: full_name,
-        required_alias: if(map[:required_alias], do: inspect(map[:required_alias])),
-        subtype: subtype,
-        summary: desc,
-        metadata: metadata
-      }
-    ]
+    %{
+      type: :module,
+      name: name,
+      full_name: full_name,
+      required_alias: if(map[:required_alias], do: inspect(map[:required_alias])),
+      subtype: subtype,
+      summary: desc,
+      metadata: metadata
+    }
   end
 
-  defp to_entries(%{kind: :variable, name: name}) do
-    [%{type: :variable, name: name}]
+  defp to_entries(%{type: :variable, name: name} = option) do
+    option
   end
 
-  defp to_entries(%{kind: :attribute, name: name, summary: summary}) do
-    [%{type: :attribute, name: "@" <> name, summary: summary}]
+  defp to_entries(%{type: :attribute, name: name, summary: summary}) do
+    %{type: :attribute, name: "@" <> name, summary: summary}
   end
 
   defp to_entries(%{
-         kind: :function,
+         type: :function,
          name: name,
-         arities: arities,
-         def_arities: def_arities,
-         needed_imports: needed_imports,
-         needed_requires: needed_requires,
+         arity: arity,
+         default_args: default_args,
+         needed_import: needed_import,
+         needed_require: needed_require,
          module: mod,
-         func_kinds: func_kinds,
-         docs: docs,
-         specs: specs,
+         func_kind: func_kind,
+         docs: {doc, metadata},
+         specs: spec,
          args: args
        }) do
-    for e <-
-          Enum.zip([
-            arities,
-            docs,
-            specs,
-            args,
-            def_arities,
-            func_kinds,
-            needed_imports,
-            needed_requires
-          ]),
-        {a, {doc, metadata}, spec, args, def_arity, func_kind, needed_import, needed_require} = e do
-      kind =
-        case func_kind do
-          k when k in [:macro, :defmacro, :defmacrop, :defguard, :defguardp] -> :macro
-          _ -> :function
-        end
-
-      visibility =
-        if func_kind in [:defp, :defmacrop, :defguardp] do
-          :private
-        else
-          :public
-        end
-
-      mod_name = inspect(mod)
-
-      fa = {name |> String.to_atom(), a}
-
-      if fa in (BuiltinFunctions.all() -- [exception: 1, message: 1]) do
-        args = BuiltinFunctions.get_args(fa)
-        docs = BuiltinFunctions.get_docs(fa)
-
-        %{
-          type: kind,
-          visibility: visibility,
-          name: name,
-          arity: a,
-          def_arity: def_arity,
-          args: args |> Enum.join(", "),
-          args_list: args,
-          needed_require: nil,
-          needed_import: nil,
-          origin: mod_name,
-          summary: Introspection.extract_summary_from_docs(docs),
-          metadata: %{builtin: true},
-          spec: BuiltinFunctions.get_specs(fa) |> Enum.join("\n"),
-          snippet: nil
-        }
-      else
-        needed_import =
-          case needed_import do
-            nil -> nil
-            {mod, {fun, arity}} -> {inspect(mod), {Atom.to_string(fun), arity}}
-          end
-
-        %{
-          type: kind,
-          visibility: visibility,
-          name: name,
-          arity: a,
-          def_arity: def_arity,
-          args: args |> Enum.join(", "),
-          args_list: args,
-          needed_require: if(needed_require, do: inspect(needed_require)),
-          needed_import: needed_import,
-          origin: mod_name,
-          summary: doc,
-          metadata: metadata,
-          spec: spec || "",
-          snippet: nil
-        }
+    kind =
+      case func_kind do
+        k when k in [:macro, :defmacro, :defmacrop, :defguard, :defguardp] -> :macro
+        _ -> :function
       end
+
+    visibility =
+      if func_kind in [:defp, :defmacrop, :defguardp] do
+        :private
+      else
+        :public
+      end
+
+    mod_name = inspect(mod)
+
+    fa = {name |> String.to_atom(), arity}
+
+    if fa in (BuiltinFunctions.all() -- [exception: 1, message: 1]) do
+      args = BuiltinFunctions.get_args(fa)
+      docs = BuiltinFunctions.get_docs(fa)
+
+      %{
+        type: kind,
+        visibility: visibility,
+        name: name,
+        arity: arity,
+        default_args: default_args,
+        args: args |> Enum.join(", "),
+        args_list: args,
+        needed_require: nil,
+        needed_import: nil,
+        origin: mod_name,
+        summary: Introspection.extract_summary_from_docs(docs),
+        metadata: %{builtin: true},
+        spec: BuiltinFunctions.get_specs(fa) |> Enum.join("\n"),
+        snippet: nil
+      }
+    else
+      needed_import =
+        case needed_import do
+          nil ->
+            nil
+
+          {mod, missing} ->
+            {inspect(mod), missing |> Enum.map(fn {f, a} -> {Atom.to_string(f), a} end)}
+        end
+
+      %{
+        type: kind,
+        visibility: visibility,
+        name: name,
+        arity: arity,
+        default_args: default_args,
+        args: args |> Enum.join(", "),
+        args_list: args,
+        needed_require: if(needed_require, do: inspect(needed_require)),
+        needed_import: needed_import,
+        origin: mod_name,
+        summary: Introspection.extract_summary_from_docs(doc),
+        metadata: metadata,
+        spec: spec || "",
+        snippet: nil
+      }
     end
   end
 

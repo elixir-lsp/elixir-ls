@@ -45,6 +45,31 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert first_item.preselect == true
   end
 
+  test "block keywords are not offered as an operand of a binary operator" do
+    # `x = re` is an expression position (right side of `=`); block-closing
+    # keywords like `rescue` must not be suggested there even though the hint
+    # "re" matches. The AST (container_cursor_to_quoted) detects the operand
+    # position; Code.Fragment.cursor_context reports :local_or_var and cannot.
+    text = """
+    defmodule MyModule do
+      def fun do
+        x = re
+      end
+    end
+    """
+
+    {line, char} = SourceFile.lsp_position_to_elixir(text, {2, 10})
+    parser_context = ParserContextBuilder.from_string(text, {line, char})
+
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
+
+    reserved = for i <- items, i.kind == 14, do: i.label
+
+    refute "rescue" in reserved
+    refute "end" in reserved
+  end
+
   test "end is returned" do
     text = """
     defmodule MyModule do

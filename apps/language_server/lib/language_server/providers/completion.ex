@@ -282,6 +282,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> maybe_add_do(context, options)
       |> maybe_add_keywords(context)
       |> Enum.reject(&is_nil/1)
+      |> merge_keywords()
       |> sort_items()
       |> Enum.map(& &1.completion_item)
 
@@ -327,7 +328,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         [[match]] -> match
       end
 
-    if hint in ["d", "do"] do
+    if hint in ["d", "do"] and not cursor_operand_of_operator?(context) do
       item = %__MODULE__{
         priority: 0,
         completion_item: %CompletionItem{
@@ -363,9 +364,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         [[match]] -> match
       end
 
+    # Block-closing keywords are not valid where the cursor is an operand of a
+    # binary operator (e.g. `x = re` must not suggest `rescue`); the expression
+    # keywords true/false/nil/when remain valid there. The engine still supplies
+    # block keywords for genuine after-expression positions via the oracle.
+    candidate_keywords =
+      if cursor_operand_of_operator?(context) do
+        ~w(true false nil when)
+      else
+        ~w(true false nil when end rescue catch else after)
+      end
+
     if hint != "" do
       keyword_items =
-        for keyword <- ~w(true false nil when end rescue catch else after),
+        for keyword <- candidate_keywords,
             Matcher.match?(keyword, hint) do
           {insert_text, text_edit} =
             cond do
@@ -439,6 +451,130 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   ## Helpers
 
+  # On Elixir >= 1.18 the same block keyword can be produced both by the engine
+  # (the block_keyword_or_binary_operator oracle, rendered richly via
+  # block_keyword_completion_item/4) and by the version-gated provider
+  # (maybe_add_do / maybe_add_keywords). Oracle-gated dropping is not possible
+  # here: Code.Fragment.cursor_context returns :local_or_var for `def foo do`,
+  # a block-closing `end`, and the `x = re` -> rescue false positive alike (even
+  # with the full pre-cursor text), so it cannot tell a valid block keyword from
+  # a false positive. We therefore merge same-label keywords field-by-field
+  # (filling nil fields, provider items come first) so no rendering metadata is
+  # lost. On 1.16-1.17 the engine emits none of these, so each group is a single
+  # element and this is a no-op.
+  defp merge_keywords(items) do
+    {keywords, others} =
+      Enum.split_with(items, fn
+        %__MODULE__{completion_item: %CompletionItem{kind: :keyword}} -> true
+        _ -> false
+      end)
+
+    merged =
+      keywords
+      |> Enum.group_by(fn %__MODULE__{completion_item: ci} -> ci.label end)
+      |> Enum.map(fn {_label, [base | rest]} ->
+        completion_item =
+          Enum.reduce(rest, base.completion_item, fn %__MODULE__{completion_item: other}, acc ->
+            fill_nil_fields(acc, other)
+          end)
+
+        %{base | completion_item: completion_item}
+      end)
+
+    merged ++ others
+  end
+
+  defp fill_nil_fields(%CompletionItem{} = base, %CompletionItem{} = other) do
+    Map.merge(base, Map.from_struct(other), fn
+      _key, nil, other_value -> other_value
+      _key, base_value, _other_value -> base_value
+    end)
+  end
+
+  # Block keywords (do/end/rescue/...) are never valid where the cursor is an
+  # operand of a binary operator (e.g. `x = re`). The AST-level check lives in
+  # the completion engine alongside the other container_cursor_to_quoted
+  # analysis; cursor_context cannot distinguish these positions.
+  defp cursor_operand_of_operator?(context) do
+    ElixirLS.Utils.CompletionEngine.cursor_in_operator_operand?(
+      context.container_cursor_to_quoted
+    )
+  end
+
+  # The block keyword hint = the partial lowercase word immediately before the
+  # cursor (same heuristic the provider uses), so the engine-sourced block
+  # keywords get text edits aligned with what the user already typed.
+  defp block_keyword_hint(context) do
+    case Regex.scan(~r/(?<=\s|^)[a-z]+$/u, context.text_before_cursor) do
+      [] -> ""
+      [[match]] -> match
+    end
+  end
+
+  # Rich rendering shared by engine-sourced block keywords and the
+  # version-gated provider. `do` keeps the snippet form; the block-closing
+  # keywords use an indentation-aware text edit.
+  defp block_keyword_completion_item("do", hint, context, options) do
+    %CompletionItem{
+      label: "do",
+      kind: :keyword,
+      detail: "reserved word",
+      insert_text:
+        if String.trim(context.text_after_cursor) == "" do
+          if Keyword.get(options, :snippets_supported, false), do: "do\n  $0\nend", else: "do"
+        else
+          "do: "
+        end,
+      tags: [],
+      preselect: hint == "do"
+    }
+  end
+
+  defp block_keyword_completion_item(keyword, hint, context, _options)
+       when keyword in ~w(end after catch else rescue) do
+    {insert_text, text_edit} =
+      cond do
+        keyword in ~w(rescue catch else after) ->
+          if String.trim(context.text_after_cursor) == "" do
+            {nil, block_keyword_text_edit("#{keyword}\n  ", hint, context)}
+          else
+            {"#{keyword}: ", nil}
+          end
+
+        keyword == "end" ->
+          {nil, block_keyword_text_edit("end\n", hint, context)}
+      end
+
+    %CompletionItem{
+      label: keyword,
+      kind: :keyword,
+      detail: "reserved word",
+      insert_text: insert_text,
+      text_edit: text_edit,
+      tags: [],
+      insert_text_mode: GenLSP.Enumerations.InsertTextMode.adjust_indentation(),
+      preselect: hint == keyword
+    }
+  end
+
+  defp block_keyword_text_edit(new_text, hint, context) do
+    %GenLSP.Structures.TextEdit{
+      range: %GenLSP.Structures.Range{
+        start: %GenLSP.Structures.Position{
+          line: context.line - 1,
+          character:
+            context.character - String.length(hint) - 1 -
+              max(context.line_indent - context.do_block_indent, 0)
+        },
+        end: %GenLSP.Structures.Position{
+          line: context.line - 1,
+          character: context.character - 1
+        }
+      },
+      new_text: new_text
+    }
+  end
+
   defp is_incomplete(items) do
     if Enum.empty?(items) do
       false
@@ -455,14 +591,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     signature_help_supported = Keyword.get(options, :signature_help_supported, false)
     capture_before? = context.capture_before?
 
-    Enum.reject(suggestions, fn s ->
-      s.type in [:function, :macro] and
-        !capture_before? and
-        s.arity < s.def_arity and
-        signature_help_supported and
-        function_name_with_parens?(s.name, s.arity, locals_without_parens) ==
-          function_name_with_parens?(s.name, s.def_arity, locals_without_parens)
-    end)
+    for s <- suggestions do
+      default_arg_variants =
+        if s.type in [:function, :macro] and s.default_args > 0 do
+          max_arity_name = function_name_with_parens?(s.name, s.arity, locals_without_parens)
+
+          for i <- s.default_args..1//-1,
+              capture_before? or !signature_help_supported or
+                max_arity_name !=
+                  function_name_with_parens?(s.name, s.arity - i, locals_without_parens) do
+            %{s | arity: s.arity - i}
+          end
+        else
+          []
+        end
+
+      default_arg_variants ++ [s]
+    end
+    |> List.flatten()
   end
 
   defp from_completion_item(
@@ -771,10 +917,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            name: name,
            origin: origin,
            call?: call?,
-           type_spec: type_spec,
-           summary: summary,
-           metadata: metadata
-         },
+           type_spec: type_spec
+         } = item,
          _context,
          _options
        ) do
@@ -786,15 +930,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         {:record_field, module_and_record} -> "#{module_and_record} record field"
       end
 
+    # Struct/map/record fields routed through the completion engine no longer
+    # carry doc summary/metadata; keep rendering them when present (defensive).
+    raw_summary = Map.get(item, :summary, "")
+    metadata = Map.get(item, :metadata, %{})
+
     summary =
-      if summary != "" do
-        "#{summary}\n\n" <> MarkdownUtils.get_metadata_md(metadata) <> "\n\n"
-      else
-        MarkdownUtils.get_metadata_md(metadata) <> "\n\n"
+      cond do
+        raw_summary != "" ->
+          "#{raw_summary}\n\n" <> MarkdownUtils.get_metadata_md(metadata) <> "\n\n"
+
+        metadata != %{} ->
+          MarkdownUtils.get_metadata_md(metadata) <> "\n\n"
+
+        true ->
+          ""
       end
 
     formatted_spec =
-      if type_spec != "" do
+      if type_spec not in [nil, ""] do
         "```elixir\n#{type_spec}\n```\n"
       else
         ""
@@ -900,6 +1054,26 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         kind: :type_parameter,
         tags: []
       }
+    }
+  end
+
+  # Block keywords surfaced by the engine for the elixir >= 1.18
+  # block_keyword_or_binary_operator cursor context. These are plain; when the
+  # cursor is also a position the version-gated provider handles (maybe_add_do /
+  # maybe_add_keywords), those richer items win during dedup_keywords/1.
+  defp from_completion_item(
+         %{type: :keyword, name: name},
+         context,
+         options
+       ) do
+    # Render block keywords from the engine oracle with the same rich text
+    # edits / snippet the version-gated provider produces, so metadata is not
+    # lost when the two sources are merged on 1.18+.
+    hint = block_keyword_hint(context)
+
+    %__MODULE__{
+      priority: 0,
+      completion_item: block_keyword_completion_item(name, hint, context, options)
     }
   end
 
