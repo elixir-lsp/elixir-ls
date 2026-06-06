@@ -23,7 +23,6 @@ defmodule ElixirLS.LanguageServer.Server do
     Build,
     ClientCapabilities,
     JsonRpc,
-    Dialyzer,
     DialyzerIncremental,
     Diagnostics,
     MixProjectCache,
@@ -284,7 +283,7 @@ defmodule ElixirLS.LanguageServer.Server do
         parent = self()
 
         spawn(fn ->
-          contracts = dialyzer_module(state.settings).suggest_contracts(parent, [abs_path])
+          contracts = DialyzerIncremental.suggest_contracts(parent, [abs_path])
           GenServer.reply(from, contracts)
         end)
 
@@ -2048,7 +2047,7 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    dialyzer_module(state.settings).analyze(
+    DialyzerIncremental.analyze(
       state.build_ref,
       warn_opts,
       dialyzer_default_format(state),
@@ -2120,7 +2119,7 @@ defmodule ElixirLS.LanguageServer.Server do
         contracts_by_file =
           not_dirty
           |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
-          |> then(fn uris -> dialyzer_module(state.settings).suggest_contracts(parent, uris) end)
+          |> then(fn uris -> DialyzerIncremental.suggest_contracts(parent, uris) end)
           |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
         for {from, uri} <- not_dirty do
@@ -2295,7 +2294,7 @@ defmodule ElixirLS.LanguageServer.Server do
         :ok
     end
 
-    case Dialyzer.check_support() do
+    case ElixirLS.LanguageServer.Dialyzer.Utils.check_support() do
       :ok ->
         JsonRpc.telemetry(
           "dialyzer_support",
@@ -2325,7 +2324,8 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_settings(state = %__MODULE__{settings: prev_settings}, settings)
        when settings != prev_settings do
     enable_dialyzer =
-      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) == true and
+      ElixirLS.LanguageServer.Dialyzer.Utils.check_support() == :ok and
+        Map.get(settings, "autoBuild", true) == true and
         Map.get(settings, "dialyzerEnabled", true) == true
 
     if enable_dialyzer do
@@ -2549,7 +2549,7 @@ defmodule ElixirLS.LanguageServer.Server do
     cond do
       enable_dialyzer and state.mix_project? and state.dialyzer_sup == nil ->
         {:ok, pid} =
-          Dialyzer.Supervisor.start_link(state.project_dir, dialyzer_module(state.settings))
+          ElixirLS.LanguageServer.Dialyzer.Supervisor.start_link(state.project_dir)
 
         %{state | dialyzer_sup: pid, analysis_ready?: false}
 
@@ -2963,14 +2963,6 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       Logger.info("Client does not support workspace/configuration request")
       state
-    end
-  end
-
-  defp dialyzer_module(settings) do
-    if Map.get(settings, "incrementalDialyzer", true) do
-      DialyzerIncremental
-    else
-      Dialyzer
     end
   end
 
