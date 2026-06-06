@@ -104,7 +104,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmTypeInfo do
     case result do
       types when is_list(types) and length(types) > 0 ->
         types
-        |> Enum.filter(fn {kind, _} -> kind in [:type, :opaque] end)
+        |> Enum.filter(fn {kind, _} -> kind in [:type, :opaque, :nominal] end)
         |> Enum.map(&format_type/1)
         |> Enum.sort_by(& &1.name)
 

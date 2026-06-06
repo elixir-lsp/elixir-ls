@@ -492,7 +492,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
           typespec_results =
             for {kind, {type, type_ast, args}} <-
                   ElixirSense.Core.Normalized.Typespec.get_types(module),
-                kind in [:type, :opaque] do
+                kind in [:type, :opaque, :nominal] do
               arity = length(args)
 
               location =

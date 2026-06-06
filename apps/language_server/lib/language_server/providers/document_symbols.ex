@@ -167,7 +167,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   # Types
   defp extract_symbol(_current_module, {:@, location, [{type_kind, _, type_expression}]})
-       when type_kind in [:type, :typep, :opaque, :callback, :macrocallback] and
+       when type_kind in [:type, :typep, :opaque, :nominal, :callback, :macrocallback] and
               not is_nil(type_expression) do
     type_name_location =
       case type_expression do
@@ -187,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     if type_name_location do
       {{name, args}, type_head_location} = type_name_location
 
-      type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
+      type = if type_kind in [:type, :typep, :opaque, :nominal], do: :class, else: :event
 
       name_str =
         try do

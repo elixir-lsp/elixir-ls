@@ -144,7 +144,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeLens.TypeSpec.ContractTranslator
 
   defp struct_type_spec_exists?(struct_type) do
     ElixirSense.Core.Normalized.Typespec.get_types(struct_type)
-    |> Enum.any?(&match?({kind, {:t, _, []}} when kind in [:type, :opaque], &1))
+    |> Enum.any?(&match?({kind, {:t, _, []}} when kind in [:type, :opaque, :nominal], &1))
   end
 
   defp improve_defprotocol_spec(ast, mod, fun) do

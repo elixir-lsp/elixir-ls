@@ -601,7 +601,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   defp get_type_specs(module, type, arity) do
     Typespec.get_types(module)
     |> Enum.filter(fn
-      {kind, {^type, _, args}} when kind in [:type, :opaque] ->
+      {kind, {^type, _, args}} when kind in [:type, :opaque, :nominal] ->
         arity == nil or length(args) == arity
 
       _ ->
