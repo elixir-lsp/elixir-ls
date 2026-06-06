@@ -26,8 +26,11 @@ defmodule ElixirLS.LanguageServer.Location do
         }
   defstruct [:type, :file, :line, :column, :end_line, :end_column]
 
-  @spec find_mod_fun_source(module, atom, non_neg_integer | {:gte, non_neg_integer} | :any) ::
-          t() | nil
+  @spec find_mod_fun_source(
+          module,
+          atom | nil,
+          non_neg_integer | {:gte, non_neg_integer} | :any | nil
+        ) :: t() | nil
   def find_mod_fun_source(mod, fun, arity) do
     case find_mod_file(mod) do
       file when is_binary(file) ->

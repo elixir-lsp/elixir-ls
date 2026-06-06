@@ -162,7 +162,7 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
     end
   end
 
-  @spec expand_alias(SourceFile.t(), [atom()], non_neg_integer()) :: {:ok, atom()} | :error
+  @spec expand_alias(SourceFile.t(), [atom()], non_neg_integer()) :: {:ok, atom()}
   defp expand_alias(source_file, module_alias, line_number) do
     with {:ok, aliases} <- aliases_at(source_file, line_number) do
       aliases

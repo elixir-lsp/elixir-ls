@@ -1,6 +1,5 @@
 defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   import Record
-  require Logger
 
   defrecord(:plt, [:info, :types, :contracts, :callbacks, :exported_types])
 

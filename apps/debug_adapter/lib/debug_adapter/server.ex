@@ -492,7 +492,10 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
 
     # disable logger so we do not get unexpected
-    # [notice] SIGTERM received - shutting down
+    # [notice] SIGTERM received - shutting down.
+    # NOTE: `:none` is valid at runtime — Logger passes it through to
+    # `:logger.set_primary_config/2` — but the upstream `level()` typespec
+    # omits it. Dialyzer warning suppressed in .dialyzer_ignore.exs.
     Logger.configure(level: :none)
     Output.send_response(packet, %GenDAP.Requests.DisconnectResponse{seq: 0, request_seq: 0})
 

@@ -616,7 +616,7 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     end)
   end
 
-  @spec build_result(atom, symbol_t, String.t(), :erl_anno.anno(), map(), String.t(), boolean) ::
+  @spec build_result(atom, symbol_t, String.t(), term(), map(), String.t(), boolean) ::
           symbol_information_t
   defp build_result(key, symbol, path, annotation, metadata, project_dir, tag_support) do
     range = build_range(annotation)
@@ -642,7 +642,10 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
 
   @module_kinds [:module, :interface, :struct]
 
-  @spec symbol_name(atom, symbol_t) :: String.t()
+  @spec symbol_name(
+          :class | :constant | :event | :function | :interface | :module | :struct,
+          symbol_t
+        ) :: String.t()
   defp symbol_name(kind, module) when kind in @module_kinds do
     inspect(module)
   end
@@ -670,8 +673,9 @@ defmodule ElixirLS.LanguageServer.Providers.WorkspaceSymbols do
     inspect(module)
   end
 
-  @spec build_range(:erl_anno.anno()) :: GenLSP.Structures.Range.t()
+  @spec build_range(false | nil | :erl_anno.anno()) :: GenLSP.Structures.Range.t()
   defp build_range(annotation) do
+    annotation = annotation || 0
     line = max(:erl_anno.line(annotation), 1) - 1
     # we don't care about utf16 positions here as we send 0
     # it's not worth to present column info here
