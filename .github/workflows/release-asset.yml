@@ -115,7 +115,7 @@ jobs:
           fi
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: elixir-ls-v${{ needs.build.outputs.version }}.zip
           body_path: release_notes.md
