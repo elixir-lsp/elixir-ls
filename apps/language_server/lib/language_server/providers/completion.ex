@@ -440,14 +440,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   ## Helpers
 
-  # On Elixir >= 1.18 a block keyword can come from both the engine (the
-  # block_keyword_or_binary_operator oracle, rendered richly via
-  # block_keyword_completion_item/4) and the version-gated provider
-  # (maybe_add_do / maybe_add_keywords). Merge same-label keywords instead of
-  # dropping one: keep the first (provider items are prepended) and fill any of
-  # its nil fields from the others, so no rendering metadata — text edits,
-  # snippet, preselect — is lost. On 1.16-1.17 the engine never emits these, so
-  # each group has a single element and this is effectively a no-op.
+  # On Elixir >= 1.18 the same block keyword can be produced both by the engine
+  # (the block_keyword_or_binary_operator oracle, rendered richly via
+  # block_keyword_completion_item/4) and by the version-gated provider
+  # (maybe_add_do / maybe_add_keywords). Oracle-gated dropping is not possible
+  # here: Code.Fragment.cursor_context returns :local_or_var for `def foo do`,
+  # a block-closing `end`, and the `x = re` -> rescue false positive alike (even
+  # with the full pre-cursor text), so it cannot tell a valid block keyword from
+  # a false positive. We therefore merge same-label keywords field-by-field
+  # (filling nil fields, provider items come first) so no rendering metadata is
+  # lost. On 1.16-1.17 the engine emits none of these, so each group is a single
+  # element and this is a no-op.
   defp merge_keywords(items) do
     {keywords, others} =
       Enum.split_with(items, fn
