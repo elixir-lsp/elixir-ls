@@ -219,8 +219,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
       :expr ->
         # IEx calls expand_struct_fields_or_local_or_var(code, "", env)
         # we choose to return more and handle some special cases
-        # TODO expand_expr(env) after we require elixir 1.13
-
         {results, continue?} =
           expand_container_context(code, :expr, "", env, metadata, cursor_position)
 
@@ -309,19 +307,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:struct, struct} when is_list(struct) ->
         expand_aliases(List.to_string(struct), env, metadata, cursor_position, true, opts)
 
-      # elixir >= 1.14
       {:struct, {:alias, prefix, hint}} ->
         expand_prefixed_aliases(prefix, hint, env, metadata, cursor_position, true)
 
-      # elixir >= 1.14
       {:struct, {:dot, path, hint}} ->
         expand_dot(path, List.to_string(hint), false, env, metadata, cursor_position, true, opts)
 
-      # elixir >= 1.14
       {:struct, {:module_attribute, attribute}} ->
         expand_attribute(List.to_string(attribute), env, metadata)
 
-      # elixir >= 1.14
       {:struct, {:local_or_var, local_or_var}} ->
         expand_local_or_var(List.to_string(local_or_var), env, metadata, cursor_position)
 
@@ -391,7 +385,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # elixir >= 1.14
   defp expand_dot_path(
          {:var, ~c"__MODULE__"},
          %State.Env{} = env,
@@ -437,7 +430,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # elixir >= 1.14
   defp expand_dot_path(
          {:alias, {:local_or_var, var}, hint},
          %State.Env{} = env,
@@ -516,7 +508,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # elixir >= 1.15
   defp expand_dot_path(:expr, %State.Env{} = _env, %Metadata{} = _metadata, _cursor_position) do
     # TODO expand expression
     :error
@@ -1396,15 +1387,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp unquoted_atom_or_identifier?(atom) when is_atom(atom) do
-    # Version.match? is slow, we need to avoid it in a hot loop
-    # TODO remove this when we require elixir 1.14
-    # Macro.classify_atom/1 was introduced in 1.14.0. If it's not available,
-    # assume we're on an older version and fall back to a private API.
-    if function_exported?(Macro, :classify_atom, 1) do
-      apply(Macro, :classify_atom, [atom]) in [:identifier, :unquoted]
-    else
-      apply(Code.Identifier, :classify, [atom]) != :other
-    end
+    Macro.classify_atom(atom) in [:identifier, :unquoted]
   end
 
   defp match_elixir_modules_that_require_alias(
@@ -1503,7 +1486,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp get_modules(false, %State.Env{} = env, %Metadata{} = metadata) do
-    # TODO consider changing this to :code.all_available when otp 23 (and elixir 1.14) is required
     modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
 
     # TODO it seems we only run in interactive mode - remove the check?

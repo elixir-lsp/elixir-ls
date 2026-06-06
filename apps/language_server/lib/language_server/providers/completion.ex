@@ -282,7 +282,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> maybe_add_do(context, options)
       |> maybe_add_keywords(context)
       |> Enum.reject(&is_nil/1)
-      |> dedup_keywords()
+      |> merge_keywords()
       |> sort_items()
       |> Enum.map(& &1.completion_item)
 
@@ -440,21 +440,115 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
 
   ## Helpers
 
-  # On Elixir >= 1.18 block keywords can come from both the engine (the
-  # block_keyword_or_binary_operator oracle) and the version-gated provider
-  # (maybe_add_do / maybe_add_keywords). Provider items are prepended, so they
-  # appear first; uniq_by label keeps the richer provider rendering (snippet /
-  # indentation-aware text edit) and drops the engine's plain duplicate. On
-  # 1.16-1.17 the engine never emits these, so this is a no-op there.
-  defp dedup_keywords(items) do
+  # On Elixir >= 1.18 a block keyword can come from both the engine (the
+  # block_keyword_or_binary_operator oracle, rendered richly via
+  # block_keyword_completion_item/4) and the version-gated provider
+  # (maybe_add_do / maybe_add_keywords). Merge same-label keywords instead of
+  # dropping one: keep the first (provider items are prepended) and fill any of
+  # its nil fields from the others, so no rendering metadata — text edits,
+  # snippet, preselect — is lost. On 1.16-1.17 the engine never emits these, so
+  # each group has a single element and this is effectively a no-op.
+  defp merge_keywords(items) do
     {keywords, others} =
       Enum.split_with(items, fn
         %__MODULE__{completion_item: %CompletionItem{kind: :keyword}} -> true
         _ -> false
       end)
 
-    deduped = Enum.uniq_by(keywords, fn %__MODULE__{completion_item: ci} -> ci.label end)
-    deduped ++ others
+    merged =
+      keywords
+      |> Enum.group_by(fn %__MODULE__{completion_item: ci} -> ci.label end)
+      |> Enum.map(fn {_label, [base | rest]} ->
+        completion_item =
+          Enum.reduce(rest, base.completion_item, fn %__MODULE__{completion_item: other}, acc ->
+            fill_nil_fields(acc, other)
+          end)
+
+        %{base | completion_item: completion_item}
+      end)
+
+    merged ++ others
+  end
+
+  defp fill_nil_fields(%CompletionItem{} = base, %CompletionItem{} = other) do
+    Map.merge(base, Map.from_struct(other), fn
+      _key, nil, other_value -> other_value
+      _key, base_value, _other_value -> base_value
+    end)
+  end
+
+  # The block keyword hint = the partial lowercase word immediately before the
+  # cursor (same heuristic the provider uses), so the engine-sourced block
+  # keywords get text edits aligned with what the user already typed.
+  defp block_keyword_hint(context) do
+    case Regex.scan(~r/(?<=\s|^)[a-z]+$/u, context.text_before_cursor) do
+      [] -> ""
+      [[match]] -> match
+    end
+  end
+
+  # Rich rendering shared by engine-sourced block keywords and the
+  # version-gated provider. `do` keeps the snippet form; the block-closing
+  # keywords use an indentation-aware text edit.
+  defp block_keyword_completion_item("do", hint, context, options) do
+    %CompletionItem{
+      label: "do",
+      kind: :keyword,
+      detail: "reserved word",
+      insert_text:
+        if String.trim(context.text_after_cursor) == "" do
+          if Keyword.get(options, :snippets_supported, false), do: "do\n  $0\nend", else: "do"
+        else
+          "do: "
+        end,
+      tags: [],
+      preselect: hint == "do"
+    }
+  end
+
+  defp block_keyword_completion_item(keyword, hint, context, _options)
+       when keyword in ~w(end after catch else rescue) do
+    {insert_text, text_edit} =
+      cond do
+        keyword in ~w(rescue catch else after) ->
+          if String.trim(context.text_after_cursor) == "" do
+            {nil, block_keyword_text_edit("#{keyword}\n  ", hint, context)}
+          else
+            {"#{keyword}: ", nil}
+          end
+
+        keyword == "end" ->
+          {nil, block_keyword_text_edit("end\n", hint, context)}
+      end
+
+    %CompletionItem{
+      label: keyword,
+      kind: :keyword,
+      detail: "reserved word",
+      insert_text: insert_text,
+      text_edit: text_edit,
+      tags: [],
+      insert_text_mode: GenLSP.Enumerations.InsertTextMode.adjust_indentation(),
+      preselect: hint == keyword
+    }
+  end
+
+  defp block_keyword_text_edit(new_text, hint, context) do
+    %GenLSP.Structures.TextEdit{
+      range: %GenLSP.Structures.Range{
+        start: %GenLSP.Structures.Position{
+          line: context.line - 1,
+          character:
+            context.character - String.length(hint) - 1 -
+              max(context.line_indent - context.do_block_indent, 0)
+        },
+        end: %GenLSP.Structures.Position{
+          line: context.line - 1,
+          character: context.character - 1
+        }
+      },
+      new_text: new_text
+    }
   end
 
   defp is_incomplete(items) do
@@ -945,18 +1039,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   # maybe_add_keywords), those richer items win during dedup_keywords/1.
   defp from_completion_item(
          %{type: :keyword, name: name},
-         _context,
-         _options
+         context,
+         options
        ) do
+    # Render block keywords from the engine oracle with the same rich text
+    # edits / snippet the version-gated provider produces, so metadata is not
+    # lost when the two sources are merged on 1.18+.
+    hint = block_keyword_hint(context)
+
     %__MODULE__{
       priority: 0,
-      completion_item: %CompletionItem{
-        label: name,
-        kind: :keyword,
-        detail: "reserved word",
-        insert_text: name,
-        tags: []
-      }
+      completion_item: block_keyword_completion_item(name, hint, context, options)
     }
   end
 

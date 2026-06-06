@@ -53,10 +53,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              }
            ] = expand(~c":zl")
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      assert summary =~ "zlib"
-      assert %{otp_doc_vsn: {1, 0, 0}} = metadata
-    end
+    assert summary =~ "zlib"
+    assert %{otp_doc_vsn: {1, 0, 0}} = metadata
   end
 
   test "erlang module no completion" do
@@ -240,54 +238,50 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            ] = expand(~c"String.Cha")
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "elixir submodule completion with __MODULE__" do
-      assert [
-               %{
-                 name: "Chars",
-                 full_name: "String.Chars",
-                 subtype: :protocol,
-                 summary:
-                   "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
-               }
-             ] = expand(~c"__MODULE__.Cha", %Env{module: String})
-    end
+  test "elixir submodule completion with __MODULE__" do
+    assert [
+             %{
+               name: "Chars",
+               full_name: "String.Chars",
+               subtype: :protocol,
+               summary:
+                 "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
+             }
+           ] = expand(~c"__MODULE__.Cha", %Env{module: String})
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "elixir submodule completion with attribute bound to module" do
-      assert [
-               %{
-                 name: "Chars",
-                 full_name: "String.Chars",
-                 subtype: :protocol,
-                 summary:
-                   "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
-               }
-             ] =
-               expand(~c"@my_attr.Cha", %Env{
-                 attributes: [
-                   %AttributeInfo{
-                     name: :my_attr,
-                     type: {:atom, String}
-                   }
-                 ],
-                 module: Foo,
-                 function: {:bar, 1}
-               })
+  test "elixir submodule completion with attribute bound to module" do
+    assert [
+             %{
+               name: "Chars",
+               full_name: "String.Chars",
+               subtype: :protocol,
+               summary:
+                 "The `String.Chars` protocol is responsible for\nconverting a structure to a binary (only if applicable)."
+             }
+           ] =
+             expand(~c"@my_attr.Cha", %Env{
+               attributes: [
+                 %AttributeInfo{
+                   name: :my_attr,
+                   type: {:atom, String}
+                 }
+               ],
+               module: Foo,
+               function: {:bar, 1}
+             })
 
-      assert [] ==
-               expand(~c"@my_attr.Cha", %Env{
-                 attributes: [
-                   %AttributeInfo{
-                     name: :my_attr,
-                     type: {:atom, String}
-                   }
-                 ],
-                 module: Foo,
-                 function: nil
-               })
-    end
+    assert [] ==
+             expand(~c"@my_attr.Cha", %Env{
+               attributes: [
+                 %AttributeInfo{
+                   name: :my_attr,
+                   type: {:atom, String}
+                 }
+               ],
+               module: Foo,
+               function: nil
+             })
   end
 
   test "find elixir modules that require alias" do
@@ -348,32 +342,26 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [%{name: "fun2ms", origin: ":ets"}] = expand(~c":ets.fun2")
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "function completion on __MODULE__" do
-      assert [%{name: "version", origin: "System"}] =
-               expand(~c"__MODULE__.ve", %Env{module: System})
-    end
+  test "function completion on __MODULE__" do
+    assert [%{name: "version", origin: "System"}] =
+             expand(~c"__MODULE__.ve", %Env{module: System})
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "function completion on __MODULE__ submodules" do
-      assert [%{name: "to_string", origin: "String.Chars"}] =
-               expand(~c"__MODULE__.Chars.to", %Env{module: String})
-    end
+  test "function completion on __MODULE__ submodules" do
+    assert [%{name: "to_string", origin: "String.Chars"}] =
+             expand(~c"__MODULE__.Chars.to", %Env{module: String})
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "function completion on attribute bound to module" do
-      assert [%{name: "version", origin: "System"}] =
-               expand(~c"@my_attr.ve", %Env{
-                 attributes: [
-                   %AttributeInfo{
-                     name: :my_attr,
-                     type: {:atom, System}
-                   }
-                 ]
-               })
-    end
+  test "function completion on attribute bound to module" do
+    assert [%{name: "version", origin: "System"}] =
+             expand(~c"@my_attr.ve", %Env{
+               attributes: [
+                 %AttributeInfo{
+                   name: :my_attr,
+                   type: {:atom, System}
+                 }
+               ]
+             })
   end
 
   test "function completion with arity" do
@@ -1111,15 +1099,10 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
     # local call on var
 
-    if Version.match?(System.version(), "< 1.16.0") do
-      assert [] == expand(~c"asd.(")
-      assert [] == expand(~c"@asd.(")
-    else
-      expr_suggestions = expand(~c"") |> Enum.map(& &1.type) |> MapSet.new()
+    expr_suggestions = expand(~c"") |> Enum.map(& &1.type) |> MapSet.new()
 
-      assert expr_suggestions == expand(~c"asd.(") |> Enum.map(& &1.type) |> MapSet.new()
-      assert expr_suggestions == expand(~c"@asd.(") |> Enum.map(& &1.type) |> MapSet.new()
-    end
+    assert expr_suggestions == expand(~c"asd.(") |> Enum.map(& &1.type) |> MapSet.new()
+    assert expr_suggestions == expand(~c"@asd.(") |> Enum.map(& &1.type) |> MapSet.new()
 
     # list = expand('asd.(')
     # assert is_list(list)
@@ -1695,11 +1678,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
            |> Enum.any?(&(&1.name == "MyStruct"))
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "completion for struct names with __MODULE__" do
-      assert [%{name: "__MODULE__"}] = expand(~c"%__MODU", %Env{module: Date.Range})
-      assert [%{name: "Range"}] = expand(~c"%__MODULE__.Ra", %Env{module: Date})
-    end
+  test "completion for struct names with __MODULE__" do
+    assert [%{name: "__MODULE__"}] = expand(~c"%__MODU", %Env{module: Date.Range})
+    assert [%{name: "Range"}] = expand(~c"%__MODULE__.Ra", %Env{module: Date})
   end
 
   test "completion for struct keys" do
@@ -1837,20 +1818,18 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       ]
     }
 
-    if Version.match?(System.version(), ">= 1.15.0") do
-      assert entries = expand(~c"%{map | ", env) |> Enum.filter(&(&1.type == :field))
+    assert entries = expand(~c"%{map | ", env) |> Enum.filter(&(&1.type == :field))
 
-      assert %{
-               call?: false,
-               name: "some",
-               origin: nil,
-               subtype: :map_key,
-               type: :field,
-               type_spec: nil
-             } = entries |> Enum.find(&(&1.name == "some"))
+    assert %{
+             call?: false,
+             name: "some",
+             origin: nil,
+             subtype: :map_key,
+             type: :field,
+             type_spec: nil
+           } = entries |> Enum.find(&(&1.name == "some"))
 
-      assert entries |> Enum.any?(&(&1.name == "other"))
-    end
+    assert entries |> Enum.any?(&(&1.name == "other"))
 
     assert entries = expand(~c"%{map | some: \"foo\",", env) |> Enum.filter(&(&1.type == :field))
     refute entries |> Enum.any?(&(&1.name == "some"))
@@ -2281,53 +2260,51 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     assert [] = expand(~c"Elixir.bla")
   end
 
-  if System.otp_release() |> String.to_integer() >= 23 do
-    test "complete build in :erlang functions" do
-      assert [
-               %{arity: 2, name: "open_port", origin: ":erlang"},
-               %{
-                 arity: 2,
-                 name: "or",
-                 spec: "@spec boolean() or boolean() :: boolean()",
-                 type: :function,
-                 args: "boolean, boolean",
-                 origin: ":erlang",
-                 summary: ""
-               },
-               %{
-                 args: "term, term",
-                 arity: 2,
-                 name: "orelse",
-                 origin: ":erlang",
-                 spec: "",
-                 summary: "",
-                 type: :function
-               }
-             ] = expand(~c":erlang.or")
+  test "complete build in :erlang functions" do
+    assert [
+             %{arity: 2, name: "open_port", origin: ":erlang"},
+             %{
+               arity: 2,
+               name: "or",
+               spec: "@spec boolean() or boolean() :: boolean()",
+               type: :function,
+               args: "boolean, boolean",
+               origin: ":erlang",
+               summary: ""
+             },
+             %{
+               args: "term, term",
+               arity: 2,
+               name: "orelse",
+               origin: ":erlang",
+               spec: "",
+               summary: "",
+               type: :function
+             }
+           ] = expand(~c":erlang.or")
 
-      assert [
-               %{
-                 arity: 2,
-                 name: "and",
-                 spec: "@spec boolean() and boolean() :: boolean()",
-                 type: :function,
-                 args: "boolean, boolean",
-                 origin: ":erlang",
-                 summary: ""
-               },
-               %{
-                 args: "term, term",
-                 arity: 2,
-                 name: "andalso",
-                 origin: ":erlang",
-                 spec: "",
-                 summary: "",
-                 type: :function
-               },
-               %{arity: 2, name: "append", origin: ":erlang"},
-               %{arity: 2, name: "append_element", origin: ":erlang"}
-             ] = expand(~c":erlang.and")
-    end
+    assert [
+             %{
+               arity: 2,
+               name: "and",
+               spec: "@spec boolean() and boolean() :: boolean()",
+               type: :function,
+               args: "boolean, boolean",
+               origin: ":erlang",
+               summary: ""
+             },
+             %{
+               args: "term, term",
+               arity: 2,
+               name: "andalso",
+               origin: ":erlang",
+               spec: "",
+               summary: "",
+               type: :function
+             },
+             %{arity: 2, name: "append", origin: ":erlang"},
+             %{arity: 2, name: "append_element", origin: ":erlang"}
+           ] = expand(~c":erlang.and")
   end
 
   test "provide doc and specs for erlang functions" do
@@ -2365,43 +2342,33 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              }
            ] = expand(~c":erlang.cancel_time")
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      assert "Cancels a timer that has been created by" <> _ = summary2
+    assert "Cancels a timer that has been created by" <> _ = summary2
 
-      if System.otp_release() |> String.to_integer() >= 27 do
-        assert "" == summary1
-        assert %{equiv: "erlang:cancel_timer(TimerRef, [])", app: :erts} = meta1
-        # OTP 28 renamed :group to :category and added :source_anno
-        assert Map.get(meta1, :group, Map.get(meta1, :category)) == :time
-      else
-        assert "Cancels a timer\\." <> _ = summary1
-      end
+    if System.otp_release() |> String.to_integer() >= 27 do
+      assert "" == summary1
+      assert %{equiv: "erlang:cancel_timer(TimerRef, [])", app: :erts} = meta1
+      # OTP 28 renamed :group to :category and added :source_anno
+      assert Map.get(meta1, :group, Map.get(meta1, :category)) == :time
+    else
+      assert "Cancels a timer\\." <> _ = summary1
     end
   end
 
   test "provide doc and specs for erlang functions with args from typespec" do
-    if String.to_integer(System.otp_release()) >= 26 do
-      assert [
-               %{
-                 name: "handle_call",
-                 args_list: ["call", "from", "state"]
-               },
-               %{
-                 name: "handle_cast",
-                 args_list: ["tuple", "state"]
-               },
-               %{
-                 name: "handle_info",
-                 args_list: ["term", "state"]
-               }
-             ] = expand(~c":pg.handle_")
-    else
-      if String.to_integer(System.otp_release()) >= 23 do
-        assert [_, _, _] = expand(~c":pg.handle_")
-      else
-        assert [] = expand(~c":pg.handle_")
-      end
-    end
+    assert [
+             %{
+               name: "handle_call",
+               args_list: ["call", "from", "state"]
+             },
+             %{
+               name: "handle_cast",
+               args_list: ["tuple", "state"]
+             },
+             %{
+               name: "handle_info",
+               args_list: ["term", "state"]
+             }
+           ] = expand(~c":pg.handle_")
   end
 
   test "complete after ! operator" do
@@ -2548,41 +2515,39 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
              expand(~c"inf", %Env{requires: [], module: MyModule, function: {:foo, 1}}, metadata)
   end
 
-  if Version.match?(System.version(), ">= 1.14.0") do
-    test "Application.compile_env classified as macro" do
-      assert [
-               %{
-                 name: "compile_env",
-                 arity: 3,
-                 default_args: 1,
-                 type: :macro,
-                 origin: "Application",
-                 needed_require: "Application"
-               },
-               %{
-                 name: "compile_env",
-                 arity: 4,
-                 default_args: 0,
-                 type: :function,
-                 origin: "Application",
-                 needed_require: nil
-               },
-               %{
-                 name: "compile_env!",
-                 arity: 2,
-                 type: :macro,
-                 origin: "Application",
-                 needed_require: "Application"
-               },
-               %{
-                 name: "compile_env!",
-                 arity: 3,
-                 type: :function,
-                 origin: "Application",
-                 needed_require: nil
-               }
-             ] = expand(~c"Application.compile_e")
-    end
+  test "Application.compile_env classified as macro" do
+    assert [
+             %{
+               name: "compile_env",
+               arity: 3,
+               default_args: 1,
+               type: :macro,
+               origin: "Application",
+               needed_require: "Application"
+             },
+             %{
+               name: "compile_env",
+               arity: 4,
+               default_args: 0,
+               type: :function,
+               origin: "Application",
+               needed_require: nil
+             },
+             %{
+               name: "compile_env!",
+               arity: 2,
+               type: :macro,
+               origin: "Application",
+               needed_require: "Application"
+             },
+             %{
+               name: "compile_env!",
+               arity: 3,
+               type: :function,
+               origin: "Application",
+               needed_require: nil
+             }
+           ] = expand(~c"Application.compile_e")
   end
 
   test "attribute submodule" do
