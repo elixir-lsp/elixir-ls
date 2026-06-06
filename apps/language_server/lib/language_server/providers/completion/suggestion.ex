@@ -86,7 +86,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
         }
 
   @reducers [
-    
     record_fields: &Reducers.Record.add_fields/5,
     returns: &Reducers.Returns.add_returns/5,
     callbacks: &Reducers.Callbacks.add_callbacks/5,
@@ -103,6 +102,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Suggestion do
     structs_fields: &Reducers.CompleteEngine.add_struct_fields/5,
     attributes: &Reducers.CompleteEngine.add_attributes/5,
     bitstring_options: &Reducers.CompleteEngine.add_bitstring_options/5,
+    keywords: &Reducers.CompleteEngine.add_keywords/5,
     docs_snippets: &Reducers.DocsSnippets.add_snippets/5
   ]
 

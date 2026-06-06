@@ -89,6 +89,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
 
+  # Block keywords that may follow a complete expression. Surfaced for the
+  # elixir >= 1.18 {:block_keyword_or_binary_operator, hint} cursor context.
+  @block_keywords ~w(do end after catch else rescue)
+
   @type attribute :: %{
           type: :attribute,
           name: String.t(),
@@ -317,12 +321,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:anonymous_call, _} ->
         expand_expr(env, metadata, cursor_position, opts)
 
-      # elixir >= 1.18 — cursor sits where a block keyword (do/end/after/...) or
-      # a binary operator could follow. Block keywords are surfaced by the LSP
-      # layer (maybe_add_do/maybe_add_keywords, with proper text edits) and
-      # binary operators are typed directly, so the engine adds nothing here.
-      {:block_keyword_or_binary_operator, _hint} ->
-        no()
+      # elixir >= 1.18 — the cursor sits right after a complete expression, where
+      # a block keyword (do/end/after/catch/else/rescue) or a binary operator
+      # could follow. The engine is the precise oracle for this position; it
+      # surfaces the block keywords (binary operators are typed directly, so we
+      # don't suggest them). The LSP completion provider stays version-gated for
+      # 1.16-1.17 (where cursor_context never returns this token) and
+      # deduplicates against these results on 1.18+.
+      {:block_keyword_or_binary_operator, hint} ->
+        expand_block_keywords(List.to_string(hint))
 
       :none ->
         no()
@@ -515,6 +522,13 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   defp no do
     []
+  end
+
+  defp expand_block_keywords(hint) do
+    for keyword <- @block_keywords, Matcher.match?(keyword, hint) do
+      %{type: :keyword, name: keyword}
+    end
+    |> format_expansion()
   end
 
   ## Formatting
@@ -1895,6 +1909,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
   @spec to_entries(map) :: t()
 
   defp to_entries(%{type: :bitstring_option} = option) do
+    option
+  end
+
+  defp to_entries(%{type: :keyword} = option) do
     option
   end
 

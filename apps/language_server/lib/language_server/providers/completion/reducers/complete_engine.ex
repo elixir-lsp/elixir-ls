@@ -104,6 +104,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.CompleteEngine d
   end
 
   @doc """
+  A reducer that adds block-keyword suggestions (do/end/after/catch/else/rescue)
+  produced by the engine for the elixir >= 1.18 block_keyword_or_binary_operator
+  cursor context.
+
+  Note: requires populate/5.
+  """
+  def add_keywords(_hint, _env, _file_metadata, _context, acc) do
+    add_suggestions(:keyword, acc)
+  end
+
+  @doc """
   A reducer that adds suggestions of existing module attributes.
 
   Note: requires populate/5.

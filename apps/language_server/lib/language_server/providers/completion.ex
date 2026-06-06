@@ -282,6 +282,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       |> maybe_add_do(context, options)
       |> maybe_add_keywords(context)
       |> Enum.reject(&is_nil/1)
+      |> dedup_keywords()
       |> sort_items()
       |> Enum.map(& &1.completion_item)
 
@@ -438,6 +439,23 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   end
 
   ## Helpers
+
+  # On Elixir >= 1.18 block keywords can come from both the engine (the
+  # block_keyword_or_binary_operator oracle) and the version-gated provider
+  # (maybe_add_do / maybe_add_keywords). Provider items are prepended, so they
+  # appear first; uniq_by label keeps the richer provider rendering (snippet /
+  # indentation-aware text edit) and drops the engine's plain duplicate. On
+  # 1.16-1.17 the engine never emits these, so this is a no-op there.
+  defp dedup_keywords(items) do
+    {keywords, others} =
+      Enum.split_with(items, fn
+        %__MODULE__{completion_item: %CompletionItem{kind: :keyword}} -> true
+        _ -> false
+      end)
+
+    deduped = Enum.uniq_by(keywords, fn %__MODULE__{completion_item: ci} -> ci.label end)
+    deduped ++ others
+  end
 
   defp is_incomplete(items) do
     if Enum.empty?(items) do
@@ -916,6 +934,27 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         detail: "bitstring option",
         insert_text: insert_text,
         kind: :type_parameter,
+        tags: []
+      }
+    }
+  end
+
+  # Block keywords surfaced by the engine for the elixir >= 1.18
+  # block_keyword_or_binary_operator cursor context. These are plain; when the
+  # cursor is also a position the version-gated provider handles (maybe_add_do /
+  # maybe_add_keywords), those richer items win during dedup_keywords/1.
+  defp from_completion_item(
+         %{type: :keyword, name: name},
+         _context,
+         _options
+       ) do
+    %__MODULE__{
+      priority: 0,
+      completion_item: %CompletionItem{
+        label: name,
+        kind: :keyword,
+        detail: "reserved word",
+        insert_text: name,
         tags: []
       }
     }
