@@ -328,7 +328,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         [[match]] -> match
       end
 
-    if hint in ["d", "do"] do
+    if hint in ["d", "do"] and not cursor_operand_of_operator?(context) do
       item = %__MODULE__{
         priority: 0,
         completion_item: %CompletionItem{
@@ -364,9 +364,20 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
         [[match]] -> match
       end
 
+    # Block-closing keywords are not valid where the cursor is an operand of a
+    # binary operator (e.g. `x = re` must not suggest `rescue`); the expression
+    # keywords true/false/nil/when remain valid there. The engine still supplies
+    # block keywords for genuine after-expression positions via the oracle.
+    candidate_keywords =
+      if cursor_operand_of_operator?(context) do
+        ~w(true false nil when)
+      else
+        ~w(true false nil when end rescue catch else after)
+      end
+
     if hint != "" do
       keyword_items =
-        for keyword <- ~w(true false nil when end rescue catch else after),
+        for keyword <- candidate_keywords,
             Matcher.match?(keyword, hint) do
           {insert_text, text_edit} =
             cond do
@@ -478,6 +489,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       _key, nil, other_value -> other_value
       _key, base_value, _other_value -> base_value
     end)
+  end
+
+  # True when the cursor sits directly as an operand of a binary operator in the
+  # partial AST (e.g. the right side of `x = ‹cursor›`, `a + ‹cursor›`,
+  # `x |> ‹cursor›`). Block keywords (do/end/rescue/...) are never valid there,
+  # so the regex-based provider must not offer them. Detected from the
+  # container_cursor_to_quoted AST rather than Code.Fragment.cursor_context,
+  # which reports :local_or_var for these positions and cannot distinguish them.
+  defp cursor_operand_of_operator?(%{container_cursor_to_quoted: nil}), do: false
+
+  defp cursor_operand_of_operator?(%{container_cursor_to_quoted: quoted}) do
+    case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
+      [_cursor, {op, _meta, [_, _]} | _] when is_atom(op) ->
+        Atom.to_string(op) in @operators
+
+      _ ->
+        false
+    end
   end
 
   # The block keyword hint = the partial lowercase word immediately before the
