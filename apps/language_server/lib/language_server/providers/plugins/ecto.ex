@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto do
 
   @impl true
   def setup(context) do
-    ModuleStore.ensure_compiled(context, Ecto.UUID)
+    ModuleStore.ensure_loaded(context, Ecto.UUID)
   end
 
   @impl true

@@ -21,7 +21,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix do
 
   @impl true
   def setup(context) do
-    ModuleStore.ensure_compiled(context, Phoenix.Router)
+    ModuleStore.ensure_loaded(context, Phoenix.Router)
   end
 
   @impl true

@@ -3,7 +3,6 @@ defmodule ElixirLS.LanguageServer.Plugins.ModuleStore do
   Caches the module list and a list of modules keyed by the behaviour they implement.
   """
   defstruct by_behaviour: %{}, list: [], plugins: []
-  require Logger
 
   @type t :: %__MODULE__{
           by_behaviour: %{optional(atom) => module},
@@ -13,28 +12,19 @@ defmodule ElixirLS.LanguageServer.Plugins.ModuleStore do
 
   alias ElixirSense.Core.Applications
 
-  def ensure_compiled(context, module_or_modules) do
-    modules = List.wrap(module_or_modules)
+  @doc """
+  Adds the given module(s) to the existing `:module_store` in `context`,
+  if they are loadable.
 
-    modules =
-      Enum.filter(modules, fn module ->
-        try do
-          if match?({:module, _module}, Code.ensure_compiled(module)) do
-            true
-          else
-            Logger.warning("Failed to ensure compiled #{inspect(module)}")
-            false
-          end
-        catch
-          kind, payload ->
-            Logger.warning(
-              "Failed to ensure compiled #{inspect(module)}: #{Exception.format(kind, payload, __STACKTRACE__)}"
-            )
-
-            false
-        end
-      end)
-
+  Originally forced compilation via `Code.ensure_compiled/1`, but that's
+  prone to locking under concurrent Mix compilation. We now only consult
+  the code server (`Code.ensure_loaded?/1`) — if the anchor module isn't
+  already loadable in the running BEAM, the calling plugin silently skips
+  (which matches the desired behaviour for projects that don't pull in
+  Phoenix / Ecto / etc).
+  """
+  def ensure_loaded(context, module_or_modules) do
+    modules = List.wrap(module_or_modules) |> Enum.filter(&Code.ensure_loaded?/1)
     Map.update!(context, :module_store, &build(modules, &1))
   end
 
