@@ -150,6 +150,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.TypeSpecs do
         spec =
           case type_info.kind do
             :opaque -> "@opaque #{type_info.name}(#{args_stringified})"
+            :nominal -> "@nominal #{type_info.name}(#{args_stringified})"
             _ -> List.last(type_info.specs)
           end
 

@@ -28,8 +28,20 @@
 # with some changes inspired by Alchemist.Completer (itself based on IEx.Autocomplete).
 # Since then the codebases have diverged as the requirements
 # put on editor and REPL autocomplete are different.
-# However some relevant changes have been merged back
-# from upstream Elixir (1.18).
+# Relevant correctness/feature changes from upstream Elixir have been merged
+# back through v1.20:
+# - cursor parsing is delegated to the host compiler's Code.Fragment
+#   (cursor_context/1, container_cursor_to_quoted/2), so token-level fixes
+#   from the running Elixir apply automatically (e.g. the 1.18+
+#   :block_keyword_or_binary_operator and :capture_arg contexts)
+# - struct expansion crash fixes (elixir-lang/elixir#14308 __MODULE__,
+#   #14150 runtime values)
+# - OTP 28 nominal types
+# IEx-only module-listing memory/prefix-filter optimizations (#15140, #15143)
+# are intentionally NOT adopted: this engine fuzzy-matches module names
+# (ElixirLS.Utils.Matcher) rather than prefix-matching, and caches module
+# results in :persistent_term, so the upstream collection-time prefix filter
+# does not apply.
 # Changes made to the original version include:
 # - different result format with added docs and spec
 # - built in and private funcs are not excluded
@@ -55,13 +67,12 @@ defmodule ElixirLS.Utils.CompletionEngine do
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.Normalized.Macro.Env, as: NormalizedMacroEnv
-  alias ElixirSense.Core.Source
   alias ElixirSense.Core.State
+  alias ElixirSense.Core.State.StructInfo
   alias ElixirSense.Core.Struct
   alias ElixirSense.Core.TypeInfo
 
   alias ElixirLS.Utils.Matcher
-  require Logger
 
   @module_results_cache_key :"#{__MODULE__}_module_results_cache"
 
@@ -815,18 +826,19 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp container_context_map_fields(pairs, kind, map, hint, metadata) do
-    {keys, types, alias} =
+    {keys, types, alias, doc, meta} =
       case kind do
         {:struct, nil} ->
-          {Map.keys(map) ++ [:__struct__], %{}, nil}
+          {Map.keys(map) ++ [:__struct__], %{}, nil, "", %{}}
 
         {:struct, alias} ->
           keys = Struct.get_fields(alias, metadata.structs)
           types = ElixirLS.Utils.Field.get_field_types(metadata, alias, true)
-          {keys, types, alias}
+          {doc, meta} = get_struct_info({:atom, alias}, metadata)
+          {keys, types, alias, doc, meta}
 
         _ ->
-          {Map.keys(map), %{}, nil}
+          {Map.keys(map), %{}, nil, "", %{}}
       end
 
     entries =
@@ -841,7 +853,9 @@ defmodule ElixirLS.Utils.CompletionEngine do
           value_is_map: false,
           origin: if(kind != :map and alias != nil, do: inspect(alias)),
           call?: false,
-          type_spec: map_field_spec(key, types, alias)
+          type_spec: map_field_spec(key, types, alias),
+          summary: doc,
+          metadata: meta
         }
       end
 
@@ -1536,7 +1550,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
             cursor_position
           )
 
-        match?({:module, _}, ensure_loaded(mod)) ->
+        ensure_loaded?(mod) ->
           get_module_funs(mod, hint, exact?, include_builtin)
 
         true ->
@@ -1661,7 +1675,17 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
           # assume function head is first in code and last in metadata
           head_params = Enum.at(info.params, -1)
-          args = head_params |> Enum.map(&Macro.to_string/1)
+
+          args =
+            head_params
+            |> Enum.map(fn arg ->
+              try do
+                Macro.to_string(arg)
+              rescue
+                _ -> "term"
+              end
+            end)
+
           default_args = Introspection.count_defaults(head_params)
 
           {f, default_args, a, info.type, {docs, meta}, specs, args}
@@ -1841,11 +1865,11 @@ defmodule ElixirLS.Utils.CompletionEngine do
         do: {{fun_name, new_arity}, {arity, count}}
   end
 
-  defp ensure_loaded(Elixir), do: {:error, :nofile}
-  defp ensure_loaded(mod), do: Code.ensure_compiled(mod)
+  defp ensure_loaded?(Elixir), do: false
+  defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)
 
   defp match_map_fields(fields, hint, type, %State.Env{} = _env, %Metadata{} = metadata) do
-    {subtype, origin, types} =
+    {subtype, origin, types, doc, meta} =
       case type do
         {:struct, {:atom, mod}} ->
           types =
@@ -1855,13 +1879,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
               true
             )
 
-          {:struct_field, mod, types}
+          {doc, meta} = get_struct_info({:atom, mod}, metadata)
+          {:struct_field, mod, types, doc, meta}
 
         {:struct, nil} ->
-          {:struct_field, nil, %{}}
+          {:struct_field, nil, %{}, "", %{}}
 
         :map ->
-          {:map_key, nil, %{}}
+          {:map_key, nil, %{}, "", %{}}
 
         other ->
           raise "unexpected #{inspect(other)} for hint #{inspect(hint)}"
@@ -1885,10 +1910,41 @@ defmodule ElixirLS.Utils.CompletionEngine do
         value_is_map: value_is_map,
         origin: if(subtype == :struct_field and origin != nil, do: inspect(origin)),
         call?: true,
-        type_spec: map_field_spec(key, types, origin)
+        type_spec: map_field_spec(key, types, origin),
+        summary: doc,
+        metadata: meta
       }
     end
     |> Enum.sort_by(& &1.name)
+  end
+
+  # Returns {doc, metadata} for a struct module so struct-field completions can
+  # carry the struct's @moduledoc summary and metadata (elixir-ls 1.20 feature,
+  # elixir-lsp/elixir-ls "return docs and meta on record and struct field
+  # completions").
+  defp get_struct_info({:atom, module}, metadata) when is_atom(module) do
+    case metadata.structs[module] do
+      %StructInfo{} = info ->
+        {info.doc, info.meta}
+
+      nil ->
+        case NormalizedCode.get_docs(module, :docs) do
+          nil ->
+            {"", %{}}
+
+          docs ->
+            case Enum.find(docs, fn
+                   {{:__struct__, 0}, _, _, _, _, _} -> true
+                   _ -> false
+                 end) do
+              {{:__struct__, 0}, _, _, _, doc, meta} ->
+                {doc || "", meta}
+
+              _ ->
+                {"", %{}}
+            end
+        end
+    end
   end
 
   defp map_field_spec(key, specs, alias) do

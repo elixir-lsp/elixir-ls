@@ -2620,7 +2620,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 2, 33)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: "ElixirSenseExample.IO.Stream",
@@ -2657,13 +2657,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: "boolean()",
                value_is_map: false
              }
-           ]
+           ] = list
 
     list =
       Suggestion.suggestions(buffer, 3, 18)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__exception__",
                origin: "ArgumentError",
@@ -2691,7 +2691,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for aliased struct fields" do
@@ -2706,7 +2706,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 3, 11)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: "ElixirSenseExample.IO.Stream",
@@ -2743,7 +2743,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: "boolean()",
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for builtin fields in struct pattern match" do
@@ -2758,7 +2758,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 2, 13)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: nil,
@@ -2768,13 +2768,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: "atom()",
                value_is_map: false
              }
-           ]
+           ] = list
 
     list =
       Suggestion.suggestions(buffer, 3, 15)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: nil,
@@ -2784,7 +2784,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: "atom()",
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for struct fields atom module" do
@@ -2798,7 +2798,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 2, 43)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: "ElixirSenseExample.IO.Stream",
@@ -2835,7 +2835,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: "boolean()",
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for metadata struct fields" do
@@ -2857,7 +2857,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 8, 15)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: "MyServer",
@@ -2885,11 +2885,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
 
     list = Suggestion.suggestions(buffer, 9, 28)
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: "MyServer",
@@ -2908,7 +2908,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for metadata struct fields atom module" do
@@ -2930,7 +2930,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 8, 17)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: ":my_server",
@@ -2958,11 +2958,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
 
     list = Suggestion.suggestions(buffer, 9, 30)
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: ":my_server",
@@ -2981,7 +2981,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for metadata struct fields multiline" do
@@ -3003,7 +3003,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 10, 7) |> Enum.filter(&(&1.type == :field))
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: "MyServer",
@@ -3022,7 +3022,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for metadata struct fields when using `__MODULE__`" do
@@ -3041,7 +3041,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 8, 31)
 
-    assert list == [
+    assert [
              %{
                name: "__struct__",
                origin: "MyServer",
@@ -3060,7 +3060,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for struct fields in variable.key call syntax" do
@@ -3082,7 +3082,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 9, 12)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "field_1",
                origin: "MyServer",
@@ -3101,7 +3101,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for map fields in variable.key call syntax" do
@@ -3118,7 +3118,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 4, 12)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "key_1",
                origin: nil,
@@ -3137,7 +3137,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: true
              }
-           ]
+           ] = list
   end
 
   test "suggestion for map fields in @attribute.key call syntax" do
@@ -3154,7 +3154,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 4, 13)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert list == [
+    assert [
              %{
                name: "key_1",
                origin: nil,
@@ -3173,7 +3173,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: true
              }
-           ]
+           ] = list
   end
 
   test "suggestion for functions in variable.key call syntax" do
@@ -3242,7 +3242,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 8, 30)
 
-    assert list == [
+    assert [
              %{
                call?: false,
                name: "field_1",
@@ -3252,7 +3252,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for fields in struct update variable when module not set" do
@@ -3271,7 +3271,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 8, 22)
 
-    assert list == [
+    assert [
              %{
                call?: false,
                name: "field_1",
@@ -3281,7 +3281,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for fields in struct update attribute when module not set" do
@@ -3300,7 +3300,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 9, 16)
 
-    assert list == [
+    assert [
              %{
                call?: false,
                name: "field_1",
@@ -3310,7 +3310,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for fields in struct update when struct type is var" do
@@ -3324,7 +3324,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 3, 22)
 
-    assert list == [
+    assert [
              %{
                call?: false,
                name: "field_1",
@@ -3334,7 +3334,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for fields in struct when struct type is attribute" do
@@ -3349,7 +3349,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 4, 11)
 
-    assert list == [
+    assert [
              %{
                call?: false,
                name: "hour",
@@ -3359,7 +3359,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: "Calendar.hour()",
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for keys in map update" do
@@ -3373,7 +3373,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 3, 22)
 
-    assert list == [
+    assert [
              %{
                call?: false,
                name: "field_1",
@@ -3383,7 +3383,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for fuzzy struct fields" do
@@ -3397,7 +3397,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 3, 22)
 
-    assert list == [
+    assert [
              %{
                call?: false,
                name: "field_1",
@@ -3407,7 +3407,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type_spec: nil,
                value_is_map: false
              }
-           ]
+           ] = list
   end
 
   test "suggestion for funcs and vars in struct" do

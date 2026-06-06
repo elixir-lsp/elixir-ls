@@ -157,7 +157,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
                 ]}
              ]}
           ]}
-         when kind in [:type, :typep, :opaque] <- ast do
+         when kind in [:type, :typep, :opaque, :nominal] <- ast do
       field_types
     else
       _ ->
@@ -187,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
                     ]}
                  ]}
               ]}
-             when kind in [:type, :typep, :opaque] <- ast do
+             when kind in [:type, :typep, :opaque, :nominal] <- ast do
           field_types
           |> Enum.map(fn
             {:"::", _, [{name, _, context}, type]} when is_atom(name) and is_atom(context) ->

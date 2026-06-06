@@ -499,7 +499,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -514,7 +516,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "bar_2",
@@ -523,7 +527,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -538,7 +544,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "bar_2",
@@ -547,7 +555,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "foo",
@@ -556,7 +566,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -568,7 +580,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                subtype: :map_key,
                type: :field,
                type_spec: nil,
-               value_is_map: false
+               value_is_map: false,
+               summary: "",
+               metadata: %{}
              }
            ]
   end
@@ -623,70 +637,78 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
       }
     }
 
-    assert expand(~c"struct.h", env, metadata) ==
-             [
-               %{
-                 call?: true,
-                 name: "hour",
-                 origin: "DateTime",
-                 subtype: :struct_field,
-                 type: :field,
-                 type_spec: "Calendar.hour()",
-                 value_is_map: false
-               }
-             ]
+    # struct field completions carry the field/struct doc summary and metadata
+    # (elixir-ls 1.20 feature); the doc metadata shape is version-dependent
+    # (e.g. OTP 28 adds :source_anno), so match it leniently.
+    assert [
+             %{
+               call?: true,
+               name: "hour",
+               origin: "DateTime",
+               subtype: :struct_field,
+               type: :field,
+               type_spec: "Calendar.hour()",
+               value_is_map: false,
+               summary: _,
+               metadata: _
+             }
+           ] = expand(~c"struct.h", env, metadata)
 
-    assert expand(~c"other.d", env, metadata) ==
-             [
-               %{
-                 call?: true,
-                 name: "day",
-                 origin: "DateTime",
-                 subtype: :struct_field,
-                 type: :field,
-                 type_spec: "Calendar.day()",
-                 value_is_map: false
-               }
-             ]
+    assert [
+             %{
+               call?: true,
+               name: "day",
+               origin: "DateTime",
+               subtype: :struct_field,
+               type: :field,
+               type_spec: "Calendar.day()",
+               value_is_map: false,
+               summary: _,
+               metadata: _
+             }
+           ] = expand(~c"other.d", env, metadata)
 
-    assert expand(~c"from_metadata.s", env, metadata) ==
-             [
-               %{
-                 call?: true,
-                 name: "some",
-                 origin: "MyStruct",
-                 subtype: :struct_field,
-                 type: :field,
-                 type_spec: "integer",
-                 value_is_map: false
-               }
-             ]
+    assert [
+             %{
+               call?: true,
+               name: "some",
+               origin: "MyStruct",
+               subtype: :struct_field,
+               type: :field,
+               type_spec: "integer",
+               value_is_map: false,
+               summary: "",
+               metadata: %{}
+             }
+           ] = expand(~c"from_metadata.s", env, metadata)
 
-    assert expand(~c"var.h", env, metadata) ==
-             [
-               %{
-                 call?: true,
-                 name: "hour",
-                 origin: "DateTime",
-                 subtype: :struct_field,
-                 type: :field,
-                 type_spec: "Calendar.hour()",
-                 value_is_map: false
-               }
-             ]
+    assert [
+             %{
+               call?: true,
+               name: "hour",
+               origin: "DateTime",
+               subtype: :struct_field,
+               type: :field,
+               type_spec: "Calendar.hour()",
+               value_is_map: false,
+               summary: _,
+               metadata: _
+             }
+           ] = expand(~c"var.h", env, metadata)
 
-    assert expand(~c"xxxx.h", env, metadata) ==
-             [
-               %{
-                 call?: true,
-                 name: "hour",
-                 origin: "DateTime",
-                 subtype: :struct_field,
-                 type: :field,
-                 type_spec: "Calendar.hour()",
-                 value_is_map: false
-               }
-             ]
+    assert [
+             %{
+               call?: true,
+               name: "hour",
+               origin: "DateTime",
+               subtype: :struct_field,
+               type: :field,
+               type_spec: "Calendar.hour()",
+               value_is_map: false,
+               summary: _,
+               metadata: _
+             }
+           ] = expand(~c"xxxx.h", env, metadata)
   end
 
   test "map atom key completion is supported on attributes" do
@@ -708,7 +730,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -723,7 +747,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "bar_2",
@@ -732,7 +758,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -747,7 +775,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "bar_2",
@@ -756,7 +786,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "foo",
@@ -765,7 +797,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -777,7 +811,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                subtype: :map_key,
                type: :field,
                type_spec: nil,
-               value_is_map: false
+               value_is_map: false,
+               summary: "",
+               metadata: %{}
              }
            ]
   end
@@ -818,7 +854,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -833,7 +871,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "bar_2",
@@ -842,7 +882,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -855,7 +897,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "bar_2",
@@ -864,7 +908,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "foo",
@@ -873,7 +919,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "mod",
@@ -882,7 +930,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "num",
@@ -891,7 +941,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -906,7 +958,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: true
+                 value_is_map: true,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -919,7 +973,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: true
+                 value_is_map: true,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -931,7 +987,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                subtype: :map_key,
                type: :field,
                type_spec: nil,
-               value_is_map: false
+               value_is_map: false,
+               summary: "",
+               metadata: %{}
              }
            ]
 
@@ -1830,7 +1888,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -1843,7 +1903,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: true
+                 value_is_map: true,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -1856,7 +1918,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: nil,
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -1869,7 +1933,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "a_mod",
@@ -1878,7 +1944,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "my_val",
@@ -1887,7 +1955,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "some_map",
@@ -1896,7 +1966,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "str",
@@ -1905,7 +1977,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  name: "unknown_str",
@@ -1914,7 +1988,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -1927,7 +2003,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
                  type_spec: nil,
-                 value_is_map: true
+                 value_is_map: true,
+                 summary: "",
+                 metadata: %{}
                }
              ]
 
@@ -1940,7 +2018,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  subtype: :struct_field,
                  type: :field,
                  type_spec: "atom()",
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                },
                %{
                  call?: true,
@@ -1949,7 +2029,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  subtype: :struct_field,
                  type: :field,
                  type_spec: nil,
-                 value_is_map: false
+                 value_is_map: false,
+                 summary: "",
+                 metadata: %{}
                }
              ]
   end
