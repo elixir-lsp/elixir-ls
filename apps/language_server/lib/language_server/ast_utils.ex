@@ -124,8 +124,7 @@ defmodule ElixirLS.LanguageServer.AstUtils do
     # on elixir 1.15-1.17 formatter changes charlist '' to ~c"" sigil so we need to correct columns
     # if charlist is single line
     correction =
-      if end_line == line and Version.match?(System.version(), ">= 1.15.0-dev") and
-           Version.match?(System.version(), "< 1.18.0-dev") do
+      if end_line == line and Version.match?(System.version(), "< 1.18.0-dev") do
         2
       else
         0
@@ -192,14 +191,12 @@ defmodule ElixirLS.LanguageServer.AstUtils do
             end
 
           match?({:., _meta, [Kernel, :to_string]}, form) ->
-            if Keyword.get(meta, :from_interpolation) ||
-                 Version.match?(System.version(), "< 1.16.0-dev") do
+            if Keyword.get(meta, :from_interpolation) do
               {line, column}
             end
 
           match?({:., _meta, [Access, :get]}, form) and match?([_ | _], args) ->
-            if Keyword.get(meta, :from_brackets) ||
-                 Version.match?(System.version(), "< 1.16.0-dev") do
+            if Keyword.get(meta, :from_brackets) do
               [arg | _] = args
 
               case node_range(arg) do

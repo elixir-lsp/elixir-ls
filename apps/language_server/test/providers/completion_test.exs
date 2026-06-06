@@ -1501,34 +1501,32 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
       assert first.insert_text == "defprotocol $1 do\n\t$0\nend"
     end
 
-    if Version.match?(System.version(), ">= 1.15.0") do
-      test "will suggest remote quoted calls" do
-        text = """
-        alias ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs, as: Quoted
-        Quoted.
-        #      ^
-        """
+    test "will suggest remote quoted calls" do
+      text = """
+      alias ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs, as: Quoted
+      Quoted.
+      #      ^
+      """
 
-        {line, char} = {1, 7}
+      {line, char} = {1, 7}
 
-        TestUtils.assert_has_cursor_char(text, line, char)
-        {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
-        parser_context = ParserContextBuilder.from_string(text, {line, char})
+      TestUtils.assert_has_cursor_char(text, line, char)
+      {line, char} = SourceFile.lsp_position_to_elixir(text, {line, char})
+      parser_context = ParserContextBuilder.from_string(text, {line, char})
 
-        assert {:ok, %GenLSP.Structures.CompletionList{items: items}} =
-                 Completion.completion(
-                   parser_context,
-                   line,
-                   char,
-                   @supports
-                 )
+      assert {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+               Completion.completion(
+                 parser_context,
+                 line,
+                 char,
+                 @supports
+               )
 
-        assert item = Enum.find(items, fn item -> item.label == "\"0abc\\\"asd\"" end)
-        assert item.insert_text == "\"0abc\\\"asd\"($1)$0"
+      assert item = Enum.find(items, fn item -> item.label == "\"0abc\\\"asd\"" end)
+      assert item.insert_text == "\"0abc\\\"asd\"($1)$0"
 
-        assert item.label_details.description ==
-                 "ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs.\"0abc\\\"asd\"/2"
-      end
+      assert item.label_details.description ==
+               "ElixirLS.LanguageServer.Fixtures.ExampleQuotedDefs.\"0abc\\\"asd\"/2"
     end
   end
 

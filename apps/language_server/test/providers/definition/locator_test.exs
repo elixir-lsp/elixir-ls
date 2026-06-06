@@ -2022,61 +2022,59 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert read_range(location) =~ "my_type(a)"
   end
 
-  if Version.match?(System.version(), ">= 1.15.0") do
-    test "find remote type for lowest matching arity in incomplete code" do
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(
-      end
-      """
-
-      assert %Location{type: :typespec, file: file} =
-               location =
-               Locator.definition(buffer, 3, 20)
-
-      assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_range(location) =~ "@type my_type :: integer"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer
-      end
-      """
-
-      assert %Location{type: :typespec, file: file} =
-               location =
-               Locator.definition(buffer, 3, 20)
-
-      assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_range(location) =~ "@type my_type(a) :: {integer, a}"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer,
-      end
-      """
-
-      assert %Location{type: :typespec, file: file} =
-               location =
-               Locator.definition(buffer, 3, 20)
-
-      assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_range(location) =~ "@type my_type(a, b) :: {integer, a, b}"
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity, as: T
-        @type some :: T.my_type(integer, integer,
-      end
-      """
-
-      # too many arguments
-
-      assert nil == Locator.definition(buffer, 3, 20)
+  test "find remote type for lowest matching arity in incomplete code" do
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity, as: T
+      @type some :: T.my_type(
     end
+    """
+
+    assert %Location{type: :typespec, file: file} =
+             location =
+             Locator.definition(buffer, 3, 20)
+
+    assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
+    assert read_range(location) =~ "@type my_type :: integer"
+
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity, as: T
+      @type some :: T.my_type(integer
+    end
+    """
+
+    assert %Location{type: :typespec, file: file} =
+             location =
+             Locator.definition(buffer, 3, 20)
+
+    assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
+    assert read_range(location) =~ "@type my_type(a) :: {integer, a}"
+
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity, as: T
+      @type some :: T.my_type(integer,
+    end
+    """
+
+    assert %Location{type: :typespec, file: file} =
+             location =
+             Locator.definition(buffer, 3, 20)
+
+    assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
+    assert read_range(location) =~ "@type my_type(a, b) :: {integer, a, b}"
+
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity, as: T
+      @type some :: T.my_type(integer, integer,
+    end
+    """
+
+    # too many arguments
+
+    assert nil == Locator.definition(buffer, 3, 20)
   end
 
   @tag capture_log: true
@@ -2096,62 +2094,60 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert read_range(location) =~ "@typedoc \"one param version\""
   end
 
-  if Version.match?(System.version(), ">= 1.15.0") do
-    @tag capture_log: true
-    test "find remote type for lowest matching arity in incomplete code - fallback to docs" do
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity1, as: T
-        @type some :: T.my_type(
-      end
-      """
-
-      assert %Location{type: :typespec, file: file} =
-               location =
-               Locator.definition(buffer, 3, 20)
-
-      assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_range(location) =~ "@typedoc \"no params version\""
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity1, as: T
-        @type some :: T.my_type(integer
-      end
-      """
-
-      assert %Location{type: :typespec, file: file} =
-               location =
-               Locator.definition(buffer, 3, 20)
-
-      assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_range(location) =~ "@typedoc \"one param version\""
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity1, as: T
-        @type some :: T.my_type(integer,
-      end
-      """
-
-      assert %Location{type: :typespec, file: file} =
-               location =
-               Locator.definition(buffer, 3, 20)
-
-      assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
-      assert read_range(location) =~ "@typedoc \"two params version\""
-
-      buffer = """
-      defmodule MyModule do
-        alias ElixirSenseExample.TypesWithMultipleArity1, as: T
-        @type some :: T.my_type(integer, integer,
-      end
-      """
-
-      # too many arguments
-
-      assert nil == Locator.definition(buffer, 3, 20)
+  @tag capture_log: true
+  test "find remote type for lowest matching arity in incomplete code - fallback to docs" do
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity1, as: T
+      @type some :: T.my_type(
     end
+    """
+
+    assert %Location{type: :typespec, file: file} =
+             location =
+             Locator.definition(buffer, 3, 20)
+
+    assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
+    assert read_range(location) =~ "@typedoc \"no params version\""
+
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity1, as: T
+      @type some :: T.my_type(integer
+    end
+    """
+
+    assert %Location{type: :typespec, file: file} =
+             location =
+             Locator.definition(buffer, 3, 20)
+
+    assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
+    assert read_range(location) =~ "@typedoc \"one param version\""
+
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity1, as: T
+      @type some :: T.my_type(integer,
+    end
+    """
+
+    assert %Location{type: :typespec, file: file} =
+             location =
+             Locator.definition(buffer, 3, 20)
+
+    assert file =~ "language_server/test/support/types_with_multiple_arity.ex"
+    assert read_range(location) =~ "@typedoc \"two params version\""
+
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.TypesWithMultipleArity1, as: T
+      @type some :: T.my_type(integer, integer,
+    end
+    """
+
+    # too many arguments
+
+    assert nil == Locator.definition(buffer, 3, 20)
   end
 
   test "find super inside overridable function" do

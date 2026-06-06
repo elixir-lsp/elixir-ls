@@ -1939,7 +1939,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
-    file_path = SourceFile.Path.expand(file_path, project_dir)
+    file_path = Path.expand(file_path, project_dir)
 
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.any?(fn path -> String.ends_with?(file_path, path) end)
@@ -1954,10 +1954,10 @@ defmodule ElixirLS.LanguageServer.Server do
         test_paths = config[:test_paths] || ["test"]
         test_pattern = config[:test_pattern] || "*_test.exs"
 
-        file_path = SourceFile.Path.expand(file_path, project_dir)
+        file_path = Path.expand(file_path, project_dir)
 
         Mix.Utils.extract_files(test_paths, test_pattern)
-        |> Enum.map(&SourceFile.Path.absname(&1, project_dir))
+        |> Enum.map(&Path.absname(&1, project_dir))
         |> Enum.any?(&(&1 == file_path))
     end
   end
@@ -1988,7 +1988,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {_pid, build_ref} =
           case File.cwd() do
             {:ok, cwd} ->
-              if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
+              if Path.absname(cwd) == Path.absname(project_dir) do
                 Build.build(self(), project_dir, opts)
               else
                 Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
@@ -2747,7 +2747,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     project_dir =
       if is_binary(project_dir_config) do
-        SourceFile.Path.absname(Path.join(root_dir, project_dir_config))
+        Path.absname(Path.join(root_dir, project_dir_config))
       else
         if is_nil(project_dir_config) do
           root_dir

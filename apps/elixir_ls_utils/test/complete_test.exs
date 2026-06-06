@@ -1085,14 +1085,9 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
 
     # local call on var
 
-    if Version.match?(System.version(), "< 1.16.0") do
-      assert [] == expand(~c"asd.(")
-      assert [] == expand(~c"@asd.(")
-    else
-      expr_suggestions = expand(~c"")
-      assert expr_suggestions == expand(~c"asd.(")
-      assert expr_suggestions == expand(~c"@asd.(")
-    end
+    expr_suggestions = expand(~c"")
+    assert expr_suggestions == expand(~c"asd.(")
+    assert expr_suggestions == expand(~c"@asd.(")
 
     # list = expand('asd.(')
     # assert is_list(list)

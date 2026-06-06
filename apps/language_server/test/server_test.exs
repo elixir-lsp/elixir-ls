@@ -563,17 +563,14 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert %SourceFile{dirty?: false, text: ^code, language_id: "elixir", version: 1} =
                  Server.get_source_file(state, uri)
 
-        # Code.with_diagnostics is broken on elixir < 1.15.3
-        if Version.match?(System.version(), ">= 1.15.3") do
-          assert_receive notification("textDocument/publishDiagnostics", %{
-                           "uri" => ^uri,
-                           "diagnostics" => [diagnostic],
-                           "version" => 1
-                         }),
-                         1000
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic],
+                         "version" => 1
+                       }),
+                       1000
 
-          assert diagnostic["severity"] == 2
-        end
+        assert diagnostic["severity"] == 2
 
         wait_until_compiled(server)
       end)
@@ -645,16 +642,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert %SourceFile{dirty?: false, text: ^code, version: 1} =
                  Server.get_source_file(state, uri)
 
-        # Code.with_diagnostics is broken on elixir < 1.15.3
-        if Version.match?(System.version(), ">= 1.15.3") do
-          assert_receive notification("textDocument/publishDiagnostics", %{
-                           "uri" => ^uri,
-                           "diagnostics" => [diagnostic]
-                         }),
-                         1000
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic]
+                       }),
+                       1000
 
-          assert diagnostic["severity"] == 2
-        end
+        assert diagnostic["severity"] == 2
 
         wait_until_compiled(server)
       end)
@@ -674,18 +668,13 @@ defmodule ElixirLS.LanguageServer.ServerTest do
         assert %SourceFile{dirty?: false, text: ^code, version: 1} =
                  Server.get_source_file(state, uri)
 
-        # Code.with_diagnostics is broken on elixir < 1.15.3
-        if Version.match?(System.version(), ">= 1.15.3") do
-          # elixir 1.15.5 emits duplicated warnings
-          # https://github.com/elixir-lang/elixir/issues/12961
-          assert_receive notification("textDocument/publishDiagnostics", %{
-                           "uri" => ^uri,
-                           "diagnostics" => [diagnostic | _]
-                         }),
-                         1000
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^uri,
+                         "diagnostics" => [diagnostic | _]
+                       }),
+                       1000
 
-          assert diagnostic["severity"] == 2
-        end
+        assert diagnostic["severity"] == 2
 
         wait_until_compiled(server)
       end)
@@ -1690,43 +1679,27 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       initialize(server)
 
-      if Version.match?(System.version(), ">= 1.15.0") do
-        assert_receive notification("textDocument/publishDiagnostics", %{
-                         "uri" => ^error_file,
-                         "diagnostics" => [
-                           %{
-                             "message" =>
-                               "** (CompileError) lib/has_error.ex: cannot compile module" <> _,
-                             "range" => %{"end" => %{"line" => 0}, "start" => %{"line" => 0}},
-                             "severity" => 1
+      assert_receive notification("textDocument/publishDiagnostics", %{
+                       "uri" => ^error_file,
+                       "diagnostics" => [
+                         %{
+                           "message" =>
+                             "** (CompileError) lib/has_error.ex: cannot compile module" <> _,
+                           "range" => %{"end" => %{"line" => 0}, "start" => %{"line" => 0}},
+                           "severity" => 1
+                         },
+                         %{
+                           "message" => "undefined function does_not_exist/0" <> _,
+                           "range" => %{
+                             "end" => %{"character" => _, "line" => 3},
+                             "start" => %{"character" => _, "line" => 3}
                            },
-                           %{
-                             "message" => "undefined function does_not_exist/0" <> _,
-                             "range" => %{
-                               "end" => %{"character" => _, "line" => 3},
-                               "start" => %{"character" => _, "line" => 3}
-                             },
-                             "severity" => 1,
-                             "source" => "Elixir"
-                           }
-                         ]
-                       }),
-                       1000
-      else
-        assert_receive notification("textDocument/publishDiagnostics", %{
-                         "uri" => ^error_file,
-                         "diagnostics" => [
-                           %{
-                             "message" =>
-                               "** (CompileError) lib/has_error.ex:4: undefined function does_not_exist" <>
-                                 _,
-                             "range" => %{"end" => %{"line" => 3}, "start" => %{"line" => 3}},
-                             "severity" => 1
-                           }
-                         ]
-                       }),
-                       1000
-      end
+                           "severity" => 1,
+                           "source" => "Elixir"
+                         }
+                       ]
+                     }),
+                     1000
 
       wait_until_compiled(server)
     end)

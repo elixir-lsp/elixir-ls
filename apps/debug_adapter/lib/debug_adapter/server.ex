@@ -1958,8 +1958,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp evaluate_code_expression(expr, binding, env_or_opts) do
     try do
-      # TODO use Code.env_for_eval when we require elixir 1.14
-      env = ElixirLS.DebugAdapter.Code.env_for_eval(env_or_opts)
+      env = Code.env_for_eval(env_or_opts)
       {term, _bindings} = Code.eval_string(expr, binding, env)
       term
     catch
@@ -2723,24 +2722,13 @@ defmodule ElixirLS.DebugAdapter.Server do
         end
       end)
 
-    if String.to_integer(System.otp_release()) >= 23 do
-      for {module_charlist, _beam_path, _loaded} <- :code.all_available(),
-          module = List.to_atom(module_charlist),
-          module_name = inspect(module),
-          Enum.any?(regexes, fn regex ->
-            Regex.match?(regex, module_name)
-          end) do
-        module
-      end
-    else
-      # TODO remove when we drop OTP 22 and elixir 1.13 support
-      ElixirSense.all_modules()
-      |> Enum.filter(fn module_name ->
-        Enum.find(regexes, fn regex ->
+    for {module_charlist, _beam_path, _loaded} <- :code.all_available(),
+        module = List.to_atom(module_charlist),
+        module_name = inspect(module),
+        Enum.any?(regexes, fn regex ->
           Regex.match?(regex, module_name)
-        end)
-      end)
-      |> Enum.map(fn module_name -> Module.concat(Elixir, module_name) end)
+        end) do
+      module
     end
     |> interpret_modules(exclude_module_pattern)
   end
@@ -2901,8 +2889,7 @@ defmodule ElixirLS.DebugAdapter.Server do
        }) do
     for line <- lines do
       {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
-      # TODO use Code.env_for_eval when we require elixir 1.14
-      env = ElixirLS.DebugAdapter.Code.env_for_eval(macro_env_or_opts)
+      env = Code.env_for_eval(macro_env_or_opts)
 
       case BreakpointCondition.register_condition(
              module,

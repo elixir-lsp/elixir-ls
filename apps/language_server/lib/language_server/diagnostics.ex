@@ -28,50 +28,33 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     diagnostic_fields = diagnostic |> Map.from_struct() |> Map.delete(:__struct__)
     normalized = struct(__MODULE__, diagnostic_fields) |> normalize_message()
 
-    if Version.match?(System.version(), ">= 1.16.0-dev") do
-      # don't include stacktrace in exceptions with position
-      message =
-        if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and
-             is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 and
-             elem(diagnostic.details, 0) in [:error, :throw, :exit] do
-          {kind, reason} = diagnostic.details
+    # don't include stacktrace in exceptions with position
+    message =
+      if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and
+           is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 and
+           elem(diagnostic.details, 0) in [:error, :throw, :exit] do
+        {kind, reason} = diagnostic.details
 
-          try do
-            Exception.format_banner(kind, reason)
-          rescue
-            _ ->
-              # we can't trust that details from external compilers will behave
-              diagnostic.message
-          end
-        else
-          diagnostic.message
+        try do
+          Exception.format_banner(kind, reason)
+        rescue
+          _ ->
+            # we can't trust that details from external compilers will behave
+            diagnostic.message
         end
+      else
+        diagnostic.message
+      end
 
-      {file, position} =
-        get_file_and_position_with_stacktrace_fallback(
-          {diagnostic.file, diagnostic.position},
-          Map.fetch!(diagnostic, :stacktrace),
-          root_path,
-          mixfile
-        )
+    {file, position} =
+      get_file_and_position_with_stacktrace_fallback(
+        {diagnostic.file, diagnostic.position},
+        Map.fetch!(diagnostic, :stacktrace),
+        root_path,
+        mixfile
+      )
 
-      %__MODULE__{normalized | message: message, file: file, position: position}
-    else
-      {_type, file, position, stacktrace} =
-        extract_message_info(diagnostic.message, root_path)
-
-      {file, position} =
-        get_file_and_position_with_stacktrace_fallback(
-          {file || diagnostic.file, position || diagnostic.position},
-          Map.get(diagnostic, :stacktrace, []),
-          root_path,
-          mixfile
-        )
-
-      normalized
-      |> maybe_update_file(file, mixfile)
-      |> maybe_update_position(position, stacktrace)
-    end
+    %__MODULE__{normalized | message: message, file: file, position: position}
   end
 
   defp extract_message_info(diagnostic_message, root_path) do
@@ -243,11 +226,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       compiler_name: "Elixir",
       file: file,
       position: position,
-      # elixir >= 1.16
       span: diagnostic[:span],
-      # elixir >= 1.16
       details: diagnostic[:details],
-      # elixir >= 1.16
       source: diagnostic[:source],
       stacktrace: stacktrace,
       message: message,
@@ -518,35 +498,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           end
         end
 
-      # for backwards compatibility with elixir < 1.16
-      {:error, %kind{} = payload} when kind == MismatchedDelimiterError ->
-        [
-          %GenLSP.Structures.DiagnosticRelatedInformation{
-            location: %GenLSP.Structures.Location{
-              uri: uri,
-              range:
-                range(
-                  {payload.line, payload.column, payload.line,
-                   payload.column + String.length(to_string(payload.opening_delimiter))},
-                  source_file
-                )
-            },
-            message: "opening delimiter: #{payload.opening_delimiter}"
-          },
-          %GenLSP.Structures.DiagnosticRelatedInformation{
-            location: %GenLSP.Structures.Location{
-              uri: uri,
-              range:
-                range(
-                  {payload.end_line, payload.end_column, payload.end_line,
-                   payload.end_column + String.length(to_string(payload.closing_delimiter))},
-                  source_file
-                )
-            },
-            message: "closing delimiter: #{payload.closing_delimiter}"
-          }
-        ]
-
       {:error, %kind{opening_delimiter: opening_delimiter} = payload}
       when kind == TokenMissingError and not is_nil(opening_delimiter) ->
         [
@@ -582,7 +533,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           get_related_information_message(diagnostic.message, uri, source_file)
 
       _ ->
-        # elixir < 1.16 and other errors on 1.16
         get_related_information_message(diagnostic.message, uri, source_file)
     end
   end
@@ -593,13 +543,13 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
          details: %kind{closing_delimiter: closing_delimiter}
        })
        when kind == MismatchedDelimiterError do
-    # convert to pre 1.16 4-tuple
+    # convert to 4-tuple
     # include mismatched delimiter in range
     {start_line, start_column, end_line, end_column + String.length(to_string(closing_delimiter))}
   end
 
   defp normalize_position(%{position: {start_line, start_column}, span: {end_line, end_column}}) do
-    # convert to pre 1.16 4-tuple
+    # convert to 4-tuple
     {start_line, start_column, end_line, end_column}
   end
 
@@ -739,7 +689,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp get_line_span_from_stacktrace_info(info, file, project_dir) do
     info_file = Keyword.get(info, :file)
 
-    if info_file != nil and SourceFile.Path.absname(info_file, project_dir) == file do
+    if info_file != nil and Path.absname(info_file, project_dir) == file do
       {Keyword.get(info, :line), nil}
     else
       {nil, nil}
@@ -751,7 +701,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp get_file_position_from_stacktrace(stacktrace, project_dir) do
     Enum.find_value(stacktrace, fn {_, _, _, info} ->
       if info_file = Keyword.get(info, :file) do
-        info_file = SourceFile.Path.absname(info_file, project_dir)
+        info_file = Path.absname(info_file, project_dir)
 
         if SourceFile.Path.path_in_dir?(info_file, project_dir) and
              File.exists?(info_file, [:raw]) do
@@ -767,7 +717,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     Enum.find_value(stacktrace, 0, fn {_, _, _, info} ->
       info_file = Keyword.get(info, :file)
 
-      if info_file != nil and SourceFile.Path.absname(info_file, project_dir) == file do
+      if info_file != nil and Path.absname(info_file, project_dir) == file do
         Keyword.get(info, :line)
       end
     end)

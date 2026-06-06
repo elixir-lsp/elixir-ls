@@ -12,27 +12,15 @@ defmodule ElixirLS.LanguageServer do
 
     # :logger application is already started
     # replace console logger with LSP
-    if Version.match?(System.version(), ">= 1.15.0-dev") do
-      :ok = :logger.remove_handler(:default)
 
-      :ok =
-        :logger.add_handler(
-          Logger.Backends.JsonRpc,
-          Logger.Backends.JsonRpc,
-          Logger.Backends.JsonRpc.handler_config()
-        )
-    else
-      Application.put_env(:logger, :backends, [Logger.Backends.JsonRpc])
+    :ok = :logger.remove_handler(:default)
 
-      Application.put_env(:logger, Logger.Backends.JsonRpc,
-        level: :debug,
-        format: "$message",
-        metadata: []
+    :ok =
+      :logger.add_handler(
+        Logger.Backends.JsonRpc,
+        Logger.Backends.JsonRpc,
+        Logger.Backends.JsonRpc.handler_config()
       )
-
-      {:ok, _} = apply(Logger, :add_backend, [Logger.Backends.JsonRpc])
-      :ok = apply(Logger, :remove_backend, [:console, [flush: true]])
-    end
 
     Launch.start_mix()
 

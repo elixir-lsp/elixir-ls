@@ -71,7 +71,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
                      |> Kernel.--([:exception, :message])
 
   def docs(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
+    case Code.Fragment.surround_context(code, {line, column}) do
       :none ->
         nil
 

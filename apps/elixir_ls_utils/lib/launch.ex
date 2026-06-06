@@ -3,12 +3,6 @@ defmodule ElixirLS.Utils.Launch do
   @compiled_otp_version System.otp_release()
 
   def start_mix do
-    if Version.match?(System.version(), "< 1.15.0-dev") do
-      # since 1.15 Mix.start() calls append_archives() and append_paths()
-      Mix.Local.append_archives()
-      Mix.Local.append_paths()
-    end
-
     Mix.start()
 
     true = Mix.Hex.ensure_installed?(false)
@@ -80,9 +74,7 @@ defmodule ElixirLS.Utils.Launch do
     file = ElixirLS.Utils.MixfileHelpers.mix_exs()
 
     if File.regular?(file) do
-      if Version.match?(System.version(), ">= 1.15.0-dev") do
-        Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
-      end
+      Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
 
       old_undefined = Code.get_compiler_option(:no_warn_undefined)
       Code.put_compiler_option(:no_warn_undefined, :all)
@@ -120,12 +112,31 @@ defmodule ElixirLS.Utils.Launch do
     {default_task(project), []}
   end
 
+  # Upstream Mix.CLI emits the "set this in def cli" deprecations starting in
+  # Elixir 1.19 (commit 098c01a7e). On 1.16-1.18 real `mix` is silent — match
+  # that so we don't surface warnings the user wouldn't see at the CLI.
+  @emit_def_cli_deprecation Version.match?(System.version(), ">= 1.19.0")
+
   defp default_task(project) do
-    if function_exported?(project, :cli, 0) do
-      project.cli()[:default_task] || "run"
-    else
-      # TODO: Deprecate default_task in v1.19
-      Mix.Project.config()[:default_task] || "run"
+    cond do
+      function_exported?(project, :cli, 0) ->
+        project.cli()[:default_task] || "run"
+
+      default_task = Mix.Project.config()[:default_task] ->
+        if @emit_def_cli_deprecation do
+          IO.warn("""
+          setting :default_task in your mix.exs "def project" is deprecated, set it inside "def cli" instead:
+
+              def cli do
+                [default_task: #{inspect(default_task)}]
+              end
+          """)
+        end
+
+        default_task
+
+      true ->
+        "run"
     end
   end
 
@@ -180,21 +191,43 @@ defmodule ElixirLS.Utils.Launch do
     end
   end
 
-  # TODO: Deprecate preferred_cli_env in v1.19
   defp preferred_cli_env(project, task, config) do
     if function_exported?(project, :cli, 0) || System.get_env("MIX_ENV") do
       nil
     else
-      config[:preferred_cli_env][task] || preferred_cli_env(task)
+      value = config[:preferred_cli_env]
+
+      if value and @emit_def_cli_deprecation do
+        IO.warn("""
+        setting :preferred_cli_env in your mix.exs "def project" is deprecated, set it inside "def cli" instead:
+
+            def cli do
+              [preferred_envs: #{inspect(value)}]
+            end
+        """)
+      end
+
+      value[task] || preferred_cli_env(task)
     end
   end
 
-  # TODO: Deprecate preferred_cli_target in v1.19
   defp preferred_cli_target(project, task, config) do
     if function_exported?(project, :cli, 0) || System.get_env("MIX_TARGET") do
       nil
     else
-      config[:preferred_cli_target][task]
+      value = config[:preferred_cli_target]
+
+      if value and @emit_def_cli_deprecation do
+        IO.warn("""
+        setting :preferred_cli_target in your mix.exs "def project" is deprecated, set it inside "def cli" instead:
+
+            def cli do
+              [preferred_targets: #{inspect(value)}]
+            end
+        """)
+      end
+
+      value[task]
     end
   end
 

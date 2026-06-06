@@ -7,13 +7,12 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
   alias ElixirSense.Core.Binding
   alias ElixirSense.Core.Introspection
   alias ElixirSense.Core.Metadata
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.State
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.Parser
 
   def prepare(code, line, column, trace, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
+    case Code.Fragment.surround_context(code, {line, column}) do
       :none ->
         # If no context, check if we're on a function definition line
         check_function_definition(code, line, column, trace, options)

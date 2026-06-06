@@ -13,9 +13,7 @@ defmodule ElixirLS.DebugAdapter.Application do
     # this process to remain alive to print errors
     {:ok, _pid} = Output.start(Output)
 
-    if Version.match?(System.version(), ">= 1.14.0-dev") do
-      Application.put_env(:elixir, :dbg_callback, {Server, :dbg, []})
-    end
+    Application.put_env(:elixir, :dbg_callback, {Server, :dbg, []})
 
     children =
       if Mix.env() != :test do

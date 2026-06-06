@@ -1,5 +1,5 @@
 defmodule ElixirLS.LanguageServer.Build do
-  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, Tracer, SourceFile}
+  alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics, Tracer}
   alias ElixirLS.Utils.MixfileHelpers
   require Logger
 
@@ -24,7 +24,7 @@ defmodule ElixirLS.LanguageServer.Build do
 
               # read cache before cleaning up mix state in reload_project
               cached_deps = read_cached_deps()
-              mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs(), root_path)
+              mixfile = Path.absname(MixfileHelpers.mix_exs(), root_path)
 
               case reload_project(mixfile, root_path) do
                 {:ok, mixfile_diagnostics} ->
@@ -82,7 +82,7 @@ defmodule ElixirLS.LanguageServer.Build do
   """
   def clean(root_path, clean_deps? \\ false) when is_binary(root_path) do
     with_build_lock(fn ->
-      mixfile = SourceFile.Path.absname(MixfileHelpers.mix_exs(), root_path)
+      mixfile = Path.absname(MixfileHelpers.mix_exs(), root_path)
 
       case reload_project(mixfile, root_path) do
         {:ok, _} ->
@@ -107,14 +107,9 @@ defmodule ElixirLS.LanguageServer.Build do
   # After reloading the project, update deps and (optionally) compile.
   defp handle_reloaded_project(parent, mixfile, root_path, mixfile_diagnostics, opts, cached_deps) do
     {deps_result, deps_raw_diagnostics} =
-      with_diagnostics([log: true], fn ->
+      Code.with_diagnostics([log: true], fn ->
         try do
-          current_deps =
-            if Version.match?(System.version(), "< 1.16.0-dev") do
-              Mix.Dep.load_on_environment([])
-            else
-              Mix.Dep.Converger.converge([])
-            end
+          current_deps = Mix.Dep.Converger.converge([])
 
           purge_changed_deps(current_deps, cached_deps)
 
@@ -272,9 +267,18 @@ defmodule ElixirLS.LanguageServer.Build do
         ]
       )
 
-      # Mix.ProjectStack.post_config(state_loader: {:cli, List.first(args)})
-      # added in https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691
-      # TODO refactor to use a custom state loader when we require elixir 1.15?
+      # Custom state loader (introduced upstream in
+      # https://github.com/elixir-lang/elixir/commit/9e07da862784ac7d18a1884141c49ab049e61691).
+      #
+      # Mix.CLI normally posts `{:cli, task_name}` here so that `Mix.Project.push`
+      # can call the project's `cli/0` callback and switch `Mix.env`/`Mix.target`
+      # to whatever the requested task prefers. The language server is not running
+      # a task and manages `MIX_ENV`/`MIX_TARGET` itself (from client settings),
+      # so we post a no-op loader instead: `:elixir_ls_state_loader` is not
+      # exported on any project module, which makes `push_config/2` resolve the
+      # loaded config to `[]` and skip the env/target switch entirely while still
+      # consuming the `:state_loader` post_config key cleanly.
+      Mix.ProjectStack.post_config(state_loader: {:elixir_ls_state_loader, nil})
 
       {mixfile_status, mixfile_diagnostics} = compile_mixfile_with_diagnostics(mixfile, root_path)
 
@@ -306,68 +310,42 @@ defmodule ElixirLS.LanguageServer.Build do
     Code.put_compiler_option(:no_warn_undefined, :all)
 
     try do
-      if Version.match?(System.version(), ">= 1.15.3") do
-        {result, raw_diagnostics} =
-          with_diagnostics([log: true], fn ->
-            try do
-              Code.compile_file(mixfile)
-              :ok
-            catch
-              kind, err ->
-                stacktrace = __STACKTRACE__
+      {result, raw_diagnostics} =
+        Code.with_diagnostics([log: true], fn ->
+          try do
+            Code.compile_file(mixfile)
+            :ok
+          catch
+            kind, err ->
+              stacktrace = __STACKTRACE__
 
-                {payload, stacktrace} =
-                  try do
-                    Exception.blame(kind, err, stacktrace)
-                  catch
-                    kind_1, error_1 ->
-                      # in case of error in Exception.blame we want to use the original error and stacktrace
-                      Logger.error(
-                        "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
-                      )
+              {payload, stacktrace} =
+                try do
+                  Exception.blame(kind, err, stacktrace)
+                catch
+                  kind_1, error_1 ->
+                    # in case of error in Exception.blame we want to use the original error and stacktrace
+                    Logger.error(
+                      "Exception.blame failed: #{Exception.format(kind_1, error_1, __STACKTRACE__)}"
+                    )
 
-                      {err, stacktrace}
-                  end
+                    {err, stacktrace}
+                end
 
-                {:error, kind, payload, stacktrace}
-            end
-          end)
+              {:error, kind, payload, stacktrace}
+          end
+        end)
 
-        diagnostics =
-          Enum.map(raw_diagnostics, &Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
+      diagnostics =
+        Enum.map(raw_diagnostics, &Diagnostics.from_code_diagnostic(&1, mixfile, root_path))
 
-        case result do
-          :ok ->
-            {:ok, diagnostics}
+      case result do
+        :ok ->
+          {:ok, diagnostics}
 
-          {:error, kind, err, stacktrace} ->
-            {:error,
-             diagnostics ++ [Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)]}
-        end
-      else
-        case Kernel.ParallelCompiler.compile([mixfile]) do
-          {:ok, _, warnings} ->
-            diagnostics =
-              Enum.map(
-                warnings,
-                &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
-              )
-
-            {:ok, diagnostics}
-
-          {:error, errors, warnings} ->
-            diagnostics =
-              Enum.map(
-                warnings,
-                &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :warning, mixfile)
-              ) ++
-                Enum.map(
-                  errors,
-                  &Diagnostics.from_kernel_parallel_compiler_tuple(&1, :error, mixfile)
-                )
-
-            {:error, diagnostics}
-        end
+        {:error, kind, err, stacktrace} ->
+          {:error,
+           diagnostics ++ [Diagnostics.from_error(kind, err, stacktrace, mixfile, root_path)]}
       end
     after
       # restore warnings
@@ -382,7 +360,7 @@ defmodule ElixirLS.LanguageServer.Build do
     logger_config = Application.get_all_env(:logger)
 
     {result, raw_diagnostics} =
-      with_diagnostics([log: true], fn ->
+      Code.with_diagnostics([log: true], fn ->
         try do
           Mix.Task.run("loadconfig")
           :ok
@@ -408,20 +386,18 @@ defmodule ElixirLS.LanguageServer.Build do
           # reset log config
           Application.put_all_env(logger: logger_config)
 
-          if Version.match?(System.version(), ">= 1.15.0-dev") do
-            # remove all log handlers and restore our
-            for handler_id <- :logger.get_handler_ids(),
-                handler_id != Logger.Backends.JsonRpc do
-              :logger.remove_handler(handler_id)
-            end
+          # remove all log handlers and restore our JSON-RPC backend
+          for handler_id <- :logger.get_handler_ids(),
+              handler_id != Logger.Backends.JsonRpc do
+            :logger.remove_handler(handler_id)
+          end
 
-            if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
-              :logger.add_handler(
-                Logger.Backends.JsonRpc,
-                Logger.Backends.JsonRpc,
-                Logger.Backends.JsonRpc.handler_config()
-              )
-            end
+          if Logger.Backends.JsonRpc not in :logger.get_handler_ids() do
+            :logger.add_handler(
+              Logger.Backends.JsonRpc,
+              Logger.Backends.JsonRpc,
+              Logger.Backends.JsonRpc.handler_config()
+            )
           end
 
           # make sure ANSI is disabled
@@ -429,7 +405,7 @@ defmodule ElixirLS.LanguageServer.Build do
         end
       end)
 
-    config_path = SourceFile.Path.absname(Mix.Project.config()[:config_path], root_path)
+    config_path = Path.absname(Mix.Project.config()[:config_path], root_path)
 
     diagnostics =
       Enum.map(raw_diagnostics, &Diagnostics.from_code_diagnostic(&1, config_path, root_path))
@@ -446,20 +422,18 @@ defmodule ElixirLS.LanguageServer.Build do
 
   # Ensure that the JSON-RPC logger backend is installed.
   defp ensure_logger_backend() do
-    if Version.match?(System.version(), ">= 1.15.0-dev") do
-      unless Logger.Backends.JsonRpc in :logger.get_handler_ids() do
-        Logger.error("Build without intercepted logger #{inspect(:logger.get_handler_ids())}")
+    unless Logger.Backends.JsonRpc in :logger.get_handler_ids() do
+      Logger.error("Build without intercepted logger #{inspect(:logger.get_handler_ids())}")
 
-        for handler_id <- :logger.get_handler_ids() do
-          :logger.remove_handler(handler_id)
-        end
-
-        :logger.add_handler(
-          Logger.Backends.JsonRpc,
-          Logger.Backends.JsonRpc,
-          Logger.Backends.JsonRpc.handler_config()
-        )
+      for handler_id <- :logger.get_handler_ids() do
+        :logger.remove_handler(handler_id)
       end
+
+      :logger.add_handler(
+        Logger.Backends.JsonRpc,
+        Logger.Backends.JsonRpc,
+        Logger.Backends.JsonRpc.handler_config()
+      )
     end
   end
 
@@ -548,13 +522,6 @@ defmodule ElixirLS.LanguageServer.Build do
       "--ignore-module-conflict",
       "--no-protocol-consolidation"
     ]
-
-    opts =
-      if Version.match?(System.version(), ">= 1.15.0-dev") do
-        opts
-      else
-        opts ++ ["--all-warnings"]
-      end
 
     opts =
       if force? do
@@ -799,15 +766,11 @@ defmodule ElixirLS.LanguageServer.Build do
       )
 
     options =
-      if Version.match?(System.version(), ">= 1.14.0-dev") do
-        Keyword.merge(options,
-          # this disables warnings `X has already been consolidated`
-          # when running `compile` task
-          ignore_already_consolidated: true
-        )
-      else
-        options
-      end
+      Keyword.merge(options,
+        # this disables warnings `X has already been consolidated`
+        # when running `compile` task
+        ignore_already_consolidated: true
+      )
 
     Code.compiler_options(options)
   end
@@ -826,14 +789,4 @@ defmodule ElixirLS.LanguageServer.Build do
     end
   end
 
-  # Wraps the given function in a diagnostics context (using Code.with_diagnostics
-  # on newer Elixir versions).
-  def with_diagnostics(opts \\ [], fun) do
-    # Code.with_diagnostics is broken on elixir < 1.15.3
-    if Version.match?(System.version(), ">= 1.15.3") do
-      Code.with_diagnostics(opts, fun)
-    else
-      {fun.(), []}
-    end
-  end
 end

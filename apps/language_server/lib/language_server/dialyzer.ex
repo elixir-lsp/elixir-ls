@@ -337,8 +337,6 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           end
 
         {:exit, reason}, file_changes ->
-          # on elixir >= 1.14 reason will actually be {beam_path, reason}
-
           message = "Unable to process one of the beams: #{Exception.format_exit(reason)}"
           Logger.error(message)
 
@@ -379,22 +377,14 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
 
   defp get_changed_files_contents(changed) do
     with_trapping_exits(fn ->
-      # TODO remove if when we require elixir 1.14
-      task_options =
-        if Version.match?(System.version(), ">= 1.14.0-dev") do
-          [zip_input_on_exit: true]
-        else
-          []
-        end
-        |> Keyword.put(:timeout, :infinity)
-
       Task.async_stream(
         changed,
         fn file ->
           content = File.read!(file)
           {file, content, module_md5(file)}
         end,
-        task_options
+        zip_input_on_exit: true,
+        timeout: :infinity
       )
       |> Enum.into([])
     end)
@@ -551,7 +541,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
           # in, which breaks umbrella apps. We have to manually resolve the file
           # from the module instead.
           file = resolve_module_file(module, file, project_dir),
-          in_project?(SourceFile.Path.absname(file, project_dir), project_dir) do
+          in_project?(Path.absname(file, project_dir), project_dir) do
         {module, {file, line, warning}}
       end
 
@@ -621,7 +611,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
         {source_file, position, data} <- warnings,
         {tag, _, _} = data,
         tag in tags_enabled,
-        source_file = SourceFile.Path.absname(to_string(source_file), project_dir),
+        source_file = Path.absname(to_string(source_file), project_dir),
         in_project?(source_file, project_dir),
         not SourceFile.Path.path_in_dir?(source_file, deps_path) do
       %Diagnostics{

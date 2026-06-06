@@ -5,7 +5,6 @@ defmodule ElixirLS.LanguageServer.Parser do
   use GenServer
   alias ElixirLS.LanguageServer.JsonRpc
   alias ElixirLS.LanguageServer.Diagnostics
-  alias ElixirLS.LanguageServer.Build
   alias ElixirLS.LanguageServer.Server
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.MetadataBuilder
@@ -462,7 +461,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
   defp parse_file(text, file, language_id) do
     {result, raw_diagnostics} =
-      Build.with_diagnostics([log: false], fn ->
+      Code.with_diagnostics([log: false], fn ->
         try do
           parser_options = [
             file: file,

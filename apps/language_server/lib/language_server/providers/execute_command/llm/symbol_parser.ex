@@ -13,8 +13,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
   Cannot distinguish between function and type - both are parsed as calls.
   """
 
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
-
   @type symbol_type :: :module | :local_call | :remote_call | :attribute
   @type parsed_module :: module()
   @type parsed_local_call :: {atom(), arity :: non_neg_integer() | nil}
@@ -37,7 +35,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser do
     # For cursor_context, we need to position the cursor at the end of the symbol
     code = String.to_charlist(base_symbol)
 
-    case NormalizedCode.Fragment.cursor_context(code) do
+    case Code.Fragment.cursor_context(code) do
       {:alias, hint} ->
         # Module name like MyModule or MyModule.SubModule
         parse_alias(hint)
