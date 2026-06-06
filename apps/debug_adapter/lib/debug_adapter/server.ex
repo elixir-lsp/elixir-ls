@@ -628,8 +628,8 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   def handle_cast({event, pid}, state = %__MODULE__{})
       when event in [:breakpoint_reached, :paused] do
-    # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
-    # check if process is alive to not debug dead ones
+    # when debugged pid exits we may still receive a breakpoint reached
+    # message; check if process is alive to not debug dead ones
 
     alive? =
       try do
@@ -1853,13 +1853,14 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp maybe_continue_other_processes(state, _), do: state
 
-  # TODO consider removing this workaround as the problem seems to no longer affect OTP 24
+  # Defensive wrapper around :int actions. :int is finicky and can raise from
+  # internal pattern matches under various edge cases; if that happens we log
+  # and fall back to :continue so the debug session doesn't get wedged.
   defp safe_int_action(pid, action) do
     apply(:int, action, [pid])
     :ok
   catch
     kind, payload ->
-      # when stepping out of interpreted code a MatchError is risen inside :int module (at least in OTP 23)
       Output.debugger_important(
         ":int.#{action}(#{inspect(pid)}) failed: #{Exception.format(kind, payload)}"
       )

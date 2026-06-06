@@ -197,7 +197,7 @@ defmodule ElixirLS.Utils.Launch do
     else
       value = config[:preferred_cli_env]
 
-      if value and @emit_def_cli_deprecation do
+      if value && @emit_def_cli_deprecation do
         IO.warn("""
         setting :preferred_cli_env in your mix.exs "def project" is deprecated, set it inside "def cli" instead:
 
@@ -217,7 +217,7 @@ defmodule ElixirLS.Utils.Launch do
     else
       value = config[:preferred_cli_target]
 
-      if value and @emit_def_cli_deprecation do
+      if value && @emit_def_cli_deprecation do
         IO.warn("""
         setting :preferred_cli_target in your mix.exs "def project" is deprecated, set it inside "def cli" instead:
 

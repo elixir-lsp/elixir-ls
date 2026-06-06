@@ -2,8 +2,8 @@
 set -e
 
 # Test installer.exs across Elixir versions using Docker
-# Usage: ELIXIR_VERSION=1.13 ./test_installer.sh
-# Or: ./test_installer.sh 1.13
+# Usage: ELIXIR_VERSION=1.20 ./test_installer.sh
+# Or: ./test_installer.sh 1.20
 
 ELIXIR_VERSION="${1:-${ELIXIR_VERSION:-latest}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

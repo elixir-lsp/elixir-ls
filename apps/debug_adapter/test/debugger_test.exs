@@ -2830,7 +2830,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 5,
+                             "line" => 4,
                              "name" => "MixProject.Dbg.simple/0",
                              "source" => %{"path" => ^abs_path}
                            }
@@ -2923,7 +2923,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 6,
+                             "line" => 5,
                              "name" => "MixProject.Dbg.simple/0",
                              "source" => %{"path" => ^abs_path}
                            }
@@ -2950,7 +2950,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 7,
+                             "line" => 6,
                              "name" => "MixProject.Dbg.simple/0",
                              "source" => %{"path" => ^abs_path}
                            }
@@ -3018,7 +3018,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 14,
+                             "line" => 13,
                              "name" => "MixProject.Dbg.pipe/0",
                              "source" => %{"path" => ^abs_path}
                            }
@@ -3111,7 +3111,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 15,
+                             "line" => 14,
                              "name" => "MixProject.Dbg.pipe/0",
                              "source" => %{"path" => ^abs_path}
                            }
@@ -3209,7 +3209,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                          ]
                        })
 
-        assert line_stage_1 in 22..27
+        assert line_stage_1 in 21..26
 
         Server.receive_packet(server, next_req(15, thread_id))
         assert_receive response(_, 15, "next")
@@ -3233,7 +3233,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                          ]
                        })
 
-        assert line_stage_2 in 22..27
+        assert line_stage_2 in 21..26
         assert line_stage_2 != line_stage_1
 
         Server.receive_packet(server, continue_req(16, thread_id))
@@ -3301,7 +3301,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                          "totalFrames" => 1
                        })
 
-        assert initial_line in 34..44
+        assert initial_line in 33..43
 
         Server.receive_packet(server, scopes_req(8, frame_id))
 
@@ -3348,7 +3348,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                          ]
                        })
 
-        assert line_after_step in 34..37
+        assert line_after_step in 33..36
 
         Server.receive_packet(server, continue_req(15, thread_id))
         assert_receive response(_, 15, "continue", %{"allThreadsContinued" => true})
@@ -3413,7 +3413,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 5,
+                             "line" => 4,
                              "name" => "MixProject.Dbg.simple/0",
                              "source" => %{"path" => ^abs_path}
                            }
@@ -3507,7 +3507,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 6,
+                             "line" => 5,
                              "name" => "MixProject.Dbg.simple/0",
                              "source" => %{"path" => ^abs_path}
                            }
@@ -3535,7 +3535,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                            %{
                              "column" => 0,
                              "id" => frame_id,
-                             "line" => 7,
+                             "line" => 6,
                              "name" => "MixProject.Dbg.simple/0",
                              "source" => %{"path" => ^abs_path}
                            }

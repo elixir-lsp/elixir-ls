@@ -103,38 +103,42 @@ If you access any projects via symlinks, and the lsp crashes immediately on star
 
 ## Supported Elixir and OTP versions
 
-Elixir itself supports the last five released versions with security updates:
-https://hexdocs.pm/elixir/compatibility-and-deprecations.html#content
-
-OTP supports the last three versions with security updates:
-https://github.com/erlang/otp/blob/master/SECURITY.md#supported-versions
-https://www.erlang.org/doc/system/misc.html#supported-releases
-
-ElixirLS generally aims to support all supported versions of Elixir on all compatible versions of OTP. However, this is not a hard and fast rule and may change in the future.
+ElixirLS supports the last five released versions of Elixir (per the [Elixir compatibility table](https://hexdocs.pm/elixir/compatibility-and-deprecations.html#content)) on the last three supported OTP releases ([Erlang/OTP supported releases](https://www.erlang.org/doc/system/misc.html#supported-releases)), plus the highest OTP each Elixir version officially supports.
 
 ### Support matrix
 
-|  OTP Versions   | Elixir Versions | Supports ElixirLS |                          Issue(s)                          |
-| :-------------: | :-------------: | :---------------: | :--------------------------------------------------------: |
-|      any        |     <= 1.5     |        No         |             Latest release not compatible. Last version known to work v0.1.0    |
-|      any        |     1.6     |        No         |             Latest release not compatible. Last version known to work v0.2.24    |
-|      any        |     1.7     |        No         |             Latest release not compatible. Last version known to work v0.5.0    |
-|      any        |     1.8 - 1.9     |        No         |             Latest release not compatible. Last version known to work v0.7.0    |
-|      any        |     1.10     |        No         |             Latest release not compatible. Last version known to work v0.10.0    |
-|      any        |     1.11     |        No         |             Latest release not compatible. Last version known to work v0.12.0    |
-|      any        |     1.12     |        No         |             Latest release not compatible. Last version known to work v0.23.0                  |
-|     22 - 25        |       1.13      |        No         |  Latest release not compatible. Last version known to work v0.26.4          |
-|     23 - 26        |       1.14      |        No         |  Latest release not compatible. Last version known to work v0.29.3          |
-|      any        |       1.15      |        No         |  Latest release requires Elixir 1.16+. Last version known to work v0.30.x          |
-|      24         |      1.16       |        Yes        |                            None                            |
-|      25         |   1.16 - 1.18   |        Yes        |                            None                            |
-| 26.0.0 - 26.0.1 |       any       |        No         | [#886](https://github.com/elixir-lsp/elixir-ls/issues/886) |
-| 26.0.2 - 26.1.2 |   1.16 - 1.18   |    *nix only      | [#927](https://github.com/elixir-lsp/elixir-ls/issues/927), [#1023](https://github.com/elixir-lsp/elixir-ls/issues/1023) |
-|   >= 26.2.0     |   1.16 - 1.18   |        Yes        |                            None                            |
-|      27         |   1.17 - 1.18   |        Yes        |                            None                            |
-|      28         |      1.18.4     |     Unknown       |  Elixir retracted support for OTP 28 in 1.18, latest release may work but is not supported    |
-|     26 - 28     |       1.19      |        Yes        |                            None                            |
-|     27 - 29     |       1.20      |        Yes        |                            None                            |
+Supported combinations of Elixir × OTP:
+
+| Elixir / OTP |  26  |  27  |  28  |  29  |
+| :----------: | :--: | :--: | :--: | :--: |
+|     1.16     |  ✓   |      |      |      |
+|     1.17     |  ✓   |  ✓   |      |      |
+|     1.18     |  ✓   |  ✓   |      |      |
+|     1.19     |  ✓   |  ✓   |  ✓   |      |
+|     1.20     |      |  ✓   |  ✓   |  ✓   |
+
+Notes:
+
+- OTP 26.0.0 – 26.0.1 are not supported on any Elixir version (see [#886](https://github.com/elixir-lsp/elixir-ls/issues/886)).
+- OTP 26.0.2 – 26.1.2 work on \*nix only (see [#927](https://github.com/elixir-lsp/elixir-ls/issues/927), [#1023](https://github.com/elixir-lsp/elixir-ls/issues/1023)). Use OTP 26.2.0 or later on Windows.
+- Elixir 1.18.4 nominally lists OTP 28 as supported but the Elixir team retracted that combination; treat OTP 28 with Elixir 1.18 as unsupported and prefer Elixir 1.19+ if you need OTP 28.
+
+### Previously supported
+
+Older Elixir versions are no longer compatible with the current ElixirLS release. Pin to the last working tag if you cannot upgrade:
+
+| Elixir Versions | Last working ElixirLS |
+| :-------------: | :-------------------: |
+|     ≤ 1.5       |        v0.1.0         |
+|      1.6        |        v0.2.24        |
+|      1.7        |        v0.5.0         |
+|    1.8 – 1.9    |        v0.7.0         |
+|      1.10       |        v0.10.0        |
+|      1.11       |        v0.12.0        |
+|      1.12       |        v0.23.0        |
+|      1.13       |        v0.26.4        |
+|      1.14       |        v0.29.3        |
+|      1.15       |        v0.30.x        |
 
 ### Version management
 

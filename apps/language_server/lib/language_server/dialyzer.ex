@@ -625,8 +625,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer do
     end
   end
 
-  # up until OTP 23 position was line :: non_negative_integer
-  # starting from OTP 24 it is erl_anno:location() :: line | {line, column}
+  # erl_anno:location() is `line | {line, column}` — accept either shape.
   def normalize_position({line, column}) when line > 0 do
     {line, column}
   end

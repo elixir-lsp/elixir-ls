@@ -24,7 +24,6 @@ defmodule ElixirLS.LanguageServer.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: [
         no_warn_undefined: [
-          {:dialyzer_plt, :from_file, 1},
           {Mix.Dep, :load_on_environment, 1},
           Phoenix.LiveView.Tokenizer.ParseError
         ]

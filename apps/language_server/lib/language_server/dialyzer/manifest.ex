@@ -139,11 +139,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
   end
 
   def load_elixir_plt() do
-    if String.to_integer(System.otp_release()) < 26 do
-      :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
-    else
-      :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
-    end
+    :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
   rescue
     _ -> build_elixir_plt()
   catch
@@ -197,11 +193,7 @@ defmodule ElixirLS.LanguageServer.Dialyzer.Manifest do
 
     JsonRpc.show_message(:info, "Saved Elixir PLT to #{elixir_plt_path()}")
 
-    if String.to_integer(System.otp_release()) < 26 do
-      :dialyzer_plt.from_file(to_charlist(elixir_plt_path()))
-    else
-      :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
-    end
+    :dialyzer_cplt.from_file(to_charlist(elixir_plt_path()))
   end
 
   def otp_vsn() do

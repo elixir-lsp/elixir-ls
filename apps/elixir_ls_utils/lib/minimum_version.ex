@@ -2,16 +2,17 @@ defmodule ElixirLS.Utils.MinimumVersion do
   def check_otp_version do
     otp_release = String.to_integer(System.otp_release())
 
-    if otp_release < 22 do
-      {:error,
-       "Erlang OTP releases below 22 are not supported (Currently running OTP #{otp_release})"}
-    else
-      if otp_release == 26 and is_windows() do
+    cond do
+      otp_release < 26 ->
+        {:error,
+         "Erlang OTP releases below 26 are not supported (Currently running OTP #{otp_release})"}
+
+      otp_release == 26 and is_windows() ->
         {:warning,
          "Erlang OTP 26.0 and 26.1 have critical bugs on Windows. Please make sure OTP 26.2 or greater is installed"}
-      else
+
+      true ->
         :ok
-      end
     end
   end
 
