@@ -72,7 +72,7 @@ jobs:
           zip -jr elixir-ls-v${{ steps.version.outputs.version }}.zip ./release
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: elixir-ls-${{ steps.version.outputs.version }}
           path: elixir-ls-v${{ steps.version.outputs.version }}.zip
