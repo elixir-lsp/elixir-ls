@@ -160,6 +160,11 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           "id" => id
         }
 
+      %{"method" => _} ->
+        # JSON-RPC notification (no "id" field). Per spec, the server must
+        # not reply to notifications, even for unknown methods.
+        nil
+
       _ ->
         %{
           "jsonrpc" => "2.0",
