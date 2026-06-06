@@ -491,22 +491,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     end)
   end
 
-  # True when the cursor sits directly as an operand of a binary operator in the
-  # partial AST (e.g. the right side of `x = ‹cursor›`, `a + ‹cursor›`,
-  # `x |> ‹cursor›`). Block keywords (do/end/rescue/...) are never valid there,
-  # so the regex-based provider must not offer them. Detected from the
-  # container_cursor_to_quoted AST rather than Code.Fragment.cursor_context,
-  # which reports :local_or_var for these positions and cannot distinguish them.
-  defp cursor_operand_of_operator?(%{container_cursor_to_quoted: nil}), do: false
-
-  defp cursor_operand_of_operator?(%{container_cursor_to_quoted: quoted}) do
-    case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
-      [_cursor, {op, _meta, [_, _]} | _] when is_atom(op) ->
-        Atom.to_string(op) in @operators
-
-      _ ->
-        false
-    end
+  # Block keywords (do/end/rescue/...) are never valid where the cursor is an
+  # operand of a binary operator (e.g. `x = re`). The AST-level check lives in
+  # the completion engine alongside the other container_cursor_to_quoted
+  # analysis; cursor_context cannot distinguish these positions.
+  defp cursor_operand_of_operator?(context) do
+    ElixirLS.Utils.CompletionEngine.cursor_in_operator_operand?(
+      context.container_cursor_to_quoted
+    )
   end
 
   # The block keyword hint = the partial lowercase word immediately before the

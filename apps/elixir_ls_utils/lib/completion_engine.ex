@@ -853,6 +853,29 @@ defmodule ElixirLS.Utils.CompletionEngine do
     format_expansion(entries |> Enum.sort_by(& &1.name))
   end
 
+  @doc """
+  Returns true when the cursor sits directly as an operand of a binary operator
+  in the given `container_cursor_to_quoted/2` AST (e.g. the right-hand side of
+  `x = ‹cursor›`, `a + ‹cursor›`, `x |> ‹cursor›`).
+
+  Block keywords (do/end/rescue/...) are never valid in such a position. This is
+  detected from the AST because `Code.Fragment.cursor_context/1` reports
+  `:local_or_var` for these positions and cannot distinguish them from a valid
+  block-keyword position.
+  """
+  @spec cursor_in_operator_operand?(Macro.t() | nil) :: boolean
+  def cursor_in_operator_operand?(nil), do: false
+
+  def cursor_in_operator_operand?(container_cursor_quoted) do
+    case Macro.path(container_cursor_quoted, &match?({:__cursor__, _, []}, &1)) do
+      [_cursor, {op, _meta, [_, _]} | _] when is_atom(op) ->
+        Macro.operator?(op, 2)
+
+      _ ->
+        false
+    end
+  end
+
   defp container_context(code, env, metadata, cursor_position) do
     case Code.Fragment.container_cursor_to_quoted(code) do
       {:ok, quoted} ->
