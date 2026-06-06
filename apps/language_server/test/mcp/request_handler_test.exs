@@ -374,6 +374,27 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
 
       assert response == nil
     end
+
+    test "initialized notification does not get response" do
+      # MCP clients (e.g. Codex) send this notification after initialize.
+      # Per JSON-RPC 2.0 spec, notifications (no "id") must not receive a reply.
+      request = %{
+        "jsonrpc" => "2.0",
+        "method" => "initialized"
+      }
+
+      assert RequestHandler.handle_request(request) == nil
+    end
+
+    test "unknown notification (no id) does not get response" do
+      request = %{
+        "jsonrpc" => "2.0",
+        "method" => "notifications/something_unknown",
+        "params" => %{}
+      }
+
+      assert RequestHandler.handle_request(request) == nil
+    end
   end
 
   describe "integration with actual modules" do
