@@ -38,7 +38,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
 
   defp deps do
     [
-      {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
+      {:elixir_sense, path: "/Users/lukaszsamson/elixir_sense/.claude/worktrees/trusting-wu-d1f603"},
       {:schematic_v,
        github: "elixir-lsp/schematic_vendored", ref: @dep_versions[:schematic_vendored]},
       {:typed_struct, "~> 0.3"},
