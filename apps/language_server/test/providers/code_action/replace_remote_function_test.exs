@@ -165,39 +165,37 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       assert result == "     Enum.count([1, 2, 3])"
     end
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      test "handles erlang functions" do
-        message = """
-        :ets.inserd/2 is undefined or private. Did you mean:
-              * insert/2
-              * insert_new/2
-        """
+    test "handles erlang functions" do
+      message = """
+      :ets.inserd/2 is undefined or private. Did you mean:
+            * insert/2
+            * insert_new/2
+      """
 
-        {:ok, [result]} =
-          ~q{
-          :ets.inserd(a, b)
-        }
-          |> modify(message: message, suggestion: ":ets.insert(a, b)")
+      {:ok, [result]} =
+        ~q{
+        :ets.inserd(a, b)
+      }
+        |> modify(message: message, suggestion: ":ets.insert(a, b)")
 
-        assert result == ":ets.insert(a, b)"
-      end
+      assert result == ":ets.insert(a, b)"
+    end
 
-      test "handles erlang functions aliased" do
-        message = """
-        :ets.inserd/2 is undefined or private. Did you mean:
-              * insert/2
-              * insert_new/2
-        """
+    test "handles erlang functions aliased" do
+      message = """
+      :ets.inserd/2 is undefined or private. Did you mean:
+            * insert/2
+            * insert_new/2
+      """
 
-        {:ok, [result]} =
-          ~q{
-          alias :ets, as: Foo
-          Foo.inserd(a, b)
-        }
-          |> modify(message: message, suggestion: "Foo.insert(a, b)", line: 1)
+      {:ok, [result]} =
+        ~q{
+        alias :ets, as: Foo
+        Foo.inserd(a, b)
+      }
+        |> modify(message: message, suggestion: "Foo.insert(a, b)", line: 1)
 
-        assert result == "alias :ets, as: Foo\nFoo.insert(a, b)"
-      end
+      assert result == "alias :ets, as: Foo\nFoo.insert(a, b)"
     end
 
     test "when aliased" do
@@ -361,22 +359,20 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       assert result == "     &Enum.count/1"
     end
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      test "handles erlang functions" do
-        message = """
-        :ets.inserd/2 is undefined or private. Did you mean:
-              * insert/2
-              * insert_new/2
-        """
+    test "handles erlang functions" do
+      message = """
+      :ets.inserd/2 is undefined or private. Did you mean:
+            * insert/2
+            * insert_new/2
+      """
 
-        {:ok, [result]} =
-          ~q{
-          &:ets.inserd/2
-        }
-          |> modify(message: message, suggestion: ":ets.insert/2")
+      {:ok, [result]} =
+        ~q{
+        &:ets.inserd/2
+      }
+        |> modify(message: message, suggestion: ":ets.insert/2")
 
-        assert result == "&:ets.insert/2"
-      end
+      assert result == "&:ets.insert/2"
     end
 
     test "when aliased" do

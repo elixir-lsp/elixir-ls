@@ -788,5 +788,4 @@ defmodule ElixirLS.LanguageServer.Build do
       end
     end
   end
-
 end

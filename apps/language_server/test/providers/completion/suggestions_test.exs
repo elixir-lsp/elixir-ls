@@ -681,12 +681,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              }
            ] = list
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Update the [state]" <> _ = summary
-      else
-        assert "- OldVsn = Vsn" <> _ = summary
-      end
+    if System.otp_release() |> String.to_integer() >= 27 do
+      assert "Update the [state]" <> _ = summary
+    else
+      assert "- OldVsn = Vsn" <> _ = summary
     end
   end
 
@@ -1248,27 +1246,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 12, 22)
       |> Enum.filter(fn s -> s.type == :function end)
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      assert [
-               %{
-                 args: "list",
-                 arity: 1,
-                 def_arity: 1,
-                 metadata: %{implementing: :gen_statem, since: "OTP 19.0"},
-                 name: "init",
-                 origin: "MyLocalModule",
-                 spec: "@callback init(args :: term()) ::" <> _,
-                 summary: documentation,
-                 type: :function,
-                 visibility: :public
-               }
-             ] = list
+    assert [
+             %{
+               args: "list",
+               arity: 1,
+               def_arity: 1,
+               metadata: %{implementing: :gen_statem, since: "OTP 19.0"},
+               name: "init",
+               origin: "MyLocalModule",
+               spec: "@callback init(args :: term()) ::" <> _,
+               summary: documentation,
+               type: :function,
+               visibility: :public
+             }
+           ] = list
 
-      if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Initialize the state machine" <> _ = documentation
-      else
-        assert "- Args = " <> _ = documentation
-      end
+    if System.otp_release() |> String.to_integer() >= 27 do
+      assert "Initialize the state machine" <> _ = documentation
+    else
+      assert "- Args = " <> _ = documentation
     end
   end
 
@@ -1376,19 +1372,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{name: "is_function", origin: "Kernel", arity: 2}
            ] = list
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      assert %{
-               summary: documentation,
-               metadata: %{implementing: :gen_event},
-               spec: "@callback init(initArgs :: term()) ::" <> _,
-               args_list: ["arg"]
-             } = init_res
+    assert %{
+             summary: documentation,
+             metadata: %{implementing: :gen_event},
+             spec: "@callback init(initArgs :: term()) ::" <> _,
+             args_list: ["arg"]
+           } = init_res
 
-      if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Initialize the event handler" <> _ = documentation
-      else
-        assert "- InitArgs = Args" <> _ = documentation
-      end
+    if System.otp_release() |> String.to_integer() >= 27 do
+      assert "Initialize the event handler" <> _ = documentation
+    else
+      assert "- InitArgs = Args" <> _ = documentation
     end
   end
 
@@ -1457,64 +1451,60 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 1, 60)
       |> Enum.filter(fn s -> s.type == :function end)
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      assert [
-               %{
-                 args: "_",
-                 args_list: ["_"],
-                 arity: 1,
-                 def_arity: 1,
-                 metadata: %{implementing: :gen_statem},
-                 name: "init",
-                 origin: "ElixirSenseExample.ExampleBehaviourWithDocCallbackErlang",
-                 snippet: nil,
-                 spec: "@callback init(args :: term()) :: init_result(state())",
-                 summary: documentation,
-                 type: :function,
-                 visibility: :public
-               }
-             ] = list
+    assert [
+             %{
+               args: "_",
+               args_list: ["_"],
+               arity: 1,
+               def_arity: 1,
+               metadata: %{implementing: :gen_statem},
+               name: "init",
+               origin: "ElixirSenseExample.ExampleBehaviourWithDocCallbackErlang",
+               snippet: nil,
+               spec: "@callback init(args :: term()) :: init_result(state())",
+               summary: documentation,
+               type: :function,
+               visibility: :public
+             }
+           ] = list
 
-      if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Initialize the state machine" <> _ = documentation
-      else
-        assert "- Args = " <> _ = documentation
-      end
+    if System.otp_release() |> String.to_integer() >= 27 do
+      assert "Initialize the state machine" <> _ = documentation
+    else
+      assert "- Args = " <> _ = documentation
     end
   end
 
-  if System.otp_release() |> String.to_integer() >= 25 do
-    test "suggest erlang behaviour callbacks on erlang implementation" do
-      buffer = """
-      :file_server.ini
-      """
+  test "suggest erlang behaviour callbacks on erlang implementation" do
+    buffer = """
+    :file_server.ini
+    """
 
-      list =
-        Suggestion.suggestions(buffer, 1, 17)
-        |> Enum.filter(fn s -> s.type == :function end)
+    list =
+      Suggestion.suggestions(buffer, 1, 17)
+      |> Enum.filter(fn s -> s.type == :function end)
 
-      assert [
-               %{
-                 args: "args",
-                 args_list: ["args"],
-                 arity: 1,
-                 def_arity: 1,
-                 metadata: %{implementing: :gen_server},
-                 name: "init",
-                 origin: ":file_server",
-                 snippet: nil,
-                 spec: "@callback init(args :: term()) ::" <> _,
-                 summary: documentation,
-                 type: :function,
-                 visibility: :public
-               }
-             ] = list
+    assert [
+             %{
+               args: "args",
+               args_list: ["args"],
+               arity: 1,
+               def_arity: 1,
+               metadata: %{implementing: :gen_server},
+               name: "init",
+               origin: ":file_server",
+               snippet: nil,
+               spec: "@callback init(args :: term()) ::" <> _,
+               summary: documentation,
+               type: :function,
+               visibility: :public
+             }
+           ] = list
 
-      if System.otp_release() |> String.to_integer() >= 27 do
-        assert "Initialize the server" <> _ = documentation
-      else
-        assert "- Args = " <> _ = documentation
-      end
+    if System.otp_release() |> String.to_integer() >= 27 do
+      assert "Initialize the server" <> _ = documentation
+    else
+      assert "- Args = " <> _ = documentation
     end
   end
 
@@ -3947,38 +3937,36 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert suggestion.type_spec == "atom()"
     end
 
-    if System.otp_release() |> String.to_integer() >= 25 do
-      test "atom only options" do
-        # only keyword in shorthand keyword list
-        buffer = ":ets.new(:name, "
-        assert list = suggestions_by_type(:param_option, buffer)
-        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+    test "atom only options" do
+      # only keyword in shorthand keyword list
+      buffer = ":ets.new(:name, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-        buffer = ":ets.new(:name, heir: pid, "
-        assert list = suggestions_by_type(:param_option, buffer)
-        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+      buffer = ":ets.new(:name, heir: pid, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-        # suggest atom options in list
-        buffer = ":ets.new(:name, ["
-        assert list = suggestions_by_type(:param_option, buffer)
-        assert Enum.any?(list, &match?(%{name: "bag"}, &1))
-        assert Enum.any?(list, &match?(%{name: "set"}, &1))
-        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+      # suggest atom options in list
+      buffer = ":ets.new(:name, ["
+      assert list = suggestions_by_type(:param_option, buffer)
+      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "set"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-        buffer = ":ets.new(:name, [:set, "
-        assert list = suggestions_by_type(:param_option, buffer)
-        assert Enum.any?(list, &match?(%{name: "bag"}, &1))
-        # refute Enum.any?(list, &match?(%{name: "set"}, &1))
-        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+      buffer = ":ets.new(:name, [:set, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+      # refute Enum.any?(list, &match?(%{name: "set"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-        # no atoms after keyword pair
-        buffer = ":ets.new(:name, [:set, heir: pid, "
-        assert list = suggestions_by_type(:param_option, buffer)
-        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
-      end
+      # no atoms after keyword pair
+      buffer = ":ets.new(:name, [:set, heir: pid, "
+      assert list = suggestions_by_type(:param_option, buffer)
+      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
     end
 
     test "format type spec" do
@@ -4448,12 +4436,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                }
              ] = suggestions
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "The time unit used" <> _ = summary
-        else
-          assert summary =~ "Supported time unit representations:"
-        end
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "The time unit used" <> _ = summary
+      else
+        assert summary =~ "Supported time unit representations:"
       end
     end
 

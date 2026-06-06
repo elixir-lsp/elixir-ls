@@ -177,13 +177,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
       assert doc.module == :erlang
       assert doc.kind == :module
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        assert doc.docs =~ """
-               By convention,\
-               """
+      assert doc.docs =~ """
+             By convention,\
+             """
 
-        assert %{app: :erts, otp_doc_vsn: {1, 0, 0}} = doc.metadata
-      end
+      assert %{app: :erts, otp_doc_vsn: {1, 0, 0}} = doc.metadata
     end
 
     test "retrieve documentation from modules in 1.2 alias syntax" do
@@ -857,16 +855,14 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                kind: :function
              } = doc
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Initialize the state machine" <> _ = doc.docs
-        else
-          assert doc.docs =~
-                   "this function is called by"
-        end
-
-        assert %{since: "OTP 19.0", implementing: :gen_statem} = doc.metadata
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the state machine" <> _ = doc.docs
+      else
+        assert doc.docs =~
+                 "this function is called by"
       end
+
+      assert %{since: "OTP 19.0", implementing: :gen_statem} = doc.metadata
     end
 
     test "retrieve metadata macro documentation - fallback to macrocallback" do
@@ -1075,66 +1071,57 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                kind: :function
              } = doc
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert params == ["DeepList"]
-        else
-          assert params == ["deepList"]
-        end
-
-        assert doc.docs =~ "Returns a flattened version of `DeepList`"
-
-        assert %{app: :stdlib} = doc.metadata
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert params == ["DeepList"]
+      else
+        assert params == ["deepList"]
       end
+
+      assert doc.docs =~ "Returns a flattened version of `DeepList`"
+
+      assert %{app: :stdlib} = doc.metadata
     end
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      test "retrieve fallback erlang builtin function documentation" do
-        buffer = """
-        defmodule MyModule do
-          def func(list) do
-            :erlang.or(a, b)
-            :erlang.orelse(a, b)
-          end
+    test "retrieve fallback erlang builtin function documentation" do
+      buffer = """
+      defmodule MyModule do
+        def func(list) do
+          :erlang.or(a, b)
+          :erlang.orelse(a, b)
         end
-        """
-
-        %{
-          docs: [doc]
-        } = Docs.docs(buffer, 3, 14)
-
-        assert %{
-                 arity: 2,
-                 function: :or,
-                 module: :erlang,
-                 specs: ["@spec boolean() or boolean() :: boolean()"],
-                 docs: "",
-                 kind: :function
-               } = doc
-
-        if String.to_integer(System.otp_release()) < 25 do
-          assert doc.args == ["boolean", "boolean"]
-          assert doc.metadata == %{app: :erts}
-        else
-          assert doc.args == ["term", "term"]
-          assert %{hidden: true, app: :erts} = doc.metadata
-        end
-
-        %{
-          docs: [doc]
-        } = Docs.docs(buffer, 4, 14)
-
-        assert %{
-                 args: ["term", "term"],
-                 arity: 2,
-                 function: :orelse,
-                 module: :erlang,
-                 metadata: %{builtin: true, app: :erts},
-                 specs: [],
-                 docs: "",
-                 kind: :function
-               } = doc
       end
+      """
+
+      %{
+        docs: [doc]
+      } = Docs.docs(buffer, 3, 14)
+
+      assert %{
+               arity: 2,
+               function: :or,
+               module: :erlang,
+               specs: ["@spec boolean() or boolean() :: boolean()"],
+               docs: "",
+               kind: :function
+             } = doc
+
+      assert doc.args == ["term", "term"]
+      assert %{hidden: true, app: :erts} = doc.metadata
+
+      %{
+        docs: [doc]
+      } = Docs.docs(buffer, 4, 14)
+
+      assert %{
+               args: ["term", "term"],
+               arity: 2,
+               function: :orelse,
+               module: :erlang,
+               metadata: %{builtin: true, app: :erts},
+               specs: [],
+               docs: "",
+               kind: :function
+             } = doc
     end
 
     test "retrieve macro documentation" do
@@ -1438,27 +1425,25 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              } = doc
     end
 
-    if System.otp_release() |> String.to_integer() >= 25 do
-      test "retrieve erlang behaviour implementation" do
-        buffer = """
-        :file_server.init(a)
-        """
+    test "retrieve erlang behaviour implementation" do
+      buffer = """
+      :file_server.init(a)
+      """
 
-        %{
-          docs: [doc]
-        } = Docs.docs(buffer, 1, 16)
+      %{
+        docs: [doc]
+      } = Docs.docs(buffer, 1, 16)
 
-        assert %{
-                 args: ["args"],
-                 function: :init,
-                 module: :file_server,
-                 specs: ["@callback init(args :: term())" <> _],
-                 metadata: %{implementing: :gen_server, implementing_module_app: :stdlib},
-                 kind: :function
-               } = doc
+      assert %{
+               args: ["args"],
+               function: :init,
+               module: :file_server,
+               specs: ["@callback init(args :: term())" <> _],
+               metadata: %{implementing: :gen_server, implementing_module_app: :stdlib},
+               kind: :function
+             } = doc
 
-        assert doc.docs =~ "Whenever a `gen_server` process is started"
-      end
+      assert doc.docs =~ "Whenever a `gen_server` process is started"
     end
 
     test "do not crash for erlang behaviour callbacks" do
@@ -1479,15 +1464,10 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                module: ElixirSenseExample.ExampleBehaviourWithDocCallbackErlang
              } = doc
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        assert doc.docs =~ "called by the new process"
+      assert doc.docs =~ "called by the new process"
 
-        assert %{since: "OTP 19.0", implementing: :gen_statem, app: :language_server} =
-                 doc.metadata
-      else
-        assert doc.docs == ""
-        assert doc.metadata == %{app: :language_server}
-      end
+      assert %{since: "OTP 19.0", implementing: :gen_statem, app: :language_server} =
+               doc.metadata
     end
   end
 
@@ -1813,13 +1793,11 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                kind: :type
              } = doc
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        assert doc.docs =~ """
-               Supported time unit representations:
-               """
+      assert doc.docs =~ """
+             Supported time unit representations:
+             """
 
-        assert %{app: :erts} = doc.metadata
-      end
+      assert %{app: :erts} = doc.metadata
     end
 
     test "retrieve builtin type documentation" do
