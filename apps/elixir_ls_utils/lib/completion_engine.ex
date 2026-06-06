@@ -981,7 +981,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
          metadata,
          cursor_position
        ) do
-    case NormalizedMacroEnv.expand_alias(env, meta, list, trace: false) do
+    case NormalizedMacroEnv.expand_alias(State.Env.to_macro_env(env), meta, list, trace: false) do
       {:alias, alias} ->
         {:ok, alias}
 
@@ -1071,7 +1071,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
          metadata,
          cursor_position
        ) do
-    case NormalizedMacroEnv.expand_alias(env, meta, list, trace: false) do
+    case NormalizedMacroEnv.expand_alias(State.Env.to_macro_env(env), meta, list, trace: false) do
       {:alias, alias} ->
         alias
 
@@ -1271,7 +1271,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
        do: no()
 
   defp value_from_alias(list = [head | _], %State.Env{} = env) do
-    case NormalizedMacroEnv.expand_alias(env, [], list, trace: false) do
+    case NormalizedMacroEnv.expand_alias(State.Env.to_macro_env(env), [], list, trace: false) do
       {:alias, alias} ->
         {:alias, alias}
 
