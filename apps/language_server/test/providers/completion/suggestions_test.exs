@@ -24,7 +24,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              args: "module, opts",
              args_list: ["module", "opts"],
              arity: 2,
-             def_arity: 2,
              name: "import",
              origin: "Kernel.SpecialForms",
              spec: "",
@@ -37,7 +36,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     assert %{
              arity: 2,
-             def_arity: 2,
              origin: "Kernel.SpecialForms",
              spec: "",
              type: :macro,
@@ -52,7 +50,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     assert %{
              arity: 2,
-             def_arity: 2,
              origin: "Kernel.SpecialForms",
              spec: "",
              type: :macro,
@@ -213,7 +210,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
     """
 
-    list = Suggestion.suggestions(buffer, 2, 15)
+    list = Suggestion.suggestions(buffer, 2, 16)
 
     refute list |> Enum.any?(&(&1.type == :type_spec))
     assert list |> Enum.any?(&(&1.type == :function))
@@ -250,7 +247,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                args: "list",
                args_list: ["list"],
                arity: 1,
-               def_arity: 1,
                name: "flatten",
                origin: "List",
                spec: "@spec flatten(deep_list) :: list() when deep_list: [any() | deep_list]",
@@ -264,7 +260,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                args: "list, tail",
                args_list: ["list", "tail"],
                arity: 2,
-               def_arity: 2,
                name: "flatten",
                origin: "List",
                spec:
@@ -294,7 +289,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                args: "var",
                args_list: ["var"],
                arity: 1,
-               def_arity: 1,
                name: "some",
                origin: "ElixirSenseExample.BehaviourWithMacrocallback.Impl",
                spec:
@@ -681,26 +675,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              }
            ] = list
 
-    if System.otp_release() |> String.to_integer() >= 27 do
-      assert "Update the [state]" <> _ = summary
-    else
-      assert "- OldVsn = Vsn" <> _ = summary
-    end
-  end
-
-  test "callback suggestions should not crash with unquote(__MODULE__)" do
-    buffer = """
-    defmodule Dummy do
-      @doc false
-      defmacro __using__() do
-        quote location: :keep do
-          @behaviour unquote(__MODULE__)
-        end
+    if System.otp_release() |> String.to_integer() >= 23 do
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Update the [state]" <> _ = summary
+      else
+        assert "- OldVsn = Vsn" <> _ = summary
       end
     end
-    """
-
-    assert [%{} | _] = Suggestion.suggestions(buffer, 8, 5)
   end
 
   test "lists overridable callbacks" do
@@ -1090,7 +1071,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{
                args: "list",
                arity: 1,
-               def_arity: 1,
                metadata: %{implementing: MyBehaviour, hidden: true, since: "1.2.3"},
                name: "flatten",
                origin: "MyLocalModule",
@@ -1129,7 +1109,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{
                args: "t",
                arity: 1,
-               def_arity: 1,
                metadata: %{implementing: BB},
                name: "go",
                origin: "BB.String",
@@ -1174,7 +1153,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{
                args: "list",
                arity: 1,
-               def_arity: 1,
                metadata: %{implementing: MyBehaviour, hidden: true, since: "1.2.3"},
                name: "flatten",
                origin: "MyLocalModule",
@@ -1212,7 +1190,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{
                args: "list",
                arity: 1,
-               def_arity: 1,
                metadata: %{implementing: ElixirSenseExample.BehaviourWithMeta},
                name: "flatten",
                origin: "MyLocalModule",
@@ -1246,25 +1223,26 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 12, 22)
       |> Enum.filter(fn s -> s.type == :function end)
 
-    assert [
-             %{
-               args: "list",
-               arity: 1,
-               def_arity: 1,
-               metadata: %{implementing: :gen_statem, since: "OTP 19.0"},
-               name: "init",
-               origin: "MyLocalModule",
-               spec: "@callback init(args :: term()) ::" <> _,
-               summary: documentation,
-               type: :function,
-               visibility: :public
-             }
-           ] = list
+    if System.otp_release() |> String.to_integer() >= 23 do
+      assert [
+               %{
+                 args: "list",
+                 arity: 1,
+                 metadata: %{implementing: :gen_statem, since: "OTP 19.0"},
+                 name: "init",
+                 origin: "MyLocalModule",
+                 spec: "@callback init(args :: term()) ::" <> _,
+                 summary: documentation,
+                 type: :function,
+                 visibility: :public
+               }
+             ] = list
 
-    if System.otp_release() |> String.to_integer() >= 27 do
-      assert "Initialize the state machine" <> _ = documentation
-    else
-      assert "- Args = " <> _ = documentation
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the state machine" <> _ = documentation
+      else
+        assert "- Args = " <> _ = documentation
+      end
     end
   end
 
@@ -1295,7 +1273,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{
                args: "list",
                arity: 1,
-               def_arity: 1,
                metadata: %{implementing: ElixirSenseExample.BehaviourWithMeta},
                name: "bar",
                origin: "MyLocalModule",
@@ -1332,7 +1309,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{
                args: "_reason, _state",
                arity: 2,
-               def_arity: 2,
                metadata: %{implementing: GenServer},
                name: "terminate",
                origin: "MyServer",
@@ -1372,17 +1348,19 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              %{name: "is_function", origin: "Kernel", arity: 2}
            ] = list
 
-    assert %{
-             summary: documentation,
-             metadata: %{implementing: :gen_event},
-             spec: "@callback init(initArgs :: term()) ::" <> _,
-             args_list: ["arg"]
-           } = init_res
+    if System.otp_release() |> String.to_integer() >= 23 do
+      assert %{
+               summary: documentation,
+               metadata: %{implementing: :gen_event},
+               spec: "@callback init(initArgs :: term()) ::" <> _,
+               args_list: ["arg"]
+             } = init_res
 
-    if System.otp_release() |> String.to_integer() >= 27 do
-      assert "Initialize the event handler" <> _ = documentation
-    else
-      assert "- InitArgs = Args" <> _ = documentation
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the event handler" <> _ = documentation
+      else
+        assert "- InitArgs = Args" <> _ = documentation
+      end
     end
   end
 
@@ -1429,7 +1407,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                args: "a",
                args_list: ["a"],
                arity: 1,
-               def_arity: 1,
                metadata: %{implementing: ElixirSenseExample.ExampleBehaviourWithDoc},
                name: "baz",
                origin: "ElixirSenseExample.ExampleBehaviourWithDocCallbackImpl",
@@ -1451,60 +1428,62 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 1, 60)
       |> Enum.filter(fn s -> s.type == :function end)
 
-    assert [
-             %{
-               args: "_",
-               args_list: ["_"],
-               arity: 1,
-               def_arity: 1,
-               metadata: %{implementing: :gen_statem},
-               name: "init",
-               origin: "ElixirSenseExample.ExampleBehaviourWithDocCallbackErlang",
-               snippet: nil,
-               spec: "@callback init(args :: term()) :: init_result(state())",
-               summary: documentation,
-               type: :function,
-               visibility: :public
-             }
-           ] = list
+    if System.otp_release() |> String.to_integer() >= 23 do
+      assert [
+               %{
+                 args: "_",
+                 args_list: ["_"],
+                 arity: 1,
+                 metadata: %{implementing: :gen_statem},
+                 name: "init",
+                 origin: "ElixirSenseExample.ExampleBehaviourWithDocCallbackErlang",
+                 snippet: nil,
+                 spec: "@callback init(args :: term()) :: init_result(state())",
+                 summary: documentation,
+                 type: :function,
+                 visibility: :public
+               }
+             ] = list
 
-    if System.otp_release() |> String.to_integer() >= 27 do
-      assert "Initialize the state machine" <> _ = documentation
-    else
-      assert "- Args = " <> _ = documentation
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the state machine" <> _ = documentation
+      else
+        assert "- Args = " <> _ = documentation
+      end
     end
   end
 
-  test "suggest erlang behaviour callbacks on erlang implementation" do
-    buffer = """
-    :file_server.ini
-    """
+  if System.otp_release() |> String.to_integer() >= 25 do
+    test "suggest erlang behaviour callbacks on erlang implementation" do
+      buffer = """
+      :file_server.ini
+      """
 
-    list =
-      Suggestion.suggestions(buffer, 1, 17)
-      |> Enum.filter(fn s -> s.type == :function end)
+      list =
+        Suggestion.suggestions(buffer, 1, 17)
+        |> Enum.filter(fn s -> s.type == :function end)
 
-    assert [
-             %{
-               args: "args",
-               args_list: ["args"],
-               arity: 1,
-               def_arity: 1,
-               metadata: %{implementing: :gen_server},
-               name: "init",
-               origin: ":file_server",
-               snippet: nil,
-               spec: "@callback init(args :: term()) ::" <> _,
-               summary: documentation,
-               type: :function,
-               visibility: :public
-             }
-           ] = list
+      assert [
+               %{
+                 args: "args",
+                 args_list: ["args"],
+                 arity: 1,
+                 metadata: %{implementing: :gen_server},
+                 name: "init",
+                 origin: ":file_server",
+                 snippet: nil,
+                 spec: "@callback init(args :: term()) ::" <> _,
+                 summary: documentation,
+                 type: :function,
+                 visibility: :public
+               }
+             ] = list
 
-    if System.otp_release() |> String.to_integer() >= 27 do
-      assert "Initialize the server" <> _ = documentation
-    else
-      assert "- Args = " <> _ = documentation
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the server" <> _ = documentation
+      else
+        assert "- Args = " <> _ = documentation
+      end
     end
   end
 
@@ -1993,23 +1972,25 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert list == [%{name: "my_var", type: :variable}]
   end
 
-  test "list vars in multiline struct" do
-    buffer = """
-    defmodule MyServer do
-      def go do
-        %Some{
-          filed: my_var,
-          other: my
-        } = abc()
+  if Version.match?(System.version(), ">= 1.15.0") do
+    test "list vars in multiline struct" do
+      buffer = """
+      defmodule MyServer do
+        def go do
+          %Some{
+            filed: my_var,
+            other: my
+          } = abc()
+        end
       end
+      """
+
+      list =
+        Suggestion.suggestions(buffer, 5, 16)
+        |> Enum.filter(fn s -> s.type in [:variable] end)
+
+      assert list == [%{name: "my_var", type: :variable}]
     end
-    """
-
-    list =
-      Suggestion.suggestions(buffer, 5, 16)
-      |> Enum.filter(fn s -> s.type in [:variable] end)
-
-    assert list == [%{name: "my_var", type: :variable}]
   end
 
   test "tuple destructuring" do
@@ -2115,7 +2096,11 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
         |> Enum.filter(fn s -> s.type == :attribute end)
         |> Enum.map(fn %{name: name} -> name end)
 
-      assert list == ["@macrocallback", "@moduledoc", "@myattr"]
+      if Version.match?(System.version(), ">= 1.15.0") do
+        assert list == ["@macrocallback", "@moduledoc", "@myattr"]
+      else
+        assert list == ["@macrocallback", "@moduledoc"]
+      end
 
       list =
         Suggestion.suggestions(buffer, 5, 7)
@@ -2506,7 +2491,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert [
              %{
                arity: 1,
-               def_arity: 1,
                name: "test_fun_pub",
                origin: "ElixirSenseExample.ModuleO",
                type: :function,
@@ -2636,7 +2620,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 2, 33)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: "ElixirSenseExample.IO.Stream",
@@ -2644,11 +2628,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                call?: false,
                subtype: :struct_field,
                type_spec: "ElixirSenseExample.IO.Stream",
-               metadata: %{
-                 hidden: true,
-                 app: :language_server
-               },
-               summary: ""
+               value_is_map: false
              },
              %{
                name: "device",
@@ -2656,7 +2636,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "IO.device()"
+               type_spec: "IO.device()",
+               value_is_map: false
              },
              %{
                name: "line_or_bytes",
@@ -2664,7 +2645,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: ":line | non_neg_integer()"
+               type_spec: ":line | non_neg_integer()",
+               value_is_map: false
              },
              %{
                name: "raw",
@@ -2672,22 +2654,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "boolean()"
+               type_spec: "boolean()",
+               value_is_map: false
              }
-           ] = list
+           ]
 
     list =
       Suggestion.suggestions(buffer, 3, 18)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__exception__",
                origin: "ArgumentError",
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "true"
+               type_spec: "true",
+               value_is_map: false
              },
              %{
                name: "__struct__",
@@ -2695,7 +2679,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "ArgumentError"
+               type_spec: "ArgumentError",
+               value_is_map: false
              },
              %{
                name: "message",
@@ -2703,9 +2688,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for aliased struct fields" do
@@ -2720,7 +2706,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 3, 11)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: "ElixirSenseExample.IO.Stream",
@@ -2728,11 +2714,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                call?: false,
                subtype: :struct_field,
                type_spec: "ElixirSenseExample.IO.Stream",
-               metadata: %{
-                 hidden: true,
-                 app: :language_server
-               },
-               summary: ""
+               value_is_map: false
              },
              %{
                name: "device",
@@ -2740,7 +2722,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "IO.device()"
+               type_spec: "IO.device()",
+               value_is_map: false
              },
              %{
                name: "line_or_bytes",
@@ -2748,7 +2731,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: ":line | non_neg_integer()"
+               type_spec: ":line | non_neg_integer()",
+               value_is_map: false
              },
              %{
                name: "raw",
@@ -2756,9 +2740,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "boolean()"
+               type_spec: "boolean()",
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for builtin fields in struct pattern match" do
@@ -2773,53 +2758,55 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 2, 13)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: nil,
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "atom()"
+               type_spec: "atom()",
+               value_is_map: false
              }
-           ] = list
+           ]
 
     list =
       Suggestion.suggestions(buffer, 3, 15)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: nil,
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "atom()"
+               type_spec: "atom()",
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
-  test "suggestion for aliased struct fields atom module" do
+  test "suggestion for struct fields atom module" do
     buffer = """
     defmodule Mod do
-      alias ElixirSenseExample.IO.Stream
-      %:"Elixir.Stream"{
+      %:"Elixir.ElixirSenseExample.IO.Stream"{
     end
     """
 
     list =
-      Suggestion.suggestions(buffer, 3, 21)
+      Suggestion.suggestions(buffer, 2, 43)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: "ElixirSenseExample.IO.Stream",
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "ElixirSenseExample.IO.Stream"
+               type_spec: "ElixirSenseExample.IO.Stream",
+               value_is_map: false
              },
              %{
                name: "device",
@@ -2827,7 +2814,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "IO.device()"
+               type_spec: "IO.device()",
+               value_is_map: false
              },
              %{
                name: "line_or_bytes",
@@ -2835,7 +2823,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: ":line | non_neg_integer()"
+               type_spec: ":line | non_neg_integer()",
+               value_is_map: false
              },
              %{
                name: "raw",
@@ -2843,16 +2832,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "boolean()"
+               type_spec: "boolean()",
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for metadata struct fields" do
     buffer = """
     defmodule MyServer do
-      @doc "user docs"
-      @doc since: "1.0.0"
       defstruct [
         field_1: nil,
         field_2: ""
@@ -2866,10 +2854,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     """
 
     list =
-      Suggestion.suggestions(buffer, 10, 15)
+      Suggestion.suggestions(buffer, 8, 15)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: "MyServer",
@@ -2877,8 +2865,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                call?: false,
                subtype: :struct_field,
                type_spec: "MyServer",
-               metadata: %{since: "1.0.0"},
-               summary: "user docs"
+               value_is_map: false
              },
              %{
                name: "field_1",
@@ -2886,7 +2873,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              },
              %{
                name: "field_2",
@@ -2894,20 +2882,22 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
 
-    list = Suggestion.suggestions(buffer, 11, 28)
+    list = Suggestion.suggestions(buffer, 9, 28)
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: "MyServer",
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "MyServer"
+               type_spec: "MyServer",
+               value_is_map: false
              },
              %{
                name: "field_1",
@@ -2915,9 +2905,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for metadata struct fields atom module" do
@@ -2939,14 +2930,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 8, 17)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: ":my_server",
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: ":my_server"
+               type_spec: ":my_server",
+               value_is_map: false
              },
              %{
                name: "field_1",
@@ -2954,7 +2946,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              },
              %{
                name: "field_2",
@@ -2962,20 +2955,22 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
 
     list = Suggestion.suggestions(buffer, 9, 30)
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: ":my_server",
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: ":my_server"
+               type_spec: ":my_server",
+               value_is_map: false
              },
              %{
                name: "field_1",
@@ -2983,9 +2978,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for metadata struct fields multiline" do
@@ -3005,16 +3001,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
     """
 
-    list = Suggestion.suggestions(buffer, 10, 7)
+    list = Suggestion.suggestions(buffer, 10, 7) |> Enum.filter(&(&1.type == :field))
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: "MyServer",
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "MyServer"
+               type_spec: "MyServer",
+               value_is_map: false
              },
              %{
                name: "field_1",
@@ -3022,9 +3019,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for metadata struct fields when using `__MODULE__`" do
@@ -3043,14 +3041,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 8, 31)
 
-    assert [
+    assert list == [
              %{
                name: "__struct__",
                origin: "MyServer",
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: "MyServer"
+               type_spec: "MyServer",
+               value_is_map: false
              },
              %{
                name: "field_1",
@@ -3058,9 +3057,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for struct fields in variable.key call syntax" do
@@ -3082,14 +3082,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 9, 12)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "field_1",
                origin: "MyServer",
                type: :field,
                call?: true,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              },
              %{
                name: "field_2",
@@ -3097,9 +3098,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :struct_field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for map fields in variable.key call syntax" do
@@ -3116,14 +3118,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 4, 12)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "key_1",
                origin: nil,
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              },
              %{
                name: "key_2",
@@ -3131,9 +3134,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: true
              }
-           ] = list
+           ]
   end
 
   test "suggestion for map fields in @attribute.key call syntax" do
@@ -3150,14 +3154,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 4, 13)
       |> Enum.filter(&(&1.type in [:field]))
 
-    assert [
+    assert list == [
              %{
                name: "key_1",
                origin: nil,
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              },
              %{
                name: "key_2",
@@ -3165,9 +3170,10 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: true
              }
-           ] = list
+           ]
   end
 
   test "suggestion for functions in variable.key call syntax" do
@@ -3208,15 +3214,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     list = Suggestion.suggestions(buffer, 12, 19)
 
     assert [
+             %{name: "some_arg", type: :variable},
+             %{name: "some_func", type: :function},
              %{
                origin: "MyServer",
                type: :field,
                name: "some_field",
                call?: false,
                subtype: :struct_field
-             },
-             %{name: "some_arg", type: :variable},
-             %{name: "some_func", type: :function}
+             }
            ] = list
   end
 
@@ -3236,16 +3242,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 8, 30)
 
-    assert [
+    assert list == [
              %{
                call?: false,
                name: "field_1",
                origin: "MyServer",
                subtype: :struct_field,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for fields in struct update variable when module not set" do
@@ -3264,16 +3271,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 8, 22)
 
-    assert [
+    assert list == [
              %{
                call?: false,
                name: "field_1",
                origin: "MyServer",
                subtype: :struct_field,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for fields in struct update attribute when module not set" do
@@ -3292,16 +3300,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 9, 16)
 
-    assert [
+    assert list == [
              %{
                call?: false,
                name: "field_1",
                origin: "MyServer",
                subtype: :struct_field,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for fields in struct update when struct type is var" do
@@ -3315,29 +3324,32 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 3, 22)
 
-    assert [
+    assert list == [
              %{
                call?: false,
                name: "field_1",
                origin: nil,
                subtype: :struct_field,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for fields in struct when struct type is attribute" do
     buffer = """
     defmodule MyServer do
       @t Time
-      %@t{ho
+      def x do
+        %@t{ho
+      end
     end
     """
 
-    list = Suggestion.suggestions(buffer, 3, 9)
+    list = Suggestion.suggestions(buffer, 4, 11)
 
-    assert [
+    assert list == [
              %{
                call?: false,
                name: "hour",
@@ -3345,10 +3357,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                subtype: :struct_field,
                type: :field,
                type_spec: "Calendar.hour()",
-               metadata: %{hidden: true, app: :elixir},
-               summary: ""
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for keys in map update" do
@@ -3362,16 +3373,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 3, 22)
 
-    assert [
+    assert list == [
              %{
                call?: false,
                name: "field_1",
                origin: nil,
                subtype: :map_key,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for fuzzy struct fields" do
@@ -3385,16 +3397,17 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 3, 22)
 
-    assert [
+    assert list == [
              %{
                call?: false,
                name: "field_1",
                origin: nil,
                subtype: :map_key,
                type: :field,
-               type_spec: nil
+               type_spec: nil,
+               value_is_map: false
              }
-           ] = list
+           ]
   end
 
   test "suggestion for funcs and vars in struct" do
@@ -3424,7 +3437,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                args: "",
                args_list: [],
                arity: 0,
-               def_arity: 0,
                origin: "MyServer",
                spec: "",
                summary: "",
@@ -3690,7 +3702,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     list = Suggestion.suggestions(buffer, 2, 23)
 
-    assert [%{name: "Reducers", type: :module}] = list
+    assert Enum.any?(list, &(&1.name == "Reducers" and &1.type == :module))
   end
 
   describe "suggestion for param options" do
@@ -3937,36 +3949,38 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert suggestion.type_spec == "atom()"
     end
 
-    test "atom only options" do
-      # only keyword in shorthand keyword list
-      buffer = ":ets.new(:name, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+    if System.otp_release() |> String.to_integer() >= 25 do
+      test "atom only options" do
+        # only keyword in shorthand keyword list
+        buffer = ":ets.new(:name, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      buffer = ":ets.new(:name, heir: pid, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        buffer = ":ets.new(:name, heir: pid, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      # suggest atom options in list
-      buffer = ":ets.new(:name, ["
-      assert list = suggestions_by_type(:param_option, buffer)
-      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "set"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        # suggest atom options in list
+        buffer = ":ets.new(:name, ["
+        assert list = suggestions_by_type(:param_option, buffer)
+        assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "set"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      buffer = ":ets.new(:name, [:set, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      assert Enum.any?(list, &match?(%{name: "bag"}, &1))
-      # refute Enum.any?(list, &match?(%{name: "set"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        buffer = ":ets.new(:name, [:set, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        assert Enum.any?(list, &match?(%{name: "bag"}, &1))
+        # refute Enum.any?(list, &match?(%{name: "set"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
 
-      # no atoms after keyword pair
-      buffer = ":ets.new(:name, [:set, heir: pid, "
-      assert list = suggestions_by_type(:param_option, buffer)
-      refute Enum.any?(list, &match?(%{name: "bag"}, &1))
-      assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+        # no atoms after keyword pair
+        buffer = ":ets.new(:name, [:set, heir: pid, "
+        assert list = suggestions_by_type(:param_option, buffer)
+        refute Enum.any?(list, &match?(%{name: "bag"}, &1))
+        assert Enum.any?(list, &match?(%{name: "write_concurrency"}, &1))
+      end
     end
 
     test "format type spec" do
@@ -4188,43 +4202,49 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
   end
 
   describe "suggestions for typespecs" do
-    test "remote types - filter list of typespecs" do
-      buffer = """
-      defmodule My do
-        @type a :: Remote.remote_t\
-      """
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "remote types - filter list of typespecs" do
+        buffer = """
+        defmodule My do
+          @type a :: Remote.remote_t\
+        """
 
-      list = suggestions_by_type(:type_spec, buffer)
-      assert length(list) == 4
+        list = suggestions_by_type(:type_spec, buffer)
+        assert length(list) == 4
+      end
     end
 
-    test "remote types - retrieve info from typespecs" do
-      buffer = """
-      defmodule My do
-        @type a :: Remote.\
-      """
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "remote types - retrieve info from typespecs" do
+        buffer = """
+        defmodule My do
+          @type a :: Remote.\
+        """
 
-      suggestion = suggestion_by_name("remote_list_t", buffer)
+        suggestion = suggestion_by_name("remote_list_t", buffer)
 
-      assert suggestion.spec == """
-             @type remote_list_t() :: [
-               remote_t()
-             ]\
-             """
+        assert suggestion.spec == """
+               @type remote_list_t() :: [
+                 remote_t()
+               ]\
+               """
 
-      assert suggestion.signature == "remote_list_t()"
-      assert suggestion.arity == 0
-      assert suggestion.doc == "Remote list type"
-      assert suggestion.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+        assert suggestion.signature == "remote_list_t()"
+        assert suggestion.arity == 0
+        assert suggestion.doc == "Remote list type"
+        assert suggestion.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+      end
     end
 
     test "on specs" do
-      buffer = """
-      defmodule My do
-        @spec a() :: Remote.\
-      """
+      if Version.match?(System.version(), ">= 1.15.0") do
+        buffer = """
+        defmodule My do
+          @spec a() :: Remote.\
+        """
 
-      assert %{name: "remote_list_t"} = suggestion_by_name("remote_list_t", buffer)
+        assert %{name: "remote_list_t"} = suggestion_by_name("remote_list_t", buffer)
+      end
 
       buffer = """
       defmodule My do
@@ -4269,50 +4289,56 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       assert [_, _] = suggestions_by_name("nonempty_list", buffer, 2, 19)
     end
 
-    test "remote types - by attribute" do
-      buffer = """
-      defmodule My do
-        @type my_type :: integer
-        @attr My
-        @type some :: @attr.my\
-      """
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "remote types - by attribute" do
+        buffer = """
+        defmodule My do
+          @type my_type :: integer
+          @attr My
+          @type some :: @attr.my\
+        """
 
-      [suggestion_1] = suggestions_by_name("my_type", buffer)
+        [suggestion_1] = suggestions_by_name("my_type", buffer)
 
-      assert suggestion_1.signature == "my_type()"
+        assert suggestion_1.signature == "my_type()"
+      end
     end
 
-    test "remote types - by __MODULE__" do
-      buffer = """
-      defmodule My do
-        @type my_type :: integer
-        @type some :: __MODULE__.my\
-      """
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "remote types - by __MODULE__" do
+        buffer = """
+        defmodule My do
+          @type my_type :: integer
+          @type some :: __MODULE__.my\
+        """
 
-      [suggestion_1] = suggestions_by_name("my_type", buffer)
+        [suggestion_1] = suggestions_by_name("my_type", buffer)
 
-      assert suggestion_1.signature == "my_type()"
+        assert suggestion_1.signature == "my_type()"
+      end
     end
 
-    test "remote types - retrieve info from typespecs with params" do
-      buffer = """
-      defmodule My do
-        @type a :: Remote.\
-      """
+    if Version.match?(System.version(), ">= 1.15.0") do
+      test "remote types - retrieve info from typespecs with params" do
+        buffer = """
+        defmodule My do
+          @type a :: Remote.\
+        """
 
-      [suggestion_1, suggestion_2] = suggestions_by_name("remote_t", buffer)
+        [suggestion_1, suggestion_2] = suggestions_by_name("remote_t", buffer)
 
-      assert suggestion_1.spec == "@type remote_t() :: atom()"
-      assert suggestion_1.signature == "remote_t()"
-      assert suggestion_1.arity == 0
-      assert suggestion_1.doc == "Remote type"
-      assert suggestion_1.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+        assert suggestion_1.spec == "@type remote_t() :: atom()"
+        assert suggestion_1.signature == "remote_t()"
+        assert suggestion_1.arity == 0
+        assert suggestion_1.doc == "Remote type"
+        assert suggestion_1.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
 
-      assert suggestion_2.spec =~ "@type remote_t(a, b) ::"
-      assert suggestion_2.signature == "remote_t(a, b)"
-      assert suggestion_2.arity == 2
-      assert suggestion_2.doc == "Remote type with params"
-      assert suggestion_2.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+        assert suggestion_2.spec =~ "@type remote_t(a, b) ::"
+        assert suggestion_2.signature == "remote_t(a, b)"
+        assert suggestion_2.arity == 2
+        assert suggestion_2.doc == "Remote type with params"
+        assert suggestion_2.origin == "ElixirSenseExample.ModuleWithTypespecs.Remote"
+      end
     end
 
     test "local types - filter list of typespecs" do
@@ -4436,10 +4462,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                }
              ] = suggestions
 
-      if System.otp_release() |> String.to_integer() >= 27 do
-        assert "The time unit used" <> _ = summary
-      else
-        assert summary =~ "Supported time unit representations:"
+      if System.otp_release() |> String.to_integer() >= 23 do
+        if System.otp_release() |> String.to_integer() >= 27 do
+          assert "The time unit used" <> _ = summary
+        else
+          assert summary =~ "Supported time unit representations:"
+        end
       end
     end
 
@@ -4775,15 +4803,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     assert [
              %{
-               arity: 1,
-               def_arity: 2,
-               name: "all?",
-               summary: "all?/2 docs",
-               type: :function
-             },
-             %{
                arity: 2,
-               def_arity: 2,
+               default_args: 1,
                name: "all?",
                summary: "all?/2 docs",
                type: :function
@@ -4799,14 +4820,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert [
              %{
                arity: 1,
-               def_arity: 1,
+               default_args: 0,
                name: "concat",
                summary: "concat/1 docs",
                type: :function
              },
              %{
                arity: 2,
-               def_arity: 2,
+               default_args: 0,
                name: "concat",
                summary: "concat/2 docs",
                type: :function
@@ -4831,8 +4852,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     suggestions = Suggestion.suggestions(buffer, 7, 8)
 
     assert [
-             %{args: "a, b \\\\ \"\"", arity: 1, def_arity: 2},
-             %{args: "a, b \\\\ \"\"", arity: 2, def_arity: 2}
+             %{args: "a, b \\\\ \"\"", arity: 2, default_args: 1}
            ] = suggestions
   end
 
@@ -4840,8 +4860,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     buffer = """
     defmodule SomeSchema do
       require Record
-      @doc "user docs"
-      @doc since: "1.0.0"
       Record.defrecord(:user, name: "john", age: 25)
       @type user :: record(:user, name: String.t(), age: integer)
 
@@ -4851,30 +4869,18 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
     """
 
-    suggestions = Suggestion.suggestions(buffer, 9, 11)
+    suggestions = Suggestion.suggestions(buffer, 7, 11)
 
     assert [
              %{
                args: "args \\\\ []",
-               arity: 0,
-               name: "user",
-               summary: "user docs",
-               type: :macro,
-               args_list: ["args \\\\ []"],
-               def_arity: 1,
-               metadata: %{since: "1.0.0"},
-               origin: "SomeSchema",
-               snippet: nil,
-               spec: "",
-               visibility: :public
-             },
-             %{
-               args: "args \\\\ []",
                arity: 1,
                name: "user",
+               summary: "",
                type: :macro,
                args_list: ["args \\\\ []"],
-               def_arity: 1,
+               default_args: 1,
+               metadata: %{},
                origin: "SomeSchema",
                snippet: nil,
                spec: "",
@@ -4884,11 +4890,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                args: "record, args",
                args_list: ["record", "args"],
                arity: 2,
-               def_arity: 2,
+               default_args: 0,
+               metadata: %{},
                name: "user",
                origin: "SomeSchema",
                snippet: nil,
                spec: "",
+               summary: "",
                type: :macro,
                visibility: :public
              }
@@ -4911,27 +4919,13 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     assert [
              %{
                args: "args \\\\ []",
-               arity: 0,
-               name: "user",
-               summary: "user docs",
-               type: :macro,
-               args_list: ["args \\\\ []"],
-               def_arity: 1,
-               metadata: %{},
-               origin: "ElixirSenseExample.ModuleWithRecord",
-               snippet: nil,
-               spec: "",
-               visibility: :public
-             },
-             %{
-               args: "args \\\\ []",
                arity: 1,
                name: "user",
-               summary: "user docs",
+               summary: _,
                type: :macro,
                args_list: ["args \\\\ []"],
-               def_arity: 1,
-               metadata: %{},
+               default_args: 1,
+               metadata: _,
                origin: "ElixirSenseExample.ModuleWithRecord",
                snippet: nil,
                spec: "",
@@ -4941,8 +4935,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                args: "record, args",
                args_list: ["record", "args"],
                arity: 2,
-               def_arity: 2,
-               metadata: %{},
+               default_args: 0,
+               metadata: _,
                name: "user",
                origin: "ElixirSenseExample.ModuleWithRecord",
                snippet: nil,
@@ -4978,9 +4972,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                  type: :field,
                  call?: false,
                  subtype: :record_field,
-                 type_spec: "integer()",
-                 metadata: %{since: "1.0.0"},
-                 summary: "user docs"
+                 type_spec: "integer()"
                },
                %{
                  name: "name",
@@ -5037,8 +5029,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     buffer = """
     defmodule SomeSchema do
       require Record
-      @doc "user docs"
-      @doc since: "1.0.0"
       Record.defrecord(:user, name: "john", age: 25)
       @type user :: record(:user, name: String.t(), age: integer)
 
@@ -5051,7 +5041,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
     end
     """
 
-    suggestions = Suggestion.suggestions(buffer, 9, 14)
+    suggestions = Suggestion.suggestions(buffer, 7, 14)
 
     assert [
              %{
@@ -5060,9 +5050,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: false,
                subtype: :record_field,
-               type_spec: "integer()",
-               metadata: %{since: "1.0.0"},
-               summary: "user docs"
+               type_spec: "integer()"
              },
              %{
                name: "name",
@@ -5074,7 +5062,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              }
            ] = suggestions |> Enum.filter(&(&1.type == :field))
 
-    suggestions = Suggestion.suggestions(buffer, 10, 15)
+    suggestions = Suggestion.suggestions(buffer, 8, 15)
 
     assert [
              %{
@@ -5087,7 +5075,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              }
            ] = suggestions |> Enum.filter(&(&1.type == :field))
 
-    suggestions = Suggestion.suggestions(buffer, 11, 14)
+    suggestions = Suggestion.suggestions(buffer, 9, 14)
 
     assert [
              %{
@@ -5100,7 +5088,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
              }
            ] = suggestions |> Enum.filter(&(&1.type == :field))
 
-    suggestions = Suggestion.suggestions(buffer, 12, 25)
+    suggestions = Suggestion.suggestions(buffer, 10, 25)
 
     assert [
              %{

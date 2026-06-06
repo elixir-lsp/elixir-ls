@@ -15,9 +15,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
           name: String.t(),
           origin: String.t() | nil,
           call?: boolean,
-          type_spec: String.t() | nil,
-          summary: String.t(),
-          metadata: map
+          type_spec: String.t() | nil
         }
 
   @doc """
@@ -40,7 +38,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
           :functions,
           :macros,
           :variables,
-          :attributes
+          :attributes,
+          :structs_fields,
+          :bitstring_options
         ]
 
         {:cont, %{acc | result: fields, reducers: reducers}}
@@ -80,8 +80,8 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
              cursor_position,
              not elixir_prefix
            ),
-         {fields_info, doc, meta} <- get_record_info(mod, fun, records) do
-      fields = get_fields(hint, mod, fun, fields_info, options_so_far, metadata_types, doc, meta)
+         fields_info when is_list(fields_info) <- get_record_info(mod, fun, records) do
+      fields = get_fields(hint, mod, fun, fields_info, options_so_far, metadata_types)
 
       {fields, if(npar == 0 and cursor_at_option in [false, :maybe], do: :maybe_record_update)}
     else
@@ -93,7 +93,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
   defp get_record_info(mod, fun, records) do
     case records[{mod, fun}] do
       %RecordInfo{} = info ->
-        {info.fields, info.doc, info.meta}
+        info.fields
 
       nil ->
         if Version.match?(System.version(), ">= 1.18.0-dev") do
@@ -103,18 +103,15 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
 
             docs ->
               Enum.find_value(docs, fn
-                {{^fun, 1}, _, :macro, _, doc, meta = %{record: {_tag, fields}}} ->
-                  {fields, doc || "", meta}
-
-                _ ->
-                  nil
+                {{^fun, 1}, _, :macro, _, _, %{record: {_tag, fields}}} -> fields
+                _ -> nil
               end)
           end
         end
     end
   end
 
-  defp get_fields(hint, module, record_name, fields, fields_so_far, types, doc, meta) do
+  defp get_fields(hint, module, record_name, fields, fields_so_far, types) do
     field_types = get_field_types(types, module, record_name)
 
     for {key, _value} when is_atom(key) <- fields,
@@ -133,9 +130,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
         subtype: :record_field,
         origin: "#{inspect(module)}.#{record_name}",
         type_spec: type_spec,
-        call?: false,
-        summary: doc,
-        metadata: meta
+        call?: false
       }
     end
     |> Enum.sort_by(& &1.name)
@@ -162,7 +157,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
                 ]}
              ]}
           ]}
-         when kind in [:type, :typep, :opaque, :nominal] <- ast do
+         when kind in [:type, :typep, :opaque] <- ast do
       field_types
     else
       _ ->
@@ -192,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.Record do
                     ]}
                  ]}
               ]}
-             when kind in [:type, :typep, :opaque, :nominal] <- ast do
+             when kind in [:type, :typep, :opaque] <- ast do
           field_types
           |> Enum.map(fn
             {:"::", _, [{name, _, context}, type]} when is_atom(name) and is_atom(context) ->

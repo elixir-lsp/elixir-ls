@@ -55,11 +55,13 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
   end
 
   defp clauses_suggestions(hint) do
-    funs = ElixirLS.Utils.CompletionEngine.get_module_funs(Ecto.Query, false)
+    funs = ElixirLS.Utils.CompletionEngine.get_module_funs(Ecto.Query, hint, false, false)
 
-    for {name, arity, arity, :macro, {doc, _}, _, ["query" | _]} <- funs,
-        clause = to_string(name),
-        Matcher.match?(clause, hint) do
+    # get_module_funs now returns one entry per macro name (hint-filtered),
+    # shaped {name, arity, def_arity, kind, {doc, meta}, spec, args_list}.
+    # A from-clause macro is identified by its first argument being "query".
+    for {name, _arity, _def_arity, :macro, {doc, _}, _, ["query" | _]} <- funs,
+        clause = to_string(name) do
       clause_to_suggestion(clause, doc, "from clause")
     end
   end
