@@ -5,7 +5,6 @@ defmodule ElixirLS.LanguageServer.Parser do
   use GenServer
   alias ElixirLS.LanguageServer.JsonRpc
   alias ElixirLS.LanguageServer.Diagnostics
-  alias ElixirLS.LanguageServer.Build
   alias ElixirLS.LanguageServer.Server
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirSense.Core.MetadataBuilder
@@ -462,7 +461,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
   defp parse_file(text, file, language_id) do
     {result, raw_diagnostics} =
-      Build.with_diagnostics([log: false], fn ->
+      Code.with_diagnostics([log: false], fn ->
         try do
           parser_options = [
             file: file,
@@ -533,13 +532,25 @@ defmodule ElixirLS.LanguageServer.Parser do
             SyntaxError,
             TokenMissingError,
             MismatchedDelimiterError,
-            CompileError,
-            Phoenix.LiveView.HTMLTokenizer.ParseError,
-            Phoenix.LiveView.Tokenizer.ParseError
+            CompileError
           ] ->
             diagnostic = Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
 
             {:error, diagnostic}
+
+          e ->
+            if is_struct(e) and
+                 e.__struct__ in [
+                   Phoenix.LiveView.Tokenizer.ParseError,
+                   Phoenix.LiveView.HTMLTokenizer.ParseError
+                 ] do
+              diagnostic =
+                Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
+
+              {:error, diagnostic}
+            else
+              reraise e, __STACKTRACE__
+            end
         catch
           kind, err ->
             diagnostic = Diagnostics.from_error(kind, err, __STACKTRACE__, file, :no_stacktrace)

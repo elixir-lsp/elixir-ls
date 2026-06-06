@@ -18,12 +18,11 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   alias ElixirSense.Core.SurroundContext
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   require ElixirSense.Core.Introspection, as: Introspection
 
   def implementations(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
+    case Code.Fragment.surround_context(code, {line, column}) do
       :none ->
         []
 
@@ -138,7 +137,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
             # protocol function call
             get_locations(found_module, maybe_fun, arity, metadata)
 
-          maybe_fun != nil ->
+          true ->
             behaviours = Metadata.get_module_behaviours(metadata, env, module)
 
             # callback/protocol implementation def
@@ -147,9 +146,6 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
               get_locations(behaviour, maybe_fun, arity, metadata)
             end
             |> List.flatten()
-
-          true ->
-            []
         end
     end
     |> Enum.reject(&is_nil/1)

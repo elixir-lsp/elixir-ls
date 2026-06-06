@@ -10,11 +10,9 @@ defmodule ElixirLS.DebugAdapter do
     Application.put_env(:elixir, :ansi_enabled, true)
     Launch.start_mix()
 
-    if Version.match?(System.version(), ">= 1.15.0-dev") do
-      # make sure that OTP debugger modules are in code path
-      # without starting the app
-      Mix.ensure_application!(:debugger)
-    end
+    # make sure that OTP debugger modules are in code path
+    # without starting the app
+    Mix.ensure_application!(:debugger)
 
     {:ok, _} = Application.ensure_all_started(:debug_adapter, :permanent)
 

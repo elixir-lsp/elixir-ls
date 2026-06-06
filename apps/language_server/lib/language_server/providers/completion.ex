@@ -10,9 +10,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   alias ElixirLS.LanguageServer.{SourceFile, Parser}
   alias ElixirLS.Utils.Matcher
   alias ElixirSense.Core.State
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirLS.LanguageServer.MarkdownUtils
-  require Logger
 
   defmodule CompletionItem do
     @enforce_keys [:label, :kind, :insert_text, :tags]
@@ -177,7 +175,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     container_cursor_quoted =
-      case NormalizedCode.Fragment.container_cursor_to_quoted(full_text_before_cursor,
+      case Code.Fragment.container_cursor_to_quoted(full_text_before_cursor,
              token_metadata: true,
              columns: true
            ) do
@@ -186,7 +184,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       end
 
     do_block_indent =
-      if container_cursor_quoted != nil and Version.match?(System.version(), ">= 1.14.0-dev") do
+      if container_cursor_quoted != nil do
         case Macro.path(container_cursor_quoted, &match?({:__cursor__, _, []}, &1)) do
           nil ->
             0
@@ -249,7 +247,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
       text_before_cursor: text_before_cursor,
       text_after_cursor: text_after_cursor,
       prefix: prefix,
-      remote_calls?: match?({:dot, _, _}, NormalizedCode.Fragment.cursor_context(prefix)),
+      remote_calls?: match?({:dot, _, _}, Code.Fragment.cursor_context(prefix)),
       def_before: def_before,
       pipe_before?: pipe_before?,
       capture_before?: capture_before?,

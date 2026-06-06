@@ -53,13 +53,11 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     definition_locations =
       case Definition.definition(uri, parser_context, line, character, project_dir) do
         {:ok, def_loc} -> List.wrap(def_loc || [])
-        _ -> []
       end
 
     declaration_locations =
       case Declaration.declaration(uri, parser_context, line, character, project_dir) do
         {:ok, decl_loc} -> List.wrap(decl_loc || [])
-        _ -> []
       end
 
     {definition_locations, declaration_locations}
@@ -89,9 +87,6 @@ defmodule ElixirLS.LanguageServer.Providers.References do
         nil
 
       {:error, reason} ->
-        # workaround for elixir tracer returning invalid paths
-        # https://github.com/elixir-lang/elixir/issues/12393
-        # TODO: remove when we require Elixir >= 1.15
         Logger.warning("Unable to open reference from #{inspect(ref.uri)}: #{inspect(reason)}")
         nil
     end

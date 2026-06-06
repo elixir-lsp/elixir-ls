@@ -23,7 +23,6 @@ defmodule ElixirLS.LanguageServer.Server do
     Build,
     ClientCapabilities,
     JsonRpc,
-    Dialyzer,
     DialyzerIncremental,
     Diagnostics,
     MixProjectCache,
@@ -284,7 +283,7 @@ defmodule ElixirLS.LanguageServer.Server do
         parent = self()
 
         spawn(fn ->
-          contracts = dialyzer_module(state.settings).suggest_contracts(parent, [abs_path])
+          contracts = DialyzerIncremental.suggest_contracts(parent, [abs_path])
           GenServer.reply(from, contracts)
         end)
 
@@ -1939,7 +1938,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     test_pattern = get_in(state.settings, ["testPattern", app_name]) || "*_test.exs"
 
-    file_path = SourceFile.Path.expand(file_path, project_dir)
+    file_path = Path.expand(file_path, project_dir)
 
     Mix.Utils.extract_files(test_paths, test_pattern)
     |> Enum.any?(fn path -> String.ends_with?(file_path, path) end)
@@ -1954,10 +1953,10 @@ defmodule ElixirLS.LanguageServer.Server do
         test_paths = config[:test_paths] || ["test"]
         test_pattern = config[:test_pattern] || "*_test.exs"
 
-        file_path = SourceFile.Path.expand(file_path, project_dir)
+        file_path = Path.expand(file_path, project_dir)
 
         Mix.Utils.extract_files(test_paths, test_pattern)
-        |> Enum.map(&SourceFile.Path.absname(&1, project_dir))
+        |> Enum.map(&Path.absname(&1, project_dir))
         |> Enum.any?(&(&1 == file_path))
     end
   end
@@ -1988,7 +1987,7 @@ defmodule ElixirLS.LanguageServer.Server do
         {_pid, build_ref} =
           case File.cwd() do
             {:ok, cwd} ->
-              if SourceFile.Path.absname(cwd) == SourceFile.Path.absname(project_dir) do
+              if Path.absname(cwd) == Path.absname(project_dir) do
                 Build.build(self(), project_dir, opts)
               else
                 Logger.info("Skipping build because cwd changed from #{project_dir} to #{cwd}")
@@ -2048,7 +2047,7 @@ defmodule ElixirLS.LanguageServer.Server do
       (state.settings["dialyzerWarnOpts"] || [])
       |> Enum.map(&String.to_atom/1)
 
-    dialyzer_module(state.settings).analyze(
+    DialyzerIncremental.analyze(
       state.build_ref,
       warn_opts,
       dialyzer_default_format(state),
@@ -2120,7 +2119,7 @@ defmodule ElixirLS.LanguageServer.Server do
         contracts_by_file =
           not_dirty
           |> Enum.map(fn {_from, uri} -> SourceFile.Path.from_uri(uri) end)
-          |> then(fn uris -> dialyzer_module(state.settings).suggest_contracts(parent, uris) end)
+          |> then(fn uris -> DialyzerIncremental.suggest_contracts(parent, uris) end)
           |> Enum.group_by(fn {file, _, _, _, _} -> file end)
 
         for {from, uri} <- not_dirty do
@@ -2295,7 +2294,7 @@ defmodule ElixirLS.LanguageServer.Server do
         :ok
     end
 
-    case Dialyzer.check_support() do
+    case ElixirLS.LanguageServer.Dialyzer.Utils.check_support() do
       :ok ->
         JsonRpc.telemetry(
           "dialyzer_support",
@@ -2325,7 +2324,8 @@ defmodule ElixirLS.LanguageServer.Server do
   defp set_settings(state = %__MODULE__{settings: prev_settings}, settings)
        when settings != prev_settings do
     enable_dialyzer =
-      Dialyzer.check_support() == :ok and Map.get(settings, "autoBuild", true) == true and
+      ElixirLS.LanguageServer.Dialyzer.Utils.check_support() == :ok and
+        Map.get(settings, "autoBuild", true) == true and
         Map.get(settings, "dialyzerEnabled", true) == true
 
     if enable_dialyzer do
@@ -2476,7 +2476,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp add_watched_extensions(server_instance_id, exts) when is_list(exts) do
-    if not (is_list(exts) and Enum.all?(exts, &match?("." <> _, &1))) do
+    if not Enum.all?(exts, &match?("." <> _, &1)) do
       Logger.error("Invalid `additionalWatchedExtensions`: #{inspect(exts)}")
 
       JsonRpc.show_message(
@@ -2549,7 +2549,7 @@ defmodule ElixirLS.LanguageServer.Server do
     cond do
       enable_dialyzer and state.mix_project? and state.dialyzer_sup == nil ->
         {:ok, pid} =
-          Dialyzer.Supervisor.start_link(state.project_dir, dialyzer_module(state.settings))
+          ElixirLS.LanguageServer.Dialyzer.Supervisor.start_link(state.project_dir)
 
         %{state | dialyzer_sup: pid, analysis_ready?: false}
 
@@ -2747,7 +2747,7 @@ defmodule ElixirLS.LanguageServer.Server do
 
     project_dir =
       if is_binary(project_dir_config) do
-        SourceFile.Path.absname(Path.join(root_dir, project_dir_config))
+        Path.absname(Path.join(root_dir, project_dir_config))
       else
         if is_nil(project_dir_config) do
           root_dir
@@ -2963,16 +2963,6 @@ defmodule ElixirLS.LanguageServer.Server do
     else
       Logger.info("Client does not support workspace/configuration request")
       state
-    end
-  end
-
-  defp dialyzer_module(settings) do
-    otp_release = String.to_integer(System.otp_release())
-
-    if otp_release >= 26 and Map.get(settings, "incrementalDialyzer", true) do
-      DialyzerIncremental
-    else
-      Dialyzer
     end
   end
 

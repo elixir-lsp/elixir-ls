@@ -503,12 +503,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmModuleDependencies
     caller_function_str == target_function_str
   end
 
-  defp matches_function_call?(nil, _target_function, _target_arity) do
-    # If caller_function is nil, this is a module-level call (e.g., compile-time)
-    # We should include these since they could be related to the function
-    false
-  end
-
   defp get_transitive_dependencies_from_direct(module, direct_dependencies, type) do
     all_direct_modules =
       case type do

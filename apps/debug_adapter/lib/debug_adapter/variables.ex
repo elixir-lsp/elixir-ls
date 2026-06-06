@@ -88,7 +88,7 @@ defmodule ElixirLS.DebugAdapter.Variables do
     start = start || 0
     count = if is_integer(count) and count > 0, do: count, else: :erlang.byte_size(var)
     slice_length = min(:erlang.bit_size(var) - 8 * start, 8 * count)
-    <<_::bytes-size(start), slice::bitstring-size(slice_length), _::bitstring>> = var
+    <<_::bytes-size(^start), slice::bitstring-size(^slice_length), _::bitstring>> = var
     with_index_as_name(:erlang.bitstring_to_list(slice), start)
   end
 
@@ -228,12 +228,10 @@ defmodule ElixirLS.DebugAdapter.Variables do
 
   def type(var) when is_map(var), do: "map"
 
-  def type(var) when is_number(var), do: "number"
   def type(var) when is_pid(var), do: "pid"
   def type(var) when is_port(var), do: "port"
   def type(var) when is_reference(var), do: "reference"
   def type(var) when is_tuple(var), do: "tuple"
-  def type(_), do: "term"
 
   defp with_index_as_name(vars, start) do
     for {var, idx} <- Enum.with_index(vars, start) do

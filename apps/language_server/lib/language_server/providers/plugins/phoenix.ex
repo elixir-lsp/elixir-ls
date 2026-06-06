@@ -21,58 +21,55 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix do
 
   @impl true
   def setup(context) do
-    ModuleStore.ensure_compiled(context, Phoenix.Router)
-  end
-
-  if Version.match?(System.version(), ">= 1.14.0-dev") do
-    @impl true
-    def suggestions(hint, {Phoenix.Router, func, 1, _info}, _list, opts)
-        when func in @phoenix_route_funcs do
-      binding =
-        Binding.from_env(opts.env, opts.buffer_metadata, opts.cursor_context.cursor_position)
-
-      {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before, binding)
-
-      case find_controllers(opts.module_store, opts.env, hint, scope_alias) do
-        [] -> :ignore
-        controllers -> {:override, controllers}
-      end
-    end
-
-    def suggestions(
-          hint,
-          {Phoenix.Router, func, 2, %{params: [_path, module]}},
-          _list,
-          opts
-        )
-        when func in @phoenix_route_funcs do
-      binding_env =
-        Binding.from_env(opts.env, opts.buffer_metadata, opts.cursor_context.cursor_position)
-
-      {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before)
-      {module, _} = Source.get_mod([module], binding_env)
-
-      module = Module.concat(scope_alias, module)
-
-      suggestions =
-        for {export, {2, :function}} when export not in ~w(action call)a <-
-              Introspection.get_exports(module),
-            name = inspect(export),
-            Matcher.match?(name, hint) do
-          %{
-            type: :generic,
-            kind: :function,
-            label: name,
-            insert_text: Util.trim_leading_for_insertion(hint, name),
-            detail: "Phoenix action"
-          }
-        end
-
-      {:override, suggestions}
-    end
+    ModuleStore.ensure_loaded(context, Phoenix.Router)
   end
 
   @impl true
+  def suggestions(hint, {Phoenix.Router, func, 1, _info}, _list, opts)
+      when func in @phoenix_route_funcs do
+    binding =
+      Binding.from_env(opts.env, opts.buffer_metadata, opts.cursor_context.cursor_position)
+
+    {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before, binding)
+
+    case find_controllers(opts.module_store, opts.env, hint, scope_alias) do
+      [] -> :ignore
+      controllers -> {:override, controllers}
+    end
+  end
+
+  def suggestions(
+        hint,
+        {Phoenix.Router, func, 2, %{params: [_path, module]}},
+        _list,
+        opts
+      )
+      when func in @phoenix_route_funcs do
+    binding_env =
+      Binding.from_env(opts.env, opts.buffer_metadata, opts.cursor_context.cursor_position)
+
+    {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before)
+    {module, _} = Source.get_mod([module], binding_env)
+
+    module = Module.concat(scope_alias, module)
+
+    suggestions =
+      for {export, {2, :function}} when export not in ~w(action call)a <-
+            Introspection.get_exports(module),
+          name = inspect(export),
+          Matcher.match?(name, hint) do
+        %{
+          type: :generic,
+          kind: :function,
+          label: name,
+          insert_text: Util.trim_leading_for_insertion(hint, name),
+          detail: "Phoenix action"
+        }
+      end
+
+    {:override, suggestions}
+  end
+
   def suggestions(_hint, _func_call, _list, _opts) do
     :ignore
   end

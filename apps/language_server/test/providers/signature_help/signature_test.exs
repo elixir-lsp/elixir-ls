@@ -253,12 +253,10 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                ]
              } = Signature.signature(code, 2, 32)
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "The time unit" <> _ = summary
-        else
-          assert summary =~ "Supported time unit representations"
-        end
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "The time unit" <> _ = summary
+      else
+        assert summary =~ "Supported time unit representations"
       end
     end
 
@@ -359,18 +357,16 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                ]
              } = Signature.signature(code, 2, 24)
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert params == ["DeepList", "Tail"]
-        else
-          assert params == ["deepList", "tail"]
-        end
-
-        assert "Returns a flattened version of `DeepList`" <> _ = summary1
-
-        assert "Returns a flattened version of `DeepList` with tail `Tail` appended" <> _ =
-                 summary2
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert params == ["DeepList", "Tail"]
+      else
+        assert params == ["deepList", "tail"]
       end
+
+      assert "Returns a flattened version of `DeepList`" <> _ = summary1
+
+      assert "Returns a flattened version of `DeepList` with tail `Tail` appended" <> _ =
+               summary2
     end
 
     test "find signatures from aliased modules" do
@@ -1063,12 +1059,10 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                ]
              } = Signature.signature(code, 5, 10)
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Initialize the server" <> _ = summary
-        else
-          assert "- Args = " <> _ = summary
-        end
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the server" <> _ = summary
+      else
+        assert "- Args = " <> _ = summary
       end
     end
 
@@ -1098,52 +1092,48 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
 
       res = Signature.signature(code, 1, 63)
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        assert %{
-                 active_param: 0,
-                 signatures: [
-                   %{
-                     documentation: documentation,
-                     name: "init",
-                     params: ["_"],
-                     spec: "@callback init(args :: term()) :: init_result(state())"
-                   }
-                 ]
-               } = res
+      assert %{
+               active_param: 0,
+               signatures: [
+                 %{
+                   documentation: documentation,
+                   name: "init",
+                   params: ["_"],
+                   spec: "@callback init(args :: term()) :: init_result(state())"
+                 }
+               ]
+             } = res
 
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Initialize the state machine" <> _ = documentation
-        else
-          assert "- Args = " <> _ = documentation
-        end
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the state machine" <> _ = documentation
+      else
+        assert "- Args = " <> _ = documentation
       end
     end
 
-    if System.otp_release() |> String.to_integer() >= 25 do
-      test "finds signatures from metadata erlang behaviour call from outside" do
-        code = """
-        :file_server.init()
-        """
+    test "finds signatures from metadata erlang behaviour call from outside" do
+      code = """
+      :file_server.init()
+      """
 
-        res = Signature.signature(code, 1, 19)
+      res = Signature.signature(code, 1, 19)
 
-        assert %{
-                 active_param: 0,
-                 signatures: [
-                   %{
-                     documentation: summary,
-                     name: "init",
-                     params: ["args"],
-                     spec: "@callback init(args :: term()) ::" <> _
-                   }
-                 ]
-               } = res
+      assert %{
+               active_param: 0,
+               signatures: [
+                 %{
+                   documentation: summary,
+                   name: "init",
+                   params: ["args"],
+                   spec: "@callback init(args :: term()) ::" <> _
+                 }
+               ]
+             } = res
 
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Initialize the server" <> _ = summary
-        else
-          assert "- Args = " <> _ = summary
-        end
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the server" <> _ = summary
+      else
+        assert "- Args = " <> _ = summary
       end
     end
 
@@ -1313,24 +1303,22 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
 
       res = Signature.signature(code, 12, 27)
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        assert %{
-                 active_param: 0,
-                 signatures: [
-                   %{
-                     documentation: summary,
-                     name: "init",
-                     params: ["list"],
-                     spec: "@callback init(args :: term()) :: init_result(state())"
-                   }
-                 ]
-               } = res
+      assert %{
+               active_param: 0,
+               signatures: [
+                 %{
+                   documentation: summary,
+                   name: "init",
+                   params: ["list"],
+                   spec: "@callback init(args :: term()) :: init_result(state())"
+                 }
+               ]
+             } = res
 
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "Initialize the state machine" <> _ = summary
-        else
-          assert "- Args = term" <> _ = summary
-        end
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "Initialize the state machine" <> _ = summary
+      else
+        assert "- Args = term" <> _ = summary
       end
     end
 
@@ -1636,41 +1624,39 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
       assert :none = Signature.signature(buffer, 8, 18)
     end
 
-    if System.otp_release() |> String.to_integer() >= 23 do
-      test "find built-in erlang functions" do
-        buffer = """
-        defmodule MyModule do
-          :erlang.orelse()
-          #             ^
-          :erlang.or()
-          #         ^
-        end
-        """
-
-        %{
-          active_param: 0,
-          signatures: [
-            %{
-              documentation: "",
-              name: "orelse",
-              params: ["term", "term"],
-              spec: ""
-            }
-          ]
-        } = Signature.signature(buffer, 2, 18)
-
-        assert %{
-                 active_param: 0,
-                 signatures: [
-                   %{
-                     documentation: "",
-                     name: "or",
-                     params: [_, _],
-                     spec: "@spec boolean() or boolean() :: boolean()"
-                   }
-                 ]
-               } = Signature.signature(buffer, 4, 14)
+    test "find built-in erlang functions" do
+      buffer = """
+      defmodule MyModule do
+        :erlang.orelse()
+        #             ^
+        :erlang.or()
+        #         ^
       end
+      """
+
+      %{
+        active_param: 0,
+        signatures: [
+          %{
+            documentation: "",
+            name: "orelse",
+            params: ["term", "term"],
+            spec: ""
+          }
+        ]
+      } = Signature.signature(buffer, 2, 18)
+
+      assert %{
+               active_param: 0,
+               signatures: [
+                 %{
+                   documentation: "",
+                   name: "or",
+                   params: [_, _],
+                   spec: "@spec boolean() or boolean() :: boolean()"
+                 }
+               ]
+             } = Signature.signature(buffer, 4, 14)
     end
 
     test "find :erlang module functions with different forms of typespecs" do
@@ -1695,9 +1681,7 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
         ]
       } = Signature.signature(buffer, 2, 16)
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        assert "Returns the current date as" <> _ = summary
-      end
+      assert "Returns the current date as" <> _ = summary
 
       assert %{
                active_param: 0,
@@ -1717,16 +1701,14 @@ defmodule ElixirLS.LanguageServer.Providers.SignatureHelp.SignatureTest do
                ]
              } = Signature.signature(buffer, 4, 24)
 
-      if System.otp_release() |> String.to_integer() >= 23 do
-        assert "Cancels a timer that has been created by" <> _ = summary2
+      assert "Cancels a timer that has been created by" <> _ = summary2
 
-        if System.otp_release() |> String.to_integer() >= 27 do
-          assert "" == summary1
-          assert params == ["TimerRef", "Options"]
-        else
-          assert "Cancels a timer\\." <> _ = summary1
-          assert params == ["timerRef", "options"]
-        end
+      if System.otp_release() |> String.to_integer() >= 27 do
+        assert "" == summary1
+        assert params == ["TimerRef", "Options"]
+      else
+        assert "Cancels a timer\\." <> _ = summary1
+        assert params == ["timerRef", "options"]
       end
     end
   end

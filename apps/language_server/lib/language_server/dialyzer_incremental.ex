@@ -3,8 +3,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
   alias ElixirLS.LanguageServer.{Server, JsonRpc, Diagnostics}
   require Logger
   require Record
-  alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, SuccessTypings}
-  alias ElixirLS.LanguageServer.Dialyzer
+  alias ElixirLS.LanguageServer.Dialyzer.{Manifest, Analyzer, SuccessTypings, Utils}
 
   defstruct [
     :parent,
@@ -348,8 +347,8 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       %Diagnostics{
         compiler_name: "ElixirLS Dialyzer",
         file: source_file,
-        position: Dialyzer.normalize_position(position),
-        message: Dialyzer.warning_message(warning, warning_format),
+        position: Utils.normalize_position(position),
+        message: Utils.warning_message(warning, warning_format),
         severity: :warning,
         details: warning
       }

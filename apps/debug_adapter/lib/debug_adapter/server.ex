@@ -492,7 +492,10 @@ defmodule ElixirLS.DebugAdapter.Server do
     end
 
     # disable logger so we do not get unexpected
-    # [notice] SIGTERM received - shutting down
+    # [notice] SIGTERM received - shutting down.
+    # NOTE: `:none` is valid at runtime — Logger passes it through to
+    # `:logger.set_primary_config/2` — but the upstream `level()` typespec
+    # omits it. Dialyzer warning suppressed in .dialyzer_ignore.exs.
     Logger.configure(level: :none)
     Output.send_response(packet, %GenDAP.Requests.DisconnectResponse{seq: 0, request_seq: 0})
 
@@ -628,8 +631,8 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   def handle_cast({event, pid}, state = %__MODULE__{})
       when event in [:breakpoint_reached, :paused] do
-    # when debugged pid exits we get another breakpoint reached message (at least on OTP 23)
-    # check if process is alive to not debug dead ones
+    # when debugged pid exits we may still receive a breakpoint reached
+    # message; check if process is alive to not debug dead ones
 
     alive? =
       try do
@@ -1853,13 +1856,14 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp maybe_continue_other_processes(state, _), do: state
 
-  # TODO consider removing this workaround as the problem seems to no longer affect OTP 24
+  # Defensive wrapper around :int actions. :int is finicky and can raise from
+  # internal pattern matches under various edge cases; if that happens we log
+  # and fall back to :continue so the debug session doesn't get wedged.
   defp safe_int_action(pid, action) do
     apply(:int, action, [pid])
     :ok
   catch
     kind, payload ->
-      # when stepping out of interpreted code a MatchError is risen inside :int module (at least in OTP 23)
       Output.debugger_important(
         ":int.#{action}(#{inspect(pid)}) failed: #{Exception.format(kind, payload)}"
       )
@@ -1958,8 +1962,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
   defp evaluate_code_expression(expr, binding, env_or_opts) do
     try do
-      # TODO use Code.env_for_eval when we require elixir 1.14
-      env = ElixirLS.DebugAdapter.Code.env_for_eval(env_or_opts)
+      env = Code.env_for_eval(env_or_opts)
       {term, _bindings} = Code.eval_string(expr, binding, env)
       term
     catch
@@ -2723,24 +2726,13 @@ defmodule ElixirLS.DebugAdapter.Server do
         end
       end)
 
-    if String.to_integer(System.otp_release()) >= 23 do
-      for {module_charlist, _beam_path, _loaded} <- :code.all_available(),
-          module = List.to_atom(module_charlist),
-          module_name = inspect(module),
-          Enum.any?(regexes, fn regex ->
-            Regex.match?(regex, module_name)
-          end) do
-        module
-      end
-    else
-      # TODO remove when we drop OTP 22 and elixir 1.13 support
-      ElixirSense.all_modules()
-      |> Enum.filter(fn module_name ->
-        Enum.find(regexes, fn regex ->
+    for {module_charlist, _beam_path, _loaded} <- :code.all_available(),
+        module = List.to_atom(module_charlist),
+        module_name = inspect(module),
+        Enum.any?(regexes, fn regex ->
           Regex.match?(regex, module_name)
-        end)
-      end)
-      |> Enum.map(fn module_name -> Module.concat(Elixir, module_name) end)
+        end) do
+      module
     end
     |> interpret_modules(exclude_module_pattern)
   end
@@ -2901,8 +2893,7 @@ defmodule ElixirLS.DebugAdapter.Server do
        }) do
     for line <- lines do
       {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
-      # TODO use Code.env_for_eval when we require elixir 1.14
-      env = ElixirLS.DebugAdapter.Code.env_for_eval(macro_env_or_opts)
+      env = Code.env_for_eval(macro_env_or_opts)
 
       case BreakpointCondition.register_condition(
              module,

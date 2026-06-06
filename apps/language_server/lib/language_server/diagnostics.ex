@@ -28,185 +28,33 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     diagnostic_fields = diagnostic |> Map.from_struct() |> Map.delete(:__struct__)
     normalized = struct(__MODULE__, diagnostic_fields) |> normalize_message()
 
-    if Version.match?(System.version(), ">= 1.16.0-dev") do
-      # don't include stacktrace in exceptions with position
-      message =
-        if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and
-             is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 and
-             elem(diagnostic.details, 0) in [:error, :throw, :exit] do
-          {kind, reason} = diagnostic.details
+    # don't include stacktrace in exceptions with position
+    message =
+      if diagnostic.file not in [nil, "nofile"] and diagnostic.position != 0 and
+           is_tuple(diagnostic.details) and tuple_size(diagnostic.details) == 2 and
+           elem(diagnostic.details, 0) in [:error, :throw, :exit] do
+        {kind, reason} = diagnostic.details
 
-          try do
-            Exception.format_banner(kind, reason)
-          rescue
-            _ ->
-              # we can't trust that details from external compilers will behave
-              diagnostic.message
-          end
-        else
-          diagnostic.message
+        try do
+          Exception.format_banner(kind, reason)
+        rescue
+          _ ->
+            # we can't trust that details from external compilers will behave
+            diagnostic.message
         end
-
-      {file, position} =
-        get_file_and_position_with_stacktrace_fallback(
-          {diagnostic.file, diagnostic.position},
-          Map.fetch!(diagnostic, :stacktrace),
-          root_path,
-          mixfile
-        )
-
-      %__MODULE__{normalized | message: message, file: file, position: position}
-    else
-      {_type, file, position, stacktrace} =
-        extract_message_info(diagnostic.message, root_path)
-
-      {file, position} =
-        get_file_and_position_with_stacktrace_fallback(
-          {file || diagnostic.file, position || diagnostic.position},
-          Map.get(diagnostic, :stacktrace, []),
-          root_path,
-          mixfile
-        )
-
-      normalized
-      |> maybe_update_file(file, mixfile)
-      |> maybe_update_position(position, stacktrace)
-    end
-  end
-
-  defp extract_message_info(diagnostic_message, root_path) do
-    {reversed_stacktrace, reversed_description} =
-      diagnostic_message
-      |> IO.chardata_to_string()
-      |> String.trim_trailing()
-      |> SourceFile.lines()
-      |> Enum.reverse()
-      |> Enum.split_while(&is_stack?/1)
-
-    message = reversed_description |> Enum.reverse() |> Enum.join("\n") |> String.trim()
-    stacktrace = reversed_stacktrace |> Enum.map(&String.trim/1) |> Enum.reverse()
-
-    {type, message_without_type} = split_type_and_message(message)
-    {file, position} = get_file_and_position(message_without_type, root_path)
-
-    {type, file, position, stacktrace}
-  end
-
-  defp maybe_update_file(diagnostic, path, mixfile) do
-    if path do
-      Map.put(diagnostic, :file, path)
-    else
-      if is_nil(diagnostic.file) do
-        Map.put(diagnostic, :file, mixfile)
       else
-        diagnostic
-      end
-    end
-  end
-
-  defp maybe_update_position(diagnostic, position, stacktrace) do
-    cond do
-      position != nil ->
-        %{diagnostic | position: position}
-
-      diagnostic.position ->
-        diagnostic
-
-      true ->
-        line = extract_line_from_stacktrace(diagnostic.file, stacktrace)
-        %{diagnostic | position: max(line, 0)}
-    end
-  end
-
-  defp split_type_and_message(message) do
-    case Regex.run(~r/^\*\* \(([\w\.]+?)?\) (.*)/su, message) do
-      [_, type, rest] ->
-        {type, rest}
-
-      _ ->
-        {nil, message}
-    end
-  end
-
-  defp get_file_and_position(message, root_path) do
-    # this regex won't match filenames with spaces
-    # the file name starts e.g.
-    # invalid syntax found on lib/template.eex:2:5:
-    file_position =
-      case Regex.run(~r/([^\s:]+):(\d+)(:(\d+))?/su, message) do
-        [_, file, line] -> {file, line, ""}
-        [_, file, line, _, column] -> {file, line, column}
-        _ -> nil
+        diagnostic.message
       end
 
-    with {file, line, column} <- file_position,
-         {:ok, path} <- file_path(file, root_path) do
-      line = String.to_integer(line)
+    {file, position} =
+      get_file_and_position_with_stacktrace_fallback(
+        {diagnostic.file, diagnostic.position},
+        Map.fetch!(diagnostic, :stacktrace),
+        root_path,
+        mixfile
+      )
 
-      position =
-        cond do
-          line == 0 -> 0
-          column == "" -> line
-          true -> {line, String.to_integer(column)}
-        end
-
-      {path, position}
-    else
-      _ ->
-        {nil, nil}
-    end
-  end
-
-  defp file_path(file, root_path) do
-    path = Path.join([root_path, file])
-
-    if File.exists?(path, [:raw]) do
-      {:ok, path}
-    else
-      file_path_in_umbrella(file, root_path)
-    end
-  end
-
-  defp file_path_in_umbrella(file, root_path) do
-    case [
-           SourceFile.Path.escape_for_wildcard(root_path),
-           "apps",
-           "*",
-           SourceFile.Path.escape_for_wildcard(file)
-         ]
-         |> Path.join()
-         |> Path.wildcard() do
-      [] ->
-        {:error, :file_not_found}
-
-      [path] ->
-        {:ok, path}
-
-      _ ->
-        {:error, :more_than_one_file_found}
-    end
-  end
-
-  defp is_stack?("    " <> str) do
-    Regex.match?(~r/.*\.(ex|erl):\d+: /u, str) ||
-      Regex.match?(~r/.*expanding macro: /u, str)
-  end
-
-  defp is_stack?(_) do
-    false
-  end
-
-  defp extract_line_from_stacktrace(file, stacktrace) do
-    Enum.find_value(stacktrace, fn stack_item ->
-      with [_, _, file_relative, line] <-
-             Regex.run(~r/(\(.+?\)\s+)?(.*\.ex):(\d+): /u, stack_item),
-           true <- String.ends_with?(file, file_relative) do
-        String.to_integer(line)
-      else
-        _ ->
-          nil
-      end
-    end)
+    %__MODULE__{normalized | message: message, file: file, position: position}
   end
 
   def from_kernel_parallel_compiler_tuple({file, position, message}, severity, fallback_file) do
@@ -243,11 +91,8 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       compiler_name: "Elixir",
       file: file,
       position: position,
-      # elixir >= 1.16
       span: diagnostic[:span],
-      # elixir >= 1.16
       details: diagnostic[:details],
-      # elixir >= 1.16
       source: diagnostic[:source],
       stacktrace: stacktrace,
       message: message,
@@ -350,6 +195,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       end
       |> Enum.sort_by(fn diag -> {diag.range.start.line, diag.range.start.character} end)
       |> Enum.dedup()
+      |> dedupe_overlapping_compiler_and_dialyzer()
 
     params = %GenLSP.Structures.PublishDiagnosticsParams{
       uri: uri,
@@ -368,6 +214,22 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
 
     JsonRpc.notify(notification)
+  end
+
+  # Since Elixir 1.20 the new set-theoretic type checker can emit warnings
+  # that overlap with Dialyzer's (e.g. "pattern can never match"). When a
+  # Dialyzer diagnostic at the same range exists, drop the Elixir-emitted
+  # duplicate so we do not report the same issue twice.
+  defp dedupe_overlapping_compiler_and_dialyzer(diagnostics) do
+    has_dialyzer_at = fn range ->
+      Enum.any?(diagnostics, fn d ->
+        d.source == "ElixirLS Dialyzer" and d.range == range
+      end)
+    end
+
+    Enum.reject(diagnostics, fn d ->
+      d.source == "Elixir" and has_dialyzer_at.(d.range)
+    end)
   end
 
   defp get_tags(diagnostic) do
@@ -501,35 +363,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           end
         end
 
-      # for backwards compatibility with elixir < 1.16
-      {:error, %kind{} = payload} when kind == MismatchedDelimiterError ->
-        [
-          %GenLSP.Structures.DiagnosticRelatedInformation{
-            location: %GenLSP.Structures.Location{
-              uri: uri,
-              range:
-                range(
-                  {payload.line, payload.column, payload.line,
-                   payload.column + String.length(to_string(payload.opening_delimiter))},
-                  source_file
-                )
-            },
-            message: "opening delimiter: #{payload.opening_delimiter}"
-          },
-          %GenLSP.Structures.DiagnosticRelatedInformation{
-            location: %GenLSP.Structures.Location{
-              uri: uri,
-              range:
-                range(
-                  {payload.end_line, payload.end_column, payload.end_line,
-                   payload.end_column + String.length(to_string(payload.closing_delimiter))},
-                  source_file
-                )
-            },
-            message: "closing delimiter: #{payload.closing_delimiter}"
-          }
-        ]
-
       {:error, %kind{opening_delimiter: opening_delimiter} = payload}
       when kind == TokenMissingError and not is_nil(opening_delimiter) ->
         [
@@ -565,7 +398,6 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
           get_related_information_message(diagnostic.message, uri, source_file)
 
       _ ->
-        # elixir < 1.16 and other errors on 1.16
         get_related_information_message(diagnostic.message, uri, source_file)
     end
   end
@@ -576,13 +408,13 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
          details: %kind{closing_delimiter: closing_delimiter}
        })
        when kind == MismatchedDelimiterError do
-    # convert to pre 1.16 4-tuple
+    # convert to 4-tuple
     # include mismatched delimiter in range
     {start_line, start_column, end_line, end_column + String.length(to_string(closing_delimiter))}
   end
 
   defp normalize_position(%{position: {start_line, start_column}, span: {end_line, end_column}}) do
-    # convert to pre 1.16 4-tuple
+    # convert to 4-tuple
     {start_line, start_column, end_line, end_column}
   end
 
@@ -722,7 +554,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp get_line_span_from_stacktrace_info(info, file, project_dir) do
     info_file = Keyword.get(info, :file)
 
-    if info_file != nil and SourceFile.Path.absname(info_file, project_dir) == file do
+    if info_file != nil and Path.absname(info_file, project_dir) == file do
       {Keyword.get(info, :line), nil}
     else
       {nil, nil}
@@ -734,7 +566,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
   defp get_file_position_from_stacktrace(stacktrace, project_dir) do
     Enum.find_value(stacktrace, fn {_, _, _, info} ->
       if info_file = Keyword.get(info, :file) do
-        info_file = SourceFile.Path.absname(info_file, project_dir)
+        info_file = Path.absname(info_file, project_dir)
 
         if SourceFile.Path.path_in_dir?(info_file, project_dir) and
              File.exists?(info_file, [:raw]) do
@@ -750,7 +582,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     Enum.find_value(stacktrace, 0, fn {_, _, _, info} ->
       info_file = Keyword.get(info, :file)
 
-      if info_file != nil and SourceFile.Path.absname(info_file, project_dir) == file do
+      if info_file != nil and Path.absname(info_file, project_dir) == file do
         Keyword.get(info, :line)
       end
     end)

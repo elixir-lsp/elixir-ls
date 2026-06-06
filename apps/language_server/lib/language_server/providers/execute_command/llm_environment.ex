@@ -12,7 +12,6 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
   """
 
   alias ElixirSense.Core.{Metadata, Parser, State}
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirLS.LanguageServer.SourceFile
 
   require Logger
@@ -98,7 +97,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
         metadata = Parser.parse_string(text, true, false, {line, column})
 
         # Get context at cursor
-        context = NormalizedCode.Fragment.surround_context(text, {line, column})
+        context = Code.Fragment.surround_context(text, {line, column})
 
         # Get environment
         env =

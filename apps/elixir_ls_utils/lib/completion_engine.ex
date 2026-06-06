@@ -61,7 +61,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
   alias ElixirSense.Core.TypeInfo
 
   alias ElixirLS.Utils.Matcher
-  require Logger
 
   @module_results_cache_key :"#{__MODULE__}_module_results_cache"
 
@@ -131,7 +130,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   def do_expand(code, %State.Env{} = env, %Metadata{} = metadata, cursor_position, opts \\ []) do
-    case NormalizedCode.Fragment.cursor_context(code) do
+    case Code.Fragment.cursor_context(code) do
       {:alias, hint} when is_list(hint) ->
         expand_aliases(List.to_string(hint), env, metadata, cursor_position, false, opts)
 
@@ -226,19 +225,15 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:struct, struct} when is_list(struct) ->
         expand_aliases(List.to_string(struct), env, metadata, cursor_position, true, opts)
 
-      # elixir >= 1.14
       {:struct, {:alias, prefix, hint}} ->
         expand_prefixed_aliases(prefix, hint, env, metadata, cursor_position, true)
 
-      # elixir >= 1.14
       {:struct, {:dot, path, hint}} ->
         expand_dot(path, List.to_string(hint), false, env, metadata, cursor_position, true, opts)
 
-      # elixir >= 1.14
       {:struct, {:module_attribute, attribute}} ->
         expand_attribute(List.to_string(attribute), env, metadata)
 
-      # elixir >= 1.14
       {:struct, {:local_or_var, local_or_var}} ->
         # TODO consider suggesting struct fields here when we require elixir 1.13
         # expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
@@ -247,7 +242,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
       {:module_attribute, attribute} ->
         expand_attribute(List.to_string(attribute), env, metadata)
 
-      # elixir >= 1.16
       {:anonymous_call, _} ->
         expand_expr(env, metadata, cursor_position, opts)
 
@@ -296,7 +290,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # elixir >= 1.14
   defp expand_dot_path(
          {:var, ~c"__MODULE__"},
          %State.Env{} = env,
@@ -337,7 +330,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # elixir >= 1.14
   defp expand_dot_path(
          {:alias, {:local_or_var, var}, hint},
          %State.Env{} = env,
@@ -422,7 +414,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  # elixir >= 1.15
   defp expand_dot_path(:expr, %State.Env{} = _env, %Metadata{} = _metadata, _cursor_position) do
     # TODO expand expression
     :error
@@ -571,7 +562,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           # include module attributes in module scope
           attribute_names ++ BuiltinAttributes.all()
 
-        _ ->
+        %State.Env{} ->
           []
       end
 
@@ -897,15 +888,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp unquoted_atom_or_identifier?(atom) when is_atom(atom) do
-    # Version.match? is slow, we need to avoid it in a hot loop
-    # TODO remove this when we require elixir 1.14
-    # Macro.classify_atom/1 was introduced in 1.14.0. If it's not available,
-    # assume we're on an older version and fall back to a private API.
-    if function_exported?(Macro, :classify_atom, 1) do
-      apply(Macro, :classify_atom, [atom]) in [:identifier, :unquoted]
-    else
-      apply(Code.Identifier, :classify, [atom]) != :other
-    end
+    Macro.classify_atom(atom) in [:identifier, :unquoted]
   end
 
   defp match_elixir_modules_that_require_alias(
@@ -1005,7 +988,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp get_modules(false, %State.Env{} = env, %Metadata{} = metadata) do
-    # TODO consider changing this to :code.all_available when otp 23 (and elixir 1.14) is required
     modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
 
     # TODO it seems we only run in interactive mode - remove the check?

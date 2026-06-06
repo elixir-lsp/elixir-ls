@@ -15,13 +15,19 @@ defmodule ElixirLS.LanguageServer.MixProject do
     [
       app: :language_server,
       version: @version,
-      elixir: ">= 1.15.0",
+      elixir: ">= 1.16.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
       aliases: aliases(),
       elixirc_paths: elixirc_paths(Mix.env()),
+      elixirc_options: [
+        no_warn_undefined: [
+          {Mix.Dep, :load_on_environment, 1},
+          Phoenix.LiveView.Tokenizer.ParseError
+        ]
+      ],
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,

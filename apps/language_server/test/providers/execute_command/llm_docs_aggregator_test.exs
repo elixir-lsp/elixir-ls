@@ -173,42 +173,38 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregatorTest
       assert arity_3_result.arity == 3
     end
 
-    if Version.match?(System.version(), ">= 1.15.0") do
-      test "handles type documentation with arity" do
-        modules = ["Enumerable.t/0"]
+    test "handles type documentation with arity" do
+      modules = ["Enumerable.t/0"]
 
-        assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
 
-        assert Map.has_key?(result, :results)
-        assert length(result.results) == 1
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 1
 
-        result = hd(result.results)
-        assert result.module == "Enumerable"
-        assert result.type == "t"
-        assert result.arity == 0
-        assert result.documentation =~ "All the types that implement this protocol"
-      end
+      result = hd(result.results)
+      assert result.module == "Enumerable"
+      assert result.type == "t"
+      assert result.arity == 0
+      assert result.documentation =~ "All the types that implement this protocol"
     end
 
-    if Version.match?(System.version(), ">= 1.15.0") do
-      test "handles type documentation without arity" do
-        modules = ["Enumerable.t"]
+    test "handles type documentation without arity" do
+      modules = ["Enumerable.t"]
 
-        assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
+      assert {:ok, result} = LlmDocsAggregator.execute([modules], %{})
 
-        assert Map.has_key?(result, :results)
-        assert length(result.results) == 2
+      assert Map.has_key?(result, :results)
+      assert length(result.results) == 2
 
-        arity_0_result = result.results |> Enum.find(&(&1.arity == 0))
-        assert arity_0_result.module == "Enumerable"
-        assert arity_0_result.type == "t"
-        assert arity_0_result.documentation =~ "All the types that implement this protocol"
+      arity_0_result = result.results |> Enum.find(&(&1.arity == 0))
+      assert arity_0_result.module == "Enumerable"
+      assert arity_0_result.type == "t"
+      assert arity_0_result.documentation =~ "All the types that implement this protocol"
 
-        arity_1_result = result.results |> Enum.find(&(&1.arity == 1))
-        assert arity_1_result.module == "Enumerable"
-        assert arity_1_result.type == "t"
-        assert arity_1_result.documentation =~ "An enumerable of elements of type `element`"
-      end
+      arity_1_result = result.results |> Enum.find(&(&1.arity == 1))
+      assert arity_1_result.module == "Enumerable"
+      assert arity_1_result.type == "t"
+      assert arity_1_result.documentation =~ "An enumerable of elements of type `element`"
     end
 
     test "handles callback documentation with arity" do

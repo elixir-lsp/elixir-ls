@@ -10,7 +10,6 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.Locator do
   alias ElixirSense.Core.Binding
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.Metadata
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.State
   alias ElixirLS.LanguageServer.Location
   alias ElixirSense.Core.Parser
@@ -28,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.Locator do
   Returns either a single `%Location{}` or a list of locations if multiple declarations are found.
   """
   def declaration(code, line, column, options \\ []) do
-    case NormalizedCode.Fragment.surround_context(code, {line, column}) do
+    case Code.Fragment.surround_context(code, {line, column}) do
       :none ->
         nil
 

@@ -19,7 +19,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: ">= 1.13.0",
+      elixir: ">= 1.16.0",
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,
@@ -28,7 +28,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
       # and debugged protocol implementation will not be available
       consolidate_protocols: false,
       deps: deps(),
-      xref: [exclude: [:int, :dbg_iserver]]
+      elixirc_options: [no_warn_undefined: [:int, :dbg_iserver]]
     ]
   end
 

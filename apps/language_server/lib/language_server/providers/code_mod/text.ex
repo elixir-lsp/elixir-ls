@@ -1,16 +1,16 @@
 defmodule ElixirLS.LanguageServer.Providers.CodeMod.Text do
   @spec leading_indent(String.t()) :: String.t()
   def leading_indent(line_text) do
-    case Regex.scan(~r/^\s+/, line_text) do
-      [indent] -> indent
+    case Regex.run(~r/^\s+/, line_text) do
+      [indent] when is_binary(indent) -> indent
       _ -> ""
     end
   end
 
   @spec trailing_comment(String.t()) :: String.t()
   def trailing_comment(line_text) do
-    case Regex.scan(~r/\s*#.*/, line_text) do
-      [comment] -> comment
+    case Regex.run(~r/\s*#.*/, line_text) do
+      [comment] when is_binary(comment) -> comment
       _ -> ""
     end
   end

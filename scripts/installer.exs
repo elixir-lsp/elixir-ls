@@ -63,15 +63,13 @@ defmodule ElixirLS.Mix do
 
   # This is a forked version of Mix.install from Elixir's lib/mix/lib/mix.ex
   # Originally forked from commit c521bdb91a77b36be16fdf18d632ad7719de4f91
-  # Updated with upstream changes through the current Elixir version
-  # Includes custom option :stop_started_applications to prevent stopping hex app
+  # Synced through Elixir 1.20 (Mix.install changes from commits up to 71a8f5352).
+  # The Hex/SSL apps started during deps resolution are NOT stopped after install
+  # because the launch script reuses Hex for follow-up operations (matches the
+  # upstream `:stop_unused_applications` option added in 1.20).
   #
-  # Backward compatibility: Supports Elixir 1.13+
-  # Features gated by Version.match? checks:
-  # - Keyword.validate! for option validation (Elixir 1.13+, uses function_exported?)
-  # - Mix.Dep.Lock.read/1 and write/2 for external lockfile (Elixir 1.14+)
-  # - Mix.Task.clear/0 for task cleanup (Elixir 1.14+)
-  # - MIX_INSTALL_RESTORE_PROJECT_DIR support (Elixir 1.16.2+)
+  # Requires Elixir 1.16+ (matching the minimum supported by the language
+  # server). Gates remain only for features added after 1.16:
   # - Shorter install directory paths ex-X-erl-Y (Elixir 1.19+)
   # - Cache ID encoding with url_encode64 (Elixir 1.19+)
   #
@@ -288,37 +286,28 @@ defmodule ElixirLS.Mix do
           other
       end)
 
-    # Use Keyword.validate! if available (Elixir 1.13+), otherwise manual validation
     opts =
-      if function_exported?(Keyword, :validate!, 2) do
-        Keyword.validate!(opts,
-          config: [],
-          config_path: nil,
-          consolidate_protocols: true,
-          compilers: [:elixir],
-          elixir: nil,
-          force: false,
-          lockfile: nil,
-          runtime_config: [],
-          start_applications: true,
-          # custom elixirLS option
-          stop_started_applications: true,
-          system_env: [],
-          verbose: false
-        )
-      else
-        # Fallback for older Elixir versions
-        opts
-      end
+      Keyword.validate!(opts,
+        config: [],
+        config_path: nil,
+        consolidate_protocols: true,
+        compilers: [:elixir],
+        elixir: nil,
+        force: false,
+        lockfile: nil,
+        runtime_config: [],
+        start_applications: true,
+        stop_unused_applications: true,
+        system_env: [],
+        verbose: false
+      )
 
     config_path = expand_path(opts[:config_path], deps, :config_path, "config/config.exs")
-    config = Keyword.get(opts, :config, [])
-    system_env = Keyword.get(opts, :system_env, [])
-    consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
-    start_applications? = Keyword.get(opts, :start_applications, true)
-    compilers = Keyword.get(opts, :compilers, [:elixir])
-    # custom elixirLS option
-    stop_started_applications? = Keyword.get(opts, :stop_started_applications, true)
+    config = Keyword.fetch!(opts, :config)
+    system_env = Keyword.fetch!(opts, :system_env)
+    consolidate_protocols? = Keyword.fetch!(opts, :consolidate_protocols)
+    start_applications? = Keyword.fetch!(opts, :start_applications)
+    compilers = Keyword.fetch!(opts, :compilers)
 
     id =
       if Version.match?(System.version(), ">= 1.19.0-dev") do
@@ -333,15 +322,14 @@ defmodule ElixirLS.Mix do
         |> Base.encode16(case: :lower)
       end
 
-    force? =
-      System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or Keyword.get(opts, :force, false)
+    force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or Keyword.fetch!(opts, :force)
 
     case Mix.State.get(:installed) do
       nil ->
         System.put_env(system_env)
         install_project_dir = install_dir(id)
 
-        if Keyword.get(opts, :verbose, false) do
+        if Keyword.fetch!(opts, :verbose) do
           Mix.shell().info("Mix.install/2 using #{install_project_dir}")
         end
 
@@ -370,11 +358,7 @@ defmodule ElixirLS.Mix do
         try do
           first_build? = not File.dir?(build_dir)
 
-          # MIX_INSTALL_RESTORE_PROJECT_DIR support (Elixir 1.16.2+)
-          restore_dir =
-            if Version.match?(System.version(), ">= 1.16.2-dev") do
-              System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
-            end
+          restore_dir = System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
 
           if first_build? and restore_dir != nil and not force? do
             File.cp_r(restore_dir, install_project_dir)
@@ -386,10 +370,7 @@ defmodule ElixirLS.Mix do
           File.cd!(install_project_dir, fn ->
             # This step needs to be mirrored in mix deps.partition
             Application.put_all_env(config, persistent: true)
-
-            if config_path do
-              Mix.Task.rerun("loadconfig")
-            end
+            Mix.Task.rerun("loadconfig")
 
             cond do
               external_lockfile ->
@@ -404,23 +385,12 @@ defmodule ElixirLS.Mix do
                 new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
                 if old_md5 != new_md5 do
-                  # Mix.Dep.Lock.read/1 and write/2 were added in Elixir 1.14
-                  if Version.match?(System.version(), ">= 1.14.0-dev") do
-                    lockfile = Path.join(install_project_dir, "mix.lock")
-                    old_lock = Mix.Dep.Lock.read(lockfile)
-                    new_lock = Mix.Dep.Lock.read(external_lockfile)
-                    Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
-                    File.write!(md5_path, Base.encode64(new_md5))
-                    Mix.Task.rerun("deps.get")
-                  else
-                    IO.puts(
-                      :stderr,
-                      "External lockfile support requires Elixir 1.14+. " <>
-                        "Please upgrade or remove the :lockfile option from Mix.install/2"
-                    )
-
-                    System.halt(1)
-                  end
+                  lockfile = Path.join(install_project_dir, "mix.lock")
+                  old_lock = Mix.Dep.Lock.read(lockfile)
+                  new_lock = Mix.Dep.Lock.read(external_lockfile)
+                  Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
+                  File.write!(md5_path, Base.encode64(new_md5))
+                  Mix.Task.rerun("deps.get")
                 end
 
               first_build? ->
@@ -437,7 +407,7 @@ defmodule ElixirLS.Mix do
 
             # Hex and SSL can use a good amount of memory after the registry fetching,
             # so we stop any app started during deps resolution.
-            if stop_started_applications? do
+            if Keyword.fetch!(opts, :stop_unused_applications) do
               stop_apps(Application.started_applications() -- started_apps)
             end
 
@@ -466,10 +436,8 @@ defmodule ElixirLS.Mix do
           # Clear all tasks invoked during installation, since there
           # is no reason to keep this in memory. Additionally this
           # allows us to rerun tasks for the dependencies later on,
-          # such as recompilation (available in Elixir 1.14+)
-          if Version.match?(System.version(), ">= 1.14.0-dev") do
-            Mix.Task.clear()
-          end
+          # such as recompilation
+          Mix.Task.clear()
         end
 
       {^id, _dynamic_config} when not force? ->
@@ -602,7 +570,7 @@ defmodule ElixirLS.Installer do
       ],
       force: force?,
       start_applications: false,
-      stop_started_applications: false,
+      stop_unused_applications: false,
       consolidate_protocols: false,
       config_path: Path.join(dir, "config/config.exs"),
       lockfile: Path.join(dir, "mix.lock")
@@ -616,7 +584,7 @@ defmodule ElixirLS.Installer do
       ],
       force: force?,
       start_applications: false,
-      stop_started_applications: false,
+      stop_unused_applications: false,
       consolidate_protocols: false
     )
   end

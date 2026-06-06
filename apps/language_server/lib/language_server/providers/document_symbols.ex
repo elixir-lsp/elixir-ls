@@ -43,7 +43,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   # Identify and extract the module symbol, and the symbols contained within the module
-  defp extract_modules({:__block__, [], ast}) do
+  defp extract_modules({:__block__, _, ast}) do
     ast |> Enum.map(&extract_modules(&1)) |> List.flatten()
   end
 
@@ -98,7 +98,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
       mod_defns =
         case module_body do
-          {:__block__, [], mod_defns} -> mod_defns
+          {:__block__, _, mod_defns} -> mod_defns
           stmt -> [stmt]
         end
 
@@ -167,7 +167,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
   # Types
   defp extract_symbol(_current_module, {:@, location, [{type_kind, _, type_expression}]})
-       when type_kind in [:type, :typep, :opaque, :callback, :macrocallback] and
+       when type_kind in [:type, :typep, :opaque, :nominal, :callback, :macrocallback] and
               not is_nil(type_expression) do
     type_name_location =
       case type_expression do
@@ -187,7 +187,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     if type_name_location do
       {{name, args}, type_head_location} = type_name_location
 
-      type = if type_kind in [:type, :typep, :opaque], do: :class, else: :event
+      type = if type_kind in [:type, :typep, :opaque, :nominal], do: :class, else: :event
 
       name_str =
         try do
@@ -330,7 +330,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   defp extract_symbol(current_module, {:describe, location, [name | [[do: module_body]]]}) do
     mod_defns =
       case module_body do
-        {:__block__, [], mod_defns} -> mod_defns
+        {:__block__, _, mod_defns} -> mod_defns
         stmt -> [stmt]
       end
 

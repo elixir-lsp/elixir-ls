@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   alias ElixirSense.Core.BuiltinTypes
   alias ElixirSense.Core.BuiltinAttributes
   alias ElixirSense.Core.TypeInfo
-  require ElixirSense.Core.Introspection, as: Introspection
+  alias ElixirSense.Core.Introspection
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
   alias ElixirLS.LanguageServer.MarkdownUtils
 
@@ -599,31 +599,25 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   end
 
   defp get_type_specs(module, type, arity) do
-    case Typespec.get_types(module) do
-      types when is_list(types) ->
-        types
-        |> Enum.filter(fn
-          {kind, {^type, _, args}} when kind in [:type, :opaque] ->
-            arity == nil or length(args) == arity
-
-          _ ->
-            false
-        end)
-        |> Enum.map(fn {kind, {name, _, args}} = typedef ->
-          spec =
-            try do
-              TypeInfo.format_type_spec(typedef, line_length: 75)
-            catch
-              _ -> "@#{kind} #{name}/#{length(args)}"
-            end
-
-          {{name, length(args)}, spec}
-        end)
-        |> Map.new()
+    Typespec.get_types(module)
+    |> Enum.filter(fn
+      {kind, {^type, _, args}} when kind in [:type, :opaque, :nominal] ->
+        arity == nil or length(args) == arity
 
       _ ->
-        %{}
-    end
+        false
+    end)
+    |> Enum.map(fn {kind, {name, _, args}} = typedef ->
+      spec =
+        try do
+          TypeInfo.format_type_spec(typedef, line_length: 75)
+        catch
+          _ -> "@#{kind} #{name}/#{length(args)}"
+        end
+
+      {{name, length(args)}, spec}
+    end)
+    |> Map.new()
   end
 
   defp format_function_signature(module, name, arity, metadata) do

@@ -6,16 +6,15 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Elixir versions to test (use available Docker tags)
+# Elixir versions to test (use available Docker tags).
+# ElixirLS requires Elixir 1.16+ so we only smoke-test versions from that point.
 VERSIONS=(
-  "1.13"
-  "1.14"
-  "1.15"
   "1.16"
   "1.17"
   "1.18"
   "1.19"
-  # "latest"  # Currently 1.17.x or 1.18.x
+  "1.20"
+  # "latest"
 )
 
 FAILED_VERSIONS=()

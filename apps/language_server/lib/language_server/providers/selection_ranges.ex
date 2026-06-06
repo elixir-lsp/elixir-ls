@@ -21,7 +21,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   alias ElixirLS.LanguageServer.Providers.FoldingRange
   import ElixirLS.LanguageServer.RangeUtils
   alias ElixirLS.LanguageServer.AstUtils
-  alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
 
   defp token_length(:end), do: 3
   defp token_length(token) when token in [:"(", :"[", :"{", :")", :"]", :"}"], do: 1
@@ -419,9 +418,10 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
                 {_, meta, _} ->
                   parens_ranges =
                     for {:parens, parens_meta} <- meta,
+                        parens_meta_closing = Keyword.get(parens_meta, :closing),
+                        parens_meta_closing != nil,
                         parens_start_line = Keyword.fetch!(parens_meta, :line) - 1,
                         parens_start_character = Keyword.fetch!(parens_meta, :column) - 1,
-                        parens_meta_closing = Keyword.fetch!(parens_meta, :closing),
                         parens_end_line = Keyword.fetch!(parens_meta_closing, :line) - 1,
                         parens_end_character = Keyword.fetch!(parens_meta_closing, :column),
                         (parens_start_line < line or
@@ -488,7 +488,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   def ast_node_ranges(_, _, _, _), do: []
 
   def surround_context_ranges(text, line, character) do
-    case NormalizedCode.Fragment.surround_context(text, {line + 1, character + 1}) do
+    case Code.Fragment.surround_context(text, {line + 1, character + 1}) do
       :none ->
         []
 

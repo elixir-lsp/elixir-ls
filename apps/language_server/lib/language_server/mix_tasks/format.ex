@@ -23,7 +23,6 @@
 
 defmodule Mix.Tasks.ElixirLSFormat do
   use Mix.Task
-  alias ElixirLS.LanguageServer.SourceFile
 
   @shortdoc "Formats the given files/patterns"
 
@@ -440,7 +439,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
     formatter_opts_and_subs = load_plugins(formatter_opts_and_subs, opts)
 
     find_formatter_and_opts_for_file(
-      SourceFile.Path.expand(file, cwd),
+      Path.expand(file, cwd),
       cwd,
       formatter_opts_and_subs
     )
@@ -572,7 +571,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
   defp eval_subs_opts(subs, cwd, sources, opts) do
     {subs, sources} =
       Enum.flat_map_reduce(subs, sources, fn sub, sources ->
-        cwd = SourceFile.Path.expand(sub, cwd)
+        cwd = Path.expand(sub, cwd)
         {Path.wildcard(cwd), [Path.join(cwd, ".formatter.exs") | sources]}
       end)
 
@@ -652,7 +651,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
     for file <- files do
       if file == :stdin do
         stdin_filename =
-          SourceFile.Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
+          Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
 
         {formatter, _opts} =
           find_formatter_and_opts_for_file(stdin_filename, cwd, {formatter_opts, subs})
@@ -673,12 +672,12 @@ defmodule Mix.Tasks.ElixirLSFormat do
     excluded_files =
       formatter_opts[:excludes]
       |> List.wrap()
-      |> Enum.flat_map(&Path.wildcard(SourceFile.Path.expand(&1, cwd), match_dot: true))
+      |> Enum.flat_map(&Path.wildcard(Path.expand(&1, cwd), match_dot: true))
       |> MapSet.new()
 
     map =
       for input <- List.wrap(formatter_opts[:inputs]),
-          file <- Path.wildcard(SourceFile.Path.expand(input, cwd), match_dot: true),
+          file <- Path.wildcard(Path.expand(input, cwd), match_dot: true),
           file not in excluded_files,
           do: {file, {dot_formatter, formatter_opts}},
           into: %{}
@@ -761,7 +760,7 @@ defmodule Mix.Tasks.ElixirLSFormat do
   defp stdin_or_wildcard(path),
     do:
       path
-      |> SourceFile.Path.expand()
+      |> Path.expand()
       |> Path.wildcard(match_dot: true)
       |> Enum.filter(&File.regular?/1)
 
