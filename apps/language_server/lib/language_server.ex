@@ -30,8 +30,8 @@ defmodule ElixirLS.LanguageServer do
         metadata: []
       )
 
-      {:ok, _} = Logger.add_backend(Logger.Backends.JsonRpc)
-      :ok = Logger.remove_backend(:console, flush: true)
+      {:ok, _} = apply(Logger, :add_backend, [Logger.Backends.JsonRpc])
+      :ok = apply(Logger, :remove_backend, [:console, [flush: true]])
     end
 
     Launch.start_mix()

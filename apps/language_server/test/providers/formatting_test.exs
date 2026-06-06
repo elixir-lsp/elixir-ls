@@ -274,16 +274,11 @@ defmodule ElixirLS.LanguageServer.Providers.FormattingTest do
 
       assert {:ok, changes} = Formatting.format(source_file, uri, project_dir, true)
 
-      assert changes == [
-               %TextEdit{
-                 new_text: ")",
-                 range: range(7, 2, 7, 2)
-               },
-               %TextEdit{
-                 new_text: "(",
-                 range: range(4, 15, 4, 20)
-               }
-             ]
+      # Since Elixir 1.20, a bare \r line break inside a string literal is
+      # treated as a syntax error. The formatter
+      # therefore cannot parse the input and returns no edits instead of
+      # rewriting it.
+      assert changes == []
 
       assert Enum.all?(changes, fn change ->
                assert_position_type(change.range.end) and

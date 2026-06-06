@@ -28,7 +28,7 @@ defmodule ElixirLS.DebugAdapter.MixProject do
       # and debugged protocol implementation will not be available
       consolidate_protocols: false,
       deps: deps(),
-      xref: [exclude: [:int, :dbg_iserver]]
+      elixirc_options: [no_warn_undefined: [:int, :dbg_iserver]]
     ]
   end
 

@@ -4,7 +4,6 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
   """
 
   use GenServer
-  require Logger
 
   alias ElixirLS.LanguageServer.MCP.RequestHandler
 

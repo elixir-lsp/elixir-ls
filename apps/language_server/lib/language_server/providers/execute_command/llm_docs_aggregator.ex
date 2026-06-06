@@ -13,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
   alias ElixirSense.Core.BuiltinTypes
   alias ElixirSense.Core.BuiltinAttributes
   alias ElixirSense.Core.TypeInfo
-  require ElixirSense.Core.Introspection, as: Introspection
+  alias ElixirSense.Core.Introspection
   alias ElixirLS.LanguageServer.Providers.ExecuteCommand.LLM.SymbolParser
   alias ElixirLS.LanguageServer.MarkdownUtils
 

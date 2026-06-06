@@ -22,6 +22,13 @@ defmodule ElixirLS.LanguageServer.MixProject do
       lockfile: "../../mix.lock",
       aliases: aliases(),
       elixirc_paths: elixirc_paths(Mix.env()),
+      elixirc_options: [
+        no_warn_undefined: [
+          {:dialyzer_plt, :from_file, 1},
+          {Mix.Dep, :load_on_environment, 1},
+          Phoenix.LiveView.Tokenizer.ParseError
+        ]
+      ],
       build_embedded: false,
       start_permanent: true,
       build_per_environment: false,

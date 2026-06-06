@@ -67,7 +67,26 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         "incrementalDialyzer" => false
       })
 
-      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      wait_for_dialyzer_diagnostics = fn ->
+        Enum.reduce_while(1..20, nil, fn _, _ ->
+          receive do
+            %{
+              "method" => "textDocument/publishDiagnostics",
+              "params" => %{"diagnostics" => diags}
+            } = msg ->
+              if Enum.any?(diags, &(&1["source"] == "ElixirLS Dialyzer")) do
+                {:halt, msg}
+              else
+                {:cont, nil}
+              end
+          after
+            20000 -> {:halt, nil}
+          end
+        end)
+      end
+
+      message = wait_for_dialyzer_diagnostics.()
+      assert message, "no dialyzer diagnostics received"
 
       assert publish_diagnostics_notif(^file_a, [
                %{
@@ -186,7 +205,26 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         "incrementalDialyzer" => false
       })
 
-      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      wait_for_dialyzer_diagnostics = fn ->
+        Enum.reduce_while(1..20, nil, fn _, _ ->
+          receive do
+            %{
+              "method" => "textDocument/publishDiagnostics",
+              "params" => %{"diagnostics" => diags}
+            } = msg ->
+              if Enum.any?(diags, &(&1["source"] == "ElixirLS Dialyzer")) do
+                {:halt, msg}
+              else
+                {:cont, nil}
+              end
+          after
+            20000 -> {:halt, nil}
+          end
+        end)
+      end
+
+      message = wait_for_dialyzer_diagnostics.()
+      assert message, "no dialyzer diagnostics received"
 
       assert publish_diagnostics_notif(^file_a, [
                %{
@@ -232,7 +270,26 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         "incrementalDialyzer" => false
       })
 
-      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      wait_for_dialyzer_diagnostics = fn ->
+        Enum.reduce_while(1..20, nil, fn _, _ ->
+          receive do
+            %{
+              "method" => "textDocument/publishDiagnostics",
+              "params" => %{"diagnostics" => diags}
+            } = msg ->
+              if Enum.any?(diags, &(&1["source"] == "ElixirLS Dialyzer")) do
+                {:halt, msg}
+              else
+                {:cont, nil}
+              end
+          after
+            20000 -> {:halt, nil}
+          end
+        end)
+      end
+
+      message = wait_for_dialyzer_diagnostics.()
+      assert message, "no dialyzer diagnostics received"
 
       assert publish_diagnostics_notif(^file_a, [
                %{
@@ -277,7 +334,26 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         "incrementalDialyzer" => false
       })
 
-      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      wait_for_dialyzer_diagnostics = fn ->
+        Enum.reduce_while(1..20, nil, fn _, _ ->
+          receive do
+            %{
+              "method" => "textDocument/publishDiagnostics",
+              "params" => %{"diagnostics" => diags}
+            } = msg ->
+              if Enum.any?(diags, &(&1["source"] == "ElixirLS Dialyzer")) do
+                {:halt, msg}
+              else
+                {:cont, nil}
+              end
+          after
+            20000 -> {:halt, nil}
+          end
+        end)
+      end
+
+      message = wait_for_dialyzer_diagnostics.()
+      assert message, "no dialyzer diagnostics received"
 
       assert publish_diagnostics_notif(^file_a, [
                %{
@@ -318,7 +394,26 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         "incrementalDialyzer" => false
       })
 
-      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      wait_for_dialyzer_diagnostics = fn ->
+        Enum.reduce_while(1..20, nil, fn _, _ ->
+          receive do
+            %{
+              "method" => "textDocument/publishDiagnostics",
+              "params" => %{"diagnostics" => diags}
+            } = msg ->
+              if Enum.any?(diags, &(&1["source"] == "ElixirLS Dialyzer")) do
+                {:halt, msg}
+              else
+                {:cont, nil}
+              end
+          after
+            20000 -> {:halt, nil}
+          end
+        end)
+      end
+
+      message = wait_for_dialyzer_diagnostics.()
+      assert message, "no dialyzer diagnostics received"
 
       assert publish_diagnostics_notif(^file_a, [
                %{
@@ -380,7 +475,26 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         "incrementalDialyzer" => false
       })
 
-      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      wait_for_dialyzer_diagnostics = fn ->
+        Enum.reduce_while(1..20, nil, fn _, _ ->
+          receive do
+            %{
+              "method" => "textDocument/publishDiagnostics",
+              "params" => %{"diagnostics" => diags}
+            } = msg ->
+              if Enum.any?(diags, &(&1["source"] == "ElixirLS Dialyzer")) do
+                {:halt, msg}
+              else
+                {:cont, nil}
+              end
+          after
+            20000 -> {:halt, nil}
+          end
+        end)
+      end
+
+      message = wait_for_dialyzer_diagnostics.()
+      assert message, "no dialyzer diagnostics received"
 
       assert publish_diagnostics_notif(_, _) = message
 
@@ -413,7 +527,26 @@ defmodule ElixirLS.LanguageServer.DialyzerTest do
         "incrementalDialyzer" => false
       })
 
-      message = assert_receive %{"method" => "textDocument/publishDiagnostics"}, 20000
+      wait_for_dialyzer_diagnostics = fn ->
+        Enum.reduce_while(1..20, nil, fn _, _ ->
+          receive do
+            %{
+              "method" => "textDocument/publishDiagnostics",
+              "params" => %{"diagnostics" => diags}
+            } = msg ->
+              if Enum.any?(diags, &(&1["source"] == "ElixirLS Dialyzer")) do
+                {:halt, msg}
+              else
+                {:cont, nil}
+              end
+          after
+            20000 -> {:halt, nil}
+          end
+        end)
+      end
+
+      message = wait_for_dialyzer_diagnostics.()
+      assert message, "no dialyzer diagnostics received"
 
       assert publish_diagnostics_notif(_, _) = message
 

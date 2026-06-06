@@ -487,6 +487,14 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   def get_module_docs(mod) when is_atom(mod) do
     case NormalizedCode.get_docs(mod, :moduledoc) do
       {_line, text, metadata} ->
+        # OTP 28+ docs chunks may not include :app, fall back to introspection
+        metadata =
+          if Map.get(metadata, :app) do
+            metadata
+          else
+            Map.put(metadata, :app, get_application_with_fallback(mod))
+          end
+
         %{
           kind: :module,
           module: mod,
@@ -549,6 +557,14 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
               ) do
             fun_args_text =
               Introspection.get_fun_args_from_doc_or_typespec(mod, f, arity, args, metadata)
+
+            # OTP 28+ docs chunks may not include :app, fall back to introspection
+            metadata =
+              if Map.get(metadata, :app) do
+                metadata
+              else
+                Map.put(metadata, :app, get_application_with_fallback(mod))
+              end
 
             %{
               kind: kind,
@@ -715,6 +731,14 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
           {_kind, {_name, _def, args}} = spec
           type_args = Enum.map(args, &(&1 |> elem(2) |> Atom.to_string()))
 
+          # OTP 28+ docs chunks may not include :app, fall back to introspection
+          metadata =
+            if Map.get(metadata, :app) do
+              metadata
+            else
+              Map.put(metadata, :app, get_application_with_fallback(mod))
+            end
+
           %{
             kind: :type,
             module: mod,
@@ -744,5 +768,23 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
 
   def expand({_, _func}, _aliases) do
     {nil, nil}
+  end
+
+  # ElixirSense.Core.Applications.get_application/1 relies on
+  # :application.get_application/1 which returns :undefined for modules in
+  # applications that have not been loaded (e.g. :erts on OTP 28). Fall back
+  # to detecting :erts via the list of preloaded modules.
+  defp get_application_with_fallback(mod) do
+    case ElixirSense.Core.Applications.get_application(mod) do
+      nil ->
+        if is_atom(mod) and mod in :erlang.pre_loaded() do
+          :erts
+        else
+          nil
+        end
+
+      app ->
+        app
+    end
   end
 end

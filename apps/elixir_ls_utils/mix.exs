@@ -26,7 +26,7 @@ defmodule ElixirLS.Utils.MixProject do
       build_per_environment: false,
       consolidate_protocols: false,
       deps: deps(),
-      xref: [exclude: [JasonV, Logger, Hex]]
+      elixirc_options: [no_warn_undefined: [JasonV, Logger, Hex]]
     ]
   end
 

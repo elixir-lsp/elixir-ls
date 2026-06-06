@@ -61,7 +61,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
   alias ElixirSense.Core.TypeInfo
 
   alias ElixirLS.Utils.Matcher
-  require Logger
 
   @module_results_cache_key :"#{__MODULE__}_module_results_cache"
 
@@ -571,7 +570,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
           # include module attributes in module scope
           attribute_names ++ BuiltinAttributes.all()
 
-        _ ->
+        %State.Env{} ->
           []
       end
 

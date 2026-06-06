@@ -5,13 +5,12 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
   """
 
   alias ElixirSense.Core.Binding
-  require ElixirSense.Core.Introspection, as: Introspection
+  alias ElixirSense.Core.Introspection
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirSense.Core.State
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.Parser
-  require Logger
 
   def prepare(code, line, column, trace, options \\ []) do
     case NormalizedCode.Fragment.surround_context(code, {line, column}) do
@@ -569,10 +568,6 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
               {actual_mod, actual_fun} when is_atom(actual_mod) and is_atom(actual_fun) ->
                 # Successfully resolved to a module and function
                 [{actual_mod, actual_fun, call.arity, call}]
-
-              {nil, actual_fun} when is_atom(actual_fun) ->
-                # Local call without module - use the module from the function parameter
-                [{module, actual_fun, call.arity, call}]
 
               _ ->
                 []

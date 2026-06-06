@@ -358,16 +358,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           },
           "id" => id
         }
-
-      _ ->
-        %{
-          "jsonrpc" => "2.0",
-          "error" => %{
-            "code" => -32603,
-            "message" => "Internal error"
-          },
-          "id" => id
-        }
     end
   end
 
@@ -391,16 +381,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           },
           "id" => id
         }
-
-      _ ->
-        %{
-          "jsonrpc" => "2.0",
-          "error" => %{
-            "code" => -32603,
-            "message" => "Failed to get environment information"
-          },
-          "id" => id
-        }
     end
   end
 
@@ -421,16 +401,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           },
           "id" => id
         }
-
-      _ ->
-        %{
-          "jsonrpc" => "2.0",
-          "error" => %{
-            "code" => -32603,
-            "message" => "Failed to get documentation"
-          },
-          "id" => id
-        }
     end
   end
 
@@ -448,16 +418,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
                 "text" => text
               }
             ]
-          },
-          "id" => id
-        }
-
-      _ ->
-        %{
-          "jsonrpc" => "2.0",
-          "error" => %{
-            "code" => -32603,
-            "message" => "Failed to get type information"
           },
           "id" => id
         }
@@ -491,16 +451,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
           },
           "id" => id
         }
-
-      _ ->
-        %{
-          "jsonrpc" => "2.0",
-          "error" => %{
-            "code" => -32603,
-            "message" => "Failed to find implementations"
-          },
-          "id" => id
-        }
     end
   end
 
@@ -528,16 +478,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
                 "text" => text
               }
             ]
-          },
-          "id" => id
-        }
-
-      _ ->
-        %{
-          "jsonrpc" => "2.0",
-          "error" => %{
-            "code" => -32603,
-            "message" => "Failed to get module dependencies"
           },
           "id" => id
         }
@@ -644,8 +584,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     |> Enum.map(&format_single_doc_result/1)
     |> Enum.join("\n\n---\n\n")
   end
-
-  defp format_docs_result(_), do: "Unknown result format"
 
   defp format_single_doc_result(result) do
     case result do
@@ -868,10 +806,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
       _ ->
         "Unknown implementation format: #{inspect(impl)}"
     end
-  end
-
-  defp format_module_dependencies_result(%{error: error}) do
-    "Error: #{error}"
   end
 
   defp format_module_dependencies_result(result) do
@@ -1247,11 +1181,6 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     Enum.join(parts, "\n")
   end
 
-  defp format_variable_type_for_display(%{type: type}) when is_binary(type), do: type
-
-  defp format_variable_type_for_display(%{type: type, value: value}),
-    do: "#{type}(#{inspect(value)})"
-
   defp format_variable_type_for_display(%{type: "map", fields: fields}) when is_list(fields) do
     if Enum.empty?(fields) do
       "map"
@@ -1277,6 +1206,11 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
     type_strs = Enum.map(types, &format_variable_type_for_display/1)
     "union(#{Enum.join(type_strs, " | ")})"
   end
+
+  defp format_variable_type_for_display(%{type: type, value: value}),
+    do: "#{type}(#{inspect(value)})"
+
+  defp format_variable_type_for_display(%{type: type}) when is_binary(type), do: type
 
   defp format_variable_type_for_display(%{type: type}), do: type
   defp format_variable_type_for_display(other), do: inspect(other)

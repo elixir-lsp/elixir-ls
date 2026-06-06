@@ -11,7 +11,17 @@ defmodule ElixirLS.LanguageServer.DocLinks do
       {app, vsn}
     else
       _ ->
-        nil
+        # On OTP 28+, modules preloaded by the runtime (e.g. :erlang, :init)
+        # are not reported as belonging to any loaded application by
+        # :application.get_application/1. Treat them as part of :erts.
+        if is_atom(module) and module in :erlang.pre_loaded() do
+          case :application.get_key(:erts, :vsn) do
+            {:ok, vsn} -> {:erts, vsn}
+            _ -> {:erts, to_string(:erlang.system_info(:version))}
+          end
+        else
+          nil
+        end
     end
   end
 

@@ -11,7 +11,6 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy do
 
   alias ElixirLS.LanguageServer.{SourceFile, Build, Parser}
   alias ElixirLS.LanguageServer.Providers.CallHierarchy.Locator
-  require Logger
 
   def prepare(
         %Parser.Context{source_file: source_file, metadata: metadata},

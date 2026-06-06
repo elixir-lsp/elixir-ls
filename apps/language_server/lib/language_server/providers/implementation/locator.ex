@@ -138,7 +138,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
             # protocol function call
             get_locations(found_module, maybe_fun, arity, metadata)
 
-          maybe_fun != nil ->
+          true ->
             behaviours = Metadata.get_module_behaviours(metadata, env, module)
 
             # callback/protocol implementation def
@@ -147,9 +147,6 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
               get_locations(behaviour, maybe_fun, arity, metadata)
             end
             |> List.flatten()
-
-          true ->
-            []
         end
     end
     |> Enum.reject(&is_nil/1)

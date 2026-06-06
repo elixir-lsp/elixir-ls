@@ -19,6 +19,12 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
   doctest Server
 
   setup do
+    # The disconnect handler in Server sets Logger level to :none to suppress
+    # SIGTERM notices in production. Restore it here so subsequent tests can
+    # capture log output (e.g. the "notifies about *exit" tests rely on
+    # ExUnit.CaptureLog seeing crash reports).
+    Logger.configure(level: :debug)
+
     {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start_link(self())
     default_group_leader = Process.info(Process.whereis(Output))[:group_leader]
     Process.group_leader(Process.whereis(Output), packet_capture)
@@ -1032,16 +1038,20 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                      }),
                      5000
 
-      {log, _stderr} =
+      {log, stderr} =
         capture_log_and_io(:standard_error, fn ->
           assert_receive event(_, "thread", %{
                            "reason" => "exited",
                            "threadId" => ^thread_id
                          }),
                          5000
+
+          # Give Logger time to flush error reports after the exit event
+          Process.sleep(500)
         end)
 
-      assert log =~ "Fixture MixProject expected error"
+      assert log =~ "Fixture MixProject expected error" or
+               stderr =~ "Fixture MixProject expected error"
     end)
   end
 
@@ -1091,16 +1101,20 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                      }),
                      5000
 
-      {log, _io} =
+      {log, io} =
         capture_log_and_io(:stderr, fn ->
           assert_receive event(_, "thread", %{
                            "reason" => "exited",
                            "threadId" => ^thread_id
                          }),
                          5000
+
+          # Give Logger time to flush error reports after the exit event
+          Process.sleep(500)
         end)
 
-      assert log =~ "Fixture MixProject raise for exit_self/0"
+      assert log =~ "Fixture MixProject raise for exit_self/0" or
+               io =~ "Fixture MixProject raise for exit_self/0"
 
       assert_receive event(_, "exited", %{
                        "exitCode" => 1

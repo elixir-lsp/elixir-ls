@@ -350,6 +350,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
       end
       |> Enum.sort_by(fn diag -> {diag.range.start.line, diag.range.start.character} end)
       |> Enum.dedup()
+      |> dedupe_overlapping_compiler_and_dialyzer()
 
     params = %GenLSP.Structures.PublishDiagnosticsParams{
       uri: uri,
@@ -368,6 +369,22 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     }
 
     JsonRpc.notify(notification)
+  end
+
+  # Since Elixir 1.20 the new set-theoretic type checker can emit warnings
+  # that overlap with Dialyzer's (e.g. "pattern can never match"). When a
+  # Dialyzer diagnostic at the same range exists, drop the Elixir-emitted
+  # duplicate so we do not report the same issue twice.
+  defp dedupe_overlapping_compiler_and_dialyzer(diagnostics) do
+    has_dialyzer_at = fn range ->
+      Enum.any?(diagnostics, fn d ->
+        d.source == "ElixirLS Dialyzer" and d.range == range
+      end)
+    end
+
+    Enum.reject(diagnostics, fn d ->
+      d.source == "Elixir" and has_dialyzer_at.(d.range)
+    end)
   end
 
   defp get_tags(diagnostic) do

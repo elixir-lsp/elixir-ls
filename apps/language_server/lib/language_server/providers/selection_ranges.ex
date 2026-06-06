@@ -419,9 +419,10 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
                 {_, meta, _} ->
                   parens_ranges =
                     for {:parens, parens_meta} <- meta,
+                        parens_meta_closing = Keyword.get(parens_meta, :closing),
+                        parens_meta_closing != nil,
                         parens_start_line = Keyword.fetch!(parens_meta, :line) - 1,
                         parens_start_character = Keyword.fetch!(parens_meta, :column) - 1,
-                        parens_meta_closing = Keyword.fetch!(parens_meta, :closing),
                         parens_end_line = Keyword.fetch!(parens_meta_closing, :line) - 1,
                         parens_end_character = Keyword.fetch!(parens_meta_closing, :column),
                         (parens_start_line < line or

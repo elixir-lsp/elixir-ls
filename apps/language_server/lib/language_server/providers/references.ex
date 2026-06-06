@@ -53,13 +53,11 @@ defmodule ElixirLS.LanguageServer.Providers.References do
     definition_locations =
       case Definition.definition(uri, parser_context, line, character, project_dir) do
         {:ok, def_loc} -> List.wrap(def_loc || [])
-        _ -> []
       end
 
     declaration_locations =
       case Declaration.declaration(uri, parser_context, line, character, project_dir) do
         {:ok, decl_loc} -> List.wrap(decl_loc || [])
-        _ -> []
       end
 
     {definition_locations, declaration_locations}

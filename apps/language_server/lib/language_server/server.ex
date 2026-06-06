@@ -2476,7 +2476,7 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp add_watched_extensions(server_instance_id, exts) when is_list(exts) do
-    if not (is_list(exts) and Enum.all?(exts, &match?("." <> _, &1))) do
+    if not Enum.all?(exts, &match?("." <> _, &1)) do
       Logger.error("Invalid `additionalWatchedExtensions`: #{inspect(exts)}")
 
       JsonRpc.show_message(

@@ -12,7 +12,6 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
   alias ElixirSense.Core.State
   alias ElixirSense.Core.Normalized.Code, as: NormalizedCode
   alias ElixirLS.LanguageServer.MarkdownUtils
-  require Logger
 
   defmodule CompletionItem do
     @enforce_keys [:label, :kind, :insert_text, :tags]

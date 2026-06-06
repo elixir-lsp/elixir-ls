@@ -533,13 +533,25 @@ defmodule ElixirLS.LanguageServer.Parser do
             SyntaxError,
             TokenMissingError,
             MismatchedDelimiterError,
-            CompileError,
-            Phoenix.LiveView.HTMLTokenizer.ParseError,
-            Phoenix.LiveView.Tokenizer.ParseError
+            CompileError
           ] ->
             diagnostic = Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
 
             {:error, diagnostic}
+
+          e ->
+            if is_struct(e) and
+                 e.__struct__ in [
+                   Phoenix.LiveView.Tokenizer.ParseError,
+                   Phoenix.LiveView.HTMLTokenizer.ParseError
+                 ] do
+              diagnostic =
+                Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
+
+              {:error, diagnostic}
+            else
+              reraise e, __STACKTRACE__
+            end
         catch
           kind, err ->
             diagnostic = Diagnostics.from_error(kind, err, __STACKTRACE__, file, :no_stacktrace)
