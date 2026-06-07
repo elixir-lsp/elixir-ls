@@ -196,6 +196,8 @@ jobs:
           mix deps.get
       - name: Restore timestamps to prevent unnecessary recompilation
         run: IFS=$'\n'; for f in $(git ls-files); do touch -d "$(git log -n 1 --pretty='%cI' -- $f)" "$f"; done
+      - name: Compile with warnings as errors
+        run: mix compile --force --warnings-as-errors
       - run: MIX_ENV=test mix format --check-formatted
       - run: cd apps/language_server && MIX_ENV=test mix format --check-formatted
       - run: mix dialyzer

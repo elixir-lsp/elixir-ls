@@ -414,26 +414,23 @@ defmodule ElixirLS.Utils.CompletionEngine do
   defp expand_dot_path(
          {:alias, hint},
          %State.Env{} = env,
-         %Metadata{} = metadata,
+         %Metadata{} = _metadata,
          _cursor_position
        ) do
-    result =
+    {:alias, atom} =
       hint
       |> List.to_string()
       |> String.split(".")
       |> Enum.map(&String.to_atom/1)
       |> value_from_alias(env)
 
-    case result do
-      {:alias, atom} -> {:ok, {:atom, atom}}
-      :error -> :error
-    end
+    {:ok, {:atom, atom}}
   end
 
   defp expand_dot_path(
          {:alias, {:local_or_var, var}, hint},
          %State.Env{} = env,
-         %Metadata{} = metadata,
+         %Metadata{} = _metadata,
          _cursor_position
        ) do
     if var == ~c"__MODULE__" and env.module != nil and Introspection.elixir_module?(env.module) do
@@ -716,7 +713,6 @@ defmodule ElixirLS.Utils.CompletionEngine do
       type: :module,
       name: name,
       full_name: name,
-      type: :module,
       desc: desc,
       subtype: subtype
     }
@@ -947,7 +943,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   defp expand_struct_module(
          {:__MODULE__, _, context},
-         env = %{module: module},
+         %{module: module},
          _metadata,
          _cursor_position
        )
@@ -1003,7 +999,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   defp expand_struct_module(
          {variable, _, context},
-         env = %{context: :match},
+         %{context: :match},
          _metadata,
          _cursor_position
        )
@@ -1025,7 +1021,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp simple_expand({:__ENV__, _, context}, env, _metadata, _cursor_position)
+  defp simple_expand({:__ENV__, _, context}, _env, _metadata, _cursor_position)
        when is_atom(context) do
     {:%, [], [Macro.Env, {:%{}, [], []}]}
   end
@@ -1042,7 +1038,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
   defp simple_expand(
          {special, _, context} = node,
-         env = %{module: module},
+         _env,
          _metadata,
          _cursor_position
        )
@@ -1091,7 +1087,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     end
   end
 
-  defp simple_expand({variable, meta, context}, env, metadata, cursor_position)
+  defp simple_expand({variable, meta, context}, _env, _metadata, _cursor_position)
        when is_atom(variable) and is_atom(context) do
     # put fake version to make it work with TypeInference
     {variable, meta |> Keyword.put(:version, :any), context}
@@ -1176,23 +1172,19 @@ defmodule ElixirLS.Utils.CompletionEngine do
         hint = List.last(parts)
         list = Enum.take(parts, length(parts) - 1) |> Enum.map(&String.to_atom/1)
 
-        case value_from_alias(list, env) do
-          {:alias, alias} ->
-            expand_aliases(
-              alias,
-              hint,
-              [],
-              false,
-              env,
-              metadata,
-              cursor_position,
-              filter,
-              Keyword.put(opts, :required_alias, false)
-            )
+        {:alias, alias} = value_from_alias(list, env)
 
-          :error ->
-            no()
-        end
+        expand_aliases(
+          alias,
+          hint,
+          [],
+          false,
+          env,
+          metadata,
+          cursor_position,
+          filter,
+          Keyword.put(opts, :required_alias, false)
+        )
     end
   end
 
@@ -1270,7 +1262,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
        ),
        do: no()
 
-  defp value_from_alias(list = [head | _], %State.Env{} = env) do
+  defp value_from_alias([_ | _] = list, %State.Env{} = env) do
     case NormalizedMacroEnv.expand_alias(State.Env.to_macro_env(env), [], list, trace: false) do
       {:alias, alias} ->
         {:alias, alias}
@@ -2001,7 +1993,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
     }
   end
 
-  defp to_entries(%{type: :variable, name: name} = option) do
+  defp to_entries(%{type: :variable, name: _name} = option) do
     option
   end
 
