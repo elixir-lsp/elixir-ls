@@ -85,6 +85,14 @@ suppression, binding-vs-read, var settings; parameter hints for local/remote cal
 arg==param suppression, comma-in-string and comma-in-`fn` robustness, toggle; dynamic-receiver no-crash,
 range filtering, document-order.
 
+Done — type refinement in other providers (mirroring elixir_sense's elixir-types changes):
+- **Hover**: `Hover.Docs` now computes a variable's inferred type via
+  `TypePresentation.render_hint/2` and `hover.ex` renders it as a `### Type` section.
+- **Completion**: `ElixirLS.Utils.CompletionEngine.match_map_fields/5` falls back to the inferred
+  field type (`TypePresentation.render/1`) for map/struct fields without a declared `@type`, so
+  field completions show e.g. `%{asdf: term()}` / `%MyStruct{}`. Bare `term()`/`none()` are dropped
+  to avoid noise (a small, deliberate divergence from elixir_sense, which keeps them).
+
 Open problems / next steps:
 - Parameter hints: only paren calls are annotated (no-paren calls and operators are skipped); heredocs /
   interpolation fall back to no hints for that call if the tokenizer can't cleanly split.

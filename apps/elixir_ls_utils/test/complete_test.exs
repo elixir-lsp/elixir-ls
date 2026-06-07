@@ -917,7 +917,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil,
+                 type_spec: "String",
                  value_is_map: false,
                  summary: "",
                  metadata: %{}
@@ -945,7 +945,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil,
+                 type_spec:
+                   "%{deeply: %{foo: term(), bar_1: term(), bar_2: term(), mod: String, num: term()}}",
                  value_is_map: true,
                  summary: "",
                  metadata: %{}
@@ -960,7 +961,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: nil,
+                 type_spec: "%{foo: term(), bar_1: term(), bar_2: term(), mod: String, num: term()}",
                  value_is_map: true,
                  summary: "",
                  metadata: %{}
@@ -1881,7 +1882,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil,
+                 type_spec: "%{asdf: term()}",
                  value_is_map: true,
                  summary: "",
                  metadata: %{}
@@ -1981,7 +1982,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: "ElixirLS.Utils.CompletionEngineTest.MyStruct",
                  call?: true,
-                 type_spec: nil,
+                 type_spec: "%ElixirLS.Utils.CompletionEngineTest.MyStruct{}",
                  value_is_map: true,
                  summary: "",
                  metadata: %{}
