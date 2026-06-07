@@ -1,5 +1,6 @@
 defmodule ElixirLS.DebugAdapter.ExUnitFormatter do
   use GenServer
+  alias ElixirLS.DebugAdapter.CoverageData
   alias ElixirLS.DebugAdapter.Output
 
   @width 80
@@ -285,13 +286,22 @@ defmodule ElixirLS.DebugAdapter.ExUnitFormatter do
     #   * lines     -> statement coverage   (`:line`)
     #   * functions -> declaration coverage (`:function`) — not exposed by Mix/ExUnit
     #   * clauses   -> branch coverage      (`:clause`)   — not exposed by Mix/ExUnit
+    # The shaping/filtering is delegated to the (pure, unit-tested) CoverageData.
     meta = build_meta(cover_modules())
 
-    %{}
-    |> reduce_lines(meta)
-    |> reduce_functions(meta)
-    |> reduce_clauses(meta)
-    |> Enum.map(&format_file/1)
+    CoverageData.build(
+      analyse_rows(:line),
+      analyse_rows(:function),
+      analyse_rows(:clause),
+      meta
+    )
+  end
+
+  defp analyse_rows(level) do
+    case safe_analyse(:calls, level) do
+      {:result, ok, _fail} -> ok
+      _ -> []
+    end
   end
 
   # module => %{source: path, defs: %{{name, arity} => %{line, clause_lines}}}
@@ -324,141 +334,6 @@ defmodule ElixirLS.DebugAdapter.ExUnitFormatter do
     _ -> %{}
   catch
     _, _ -> %{}
-  end
-
-  defp reduce_lines(files, meta) do
-    case safe_analyse(:calls, :line) do
-      {:result, ok, _fail} ->
-        Enum.reduce(ok, files, fn
-          {{module, line}, count}, acc when is_integer(line) and line > 0 and is_integer(count) ->
-            case meta[module] do
-              %{source: path} ->
-                update_file(acc, path, :lines, fn lines ->
-                  # the same line can be reported for multiple clauses; keep max
-                  Map.update(lines, line, count, &max(&1, count))
-                end)
-
-              _ ->
-                acc
-            end
-
-          _, acc ->
-            acc
-        end)
-
-      _ ->
-        files
-    end
-  end
-
-  defp reduce_functions(files, meta) do
-    case safe_analyse(:calls, :function) do
-      {:result, ok, _fail} ->
-        Enum.reduce(ok, files, fn
-          {{module, name, arity}, count}, acc when is_integer(count) ->
-            with false <- ignored_function?(name),
-                 %{source: path, defs: defs} <- meta[module],
-                 %{line: line} <- defs[{name, arity}] do
-              update_file(acc, path, :functions, fn functions ->
-                entry =
-                  Map.get(functions, {name, arity}, %{
-                    name: "#{name}/#{arity}",
-                    line: line,
-                    count: 0
-                  })
-
-                Map.put(functions, {name, arity}, %{entry | count: entry.count + count})
-              end)
-            else
-              _ -> acc
-            end
-
-          _, acc ->
-            acc
-        end)
-
-      _ ->
-        files
-    end
-  end
-
-  defp reduce_clauses(files, meta) do
-    case safe_analyse(:calls, :clause) do
-      {:result, ok, _fail} ->
-        ok
-        |> Enum.reduce(%{}, fn
-          {{module, name, arity, index}, count}, acc
-          when is_integer(index) and is_integer(count) ->
-            Map.update(acc, {module, name, arity}, [{index, count}], &[{index, count} | &1])
-
-          _, acc ->
-            acc
-        end)
-        |> Enum.reduce(files, fn {{module, name, arity}, clause_counts}, acc ->
-          with false <- ignored_function?(name),
-               %{source: path, defs: defs} <- meta[module],
-               %{line: line, clause_lines: clause_lines} <- defs[{name, arity}],
-               true <- branchable_clauses?(clause_counts, clause_lines) do
-            branches =
-              clause_counts
-              |> Enum.sort()
-              |> Enum.map(fn {index, count} ->
-                clause_line = Enum.at(clause_lines, index - 1, line)
-                %{"line" => clause_line, "count" => count, "label" => "clause #{index}"}
-              end)
-
-            update_file(acc, path, :branches, fn br ->
-              Map.put(br, {name, arity}, %{"line" => line, "branches" => branches})
-            end)
-          else
-            _ -> acc
-          end
-        end)
-
-      _ ->
-        files
-    end
-  end
-
-  # Only treat a function's clauses as branches when:
-  #   * there is more than one clause (a single clause is not a branch), and
-  #   * `:cover`'s clause count matches the number of source clauses (so indices
-  #     line up), and
-  #   * every clause is on a distinct source line.
-  # The last check drops compiler-generated dispatch clauses (e.g. `for ... do
-  # defp f(unquote(x)), do: ... end` lookup tables), which all collapse onto the
-  # macro-expansion line and would otherwise read as misleading branch coverage.
-  # Skip functions whose name starts with an underscore. These are compiler- or
-  # macro-generated (`__struct__`, `__impl__`, `__protocol__`, ...) and are never
-  # "called" in a meaningful sense, so counting them as uncovered would
-  # artificially lower declaration and branch coverage.
-  defp ignored_function?(name) do
-    name |> Atom.to_string() |> String.starts_with?("_")
-  end
-
-  defp branchable_clauses?(clause_counts, clause_lines) do
-    count = length(clause_counts)
-
-    count > 1 and
-      length(clause_lines) == count and
-      length(Enum.uniq(clause_lines)) == count
-  end
-
-  defp update_file(files, path, key, fun) do
-    file = Map.get(files, path, %{lines: %{}, functions: %{}, branches: %{}})
-    Map.put(files, path, Map.update!(file, key, fun))
-  end
-
-  defp format_file({path, %{lines: lines, functions: functions, branches: branches}}) do
-    %{
-      "file" => path,
-      "lines" => Enum.map(lines, fn {line, count} -> [line, count] end),
-      "functions" =>
-        Enum.map(functions, fn {_key, %{name: name, line: line, count: count}} ->
-          %{"name" => name, "line" => line, "count" => count}
-        end),
-      "branches" => Map.values(branches)
-    }
   end
 
   defp cover_modules() do
