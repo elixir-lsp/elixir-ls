@@ -5,8 +5,10 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   ## Variable type hints (`InlayHintKind.type`)
 
   The inferred type of a variable rendered just after its binding occurrence,
-  e.g. `value = 42` shows `: 42`. Reads are not annotated unless
-  `showOnlyBindings` is disabled. Type text is produced by
+  e.g. `total = a + b` shows `: integer()`. Bindings whose RHS is a
+  syntactically-obvious value (literal/struct/map/list/tuple/bitstring, e.g.
+  `x = 1`, `m = %{…}`) are skipped — the type is already evident. Reads are not
+  annotated unless `showOnlyBindings` is disabled. Type text is produced by
   `ElixirSense.Core.TypePresentation`, which resolves the stored shape through
   `Binding` (descriptor fallback), stays thunk-free, and suppresses
   uninformative `term()` / `none()` / unknown values.
@@ -104,11 +106,23 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # Variable type hints
   # ===========================================================================
 
-  defp variable_hints(%Parser.Context{metadata: metadata}, lines, range_start, range_end, config) do
+  defp variable_hints(
+         %Parser.Context{ast: ast, metadata: metadata},
+         lines,
+         range_start,
+         range_end,
+         config
+       ) do
+    # Bindings whose RHS is a literal value or literal data constructor
+    # (`x = 1`, `s = "foo"`, `t = {:ok, 1}`, `m = %{…}`, `l = […]`, `%S{…}`):
+    # the type is already evident from the source, so the hint is noise.
+    obvious = obvious_binding_positions(ast)
+
     metadata
     |> variables()
     |> Enum.flat_map(&occurrences(&1, config))
     |> Enum.filter(fn {pos, _var} -> in_range?(pos, range_start, range_end) end)
+    |> Enum.reject(fn {pos, _var} -> MapSet.member?(obvious, pos) end)
     |> Enum.uniq_by(fn {pos, _var} -> pos end)
     |> Enum.map(fn {pos, var} -> variable_hint(pos, var, metadata, lines, config) end)
     |> Enum.reject(&is_nil/1)
@@ -116,6 +130,61 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
   defp variables(%Metadata{vars_info_per_scope_id: vars}) do
     vars |> Map.values() |> Enum.flat_map(&Map.values/1)
+  end
+
+  # Positions of variables bound by a `pattern = rhs` match where `rhs` is a
+  # syntactically-obvious value (literal/struct/map/list/tuple/bitstring). Other
+  # bindings (calls, operators, `fn`, vars, control-flow) keep their hint.
+  defp obvious_binding_positions(nil), do: MapSet.new()
+
+  defp obvious_binding_positions(ast) do
+    {_ast, positions} =
+      Macro.prewalk(ast, MapSet.new(), fn
+        {:=, _meta, [lhs, rhs]} = node, acc ->
+          if obvious_value?(rhs), do: {node, pattern_var_positions(lhs, acc)}, else: {node, acc}
+
+        node, acc ->
+          {node, acc}
+      end)
+
+    positions
+  end
+
+  # A chained match (`a = b = 1`) propagates the inner rhs.
+  defp obvious_value?({:=, _meta, [_lhs, inner]}), do: obvious_value?(inner)
+  defp obvious_value?({:%{}, _meta, _}), do: true
+  defp obvious_value?({:%, _meta, _}), do: true
+  defp obvious_value?({:{}, _meta, _}), do: true
+  defp obvious_value?({:<<>>, _meta, _}), do: true
+  # Any other 3-tuple is a call / var / operator / control-flow — keep its hint.
+  defp obvious_value?({_, _meta, _}), do: false
+  defp obvious_value?(value) when is_list(value), do: true
+  defp obvious_value?(value) when is_tuple(value) and tuple_size(value) == 2, do: true
+
+  defp obvious_value?(value)
+       when is_integer(value) or is_float(value) or is_binary(value) or is_atom(value),
+       do: true
+
+  defp obvious_value?(_other), do: false
+
+  defp pattern_var_positions(pattern, acc) do
+    {_p, positions} =
+      Macro.prewalk(pattern, acc, fn
+        {name, meta, ctx} = node, acc when is_atom(name) and (is_nil(ctx) or is_atom(ctx)) ->
+          if ignored?(name) do
+            {node, acc}
+          else
+            case meta_position(meta) do
+              {_l, _c} = pos -> {node, MapSet.put(acc, pos)}
+              _ -> {node, acc}
+            end
+          end
+
+        node, acc ->
+          {node, acc}
+      end)
+
+    positions
   end
 
   # The binding (write) occurrence is the head of `positions`; the tail are

@@ -41,28 +41,12 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     "defmodule Sample do\n  def run(arg) do\n" <> indented <> "\n    arg\n  end\nend\n"
   end
 
-  describe "variable type hints — precision from the type engine" do
-    test "integer literal binding" do
-      assert ": 42" in type_labels(hints(wrap("value = 42")))
+  describe "variable type hints — non-obvious bindings" do
+    test "renders the inferred type for an expression binding" do
+      assert ": integer()" in type_labels(hints(wrap("total = 1 + 2")))
     end
 
-    test "binary literal binding" do
-      assert ~s(: "hi") in type_labels(hints(wrap(~s(text = "hi"))))
-    end
-
-    test "tuple literal binding" do
-      assert ": {:ok, integer()}" in type_labels(hints(wrap("pair = {:ok, 1}")))
-    end
-
-    test "map literal binding renders field types" do
-      assert ~s(: %{a: 1, b: "s"}) in type_labels(hints(wrap(~s(m = %{a: 1, b: "s"}))))
-    end
-
-    test "list literal binding" do
-      assert ": [integer()]" in type_labels(hints(wrap("list = [1, 2, 3]")))
-    end
-
-    test "struct binding renders struct shape" do
+    test "struct binding (from a call) renders struct shape" do
       type_hints = type_labels(hints(wrap(~s|u = URI.parse("http://example.com")|)))
       assert Enum.any?(type_hints, &String.starts_with?(&1, ": %URI{"))
     end
@@ -76,19 +60,37 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     end
   end
 
+  describe "variable hints — obvious literal bindings are skipped" do
+    # When the RHS is a literal value or literal data constructor, the type is
+    # already evident from the source, so no hint is rendered.
+    for {label, body} <- [
+          {"integer", "x = 1"},
+          {"string", ~s(s = "foo")},
+          {"atom", "a = :ok"},
+          {"tuple", "t = {:ok, 1}"},
+          {"map", "m = %{a: 1, b: 2}"},
+          {"list", "l = [1, 2, 3]"},
+          {"struct", "u = %URI{}"}
+        ] do
+      test "no hint for #{label} literal binding" do
+        assert [] == type_labels(hints(wrap(unquote(body))))
+      end
+    end
+  end
+
   describe "variable hints — suppression" do
     test "uninformative types (unresolved calls) are skipped" do
       assert [] == type_labels(hints(wrap("only = to_string(123)")))
     end
 
     test "underscore-prefixed variables are ignored" do
-      assert [] == type_labels(hints(wrap("_ignored = 42")))
+      assert [] == type_labels(hints(wrap("_ignored = 1 + 2")))
     end
 
     test "labels always carry the leading colon" do
-      for label <- type_labels(hints(wrap("value = 42"))) do
-        assert String.starts_with?(label, ": ")
-      end
+      labels = type_labels(hints(wrap("total = 1 + 2")))
+      assert labels != []
+      assert Enum.all?(labels, &String.starts_with?(&1, ": "))
     end
   end
 
@@ -96,38 +98,37 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     test "by default only the binding is annotated, not reads" do
       source =
         wrap("""
-        value = 42
+        value = 1 + 2
         _ = value
         _ = value
         """)
 
-      assert Enum.count(type_labels(hints(source)), &(&1 == ": 42")) == 1
+      assert Enum.count(type_labels(hints(source)), &(&1 == ": integer()")) == 1
     end
 
     test "showOnlyBindings=false annotates reads too" do
       source =
         wrap("""
-        value = 42
+        value = 1 + 2
         other = value
         """)
 
       settings = %{"inlayHints" => %{"variableTypes" => %{"showOnlyBindings" => false}}}
 
-      assert Enum.count(type_labels(hints(source, settings)), &(&1 == ": 42")) >= 2
+      assert Enum.count(type_labels(hints(source, settings)), &(&1 == ": integer()")) >= 2
     end
   end
 
   describe "variable hints — settings" do
     test "respects the enabled toggle" do
       settings = %{"inlayHints" => %{"variableTypes" => %{"enabled" => false}}}
-      assert [] == type_labels(hints(wrap("value = 42"), settings))
+      assert [] == type_labels(hints(wrap("total = 1 + 2"), settings))
     end
 
     test "maxLength truncates long labels with an ellipsis" do
       settings = %{"inlayHints" => %{"variableTypes" => %{"maxLength" => 8}}}
-      # A map literal renders a long, deterministic label regardless of engine.
-      type_hints =
-        type_labels(hints(wrap("m = %{a: 1, b: 2, c: 3, d: 4, e: 5, f: 6}"), settings))
+      # The inferred fn type is long, so it gets truncated.
+      type_hints = type_labels(hints(wrap("f = fn a, b -> a + b end"), settings))
 
       truncated = Enum.filter(type_hints, &String.ends_with?(&1, "…"))
       assert truncated != []
