@@ -45,20 +45,36 @@ mix test test/providers/inlay_hints_test.exs
 
 ## Status (after API rewire)
 
-Done:
+Done — variable type hints:
 - Rendering rewired to `TypePresentation.render_hint/2` (local `render_shape/2` deleted).
 - Binding occurrence = head of `VarInfo.positions`; reads (tail) are not annotated. Each destructured
   variable is its own `VarInfo`, so every bound name is covered.
 - Labels carry the leading colon (`: integer()`, `: %URI{…}`); provider-side `maxLength` truncation only.
 - Settings `inlayHints.variableTypes.{enabled, showOnlyBindings, maxLength}`.
-- Tests assert real engine output: integer/binary/tuple/map/list literals, `%URI{…}` struct, `fn` arrow,
-  suppression of unresolved calls and `_`-vars, binding-vs-read, settings toggles, truncation.
+
+Done — call parameter-name hints (`InlayHintKind.parameter`):
+- Calls collected from the parsed AST (`Parser.Context.ast`, already `columns`/`token_metadata`), with
+  def-heads and special forms/operators excluded.
+- MFA resolved via `Introspection.actual_mod_fun/6`; param names from `Metadata.get_function_signatures/3`
+  (local) or `Introspection.get_signatures/2` (remote/stdlib); the arity-matching signature is selected
+  (defaults accounted for).
+- Per-argument columns computed from the Elixir tokenizer (`:elixir_tokenizer`) by matching the call's
+  `(`…`)` and splitting top-level commas — robust against commas inside strings/sigils and `fn`/`do`
+  blocks.
+- Pipes shift the parameter window by one (the piped value is implicit).
+- Noise filter: an argument is not annotated when its source text already equals the parameter name.
+- Setting `inlayHints.parameterNames.enabled` (default true).
+
+Tests (21, all green against the engine): variable literals/tuple/map/list/`%URI{}`/`fn` arrow,
+suppression, binding-vs-read, var settings; and parameter hints for local/remote calls, pipe window
+shift, arg==param suppression, comma-in-string and comma-in-`fn` robustness, toggle.
 
 Open problems / next steps:
-- Call parameter-name hints not built (the `(a:, b:)` and AST-accurate phase-2 variants).
-- Richer precision is gated on the type engine (L2 — not touched from this repo): branch-narrowing
+- Parameter hints: only paren calls are annotated (no-paren calls and operators are skipped); heredocs /
+  interpolation fall back to no hints for that call if the tokenizer can't cleanly split.
+- Richer *type* precision is gated on the type engine (L2 — not touched from this repo): branch-narrowing
   (`case binary_or_nil do nil -> …; v -> …` → `binary()`), map/union (`%{a: 1 | 2}`), and precise struct
   field types (`%URI{host: binary()}`) currently resolve to thunks and `render_hint` returns `:skip`.
 - `@spec` vs inferred precedence undecided.
 - Client-side: `package.json` settings contributions in the VS Code extension not yet added
-  (`elixirLS.inlayHints.variableTypes.{enabled,maxLength,showOnlyBindings}`, `…parameterNames`).
+  (`elixirLS.inlayHints.variableTypes.{enabled,maxLength,showOnlyBindings}`, `…parameterNames.enabled`).
