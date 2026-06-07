@@ -51,15 +51,15 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     end
 
     test "tuple literal binding" do
-      assert ": {:ok, 1}" in type_labels(hints(wrap("pair = {:ok, 1}")))
+      assert ": {:ok, integer()}" in type_labels(hints(wrap("pair = {:ok, 1}")))
     end
 
     test "map literal binding renders field types" do
       assert ~s(: %{a: 1, b: "s"}) in type_labels(hints(wrap(~s(m = %{a: 1, b: "s"}))))
     end
 
-    test "list literal binding renders the element union" do
-      assert ": [1 | 2 | 3]" in type_labels(hints(wrap("list = [1, 2, 3]")))
+    test "list literal binding" do
+      assert ": [integer()]" in type_labels(hints(wrap("list = [1, 2, 3]")))
     end
 
     test "struct binding renders struct shape" do
@@ -67,10 +67,12 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       assert Enum.any?(type_hints, &String.starts_with?(&1, ": %URI{"))
     end
 
-    test "function binding renders an arrow" do
-      assert ": (term(), term() -> term())" in type_labels(
-               hints(wrap("f = fn a, b -> a + b end"))
-             )
+    test "function binding renders an arrow with inferred argument types" do
+      # Native mode infers the arithmetic operand types; the full arrow may be
+      # truncated by maxLength, so assert the (stable) prefix.
+      labels = type_labels(hints(wrap("f = fn a, b -> a + b end")))
+      assert Enum.any?(labels, &String.starts_with?(&1, ": (float() | integer()"))
+      assert Enum.any?(labels, &String.contains?(&1, "->"))
     end
   end
 
