@@ -5,10 +5,12 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   ## Variable type hints (`InlayHintKind.type`)
 
   The inferred type of a variable rendered just after its binding occurrence,
-  e.g. `total = a + b` shows `: integer()`. Bindings whose RHS is a
-  syntactically-obvious value (literal/struct/map/list/tuple/bitstring, e.g.
-  `x = 1`, `m = %{…}`) are skipped — the type is already evident. Reads are not
-  annotated unless `showOnlyBindings` is disabled. Type text is produced by
+  e.g. `total = a + b` shows `: integer()`. A binding is skipped when *either*
+  side of its match is a syntactically-obvious value
+  (literal/struct/map/list/tuple/bitstring) — `x = 1`, `m = %{…}`, or
+  `%User{} = user` — since the type is then already evident from the source.
+  Reads are not annotated unless `showOnlyBindings` is disabled. Type text is
+  produced by
   `ElixirSense.Core.TypePresentation`, which resolves the stored shape through
   `Binding` (descriptor fallback), stays thunk-free, and suppresses
   uninformative `term()` / `none()` / unknown values.
@@ -132,16 +134,23 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     vars |> Map.values() |> Enum.flat_map(&Map.values/1)
   end
 
-  # Positions of variables bound by a `pattern = rhs` match where `rhs` is a
-  # syntactically-obvious value (literal/struct/map/list/tuple/bitstring). Other
-  # bindings (calls, operators, `fn`, vars, control-flow) keep their hint.
+  # Positions of variables bound by a match `left = right` where the *other*
+  # side is a syntactically-obvious value (literal/struct/map/list/tuple/
+  # bitstring) — `=` is a match, so the obvious side can be the RHS (`x = 1`,
+  # `t = {:ok, 1}`) or the LHS (`%User{} = user`). The variable's type is then
+  # evident from the source. Bindings against calls, operators, `fn`, other
+  # vars, or control-flow keep their hint. (Collecting variables from the value
+  # side too is harmless: those occurrences are reads, whose binding positions
+  # live elsewhere.)
   defp obvious_binding_positions(nil), do: MapSet.new()
 
   defp obvious_binding_positions(ast) do
     {_ast, positions} =
       Macro.prewalk(ast, MapSet.new(), fn
         {:=, _meta, [lhs, rhs]} = node, acc ->
-          if obvious_value?(rhs), do: {node, pattern_var_positions(lhs, acc)}, else: {node, acc}
+          acc = if obvious_value?(rhs), do: pattern_var_positions(lhs, acc), else: acc
+          acc = if obvious_value?(lhs), do: pattern_var_positions(rhs, acc), else: acc
+          {node, acc}
 
         node, acc ->
           {node, acc}

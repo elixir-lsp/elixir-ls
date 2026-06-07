@@ -21,9 +21,10 @@ original branch was destroyed. Reconstructed from the Codex session of 2025-10-0
 LSP `textDocument/inlayHint`, two cases — **both implemented**:
 
 1. **Variable type hints** (`kind: type`) — inferred type rendered after a variable's *binding*
-   occurrence (LHS of a match: `total = a + b` → `: integer()`). Bindings to a syntactically-obvious
-   value (literal/struct/map/list/tuple/bitstring, e.g. `x = 1`, `m = %{…}`) are skipped — the type is
-   already evident. Reads are not annotated (unless `showOnlyBindings` is disabled).
+   occurrence (LHS of a match: `total = a + b` → `: integer()`). A binding is skipped when *either*
+   side of its match is a syntactically-obvious value (literal/struct/map/list/tuple/bitstring) —
+   `x = 1`, `m = %{…}`, or `%User{} = user` — since the type is already evident. Reads are not
+   annotated (unless `showOnlyBindings` is disabled).
 2. **Call parameter-name hints** (`kind: parameter`) — parameter names before each call argument
    (`Map.put(map: m, key: :k, value: v)`).
 

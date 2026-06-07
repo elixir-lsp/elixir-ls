@@ -76,6 +76,16 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
         assert [] == type_labels(hints(wrap(unquote(body))))
       end
     end
+
+    test "no hint when a bare variable is matched against an obvious pattern (match LHS)" do
+      source = """
+      defmodule Sample do
+        def run(%URI{} = uri), do: uri
+      end
+      """
+
+      assert [] == type_labels(hints(source))
+    end
   end
 
   describe "variable hints — suppression" do
