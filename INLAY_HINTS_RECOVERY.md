@@ -18,21 +18,25 @@ original branch was destroyed. Reconstructed from the Codex session of 2025-10-0
 
 ## Feature
 
-LSP `textDocument/inlayHint`, two intended cases:
+LSP `textDocument/inlayHint`, two cases — **both implemented**:
 
 1. **Variable type hints** (`kind: type`) — inferred type rendered after a variable's *binding*
-   occurrence (LHS of a match: `value = 42` → `integer`). Reads are not annotated. **Implemented.**
-2. **Call parameter-name hints** (`kind: parameter`) — `foo(a:, b:)` at call sites. **Designed only**
-   (see `INLINE_HINTS.md` → "Call parameter name hints").
+   occurrence (LHS of a match: `value = 42` → `: 42`). Reads are not annotated (unless
+   `showOnlyBindings` is disabled).
+2. **Call parameter-name hints** (`kind: parameter`) — parameter names before each call argument
+   (`Map.put(map: m, key: :k, value: v)`).
 
 Type text comes entirely from `ElixirSense.Core.TypePresentation.render_hint/2` (the LSP-facing type
 surface). It resolves the stored shape (`VarInfo.type`) through `Binding`, falls back to the native
 `Module.Types` descriptor (`VarInfo.elixir_types_descr`), guarantees a thunk-free result, and returns
-`:skip` for uninformative `term()`/`none()`/unknown types. The provider no longer renders types itself
-(the old local `render_shape/2` was deleted) — it only positions hints and applies a max-length cap.
+`:skip` for uninformative `term()`/`none()`/unknown types. The provider does not render types itself
+(the old local `render_shape/2` was deleted) — it only positions hints and truncates to `maxLength`.
+The precision of the rendered types (branch narrowing, map/union fields, structural struct shapes) is
+entirely up to the elixir_sense type engine; the provider renders whatever it returns.
 
-Guardrails: ≤500 range lines, ≤200 variables, label ≤40 chars, shape depth ≤3; underscore-prefixed
-vars ignored; opt-in via `elixirLS.inlayHints.variableTypes.enabled` (default true).
+Guardrails: ≤1000 range lines and ≤1000 total hints per request; variable-type labels truncated to
+`maxLength` (default 60); underscore-prefixed vars ignored; the server skips non-Elixir files;
+each is opt-out via `elixirLS.inlayHints.{variableTypes,parameterNames}.enabled` (default true).
 
 ## Build / test
 
@@ -65,16 +69,29 @@ Done — call parameter-name hints (`InlayHintKind.parameter`):
 - Noise filter: an argument is not annotated when its source text already equals the parameter name.
 - Setting `inlayHints.parameterNames.enabled` (default true).
 
-Tests (21, all green against the engine): variable literals/tuple/map/list/`%URI{}`/`fn` arrow,
-suppression, binding-vs-read, var settings; and parameter hints for local/remote calls, pipe window
-shift, arg==param suppression, comma-in-string and comma-in-`fn` robustness, toggle.
+Done — robustness / correctness:
+- Dynamic remote receivers (`mod.put(…)`, `factory().call(…)`) are skipped instead of passing raw AST
+  into introspection (which reached `Code.ensure_loaded/1` and crashed the whole request); per-call
+  resolution is also wrapped so one bad call can never fail the request.
+- Calls are filtered to the requested line range *before* resolution/introspection, so a small viewport
+  request in a large file doesn't walk/introspect/tokenize every call.
+- The server request handler skips non-Elixir files (`.ex`/`.exs` or `language_id == "elixir"`),
+  mirroring the sibling providers.
+- Type and parameter hints are merged and sorted by position before the `@max_hints` cap, so neither
+  category starves the other and output is in document order.
+
+Tests (24, all green against the engine): variable literals/tuple/map/list-union/`%URI{}`/`fn` arrow,
+suppression, binding-vs-read, var settings; parameter hints for local/remote calls, pipe window shift,
+arg==param suppression, comma-in-string and comma-in-`fn` robustness, toggle; dynamic-receiver no-crash,
+range filtering, document-order.
 
 Open problems / next steps:
 - Parameter hints: only paren calls are annotated (no-paren calls and operators are skipped); heredocs /
   interpolation fall back to no hints for that call if the tokenizer can't cleanly split.
-- Richer *type* precision is gated on the type engine (L2 — not touched from this repo): branch-narrowing
-  (`case binary_or_nil do nil -> …; v -> …` → `binary()`), map/union (`%{a: 1 | 2}`), and precise struct
-  field types (`%URI{host: binary()}`) currently resolve to thunks and `render_hint` returns `:skip`.
-- `@spec` vs inferred precedence undecided.
+- Type precision depends on the elixir_sense type engine and the `use_elixir_types` config flag (the
+  native `Module.Types` descriptor path is off by default); whatever the engine resolves is rendered.
+- `@spec` vs inferred precedence undecided (engine-side).
 - Client-side: `package.json` settings contributions in the VS Code extension not yet added
   (`elixirLS.inlayHints.variableTypes.{enabled,maxLength,showOnlyBindings}`, `…parameterNames.enabled`).
+- A server-handler test for the non-Elixir-file guard isn't added (sibling guarded providers aren't
+  server-tested either; the guard is copy-identical to them).

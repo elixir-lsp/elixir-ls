@@ -1731,9 +1731,13 @@ defmodule ElixirLS.LanguageServer.Server do
     source_file = get_source_file(state, uri)
 
     fun = fn ->
-      parser_context = Parser.parse_immediate(uri, source_file)
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        parser_context = Parser.parse_immediate(uri, source_file)
 
-      InlayHints.inlay_hints(parser_context, request_range, settings: state.settings || %{})
+        InlayHints.inlay_hints(parser_context, request_range, settings: state.settings || %{})
+      else
+        {:ok, []}
+      end
     end
 
     {:async, fun, state}

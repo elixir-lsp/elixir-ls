@@ -67,7 +67,12 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
           do: parameter_hints(context, lines, range_start, range_end),
           else: []
 
-      {:ok, Enum.take(var_hints ++ param_hints, @max_hints)}
+      hints =
+        (var_hints ++ param_hints)
+        |> Enum.sort_by(&{&1.position.line, &1.position.character})
+        |> Enum.take(@max_hints)
+
+      {:ok, hints}
     end
   end
 
@@ -182,10 +187,34 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
       ast
       |> collect_calls(def_positions)
-      |> Enum.map(&resolve_call(&1, metadata, piped))
+      |> Enum.filter(&relevant_call?(&1, rs, re))
+      |> Enum.map(&safe_resolve(&1, metadata, piped))
       |> Enum.reject(&is_nil/1)
       |> Enum.flat_map(&call_hints(&1, tokens, lines, rs, re))
     end
+  end
+
+  # Keep only calls whose source span (function name .. closing paren) intersects
+  # the requested line range, so we don't introspect/tokenize the whole file for
+  # a small viewport request.
+  defp relevant_call?({_kind, _mod, _fun, {pl, _pc}, closing, _arity}, {rsl, _}, {rel, _}) do
+    cl =
+      case closing do
+        {l, _} -> l
+        _ -> pl
+      end
+
+    pl <= rel and cl >= rsl
+  end
+
+  # Resolving a call introspects arbitrary modules; isolate failures so one bad
+  # call (e.g. an exotic receiver) can never crash the whole inlay-hint request.
+  defp safe_resolve(call, metadata, piped) do
+    resolve_call(call, metadata, piped)
+  rescue
+    _ -> nil
+  catch
+    _, _ -> nil
   end
 
   defp positions(ast, fun) do
@@ -256,7 +285,8 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     raw_mod = if kind == :remote, do: module_of(mod_ast), else: nil
     expand_aliases? = match?({:__aliases__, _, _}, mod_ast)
 
-    with env when not is_nil(env) <- Metadata.get_env(metadata, pos),
+    with true <- raw_mod != :error,
+         env when not is_nil(env) <- Metadata.get_env(metadata, pos),
          {resolved_mod, resolved_fun, true, :mod_fun} <-
            Introspection.actual_mod_fun(
              {raw_mod, fun},
@@ -299,8 +329,13 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     param |> String.split(" \\\\ ") |> hd() |> String.trim()
   end
 
+  # Only resolve statically-known remote modules. Dynamic receivers (variables,
+  # calls, attributes — `mod.put(...)`, `factory().call(...)`) yield `:error` so
+  # the call is skipped rather than passing raw AST into introspection (which
+  # would reach `Code.ensure_loaded/1` and raise).
   defp module_of({:__aliases__, _meta, parts}), do: Module.concat(parts)
-  defp module_of(mod), do: mod
+  defp module_of(mod) when is_atom(mod), do: mod
+  defp module_of(_dynamic), do: :error
 
   # Build per-argument hints by locating the call's argument tokens (between the
   # matching `(` and the `closing` `)`) and splitting them on top-level commas.

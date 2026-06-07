@@ -14,6 +14,19 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     hints
   end
 
+  defp hints_in_range(source, {start_line, start_char}, {end_line, end_char}) do
+    alias GenLSP.Structures.{Position, Range}
+    parser_context = ParserContextBuilder.from_string(source)
+
+    range = %Range{
+      start: %Position{line: start_line, character: start_char},
+      end: %Position{line: end_line, character: end_char}
+    }
+
+    {:ok, hints} = InlayHints.inlay_hints(parser_context, range, settings: %{})
+    hints
+  end
+
   defp type_labels(hints) do
     hints |> Enum.filter(&(&1.kind == InlayHintKind.type())) |> Enum.map(& &1.label)
   end
@@ -45,8 +58,8 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       assert ~s(: %{a: 1, b: "s"}) in type_labels(hints(wrap(~s(m = %{a: 1, b: "s"}))))
     end
 
-    test "list literal binding" do
-      assert ": [1]" in type_labels(hints(wrap("list = [1, 2, 3]")))
+    test "list literal binding renders the element union" do
+      assert ": [1 | 2 | 3]" in type_labels(hints(wrap("list = [1, 2, 3]")))
     end
 
     test "struct binding renders struct shape" do
@@ -110,7 +123,9 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
 
     test "maxLength truncates long labels with an ellipsis" do
       settings = %{"inlayHints" => %{"variableTypes" => %{"maxLength" => 8}}}
-      type_hints = type_labels(hints(wrap(~s|u = URI.parse("http://example.com")|), settings))
+      # A map literal renders a long, deterministic label regardless of engine.
+      type_hints =
+        type_labels(hints(wrap("m = %{a: 1, b: 2, c: 3, d: 4, e: 5, f: 6}"), settings))
 
       truncated = Enum.filter(type_hints, &String.ends_with?(&1, "…"))
       assert truncated != []
@@ -178,5 +193,57 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       settings = %{"inlayHints" => %{"parameterNames" => %{"enabled" => false}}}
       assert [] == param_labels(hints(wrap("Map.put(acc, :key, 42)"), settings))
     end
+  end
+
+  describe "call parameter-name hints — robustness" do
+    test "dynamic remote receivers produce no hints and do not raise" do
+      source = """
+      defmodule Sample do
+        def run(acc) do
+          mod = Map
+          mod.put(acc, :a, 1)
+          factory().call(acc, :b)
+        end
+      end
+      """
+
+      # Must not raise (regression: raw AST receiver reaching Code.ensure_loaded/1).
+      assert param_labels(hints(source)) == []
+    end
+
+    test "only calls intersecting the requested range are annotated" do
+      source = """
+      defmodule Sample do
+        def run(acc) do
+          Map.put(acc, :a, 1)
+          Map.put(acc, :b, 2)
+        end
+      end
+      """
+
+      # 0-based lines: 2 = first Map.put, 3 = second Map.put. Request line 3 only.
+      params = hints_in_range(source, {3, 0}, {3, 100}) |> param_labels_with_line()
+
+      assert Enum.all?(params, fn {line, _label} -> line == 3 end)
+      assert {3, "key:"} in params
+      refute Enum.any?(params, fn {line, _label} -> line == 2 end)
+    end
+
+    test "hints are returned in document order" do
+      source =
+        wrap("""
+        x = 1
+        Map.put(acc, :key, 2)
+        """)
+
+      positions = hints(source) |> Enum.map(&{&1.position.line, &1.position.character})
+      assert positions == Enum.sort(positions)
+    end
+  end
+
+  defp param_labels_with_line(hints) do
+    hints
+    |> Enum.filter(&(&1.kind == InlayHintKind.parameter()))
+    |> Enum.map(&{&1.position.line, &1.label})
   end
 end
