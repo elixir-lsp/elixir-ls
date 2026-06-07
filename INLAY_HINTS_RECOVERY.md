@@ -25,9 +25,11 @@ LSP `textDocument/inlayHint`, two intended cases:
 2. **Call parameter-name hints** (`kind: parameter`) — `foo(a:, b:)` at call sites. **Designed only**
    (see `INLINE_HINTS.md` → "Call parameter name hints").
 
-Types come from `ElixirSense.Core.Binding.expand/2` shape tuples, rendered by `render_shape/2`. On the
-`elixir-types` engine those shapes are produced by the set-theoretic type engine
-(`ElixirSense.Core.ElixirTypes`, wrapping `Module.Types.Descr`; `to_shape/1` = descr→shape bridge).
+Type text comes entirely from `ElixirSense.Core.TypePresentation.render_hint/2` (the LSP-facing type
+surface). It resolves the stored shape (`VarInfo.type`) through `Binding`, falls back to the native
+`Module.Types` descriptor (`VarInfo.elixir_types_descr`), guarantees a thunk-free result, and returns
+`:skip` for uninformative `term()`/`none()`/unknown types. The provider no longer renders types itself
+(the old local `render_shape/2` was deleted) — it only positions hints and applies a max-length cap.
 
 Guardrails: ≤500 range lines, ≤200 variables, label ≤40 chars, shape depth ≤3; underscore-prefixed
 vars ignored; opt-in via `elixirLS.inlayHints.variableTypes.enabled` (default true).
@@ -41,13 +43,22 @@ cd apps/language_server
 mix test test/providers/inlay_hints_test.exs
 ```
 
-## Open problems / next steps
+## Status (after API rewire)
 
-- Param-name hints not built (both the simple `(a:, b:)` and AST-accurate phase-2 variants).
-- Multi-var destructuring (`{:ok, %User{name: name, age: age}} = result`): only the first binding
-  position per `VarInfo` is taken; design wants a hint on each bound var.
-- Pipe-chain intermediate types skipped in v1.
+Done:
+- Rendering rewired to `TypePresentation.render_hint/2` (local `render_shape/2` deleted).
+- Binding occurrence = head of `VarInfo.positions`; reads (tail) are not annotated. Each destructured
+  variable is its own `VarInfo`, so every bound name is covered.
+- Labels carry the leading colon (`: integer()`, `: %URI{…}`); provider-side `maxLength` truncation only.
+- Settings `inlayHints.variableTypes.{enabled, showOnlyBindings, maxLength}`.
+- Tests assert real engine output: integer/binary/tuple/map/list literals, `%URI{…}` struct, `fn` arrow,
+  suppression of unresolved calls and `_`-vars, binding-vs-read, settings toggles, truncation.
+
+Open problems / next steps:
+- Call parameter-name hints not built (the `(a:, b:)` and AST-accurate phase-2 variants).
+- Richer precision is gated on the type engine (L2 — not touched from this repo): branch-narrowing
+  (`case binary_or_nil do nil -> …; v -> …` → `binary()`), map/union (`%{a: 1 | 2}`), and precise struct
+  field types (`%URI{host: binary()}`) currently resolve to thunks and `render_hint` returns `:skip`.
 - `@spec` vs inferred precedence undecided.
-- Map/struct rendering is coarse (`%{…}`, `%Mod{}`); no key/field detail.
 - Client-side: `package.json` settings contributions in the VS Code extension not yet added
   (`elixirLS.inlayHints.variableTypes.{enabled,maxLength,showOnlyBindings}`, `…parameterNames`).

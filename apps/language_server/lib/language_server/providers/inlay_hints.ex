@@ -1,16 +1,28 @@
 defmodule ElixirLS.LanguageServer.Providers.InlayHints do
-  @moduledoc false
+  @moduledoc """
+  Inlay hints for inferred variable types.
+
+  Renders the inferred type of a variable just after its binding occurrence,
+  e.g. `value = 42` shows `: 42`. Reads are not annotated unless
+  `showOnlyBindings` is disabled.
+
+  Type text is produced by `ElixirSense.Core.TypePresentation`, the LSP-facing
+  type surface. It resolves the stored shape (`VarInfo.type`) through
+  `ElixirSense.Core.Binding` (falling back to the native `Module.Types`
+  descriptor), guarantees a thunk-free result, and suppresses uninformative
+  `term()` / `none()` / unknown values. The provider does no type rendering of
+  its own — it only positions hints and applies a max-length cap.
+  """
 
   alias ElixirLS.LanguageServer.{Parser, SourceFile}
-  alias ElixirSense.Core.{Binding, Metadata}
+  alias ElixirSense.Core.{Binding, Metadata, TypePresentation}
   alias ElixirSense.Core.State.VarInfo
   alias GenLSP.Enumerations.InlayHintKind
   alias GenLSP.Structures.{InlayHint, Position, Range}
 
-  @max_range_lines 500
-  @max_variables 200
-  @max_label_length 40
-  @max_shape_depth 3
+  @max_range_lines 1000
+  @max_variables 500
+  @default_max_label_length 60
 
   @type options :: [settings: map() | nil]
 
@@ -20,227 +32,132 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   def inlay_hints(%Parser.Context{metadata: nil}, _range, _opts), do: {:ok, []}
 
   def inlay_hints(%Parser.Context{} = context, %Range{} = range, opts) do
-    settings = Keyword.get(opts, :settings) || %{}
+    config = config(Keyword.get(opts, :settings) || %{})
 
-    if variable_types_enabled?(settings) do
-      {:ok, build_variable_hints(context, range, settings)}
+    if config.enabled do
+      {:ok, build_variable_hints(context, range, config)}
     else
       {:ok, []}
     end
   end
 
-  defp variable_types_enabled?(settings) when is_map(settings) do
-    get_in(settings, ["inlayHints", "variableTypes", "enabled"]) |> default_true()
+  # --- settings: elixirLS.inlayHints.variableTypes.* ---
+
+  defp config(settings) when is_map(settings) do
+    base = get_in(settings, ["inlayHints", "variableTypes"]) || %{}
+
+    %{
+      enabled: bool(Map.get(base, "enabled"), true),
+      show_only_bindings: bool(Map.get(base, "showOnlyBindings"), true),
+      max_label_length: pos_int(Map.get(base, "maxLength"), @default_max_label_length)
+    }
   end
 
-  defp default_true(nil), do: true
-  defp default_true(value), do: value
+  defp bool(value, _default) when is_boolean(value), do: value
+  defp bool(_value, default), do: default
 
-  defp build_variable_hints(%Parser.Context{} = context, %Range{} = range, _settings) do
-    %{source_file: source_file, metadata: metadata} = context
+  defp pos_int(value, _default) when is_integer(value) and value > 0, do: value
+  defp pos_int(_value, default), do: default
+
+  # --- build ---
+
+  defp build_variable_hints(
+         %Parser.Context{source_file: source_file, metadata: metadata},
+         %Range{} = range,
+         config
+       ) do
     lines = SourceFile.lines(source_file)
-
-    {range_start, range_end} = range_to_elixir(span(lines, range))
+    {range_start, range_end} = elixir_range(lines, range)
 
     if exceeds_line_budget?(range_start, range_end) do
       []
     else
       metadata
-      |> variable_bindings_in_range(range_start, range_end)
+      |> variables()
+      |> Enum.flat_map(&occurrences(&1, config))
+      |> Enum.filter(fn {pos, _var} -> in_range?(pos, range_start, range_end) end)
+      |> Enum.uniq_by(fn {pos, _var} -> pos end)
       |> Enum.take(@max_variables)
-      |> Enum.map(&variable_hint(&1, context, lines))
-      |> Enum.filter(& &1)
+      |> Enum.map(fn {pos, var} -> variable_hint(pos, var, metadata, lines, config) end)
+      |> Enum.reject(&is_nil/1)
     end
   end
 
-  defp span(lines, %Range{start: start_pos, end: end_pos}) do
-    start_elixir = SourceFile.lsp_position_to_elixir(lines, {start_pos.line, start_pos.character})
-    end_elixir = SourceFile.lsp_position_to_elixir(lines, {end_pos.line, end_pos.character})
-    {start_elixir, end_elixir}
+  defp variables(%Metadata{vars_info_per_scope_id: vars}) do
+    vars |> Map.values() |> Enum.flat_map(&Map.values/1)
   end
 
-  defp range_to_elixir({{start_line, start_col}, {end_line, end_col}}) do
-    start_col = start_col || 1
-    end_col = end_col || 1
-    {{start_line, start_col}, {end_line, end_col}}
-  end
-
-  defp exceeds_line_budget?({start_line, _}, {end_line, _}) do
-    end_line - start_line > @max_range_lines
-  end
-
-  defp variable_bindings_in_range(%Metadata{vars_info_per_scope_id: vars}, range_start, range_end) do
-    vars
-    |> Map.values()
-    |> Enum.flat_map(&Map.values/1)
-    |> Enum.flat_map(&build_binding_entries(&1, range_start, range_end))
-  end
-
-  defp build_binding_entries(%VarInfo{name: name} = var_info, range_start, range_end) do
+  # The binding (write) occurrence is the head of `positions`; the tail are
+  # reads (see ElixirSense.Core.Compiler.State.add_var_write/add_var_read). Each
+  # destructured variable is its own VarInfo, so taking the binding of every
+  # VarInfo annotates every bound name — including those bound inside patterns.
+  defp occurrences(%VarInfo{name: name} = var, config) do
     cond do
-      ignore_variable?(name) ->
-        []
-
-      true ->
-        var_info.positions
-        |> Enum.find(&binding_position?/1)
-        |> case do
-          nil ->
-            []
-
-          {_line, column} = position ->
-            if column && in_range?(position, range_start, range_end) do
-              [%{var_info: var_info, position: position}]
-            else
-              []
-            end
-        end
+      ignored?(name) -> []
+      config.show_only_bindings -> Enum.map(binding_positions(var), &{&1, var})
+      true -> var.positions |> Enum.filter(&position?/1) |> Enum.map(&{&1, var})
     end
   end
 
-  defp binding_position?({line, column}) when is_integer(line) and is_integer(column), do: true
-  defp binding_position?(_), do: false
+  defp binding_positions(%VarInfo{positions: positions}) do
+    case Enum.find(positions, &position?/1) do
+      nil -> []
+      pos -> [pos]
+    end
+  end
 
-  defp ignore_variable?(name) when is_atom(name) do
+  defp position?({line, column}) when is_integer(line) and is_integer(column), do: true
+  defp position?(_), do: false
+
+  defp ignored?(name) when is_atom(name) do
     string = Atom.to_string(name)
     string == "_" or String.starts_with?(string, "_")
   end
 
-  defp ignore_variable?(_), do: true
+  defp ignored?(_), do: true
 
-  defp in_range?({line, column}, {start_line, start_col}, {end_line, end_col}) do
-    cond do
-      line < start_line -> false
-      line > end_line -> false
-      line == start_line and column < start_col -> false
-      line == end_line and column > max(end_col, 1) -> false
-      true -> true
-    end
-  end
-
-  defp variable_hint(
-         %{var_info: %VarInfo{name: name} = var_info, position: {line, column}},
-         context,
-         lines
-       ) do
-    metadata = context.metadata
-    env = Metadata.get_env(metadata, {line, column})
-
-    with {:env, env} when not is_nil(env) <- {:env, env},
-         binding_env <- Binding.from_env(env, metadata, {line, column}),
-         version <- var_info.version || :any,
-         shape <- Binding.expand(binding_env, {:variable, name, version}),
-         {:shape, label} when is_binary(label) <- {:shape, render_shape(shape)} do
-      hint_position = variable_hint_position(lines, {line, column}, name)
-
+  defp variable_hint({line, column} = pos, %VarInfo{name: name} = var, metadata, lines, config) do
+    with env when not is_nil(env) <- Metadata.get_env(metadata, pos),
+         binding_env <- Binding.from_env(env, metadata, pos),
+         {:ok, text} <- TypePresentation.render_hint(binding_env, var) do
       %InlayHint{
-        position: hint_position,
-        label: label,
-        kind: InlayHintKind.type()
+        position: hint_position(lines, line, column, name),
+        label: ": " <> truncate(text, config.max_label_length),
+        kind: InlayHintKind.type(),
+        padding_left: false,
+        padding_right: false
       }
     else
       _ -> nil
     end
   end
 
-  defp variable_hint_position(lines, {line, column}, name) do
+  defp hint_position(lines, line, column, name) do
     token_length = name |> Atom.to_string() |> String.length()
-    column_end = column + token_length
-
-    {lsp_line, lsp_char} = SourceFile.elixir_position_to_lsp(lines, {line, column_end})
-
+    {lsp_line, lsp_char} = SourceFile.elixir_position_to_lsp(lines, {line, column + token_length})
     %Position{line: lsp_line, character: lsp_char}
   end
 
-  defp render_shape(shape), do: render_shape(shape, 0)
+  defp truncate(text, max) when byte_size(text) <= max, do: text
+  defp truncate(text, max), do: String.slice(text, 0, max(max - 1, 0)) <> "…"
 
-  defp render_shape(:none, _depth), do: nil
-  defp render_shape(:no_spec, _depth), do: nil
-  defp render_shape(nil, _depth), do: nil
-  defp render_shape(:any, _depth), do: "any"
-  defp render_shape({:atom, atom}, _depth) when is_atom(atom), do: truncated(inspect(atom))
+  # --- range helpers ---
 
-  defp render_shape({:struct, _fields, {:atom, module}, _}, _depth) when is_atom(module) do
-    truncated("%#{inspect(module)}{}")
+  defp elixir_range(lines, %Range{start: start_pos, end: end_pos}) do
+    {sl, sc} = SourceFile.lsp_position_to_elixir(lines, {start_pos.line, start_pos.character})
+    {el, ec} = SourceFile.lsp_position_to_elixir(lines, {end_pos.line, end_pos.character})
+    {{sl, sc || 1}, {el, ec || 1}}
   end
 
-  defp render_shape({:struct, _fields, _module, _}, _depth), do: "struct"
+  defp exceeds_line_budget?({sl, _}, {el, _}), do: el - sl > @max_range_lines
 
-  defp render_shape({:map, fields, _}, depth) do
-    if depth >= @max_shape_depth do
-      "%{}"
-    else
-      if Enum.empty?(fields) do
-        "%{}"
-      else
-        "%{…}"
-      end
-    end
-  end
-
-  defp render_shape({:list, subtype}, depth) do
-    rendered = render_shape(subtype, depth + 1) || "any"
-    truncated("[#{rendered}]")
-  end
-
-  defp render_shape({:tuple, _size, elements}, depth) when is_list(elements) do
-    if depth >= @max_shape_depth do
-      "{…}"
-    else
-      inner =
-        elements
-        |> Enum.map(&(render_shape(&1, depth + 1) || "…"))
-        |> Enum.join(", ")
-
-      truncated("{#{inner}}")
-    end
-  end
-
-  defp render_shape({:tuple, size, _elements}, _depth) when is_integer(size) do
-    "{#{size}}"
-  end
-
-  defp render_shape({:union, members}, depth) when is_list(members) do
-    members
-    |> Enum.map(&render_shape(&1, depth + 1))
-    |> Enum.reject(&is_nil/1)
-    |> Enum.uniq()
-    |> case do
-      [] ->
-        nil
-
-      items ->
-        items
-        |> Enum.take(3)
-        |> Enum.join(" | ")
-        |> maybe_append_ellipsis(length(items), length(members))
-        |> truncated()
-    end
-  end
-
-  defp render_shape({:binary, _}, _depth), do: "binary"
-  defp render_shape({:integer, _}, _depth), do: "integer"
-  defp render_shape({:float, _}, _depth), do: "float"
-  defp render_shape({:fun, _}, _depth), do: "fun"
-
-  defp render_shape(other, _depth) do
+  defp in_range?({line, column}, {sl, sc}, {el, ec}) do
     cond do
-      is_atom(other) -> truncated(Atom.to_string(other))
-      true -> truncated(inspect(other))
+      line < sl -> false
+      line > el -> false
+      line == sl and column < sc -> false
+      line == el and column > max(ec, 1) -> false
+      true -> true
     end
   end
-
-  defp truncated(string) when byte_size(string) <= @max_label_length, do: string
-
-  defp truncated(string) do
-    string
-    |> String.slice(0, @max_label_length - 1)
-    |> Kernel.<>("…")
-  end
-
-  defp maybe_append_ellipsis(label, shown, total) when total > shown do
-    truncated(label <> " | …")
-  end
-
-  defp maybe_append_ellipsis(label, _shown, _total), do: label
 end
