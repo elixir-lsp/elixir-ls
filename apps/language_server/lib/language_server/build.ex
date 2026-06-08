@@ -13,8 +13,6 @@ defmodule ElixirLS.LanguageServer.Build do
   the build steps while holding a global build lock.
   """
   def build(parent, root_path, opts) when is_binary(root_path) do
-    Application.loaded_applications() |> Enum.map(&elem(&1, 0))
-
     build_pid_reference =
       spawn_monitor(fn ->
         with_build_lock(fn ->
@@ -113,7 +111,13 @@ defmodule ElixirLS.LanguageServer.Build do
 
           purge_changed_deps(current_deps, cached_deps)
 
-          if Keyword.get(opts, :fetch_deps?) and current_deps != cached_deps do
+          # Note: we intentionally don't gate this on `current_deps != cached_deps`.
+          # `current_deps` comes from `Mix.Dep.Converger.converge([])` (full universe,
+          # `app_properties` kept in opts) while `cached_deps` comes from the env-filtered
+          # `{:cached_deps, project}` cache (written via `Mix.Dep.cached/0`, which pops
+          # `app_properties`), so the two are never structurally equal in steady state.
+          # `fetch_deps/1` already filters down to deps with actionable statuses.
+          if Keyword.get(opts, :fetch_deps?) do
             fetch_deps(current_deps)
           end
 
@@ -671,7 +675,11 @@ defmodule ElixirLS.LanguageServer.Build do
   end
 
   defp unload_mix_project_apps(reload? \\ false) do
-    # note that this will unload config so we need to call loadconfig afterwards
+    # Unloading drops each app's *non-persistent* application env. Config applied via
+    # `loadconfig`/`app.config` is set with `persistent: true`, so it survives the
+    # unload (and the reload? path below) and does not require re-running `loadconfig`.
+    # The reload? path reloads the `.app` spec to refresh the app's module list after
+    # compilation (workaround for elixir-lang/elixir#13001).
     mix_project_apps =
       if Mix.Project.umbrella?() do
         Mix.Project.apps_paths() |> Enum.map(&elem(&1, 0))
