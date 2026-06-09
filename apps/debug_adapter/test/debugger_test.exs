@@ -816,10 +816,83 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
       assert Enum.sort([line_1, line_2]) == [67, 70]
 
-      Server.receive_packet(server, continue_req(9, thread_id_1))
-      Server.receive_packet(server, continue_req(10, thread_id_2))
+      Server.receive_packet(
+        server,
+        request(9, "continue", %{"threadId" => thread_id_1, "singleThread" => true})
+      )
+
+      Server.receive_packet(
+        server,
+        request(10, "continue", %{"threadId" => thread_id_2, "singleThread" => true})
+      )
+
       assert_receive response(_, 9, "continue", %{"allThreadsContinued" => false})
       assert_receive response(_, 10, "continue", %{"allThreadsContinued" => true})
+    end)
+  end
+
+  @tag :fixture
+  test "continue without singleThread resumes all paused processes", %{server: server} do
+    in_fixture(__DIR__, "mix_project", fn ->
+      Server.receive_packet(
+        server,
+        initialize_req_(1, %{
+          initialize_req_args()
+          | supports_variable_paging: true,
+            supports_variable_type: true
+        })
+      )
+
+      assert_receive(response(_, 1, "initialize", %{"supportsConfigurationDoneRequest" => true}))
+
+      Server.receive_packet(
+        server,
+        launch_req(2, %{
+          "request" => "launch",
+          "type" => "mix_task",
+          "task" => "run",
+          "taskArgs" => ["-e", "Some.multiple(2)"],
+          "projectDir" => File.cwd!()
+        })
+      )
+
+      assert_receive(response(_, 2, "launch"), 5000)
+      assert_receive(event(_, "initialized", _))
+      abs_path = Path.absname("lib/mix_project.ex")
+
+      Server.receive_packet(
+        server,
+        set_breakpoints_req(3, %{"path" => abs_path}, [%{"line" => 67}, %{"line" => 70}])
+      )
+
+      assert_receive(
+        response(_, 3, "setBreakpoints", %{
+          "breakpoints" => [%{"verified" => true}, %{"verified" => true}]
+        }),
+        5000
+      )
+
+      Server.receive_packet(server, request(5, "configurationDone", %{}))
+      assert_receive(response(_, 5, "configurationDone"))
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => thread_id_1
+                     }),
+                     5_000
+
+      assert_receive event(_, "stopped", %{
+                       "allThreadsStopped" => false,
+                       "reason" => "breakpoint",
+                       "threadId" => _thread_id_2
+                     }),
+                     5_000
+
+      # continuing a single thread without singleThread resumes every paused
+      # thread, so allThreadsContinued is true and no thread stays paused
+      Server.receive_packet(server, continue_req(9, thread_id_1))
+      assert_receive response(_, 9, "continue", %{"allThreadsContinued" => true})
     end)
   end
 

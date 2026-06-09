@@ -1830,14 +1830,16 @@ defmodule ElixirLS.DebugAdapter.Server do
       show_user: true
   end
 
-  defp maybe_continue_other_processes(state, %{single_thread: true}) do
+  defp maybe_continue_other_processes(state, %{single_thread: true}), do: state
+
+  defp maybe_continue_other_processes(state, _) do
     # continue dbg debug session
     state =
       case state.dbg_session do
         {pid, _ref} = from ->
           GenServer.reply(from, {:ok, false})
           {%PausedProcess{ref: ref}, paused_processes} = Map.pop!(state.paused_processes, pid)
-          true = Process.demonitor(ref, [:flush])
+          if ref, do: Process.demonitor(ref, [:flush])
           %{state | dbg_session: nil, paused_processes: paused_processes}
 
         _ ->
@@ -1847,14 +1849,12 @@ defmodule ElixirLS.DebugAdapter.Server do
     # continue erlang debugger paused processes
     for {paused_pid, %PausedProcess{ref: ref}} <- state.paused_processes do
       safe_int_action(paused_pid, :continue)
-      true = Process.demonitor(ref, [:flush])
+      if ref, do: Process.demonitor(ref, [:flush])
       paused_pid
     end
 
     %{state | paused_processes: %{}}
   end
-
-  defp maybe_continue_other_processes(state, _), do: state
 
   # Defensive wrapper around :int actions. :int is finicky and can raise from
   # internal pattern matches under various edge cases; if that happens we log
