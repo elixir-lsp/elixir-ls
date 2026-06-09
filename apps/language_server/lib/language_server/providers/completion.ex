@@ -993,12 +993,12 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
            %GenLSP.Structures.TextEdit{
              range: %GenLSP.Structures.Range{
                start: %GenLSP.Structures.Position{
-                 line: context.line,
-                 character: context.character - String.length(context.prefix)
+                 line: context.line - 1,
+                 character: context.character - 1 - String.length(context.prefix)
                },
                end: %GenLSP.Structures.Position{
-                 line: context.line,
-                 character: context.character
+                 line: context.line - 1,
+                 character: context.character - 1
                }
              },
              new_text: "#{name}: "
