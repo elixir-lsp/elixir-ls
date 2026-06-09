@@ -229,7 +229,10 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
     var_type = vars[to_string(var)][:type]
 
     if var_type && function_exported?(var_type, :__schema__, 2) do
-      var_type.__schema__(:association, assoc).related
+      case var_type.__schema__(:association, assoc) do
+        %{related: related} -> related
+        _ -> nil
+      end
     end
   end
 
