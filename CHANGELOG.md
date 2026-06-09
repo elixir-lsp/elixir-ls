@@ -45,7 +45,7 @@
 
 - Elixir 1.15 reached end of life and is no longer supported. Consider updating to 1.16+
 - OTP versions below 26 are no longer supported. Consider updating to OTP 26+
-- Legacy dialyzer support dropped
+- Legacy dialyzer support dropped — OTP's incremental Dialyzer is now the only engine, so the `elixirLS.incrementalDialyzer` setting has been removed
 
 ### v0.30.0: 17 November 2025
 

@@ -160,7 +160,7 @@ ElixirLS provides debug adapter support adhering to the [Debug Adapter Protocol]
 
 When debugging in Elixir or Erlang, only modules that have been "interpreted" (using `:int.ni/1` or `:int.i/1`) will accept breakpoints or show up in stack traces. The debugger in ElixirLS automatically interprets all modules in the Mix project and its dependencies before launching the Mix task. Therefore, you can set breakpoints anywhere in your project or dependency modules.
 
-Please note that there is currently a limit of 100 breakpoints.
+Please note that there is currently a limit of 100 conditional breakpoints (breakpoints with a condition, hit count, or log message). Plain breakpoints are not subject to this limit.
 
 To debug modules in `.exs` files (such as tests), they must be specified under `requireFiles` in your launch configuration so that they can be loaded and interpreted before running the task. For example, the default launch configuration for `mix test` in the VSCode plugin is shown below:
 
@@ -498,7 +498,7 @@ Below is a list of configuration options supported by the ElixirLS language serv
 <dl>
 <dt>elixirLS.autoBuild</dt><dd>Trigger ElixirLS build when code is saved</dd>
 <dt>elixirLS.dialyzerEnabled</dt><dd>Run ElixirLS's rapid Dialyzer when code is saved</dd>
-<dt>elixirLS.dialyzerWarnOpts</dt><dd>Dialyzer options to enable or disable warnings - See Dialyzer's documentation for options. Note that the <code>race_conditions</code> option is unsupported.</dd>
+<dt>elixirLS.dialyzerWarnOpts</dt><dd>Dialyzer options to enable or disable warnings - See Dialyzer's documentation for options.</dd>
 <dt>elixirLS.dialyzerFormat</dt><dd>Formatter to use for Dialyzer warnings</dd>
 <dt>elixirLS.envVariables</dt><dd>Environment variables to use for compilation</dd>
 <dt>elixirLS.mixEnv</dt><dd>Mix environment to use for compilation</dd>
@@ -514,7 +514,7 @@ Below is a list of configuration options supported by the ElixirLS language serv
 <dt>elixirLS.languageServerOverridePath</dt><dd>Absolute path to an alternative ElixirLS release that will override the packaged release</dd>
 <dt>elixirLS.stdlibSrcDir</dt><dd>Path to Elixir's std lib source code. See [here](https://github.com/elixir-lsp/elixir_sense/pull/277) for more info</dd>
 <dt>elixirLS.dotFormatter</dt><dd>Path to a custom <code>.formatter.exs</code> file used when formatting documents</dd>
-<dt>elixirLS.mcpEnabled</dt><dd>Enable or disable the MCP (Model Context Protocol) server - Defaults to <code>true</code></dd>
+<dt>elixirLS.mcpEnabled</dt><dd>Enable or disable the MCP (Model Context Protocol) server - Defaults to <code>false</code></dd>
 <dt>elixirLS.mcpPort</dt><dd>Set a specific TCP port for the MCP server - If not set, uses <code>3789 + hash(workspace_path)</code> for predictable port assignment per workspace</dd>
 </dl>
 
