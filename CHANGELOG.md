@@ -1,5 +1,52 @@
 ### Unreleased
 
+### v0.31.0: 9 June 2026
+
+#### Highlights
+
+- Added support for Elixir 1.20 (and OTP 29 on 1.20)
+
+#### Improvements
+
+- Completion subsystem ported wholesale onto the 1.20 engine with more accurate block keyword (`do`, `else`, `rescue`, `catch`, `after`, `end`) completions
+- Go to definition now resolves functions and macros defined inside `__using__` macros [Paweł Świątkowski](https://github.com/katafrakt)
+- Added OTP 28 nominal types support
+- `Code.ensure_compiled` calls eradicated from the codebase and from elixir_sense module store building, reducing compilation-related hangs and improving startup performance [Steve Cohen](https://github.com/scohen)
+- Ecto query completion now includes bindings from join associations
+- `required` is preserved in typespec suggestions
+
+#### Fixes
+
+- Fixed call hierarchy ranges for calls in the current file
+- Match arity when naming call hierarchy items
+- Parse Erlang module names in call hierarchy
+- Only rewrite the diagnostic module's call in the "replace remote function" code action
+- Fixed struct field completion in record update syntax
+- Fixed keyword option completion text edit position
+- Guard against unknown association in Ecto query completion
+- Pass binding to scope resolution for route action completion
+- Do not get stuck when build is skipped on cwd change
+- Do not transfer nil PLT after failed dialyzer analysis
+- Fixed whitespace regex in `function_def_on_line?`
+- Do not treat `#` inside literals as a trailing comment
+- Fixed `path_in_dir?` for filesystem root
+- Handle error responses to server-initiated requests
+- Fixed mise shell detection when using nushell [Bryan Iotti](https://github.com/fedoracoreuser)
+- Debug adapter: fixed off-by-one in hit count breakpoints
+- Debug adapter: plain breakpoints no longer consume conditional breakpoint slots
+- Debug adapter: fixed breakpoint condition unregister on removal
+- Debug adapter: fixed off-by-one in stackTrace levels paging
+- Debug adapter: fixed inverted `singleThread` handling in continue/step
+- MCP: fixed invalid response to the `initialized` notification
+- MCP: fixed location key for `file:line:column` in `get_environment`
+- Do not overwrite target dir on release
+
+#### Breaking changes
+
+- Elixir 1.15 reached end of life and is no longer supported. Consider updating to 1.16+
+- OTP versions below 26 are no longer supported. Consider updating to OTP 26+
+- Legacy dialyzer support dropped
+
 ### v0.30.0: 17 November 2025
 
 #### Highlights

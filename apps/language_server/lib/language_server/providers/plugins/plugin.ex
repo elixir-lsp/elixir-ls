@@ -1,4 +1,5 @@
 defmodule ElixirLS.LanguageServer.Plugin do
+  @moduledoc false
   alias ElixirSense.Core.Metadata
   alias ElixirSense.Core.State
   @type suggestion :: ElixirLS.LanguageServer.Providers.Completion.Suggestion.generic()
@@ -12,7 +13,7 @@ defmodule ElixirLS.LanguageServer.Plugin do
         }
 
   @callback reduce(
-              hint :: String,
+              hint :: String.t(),
               env :: State.Env.t(),
               buffer_metadata :: Metadata.t(),
               cursor_context,
