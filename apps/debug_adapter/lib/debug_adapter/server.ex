@@ -1131,7 +1131,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
     for {modules, line} <- removed_bps, module <- modules do
       :int.delete_break(module, line)
-      BreakpointCondition.unregister_condition(module, [line])
+      BreakpointCondition.unregister_condition(module, line)
     end
 
     result = set_breakpoints(path, new_lines |> Enum.zip(new_conditions), state.config)

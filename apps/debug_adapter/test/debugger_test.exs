@@ -1789,7 +1789,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{} == :sys.get_state(server).breakpoints
 
-        refute BreakpointCondition.has_condition?(MixProject, [3])
+        refute BreakpointCondition.has_condition?(MixProject, 3)
       end)
     end
 
@@ -1886,7 +1886,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{} == :sys.get_state(server).breakpoints
 
-        refute BreakpointCondition.has_condition?(MixProject, [3])
+        refute BreakpointCondition.has_condition?(MixProject, 3)
       end)
     end
 
@@ -1984,7 +1984,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
 
         assert %{} == :sys.get_state(server).breakpoints
 
-        refute BreakpointCondition.has_condition?(MixProject, [3])
+        refute BreakpointCondition.has_condition?(MixProject, 3)
       end)
     end
 
