@@ -175,7 +175,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
     # Try to get more info about the function
     {{_m, _f, actual_arity}, _info} =
       Enum.find(mods_funs, fn
-        {{^module, ^function, _}, _} -> true
+        {{^module, ^function, found_arity}, _} -> arity == :any or found_arity == arity
         _ -> false
       end) || {{module, function, arity}, %{}}
 
