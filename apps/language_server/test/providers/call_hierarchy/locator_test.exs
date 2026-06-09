@@ -249,6 +249,27 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.LocatorTest do
       # Should find calls from other modules via tracer
       assert length(result) >= 1
     end
+
+    test "resolves erlang module names when finding incoming calls" do
+      code = """
+      defmodule TestModule do
+        def caller do
+          :lists.reverse([1, 2, 3])
+        end
+      end
+      """
+
+      metadata = Parser.parse_string(code, true, false, {3, 5})
+      trace = Tracer.get_trace()
+
+      # the erlang module ":lists" must round-trip through name parsing, not
+      # become :"Elixir.:lists" via Module.concat
+      result =
+        Locator.incoming_calls(":lists.reverse/1", :function, {1, 1}, trace, metadata: metadata)
+
+      caller_names = Enum.map(result, & &1.from.name)
+      assert "TestModule.caller/0" in caller_names
+    end
   end
 
   describe "outgoing_calls/5" do

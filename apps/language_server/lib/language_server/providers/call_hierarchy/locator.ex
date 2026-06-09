@@ -278,8 +278,13 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
   defp parse_function_name(name) do
     case Regex.run(~r/^(.+)\.([^.]+)\/(\d+|\?)$/, name) do
       [_, module_str, function_str, arity_str] ->
-        # Convert module string to atom using Module.concat
-        module = Module.concat([module_str])
+        # Erlang modules are inspected with a leading colon (e.g. ":ets") and must
+        # be parsed back as plain atoms, not concatenated under the Elixir namespace
+        module =
+          case module_str do
+            ":" <> erlang_module -> String.to_atom(erlang_module)
+            _ -> Module.concat([module_str])
+          end
 
         function = String.to_atom(function_str)
         arity = if arity_str == "?", do: :any, else: String.to_integer(arity_str)
