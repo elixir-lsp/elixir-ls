@@ -51,7 +51,7 @@ defmodule ElixirLS.DebugAdapter.Variables do
     try do
       # this call will raise ArgumentError for improper list
       max_count = length(var)
-      count = count || max_count
+      count = if is_integer(count) and count > 0, do: count, else: max_count
 
       sliced =
         var
@@ -65,7 +65,7 @@ defmodule ElixirLS.DebugAdapter.Variables do
       end
     rescue
       ArgumentError ->
-        count = count || 2
+        count = if is_integer(count) and count > 0, do: count, else: 2
 
         if start == 0 and count >= 1 do
           [{"hd", hd(var)}]
@@ -93,11 +93,13 @@ defmodule ElixirLS.DebugAdapter.Variables do
   end
 
   def children(var, start, count) when is_map(var) do
+    count = if is_integer(count) and count > 0, do: count, else: map_size(var)
+
     children =
       var
       |> Map.to_list()
       |> Enum.sort()
-      |> Enum.slice(start || 0, count || map_size(var))
+      |> Enum.slice(start || 0, count)
 
     for {key, value} <- children do
       name =
