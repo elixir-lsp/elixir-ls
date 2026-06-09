@@ -201,7 +201,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
           # stop only if both conditions are met.
 
           hit_count = eval_hit_condition(hit_count_condition, elixir_binding, env)
-          hits + 1 > hit_count
+          hits + 1 >= hit_count
         else
           result
         end
