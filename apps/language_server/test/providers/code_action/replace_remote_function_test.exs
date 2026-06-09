@@ -88,6 +88,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       assert result == "counts = Enum.count([1, 2, 3])"
     end
 
+    test "does not treat # inside a string literal as a trailing comment" do
+      {:ok, [result]} =
+        ~q{
+        Enum.counts("# not a comment")
+      }
+        |> modify()
+
+      assert result == ~s{Enum.count("# not a comment")}
+    end
+
     test "applied to a call after a pipe" do
       {:ok, [result]} =
         ~q{

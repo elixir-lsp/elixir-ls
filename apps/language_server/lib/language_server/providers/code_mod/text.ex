@@ -9,9 +9,15 @@ defmodule ElixirLS.LanguageServer.Providers.CodeMod.Text do
 
   @spec trailing_comment(String.t()) :: String.t()
   def trailing_comment(line_text) do
-    case Regex.run(~r/\s*#.*/, line_text) do
-      [comment] when is_binary(comment) -> comment
-      _ -> ""
+    # Use the tokenizer-aware parser so a `#` inside a string/charlist literal
+    # is not mistaken for a comment.
+    case Code.string_to_quoted_with_comments(line_text) do
+      {:ok, _ast, [_ | _] = comments} ->
+        %{text: text} = List.last(comments)
+        " " <> text
+
+      _ ->
+        ""
     end
   end
 
