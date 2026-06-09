@@ -48,7 +48,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Phoenix do
     binding_env =
       Binding.from_env(opts.env, opts.buffer_metadata, opts.cursor_context.cursor_position)
 
-    {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before)
+    {_, scope_alias} = Scope.within_scope(opts.cursor_context.text_before, binding_env)
     {module, _} = Source.get_mod([module], binding_env)
 
     module = Module.concat(scope_alias, module)
