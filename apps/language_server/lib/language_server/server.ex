@@ -2463,7 +2463,7 @@ defmodule ElixirLS.LanguageServer.Server do
             do: Map.get(settings, "dialyzerFormat", "dialyxir_long"),
             else: ""
           ),
-        "elixir_ls.mcpEnabled" => to_string(Map.get(settings, "mcpEnabled", true)),
+        "elixir_ls.mcpEnabled" => to_string(Map.get(settings, "mcpEnabled", false)),
         "elixir_ls.mcpPort" => to_string(mcp_port)
       },
       %{}
