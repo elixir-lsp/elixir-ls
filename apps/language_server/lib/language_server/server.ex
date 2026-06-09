@@ -2021,20 +2021,27 @@ defmodule ElixirLS.LanguageServer.Server do
               end
           end
 
-        document_versions_on_build =
-          Map.new(state.source_files, fn {uri, source_file} -> {uri, source_file.version} end)
+        if build_ref == nil do
+          # build was skipped (cwd changed) - do not enter the running state,
+          # otherwise build_running? would stay true forever with no monitored
+          # process to reset it; request a retry instead
+          %{state | needs_build?: true}
+        else
+          document_versions_on_build =
+            Map.new(state.source_files, fn {uri, source_file} -> {uri, source_file.version} end)
 
-        %__MODULE__{
-          state
-          | build_ref: build_ref,
-            needs_build?: false,
-            build_running?: true,
-            analysis_ready?: false,
-            build_diagnostics: [],
-            dialyzer_diagnostics: [],
-            document_versions_on_build: document_versions_on_build
-        }
-        |> publish_diagnostics()
+          %__MODULE__{
+            state
+            | build_ref: build_ref,
+              needs_build?: false,
+              build_running?: true,
+              analysis_ready?: false,
+              build_diagnostics: [],
+              dialyzer_diagnostics: [],
+              document_versions_on_build: document_versions_on_build
+          }
+          |> publish_diagnostics()
+        end
 
       true ->
         # build already running, schedule another one
