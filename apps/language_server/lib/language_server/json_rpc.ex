@@ -7,6 +7,7 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
   """
 
   use GenServer
+  require Logger
   alias ElixirLS.LanguageServer
   alias ElixirLS.Utils.WireProtocol
 
@@ -279,21 +280,44 @@ defmodule ElixirLS.LanguageServer.JsonRpc do
 
   @impl GenServer
   def handle_call({:packet, %{"id" => id, "result" => result}}, _from, state) do
-    %{^id => {from, module}} = state.outgoing_requests
+    case Map.fetch(state.outgoing_requests, id) do
+      {:ok, {from, module}} ->
+        case SchematicV.unify(module.result(), result) do
+          {:ok, error_response = %GenLSP.ErrorResponse{}} ->
+            GenServer.reply(from, {:error, error_response})
 
-    case SchematicV.unify(module.result(), result) do
-      {:ok, error_response = %GenLSP.ErrorResponse{}} ->
-        GenServer.reply(from, {:error, error_response})
+          {:ok, loaded} ->
+            GenServer.reply(from, {:ok, loaded})
 
-      {:ok, loaded} ->
-        GenServer.reply(from, {:ok, loaded})
+          {:error, error} ->
+            GenServer.reply(from, {:error, error})
+        end
 
-      {:error, error} ->
-        GenServer.reply(from, {:error, error})
+        {:reply, :ok, update_in(state.outgoing_requests, &Map.delete(&1, id))}
+
+      :error ->
+        Logger.warning("Received response for unknown request id #{inspect(id)}")
+        {:reply, :ok, state}
     end
+  end
 
-    state = update_in(state.outgoing_requests, &Map.delete(&1, id))
-    {:reply, :ok, state}
+  @impl GenServer
+  def handle_call({:packet, %{"id" => id, "error" => error}}, _from, state) do
+    case Map.fetch(state.outgoing_requests, id) do
+      {:ok, {from, _module}} ->
+        error_response = %GenLSP.ErrorResponse{
+          code: error["code"],
+          message: error["message"],
+          data: error["data"]
+        }
+
+        GenServer.reply(from, {:error, error_response})
+        {:reply, :ok, update_in(state.outgoing_requests, &Map.delete(&1, id))}
+
+      :error ->
+        Logger.warning("Received error response for unknown request id #{inspect(id)}")
+        {:reply, :ok, state}
+    end
   end
 
   @impl GenServer
