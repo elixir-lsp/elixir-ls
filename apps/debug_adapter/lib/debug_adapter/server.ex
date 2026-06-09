@@ -2892,24 +2892,32 @@ defmodule ElixirLS.DebugAdapter.Server do
          "request" => "launch"
        }) do
     for line <- lines do
-      {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
-      env = Code.env_for_eval(macro_env_or_opts)
+      if condition != "true" || log_message || hit_count != "0" do
+        {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
+        env = Code.env_for_eval(macro_env_or_opts)
 
-      case BreakpointCondition.register_condition(
-             module,
-             line,
-             env,
-             condition,
-             log_message,
-             hit_count
-           ) do
-        {:ok, mf} ->
-          :int.test_at_break(module, line, mf)
+        case BreakpointCondition.register_condition(
+               module,
+               line,
+               env,
+               condition,
+               log_message,
+               hit_count
+             ) do
+          {:ok, mf} ->
+            :int.test_at_break(module, line, mf)
 
-        {:error, reason} ->
-          Output.debugger_important(
-            "Unable to set condition on a breakpoint in #{module}:#{inspect(line)}: #{inspect(reason)}"
-          )
+          {:error, reason} ->
+            Output.debugger_important(
+              "Unable to set condition on a breakpoint in #{module}:#{inspect(line)}: #{inspect(reason)}"
+            )
+        end
+      else
+        # plain breakpoint - do not consume a condition slot and clear any
+        # stale condition/test hook left over from a previous conditional breakpoint
+        BreakpointCondition.unregister_condition(module, line)
+        :int.delete_break(module, line)
+        :int.break(module, line)
       end
     end
   end

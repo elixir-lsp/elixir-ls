@@ -1643,9 +1643,11 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         refute :hello in :int.interpreted()
 
         assert [
-                 {{MixProject, 3}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
-               ] ==
+                 {{MixProject, 3}, [:active, :enable, :null, _]}
+               ] =
                  :int.all_breaks(MixProject)
+
+        refute BreakpointCondition.has_condition?(MixProject, 3)
 
         assert %{^abs_path_1 => [{[MixProject], 3}]} = :sys.get_state(server).breakpoints
 
@@ -2624,7 +2626,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert Proto in :int.interpreted()
 
         assert [
-                 {{Proto, 2}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+                 {{Proto, 2}, [:active, :enable, :null, _]}
                ] = :int.all_breaks(Proto)
 
         assert %{{Proto, :go, 1} => [2]} = :sys.get_state(server).function_breakpoints
@@ -2736,7 +2738,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert Proto.List in :int.interpreted()
 
         assert [
-                 {{Proto.List, 7}, [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+                 {{Proto.List, 7}, [:active, :enable, :null, _]}
                ] = :int.all_breaks(Proto.List)
 
         assert %{{Proto.List, :go, 1} => [7]} = :sys.get_state(server).function_breakpoints
@@ -2823,8 +2825,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert DerivedProto.MyStruct in :int.interpreted()
 
         assert [
-                 {{DerivedProto.MyStruct, 33},
-                  [:active, :enable, :null, {BreakpointCondition, :check_0}]}
+                 {{DerivedProto.MyStruct, 33}, [:active, :enable, :null, _]}
                ] = :int.all_breaks(DerivedProto.MyStruct)
 
         assert %{{DerivedProto.MyStruct, :go, 1} => [33]} =
