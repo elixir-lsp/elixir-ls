@@ -190,7 +190,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
           {:ok, pid} =
             Task.start_link(fn ->
               {warnings, plt} = do_analyze(opts, warning_modules_to_apps)
-              Manifest.transfer_plt(plt, parent)
+              if plt, do: Manifest.transfer_plt(plt, parent)
               send(parent, {:analysis_finished, warnings, build_ref, plt})
             end)
 
