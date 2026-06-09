@@ -204,5 +204,10 @@ defmodule ElixirLS.LanguageServer.SourceFile.PathTest do
       refute path_in_dir?("/foobar/baz.ex", "/foo")
       refute path_in_dir?("/foobar/baz.ex", "/foo/")
     end
+
+    test "filesystem root contains all absolute paths" do
+      assert path_in_dir?("/foo.ex", "/")
+      assert path_in_dir?("/foo/bar.ex", "/")
+    end
   end
 end
