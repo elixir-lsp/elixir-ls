@@ -367,6 +367,21 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
                        ]
                      })
 
+      # requesting `levels: 1` must return exactly one frame, not levels + 1
+      Server.receive_packet(
+        server,
+        request(15, "stackTrace", %{
+          "threadId" => thread_id,
+          "startFrame" => 0,
+          "levels" => 1
+        })
+      )
+
+      assert_receive response(_, 15, "stackTrace", %{
+                       "totalFrames" => 2,
+                       "stackFrames" => [%{"name" => "Some.fun_2/1"}]
+                     })
+
       Server.receive_packet(server, step_out_req(14, thread_id))
       assert_receive response(_, 14, "stepOut")
 

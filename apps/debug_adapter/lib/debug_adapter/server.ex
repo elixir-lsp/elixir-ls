@@ -1416,7 +1416,7 @@ defmodule ElixirLS.DebugAdapter.Server do
           case args do
             %GenDAP.Structures.StackTraceArguments{levels: levels}
             when is_integer(levels) and levels > 0 ->
-              start_frame + levels
+              start_frame + levels - 1
 
             _ ->
               -1
