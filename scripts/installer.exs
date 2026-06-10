@@ -370,7 +370,10 @@ defmodule ElixirLS.Mix do
           File.cd!(install_project_dir, fn ->
             # This step needs to be mirrored in mix deps.partition
             Application.put_all_env(config, persistent: true)
-            Mix.Task.rerun("loadconfig")
+
+            if config_path do
+              Mix.Task.rerun("loadconfig")
+            end
 
             cond do
               external_lockfile ->
