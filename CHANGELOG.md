@@ -1,5 +1,11 @@
 ### Unreleased
 
+### v0.31.1: 11 June 2026
+
+#### Fixes
+
+- Fixed regression in installer script on elixir 1.16 - 1.18 [Kevin Mathew](https://github.com/kevinam99)
+
 ### v0.31.0: 9 June 2026
 
 #### Highlights
