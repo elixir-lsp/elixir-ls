@@ -1,136 +1,111 @@
 # ElixirLS Types/Inlay Hints Audit Tasks
 
-## Status after the 2026-06-11 fix pass (Fable)
+Second review date: 2026-06-11.
 
-Gates: inlay_hints 51/51 (+11 GPT-audit tests), provider suites (hover, hover/docs,
-completion suggestions) 345 green total, `MIX_ENV=test mix format --check-formatted` ✅.
-
-**Done:**
-- "Type-hint policy behind an ElixirSense API" — the provider consumes
-  `TypePresentation.render_hint/3` returning `{:ok, %{label, full, source}} | :skip`;
-  suppression of term()/none()/dynamic(), truncation, literal widening, and tooltip
-  capping all live in elixir_sense.
-- "Compiler-style presentation" — hint labels widen literals to compiler spellings
-  (`integer()`/`binary()`); tests assert no raw-literal leakage; descr-backed text is
-  `to_quoted_string` parity-verified on the elixir_sense side.
-- "Trust gating" — new `elixirLS.inlayHints.variableTypes.minimumTrust`
-  ("native" | "bestEffort", default "bestEffort") drops `:shape`-sourced hints in
-  native mode; parameter hints unaffected. Declared in vscode-elixir-ls package.json.
-- "Backend status in logs" — one-time Logger.info on first request states
-  compiler-native / structural-disabled / structural-unavailable.
-- "Param-hint independence" + "failure-mode tests" — covered (inference disabled,
-  nonexistent module, graceful degradation).
-
-**Deferred:** flow-sensitive read-occurrence typing (needs an elixir_sense
-position-env API); InlayHintLabelPart/resolve for very large types (tooltip is capped
-at 1000 graphemes instead); end-to-end tests against ExCk-compiled project modules;
-compile-time elixir_sense version pinning (blocked on publishing the elixir_sense
-branch — same as the path-dep item in ELIXIR_LS_TYPES_FABLE.md).
-
----
-
-Audit target: branch/worktree `/Users/lukaszsamson/vscode-elixir-ls/elixir-ls/.claude/worktrees/practical-roentgen-11f5aa`.
+Worktree: `/Users/lukaszsamson/vscode-elixir-ls/elixir-ls/.claude/worktrees/practical-roentgen-11f5aa`.
 
 Related ElixirSense worktree: `/Users/lukaszsamson/elixir_sense/.claude/worktrees/trusting-wu-d1f603`.
 
-Goal: provide LSP inlay hints that show accurate compiler-style types for remote calls to external modules and best-effort inferred types for current-file calls/variables, while keeping ElixirLS insulated from private Elixir `Module.Types` APIs.
+Inputs reviewed:
+- Current ElixirLS inlay-hints branch.
+- `ELIXIR_LS_TYPES_FABLE.md`.
+- Updated ElixirSense types integration.
 
-## High Priority
+Goal: provide LSP inlay hints that show accurate compiler-style types for remote calls to external modules and best-effort inferred types for current-file calls/variables, without leaking private Elixir typesystem details into ElixirLS.
 
-- [ ] Move type-hint policy behind an ElixirSense API.
-  - `ElixirLS.LanguageServer.Providers.InlayHints` currently builds a `Binding` and calls `TypePresentation.render_hint/3` directly.
-  - ElixirLS should not decide how `VarInfo.type`, `VarInfo.elixir_types_descr`, compiler descriptors, shape expansion, fallback rendering, suppression, and truncation combine.
-  - Add a stable ElixirSense function such as `Metadata.type_hint(metadata, position, var_info, opts)` or `TypePresentation.lsp_hint/4`, and have the provider consume only `:skip | {:ok, label/full/tooltip}`.
+## Status
 
-- [ ] Keep all private Elixir typesystem knowledge out of ElixirLS.
-  - ElixirLS should not rely on `Module.Types.Descr`, ExCk chunks, native signature tuple shapes, or `elixir_types_descr` fields.
-  - The provider should only pass source metadata/range/settings and display the stable string returned by ElixirSense.
+The initial LSP P0/P1 items are mostly addressed:
 
-- [ ] Gate type inlay hints on verified capability, not just default-on config.
-  - `LanguageServer.main/0` enables `:use_elixir_types` by default through `ELIXIR_LS_TYPE_INFERENCE`.
-  - If running on an Elixir version where the adapter partially disables native typing, ElixirLS should either surface only structural best-effort hints or disable type hints while keeping parameter-name hints.
-  - Add a capability check and telemetry/log line that states which type source is active: compiler-native, ExCk-only, shape-only, or disabled.
+- Done: runtime `ELIXIR_LS_TYPE_INFERENCE` toggle, parameter-name default dropping, range clamping, codepoint-based identifier positioning, provider-side truncation removal, tooltip for truncated type text, local-only blocklist, `__MODULE__` receiver handling, VS Code settings, all-literal "obvious" suppression, token indexing, minimumTrust setting, backend status log, failure-mode tests, and parameter hints staying independent from type inference.
+- Still open: path dependency on a private ElixirSense worktree, flow-sensitive read occurrence hints, end-to-end tests with real build/ExCk metadata, structured parameter API, return-type call hints, and release default decisions.
+- Important layering note: the provider still builds `Binding.from_env/3` and calls `TypePresentation.render_hint/3`. This is acceptable as an interim seam but not the final ElixirLS abstraction.
 
-- [ ] Require compiler-style presentation for type hints.
-  - Hints should use the same type text style as official Elixir type warnings.
-  - Add provider tests that assert no structural-only spellings leak into variable type hints unless explicitly accepted: literal `"foo"`/`1`, `not_set()`, `if_set(...)`, `struct()`, ad-hoc open tuple markers, or custom function formatting that conflicts with compiler output.
-  - Prefer descriptor-rendered text from ElixirSense whenever available.
+## P0 - Release Blockers
 
-- [ ] Make remote-call hint scenarios first-class in tests.
-  - Add integration tests where a variable is assigned from an external module call with ExCk/native signatures, for example stdlib calls returning structs, booleans, maps, tuples, and overloaded returns.
-  - Assert the displayed type matches Elixir's compiler formatting and changes with argument types when the signature has multiple clauses.
+- [ ] Remove the private local `elixir_sense` path dependency before merge/release.
+  - `apps/language_server/mix.exs`, `apps/elixir_ls_utils/mix.exs`, and `apps/debug_adapter/mix.exs` point to `/Users/lukaszsamson/elixir_sense/.claude/worktrees/trusting-wu-d1f603`.
+  - Repoint `@dep_versions[:elixir_sense]`/lockfile to the published ElixirSense ref once that branch lands.
+  - Add a CI check or review checklist item preventing absolute local path deps from shipping.
 
-## Provider Behavior
+- [ ] Decide release defaults for variable type hints.
+  - `variableTypes.enabled` defaults to `true`, and native typing is enabled by default unless `ELIXIR_LS_TYPE_INFERENCE=false`.
+  - If ElixirSense still has P0 correctness risks, ship `parameterNames` on and `variableTypes` off, or default `minimumTrust` to `"native"`.
+  - Keep the runtime kill switch working and documented.
 
-- [ ] Revisit "obvious binding" suppression once compiler-style types are available.
-  - The provider suppresses `x = 1`, literal maps/lists/tuples, and `%Struct{} = var`.
-  - That is reasonable for noise, but it can hide useful compiler-normalized types for literals with widened types, structs with default fields, and pattern matches where the source does not show the inferred return type.
-  - Keep suppression configurable and add tests for `x = Some.remote()`, `%Struct{} = call()`, `{:ok, value} = remote()`, and destructuring assignments.
+- [ ] Add end-to-end server coverage for `textDocument/inlayHint`.
+  - Current provider tests call `InlayHints.inlay_hints/3` with `ParserContextBuilder.from_string/1`.
+  - Add a server-level request test that exercises capability advertisement, async dispatch, dirty-buffer source, request range handling, JSON encoding, and cancellation behavior.
 
-- [ ] Avoid showing hints for stale or untrusted best-effort types.
-  - Current provider trusts `render_hint/3`; once ElixirSense exposes trust/source metadata, skip or visually downgrade `:legacy_spec_lossy` and `:shape_only` hints when they would look authoritative.
-  - At minimum, do not show lossy current-file local inference as if it were compiler-native.
+- [ ] Add real project/build metadata tests for ExCk-backed remote calls.
+  - The central user goal is accurate external remote-call return types.
+  - Add tests with compiled project/dependency modules where ExCk chunks are present, plus missing chunk and version-mismatch scenarios.
 
-- [ ] Ensure read-occurrence hints use the environment at the occurrence, not only the binding.
-  - With `showOnlyBindings=false`, the provider annotates every recorded variable position but passes the same `VarInfo` to `render_hint/3`.
-  - For flow-sensitive refinements, the type at a read can differ from the binding type. Add an ElixirSense API that resolves the variable at the requested position/env.
+## P1 - Correctness And Layering
 
-- [ ] Add range/performance safeguards around type resolution.
-  - The provider caps ranges and hint counts, but each variable hint may rebuild a binding and compute local signatures.
-  - Cache per-request `Binding.from_env/3` and type-hint results by `{env, var, position}` once ElixirSense exposes a stable API.
-  - Add tests or benchmarks for large files with many variables.
+- [ ] Move variable type-hint resolution behind a single ElixirSense LSP-facing API.
+  - Today ElixirLS still assembles `env`, `Binding.from_env/3`, and `TypePresentation.render_hint/3`.
+  - ElixirSense should expose `type_hint_for_var(metadata, position, var, opts)` or equivalent returning `:skip | {:ok, %{label, full, source/trust}}`.
+  - ElixirLS should not need to know about binding expansion, descriptors, `VarInfo.elixir_types_descr`, or source precedence.
+
+- [ ] Make read occurrence hints flow-sensitive or keep them disabled by default.
+  - With `showOnlyBindings=false`, the provider annotates each recorded position using the same `VarInfo`.
+  - A read can have a different type than the binding because of guards, case/with refinements, or branch-local narrowing.
+  - Needs an ElixirSense API that resolves the variable at the requested position/env.
+
+- [ ] Use richer trust/source values from ElixirSense.
+  - Current provider only sees `:native | :shape`; `minimumTrust: "native"` filters on `source == :native`.
+  - Once ElixirSense distinguishes ExCk, compiler-native, local best-effort, lossy spec, and shape-only, update `minimumTrust` to filter those levels precisely.
+
+- [ ] Replace parameter-name string parsing with a structured ElixirSense API.
+  - The provider still parses rendered signatures/defaults to compute parameter hints.
+  - ElixirSense should return effective params for a concrete MFA/arity, including default handling, macros, imports, and generated heads.
+  - This keeps signature semantics out of the LSP layer and avoids future drift.
+
+- [ ] Revisit obvious-binding suppression after compiler-style rendering stabilizes.
+  - Suppression is now less aggressive for constructors with non-literal leaves, but literal/struct patterns can still hide useful compiler-normalized information.
+  - Add tests for `%Struct{} = remote()`, `{:ok, value} = remote()`, destructuring from external calls, and remote calls returning structs with inferred fields.
+
+## P2 - UX And Protocol
+
+- [ ] Consider lazy `inlayHint/resolve` or label parts for large type text.
+  - `full` is capped in ElixirSense and placed in `tooltip` only when truncated.
+  - For very large compiler types, `resolve_provider: true` could avoid sending tooltip text for every hint up front.
+
+- [ ] Add an explicit `maxFullLength` setting if tooltip caps need user control.
+  - ElixirSense defaults `max_full_length` to 1000, but ElixirLS does not expose it.
+  - Keep the default conservative; expose only if users need it.
+
+- [ ] Add return-type call hints only after variable hints are trustworthy.
+  - The stated goal mentions accurate types for remote calls; variable bindings cover `x = Mod.f()` indirectly, but not standalone calls.
+  - If added, implement as opt-in and route entirely through ElixirSense remote-call typing.
+
+- [ ] Keep backend status in logs/telemetry, not labels.
+  - One-time log exists. Add telemetry/debug details if needed, but labels should remain clean compiler-style type text.
+
+- [ ] Verify Unicode positions in a provider/server-level test.
+  - Codepoint arithmetic is fixed in the provider, but add an LSP UTF-16 assertion with non-ASCII identifiers to guard future regressions.
+
+## P3 - Performance And Maintenance
+
+- [ ] Cache per-request bindings/type-hint results.
+  - Each variable hint may call `Binding.from_env/3` and resolve local sigs.
+  - Cache by `{env identity, cursor_position}` or use a future ElixirSense API that handles caching internally.
+
+- [ ] Benchmark inlay hints on large files.
+  - Token indexing is improved, but native typing can still affect metadata generation and hint resolution.
+  - Measure large files with many variables/calls and whole-document client ranges.
 
 - [ ] Keep parameter-name hints independent from type inference.
-  - The provider combines variable type hints and parameter-name hints. Type backend failures should not affect parameter hints.
-  - Add regression tests where ElixirSense type inference is disabled/unavailable and parameter hints still work.
+  - Tests cover disabled native typing. Preserve this property as settings and provider logic evolve.
 
-## LSP Semantics And UX
-
-- [ ] Consider using `InlayHintLabelPart` or `data`/resolve for long type tooltips.
-  - Current provider sets `resolve_provider: false` and embeds the full type in `tooltip` only when truncated.
-  - For very large compiler types, prefer lazy resolution if client support is available, or cap tooltip size to avoid huge responses.
-
-- [ ] Add source-aware settings.
-  - Suggested settings:
-    - `elixirLS.inlayHints.variableTypes.enabled`
-    - `showOnlyBindings`
-    - `maxLength`
-    - `minimumTrust`: `compiler | native | bestEffort`
-    - `includeReadOccurrences`
-  - Keep defaults conservative until the ElixirSense adapter has compiler-comparison coverage.
-
-- [ ] Surface backend status in logs, not in hints.
-  - Users need a way to know whether hints are compiler-native or best-effort for debugging, but hint labels themselves should remain clean compiler-style type text.
-
-- [ ] Ensure UTF-16 positions are correct for Unicode identifiers and labels.
-  - `variable_hint/6` advances by `String.to_charlist/1` length before converting to UTF-16. Confirm this matches Elixir tokenizer columns for non-ASCII identifiers and combining marks.
-
-## Integration With ElixirSense
-
-- [ ] Pin compatible ElixirSense API/branch before merging.
-  - This ElixirLS branch depends on new ElixirSense modules/fields (`TypePresentation`, `VarInfo.elixir_types_descr`, native signature metadata).
-  - Add compile-time checks or version constraints so ElixirLS does not build against an older ElixirSense without those APIs.
-
-- [ ] Do not duplicate module/function resolution for type hints in the provider.
-  - Parameter hints currently resolve calls locally via `Introspection.actual_mod_fun/6`; type hints are variable-based through metadata.
-  - If future call-return inlay hints are added, reuse the ElixirSense remote-call typing API instead of adding another resolver in ElixirLS.
-
-- [ ] Add end-to-end tests with the real parser/build metadata path.
-  - Current inlay hint tests use `ParserContextBuilder.from_string/1`.
-  - Add tests for project modules compiled with ExCk chunks, current-file local definitions, aliases/imports/requires, default arguments, and modules loaded from dependencies.
-
-- [ ] Add failure-mode tests.
-  - Missing ExCk chunk.
-  - ExCk version mismatch.
-  - Elixir without the required `Module.Types` arities.
-  - Module not loaded.
-  - Parser metadata missing or stale.
-  - Type adapter exception. Expected result: no type hint for that item, request still succeeds, parameter hints unaffected.
+- [ ] Update extension docs.
+  - Document `variableTypes.enabled`, `showOnlyBindings`, `maxLength`, `minimumTrust`, `parameterNames.enabled`, the runtime env kill switch, and the experimental status of variable type hints.
 
 ## Acceptance Criteria Before Shipping
 
-- [ ] Remote calls to external modules display accurate compiler-style return types when ExCk/native signatures are available.
-- [ ] Current-file local calls and variables display best-effort types only through an abstraction that records trust/source.
-- [ ] No ElixirLS module reaches into private Elixir typesystem details.
-- [ ] Type text in hints is generated by the same rendering path Elixir uses for type warnings whenever a native descriptor exists.
-- [ ] All type-inference failures degrade to skipped type hints, not request failures.
+- [ ] No absolute local path dependencies remain.
+- [ ] Remote-call variables show compiler-style return types when ExCk/native data is available.
+- [ ] Current-file hints are clearly best-effort unless backed by native descriptors.
+- [ ] ElixirLS consumes a stable ElixirSense hint API and does not inspect private Elixir typesystem data.
+- [ ] Type inference failures skip affected type hints without breaking parameter hints or the LSP request.
