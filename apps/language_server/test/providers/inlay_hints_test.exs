@@ -268,6 +268,23 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       refute "b:" in labels
     end
 
+    test "pattern-match default param resolves to the bound variable name" do
+      # `%{} = opts \\ %{}` is a default whose pattern is a match; the bound
+      # name is `opts`. The signature-string path silently dropped this before;
+      # the AST-level `effective_params` extracts it. Called /2 → both params
+      # are present (no default elided), so `a:` and `opts:` must show.
+      source = """
+      defmodule Sample do
+        defp h(a, %{} = opts \\\\ %{}), do: {a, opts}
+        def run, do: h(10, %{x: 1})
+      end
+      """
+
+      labels = param_labels(hints(source))
+      assert "a:" in labels
+      assert "opts:" in labels
+    end
+
     test "leading default param is dropped before a required one" do
       # def g(a \\ 1, b), do: ...; g(:x) binds b (a fills from default).
       source = """
@@ -374,6 +391,38 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     end
   end
 
+  describe "facade request context (per-request caching)" do
+    # The provider now builds ONE TypeHints.request_context per inlay-hint
+    # request and threads it into every variable/parameter hint, so the
+    # facade's request-scoped (process-dictionary) caches — per-module
+    # local-sigs, per-position env, per-MFA effective params — are shared
+    # across all hints in the request. The cache machinery itself is covered by
+    # the dep's own TypeHints tests; here we use a behavioral proxy: a buffer
+    # with many bindings must still produce correct hints for ALL of them
+    # (sharing one context must not drop or corrupt any hint).
+    test "many variable bindings each still get the correct type hint" do
+      body =
+        1..20
+        |> Enum.map_join("\n", fn i -> "v#{i} = #{i} + 1" end)
+
+      labels = type_labels(hints(wrap(body)))
+      # Each of the 20 arithmetic bindings is non-obvious → an integer() hint.
+      assert Enum.count(labels, &(&1 == ": integer()")) == 20
+    end
+
+    test "many calls each still get correct parameter hints" do
+      calls =
+        1..10
+        |> Enum.map_join("\n", fn i -> "Map.put(acc, :k#{i}, #{i})" end)
+
+      labels = param_labels(hints(wrap(calls)))
+      # Map.put/3 has params map/key/value; 10 calls → 10 of each name.
+      assert Enum.count(labels, &(&1 == "map:")) == 10
+      assert Enum.count(labels, &(&1 == "key:")) == 10
+      assert Enum.count(labels, &(&1 == "value:")) == 10
+    end
+  end
+
   describe "position arithmetic (task #5)" do
     test "hint for a unicode identifier lands right after the identifier" do
       # `café` is 4 graphemes/codepoints but 5 UTF-8 bytes; the hint column must
@@ -405,6 +454,35 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       source = head <> filler <> "    total\n  end\nend\n"
 
       assert ": integer()" in type_labels(hints(source))
+    end
+
+    test "clamp processes at most @max_range_lines lines (boundary)" do
+      # Semantics: a request spanning > @max_range_lines (1000) lines is trimmed
+      # so AT MOST 1000 lines are processed (the inclusive window sl..el spans
+      # el - sl + 1 lines). With sl = 1 (elixir, 1-based), the processed window
+      # is lines 1..1000. A hintable binding on elixir line 1001 (0-based LSP
+      # line 1000) must therefore be clamped OUT; one on line 1000 is kept.
+      #
+      # Layout (1-based elixir lines):
+      #   1: defmodule Big do
+      #   2:   def run do
+      #   3:     inside = 1 + 2        # line 3 — inside the 1..1000 window
+      #   4..1000: filler (997 lines)
+      #   1001:     edge = 4 + 5       # the 1001st line — clamped out
+      head = "defmodule Big do\n  def run do\n    inside = 1 + 2\n"
+      # lines 4..1000 inclusive = 997 filler lines, bringing us to line 1000.
+      filler = String.duplicate("    _ = :noop\n", 997)
+      edge = "    edge = 4 + 5\n"
+      source = head <> filler <> edge <> "    inside + edge\n  end\nend\n"
+
+      # Whole-document request (start line 0) → el - sl >= 1000 → clamp fires.
+      labels = type_labels(hints(source))
+
+      # The binding inside the 1000-line window is processed.
+      assert ": integer()" in labels
+      # Exactly one integer() hint: `edge` on line 1001 was clamped out. (If the
+      # off-by-one regressed to processing 1001 lines, edge would also hint.)
+      assert Enum.count(labels, &(&1 == ": integer()")) == 1
     end
   end
 

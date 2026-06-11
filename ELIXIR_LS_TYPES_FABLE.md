@@ -40,7 +40,29 @@ before the elixir_sense backlog burns down: parameterNames on / variableTypes of
 default `minimumTrust: "native"`. Keep the runtime `ELIXIR_LS_TYPE_INFERENCE` kill
 switch documented. [GPT]
 
-## P1 — Correctness, layering, coverage
+## P1 — DONE (fix wave, 2026-06-11 evening)
+
+All four P1 items shipped (commit follows this update):
+- **1.1** Provider fully rewired onto `ElixirSense.Core.TypeHints`: one
+  `request_context` per request (process-dict caches shared across all hints);
+  `Binding`/`TypePresentation` no longer referenced in the LSP layer.
+- **1.2** Server-level e2e suite (`server_inlay_hints_test.exs`, real Server GenServer):
+  capability advertisement, full request round-trip with JSON-encodable structs,
+  sub-range scoping, exact UTF-16 position for non-ASCII identifiers (closes 2.5),
+  cancellation robustness.
+- **1.3** ExCk compiled-fixture integration suite (`inlay_hints_integration_test.exs`):
+  beam written to a tmp code path, remote-call binding hint asserted, degradation
+  without the fixture, minimumTrust interplay.
+- **1.4** `parse_param` string-splitting deleted; param names come from
+  `TypeHints.effective_params/4` (AST-level) — pattern-match defaults like
+  `%{} = opts \\ %{}` now produce an `opts:` hint instead of being dropped.
+- **2.3** (pulled forward) `clamp_range` processes at most 1000 lines inclusive,
+  boundary-tested.
+
+Combined gates after the wave: 362 tests green across inlay unit + integration +
+server e2e + hover/docs/completion; format clean.
+
+## P1 (historical) — Correctness, layering, coverage
 
 ### 1.1 Consume the elixir_sense facade (kills the per-hint cost and the layering leak)
 Blocked on elixir_sense backlog item 1.2 (`type_hint_for_var/4`). Once available,

@@ -10,19 +10,21 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   (literal/struct/map/list/tuple/bitstring) — `x = 1`, `m = %{…}`, or
   `%User{} = user` — since the type is then already evident from the source.
   Reads are not annotated unless `showOnlyBindings` is disabled. Type text is
-  produced by
-  `ElixirSense.Core.TypePresentation`, which resolves the stored shape through
-  `Binding` (descriptor fallback), stays thunk-free, and suppresses
-  uninformative `term()` / `none()` / unknown values.
+  produced by `ElixirSense.Core.TypeHints.type_hint_for_var/4`, the stable
+  LSP-facing facade that owns env/binding assembly, rendering policy
+  (suppression of uninformative `term()` / `none()` / unknown values), and the
+  per-request caching — this provider no longer touches `Binding` or
+  `TypePresentation` directly.
 
   ## Call parameter-name hints (`InlayHintKind.parameter`)
 
   The parameter name rendered before each argument of a function call, e.g.
   `Map.put(map: m, key: :k, value: v)`. Calls are collected from the parsed AST
   (`Parser.Context.ast`); the MFA is resolved through
-  `ElixirSense.Core.Introspection.actual_mod_fun/6` and parameter names come
-  from `Metadata.get_function_signatures/3` (local) or
-  `Introspection.get_signatures/2` (remote/stdlib). Per-argument columns are
+  `ElixirSense.Core.Introspection.actual_mod_fun/6` and structured parameter
+  names come from `ElixirSense.Core.TypeHints.effective_params/4` (AST-level for
+  metadata modules, signature-string fallback for remote/stdlib, both already
+  default-elided for the concrete arity). Per-argument columns are
   computed from the Elixir tokenizer (robust against strings/sigils/nesting and
   `fn`/`do` blocks). Pipes shift the parameter window by one. An argument is not
   annotated when its source text already matches the parameter name.
@@ -31,9 +33,10 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   require Logger
 
   alias ElixirLS.LanguageServer.{Parser, SourceFile}
-  alias ElixirSense.Core.{Binding, Introspection, Metadata, TypePresentation}
+  alias ElixirSense.Core.{Introspection, Metadata}
   alias ElixirSense.Core.ElixirTypes
   alias ElixirSense.Core.State.VarInfo
+  alias ElixirSense.Core.TypeHints
   alias GenLSP.Enumerations.InlayHintKind
   alias GenLSP.Structures.{InlayHint, Position, Range}
 
@@ -68,14 +71,19 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     # clamped window instead of nothing.
     {range_start, range_end} = clamp_range(elixir_range(lines, range))
 
+    # One per-request context (request-scoped, process-dictionary caches inside
+    # the facade). Built once here, in the request process, and threaded into
+    # both hint paths.
+    ctx = TypeHints.request_context(context.metadata)
+
     var_hints =
       if config.variable_types.enabled,
-        do: variable_hints(context, lines, range_start, range_end, config.variable_types),
+        do: variable_hints(ctx, context, lines, range_start, range_end, config.variable_types),
         else: []
 
     param_hints =
       if config.parameter_names.enabled,
-        do: parameter_hints(context, lines, range_start, range_end),
+        do: parameter_hints(ctx, context, lines, range_start, range_end),
         else: []
 
     hints =
@@ -148,6 +156,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # ===========================================================================
 
   defp variable_hints(
+         ctx,
          %Parser.Context{ast: ast, metadata: metadata},
          lines,
          range_start,
@@ -165,7 +174,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     |> Enum.filter(fn {pos, _var} -> in_range?(pos, range_start, range_end) end)
     |> Enum.reject(fn {pos, _var} -> MapSet.member?(obvious, pos) end)
     |> Enum.uniq_by(fn {pos, _var} -> pos end)
-    |> Enum.map(fn {pos, var} -> variable_hint(pos, var, metadata, lines, config) end)
+    |> Enum.map(fn {pos, var} -> variable_hint(ctx, pos, var, lines, config) end)
     |> Enum.reject(&is_nil/1)
   end
 
@@ -288,11 +297,9 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
   defp ignored?(_), do: true
 
-  defp variable_hint({line, column} = pos, %VarInfo{name: name} = var, metadata, lines, config) do
-    with env when not is_nil(env) <- Metadata.get_env(metadata, pos),
-         binding_env <- Binding.from_env(env, metadata, pos),
-         {:ok, %{label: label, full: full, source: source}} <-
-           TypePresentation.render_hint(binding_env, var, max_length: config.max_label_length),
+  defp variable_hint(ctx, {line, column} = pos, %VarInfo{name: name} = var, lines, config) do
+    with {:ok, %{label: label, full: full, source: source}} <-
+           TypeHints.type_hint_for_var(ctx, pos, var, max_length: config.max_label_length),
          true <- config.minimum_trust != :native or source == :native do
       # The tokenizer column is a codepoint offset, so advance by the
       # identifier's codepoint count (not graphemes) before the UTF-16
@@ -317,9 +324,10 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # Call parameter-name hints
   # ===========================================================================
 
-  defp parameter_hints(%Parser.Context{ast: nil}, _lines, _rs, _re), do: []
+  defp parameter_hints(_ctx, %Parser.Context{ast: nil}, _lines, _rs, _re), do: []
 
   defp parameter_hints(
+         ctx,
          %Parser.Context{ast: ast, metadata: metadata, source_file: source_file},
          lines,
          rs,
@@ -340,7 +348,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
       ast
       |> collect_calls(def_positions)
       |> Enum.filter(&relevant_call?(&1, rs, re))
-      |> Enum.map(&safe_resolve(&1, metadata, piped))
+      |> Enum.map(&safe_resolve(ctx, &1, metadata, piped))
       |> Enum.reject(&is_nil/1)
       |> Enum.flat_map(&call_hints(&1, index, lines, rs, re))
     end
@@ -402,8 +410,8 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
   # Resolving a call introspects arbitrary modules; isolate failures so one bad
   # call (e.g. an exotic receiver) can never crash the whole inlay-hint request.
-  defp safe_resolve(call, metadata, piped) do
-    resolve_call(call, metadata, piped)
+  defp safe_resolve(ctx, call, metadata, piped) do
+    resolve_call(ctx, call, metadata, piped)
   rescue
     _ -> nil
   catch
@@ -475,7 +483,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     end
   end
 
-  defp resolve_call({kind, mod_ast, fun, pos, closing, arity}, metadata, piped) do
+  defp resolve_call(ctx, {kind, mod_ast, fun, pos, closing, arity}, metadata, piped) do
     piped? = MapSet.member?(piped, pos)
     effective_arity = if piped?, do: arity + 1, else: arity
     expand_aliases? = match?({:__aliases__, _, _}, mod_ast)
@@ -494,7 +502,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
            ),
          false <- resolved_mod == Kernel.SpecialForms,
          names when is_list(names) <-
-           parameter_names(metadata, resolved_mod, resolved_fun, effective_arity) do
+           parameter_names(ctx, resolved_mod, resolved_fun, effective_arity) do
       names = if piped?, do: Enum.drop(names, 1), else: names
       if length(names) == arity, do: {closing, names}, else: nil
     else
@@ -502,56 +510,17 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     end
   end
 
-  defp parameter_names(metadata, mod, fun, arity) do
-    signatures =
-      case Metadata.get_function_signatures(metadata, mod, fun) do
-        [] -> Introspection.get_signatures(mod, fun)
-        signatures -> signatures
-      end
-
-    signature =
-      Enum.find(signatures, fn %{params: params} ->
-        parsed = Enum.map(params, &parse_param/1)
-        required = Enum.count(parsed, fn {_name, default?} -> not default? end)
-        required <= arity and arity <= length(parsed)
-      end)
-
-    case signature do
-      nil -> nil
-      %{params: params} -> params |> Enum.map(&parse_param/1) |> effective_params(arity)
+  # Structured params for the resolved MFA come from the facade (AST-level for
+  # metadata modules, signature-string fallback for remote/stdlib, both already
+  # default-elided for the concrete arity). Each entry is
+  # `%{name: String.t() | nil, has_default: boolean()}`; we keep the name (or
+  # nil) per position so `clean_identifier?` downstream can drop non-identifier
+  # params (literals, struct-only patterns).
+  defp parameter_names(ctx, mod, fun, arity) do
+    case TypeHints.effective_params(ctx, mod, fun, arity) do
+      {:ok, params} -> Enum.map(params, fn %{name: name} -> name end)
+      :error -> nil
     end
-  end
-
-  # Parse a rendered param into `{cleaned_name, has_default?}`. A `\\` marks a
-  # default value (the rendered form is `name \\ value`).
-  defp parse_param(param) do
-    {name, default?} =
-      case String.split(param, " \\\\ ", parts: 2) do
-        [name, _value] -> {name, true}
-        [name] -> {name, false}
-      end
-
-    {String.trim(name), default?}
-  end
-
-  # Map a call of `arity` to the params Elixir actually binds for that head.
-  # When a clause has more params than the arity, the missing `d` are filled
-  # from defaults; Elixir generates the head by dropping the RIGHTMOST `d`
-  # defaulted params (non-defaulted params keep their positions). Verified:
-  # `def f(a, b \\ 1, c)` called as `f(:x, :y)` yields `{:x, 1, :y}`, i.e. `b`
-  # is dropped and `a`/`c` are bound — so we keep `a` and `c` here.
-  defp effective_params(parsed, arity) do
-    to_drop = length(parsed) - arity
-
-    {kept, _} =
-      parsed
-      |> Enum.reverse()
-      |> Enum.reduce({[], to_drop}, fn
-        {_name, true}, {acc, drop} when drop > 0 -> {acc, drop - 1}
-        {name, _default?}, {acc, drop} -> {[name | acc], drop}
-      end)
-
-    kept
   end
 
   # Only resolve statically-known remote modules. Dynamic receivers (variables,
@@ -616,6 +585,8 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     end
   end
 
+  # nil names (non-identifier patterns: literals, struct-only) are not displayable.
+  defp clean_identifier?(nil), do: false
   defp clean_identifier?(name), do: Regex.match?(~r/^[a-z][a-zA-Z0-9_]*[?!]?$/, name)
 
   defp single_identifier_equal?([{:identifier, _pos, value}], name) when is_atom(value),
@@ -712,9 +683,13 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     {{sl, sc || 1}, {el, ec || 1}}
   end
 
+  # Clamp so at most @max_range_lines lines are ever processed: the inclusive
+  # window sl..el spans `el - sl + 1` lines, so anything with `el - sl >=
+  # @max_range_lines` (i.e. > @max_range_lines lines) is trimmed to the first
+  # @max_range_lines lines (sl .. sl + @max_range_lines - 1).
   defp clamp_range({{sl, _sc} = start, {el, ec}} = range) do
-    if el - sl > @max_range_lines do
-      {start, {sl + @max_range_lines, ec}}
+    if el - sl >= @max_range_lines do
+      {start, {sl + @max_range_lines - 1, ec}}
     else
       range
     end
