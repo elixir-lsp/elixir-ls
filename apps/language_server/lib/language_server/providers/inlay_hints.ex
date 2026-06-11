@@ -28,11 +28,17 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   annotated when its source text already matches the parameter name.
   """
 
+  require Logger
+
   alias ElixirLS.LanguageServer.{Parser, SourceFile}
   alias ElixirSense.Core.{Binding, Introspection, Metadata, TypePresentation}
+  alias ElixirSense.Core.ElixirTypes
   alias ElixirSense.Core.State.VarInfo
   alias GenLSP.Enumerations.InlayHintKind
   alias GenLSP.Structures.{InlayHint, Position, Range}
+
+  # Key used to ensure the backend-status log is emitted only once per VM lifetime.
+  @backend_status_key {__MODULE__, :backend_status_logged}
 
   @max_range_lines 1000
   @max_hints 1000
@@ -54,6 +60,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   def inlay_hints(%Parser.Context{metadata: nil}, _range, _opts), do: {:ok, []}
 
   def inlay_hints(%Parser.Context{} = context, %Range{} = range, opts) do
+    maybe_log_backend_status()
     config = config(Keyword.get(opts, :settings) || %{})
     lines = SourceFile.lines(context.source_file)
     # Clamp the requested range to the first @max_range_lines so whole-document
@@ -89,7 +96,8 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
       variable_types: %{
         enabled: bool(Map.get(var, "enabled"), true),
         show_only_bindings: bool(Map.get(var, "showOnlyBindings"), true),
-        max_label_length: pos_int(Map.get(var, "maxLength"), @default_max_label_length)
+        max_label_length: pos_int(Map.get(var, "maxLength"), @default_max_label_length),
+        minimum_trust: trust(Map.get(var, "minimumTrust"))
       },
       parameter_names: %{
         enabled: bool(Map.get(param, "enabled"), true)
@@ -102,6 +110,38 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
   defp pos_int(value, _default) when is_integer(value) and value > 0, do: value
   defp pos_int(_value, default), do: default
+
+  # "native" → only hints whose render_hint source is :native are shown.
+  # "bestEffort" (default) → both :native and :shape hints are shown.
+  defp trust("native"), do: :native
+  defp trust(_), do: :best_effort
+
+  # Emit exactly one Logger.info line (per VM lifetime) describing the active
+  # type backend. Stored via :persistent_term so it survives module reloads and
+  # works in async test environments without a GenServer.
+  defp maybe_log_backend_status do
+    case :persistent_term.get(@backend_status_key, :not_logged) do
+      :logged ->
+        :ok
+
+      :not_logged ->
+        :persistent_term.put(@backend_status_key, :logged)
+
+        backend =
+          cond do
+            not ElixirTypes.enabled?() ->
+              "structural (native typing disabled)"
+
+            ElixirTypes.available?() ->
+              "compiler-native (Module.Types adaptor active)"
+
+            true ->
+              "structural (native typing unavailable on this Elixir)"
+          end
+
+        Logger.info("[ElixirLS.InlayHints] type backend: #{backend}")
+    end
+  end
 
   # ===========================================================================
   # Variable type hints
@@ -251,8 +291,9 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   defp variable_hint({line, column} = pos, %VarInfo{name: name} = var, metadata, lines, config) do
     with env when not is_nil(env) <- Metadata.get_env(metadata, pos),
          binding_env <- Binding.from_env(env, metadata, pos),
-         {:ok, %{label: label, full: full}} <-
-           TypePresentation.render_hint(binding_env, var, max_length: config.max_label_length) do
+         {:ok, %{label: label, full: full, source: source}} <-
+           TypePresentation.render_hint(binding_env, var, max_length: config.max_label_length),
+         true <- config.minimum_trust != :native or source == :native do
       # The tokenizer column is a codepoint offset, so advance by the
       # identifier's codepoint count (not graphemes) before the UTF-16
       # conversion in lsp_position/3.

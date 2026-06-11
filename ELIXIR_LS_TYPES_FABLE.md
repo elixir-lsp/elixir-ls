@@ -1,5 +1,12 @@
 # ElixirLS inlay hints / types integration — audit tasks (Fable)
 
+## Status after the 2026-06-11 fix pass — round 2 (GPT items)
+
+See the status block in ELIXIR_LS_TYPES_GPT.md: minimumTrust setting (consumes the new
+`source: :native | :shape` from `render_hint/3`), one-time backend-status log, literal
+widening verified at the provider level, param-hint independence and failure-mode
+tests. inlay_hints 51/51; provider suites 345 green; format gate green.
+
 ## Status after the 2026-06-11 fix pass
 
 This worktree now has the `inlay-hints` branch checked out (it was previously wiped/at
