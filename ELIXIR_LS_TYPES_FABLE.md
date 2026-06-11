@@ -87,6 +87,19 @@ Replace `parse_param/1` string-splitting with an elixir_sense API returning effe
 params per concrete arity (`{name, has_default}` at AST level). Also fixes the silent
 hint loss for pattern-match defaults (`%{} = opts \\ %{}`). [GPT — verified]
 
+## Wave 3 status (2026-06-11 evening — GPT third-review fixes)
+
+Done this wave (details in ELIXIR_LS_TYPES_GPT.md status block and commit 372c9291):
+- **2.1 done** — minimumTrust supports compiler | native | bestEffort via
+  `TypeHints.trust_rank/1`; ExCk-backed remote calls classify `:native_exck` in
+  practice; unknown future sources fail safe to weakest.
+- **2.4 done** — destructuring suppression policy locked in by tests.
+- Expanded ExCk integration coverage (overloads by arg type, version mismatch,
+  missing chunk) and extension docs/schema (vscode repo, uncommitted there).
+
+Still open: P0 release mechanics (path dep, defaults), 2.2 read-occurrence policy
+docs/flow-sensitivity, 2.5 done earlier, P3 items (lazy resolve parked, benchmarks).
+
 ## P2 — UX and precision
 
 - **2.1 Richer `minimumTrust` levels** — blocked on elixir_sense 1.4 exposing
