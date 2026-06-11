@@ -119,10 +119,18 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   defp pos_int(value, _default) when is_integer(value) and value > 0, do: value
   defp pos_int(_value, default), do: default
 
-  # "native" → only hints whose render_hint source is :native are shown.
-  # "bestEffort" (default) → both :native and :shape hints are shown.
-  defp trust("native"), do: :native
-  defp trust(_), do: :best_effort
+  # minimumTrust setting → the minimum source atom used as the trust threshold.
+  # trust_rank(hint.source) <= trust_rank(minimum_source) → keep hint.
+  #
+  # "compiler"   → admit only :native_exck (ExCk compiler-verified)
+  # "native"     → admit :native_exck and :native_inferred (any native-engine result)
+  # "bestEffort" → admit everything (default)
+  #
+  # We store the *minimum acceptable source* (the weakest source that still passes).
+  # Unknown values fall back to :bestEffort.
+  defp trust("compiler"), do: :native_exck
+  defp trust("native"), do: :native_inferred
+  defp trust(_), do: :shape
 
   # Emit exactly one Logger.info line (per VM lifetime) describing the active
   # type backend. Stored via :persistent_term so it survives module reloads and
@@ -300,7 +308,18 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   defp variable_hint(ctx, {line, column} = pos, %VarInfo{name: name} = var, lines, config) do
     with {:ok, %{label: label, full: full, source: source}} <-
            TypeHints.type_hint_for_var(ctx, pos, var, max_length: config.max_label_length),
-         true <- config.minimum_trust != :native or source == :native do
+         # Keep hint when trust_rank(source) <= trust_rank(minimum acceptable source).
+         # Unrecognised future source atoms (not yet in TypeHints.trust_rank/1) are
+         # treated as the weakest rank (safe fallback: shown in bestEffort, hidden in
+         # stricter modes).
+         source_rank =
+           (try do
+              TypeHints.trust_rank(source)
+            rescue
+              _ -> 3
+            end),
+         minimum_rank = TypeHints.trust_rank(config.minimum_trust),
+         true <- source_rank <= minimum_rank do
       # The tokenizer column is a codepoint offset, so advance by the
       # identifier's codepoint count (not graphemes) before the UTF-16
       # conversion in lsp_position/3.
