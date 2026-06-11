@@ -1,5 +1,27 @@
 # ElixirLS inlay hints / types integration — consolidated backlog (Fable)
 
+## Architectural wave — DONE (2026-06-12)
+
+- **Flow-sensitive read hints** (the last P1-class architectural item): with
+  `showOnlyBindings: false`, read occurrences now route through
+  `TypeHints.type_hint_at/4` and show the type narrowed AT the read position
+  (verified: `x` inside `is_integer(x) ->` cond branch hints `: integer()`).
+  Binding occurrences unchanged; minimumTrust applies to both; default
+  (bindings-only) users see zero change. 5 new tests.
+- **Release gate**: a `release-gate` CI job greps for absolute path deps in
+  mix.exs/mix.lock (`continue-on-error: true` on this branch since the local
+  elixir_sense worktree dep is intentional during development — flip to
+  hard-fail at release).
+
+Gates: 385 tests green across inlay unit + integration + server e2e +
+hover/docs/completion; format clean.
+
+Remaining: P0 release mechanics (repoint the path dep once elixir_sense
+publishes; release defaults — the 2.4x-faster benchmark supports keeping
+variable hints on), lazy resolve (parked), opt-in return-type call hints,
+vscode-elixir-ls repo schema/README commits.
+
+
 ## Round-4 fix wave — DONE (commit follows)
 
 - Unrecognized `minimumTrust` values now warn once per value per VM (still

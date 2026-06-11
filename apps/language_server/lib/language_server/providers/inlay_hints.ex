@@ -221,7 +221,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     |> Enum.filter(fn {pos, _var} -> in_range?(pos, range_start, range_end) end)
     |> Enum.reject(fn {pos, _var} -> MapSet.member?(obvious, pos) end)
     |> Enum.uniq_by(fn {pos, _var} -> pos end)
-    |> Enum.map(fn {pos, var} -> variable_hint(ctx, pos, var, lines, config) end)
+    |> Enum.map(fn {pos, occurrence} -> variable_hint(ctx, pos, occurrence, lines, config) end)
     |> Enum.reject(&is_nil/1)
   end
 
@@ -322,11 +322,34 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # reads (see ElixirSense.Core.Compiler.State.add_var_write/add_var_read). Each
   # destructured variable is its own VarInfo, so taking the binding of every
   # VarInfo annotates every bound name — including those bound inside patterns.
+  #
+  # When `show_only_bindings` is true (default), every occurrence is tagged
+  # `{:binding, var}` — only binding positions are emitted and `variable_hint`
+  # calls `type_hint_for_var` with the VarInfo.
+  #
+  # When `show_only_bindings` is false, binding positions are tagged
+  # `{:binding, var}` (same path as above) and read positions are tagged
+  # `{:read, var_name}` so `variable_hint` can call `type_hint_at` to get the
+  # flow-sensitive (narrowed) type at each read site.
   defp occurrences(%VarInfo{name: name} = var, config) do
-    cond do
-      ignored?(name) -> []
-      config.show_only_bindings -> Enum.map(binding_positions(var), &{&1, var})
-      true -> var.positions |> Enum.filter(&position?/1) |> Enum.map(&{&1, var})
+    if ignored?(name) do
+      []
+    else
+      binding_occs = Enum.map(binding_positions(var), &{&1, {:binding, var}})
+
+      if config.show_only_bindings do
+        binding_occs
+      else
+        binding_pos_set = binding_positions(var) |> MapSet.new()
+
+        read_occs =
+          var.positions
+          |> Enum.filter(&position?/1)
+          |> Enum.reject(&MapSet.member?(binding_pos_set, &1))
+          |> Enum.map(&{&1, {:read, name}})
+
+        binding_occs ++ read_occs
+      end
     end
   end
 
@@ -344,7 +367,15 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
   defp ignored?(_), do: true
 
-  defp variable_hint(ctx, {line, column} = pos, %VarInfo{name: name} = var, lines, config) do
+  # Binding occurrence: use type_hint_for_var with the VarInfo from the binding
+  # site (carries binding-type and source attribution).
+  defp variable_hint(
+         ctx,
+         {line, column} = pos,
+         {:binding, %VarInfo{name: name} = var},
+         lines,
+         config
+       ) do
     with {:ok, %{label: label, full: full, source: source}} <-
            TypeHints.type_hint_for_var(ctx, pos, var, max_length: config.max_label_length),
          # Keep hint when trust_rank(source) <= trust_rank(minimum acceptable source).
@@ -367,6 +398,34 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
         position: lsp_position(lines, line, column + token_length),
         label: ": " <> label,
         # When elided, surface the untruncated type as the hover tooltip.
+        tooltip: if(full != label, do: full),
+        kind: InlayHintKind.type(),
+        padding_left: false,
+        padding_right: false
+      }
+    else
+      _ -> nil
+    end
+  end
+
+  # Read occurrence: use type_hint_at to get the flow-sensitive (narrowed) type
+  # at the read position. Obvious-value suppression does not apply to reads
+  # (no RHS to inspect). minimumTrust filtering applies identically.
+  defp variable_hint(ctx, {line, column} = pos, {:read, name}, lines, config) do
+    with {:ok, %{label: label, full: full, source: source}} <-
+           TypeHints.type_hint_at(ctx, pos, name, max_length: config.max_label_length),
+         source_rank =
+           (try do
+              TypeHints.trust_rank(source)
+            rescue
+              _ -> 3
+            end),
+         true <- source_rank <= config.minimum_rank do
+      token_length = name |> Atom.to_string() |> String.to_charlist() |> length()
+
+      %InlayHint{
+        position: lsp_position(lines, line, column + token_length),
+        label: ": " <> label,
         tooltip: if(full != label, do: full),
         kind: InlayHintKind.type(),
         padding_left: false,
