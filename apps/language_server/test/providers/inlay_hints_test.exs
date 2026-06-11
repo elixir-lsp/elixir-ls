@@ -921,4 +921,44 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       assert param_labels(result) == []
     end
   end
+
+  describe "unrecognized minimumTrust values" do
+    test "unrecognized setting \"strict\" behaves like bestEffort (hints shown), does not crash" do
+      settings = %{"inlayHints" => %{"variableTypes" => %{"minimumTrust" => "strict"}}}
+      source = wrap("total = 1 + 2")
+
+      # Request must not crash.
+      result = hints(source, settings)
+      assert is_list(result)
+
+      # With "strict" (unrecognized), hints should be shown like bestEffort.
+      # Since the setting is unknown, it behaves as bestEffort (fallback to :shape
+      # which is the most permissive trust level).
+      type_hints = type_labels(result)
+      assert ": integer()" in type_hints
+    end
+
+    test "unrecognized minimumTrust value emits a warning (once per unique value)" do
+      # Use a unique unrecognized value that hasn't been logged before
+      # (each VM run is fresh, so this will be the first time "invalid_trust_value" is used)
+      unique_value = "invalid_trust_value_#{System.unique_integer()}"
+      settings = %{"inlayHints" => %{"variableTypes" => %{"minimumTrust" => unique_value}}}
+      source = wrap("total = 1 + 2")
+
+      # Capture log to verify the warning is emitted.
+      captured =
+        ExUnit.CaptureLog.capture_log(
+          [level: :warning],
+          fn ->
+            hints(source, settings)
+          end
+        )
+
+      # The warning message should mention the unrecognized value and valid options.
+      assert String.contains?(captured, "unrecognized minimumTrust setting:")
+      assert String.contains?(captured, "compiler")
+      assert String.contains?(captured, "native")
+      assert String.contains?(captured, "bestEffort")
+    end
+  end
 end

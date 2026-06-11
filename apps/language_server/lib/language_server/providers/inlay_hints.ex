@@ -43,6 +43,9 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # Key used to ensure the backend-status log is emitted only once per VM lifetime.
   @backend_status_key {__MODULE__, :backend_status_logged}
 
+  # Key prefix used to ensure unrecognized minimumTrust value warnings are logged once per value per VM.
+  @unrecognized_trust_key_prefix {__MODULE__, :unrecognized_trust}
+
   @max_range_lines 1000
   @max_hints 1000
   @default_max_label_length 60
@@ -100,12 +103,20 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     var = get_in(settings, ["inlayHints", "variableTypes"]) || %{}
     param = get_in(settings, ["inlayHints", "parameterNames"]) || %{}
 
+    minimum_trust_value = trust(Map.get(var, "minimumTrust"))
+
     %{
       variable_types: %{
         enabled: bool(Map.get(var, "enabled"), true),
         show_only_bindings: bool(Map.get(var, "showOnlyBindings"), true),
         max_label_length: pos_int(Map.get(var, "maxLength"), @default_max_label_length),
-        minimum_trust: trust(Map.get(var, "minimumTrust"))
+        minimum_trust: minimum_trust_value,
+        minimum_rank:
+          try do
+            TypeHints.trust_rank(minimum_trust_value)
+          rescue
+            _ -> 3
+          end
       },
       parameter_names: %{
         enabled: bool(Map.get(param, "enabled"), true)
@@ -127,10 +138,38 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # "bestEffort" → admit everything (default)
   #
   # We store the *minimum acceptable source* (the weakest source that still passes).
-  # Unknown values fall back to :bestEffort.
+  # Unrecognized non-nil values (e.g. "strict") log a warning (once per VM) and fall back to :shape (bestEffort).
   defp trust("compiler"), do: :native_exck
   defp trust("native"), do: :native_inferred
-  defp trust(_), do: :shape
+  defp trust("bestEffort"), do: :shape
+  defp trust(nil), do: :shape
+
+  defp trust(value) when is_binary(value) do
+    maybe_log_unrecognized_trust(value)
+    :shape
+  end
+
+  defp trust(_other), do: :shape
+
+  # Log a warning once per unique unrecognized minimumTrust value, using :persistent_term
+  # to track which values have been warned about (mirroring maybe_log_backend_status).
+  defp maybe_log_unrecognized_trust(value) do
+    key = {@unrecognized_trust_key_prefix, value}
+
+    case :persistent_term.get(key, :not_logged) do
+      :logged ->
+        :ok
+
+      :not_logged ->
+        :persistent_term.put(key, :logged)
+
+        Logger.warning(
+          "[ElixirLS.InlayHints] unrecognized minimumTrust setting: \"#{value}\". " <>
+            "Valid values are: \"compiler\", \"native\", \"bestEffort\" (default). " <>
+            "Using bestEffort."
+        )
+    end
+  end
 
   # Emit exactly one Logger.info line (per VM lifetime) describing the active
   # type backend. Stored via :persistent_term so it survives module reloads and
@@ -311,15 +350,14 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
          # Keep hint when trust_rank(source) <= trust_rank(minimum acceptable source).
          # Unrecognised future source atoms (not yet in TypeHints.trust_rank/1) are
          # treated as the weakest rank (safe fallback: shown in bestEffort, hidden in
-         # stricter modes).
+         # stricter modes). The minimum_rank is computed once in config/1, so use it directly.
          source_rank =
            (try do
               TypeHints.trust_rank(source)
             rescue
               _ -> 3
             end),
-         minimum_rank = TypeHints.trust_rank(config.minimum_trust),
-         true <- source_rank <= minimum_rank do
+         true <- source_rank <= config.minimum_rank do
       # The tokenizer column is a codepoint offset, so advance by the
       # identifier's codepoint count (not graphemes) before the UTF-16
       # conversion in lsp_position/3.

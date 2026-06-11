@@ -1,5 +1,33 @@
 # ElixirLS inlay hints / types integration — consolidated backlog (Fable)
 
+## Round-4 fix wave — DONE (commit follows)
+
+- Unrecognized `minimumTrust` values now warn once per value per VM (still
+  fail-open to bestEffort); `minimum_rank` precomputed in config/1 with a
+  symmetric rescue (was per-hint, asymmetric). 66 unit tests green; 380 across
+  the provider suites; format clean.
+- The P3 benchmark item is CLOSED with data (native typing 2.4x faster on the
+  hint path) — this also informs the P0 release-defaults decision in favor of
+  keeping variable hints enabled.
+
+## Independent review — round 4 (2026-06-11, Fable)
+
+Adversarial review of the recent provider commits + real benchmarks. GPT round 4
+found nothing new; this review found only low-severity items:
+
+- **P3 nit:** unknown `minimumTrust` setting strings (e.g. "strict") silently mean
+  bestEffort (most permissive) — should warn once; `trust_rank(config.minimum_trust)`
+  is not rescue-wrapped while the source-side is (asymmetric; cannot raise today).
+- **Verified sound:** per-request context scoping (spawn_monitor per request, no
+  pooling), piped-call effective_params math, clamp window, async:false test
+  hygiene with on_exit cleanups, InlayHintKind values, padding conventions,
+  range filtering (hint may render a few columns past the range end — LSP-conformant).
+- **Perf (closes the P3 benchmark item):** full-document hints on a 1795-line module:
+  802ms native-on vs 1912ms off (native 2.4x faster); 100-line viewport 140ms vs
+  317ms; metadata build 104ms vs 67ms. All under thresholds; native typing is a net
+  perf WIN on the hint path, which also informs the release-defaults decision (P0).
+
+
 Third review pass, 2026-06-11. This file is now the SINGLE prioritized backlog for the
 elixir-ls side, consolidating:
 - ELIXIR_LS_TYPES_GPT.md (second GPT review, same date)
