@@ -43,7 +43,8 @@ defmodule ElixirLS.LanguageServer.MixProject do
   defp deps do
     [
       {:elixir_ls_utils, in_umbrella: true},
-      {:elixir_sense, path: "/Users/lukaszsamson/elixir_sense/.claude/worktrees/trusting-wu-d1f603"},
+      {:elixir_sense,
+       path: "/Users/lukaszsamson/elixir_sense/.claude/worktrees/trusting-wu-d1f603"},
       {:erl2ex_vendored, github: "elixir-lsp/erl2ex", ref: @dep_versions[:erl2ex_vendored]},
       {:dialyxir_vendored,
        github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false},

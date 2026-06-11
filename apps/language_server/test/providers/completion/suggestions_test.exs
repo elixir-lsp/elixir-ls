@@ -3073,7 +3073,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :struct_field,
-               type_spec: nil,
+               type_spec: "nil",
                value_is_map: false
              },
              %{
@@ -3082,7 +3082,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :struct_field,
-               type_spec: nil,
+               type_spec: "\"\"",
                value_is_map: false
              }
            ] = list
@@ -3109,7 +3109,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: "1",
                value_is_map: false
              },
              %{
@@ -3118,7 +3118,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: "%{abc: 123}",
                value_is_map: true
              }
            ] = list
@@ -3145,7 +3145,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: "integer()",
                value_is_map: false
              },
              %{
@@ -3154,7 +3154,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: "%{abc: integer()}",
                value_is_map: true
              }
            ] = list

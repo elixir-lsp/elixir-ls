@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       # Native mode infers the arithmetic operand types; the full arrow may be
       # truncated by maxLength, so assert the (stable) prefix.
       labels = type_labels(hints(wrap("f = fn a, b -> a + b end")))
-      assert Enum.any?(labels, &String.starts_with?(&1, ": (float() | integer()"))
+      assert Enum.any?(labels, &String.starts_with?(&1, ": (float() or integer()"))
       assert Enum.any?(labels, &String.contains?(&1, "->"))
     end
   end
@@ -85,6 +85,19 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       """
 
       assert [] == type_labels(hints(source))
+    end
+
+    # task #13: a constructor is obvious only when ALL its leaves are literals.
+    for {label, body} <- [
+          {"tuple with a call element", "t = {:ok, to_string(123)}"},
+          {"list with a call element", "l = [1, to_string(2)]"},
+          {"map with a call value", "m = %{a: to_string(1)}"}
+        ] do
+      test "constructor with a non-literal element keeps its hint — #{label}" do
+        # The interesting type is the element's, which the source doesn't reveal,
+        # so the hint must NOT be suppressed.
+        refute [] == type_labels(hints(wrap(unquote(body))))
+      end
     end
   end
 
@@ -143,6 +156,36 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       truncated = Enum.filter(type_hints, &String.ends_with?(&1, "…"))
       assert truncated != []
       assert Enum.all?(truncated, &(String.length(&1) <= String.length(": ") + 8))
+    end
+
+    test "elided label sets a tooltip carrying the untruncated type (task #8)" do
+      settings = %{"inlayHints" => %{"variableTypes" => %{"maxLength" => 8}}}
+
+      elided =
+        hints(wrap("f = fn a, b -> a + b end"), settings)
+        |> Enum.filter(&(&1.kind == InlayHintKind.type()))
+        |> Enum.filter(&String.ends_with?(&1.label, "…"))
+
+      assert elided != []
+
+      assert Enum.all?(elided, fn hint ->
+               # tooltip carries the full, untruncated type; the (prefix-stripped)
+               # elided label is shorter and ends with the ellipsis.
+               stripped = String.replace_prefix(hint.label, ": ", "")
+
+               is_binary(hint.tooltip) and
+                 String.ends_with?(stripped, "…") and
+                 String.length(hint.tooltip) > String.length(stripped) - 1
+             end)
+    end
+
+    test "non-elided label leaves the tooltip empty" do
+      hints =
+        hints(wrap("total = 1 + 2"))
+        |> Enum.filter(&(&1.kind == InlayHintKind.type()))
+
+      assert hints != []
+      assert Enum.all?(hints, &is_nil(&1.tooltip))
     end
   end
 
@@ -206,6 +249,83 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       settings = %{"inlayHints" => %{"parameterNames" => %{"enabled" => false}}}
       assert [] == param_labels(hints(wrap("Map.put(acc, :key, 42)"), settings))
     end
+
+    test "non-trailing default param maps args to the right names (task #3)" do
+      # Verified empirically with `elixir -e`:
+      #   def f(a, b \\ 1, c), do: {a, b, c}; f(:x, :y) #=> {:x, 1, :y}
+      # So for arity 2 the DEFAULTED param `b` is dropped and the two args bind
+      # to `a` and `c` — the hints must read `a:` and `c:`, never `b:`.
+      source = """
+      defmodule Sample do
+        defp f(a, b \\\\ 1, c), do: {a, b, c}
+        def run, do: f(10, 20)
+      end
+      """
+
+      labels = param_labels(hints(source))
+      assert "a:" in labels
+      assert "c:" in labels
+      refute "b:" in labels
+    end
+
+    test "leading default param is dropped before a required one" do
+      # def g(a \\ 1, b), do: ...; g(:x) binds b (a fills from default).
+      source = """
+      defmodule Sample do
+        defp g(a \\\\ 1, b), do: {a, b}
+        def run, do: g(99)
+      end
+      """
+
+      labels = param_labels(hints(source))
+      assert "b:" in labels
+      refute "a:" in labels
+    end
+
+    test "remote call named like a special form still gets hints (task #7)" do
+      source = """
+      defmodule Helper do
+        def alias(thing), do: thing
+        def unless(cond, value), do: {cond, value}
+      end
+
+      defmodule Sample do
+        def run(x, y) do
+          Helper.alias(x)
+          Helper.unless(x, y)
+        end
+      end
+      """
+
+      labels = param_labels(hints(source))
+      assert "thing:" in labels
+      assert "cond:" in labels
+      assert "value:" in labels
+    end
+
+    test "local call named like a special form is still blocklisted" do
+      # A local `if(...)` is the special form, not a function call — no hints.
+      labels = param_labels(hints(wrap("if(true, do: 1, else: 2)")))
+      assert labels == []
+    end
+
+    test "__MODULE__.Sub receiver resolves and gets hints (task #7)" do
+      source = """
+      defmodule Sample.Sub do
+        def f(left, right), do: {left, right}
+      end
+
+      defmodule Sample do
+        def run(a, b) do
+          __MODULE__.Sub.f(a, b)
+        end
+      end
+      """
+
+      labels = param_labels(hints(source))
+      assert "left:" in labels
+      assert "right:" in labels
+    end
   end
 
   describe "call parameter-name hints — robustness" do
@@ -251,6 +371,40 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
 
       positions = hints(source) |> Enum.map(&{&1.position.line, &1.position.character})
       assert positions == Enum.sort(positions)
+    end
+  end
+
+  describe "position arithmetic (task #5)" do
+    test "hint for a unicode identifier lands right after the identifier" do
+      # `café` is 4 graphemes/codepoints but 5 UTF-8 bytes; the hint column must
+      # be computed from codepoints, not graphemes/bytes.
+      source = wrap("café = 1 + 2")
+
+      type_hint =
+        hints(source)
+        |> Enum.find(&(&1.kind == InlayHintKind.type() and &1.label == ": integer()"))
+
+      assert type_hint != nil
+
+      # `café` starts at column 4 (0-based) on its line inside `run`; the hint
+      # must sit at column 4 + length("café") == 8 (UTF-16 == codepoints here).
+      line = source |> String.split("\n") |> Enum.find_index(&String.contains?(&1, "café"))
+      assert type_hint.position.line == line
+      # The identifier is indented 4 spaces by `wrap/1`; the hint sits right
+      # after it. (UTF-16 units == codepoints for `café`.)
+      assert type_hint.position.character == 4 + String.length("café")
+    end
+  end
+
+  describe "large range clamping (task #4)" do
+    test "whole-document range on a >1000-line file still yields hints" do
+      # Build a file well over @max_range_lines with a hintable binding near the
+      # top; a whole-document request must clamp, not bail with zero hints.
+      head = "defmodule Big do\n  def run do\n    total = 1 + 2\n"
+      filler = String.duplicate("    _ = :noop\n", 1200)
+      source = head <> filler <> "    total\n  end\nend\n"
+
+      assert ": integer()" in type_labels(hints(source))
     end
   end
 

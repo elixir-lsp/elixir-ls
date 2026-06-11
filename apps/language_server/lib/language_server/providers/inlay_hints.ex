@@ -56,28 +56,27 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   def inlay_hints(%Parser.Context{} = context, %Range{} = range, opts) do
     config = config(Keyword.get(opts, :settings) || %{})
     lines = SourceFile.lines(context.source_file)
-    {range_start, range_end} = elixir_range(lines, range)
+    # Clamp the requested range to the first @max_range_lines so whole-document
+    # clients (Neovim/helix/emacs) on large files still get hints for the
+    # clamped window instead of nothing.
+    {range_start, range_end} = clamp_range(elixir_range(lines, range))
 
-    if exceeds_line_budget?(range_start, range_end) do
-      {:ok, []}
-    else
-      var_hints =
-        if config.variable_types.enabled,
-          do: variable_hints(context, lines, range_start, range_end, config.variable_types),
-          else: []
+    var_hints =
+      if config.variable_types.enabled,
+        do: variable_hints(context, lines, range_start, range_end, config.variable_types),
+        else: []
 
-      param_hints =
-        if config.parameter_names.enabled,
-          do: parameter_hints(context, lines, range_start, range_end),
-          else: []
+    param_hints =
+      if config.parameter_names.enabled,
+        do: parameter_hints(context, lines, range_start, range_end),
+        else: []
 
-      hints =
-        (var_hints ++ param_hints)
-        |> Enum.sort_by(&{&1.position.line, &1.position.character})
-        |> Enum.take(@max_hints)
+    hints =
+      (var_hints ++ param_hints)
+      |> Enum.sort_by(&{&1.position.line, &1.position.character})
+      |> Enum.take(@max_hints)
 
-      {:ok, hints}
-    end
+    {:ok, hints}
   end
 
   # --- settings: elixirLS.inlayHints.{variableTypes,parameterNames}.* ---
@@ -159,16 +158,43 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     positions
   end
 
+  # A value is "obvious" only when ALL of its leaves are literals: the type is
+  # then fully evident from the source. A constructor with a variable or call
+  # element (`{:ok, compute()}`) is NOT obvious — the interesting type is the
+  # element's, which the source does not reveal — so its hint is kept.
+
   # A chained match (`a = b = 1`) propagates the inner rhs.
   defp obvious_value?({:=, _meta, [_lhs, inner]}), do: obvious_value?(inner)
-  defp obvious_value?({:%{}, _meta, _}), do: true
-  defp obvious_value?({:%, _meta, _}), do: true
-  defp obvious_value?({:{}, _meta, _}), do: true
-  defp obvious_value?({:<<>>, _meta, _}), do: true
-  # Any other 3-tuple is a call / var / operator / control-flow — keep its hint.
+  # Map / struct constructor: obvious iff every key and value is obvious.
+  defp obvious_value?({:%{}, _meta, pairs}), do: Enum.all?(pairs, &obvious_value?/1)
+
+  # Struct: the name is an alias (`%URI{}`, `%__MODULE__{}`) — judge only the
+  # field values. A struct with all-literal (or no) fields is obvious.
+  defp obvious_value?({:%, _meta, [_name, {:%{}, _, pairs}]}),
+    do: Enum.all?(pairs, &obvious_value?/1)
+
+  # Tuple constructor (3+ elements): obvious iff every element is obvious.
+  defp obvious_value?({:{}, _meta, elements}), do: Enum.all?(elements, &obvious_value?/1)
+  # Bitstring: obvious iff every segment is obvious.
+  defp obvious_value?({:<<>>, _meta, segments}), do: Enum.all?(segments, &obvious_value?/1)
+  # A `::` segment spec inside a bitstring — judge by the value being encoded.
+  defp obvious_value?({:"::", _meta, [value, _spec]}), do: obvious_value?(value)
+  # Charlist/string sigils without interpolation render as `{:sigil_*, _, [{:<<>>,
+  # _, [literal]}, []]}`; interpolation injects a non-literal `<<>>` segment.
+  defp obvious_value?({sigil, _meta, [arg, mods]})
+       when is_atom(sigil) and is_list(mods) do
+    case Atom.to_string(sigil) do
+      "sigil_" <> _ -> obvious_value?(arg)
+      _ -> false
+    end
+  end
+
+  # Any other 3-tuple is a call / var / operator / control-flow — not obvious.
   defp obvious_value?({_, _meta, _}), do: false
-  defp obvious_value?(value) when is_list(value), do: true
-  defp obvious_value?(value) when is_tuple(value) and tuple_size(value) == 2, do: true
+  # A literal 2-tuple `{a, b}` (AST keeps these as raw tuples).
+  defp obvious_value?({a, b}), do: obvious_value?(a) and obvious_value?(b)
+  # A literal list / keyword list: obvious iff every element is obvious.
+  defp obvious_value?(value) when is_list(value), do: Enum.all?(value, &obvious_value?/1)
 
   defp obvious_value?(value)
        when is_integer(value) or is_float(value) or is_binary(value) or is_atom(value),
@@ -225,12 +251,18 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   defp variable_hint({line, column} = pos, %VarInfo{name: name} = var, metadata, lines, config) do
     with env when not is_nil(env) <- Metadata.get_env(metadata, pos),
          binding_env <- Binding.from_env(env, metadata, pos),
-         {:ok, text} <- TypePresentation.render_hint(binding_env, var) do
-      token_length = name |> Atom.to_string() |> String.length()
+         {:ok, %{label: label, full: full}} <-
+           TypePresentation.render_hint(binding_env, var, max_length: config.max_label_length) do
+      # The tokenizer column is a codepoint offset, so advance by the
+      # identifier's codepoint count (not graphemes) before the UTF-16
+      # conversion in lsp_position/3.
+      token_length = name |> Atom.to_string() |> String.to_charlist() |> length()
 
       %InlayHint{
         position: lsp_position(lines, line, column + token_length),
-        label: ": " <> truncate(text, config.max_label_length),
+        label: ": " <> label,
+        # When elided, surface the untruncated type as the hover tooltip.
+        tooltip: if(full != label, do: full),
         kind: InlayHintKind.type(),
         padding_left: false,
         padding_right: false
@@ -239,9 +271,6 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
       _ -> nil
     end
   end
-
-  defp truncate(text, max) when byte_size(text) <= max, do: text
-  defp truncate(text, max), do: String.slice(text, 0, max(max - 1, 0)) <> "…"
 
   # ===========================================================================
   # Call parameter-name hints
@@ -260,6 +289,10 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     if tokens == [] do
       []
     else
+      # Tokenize once per request and precompute an O(1) token index so each
+      # call's argument span is located without re-scanning the whole token
+      # list (was O(n²): `Enum.with_index` per call + `Enum.at` per step).
+      index = token_index(tokens)
       def_positions = positions(ast, &def_head_position/1)
       piped = positions(ast, &piped_call_position/1)
 
@@ -268,8 +301,49 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
       |> Enum.filter(&relevant_call?(&1, rs, re))
       |> Enum.map(&safe_resolve(&1, metadata, piped))
       |> Enum.reject(&is_nil/1)
-      |> Enum.flat_map(&call_hints(&1, tokens, lines, rs, re))
+      |> Enum.flat_map(&call_hints(&1, index, lines, rs, re))
     end
+  end
+
+  # An O(1)-access view over the token list, built once per request:
+  #   * `tuple` — `elem/2` access by index
+  #   * `close_for_position` — closing-`)` token position -> its token index
+  #   * `open_for_close` — closing-delimiter index -> matching opening index
+  defp token_index(tokens) do
+    tuple = List.to_tuple(tokens)
+
+    {close_for_position, open_for_close, _stack} =
+      tokens
+      |> Enum.with_index()
+      |> Enum.reduce({%{}, %{}, []}, fn {token, index}, {by_pos, pairs, stack} ->
+        type = token_type(token)
+
+        cond do
+          type in @openers ->
+            {by_pos, pairs, [index | stack]}
+
+          type in @closers ->
+            {pairs, stack} =
+              case stack do
+                [open | rest] -> {Map.put(pairs, index, open), rest}
+                [] -> {pairs, []}
+              end
+
+            by_pos =
+              if type == :")" do
+                Map.put(by_pos, token_position(token), index)
+              else
+                by_pos
+              end
+
+            {by_pos, pairs, stack}
+
+          true ->
+            {by_pos, pairs, stack}
+        end
+      end)
+
+    %{tuple: tuple, close_for_position: close_for_position, open_for_close: open_for_close}
   end
 
   # Keep only calls whose source span (function name .. closing paren) intersects
@@ -348,7 +422,10 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     pos = meta_position(meta)
 
     cond do
-      fun in @call_blocklist -> acc
+      # The blocklist names special forms / operators, which only occur as LOCAL
+      # calls. A remote call like `MyMod.alias(x)` is an ordinary function and
+      # must not be suppressed.
+      kind == :local and fun in @call_blocklist -> acc
       not Keyword.has_key?(meta, :closing) -> acc
       args == [] -> acc
       pos == nil -> acc
@@ -360,11 +437,11 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   defp resolve_call({kind, mod_ast, fun, pos, closing, arity}, metadata, piped) do
     piped? = MapSet.member?(piped, pos)
     effective_arity = if piped?, do: arity + 1, else: arity
-    raw_mod = if kind == :remote, do: module_of(mod_ast), else: nil
     expand_aliases? = match?({:__aliases__, _, _}, mod_ast)
 
-    with true <- raw_mod != :error,
-         env when not is_nil(env) <- Metadata.get_env(metadata, pos),
+    with env when not is_nil(env) <- Metadata.get_env(metadata, pos),
+         raw_mod = if(kind == :remote, do: module_of(mod_ast, env), else: nil),
+         true <- raw_mod != :error,
          {resolved_mod, resolved_fun, true, :mod_fun} <-
            Introspection.actual_mod_fun(
              {raw_mod, fun},
@@ -393,32 +470,82 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
     signature =
       Enum.find(signatures, fn %{params: params} ->
-        required = Enum.count(params, &(not String.contains?(&1, "\\\\")))
-        required <= arity and arity <= length(params)
+        parsed = Enum.map(params, &parse_param/1)
+        required = Enum.count(parsed, fn {_name, default?} -> not default? end)
+        required <= arity and arity <= length(parsed)
       end)
 
     case signature do
       nil -> nil
-      %{params: params} -> params |> Enum.take(arity) |> Enum.map(&clean_param_name/1)
+      %{params: params} -> params |> Enum.map(&parse_param/1) |> effective_params(arity)
     end
   end
 
-  defp clean_param_name(param) do
-    param |> String.split(" \\\\ ") |> hd() |> String.trim()
+  # Parse a rendered param into `{cleaned_name, has_default?}`. A `\\` marks a
+  # default value (the rendered form is `name \\ value`).
+  defp parse_param(param) do
+    {name, default?} =
+      case String.split(param, " \\\\ ", parts: 2) do
+        [name, _value] -> {name, true}
+        [name] -> {name, false}
+      end
+
+    {String.trim(name), default?}
+  end
+
+  # Map a call of `arity` to the params Elixir actually binds for that head.
+  # When a clause has more params than the arity, the missing `d` are filled
+  # from defaults; Elixir generates the head by dropping the RIGHTMOST `d`
+  # defaulted params (non-defaulted params keep their positions). Verified:
+  # `def f(a, b \\ 1, c)` called as `f(:x, :y)` yields `{:x, 1, :y}`, i.e. `b`
+  # is dropped and `a`/`c` are bound — so we keep `a` and `c` here.
+  defp effective_params(parsed, arity) do
+    to_drop = length(parsed) - arity
+
+    {kept, _} =
+      parsed
+      |> Enum.reverse()
+      |> Enum.reduce({[], to_drop}, fn
+        {_name, true}, {acc, drop} when drop > 0 -> {acc, drop - 1}
+        {name, _default?}, {acc, drop} -> {[name | acc], drop}
+      end)
+
+    kept
   end
 
   # Only resolve statically-known remote modules. Dynamic receivers (variables,
   # calls, attributes — `mod.put(...)`, `factory().call(...)`) yield `:error` so
   # the call is skipped rather than passing raw AST into introspection (which
   # would reach `Code.ensure_loaded/1` and raise).
-  defp module_of({:__aliases__, _meta, parts}), do: Module.concat(parts)
-  defp module_of(mod) when is_atom(mod), do: mod
-  defp module_of(_dynamic), do: :error
+  # `__MODULE__.Sub.f(...)` — resolve the `__MODULE__` head from the env's
+  # current module, then concat the remaining alias parts. When the env has no
+  # current module, the receiver is unresolvable -> :error (skip, don't raise).
+  defp module_of({:__aliases__, _meta, [{:__MODULE__, _, ctx} | rest]}, env)
+       when is_atom(ctx) or is_nil(ctx) do
+    case env.module do
+      mod when is_atom(mod) and not is_nil(mod) -> Module.concat([mod | rest])
+      _ -> :error
+    end
+  end
+
+  defp module_of({:__aliases__, _meta, parts}, _env) do
+    if Enum.all?(parts, &is_atom/1), do: Module.concat(parts), else: :error
+  end
+
+  defp module_of({:__MODULE__, _meta, ctx}, env) when is_atom(ctx) or is_nil(ctx) do
+    case env.module do
+      mod when is_atom(mod) and not is_nil(mod) -> mod
+      _ -> :error
+    end
+  end
+
+  defp module_of(mod, _env) when is_atom(mod), do: mod
+  defp module_of(_dynamic, _env), do: :error
 
   # Build per-argument hints by locating the call's argument tokens (between the
   # matching `(` and the `closing` `)`) and splitting them on top-level commas.
-  defp call_hints({closing, names}, tokens, lines, rs, re) do
-    case argument_segments(tokens, closing) do
+  defp call_hints({closing, names}, index, lines, rs, re) do
+    case argument_segments(index, closing) do
       {:ok, segments} ->
         segments
         |> Enum.zip(names)
@@ -458,39 +585,24 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   defp segment_start([token | _]), do: token_position(token)
   defp segment_start([]), do: nil
 
-  defp argument_segments(tokens, closing) do
-    indexed = Enum.with_index(tokens)
-
-    close_index =
-      Enum.find_value(indexed, fn {token, index} ->
-        if token_type(token) == :")" and token_position(token) == closing, do: index
-      end)
-
-    with index when is_integer(index) <- close_index,
-         open_index when is_integer(open_index) <- matching_open(tokens, index) do
-      inner = Enum.slice(tokens, (open_index + 1)..(index - 1)//1)
+  defp argument_segments(index, closing) do
+    with close_index when is_integer(close_index) <-
+           Map.get(index.close_for_position, closing, :error),
+         open_index when is_integer(open_index) <-
+           Map.get(index.open_for_close, close_index, :error),
+         :"(" <- token_type(elem(index.tuple, open_index)) do
+      inner = slice_tuple(index.tuple, open_index + 1, close_index - 1)
       {:ok, split_arguments(inner)}
     else
       _ -> :error
     end
   end
 
-  defp matching_open(tokens, close_index) do
-    Enum.reduce_while((close_index - 1)..0//-1, 0, fn index, depth ->
-      token = Enum.at(tokens, index)
-      type = token_type(token)
+  # Tokens at indices `from..to` (inclusive) from the precomputed tuple.
+  defp slice_tuple(_tuple, from, to) when from > to, do: []
 
-      cond do
-        type in @closers -> {:cont, depth + 1}
-        type == :"(" and depth == 0 -> {:halt, {:found, index}}
-        type in @openers -> {:cont, depth - 1}
-        true -> {:cont, depth}
-      end
-    end)
-    |> case do
-      {:found, index} -> index
-      _ -> nil
-    end
+  defp slice_tuple(tuple, from, to) do
+    for i <- from..to, do: elem(tuple, i)
   end
 
   defp split_arguments(tokens) do
@@ -559,7 +671,13 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
     {{sl, sc || 1}, {el, ec || 1}}
   end
 
-  defp exceeds_line_budget?({sl, _}, {el, _}), do: el - sl > @max_range_lines
+  defp clamp_range({{sl, _sc} = start, {el, ec}} = range) do
+    if el - sl > @max_range_lines do
+      {start, {sl + @max_range_lines, ec}}
+    else
+      range
+    end
+  end
 
   defp in_range?({line, column}, {sl, sc}, {el, ec}) do
     cond do

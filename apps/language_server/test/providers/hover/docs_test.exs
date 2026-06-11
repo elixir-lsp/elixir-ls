@@ -1971,13 +1971,13 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
                docs: [doc]
              } = Docs.docs(buffer, 2, 12)
 
-      assert doc == %{name: "my_var", kind: :variable}
+      assert doc == %{name: "my_var", kind: :variable, type: nil}
 
       assert %{
                docs: [doc]
              } = Docs.docs(buffer, 3, 6)
 
-      assert doc == %{name: "other_var", kind: :variable}
+      assert doc == %{name: "other_var", kind: :variable, type: "5"}
     end
 
     test "variables shadow builtin functions" do
