@@ -816,7 +816,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   defp elixir_range(lines, %Range{start: start_pos, end: end_pos}) do
     {sl, sc} = SourceFile.lsp_position_to_elixir(lines, {start_pos.line, start_pos.character})
     {el, ec} = SourceFile.lsp_position_to_elixir(lines, {end_pos.line, end_pos.character})
-    {{sl, sc || 1}, {el, ec || 1}}
+    {{sl, sc}, {el, ec}}
   end
 
   # Clamp so at most @max_range_lines lines are ever processed: the inclusive
