@@ -6,6 +6,28 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
   alias ElixirLS.LanguageServer.Test.ParserContextBuilder
   alias GenLSP.Enumerations.InlayHintKind
 
+  # Whether the ElixirSense native (Module.Types) backend is active for
+  # *pattern-match / local-signature* inference. True on Elixir 1.18+ (needs
+  # `of_expr` + `Module.Types.stack/7`). Source-attribution shapes like
+  # `:native_inferred`/`:native_exck` depend on this.
+  @native_typing ElixirSense.Core.ElixirTypes.available?()
+  defp native_typing?, do: @native_typing
+
+  # Whether native *expression* typing is active. This needs the expected-type
+  # `Expr.of_expr/5` API, which only exists on Elixir 1.19+; on 1.18 the adaptor
+  # is "available" for pattern/local-signature work but expression typing still
+  # falls back to the structural engine (arrows render with `term()` operands,
+  # literals are not widened). Rendered expression-type labels gate on this.
+  @native_expr_typing ElixirSense.Core.ElixirTypes.available?(:expr)
+  defp native_expr_typing?, do: @native_expr_typing
+
+  # Full native expression typing as shipped in Elixir 1.20 (cross-clause
+  # `:previous` capability, 1.20-only). Only here are *function argument*
+  # operand types inferred inside an inline `fn` arrow; on 1.19 the return type
+  # is inferred but the arguments stay `term()`.
+  @native_full_typing ElixirSense.Core.ElixirTypes.available?(:previous)
+  defp native_full_typing?, do: @native_full_typing
+
   defp hints(source, settings \\ %{}) do
     parser_context = ParserContextBuilder.from_string(source)
     range = SourceFile.full_range(parser_context.source_file)
@@ -52,10 +74,29 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     end
 
     test "function binding renders an arrow with inferred argument types" do
-      # Native mode infers the arithmetic operand types; the full arrow may be
-      # truncated by maxLength, so assert the (stable) prefix.
+      # The arrow may be truncated by maxLength, so assert the (stable) prefix.
+      # Precision is tiered across Elixir versions:
+      #   1.20  → argument operands inferred:  ": (float() or integer(), ..."
+      #   1.19  → only the return is inferred: ": (term(), term() -> float() or integer())"
+      #   ≤1.18 → nothing inferred:            ": (term(), term() -> term())"
       labels = type_labels(hints(wrap("f = fn a, b -> a + b end")))
-      assert Enum.any?(labels, &String.starts_with?(&1, ": (float() or integer()"))
+
+      cond do
+        native_full_typing?() ->
+          assert Enum.any?(labels, &String.starts_with?(&1, ": (float() or integer()"))
+
+        native_expr_typing?() ->
+          # 1.19: arguments stay term(), but the return type is inferred.
+          assert Enum.any?(
+                   labels,
+                   &String.starts_with?(&1, ": (term(), term() -> float() or integer()")
+                 )
+
+        true ->
+          # ≤1.18: structural engine, all operands term().
+          assert Enum.any?(labels, &String.starts_with?(&1, ": (term()"))
+      end
+
       assert Enum.any?(labels, &String.contains?(&1, "->"))
     end
   end
@@ -765,19 +806,27 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
     test "observed source attributions are as expected for matrix vars" do
       sources = matrix_sources(matrix_source())
 
-      # local_var: bound to a local_call thunk whose sig source is :inferred →
-      # classified :native_inferred.
-      assert Map.get(sources, :local_var) == :native_inferred
+      if native_typing?() do
+        # local_var: bound to a local_call thunk whose sig source is :inferred →
+        # classified :native_inferred.
+        assert Map.get(sources, :local_var) == :native_inferred
 
-      # remote_var: Enum.map/2 has an ExCk sig → :native_exck.
-      # (If native engine collapses remote thunks, may be :native_inferred — the
-      # test asserts the ACTUAL observed value so it self-documents the runtime.)
-      remote_src = Map.get(sources, :remote_var)
+        # remote_var: Enum.map/2 has an ExCk sig → :native_exck.
+        # (If native engine collapses remote thunks, may be :native_inferred — the
+        # test asserts the ACTUAL observed value so it self-documents the runtime.)
+        remote_src = Map.get(sources, :remote_var)
 
-      assert remote_src in [:native_exck, :native_inferred],
-             "Expected :native_exck or :native_inferred for remote_var, got #{inspect(remote_src)}"
+        assert remote_src in [:native_exck, :native_inferred],
+               "Expected :native_exck or :native_inferred for remote_var, got #{inspect(remote_src)}"
+      else
+        # Structural engine (Elixir < 1.18): no native local-call inference, so
+        # local_var yields no hint; remote_var resolves through the function's
+        # @spec, not an ExCk/native sig.
+        assert Map.get(sources, :local_var) == nil
+        assert Map.get(sources, :remote_var) == :spec
+      end
 
-      # shape_var: literal/container → :shape.
+      # shape_var: literal/container → :shape (both engines).
       assert Map.get(sources, :shape_var) == :shape
     end
 

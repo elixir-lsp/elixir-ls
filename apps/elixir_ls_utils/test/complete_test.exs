@@ -961,7 +961,8 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
                  type: :field,
                  origin: nil,
                  call?: true,
-                 type_spec: "%{foo: term(), bar_1: term(), bar_2: term(), mod: String, num: term()}",
+                 type_spec:
+                   "%{foo: term(), bar_1: term(), bar_2: term(), mod: String, num: term()}",
                  value_is_map: true,
                  summary: "",
                  metadata: %{}
@@ -2017,19 +2018,19 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
   end
 
   test "completion for bitstring modifiers" do
-    assert entries = expand('<<foo::') |> Enum.filter(&(&1[:type] == :bitstring_option))
+    assert entries = expand(~c"<<foo::") |> Enum.filter(&(&1[:type] == :bitstring_option))
     assert Enum.any?(entries, &(&1.name == "integer"))
     assert Enum.any?(entries, &(&1.name == "size" and &1.arity == 1))
 
-    assert [%{name: "integer", type: :bitstring_option}] = expand('<<foo::int')
+    assert [%{name: "integer", type: :bitstring_option}] = expand(~c"<<foo::int")
 
-    assert entries = expand('<<foo::integer-') |> Enum.filter(&(&1[:type] == :bitstring_option))
+    assert entries = expand(~c"<<foo::integer-") |> Enum.filter(&(&1[:type] == :bitstring_option))
     refute Enum.any?(entries, &(&1.name == "integer"))
     assert Enum.any?(entries, &(&1.name == "little"))
     assert Enum.any?(entries, &(&1.name == "size" and &1.arity == 1))
 
     assert entries =
-             expand('<<foo::integer-little-') |> Enum.filter(&(&1[:type] == :bitstring_option))
+             expand(~c"<<foo::integer-little-") |> Enum.filter(&(&1[:type] == :bitstring_option))
 
     refute Enum.any?(entries, &(&1.name == "integer"))
     refute Enum.any?(entries, &(&1.name == "little"))
@@ -2577,7 +2578,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     # In module context, we should only module functions
     entries =
       expand(
-        '@module_attr.',
+        ~c"@module_attr.",
         module_env,
         metadata
       )
@@ -2588,7 +2589,7 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     # In def context, we should get both module and function
     entries =
       expand(
-        '@module_attr.',
+        ~c"@module_attr.",
         module_env |> Map.put(:function, {:bar, 0}),
         metadata
       )

@@ -428,7 +428,12 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   @kernel_special_forms_exports Kernel.SpecialForms.__info__(:macros)
   @kernel_exports Kernel.__info__(:macros) ++ Kernel.__info__(:functions)
 
-  defp get_module_fun_arity("..///3"), do: {Kernel, :..//, 3}
+  # NOTE: `String.to_atom("..//")` rather than the literal `:..//` atom because
+  # the two supported formatters disagree on how to render that atom — Elixir
+  # 1.20 emits it unquoted (`:..//`) while 1.16 quotes it (`:"..//"`), so no
+  # single literal form is `mix format --check-formatted`-clean on both. The
+  # string form is left untouched by every formatter and yields the same atom.
+  defp get_module_fun_arity("..///3"), do: {Kernel, String.to_atom("..//"), 3}
   defp get_module_fun_arity("../2"), do: {Kernel, :.., 2}
   defp get_module_fun_arity("../0"), do: {Kernel, :.., 0}
   defp get_module_fun_arity("./2"), do: {Kernel.SpecialForms, :., 2}

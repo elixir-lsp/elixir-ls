@@ -18,6 +18,22 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
   alias GenLSP.Enumerations.InlayHintKind
   alias GenLSP.Structures.{Position, Range}
 
+  # Full native expression typing as shipped in Elixir 1.20 — keyed off the
+  # cross-clause `:previous` capability (`Pattern.init_previous/0`), which is
+  # 1.20-only. Map.get/2's default-nil widening ("nil or integer()") only
+  # appears here; on 1.16–1.19 the rendered hint is just "integer()". (1.19 has
+  # `of_expr/5` but still does not widen Map.get/2, so `available?(:expr)` is too
+  # broad a gate for this.)
+  @native_full_typing ElixirSense.Core.ElixirTypes.available?(:previous)
+  defp native_full_typing?, do: @native_full_typing
+
+  # Native pattern/local-signature + spec rendering — available on Elixir 1.18+
+  # (`Module.Types.stack/7`). Spec-derived union member *ordering* (e.g.
+  # Keyword.fetch/2's ":error or {:ok, term()}") follows this, unlike Map.get/2's
+  # nil-widening which is 1.20-only (`@native_full_typing`).
+  @native_typing ElixirSense.Core.ElixirTypes.available?()
+  defp native_typing?, do: @native_typing
+
   @fixture_source """
   defmodule ElixirLS.Fixtures.InlayHintsClassify do
     @spec classify(integer()) :: :negative | :zero | :positive
@@ -45,12 +61,32 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
     File.mkdir_p!(dir)
 
     [{_mod, beam}] =
-      Code.compile_string(@fixture_source, "nofile")
+      compile_string_no_tracers(@fixture_source, "nofile")
 
     beam_path = Path.join(dir, "Elixir.ElixirLS.Fixtures.InlayHintsClassify.beam")
     File.write!(beam_path, beam)
     :code.add_patha(String.to_charlist(dir))
     dir
+  end
+
+  # Compile fixture source with any globally-registered compiler tracers
+  # temporarily removed.  Other (async: false) test modules — e.g.
+  # LlmModuleDependenciesTest and references/locator_test — register the LSP
+  # `Tracer` as a global compiler tracer.  If such a test runs before these
+  # fixture compiles (ordering is deterministic-but-version-dependent under a
+  # fixed seed), the stale `Tracer` callback fires during our
+  # `Code.compile_string`, references its now-stopped GenServer's ETS table and
+  # crashes with "the table identifier does not refer to an existing ETS table".
+  # Fixture compilation has no need for the LSP tracer, so strip it here.
+  defp compile_string_no_tracers(source, file) do
+    prev_tracers = Code.compiler_options()[:tracers] || []
+    Code.put_compiler_option(:tracers, [])
+
+    try do
+      Code.compile_string(source, file)
+    after
+      Code.put_compiler_option(:tracers, prev_tracers)
+    end
   end
 
   # Compile `source` with debug_info enabled so that Code.Typespec.fetch_specs/1
@@ -62,10 +98,11 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
     prev = Code.get_compiler_option(:debug_info)
     Code.put_compiler_option(:debug_info, true)
 
-    result = Code.compile_string(source, file)
-
-    Code.put_compiler_option(:debug_info, prev)
-    result
+    try do
+      compile_string_no_tracers(source, file)
+    after
+      Code.put_compiler_option(:debug_info, prev)
+    end
   end
 
   defp remove_fixture_dir(dir) do
@@ -211,7 +248,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
 
     File.mkdir_p!(dir)
 
-    [{_mod, beam}] = Code.compile_string(@overloaded_source, "nofile")
+    [{_mod, beam}] = compile_string_no_tracers(@overloaded_source, "nofile")
     beam_path = Path.join(dir, "Elixir.ElixirLS.Fixtures.InlayHintsOverloaded.beam")
     File.write!(beam_path, beam)
     :code.add_patha(String.to_charlist(dir))
@@ -285,7 +322,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
       )
 
     File.mkdir_p!(dir)
-    [{_mod, beam}] = Code.compile_string(@struct_fixture_source, "nofile")
+    [{_mod, beam}] = compile_string_no_tracers(@struct_fixture_source, "nofile")
     beam_path = Path.join(dir, "Elixir.ElixirLS.Fixtures.InlayHintsStructResult.beam")
     File.write!(beam_path, beam)
     :code.add_patha(String.to_charlist(dir))
@@ -338,7 +375,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
     end
     """
 
-    [{_mod, real_beam}] = Code.compile_string(fixture_src, "nofile")
+    [{_mod, real_beam}] = compile_string_no_tracers(fixture_src, "nofile")
 
     # 2. Patch the ExCk chunk: replace with a binary whose version tag is
     #    :elixir_checker_v0 (a tag that will never match any live runtime).
@@ -841,8 +878,13 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
       pos = List.first(var.positions)
       assert {:ok, hint} = TypeHints.type_hint_for_var(th_ctx, pos, var)
 
-      assert hint.label == "nil or integer()",
-             "Map.get/2 hint: expected \"nil or integer()\", got #{inspect(hint.label)}"
+      # Elixir 1.20's native backend widens the Map.get/2 result with the
+      # default-nil branch ("nil or integer()"); every earlier engine (including
+      # 1.18/1.19 native) renders only the value type ("integer()").
+      expected = if native_full_typing?(), do: "nil or integer()", else: "integer()"
+
+      assert hint.label == expected,
+             "Map.get/2 hint: expected #{inspect(expected)}, got #{inspect(hint.label)}"
     end
 
     test "Map.get/3 with integer default narrows to 'integer()' (locked)" do
@@ -889,8 +931,16 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsIntegrationTest do
       pos = List.first(var.positions)
       assert {:ok, hint} = TypeHints.type_hint_for_var(th_ctx, pos, var)
 
-      assert hint.label == ":error or {:ok, term()}",
-             "Keyword.fetch/2 hint: expected \":error or {:ok, term()}\", got #{inspect(hint.label)}"
+      # Union member ordering in the rendered spec differs between the native
+      # backend (1.18+: ":error or {:ok, term()}") and the structural engine on
+      # older Elixir ("{:ok, term()} or :error"). Both describe the same type.
+      expected =
+        if native_typing?(),
+          do: ":error or {:ok, term()}",
+          else: "{:ok, term()} or :error"
+
+      assert hint.label == expected,
+             "Keyword.fetch/2 hint: expected #{inspect(expected)}, got #{inspect(hint.label)}"
     end
 
     test "full inlay_hints request over stdlib source returns valid hint structs" do

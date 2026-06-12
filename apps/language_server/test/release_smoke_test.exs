@@ -73,27 +73,27 @@ defmodule ElixirLS.LanguageServer.ReleaseSmokeTest do
   # Always-running companion test
   #
   # Override the module-level :release_smoke tag with `release_smoke: false` so
-  # this specific test runs in normal CI.  It asserts the CURRENT state: the
-  # path dep IS present.  When the dep is finally removed (release-ready), this
-  # test will start failing, alerting developers that the release blocker has
-  # been resolved and `no_absolute_path_deps` can now pass.
+  # this specific test runs in normal CI. It asserts the CURRENT state: the
+  # elixir_sense dependency is a GIT PIN (no absolute path dep) — flipped on
+  # 2026-06-12 when the branch was repointed to the published
+  # elixir-lsp/elixir_sense commit. If someone reintroduces a local absolute
+  # path dep (e.g. for development), this fails, reminding them not to ship it.
   # ---------------------------------------------------------------------------
 
   @tag release_smoke: false
-  test "companion: path dep is still present in language_server/mix.exs (documents release blocker)" do
-    # This test runs in normal CI.  It exists so the suite notices in BOTH
-    # directions: if someone removes the path dep accidentally it fails here,
-    # and if someone adds a NEW path dep the release_smoke test catches it.
+  test "companion: elixir_sense is a git pin (no absolute path dep) in language_server/mix.exs" do
     ls_mix = Path.join([__DIR__, "../mix.exs"]) |> Path.expand()
     content = File.read!(ls_mix)
 
-    assert String.contains?(content, @abs_path_dep_pattern),
+    refute String.contains?(content, @abs_path_dep_pattern),
            """
-           Expected apps/language_server/mix.exs to still contain an absolute path dep
-           (path: "/...").  If you intentionally removed it and the project now uses
-           published deps, update this companion test and enable the :release_smoke
-           test `no_absolute_path_deps` in CI.
+           apps/language_server/mix.exs contains an absolute path dependency.
+           Local path deps are fine for development but must not ship — repoint
+           to the published elixir_sense ref (dep_versions.exs) before pushing.
            """
+
+    assert content =~ ~r/\{:elixir_sense,\s+github:/,
+           "expected elixir_sense to be declared as a github dependency"
   end
 
   # ---------------------------------------------------------------------------

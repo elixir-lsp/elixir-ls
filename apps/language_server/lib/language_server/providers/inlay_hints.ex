@@ -751,15 +751,35 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
 
   defp tokenize(text) do
     case :elixir_tokenizer.tokenize(String.to_charlist(text), 1, 1, []) do
-      {:ok, _, _, _, tokens, _} -> Enum.reverse(tokens)
-      {:ok, _, _, _, tokens} -> Enum.reverse(tokens)
-      {:ok, _, _, tokens} -> Enum.reverse(tokens)
+      {:ok, _, _, _, tokens, _} -> source_order(tokens)
+      {:ok, _, _, _, tokens} -> source_order(tokens)
+      {:ok, _, _, tokens} -> source_order(tokens)
       _ -> []
     end
   rescue
     _ -> []
   catch
     _, _ -> []
+  end
+
+  # `:elixir_tokenizer.tokenize/4`'s token order is not stable across Elixir
+  # releases: 1.17+ returns the accumulator in reverse source order (so a
+  # blind `Enum.reverse/1` yields source order), but **1.16 returns it already
+  # in forward source order** — reversing it there scrambled the open/close
+  # delimiter stack and silently dropped every parameter-name hint. Normalize
+  # explicitly by inspecting the endpoints' positions instead of assuming a
+  # version. Empty / single-token lists are already trivially ordered.
+  defp source_order([] = tokens), do: tokens
+  defp source_order([_only] = tokens), do: tokens
+
+  defp source_order(tokens) do
+    first_pos = token_position(hd(tokens))
+    last_pos = token_position(List.last(tokens))
+
+    case {first_pos, last_pos} do
+      {{fl, fc}, {ll, lc}} when {fl, fc} > {ll, lc} -> Enum.reverse(tokens)
+      _ -> tokens
+    end
   end
 
   defp token_type(token), do: elem(token, 0)
