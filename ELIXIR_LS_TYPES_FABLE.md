@@ -1,5 +1,25 @@
 # ElixirLS inlay hints / types integration — consolidated backlog (Fable)
 
+## Round-5 polish wave — DONE (2026-06-12)
+
+- **Remote-call coverage expanded** (the headline feature): dependency-chain
+  fixtures (A calls B, buffer calls A), optional-key map returns, struct
+  returns, stdlib overloads — with a discovered-and-solved fixture mechanism
+  note (debug_info + on-disk beam re-load needed for ExCk path lookups).
+- **Release smoke scaffold**: :release_smoke-tagged tests (excluded by default)
+  encode the release checks — the path-dep assertion that would fail today,
+  plus an always-running companion asserting the dep IS currently a local path
+  (so the suite notices when the state changes either way), and the documented
+  manual packaged-dep check.
+- **Read-occurrence docs** landed in the vscode-elixir-ls README (flow-sensitive
+  behavior, best-effort caveat) — that repo remains uncommitted.
+
+Gates: 397 provider tests green (2 release-smoke exclusions by design);
+format clean. Remaining: publishing-blocked P0 mechanics (path dep, release
+gate flip, defaults freeze, extension packaging) and the parked protocol
+options (lazy resolve, return-type hints).
+
+
 ## Architectural wave — DONE (2026-06-12)
 
 - **Flow-sensitive read hints** (the last P1-class architectural item): with
