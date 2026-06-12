@@ -200,6 +200,32 @@ defmodule ElixirLS.DebugAdapter.BreakpointConditionTest do
     assert :sys.get_state(Process.whereis(@name)).hits == %{0 => 2}
   end
 
+  test "hit count breaks on the Nth matching hit, not N + 1" do
+    # the generated check_N functions resolve their condition against the
+    # default-named server, so start one to exercise the hit count math directly
+    start_supervised!(
+      Supervisor.child_spec({BreakpointCondition, name: BreakpointCondition},
+        id: :default_breakpoint_condition
+      )
+    )
+
+    {:ok, {BreakpointCondition, check_fun}} =
+      BreakpointCondition.register_condition(
+        BreakpointCondition,
+        Some,
+        200,
+        __ENV__,
+        "true",
+        nil,
+        "2"
+      )
+
+    # first matching hit must not break (count 1 < 2)
+    refute apply(BreakpointCondition, check_fun, [[]])
+    # second matching hit must break (count 2 >= 2)
+    assert apply(BreakpointCondition, check_fun, [[]])
+  end
+
   describe "evel_condition" do
     test "evals to true" do
       binding = [{:a, 1}, {:b, 1}]

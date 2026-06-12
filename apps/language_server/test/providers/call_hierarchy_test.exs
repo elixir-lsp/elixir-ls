@@ -240,7 +240,15 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchyTest do
 
       # function_a calls function_b
       assert length(result) == 1
-      assert List.first(result).to.name == "ElixirLS.Test.CallHierarchyA.function_b/0"
+      call = List.first(result)
+      assert call.to.name == "ElixirLS.Test.CallHierarchyA.function_b/0"
+
+      # ranges for a local (same-file, uri: nil) callee must be computed against
+      # the source text, not collapsed to line 0 (the file URI was used as text)
+      assert call.to.range.start.line == 3
+
+      assert [%GenLSP.Structures.Range{start: %GenLSP.Structures.Position{line: 3}}] =
+               call.from_ranges
     end
 
     test "finds remote calls to other modules" do

@@ -540,18 +540,27 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandler do
   # Parse location string to extract URI
   defp parse_location_for_uri(location) do
     cond do
-      # URI format
-      String.match?(location, ~r/^file:\/\/.*:\d+/) ->
+      # URI format with line and column
+      String.match?(location, ~r/^file:\/\/.*:\d+:\d+$/) ->
         parts = String.split(location, ":")
-        uri = Enum.slice(parts, 0..-2//1) |> Enum.join(":")
-        {:ok, uri}
+        {:ok, Enum.slice(parts, 0..-3//1) |> Enum.join(":")}
 
-      # Path format - convert to URI
-      String.match?(location, ~r/^.*\.exs?:\d+/) ->
+      # URI format with line only
+      String.match?(location, ~r/^file:\/\/.*:\d+$/) ->
+        parts = String.split(location, ":")
+        {:ok, Enum.slice(parts, 0..-2//1) |> Enum.join(":")}
+
+      # Path format with line and column - convert to URI
+      String.match?(location, ~r/^.*\.exs?:\d+:\d+$/) ->
+        parts = String.split(location, ":")
+        path = Enum.slice(parts, 0..-3//1) |> Enum.join(":")
+        {:ok, ElixirLS.LanguageServer.SourceFile.Path.to_uri(path)}
+
+      # Path format with line only - convert to URI
+      String.match?(location, ~r/^.*\.exs?:\d+$/) ->
         parts = String.split(location, ":")
         path = Enum.slice(parts, 0..-2//1) |> Enum.join(":")
-        uri = ElixirLS.LanguageServer.SourceFile.Path.to_uri(path)
-        {:ok, uri}
+        {:ok, ElixirLS.LanguageServer.SourceFile.Path.to_uri(path)}
 
       true ->
         {:error, "Invalid location format"}

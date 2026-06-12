@@ -28,7 +28,7 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
 
   @join_opts [on: "A query expression or keyword list to filter the join."]
 
-  @var_r "[_\p{Ll}\p{Lo}][\p{L}\p{N}_]*[?!]?"
+  @var_r "[_\\p{Ll}\\p{Lo}][\\p{L}\\p{N}_]*[?!]?"
   # elixir alias must be ASCII, no need to support unicode here
   @mod_r "[A-Z][a-zA-Z0-9_\.]*"
   @binding_r "(#{@var_r}) in (#{@mod_r}|assoc\\(\\s*#{@var_r},\\s*\\:#{@var_r}\\s*\\))"
@@ -226,10 +226,19 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
          _buffer_metadata,
          _cursor_position
        ) do
+    assoc =
+      case assoc do
+        atom when is_atom(atom) -> atom
+        {:__block__, _, [atom]} when is_atom(atom) -> atom
+      end
+
     var_type = vars[to_string(var)][:type]
 
     if var_type && function_exported?(var_type, :__schema__, 2) do
-      var_type.__schema__(:association, assoc).related
+      case var_type.__schema__(:association, assoc) do
+        %{related: related} -> related
+        _ -> nil
+      end
     end
   end
 
@@ -240,23 +249,24 @@ defmodule ElixirLS.LanguageServer.Plugins.Ecto.Query do
   def extract_bindings(prefix, %{pos: {{line, col}, _}} = func_info, env, buffer_metadata) do
     func_code = Source.text_after(prefix, line, col)
 
-    from_matches = Regex.scan(~r/^.+\(?\s*(#{@binding_r})/u, func_code)
+    from_matches = Regex.scan(~r/^.+?\(?\s*(#{@binding_r})/u, func_code)
 
     # TODO this code is broken
     # depends on join positions that we are unable to get from AST
     # line and col was previously assigned to each option in Source.which_func
     join_matches =
-      for join when join in @joins <- func_info.options_so_far,
-          code = Source.text_after(prefix, line, col),
-          match <-
-            Regex.scan(~r/^#{Regex.escape(Atom.to_string(join))}\:\s*(#{@binding_r})/u, code) do
-        match
-      end
+      func_info.options_so_far
+      |> Enum.filter(&Enum.member?(@joins, &1))
+      |> Enum.flat_map(fn join ->
+        source = "(?:^|,)\\s*#{Regex.escape(Atom.to_string(join))}:\\s*(#{@binding_r})"
+        pattern = Regex.compile!(source, "u")
+        Regex.scan(pattern, func_code)
+      end)
 
     matches = from_matches ++ join_matches
 
     Enum.reduce(matches, %{}, fn [_, _, var, expr], bindings ->
-      case Code.string_to_quoted(expr) do
+      case Code.string_to_quoted(expr, emit_warnings: false) do
         {:ok, expr_ast} ->
           type = infer_type(expr_ast, bindings, env, buffer_metadata, {line, col})
           Map.put(bindings, var, %{type: type})

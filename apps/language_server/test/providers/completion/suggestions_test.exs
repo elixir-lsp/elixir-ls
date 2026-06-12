@@ -2678,6 +2678,24 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
            ] = list
   end
 
+  test "struct fields are surfaced through the struct fields reducer" do
+    # after splitting the field reducers by subtype, struct fields are emitted by
+    # the structs_fields reducer (add_struct_fields) rather than add_fields
+    buffer = """
+    defmodule Mod do
+      %ArgumentError{}
+    end
+    """
+
+    fields =
+      Suggestion.suggestions(buffer, 2, 18)
+      |> Enum.filter(&(&1.type == :field))
+
+    assert fields != []
+    assert Enum.all?(fields, &(&1.subtype == :struct_field))
+    assert "message" in Enum.map(fields, & &1.name)
+  end
+
   test "suggestion for aliased struct fields" do
     buffer = """
     defmodule Mod do

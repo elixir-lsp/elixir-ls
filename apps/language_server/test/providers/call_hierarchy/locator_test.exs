@@ -168,6 +168,30 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.LocatorTest do
       # Should show arity 2
       assert result.name =~ "/2"
     end
+
+    test "names overloaded functions using the requested arity" do
+      code = """
+      defmodule TestModule do
+        def overloaded(a), do: a
+        def overloaded(a, b), do: a + b
+
+        def caller do
+          overloaded(1, 2)
+        end
+      end
+      """
+
+      trace = Tracer.get_trace()
+      metadata = Parser.parse_string(code, true, false, {6, 8})
+
+      # Position on the overloaded/2 call
+      result = Locator.prepare(code, 6, 8, trace, metadata: metadata)
+
+      assert result != nil
+      assert result.name =~ "overloaded"
+      assert result.name =~ "/2"
+      refute result.name =~ "/1"
+    end
   end
 
   describe "incoming_calls/5" do
@@ -224,6 +248,27 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.LocatorTest do
 
       # Should find calls from other modules via tracer
       assert length(result) >= 1
+    end
+
+    test "resolves erlang module names when finding incoming calls" do
+      code = """
+      defmodule TestModule do
+        def caller do
+          :lists.reverse([1, 2, 3])
+        end
+      end
+      """
+
+      metadata = Parser.parse_string(code, true, false, {3, 5})
+      trace = Tracer.get_trace()
+
+      # the erlang module ":lists" must round-trip through name parsing, not
+      # become :"Elixir.:lists" via Module.concat
+      result =
+        Locator.incoming_calls(":lists.reverse/1", :function, {1, 1}, trace, metadata: metadata)
+
+      caller_names = Enum.map(result, & &1.from.name)
+      assert "TestModule.caller/0" in caller_names
     end
   end
 

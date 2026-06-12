@@ -45,6 +45,41 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert first_item.preselect == true
   end
 
+  test "keyword param option text edit uses 0-based LSP positions" do
+    text = """
+    defmodule MyModule do
+      alias ElixirSenseExample.ModuleWithTypespecs.Local
+      def fun do
+        Local.func_with_options(remote_with_params_o:)
+      end
+    end
+    """
+
+    # cursor right after the trailing colon
+    {lsp_line, lsp_char} = {3, 49}
+
+    {line, char} = SourceFile.lsp_position_to_elixir(text, {lsp_line, lsp_char})
+    parser_context = ParserContextBuilder.from_string(text, {line, char})
+
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
+
+    item =
+      Enum.find(items, fn item ->
+        match?(%GenLSP.Structures.TextEdit{new_text: "remote_with_params_o: "}, item.text_edit)
+      end)
+
+    assert item, "expected a keyword option completion carrying a text edit"
+
+    # the edit must land at the cursor's 0-based LSP position, not one line/column off
+    assert item.text_edit.range.end == %GenLSP.Structures.Position{
+             line: lsp_line,
+             character: lsp_char
+           }
+
+    assert item.text_edit.range.start.line == lsp_line
+  end
+
   test "block keywords are not offered as an operand of a binary operator" do
     # `x = re` is an expression position (right side of `=`); block-closing
     # keywords like `rescue` must not be suggested there even though the hint

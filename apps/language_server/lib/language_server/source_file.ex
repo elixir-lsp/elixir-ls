@@ -194,11 +194,11 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         # or first `def`/`defp`/`defmacro`/`defmacrop`/`defguard`/`defguardp`/`defdelegate` clause line if no `@doc` attribute
         Regex.match?(
           Regex.compile!(
-            "^\s*def((macro)|(guard)|(delegate))?p?\s+#{Regex.escape(to_string(fun))}"
+            "^\\s*def((macro)|(guard)|(delegate))?p?\\s+#{Regex.escape(to_string(fun))}"
           ),
           line_text
         ) or
-          Regex.match?(Regex.compile!("^\s*@doc"), line_text)
+          Regex.match?(Regex.compile!("^\\s*@doc"), line_text)
     end
   end
 

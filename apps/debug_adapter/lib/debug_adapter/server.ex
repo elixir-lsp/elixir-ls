@@ -1131,7 +1131,7 @@ defmodule ElixirLS.DebugAdapter.Server do
 
     for {modules, line} <- removed_bps, module <- modules do
       :int.delete_break(module, line)
-      BreakpointCondition.unregister_condition(module, [line])
+      BreakpointCondition.unregister_condition(module, line)
     end
 
     result = set_breakpoints(path, new_lines |> Enum.zip(new_conditions), state.config)
@@ -1416,7 +1416,7 @@ defmodule ElixirLS.DebugAdapter.Server do
           case args do
             %GenDAP.Structures.StackTraceArguments{levels: levels}
             when is_integer(levels) and levels > 0 ->
-              start_frame + levels
+              start_frame + levels - 1
 
             _ ->
               -1
@@ -1830,14 +1830,16 @@ defmodule ElixirLS.DebugAdapter.Server do
       show_user: true
   end
 
-  defp maybe_continue_other_processes(state, %{single_thread: true}) do
+  defp maybe_continue_other_processes(state, %{single_thread: true}), do: state
+
+  defp maybe_continue_other_processes(state, _) do
     # continue dbg debug session
     state =
       case state.dbg_session do
         {pid, _ref} = from ->
           GenServer.reply(from, {:ok, false})
           {%PausedProcess{ref: ref}, paused_processes} = Map.pop!(state.paused_processes, pid)
-          true = Process.demonitor(ref, [:flush])
+          if ref, do: Process.demonitor(ref, [:flush])
           %{state | dbg_session: nil, paused_processes: paused_processes}
 
         _ ->
@@ -1847,14 +1849,12 @@ defmodule ElixirLS.DebugAdapter.Server do
     # continue erlang debugger paused processes
     for {paused_pid, %PausedProcess{ref: ref}} <- state.paused_processes do
       safe_int_action(paused_pid, :continue)
-      true = Process.demonitor(ref, [:flush])
+      if ref, do: Process.demonitor(ref, [:flush])
       paused_pid
     end
 
     %{state | paused_processes: %{}}
   end
-
-  defp maybe_continue_other_processes(state, _), do: state
 
   # Defensive wrapper around :int actions. :int is finicky and can raise from
   # internal pattern matches under various edge cases; if that happens we log
@@ -2892,24 +2892,32 @@ defmodule ElixirLS.DebugAdapter.Server do
          "request" => "launch"
        }) do
     for line <- lines do
-      {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
-      env = Code.env_for_eval(macro_env_or_opts)
+      if condition != "true" || log_message || hit_count != "0" do
+        {_metadata, _env, macro_env_or_opts} = parse_file(file, line)
+        env = Code.env_for_eval(macro_env_or_opts)
 
-      case BreakpointCondition.register_condition(
-             module,
-             line,
-             env,
-             condition,
-             log_message,
-             hit_count
-           ) do
-        {:ok, mf} ->
-          :int.test_at_break(module, line, mf)
+        case BreakpointCondition.register_condition(
+               module,
+               line,
+               env,
+               condition,
+               log_message,
+               hit_count
+             ) do
+          {:ok, mf} ->
+            :int.test_at_break(module, line, mf)
 
-        {:error, reason} ->
-          Output.debugger_important(
-            "Unable to set condition on a breakpoint in #{module}:#{inspect(line)}: #{inspect(reason)}"
-          )
+          {:error, reason} ->
+            Output.debugger_important(
+              "Unable to set condition on a breakpoint in #{module}:#{inspect(line)}: #{inspect(reason)}"
+            )
+        end
+      else
+        # plain breakpoint - do not consume a condition slot and clear any
+        # stale condition/test hook left over from a previous conditional breakpoint
+        BreakpointCondition.unregister_condition(module, line)
+        :int.delete_break(module, line)
+        :int.break(module, line)
       end
     end
   end

@@ -169,6 +169,19 @@ defmodule ElixirLS.DebugAdapter.VariablesTest do
       assert Variables.children(%ArgumentError{}, 1, 1) == [{"__struct__", ArgumentError}]
     end
 
+    test "count of 0 or nil returns all children" do
+      # DAP: a missing or 0 count means all children are returned
+      assert Variables.children([1, 2, 3, 4], 0, 0) == [{"0", 1}, {"1", 2}, {"2", 3}, {"3", 4}]
+      assert Variables.children([1, 2, 3, 4], 0, nil) == [{"0", 1}, {"1", 2}, {"2", 3}, {"3", 4}]
+      assert Variables.children({:ok, 3}, 0, 0) == [{"0", :ok}, {"1", 3}]
+
+      assert Variables.children(%ArgumentError{}, 0, 0) == [
+               {"__exception__", true},
+               {"__struct__", ArgumentError},
+               {"message", "argument error"}
+             ]
+    end
+
     test "binary" do
       assert Variables.children("", 0, 10) == []
       assert Variables.children("asdc", 0, 10) == [{"0", 97}, {"1", 115}, {"2", 100}, {"3", 99}]

@@ -133,8 +133,15 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
               {:., function_meta, [{:__aliases__, module_meta, module_alias}, function_atom]}
           end
 
-        {:., function_meta, [remote, ^function_atom]} ->
-          {:., function_meta, [remote, suggestion]}
+        {:., function_meta, [remote, ^function_atom]} = node ->
+          # Only rewrite calls whose receiver is the diagnostic module (e.g. an
+          # erlang module atom) or a __MODULE__ self-reference. Leave unrelated
+          # calls with the same function name on a different receiver untouched.
+          if remote == module or self_module_reference?(remote) do
+            {:., function_meta, [remote, suggestion]}
+          else
+            node
+          end
 
         other ->
           other
@@ -151,6 +158,10 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunction do
       end
     end
   end
+
+  defp self_module_reference?({:__MODULE__, _, _}), do: true
+  defp self_module_reference?({:__aliases__, _, [{:__MODULE__, _, _} | _]}), do: true
+  defp self_module_reference?(_), do: false
 
   defp fetch_line(%SourceFile{} = source_file, line_number) do
     lines = SourceFile.lines(source_file)

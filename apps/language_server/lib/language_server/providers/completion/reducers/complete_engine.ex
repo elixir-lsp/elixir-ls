@@ -82,16 +82,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.CompleteEngine d
   Note: requires populate/5.
   """
   def add_fields(_hint, _env, _file_metadata, _context, acc) do
-    add_suggestions(:field, acc)
+    add_suggestions(:field, acc, &(&1[:subtype] != :struct_field))
   end
 
   @doc """
-  A reducer that adds suggestions of variable fields.
+  A reducer that adds suggestions of struct fields.
 
   Note: requires populate/5.
   """
   def add_struct_fields(_hint, _env, _file_metadata, _context, acc) do
-    add_suggestions(:struct_field, acc)
+    add_suggestions(:field, acc, &(&1[:subtype] == :struct_field))
   end
 
   @doc """
@@ -132,9 +132,9 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.Reducers.CompleteEngine d
     add_suggestions(:variable, acc)
   end
 
-  defp add_suggestions(type, acc) do
+  defp add_suggestions(type, acc, filter \\ fn _ -> true end) do
     suggestions_by_type = Reducer.get_context(acc, :complete_engine)
-    list = Map.get(suggestions_by_type, type, [])
+    list = Map.get(suggestions_by_type, type, []) |> Enum.filter(filter)
     {:cont, %{acc | result: acc.result ++ list}}
   end
 

@@ -114,6 +114,25 @@ defmodule ElixirLS.LanguageServer.MCP.RequestHandlerTest do
       end
     end
 
+    test "get_environment resolves a real file addressed as file:line:column" do
+      # the file is stored and looked up under the same key only when the line and
+      # column are both stripped from the location
+      request = %{
+        "method" => "tools/call",
+        "params" => %{
+          "name" => "get_environment",
+          "arguments" => %{"location" => "#{__ENV__.file}:1:1"}
+        },
+        "id" => 99
+      }
+
+      response = RequestHandler.handle_request(request)
+      content = hd(response["result"]["content"])
+
+      assert content["text"] =~ "Environment Information"
+      refute content["text"] =~ "File not found"
+    end
+
     test "handles tools/call for get_docs" do
       request = %{
         "method" => "tools/call",

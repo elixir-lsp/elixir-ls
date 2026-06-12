@@ -88,6 +88,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
       assert result == "counts = Enum.count([1, 2, 3])"
     end
 
+    test "does not treat # inside a string literal as a trailing comment" do
+      {:ok, [result]} =
+        ~q{
+        Enum.counts("# not a comment")
+      }
+        |> modify()
+
+      assert result == ~s{Enum.count("# not a comment")}
+    end
+
     test "applied to a call after a pipe" do
       {:ok, [result]} =
         ~q{
@@ -116,6 +126,16 @@ defmodule ElixirLS.LanguageServer.Providers.CodeAction.ReplaceRemoteFunctionTest
         |> modify()
 
       assert result == "Enum.count([1, 2, 3]) + Enum.count([3, 2, 1])"
+    end
+
+    test "does not change a same-named call on a different variable receiver" do
+      {:ok, [result]} =
+        ~q{
+        Enum.counts([1, 2, 3]) + other.counts([3, 2, 1])
+      }
+        |> modify()
+
+      assert result == "Enum.count([1, 2, 3]) + other.counts([3, 2, 1])"
     end
 
     test "applied in a comprehension" do

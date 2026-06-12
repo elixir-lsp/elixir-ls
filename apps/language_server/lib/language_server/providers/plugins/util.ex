@@ -77,8 +77,8 @@ defmodule ElixirLS.LanguageServer.Plugins.Util do
     func_call_chain(code, env, buffer_metadata, cursor_position, [])
   end
 
-  # TODO reimplement this on elixir 1.14 with
-  # Code.Fragment.container_cursor_to_quoted and Macro.path
+  # TODO consider reimplementing using Code.Fragment.container_cursor_to_quoted
+  # and Macro.path/2.
   defp func_call_chain(code, env, buffer_metadata, cursor_position, chain) do
     case partial_func_call(code, env, buffer_metadata, cursor_position) do
       :none ->

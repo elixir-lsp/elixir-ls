@@ -55,7 +55,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy do
         source_file: source_file
       )
       |> Enum.map(fn incoming_call ->
-        convert_to_lsp_incoming_call(incoming_call, uri, project_dir)
+        convert_to_lsp_incoming_call(incoming_call, uri, source_file.text, project_dir)
       end)
       |> Enum.filter(&(not is_nil(&1)))
       |> Enum.uniq()
@@ -84,7 +84,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy do
         source_file: source_file
       )
       |> Enum.map(fn outgoing_call ->
-        convert_to_lsp_outgoing_call(outgoing_call, uri, project_dir)
+        convert_to_lsp_outgoing_call(outgoing_call, uri, source_file.text, project_dir)
       end)
       |> Enum.filter(&(not is_nil(&1)))
       |> Enum.uniq()
@@ -135,8 +135,8 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy do
     }
   end
 
-  defp convert_to_lsp_incoming_call(incoming_call, current_uri, project_dir) do
-    with {:ok, text} <- get_text(incoming_call.from.uri, current_uri),
+  defp convert_to_lsp_incoming_call(incoming_call, current_uri, current_text, project_dir) do
+    with {:ok, text} <- get_text(incoming_call.from.uri, current_text),
          lsp_item <- convert_to_lsp_item(incoming_call.from, current_uri, text, project_dir) do
       ranges =
         incoming_call.from_ranges
@@ -162,8 +162,8 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy do
     end
   end
 
-  defp convert_to_lsp_outgoing_call(outgoing_call, current_uri, project_dir) do
-    with {:ok, text} <- get_text(outgoing_call.to.uri, current_uri),
+  defp convert_to_lsp_outgoing_call(outgoing_call, current_uri, current_text, project_dir) do
+    with {:ok, text} <- get_text(outgoing_call.to.uri, current_text),
          lsp_item <- convert_to_lsp_item(outgoing_call.to, current_uri, text, project_dir) do
       ranges =
         outgoing_call.from_ranges

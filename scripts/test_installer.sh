@@ -31,7 +31,7 @@ docker run --rm \
       Code.require_file(\"/scripts/installer.exs\")
 
       # Test basic installation
-      ElixirLS.Mix.install([{:jason, \"~> 1.0\"}], verbose: true, stop_started_applications: false)
+      ElixirLS.Mix.install([{:jason, \"~> 1.0\"}], verbose: true, stop_unused_applications: false)
 
       # Verify Jason is available
       unless Code.ensure_loaded?(Jason) do
