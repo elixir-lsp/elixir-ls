@@ -487,6 +487,32 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHintsTest do
       assert "left:" in labels
       assert "right:" in labels
     end
+
+    test "aliased remote call resolves through the alias and gets param-name hints" do
+      # Regression: before the ModuleResolver fix, `Bar.fun(x)` under
+      # `alias Foo.Bar` was resolved to `Elixir.Bar` (manual Module.concat of
+      # the raw __aliases__ parts, ignoring env.aliases). As a result,
+      # `Introspection.actual_mod_fun` received the wrong module and the hints
+      # silently dropped. Now `module_of/2` delegates to
+      # `ModuleResolver.resolve/2` which expands aliases correctly.
+      source = """
+      defmodule MyMod do
+        def greet(name, greeting), do: {name, greeting}
+      end
+
+      defmodule Caller do
+        alias MyMod, as: Short
+
+        def run(a, b) do
+          Short.greet(a, b)
+        end
+      end
+      """
+
+      labels = param_labels(hints(source))
+      assert "name:" in labels
+      assert "greeting:" in labels
+    end
   end
 
   describe "call parameter-name hints — robustness" do

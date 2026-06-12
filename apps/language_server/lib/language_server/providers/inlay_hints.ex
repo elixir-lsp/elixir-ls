@@ -35,6 +35,7 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   alias ElixirLS.LanguageServer.{Parser, SourceFile}
   alias ElixirSense.Core.{Introspection, Metadata}
   alias ElixirSense.Core.ElixirTypes
+  alias ElixirSense.Core.ModuleResolver
   alias ElixirSense.Core.State.VarInfo
   alias ElixirSense.Core.TypeHints
   alias GenLSP.Enumerations.InlayHintKind
@@ -643,30 +644,16 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # calls, attributes — `mod.put(...)`, `factory().call(...)`) yield `:error` so
   # the call is skipped rather than passing raw AST into introspection (which
   # would reach `Code.ensure_loaded/1` and raise).
-  # `__MODULE__.Sub.f(...)` — resolve the `__MODULE__` head from the env's
-  # current module, then concat the remaining alias parts. When the env has no
-  # current module, the receiver is unresolvable -> :error (skip, don't raise).
-  defp module_of({:__aliases__, _meta, [{:__MODULE__, _, ctx} | rest]}, env)
-       when is_atom(ctx) or is_nil(ctx) do
-    case env.module do
-      mod when is_atom(mod) and not is_nil(mod) -> Module.concat([mod | rest])
-      _ -> :error
+  # Delegates to `ModuleResolver.resolve/2` so that alias expansion (e.g.
+  # `alias Foo.Bar` then `Bar.f(x)` → `Foo.Bar`) is handled correctly.
+  # Dynamic / attribute / variable receivers are not handled by ModuleResolver
+  # and it returns `:error`, which propagates to skip the call gracefully.
+  defp module_of(ast, env) do
+    case ModuleResolver.resolve(ast, env) do
+      {:ok, mod} -> mod
+      :error -> :error
     end
   end
-
-  defp module_of({:__aliases__, _meta, parts}, _env) do
-    if Enum.all?(parts, &is_atom/1), do: Module.concat(parts), else: :error
-  end
-
-  defp module_of({:__MODULE__, _meta, ctx}, env) when is_atom(ctx) or is_nil(ctx) do
-    case env.module do
-      mod when is_atom(mod) and not is_nil(mod) -> mod
-      _ -> :error
-    end
-  end
-
-  defp module_of(mod, _env) when is_atom(mod), do: mod
-  defp module_of(_dynamic, _env), do: :error
 
   # Build per-argument hints by locating the call's argument tokens (between the
   # matching `(` and the `closing` `)`) and splitting them on top-level commas.
@@ -702,6 +689,8 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   end
 
   # nil names (non-identifier patterns: literals, struct-only) are not displayable.
+  # Leading underscores are intentionally rejected here for display suppression —
+  # elixir_sense's identifier_or_nil accepts them, but we do not show `_foo:` hints.
   defp clean_identifier?(nil), do: false
   defp clean_identifier?(name), do: Regex.match?(~r/^[a-z][a-zA-Z0-9_]*[?!]?$/, name)
 
@@ -734,19 +723,24 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   end
 
   defp split_arguments(tokens) do
-    {segments, current, _depth} =
-      Enum.reduce(tokens, {[], [], 0}, fn token, {segments, current, depth} ->
+    # Prepend completed segments and reverse at the end to stay O(N).
+    # The naive `segments ++ [segment]` inside the reduce was O(K^2) in the
+    # number of arguments K (each append walked the whole list).
+    {rev_segments, current, _depth} =
+      Enum.reduce(tokens, {[], [], 0}, fn token, {rev_segments, current, depth} ->
         type = token_type(token)
 
         cond do
-          type == :"," and depth == 0 -> {segments ++ [Enum.reverse(current)], [], depth}
-          type in @openers -> {segments, [token | current], depth + 1}
-          type in @closers -> {segments, [token | current], depth - 1}
-          true -> {segments, [token | current], depth}
+          type == :"," and depth == 0 -> {[Enum.reverse(current) | rev_segments], [], depth}
+          type in @openers -> {rev_segments, [token | current], depth + 1}
+          type in @closers -> {rev_segments, [token | current], depth - 1}
+          true -> {rev_segments, [token | current], depth}
         end
       end)
 
-    (segments ++ [Enum.reverse(current)]) |> Enum.reject(&(&1 == []))
+    [Enum.reverse(current) | rev_segments]
+    |> Enum.reverse()
+    |> Enum.reject(&(&1 == []))
   end
 
   defp tokenize(text) do
