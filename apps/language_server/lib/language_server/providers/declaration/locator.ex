@@ -27,7 +27,7 @@ defmodule ElixirLS.LanguageServer.Providers.Declaration.Locator do
   Returns either a single `%Location{}` or a list of locations if multiple declarations are found.
   """
   def declaration(code, line, column, options \\ []) do
-    case Code.Fragment.surround_context(code, {line, column}) do
+    case ElixirSense.Core.SurroundContext.Toxic.surround_context(code, {line, column}) do
       :none ->
         nil
 
