@@ -649,7 +649,9 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # Dynamic / attribute / variable receivers are not handled by ModuleResolver
   # and it returns `:error`, which propagates to skip the call gracefully.
   defp module_of(ast, env) do
-    case ModuleResolver.resolve(ast, env) do
+    # Pass a plain map (not the %State.Env{} struct) — ModuleResolver.resolve/2's
+    # env type is an anonymous map, and a struct is not a subtype of it (dialyzer).
+    case ModuleResolver.resolve(ast, %{module: env.module, aliases: env.aliases}) do
       {:ok, mod} -> mod
       :error -> :error
     end
