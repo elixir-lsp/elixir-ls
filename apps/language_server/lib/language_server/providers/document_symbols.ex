@@ -24,11 +24,46 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     :deprecated
   ]
 
-  def symbols(uri, %Parser.Context{ast: ast, source_file: source_file}, hierarchical) do
-    symbols = extract_modules(ast) |> Enum.reject(&is_nil/1)
+  def symbols(uri, %Parser.Context{source_file: source_file}, hierarchical) do
+    # Parse with the error-tolerant toxic2 parser so every node carries a `range:` (end-exclusive,
+    # 1-based) - that is the source of every symbol's range and selection range, replacing the old
+    # token-metadata end-position heuristics. No `literal_encoder` here: wrapping literals would
+    # change the atom/keyword shapes that the `extract_*` clauses pattern-match on (defstruct fields
+    # etc.). Structural nodes (def/defmodule/@/...) carry ranges regardless.
+    {ast, _diagnostics} = Toxic2.parse_to_ast(source_file.text, token_metadata: true, range: true)
+
+    symbols = ast |> neutralize_errors() |> extract_modules() |> Enum.reject(&is_nil/1)
 
     {:ok, build_symbols(symbols, uri, source_file.text, hierarchical)}
   end
+
+  # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` nodes whose
+  # map args would crash `Macro` traversal; rewrite them to a harmless empty-arg node.
+  defp neutralize_errors({:__error__, meta, args}) when not is_list(args),
+    do: {:__error__, meta, []}
+
+  # only rewrite non-list, NON-NIL args (the `__error__` map payload); `nil` args is a valid AST
+  # node (a bare identifier/atom like `var` or `__MODULE__`) and must be preserved
+  defp neutralize_errors({form, meta, args}) when not is_list(args) and not is_nil(args),
+    do: {neutralize_errors(form), meta, []}
+
+  defp neutralize_errors({form, meta, args}),
+    do: {neutralize_errors(form), meta, neutralize_errors(args)}
+
+  defp neutralize_errors({left, right}),
+    do: {neutralize_errors(left), neutralize_errors(right)}
+
+  defp neutralize_errors(list) when is_list(list), do: Enum.map(list, &neutralize_errors/1)
+
+  defp neutralize_errors(other), do: other
+
+  # Arity from a head's args, ignoring error-recovery placeholders toxic2 injects for incomplete
+  # code (so `def foo(` while typing reports `foo/0`, not an inflated arity).
+  defp arity(args) when is_list(args) do
+    args |> Enum.reject(&match?({:__error__, _, _}, &1)) |> length()
+  end
+
+  defp arity(_args), do: 0
 
   defp build_symbols(symbols, uri, text, hierarchical)
 
@@ -198,7 +233,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
       %Info{
         type: type,
-        name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
+        name: "#{name_str}/#{arity(args)}",
         detail: "@#{type_kind}",
         location: location,
         selection_location: type_head_location,
@@ -236,7 +271,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
-      name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
+      name: "#{name_str}/#{arity(args)}",
       detail: defname |> to_string,
       location: location,
       selection_location: head_location,
@@ -260,7 +295,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
-      name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
+      name: "#{name_str}/#{arity(args)}",
       detail: defname |> to_string,
       location: location,
       selection_location: head_location,
@@ -488,6 +523,30 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
   end
 
   defp location_to_range(location, text, symbol) do
+    case location[:range] do
+      {{start_line, start_column}, {end_line, end_column}} ->
+        # Preferred path: the node's source range straight from toxic2's `range:` meta (1-based,
+        # end-exclusive) - covers both the full symbol range and the name selection range.
+        lines = SourceFile.lines(text)
+
+        {lsp_start_line, lsp_start_character} =
+          SourceFile.elixir_position_to_lsp(lines, {start_line, start_column})
+
+        {lsp_end_line, lsp_end_character} =
+          SourceFile.elixir_position_to_lsp(lines, {end_line, end_column})
+
+        %GenLSP.Structures.Range{
+          start: %GenLSP.Structures.Position{line: lsp_start_line, character: lsp_start_character},
+          end: %GenLSP.Structures.Position{line: lsp_end_line, character: lsp_end_character}
+        }
+
+      _ ->
+        # Fallback for nodes that carry no `range:` (rare macro-generated / synthesized nodes).
+        location_to_range_heuristic(location, text, symbol)
+    end
+  end
+
+  defp location_to_range_heuristic(location, text, symbol) do
     lines = SourceFile.lines(text)
 
     {start_line, start_character} =

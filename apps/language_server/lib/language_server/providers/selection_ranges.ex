@@ -544,9 +544,10 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   defp neutralize_errors({:__error__, meta, args}) when not is_list(args),
     do: {:__error__, meta, []}
 
-  # defensive: any 3-tuple whose args is not a list (only `{:__error__, _, %{}}` today) would crash
-  # `Macro.traverse`; drop the non-list args so traversal is always safe
-  defp neutralize_errors({form, meta, args}) when not is_list(args),
+  # defensive: a 3-tuple whose args is a non-list, NON-NIL payload (only `{:__error__, _, %{}}`
+  # today) would crash `Macro.traverse`; drop those args. `nil` args is a valid AST node (a bare
+  # identifier/atom) and must be preserved.
+  defp neutralize_errors({form, meta, args}) when not is_list(args) and not is_nil(args),
     do: {neutralize_errors(form), meta, []}
 
   defp neutralize_errors({form, meta, args}),

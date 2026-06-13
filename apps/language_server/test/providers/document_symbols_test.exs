@@ -1398,15 +1398,15 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 7,
                         name: "name",
-                        range: range(3, 15, 3, 55),
-                        selection_range: range(3, 15, 3, 55)
+                        range: range(3, 8, 3, 55),
+                        selection_range: range(3, 8, 3, 55)
                       },
                       %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "age",
-                        range: range(3, 15, 3, 55),
-                        selection_range: range(3, 15, 3, 55)
+                        range: range(3, 8, 3, 55),
+                        selection_range: range(3, 8, 3, 55)
                       }
                     ],
                     kind: 5,
@@ -1453,7 +1453,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 container_name: ":user",
                 kind: 7,
                 location: %GenLSP.Structures.Location{
-                  range: range(3, 15, 3, 55),
+                  range: range(3, 8, 3, 55),
                   uri: "file:///project/file.ex"
                 },
                 name: "name"
@@ -1462,7 +1462,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 container_name: ":user",
                 kind: 7,
                 location: %GenLSP.Structures.Location{
-                  range: range(3, 15, 3, 55),
+                  range: range(3, 8, 3, 55),
                   uri: "file:///project/file.ex"
                 },
                 name: "age"

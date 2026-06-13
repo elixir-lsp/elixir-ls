@@ -246,7 +246,9 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
   defp neutralize_errors({:__error__, meta, args}) when not is_list(args),
     do: {:__error__, meta, []}
 
-  defp neutralize_errors({form, meta, args}) when not is_list(args),
+  # `nil` args is a valid AST node (a bare identifier/atom); only rewrite a non-list, non-nil
+  # payload (the `__error__` map)
+  defp neutralize_errors({form, meta, args}) when not is_list(args) and not is_nil(args),
     do: {neutralize_errors(form), meta, []}
 
   defp neutralize_errors({form, meta, args}),
