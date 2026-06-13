@@ -24,3 +24,17 @@ env_bool = fn name ->
 
   enabled_str == "true"
 end
+
+# Enable ElixirSense's native Module.Types backend (set-theoretic type inference
+# powering inlay hints, hover, and completion). Requires Elixir 1.19+; falls
+# back to the custom engine automatically when unavailable. On by default on
+# this branch — set ELIXIR_LS_TYPE_INFERENCE=false to disable for A/B testing.
+config :elixir_sense,
+  use_elixir_types:
+    System.get_env("ELIXIR_LS_TYPE_INFERENCE", "true") |> String.downcase() != "false"
+
+# NOTE: the native-typing backend's verbose degradation-log flood on Elixir
+# 1.18/1.19 is tamed in apps/language_server/test/test_helper.exs via per-module
+# Logger levels (`Logger.put_module_level/2`) scoped to the offending dep
+# modules, rather than a global level change here (which would suppress the
+# language server's own LSP logging that several tests assert on).

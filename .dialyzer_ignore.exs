@@ -6,6 +6,10 @@
   {"lib/language_server/providers/execute_command/restart.ex", :no_return},
   # @erlang_ex_doc? is true on OTP >= 27. Else branches needed for OTP 26 but appear dead when compiled on OTP 27+.
   {"lib/language_server/markdown_utils.ex", :pattern_match},
+  # :elixir_tokenizer.tokenize returns a 6-tuple on 1.17+ but a 5-tuple on 1.16
+  # (and older forms a 4-tuple); the extra clauses are needed at runtime on old
+  # Elixirs but appear dead when analyzed against the 1.20 PLT.
+  {"lib/language_server/providers/inlay_hints.ex", :pattern_match},
   # Conditional Code.ensure_loaded?/Version.match? branches that dialyzer evaluates statically based on the build environment.
   {"lib/launch.ex", :pattern_match},
   # Code.Fragment.cursor_context/1 spec in Elixir 1.20 omits :capture_arg, but runtime may still emit it.
