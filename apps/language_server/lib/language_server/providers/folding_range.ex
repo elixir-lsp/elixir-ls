@@ -85,7 +85,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
     # stays (it is pure line analysis and provides the assignment / clause folds that have no single
     # closing token). Priorities mirror the original: AST regions (3) override indentation (1) at a
     # shared start line, exactly as the token-pair pass used to.
-    {ast, _diagnostics, comments} =
+    {ast, diagnostics, comments} =
       Toxic2.string_to_quoted_with_comments(text,
         token_metadata: true,
         range: true,
@@ -97,7 +97,7 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
     passes_with_priority = [
       {1, indentation_ranges(lines)},
       {2, comment_ranges(comments)},
-      {3, ast_ranges(neutralize_errors(ast))}
+      {3, ast_ranges(ElixirSense.Core.Parser.neutralize_errors(ast, diagnostics, true))}
     ]
 
     ranges = merge_ranges_with_priorities(passes_with_priority)
@@ -240,26 +240,6 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRange do
       _ -> nil
     end
   end
-
-  # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` nodes whose
-  # map args would crash `Macro.prewalk`; rewrite them to a harmless empty-arg node.
-  defp neutralize_errors({:__error__, meta, args}) when not is_list(args),
-    do: {:__error__, meta, []}
-
-  # `nil` args is a valid AST node (a bare identifier/atom); only rewrite a non-list, non-nil
-  # payload (the `__error__` map)
-  defp neutralize_errors({form, meta, args}) when not is_list(args) and not is_nil(args),
-    do: {neutralize_errors(form), meta, []}
-
-  defp neutralize_errors({form, meta, args}),
-    do: {neutralize_errors(form), meta, neutralize_errors(args)}
-
-  defp neutralize_errors({left, right}),
-    do: {neutralize_errors(left), neutralize_errors(right)}
-
-  defp neutralize_errors(list) when is_list(list), do: Enum.map(list, &neutralize_errors/1)
-
-  defp neutralize_errors(other), do: other
 
   defp merge_ranges_with_priorities(range_lists_with_priorities) do
     range_lists_with_priorities

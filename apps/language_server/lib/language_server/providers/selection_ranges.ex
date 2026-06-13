@@ -367,8 +367,9 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   def ast_node_ranges({:ok, ast}, line, character, _options) do
     # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` nodes whose
     # map args would crash `Macro.traverse`; neutralize them here so this function is safe for any
-    # toxic2 AST regardless of caller.
-    ast = neutralize_errors(ast)
+    # toxic2 AST regardless of caller. No diagnostics in scope (this is range-only and `__error__`
+    # nodes carry no `range:`, so the diagnostics-driven call-arg cleaning is a no-op for ranges).
+    ast = ElixirSense.Core.Parser.neutralize_errors(ast, [], true)
 
     {_new_ast, {acc, [@empty_node]}} =
       Macro.traverse(
@@ -538,27 +539,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
       _ -> nil
     end
   end
-
-  # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` placeholder
-  # nodes whose map args would crash `Macro.traverse`. Rewrite them to a harmless empty-arg node.
-  defp neutralize_errors({:__error__, meta, args}) when not is_list(args),
-    do: {:__error__, meta, []}
-
-  # defensive: a 3-tuple whose args is a non-list, NON-NIL payload (only `{:__error__, _, %{}}`
-  # today) would crash `Macro.traverse`; drop those args. `nil` args is a valid AST node (a bare
-  # identifier/atom) and must be preserved.
-  defp neutralize_errors({form, meta, args}) when not is_list(args) and not is_nil(args),
-    do: {neutralize_errors(form), meta, []}
-
-  defp neutralize_errors({form, meta, args}),
-    do: {neutralize_errors(form), meta, neutralize_errors(args)}
-
-  defp neutralize_errors({left, right}),
-    do: {neutralize_errors(left), neutralize_errors(right)}
-
-  defp neutralize_errors(list) when is_list(list), do: Enum.map(list, &neutralize_errors/1)
-
-  defp neutralize_errors(other), do: other
 
   # Group toxic2 comments into blocks compatible with `comment_block_ranges/4`: each block is a list
   # of `{{row, column}, "#"}` cells in reverse source order (most recent first), matching

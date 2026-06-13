@@ -30,32 +30,19 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     # token-metadata end-position heuristics. No `literal_encoder` here: wrapping literals would
     # change the atom/keyword shapes that the `extract_*` clauses pattern-match on (defstruct fields
     # etc.). Structural nodes (def/defmodule/@/...) carry ranges regardless.
-    {ast, _diagnostics} = Toxic2.parse_to_ast(source_file.text, token_metadata: true, range: true)
+    {ast, diagnostics} = Toxic2.parse_to_ast(source_file.text, token_metadata: true, range: true)
 
-    symbols = ast |> neutralize_errors() |> extract_modules() |> Enum.reject(&is_nil/1)
+    # `{:__error__, ...}` placeholder nodes (best-effort recovery on invalid code) carry map args
+    # that crash `Macro` traversal; neutralize them via the shared helper (keep_range: true so the
+    # `range:` meta survives - it is the source of every symbol's range).
+    symbols =
+      ast
+      |> ElixirSense.Core.Parser.neutralize_errors(diagnostics, true)
+      |> extract_modules()
+      |> Enum.reject(&is_nil/1)
 
     {:ok, build_symbols(symbols, uri, source_file.text, hierarchical)}
   end
-
-  # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` nodes whose
-  # map args would crash `Macro` traversal; rewrite them to a harmless empty-arg node.
-  defp neutralize_errors({:__error__, meta, args}) when not is_list(args),
-    do: {:__error__, meta, []}
-
-  # only rewrite non-list, NON-NIL args (the `__error__` map payload); `nil` args is a valid AST
-  # node (a bare identifier/atom like `var` or `__MODULE__`) and must be preserved
-  defp neutralize_errors({form, meta, args}) when not is_list(args) and not is_nil(args),
-    do: {neutralize_errors(form), meta, []}
-
-  defp neutralize_errors({form, meta, args}),
-    do: {neutralize_errors(form), meta, neutralize_errors(args)}
-
-  defp neutralize_errors({left, right}),
-    do: {neutralize_errors(left), neutralize_errors(right)}
-
-  defp neutralize_errors(list) when is_list(list), do: Enum.map(list, &neutralize_errors/1)
-
-  defp neutralize_errors(other), do: other
 
   # Arity from a head's args, ignoring error-recovery placeholders toxic2 injects for incomplete
   # code (so `def foo(` while typing reports `foo/0`, not an inflated arity).
