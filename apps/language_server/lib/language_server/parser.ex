@@ -331,21 +331,38 @@ defmodule ElixirLS.LanguageServer.Parser do
         %Context{source_file: source_file = %SourceFile{}, path: path} = file,
         cursor_position \\ nil
       ) do
-    {ast, diagnostics} = parse_file(source_file.text, path, source_file.language_id)
+    text = source_file.text
+    language_id = source_file.language_id
+
+    # `parse_file/3` stays the sole source of editor diagnostics (via
+    # `Code.with_diagnostics`) and the parser for EEx/HEEx. It returns a tagged
+    # `{:ok, ast, diagnostics}` / `{:error, diagnostics}` - the tag (not the AST
+    # value) tells us whether Code parsed cleanly, because a valid source can
+    # itself be a falsey AST (e.g. the literal `nil`/`false`). For `.ex/.exs`
+    # Code's AST is discarded; the AST exposed on `Context.ast` (and the
+    # metadata) is always the range-bearing toxic2 tree, so range-aware
+    # providers can read node ranges straight off it.
+    parse_result = parse_file(text, path, language_id)
+
+    diagnostics =
+      case parse_result do
+        {:ok, _ast, diagnostics} -> diagnostics
+        {:error, diagnostics} -> diagnostics
+      end
 
     {flag, ast, metadata} =
-      if ast do
-        # no syntax errors
-        acc = MetadataBuilder.build(ast)
-        metadata = ElixirSense.Core.Metadata.fill(source_file.text, acc)
-
-        {{:exact, cursor_position}, ast, metadata}
+      if elixir?(path, language_id) do
+        parse_elixir_toxic(text, match?({:ok, _ast, _diagnostics}, parse_result), cursor_position)
       else
-        if elixir?(path, source_file.language_id) do
-          fault_tolerant_parse(source_file, cursor_position)
-        else
-          # no support for eex in ElixirSense.Core.Parser
-          {:not_parsable, @dummy_ast, @dummy_metadata}
+        # EEx/HEEx: keep the Code AST (no toxic2 / no range support).
+        case parse_result do
+          {:ok, code_ast, _diagnostics} ->
+            acc = MetadataBuilder.build(code_ast)
+            metadata = ElixirSense.Core.Metadata.fill(text, acc)
+            {{:exact, cursor_position}, code_ast, metadata}
+
+          {:error, _diagnostics} ->
+            {:not_parsable, @dummy_ast, @dummy_metadata}
         end
       end
 
@@ -359,24 +376,30 @@ defmodule ElixirLS.LanguageServer.Parser do
     }
   end
 
-  defp fault_tolerant_parse(source_file = %SourceFile{}, cursor_position) do
-    # attempt to parse with fixing syntax errors
-    options = [
-      errors_threshold: 3,
-      cursor_position: cursor_position,
-      fallback_to_container_cursor_to_quoted: true
-    ]
+  # Build the range-bearing AST + metadata from toxic2. `code_ok?` is whether
+  # `Code.string_to_quoted!` (in `parse_file/3`) accepted the source - it decides
+  # `:exact` vs `:fixed`. Never raises: on any unexpected parser/builder failure
+  # we fall back to the dummies and `:not_parsable`, preserving the previous
+  # `fault_tolerant_parse` safety net.
+  defp parse_elixir_toxic(text, code_ok?, cursor_position) do
+    {ast, _toxic_diagnostics} =
+      ElixirSense.Core.Parser.parse_to_neutralized_ast(text, range: true, keep_range: true)
 
-    case ElixirSense.Core.Parser.string_to_ast(source_file.text, options) do
-      {:ok, ast, modified_source, _error} ->
-        acc = MetadataBuilder.build(ast)
-        metadata = ElixirSense.Core.Metadata.fill(modified_source, acc)
+    flag =
+      cond do
+        code_ok? -> {:exact, cursor_position}
+        usable_ast?(ast) -> {:fixed, cursor_position}
+        true -> {:not_parsable, cursor_position}
+      end
 
-        {{:fixed, cursor_position}, ast, metadata}
+    case flag do
+      {:not_parsable, _} ->
+        {flag, @dummy_ast, @dummy_metadata}
 
       _ ->
-        # we can't fix it
-        {{:not_parsable, cursor_position}, @dummy_ast, @dummy_metadata}
+        acc = MetadataBuilder.build(ast)
+        metadata = ElixirSense.Core.Metadata.fill(text, acc)
+        {flag, ast, metadata}
     end
   catch
     kind, err ->
@@ -410,6 +433,13 @@ defmodule ElixirLS.LanguageServer.Parser do
 
       {{:not_parsable, cursor_position}, @dummy_ast, @dummy_metadata}
   end
+
+  # toxic2 always returns *some* tree; treat an empty block or a bare error node
+  # as "nothing recovered" so a truly broken file still reports `:not_parsable`.
+  defp usable_ast?(nil), do: false
+  defp usable_ast?({:__block__, _, []}), do: false
+  defp usable_ast?({:__error__, _, _}), do: false
+  defp usable_ast?(_ast), do: true
 
   defp get_path(uri) do
     case uri do
@@ -578,8 +608,8 @@ defmodule ElixirLS.LanguageServer.Parser do
       end)
 
     case result do
-      {:ok, ast} -> {ast, warning_diagnostics}
-      {:error, diagnostic} -> {nil, [diagnostic | warning_diagnostics]}
+      {:ok, ast} -> {:ok, ast, warning_diagnostics}
+      {:error, diagnostic} -> {:error, [diagnostic | warning_diagnostics]}
     end
   end
 
