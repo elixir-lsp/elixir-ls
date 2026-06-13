@@ -20,7 +20,6 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   alias ElixirLS.LanguageServer.SourceFile
   alias ElixirLS.LanguageServer.Providers.FoldingRange
   import ElixirLS.LanguageServer.RangeUtils
-  alias ElixirLS.LanguageServer.AstUtils
 
   defp token_length(:end), do: 3
   defp token_length(token) when token in [:"(", :"[", :"{", :")", :"]", :"}"], do: 1
@@ -46,19 +45,22 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
     formatted_lines = FoldingRange.Line.format_string(text)
 
-    comment_groups =
-      formatted_lines
-      |> FoldingRange.CommentBlock.group_comments()
-
-    parse_result =
-      Code.string_to_quoted(text,
+    # AST node ranges and comments both come from the error-tolerant toxic2 parser.
+    # `range: true` attaches `range: {{start_line, start_col}, {end_line, end_col}}` (end-exclusive,
+    # 1-based) to every node that corresponds to source; the literal_encoder gives bare literals a
+    # meta slot so they carry a range too.
+    {ast, _diagnostics, comments} =
+      Toxic2.string_to_quoted_with_comments(text,
         token_metadata: true,
-        columns: true,
-        unescape: false,
+        range: true,
         literal_encoder: fn literal, meta ->
           {:ok, {:__block__, meta, [literal]}}
         end
       )
+
+    parse_result = {:ok, ast}
+
+    comment_groups = group_comments(comments)
 
     cell_pairs =
       formatted_lines
@@ -362,47 +364,29 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
   @empty_node {:__block__, [], []}
 
-  def ast_node_ranges({:ok, ast}, line, character, options) do
-    node_range_options = [
-      formatter_opts: Keyword.get(options, :formatter_opts, [])
-    ]
+  def ast_node_ranges({:ok, ast}, line, character, _options) do
+    # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` nodes whose
+    # map args would crash `Macro.traverse`; neutralize them here so this function is safe for any
+    # toxic2 AST regardless of caller.
+    ast = neutralize_errors(ast)
 
     {_new_ast, {acc, [@empty_node]}} =
       Macro.traverse(
         ast,
         {[], [@empty_node]},
         fn
-          ast, {acc, [parent_ast_from_stack | _] = parent_ast} ->
+          ast, {acc, [_parent_ast_from_stack | _] = parent_ast} ->
             matching_range =
-              case AstUtils.node_range(ast, node_range_options) do
-                range(start_line, start_character, end_line, end_character) ->
-                  start_character =
-                    if match?({:%{}, _, _}, ast) and match?({:%, _, _}, parent_ast_from_stack) and
-                         Version.match?(System.version(), "< 1.17.0-dev") do
-                      # workaround elixir bug
-                      # https://github.com/elixir-lang/elixir/commit/fd4e6b530c0e010712b06909c89820b08e49c238
-                      # undo column offset for structs inner map node
-                      start_character + 1
-                    else
-                      start_character
-                    end
-
-                  range = range(start_line, start_character, end_line, end_character)
-
+              case node_range_from_meta(ast) do
+                range(start_line, start_character, end_line, end_character) = range ->
                   if (start_line < line or (start_line == line and start_character <= character)) and
                        (end_line > line or (end_line == line and end_character >= character)) do
-                    # dbg({ast, range, parent_ast_from_stack})
-                    # {ast, {[range | acc], [ast | parent_ast]}}
                     range
                   else
-                    # dbg({ast, range, {line, character}, "outside"})
-                    # {ast, {acc, [ast | parent_ast]}}
                     nil
                   end
 
                 nil ->
-                  # dbg({ast, "nil"})
-                  # {ast, {acc, [ast | parent_ast]}}
                   nil
               end
 
@@ -486,6 +470,117 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   end
 
   def ast_node_ranges(_, _, _, _), do: []
+
+  # Read a node's source range straight from the toxic2 `range:` meta (end-exclusive, 1-based),
+  # converting to the provider's 0-based ranges. A 2-tuple (keyword/tuple pair) has no meta of its
+  # own, so its range spans from its key's start to its value's end.
+  # the map-update `|` (`%{m | k: v}`) carries no `range:` of its own; span it across its operands
+  defp node_range_from_meta({:|, meta, [left, right]}) do
+    range_from_meta(meta) || union_ranges(node_range_from_meta(left), node_range_from_meta(right))
+  end
+
+  defp node_range_from_meta({_form, meta, _args}) when is_list(meta) do
+    case range_from_meta(meta) do
+      # interpolation's `Kernel.to_string` node is macro-generated (no `range:`), but carries the
+      # `#{` start (line/column) and the `}` (closing) - derive the `#{...}` span from those
+      nil -> interpolation_range(meta)
+      range -> range
+    end
+  end
+
+  defp node_range_from_meta({left, right}) do
+    case {child_range(left), child_range(right)} do
+      {range(sl, sc, _, _), range(_, _, el, ec)} -> range(sl, sc, el, ec)
+      {range(sl, sc, el, ec), nil} -> range(sl, sc, el, ec)
+      {nil, range(sl, sc, el, ec)} -> range(sl, sc, el, ec)
+      {nil, nil} -> nil
+    end
+  end
+
+  defp node_range_from_meta([_ | _] = list) do
+    # a keyword/pair list (`a: 1, b: 2`) is a plain list with no meta of its own; span it from the
+    # first pair's start to the last pair's end
+    if Enum.all?(list, &match?({_key, _value}, &1)) do
+      case {node_range_from_meta(List.first(list)), node_range_from_meta(List.last(list))} do
+        {range(sl, sc, _, _), range(_, _, el, ec)} -> range(sl, sc, el, ec)
+        _ -> nil
+      end
+    end
+  end
+
+  defp node_range_from_meta(_), do: nil
+
+  defp range_from_meta(meta) do
+    case Keyword.get(meta, :range) do
+      {{start_line, start_column}, {end_line, end_column}} ->
+        range(start_line - 1, start_column - 1, end_line - 1, end_column - 1)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp child_range({_form, meta, _args}) when is_list(meta), do: range_from_meta(meta)
+  defp child_range(_), do: nil
+
+  defp union_ranges(range(sl, sc, _, _), range(_, _, el, ec)), do: range(sl, sc, el, ec)
+  defp union_ranges(range(sl, sc, el, ec), nil), do: range(sl, sc, el, ec)
+  defp union_ranges(nil, range(sl, sc, el, ec)), do: range(sl, sc, el, ec)
+  defp union_ranges(nil, nil), do: nil
+
+  defp interpolation_range(meta) do
+    with true <- Keyword.get(meta, :from_interpolation, false),
+         [line: closing_line, column: closing_column] <- Keyword.get(meta, :closing),
+         start_line when is_integer(start_line) <- Keyword.get(meta, :line),
+         start_column when is_integer(start_column) <- Keyword.get(meta, :column) do
+      range(start_line - 1, start_column - 1, closing_line - 1, closing_column)
+    else
+      _ -> nil
+    end
+  end
+
+  # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` placeholder
+  # nodes whose map args would crash `Macro.traverse`. Rewrite them to a harmless empty-arg node.
+  defp neutralize_errors({:__error__, meta, args}) when not is_list(args),
+    do: {:__error__, meta, []}
+
+  # defensive: any 3-tuple whose args is not a list (only `{:__error__, _, %{}}` today) would crash
+  # `Macro.traverse`; drop the non-list args so traversal is always safe
+  defp neutralize_errors({form, meta, args}) when not is_list(args),
+    do: {neutralize_errors(form), meta, []}
+
+  defp neutralize_errors({form, meta, args}),
+    do: {neutralize_errors(form), meta, neutralize_errors(args)}
+
+  defp neutralize_errors({left, right}),
+    do: {neutralize_errors(left), neutralize_errors(right)}
+
+  defp neutralize_errors(list) when is_list(list), do: Enum.map(list, &neutralize_errors/1)
+
+  defp neutralize_errors(other), do: other
+
+  # Group toxic2 comments into blocks compatible with `comment_block_ranges/4`: each block is a list
+  # of `{{row, column}, "#"}` cells in reverse source order (most recent first), matching
+  # `FoldingRange.CommentBlock.group_comments/1`. Only full-line comments form blocks (an inline
+  # comment has `previous_eol_count == 0`); a blank line between comments (`previous_eol_count >= 2`)
+  # starts a new block.
+  defp group_comments(comments) do
+    comments
+    |> Enum.filter(&(&1.previous_eol_count > 0))
+    |> Enum.reduce([], fn comment, groups ->
+      cell = {comment.line - 1, comment.column - 1}
+      entry = {cell, "#"}
+
+      case groups do
+        [[{{previous_row, _}, _} | _] = current | rest]
+        when comment.previous_eol_count == 1 and comment.line - 1 == previous_row + 1 ->
+          [[entry | current] | rest]
+
+        _ ->
+          [[entry] | groups]
+      end
+    end)
+  end
 
   def surround_context_ranges(text, line, character) do
     case Code.Fragment.surround_context(text, {line + 1, character + 1}) do
