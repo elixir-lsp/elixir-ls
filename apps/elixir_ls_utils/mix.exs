@@ -37,7 +37,7 @@ defmodule ElixirLS.Utils.MixProject do
 
   defp deps do
     [
-      {:elixir_sense, path: "../../../../elixir_sense"},
+      {:elixir_sense, github: "elixir-lsp/elixir_sense", ref: @dep_versions[:elixir_sense]},
       {:jason_v, github: "elixir-lsp/jason", ref: @dep_versions[:jason_v]},
       {:dialyxir_vendored,
        github: "elixir-lsp/dialyxir", ref: @dep_versions[:dialyxir_vendored], runtime: false}

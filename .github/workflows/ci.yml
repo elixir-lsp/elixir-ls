@@ -17,12 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.16.x
-            otp: 26.x
-          - elixir: 1.17.x
-            otp: 27.x
-          - elixir: 1.18.x
-            otp: 27.x
+          # toxic2/elixir_sense require Elixir ~> 1.19; 1.16/1.17/1.18 dropped.
           - elixir: 1.19.x
             otp: 28.x
           - elixir: 1.20.x
@@ -61,12 +56,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - elixir: 1.16.x
-            otp: 26.x
-          - elixir: 1.17.x
-            otp: 27.x
-          - elixir: 1.18.x
-            otp: 27.x
+          # toxic2/elixir_sense require Elixir ~> 1.19; 1.16/1.17/1.18 dropped.
           - elixir: 1.19.x
             otp: 28.x
           - elixir: 1.20.x
@@ -107,25 +97,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Minimum OTP for each supported Elixir
-          - elixir: 1.16.x
-            otp: 26.x
-            os: ubuntu-22.04
-          - elixir: 1.16.x
-            otp: 26.x
-            os: windows-2022
-          - elixir: 1.17.x
-            otp: 26.x
-            os: ubuntu-22.04
-          - elixir: 1.17.x
-            otp: 26.x
-            os: windows-2022
-          - elixir: 1.18.x
-            otp: 26.x
-            os: ubuntu-22.04
-          - elixir: 1.18.x
-            otp: 26.x
-            os: windows-2022
+          # Minimum OTP for each supported Elixir.
+          # toxic2/elixir_sense require Elixir ~> 1.19; 1.16/1.17/1.18 dropped.
           - elixir: 1.19.x
             otp: 26.x
             os: ubuntu-22.04
