@@ -235,7 +235,9 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
     close_col = close_col1 - 1
     outer = range(open_line, open_col, close_line, close_col + close_len)
 
-    if in?(outer, {line, character}) do
+    # half-open (end EXCLUSIVE): adjacent sibling containers (`foo[bar][baz]`) share a boundary
+    # column; an inclusive check would emit both non-nested ranges and break the merge invariant.
+    if half_open?(outer, line, character) do
       inner_start = open_col + open_len
       cursor_past_open = open_line < line or (open_line == line and inner_start <= character)
       cursor_before_close = close_line > line or (close_line == line and close_col >= character)

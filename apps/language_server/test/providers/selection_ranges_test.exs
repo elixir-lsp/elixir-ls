@@ -981,6 +981,17 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
       # key inner
       assert_range(ranges, range(0, 4, 0, 7))
     end
+
+    # regression (gpt-5.5 review): adjacent bracket accesses share a boundary column; an inclusive
+    # containment check emitted both non-nested sibling ranges and crashed the merge invariant.
+    test "adjacent bracket accesses do not crash on the boundary" do
+      for c <- 0..13 do
+        assert [%GenLSP.Structures.SelectionRange{}] =
+                 SelectionRanges.selection_ranges("foo[bar][baz]\n", [
+                   %GenLSP.Structures.Position{line: 0, character: c}
+                 ])
+      end
+    end
   end
 
   # Regression: a cursor exactly ON a block section keyword used to emit two sibling (non-nested)
