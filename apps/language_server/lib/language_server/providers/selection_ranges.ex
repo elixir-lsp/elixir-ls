@@ -68,7 +68,7 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
       ast_node_ranges = ast_node_ranges(parse_result, line, character, options)
 
-      surround_context_ranges = surround_context_ranges(text, line, character)
+      surround_context_ranges = surround_context_ranges(ast, text, line, character)
 
       merged_ranges =
         [full_file_range | delimiter_pair_ranges]
@@ -616,9 +616,14 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   # Symbol under the cursor. Goes through the toxic2-backed classifier (the same entry point the
   # navigation providers use) rather than `Code.Fragment.surround_context` directly: spans for
   # navigable shapes come from the AST `range:` metadata, and only lexical-only units (a bare
-  # `do`/`end`, exotic operators) reach the internal Code.Fragment fallback.
-  def surround_context_ranges(text, line, character) do
-    case ElixirSense.Core.SurroundContext.Toxic.surround_context(text, {line + 1, character + 1}) do
+  # `do`/`end`, exotic operators) reach the internal Code.Fragment fallback. The already-parsed
+  # `ast` is reused so this does not trigger a second parse per cursor position.
+  def surround_context_ranges(ast, text, line, character) do
+    case ElixirSense.Core.SurroundContext.Toxic.surround_context(
+           ast,
+           text,
+           {line + 1, character + 1}
+         ) do
       :none ->
         []
 
