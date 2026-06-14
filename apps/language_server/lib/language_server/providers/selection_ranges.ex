@@ -12,7 +12,8 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
      blocks, derived from the toxic2 `closing:` / `do:` / `end:` node metadata
   2. Indentation cell pairs (line analysis)
   3. Comment blocks (from the toxic2 comment stream)
-  4. `Code.Fragment.surround_context` (symbol under cursor)
+  4. Symbol under cursor, via `ElixirSense.Core.SurroundContext.Toxic` (AST-based spans for
+     navigable shapes; it falls back internally for purely lexical units like a bare `do`/`end`)
   5. AST node ranges (toxic2 `range:` metadata)
 
   The AST/delimiter/comment passes all come from the error-tolerant toxic2 parser; string/heredoc/
@@ -612,8 +613,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
     end)
   end
 
+  # Symbol under the cursor. Goes through the toxic2-backed classifier (the same entry point the
+  # navigation providers use) rather than `Code.Fragment.surround_context` directly: spans for
+  # navigable shapes come from the AST `range:` metadata, and only lexical-only units (a bare
+  # `do`/`end`, exotic operators) reach the internal Code.Fragment fallback.
   def surround_context_ranges(text, line, character) do
-    case Code.Fragment.surround_context(text, {line + 1, character + 1}) do
+    case ElixirSense.Core.SurroundContext.Toxic.surround_context(text, {line + 1, character + 1}) do
       :none ->
         []
 

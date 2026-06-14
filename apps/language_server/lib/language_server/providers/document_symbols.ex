@@ -107,7 +107,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
               _ -> {nil, nil}
             end
 
-          # TODO extract module name location from Code.Fragment.surround_context?
           # TODO better selection ranges for defimpl?
           {extract_module_name(module_expression), symbol, module_name_location, module_body}
 
