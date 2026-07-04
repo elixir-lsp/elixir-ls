@@ -966,6 +966,53 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRangesTest do
     assert_range(ranges, range(0, 7, 0, 11))
   end
 
+  describe "bracket access" do
+    test "cursor on key" do
+      text = """
+      map[key]
+      """
+
+      ranges = get_ranges(text, 0, 4)
+
+      # full range
+      assert_range(ranges, range(0, 0, 1, 0))
+      # [key] outer
+      assert_range(ranges, range(0, 3, 0, 8))
+      # key inner
+      assert_range(ranges, range(0, 4, 0, 7))
+    end
+
+    # regression (gpt-5.5 review): adjacent bracket accesses share a boundary column; an inclusive
+    # containment check emitted both non-nested sibling ranges and crashed the merge invariant.
+    test "adjacent bracket accesses do not crash on the boundary" do
+      for c <- 0..13 do
+        assert [%GenLSP.Structures.SelectionRange{}] =
+                 SelectionRanges.selection_ranges("foo[bar][baz]\n", [
+                   %GenLSP.Structures.Position{line: 0, character: c}
+                 ])
+      end
+    end
+  end
+
+  # Regression: a cursor exactly ON a block section keyword used to emit two sibling (non-nested)
+  # ranges and crash the "increasingly narrowing" merge invariant. (found by adversarial review)
+  describe "block section boundaries do not crash" do
+    for {label, text, l, c} <- [
+          {"if/else on else line", "if a do\n  :ok\nelse\n  :error\nend\n", 2, 0},
+          {"if/else single line on else", "if a do :ok else :err end\n", 0, 18},
+          {"case on a clause", "case x do\n  1 -> :a\n  2 -> :b\nend\n", 1, 2},
+          {"try rescue/after", "try do\n  x\nrescue\n  e -> e\nafter\n  y\nend\n", 4, 2},
+          {"with/else", "with {:ok, x} <- foo() do\n  x\nelse\n  e -> e\nend\n", 2, 0}
+        ] do
+      test label do
+        assert [%GenLSP.Structures.SelectionRange{}] =
+                 SelectionRanges.selection_ranges(unquote(text), [
+                   %GenLSP.Structures.Position{line: unquote(l), character: unquote(c)}
+                 ])
+      end
+    end
+  end
+
   describe "keyword args" do
     test "single line" do
       text = """

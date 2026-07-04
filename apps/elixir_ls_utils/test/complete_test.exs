@@ -2035,6 +2035,32 @@ defmodule ElixirLS.Utils.CompletionEngineTest do
     refute Enum.any?(entries, &(&1.name == "integer"))
     refute Enum.any?(entries, &(&1.name == "little"))
     assert Enum.any?(entries, &(&1.name == "size" and &1.arity == 1))
+
+    # state-based validity: a `binary` type only allows size/unit to follow
+    names = fn code ->
+      expand(code) |> Enum.filter(&(&1[:type] == :bitstring_option)) |> Enum.map(& &1.name)
+    end
+
+    binary = names.('<<foo::binary-')
+    assert "size" in binary
+    assert "unit" in binary
+    refute "signed" in binary
+    refute "little" in binary
+    refute "native" in binary
+    refute "utf8" in binary
+
+    # utf types take no further modifiers
+    assert names.('<<foo::utf8-') == []
+
+    # float allows little/big (not native), size and unit - but not sign or another type
+    float = names.('<<foo::float-')
+    assert "little" in float
+    assert "big" in float
+    assert "size" in float
+    assert "unit" in float
+    refute "native" in float
+    refute "signed" in float
+    refute "binary" in float
   end
 
   test "completion for aliases in special forms" do

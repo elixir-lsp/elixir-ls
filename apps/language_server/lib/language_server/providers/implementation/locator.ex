@@ -22,7 +22,7 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.Locator do
   require ElixirSense.Core.Introspection, as: Introspection
 
   def implementations(code, line, column, options \\ []) do
-    case Code.Fragment.surround_context(code, {line, column}) do
+    case ElixirSense.Core.SurroundContext.Toxic.surround_context(code, {line, column}) do
       :none ->
         []
 
