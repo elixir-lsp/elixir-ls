@@ -29,9 +29,13 @@ end
 # powering inlay hints, hover, and completion). Requires Elixir 1.19+; falls
 # back to the custom engine automatically when unavailable. On by default on
 # this branch — set ELIXIR_LS_TYPE_INFERENCE=false to disable for A/B testing.
+# Keep the accepted disable values in sync with the runtime override in
+# apps/language_server/lib/language_server.ex ("false" and "0").
 config :elixir_sense,
   use_elixir_types:
-    System.get_env("ELIXIR_LS_TYPE_INFERENCE", "true") |> String.downcase() != "false"
+    System.get_env("ELIXIR_LS_TYPE_INFERENCE", "true")
+    |> String.downcase()
+    |> then(&(&1 not in ["false", "0"]))
 
 # NOTE: the native-typing backend's verbose degradation-log flood on Elixir
 # 1.18/1.19 is tamed in apps/language_server/test/test_helper.exs via per-module

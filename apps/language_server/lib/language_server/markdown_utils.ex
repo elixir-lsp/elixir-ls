@@ -433,7 +433,11 @@ defmodule ElixirLS.LanguageServer.MarkdownUtils do
   # 1.20 emits it unquoted (`:..//`) while 1.16 quotes it (`:"..//"`), so no
   # single literal form is `mix format --check-formatted`-clean on both. The
   # string form is left untouched by every formatter and yields the same atom.
-  defp get_module_fun_arity("..///3"), do: {Kernel, String.to_atom("..//"), 3}
+  # Computed once at compile time (module attribute) to keep the dynamic-atom
+  # call out of the per-invocation path.
+  @stepped_range_atom String.to_atom("..//")
+
+  defp get_module_fun_arity("..///3"), do: {Kernel, @stepped_range_atom, 3}
   defp get_module_fun_arity("../2"), do: {Kernel, :.., 2}
   defp get_module_fun_arity("../0"), do: {Kernel, :.., 0}
   defp get_module_fun_arity("./2"), do: {Kernel.SpecialForms, :., 2}

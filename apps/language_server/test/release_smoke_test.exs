@@ -6,10 +6,10 @@ defmodule ElixirLS.LanguageServer.ReleaseSmokeTest do
 
       @moduletag :release_smoke
 
-  They are intended to run against a CLEAN checkout with production deps (no
-  `path:` overrides) before cutting a release.  Today most of them are excluded
-  because the workspace intentionally uses a local `path:` dep for
-  `elixir_sense` during development.
+  They are intended to run against a CLEAN checkout with production deps
+  before cutting a release. The `elixir_sense` dependency is a git pin
+  (`dep_versions.exs`), and the CI release-gate job plus the always-running
+  companion test below keep it that way.
 
   ## Running at release time
 
@@ -18,12 +18,10 @@ defmodule ElixirLS.LanguageServer.ReleaseSmokeTest do
   ## Tests in this module
 
   1. `no_absolute_path_deps` — asserts that no `mix.exs` file in the umbrella
-     tree contains `path: "/"` (an absolute-path dep).  Today this test
-     DOCUMENTS A KNOWN RELEASE BLOCKER: the `elixir_sense` dep in
-     `apps/language_server/mix.exs` uses an absolute `path:` pointing to a
-     local worktree.  The always-running companion test
-     (`path_dep_is_still_present`) asserts that the path dep IS present so the
-     suite notices when it is removed.
+     tree contains `path: "/"` (an absolute-path dep). The always-running
+     companion test (`companion: elixir_sense is a git pin ...`) asserts the
+     same invariant in normal CI, so a reintroduced local path dep is caught
+     immediately rather than at release time.
 
   2. `packaged_dep_compile_check` — placeholder for a manual smoke step
      (clean checkout, `mix deps.get`, hint round-trip).
@@ -102,17 +100,10 @@ defmodule ElixirLS.LanguageServer.ReleaseSmokeTest do
 
   @doc """
   Asserts that no mix.exs in the umbrella contains `path: "/"` (an absolute
-  path pointing outside the repo).
-
-  ## Known blocker (as of 2026-06-12)
-
-  `apps/language_server/mix.exs` contains:
-
-      {:elixir_sense, path: "/Users/lukaszsamson/elixir_sense/.claude/worktrees/..."}
-
-  This is a local development override.  Before cutting a release, replace it
-  with the published Hex package reference (or a GitHub ref) and verify that
-  `mix deps.get` resolves cleanly from a clean checkout.
+  path pointing outside the repo). The `elixir_sense` dep is a git pin
+  (`dep_versions.exs`); if a local `path:` override is reintroduced for
+  development, it must be swapped back before releasing — this test (and the
+  always-running companion above) will flag it.
   """
   test "no_absolute_path_deps: no mix.exs uses an absolute path dep" do
     # NOTE: This test is excluded by default (@moduletag :release_smoke).
@@ -144,8 +135,8 @@ defmodule ElixirLS.LanguageServer.ReleaseSmokeTest do
   Placeholder for the packaged-dep compile-and-hint smoke test.
 
   This test is intentionally skipped via `@tag :skip`.  It documents the
-  MANUAL STEPS that a release engineer must perform after switching from the
-  local `path:` dep to the published Hex package.
+  MANUAL STEPS that a release engineer must perform to verify the git-pinned
+  (or future Hex-published) `elixir_sense` dependency from a clean checkout.
 
   ## Manual steps
 

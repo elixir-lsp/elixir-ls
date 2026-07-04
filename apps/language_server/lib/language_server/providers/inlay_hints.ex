@@ -48,6 +48,10 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   @unrecognized_trust_key_prefix {__MODULE__, :unrecognized_trust}
 
   @max_range_lines 1000
+  # Whole-line sentinel end column used when clamp_range trims a range: large
+  # enough to exceed any realistic line length, so the clamped boundary line
+  # is fully covered.
+  @max_line_column 1_000_000
   @max_hints 1000
   @default_max_label_length 60
 
@@ -821,10 +825,13 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
   # Clamp so at most @max_range_lines lines are ever processed: the inclusive
   # window sl..el spans `el - sl + 1` lines, so anything with `el - sl >=
   # @max_range_lines` (i.e. > @max_range_lines lines) is trimmed to the first
-  # @max_range_lines lines (sl .. sl + @max_range_lines - 1).
-  defp clamp_range({{sl, _sc} = start, {el, ec}} = range) do
+  # @max_range_lines lines (sl .. sl + @max_range_lines - 1). The new end
+  # column must be a whole-line sentinel, not the original range's `ec` — that
+  # column belongs to a different (later) line and would spuriously cut off
+  # hints on the clamped boundary line.
+  defp clamp_range({{sl, _sc} = start, {el, _ec}} = range) do
     if el - sl >= @max_range_lines do
-      {start, {sl + @max_range_lines - 1, ec}}
+      {start, {sl + @max_range_lines - 1, @max_line_column}}
     else
       range
     end
