@@ -183,16 +183,19 @@ defmodule ElixirLS.LanguageServer.Providers.InlayHints do
       :not_logged ->
         :persistent_term.put(@backend_status_key, :logged)
 
+        # Check availability before the enabled setting: enabled?/0 already
+        # includes available?/0, so testing `not enabled?` first would report
+        # "disabled" on Elixirs where native typing simply isn't available.
         backend =
           cond do
+            not ElixirTypes.available?() ->
+              "structural (native typing unavailable on this Elixir)"
+
             not ElixirTypes.enabled?() ->
               "structural (native typing disabled)"
 
-            ElixirTypes.available?() ->
-              "compiler-native (Module.Types adaptor active)"
-
             true ->
-              "structural (native typing unavailable on this Elixir)"
+              "compiler-native (Module.Types adaptor active)"
           end
 
         Logger.info("[ElixirLS.InlayHints] type backend: #{backend}")
