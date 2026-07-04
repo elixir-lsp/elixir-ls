@@ -158,6 +158,27 @@ defmodule ElixirLS.LanguageServer.Providers.References.LocatorTest do
              %{start: %{line: 65, column: 79}, end: %{line: 65, column: 83}}
   end
 
+  # elixir-lsp/elixir-ls#1038: references resolve with the cursor at the end of the symbol
+  # (one column past its last character), not only when it is on a character of the name.
+  test "find references with cursor at the end of a function definition name (#1038)", %{
+    trace: trace
+  } do
+    buffer = """
+    defmodule ElixirSense.Providers.ReferencesTest.Modules.Callee1 do
+      def func() do
+        IO.puts ""
+      end
+    end
+    """
+
+    # `func` is on line 2 at columns 7-10; column 11 is the end of the symbol (on the `(`).
+    mid = Locator.references(buffer, 2, 10, trace)
+    at_end = Locator.references(buffer, 2, 11, trace)
+
+    assert at_end != []
+    assert at_end == mid
+  end
+
   test "find references with cursor over a function definition with default arg", %{trace: trace} do
     buffer = """
     defmodule ElixirSenseExample.Subscription do

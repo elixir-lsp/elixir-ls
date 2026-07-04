@@ -80,6 +80,22 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
              "ElixirSenseExample.ExampleBehaviourWithDocCallbackNoImpl"
   end
 
+  # elixir-lsp/elixir-ls#1038: implementations resolve with the cursor at the end of the behaviour
+  # alias (one column past its last character), not only when it is on a character of the name.
+  test "find implementations of behaviour module with cursor at the end of the alias (#1038)" do
+    buffer = """
+    defmodule ElixirSenseExample.ExampleBehaviourWithDoc do
+    end
+    """
+
+    # the alias starts at column 11 and is 42 characters long, so column 53 is its end (on the space).
+    mid = Locator.implementations(buffer, 1, 32)
+    at_end = Locator.implementations(buffer, 1, 53)
+
+    assert length(at_end) == 2
+    assert at_end == mid
+  end
+
   test "find protocol implementations" do
     buffer = """
     defprotocol ElixirSenseExample.ExampleProtocol do
