@@ -722,9 +722,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
   end
 
   defp struct_module_filter(true, %State.Env{} = _env, %Metadata{} = metadata) do
+    # Build the loaded/application module-name list ONCE for the whole filter pass
+    # rather than recomputing `:code.all_loaded()` (and the application module scan)
+    # for every candidate module - that turned the filter into O(N^2) work.
+    all_module_names = all_module_names()
+
     fn module ->
       Struct.is_struct(module, metadata.structs) or
-        has_struct_submodule?(module, metadata.structs)
+        has_struct_submodule?(module, metadata.structs, all_module_names)
     end
   end
 
@@ -732,8 +737,22 @@ defmodule ElixirLS.Utils.CompletionEngine do
     fn _ -> true end
   end
 
+  # The loaded (and, in interactive mode, application) module names as strings.
+  # Computed once per struct-module filter pass, not per candidate module.
+  defp all_module_names do
+    modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+
+    case :code.get_mode() do
+      :interactive ->
+        modules ++ Enum.map(Applications.get_modules_from_applications(), &Atom.to_string/1)
+
+      _ ->
+        modules
+    end
+  end
+
   # Check if a module has any direct submodules that are structs
-  defp has_struct_submodule?(module, structs) do
+  defp has_struct_submodule?(module, structs, all_module_names) do
     module_str = Atom.to_string(module)
 
     # Check metadata structs (from current buffer)
@@ -747,30 +766,14 @@ defmodule ElixirLS.Utils.CompletionEngine do
     if metadata_result do
       true
     else
-      # Get all modules and check if any direct submodule is a struct
+      # Check if any direct submodule (from the precomputed list) is a struct
       module_str_with_dot = module_str <> "."
 
-      # Get all loaded modules
-      modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
-
-      # Add modules from applications if in interactive mode
-      modules =
-        case :code.get_mode() do
-          :interactive ->
-            modules ++
-              Enum.map(Applications.get_modules_from_applications(), &Atom.to_string/1)
-
-          _ ->
-            modules
-        end
-
-      # Find submodules
       submodules =
-        for mod <- modules,
+        for mod <- all_module_names,
             String.starts_with?(mod, module_str_with_dot),
             do: String.to_atom(mod)
 
-      # Check if any submodule is a struct
       Enum.any?(submodules, fn mod ->
         Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
       end)

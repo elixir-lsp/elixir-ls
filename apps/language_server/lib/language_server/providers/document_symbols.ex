@@ -24,20 +24,17 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     :deprecated
   ]
 
-  def symbols(uri, %Parser.Context{source_file: source_file}, hierarchical) do
-    # Parse with the error-tolerant toxic2 parser so every node carries a `range:` (end-exclusive,
-    # 1-based) - that is the source of every symbol's range and selection range, replacing the old
-    # token-metadata end-position heuristics. No `literal_encoder` here: wrapping literals would
-    # change the atom/keyword shapes that the `extract_*` clauses pattern-match on (defstruct fields
-    # etc.). Structural nodes (def/defmodule/@/...) carry ranges regardless.
-    {ast, diagnostics} = Toxic2.parse_to_ast(source_file.text, token_metadata: true, range: true)
-
-    # `{:__error__, ...}` placeholder nodes (best-effort recovery on invalid code) carry map args
-    # that crash `Macro` traversal; neutralize them via the shared helper (keep_range: true so the
-    # `range:` meta survives - it is the source of every symbol's range).
+  def symbols(uri, %Parser.Context{source_file: source_file, ast: ast}, hierarchical) do
+    # Reuse the AST `Parser.parse_immediate/2` already produced on the context rather than
+    # reparsing the raw source here. For `.ex/.exs` that is the error-tolerant, already-neutralized
+    # toxic2 tree carrying `range:` meta (end-exclusive, 1-based) - the source of every symbol's
+    # range and selection range. For `.eex/.html-eex` it is the EEx-derived Code AST (reparsing the
+    # raw template text with toxic2 would be nonsensical); such nodes lack `range:` meta, so
+    # `location_to_range/2` degrades to a zero-width range at the node's `line`/`column` anchor.
+    # No `literal_encoder` is applied in either path, so the atom/keyword shapes the `extract_*`
+    # clauses pattern-match on (defstruct fields etc.) are preserved.
     symbols =
       ast
-      |> ElixirSense.Core.Parser.neutralize_errors(diagnostics, true)
       |> extract_modules()
       |> Enum.reject(&is_nil/1)
 

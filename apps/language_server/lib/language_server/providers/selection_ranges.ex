@@ -44,7 +44,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
         end
       )
 
-    parse_result = {:ok, ast}
+    # Neutralize `{:__error__, ...}` placeholder nodes once here rather than once per cursor
+    # position - `delimiter_pair_ranges/4` and `ast_node_ranges/4` both walk this tree for every
+    # requested position, so neutralizing inside them repeated an O(AST) traversal per cursor.
+    # `surround_context_ranges/4` keeps the raw `ast` (it does its own handling).
+    neutralized_parse_result =
+      {:ok, ElixirSense.Core.Parser.neutralize_errors(ast, [], true)}
 
     comment_groups = group_comments(comments)
 
@@ -61,12 +66,12 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
       cell_pair_ranges = cell_pair_ranges(lines, cell_pairs, line, character)
 
       delimiter_pair_ranges =
-        delimiter_pair_ranges(parse_result, lines, line, character)
+        delimiter_pair_ranges(neutralized_parse_result, lines, line, character)
         |> deduplicate
 
       comment_block_ranges = comment_block_ranges(lines, comment_groups, line, character)
 
-      ast_node_ranges = ast_node_ranges(parse_result, line, character, options)
+      ast_node_ranges = ast_node_ranges(neutralized_parse_result, line, character, options)
 
       surround_context_ranges = surround_context_ranges(ast, text, line, character)
 
@@ -150,9 +155,8 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
   # tokenizer-driven token-pair pass (FoldingRange.Token/TokenPair). String/heredoc/sigil ranges,
   # which the old special-token pass produced, already come from `ast_node_ranges` (the toxic AST
   # nodes carry `range:`), so they are not reproduced here.
+  # `ast` is already neutralized by the caller (`selection_ranges/3`).
   def delimiter_pair_ranges({:ok, ast}, lines, line, character) do
-    ast = ElixirSense.Core.Parser.neutralize_errors(ast, [], true)
-
     {_ast, {acc, _stack}} =
       Macro.traverse(
         ast,
@@ -414,13 +418,10 @@ defmodule ElixirLS.LanguageServer.Providers.SelectionRanges do
 
   @empty_node {:__block__, [], []}
 
+  # `ast` is already neutralized by the caller (`selection_ranges/3`) - toxic2's best-effort
+  # `{:__error__, meta, %{...}}` nodes (whose map args would crash `Macro.traverse`) have been
+  # replaced there, once per parse rather than once per cursor position.
   def ast_node_ranges({:ok, ast}, line, character, _options) do
-    # toxic2 returns a best-effort AST for invalid code with `{:__error__, meta, %{...}}` nodes whose
-    # map args would crash `Macro.traverse`; neutralize them here so this function is safe for any
-    # toxic2 AST regardless of caller. No diagnostics in scope (this is range-only and `__error__`
-    # nodes carry no `range:`, so the diagnostics-driven call-arg cleaning is a no-op for ranges).
-    ast = ElixirSense.Core.Parser.neutralize_errors(ast, [], true)
-
     {_new_ast, {acc, [@empty_node]}} =
       Macro.traverse(
         ast,
