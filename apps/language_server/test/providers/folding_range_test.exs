@@ -263,6 +263,117 @@ defmodule ElixirLS.LanguageServer.Providers.FoldingRangeTest do
     end
   end
 
+  # End-to-end coverage for the structural shapes that used to be unit-tested against the deleted
+  # tokenizer passes (`FoldingRange.Token`/`TokenPair`/`SpecialToken`). They are now produced by the
+  # AST region pass off toxic2 node ranges, so they are asserted through the public `provide/1`.
+  describe "end to end delimiters and blocks" do
+    setup [:fold_text]
+
+    @tag text: """
+         defmodule A do      # 0
+           def f(x) do       # 1
+             if x do         # 2
+               :ok           # 3
+             else            # 4
+               :err          # 5
+             end             # 6
+           end               # 7
+         end                 # 8
+         """
+    test "do/end blocks nest (defmodule, def, if/else)", %{
+      ranges_result: ranges_result,
+      text: text
+    } do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 7, "region"}, {1, 6, "region"}, {2, 5, "region"}, {4, 5, "region"}]
+      assert compare_condensed_ranges(ranges, expected, text)
+    end
+
+    @tag text: """
+         x =        # 0
+           <<       # 1
+             1,     # 2
+             2,     # 3
+             3      # 4
+           >>       # 5
+         """
+    test "binary <<>> delimiters fold", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{1, 4, "region"}], text)
+    end
+
+    @tag text: """
+         x = [   # 0
+           1,    # 1
+           2     # 2
+         ]       # 3
+
+         y = {   # 5
+           :a,   # 6
+           :b    # 7
+         }       # 8
+         """
+    test "list [] and tuple {} delimiters fold", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 2, "region"}, {5, 7, "region"}], text)
+    end
+
+    @tag text: """
+         m = %{   # 0
+           a: 1,  # 1
+           b: 2   # 2
+         }        # 3
+         """
+    test "map %{} delimiters fold", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 2, "region"}], text)
+    end
+
+    @tag text: """
+         s = \"\"\"     # 0
+         string one  # 1
+         string two  # 2
+         \"\"\"
+
+         c = '''     # 5
+         charlist one # 6
+         charlist two # 7
+         '''
+         """
+    test "string and charlist heredocs fold", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 2, "region"}, {5, 7, "region"}], text)
+    end
+
+    @tag text: """
+         x = ~S\"\"\"       # 0
+         no \#{interp}   # 1
+         raw           # 2
+         \"\"\"
+         """
+    test "sigil heredoc folds", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      assert compare_condensed_ranges(ranges, [{0, 2, "region"}], text)
+    end
+
+    @tag text: """
+         def f do             # 0
+           try do             # 1
+             risky()          # 2
+           rescue             # 3
+             e -> handle(e)   # 4
+           after              # 5
+             cleanup()        # 6
+           end                # 7
+         end                  # 8
+         """
+    test "try/rescue/after blocks fold", %{ranges_result: ranges_result, text: text} do
+      assert {:ok, ranges} = ranges_result
+      expected = [{0, 7, "region"}, {1, 6, "region"}, {3, 4, "region"}, {5, 6, "region"}]
+      assert compare_condensed_ranges(ranges, expected, text)
+    end
+  end
+
   defp compare_condensed_ranges(result, expected_condensed, text) do
     result_condensed =
       result
