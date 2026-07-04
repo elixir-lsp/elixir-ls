@@ -97,6 +97,25 @@ defmodule ElixirLS.Utils.CompletionEngine do
     %{type: :bitstring_option, name: "utf32"}
   ]
 
+  # Bitstring modifier validity rules (UTS of `<<x::type-sign-endianness-size-unit>>`). Used to keep
+  # `:bitstring_modifier` completion from offering combinations Elixir rejects (e.g. `signed` after
+  # `binary-`, `size`/`unit` after `utf8-`). Inlined here rather than pulled from a separate module so
+  # the completion engine stays self-contained.
+  @bitstring_types [:integer, :float, :bitstring, :binary, :utf8, :utf16, :utf32]
+  @bitstring_utf_types [:utf8, :utf16, :utf32]
+  @bitstring_type_aliases [bits: :bitstring, bytes: :binary]
+  @bitstring_sign_modifiers [:signed, :unsigned]
+  @bitstring_endianness_modifiers [:little, :big, :native]
+  # types each endianness modifier is compatible with, when the type is not yet fixed
+  @bitstring_endianness_types [:integer, :float, :utf16, :utf32]
+  @bitstring_default_state %{
+    type: nil,
+    sign_modifier: nil,
+    endianness_modifier: nil,
+    size: nil,
+    unit: nil
+  }
+
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
 
@@ -796,16 +815,22 @@ defmodule ElixirLS.Utils.CompletionEngine do
         {container_context_map_fields(pairs, {:struct, alias}, map, hint, metadata), continue?}
 
       :bitstring_modifier ->
-        existing =
+        # Parse the modifiers already typed after `::` into a state and keep only the modifiers that
+        # may still legally follow (honoring the type / sign / endianness / utf / size / unit rules),
+        # instead of merely excluding names already present - which would offer invalid combinations
+        # such as `signed`/`little` after `binary-`, or `size`/`unit`/`signed` after `utf8-`.
+        available_names =
           code
           |> List.to_string()
           |> String.split("::")
           |> List.last()
-          |> String.split("-")
+          |> bitstring_parse()
+          |> bitstring_available_options()
+          |> Enum.map(&Atom.to_string/1)
 
         results =
           @bitstring_modifiers
-          |> Enum.filter(&(Matcher.match?(&1.name, hint) and &1.name not in existing))
+          |> Enum.filter(&(&1.name in available_names and Matcher.match?(&1.name, hint)))
           |> format_expansion()
 
         {results, false}
@@ -814,6 +839,92 @@ defmodule ElixirLS.Utils.CompletionEngine do
         {[], true}
     end
   end
+
+  # Parse the modifier text already typed after `::` (e.g. `binary-siz`) into a
+  # `%{type, sign_modifier, endianness_modifier, size, unit}` state. Unknown/partial characters (the
+  # in-progress hint) are skipped one at a time, so a complete parse is not required.
+  defp bitstring_parse(text), do: bitstring_parse(text, @bitstring_default_state)
+
+  for type <- @bitstring_types do
+    defp bitstring_parse(<<unquote(Atom.to_string(type)), rest::binary>>, acc),
+      do: bitstring_parse(rest, %{acc | type: unquote(type)})
+  end
+
+  for {type_alias, type} <- @bitstring_type_aliases do
+    defp bitstring_parse(<<unquote(Atom.to_string(type_alias)), rest::binary>>, acc),
+      do: bitstring_parse(rest, %{acc | type: unquote(type)})
+  end
+
+  for sign <- @bitstring_sign_modifiers do
+    defp bitstring_parse(<<unquote(Atom.to_string(sign)), rest::binary>>, acc),
+      do: bitstring_parse(rest, %{acc | sign_modifier: unquote(sign)})
+  end
+
+  for endianness <- @bitstring_endianness_modifiers do
+    defp bitstring_parse(<<unquote(Atom.to_string(endianness)), rest::binary>>, acc),
+      do: bitstring_parse(rest, %{acc | endianness_modifier: unquote(endianness)})
+  end
+
+  defp bitstring_parse(<<"-", rest::binary>>, acc), do: bitstring_parse(rest, acc)
+
+  defp bitstring_parse(<<"size", rest::binary>>, acc),
+    do: bitstring_parse(rest, %{acc | size: true})
+
+  defp bitstring_parse(<<"unit", rest::binary>>, acc),
+    do: bitstring_parse(rest, %{acc | unit: true})
+
+  defp bitstring_parse(<<_::binary-size(1), rest::binary>>, acc), do: bitstring_parse(rest, acc)
+  defp bitstring_parse(<<>>, acc), do: acc
+
+  # The modifiers that may still legally follow, given the parsed state.
+  defp bitstring_available_options(state) do
+    bitstring_available_types(state) ++
+      bitstring_available_sign_modifiers(state) ++
+      bitstring_available_endianness_modifiers(state) ++
+      bitstring_available_size(state) ++
+      bitstring_available_unit(state)
+  end
+
+  defp bitstring_available_types(
+         %{type: nil, sign_modifier: nil, endianness_modifier: nil} = state
+       ),
+       do: bitstring_filter_utf(state, @bitstring_types)
+
+  defp bitstring_available_types(%{type: nil, sign_modifier: nil, endianness_modifier: e} = state)
+       when not is_nil(e),
+       do: bitstring_filter_utf(state, @bitstring_endianness_types)
+
+  defp bitstring_available_types(%{type: nil}), do: [:integer]
+  defp bitstring_available_types(_), do: []
+
+  defp bitstring_available_sign_modifiers(%{type: type, sign_modifier: nil})
+       when type in [nil, :integer],
+       do: @bitstring_sign_modifiers
+
+  defp bitstring_available_sign_modifiers(_), do: []
+
+  defp bitstring_available_endianness_modifiers(%{type: type, endianness_modifier: nil})
+       when type in [nil, :integer, :utf16, :utf32],
+       do: @bitstring_endianness_modifiers
+
+  defp bitstring_available_endianness_modifiers(%{type: :float, endianness_modifier: nil}),
+    do: [:little, :big]
+
+  defp bitstring_available_endianness_modifiers(_), do: []
+
+  # size and unit are unsupported on utf types (they fail to compile).
+  defp bitstring_available_size(%{size: nil, type: type}) when type not in @bitstring_utf_types,
+    do: [:size]
+
+  defp bitstring_available_size(_), do: []
+
+  defp bitstring_available_unit(%{unit: nil, type: type}) when type not in @bitstring_utf_types,
+    do: [:unit]
+
+  defp bitstring_available_unit(_), do: []
+
+  defp bitstring_filter_utf(%{size: nil, unit: nil}, list), do: list
+  defp bitstring_filter_utf(_, list), do: list -- @bitstring_utf_types
 
   defp container_context_map_fields(pairs, kind, map, hint, metadata) do
     {keys, types, alias, doc, meta} =

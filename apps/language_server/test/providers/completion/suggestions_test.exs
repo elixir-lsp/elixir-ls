@@ -4765,6 +4765,53 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
 
     assert "unit" in options
     assert "size" in options
+    # invalid after a `binary` type: sign / endianness / another type must not be offered
+    refute "signed" in options
+    refute "unsigned" in options
+    refute "little" in options
+    refute "big" in options
+    refute "native" in options
+    refute "utf8" in options
+    refute "binary" in options
+
+    # utf types take no further modifiers - size/unit/sign/endianness are all invalid
+    buffer = """
+    defmodule ElixirSenseExample.OtherModule do
+      alias ElixirSenseExample.SameModule
+      def some_fun() do
+        <<abc::integer, asd::utf8->>
+      end
+    end
+    """
+
+    assert [] =
+             Suggestion.suggestions(buffer, 4, 31)
+             |> Enum.filter(&(&1.type == :bitstring_option))
+             |> Enum.map(& &1.name)
+
+    # float supports little/big (not native), size and unit - but not sign or another type
+    buffer = """
+    defmodule ElixirSenseExample.OtherModule do
+      alias ElixirSenseExample.SameModule
+      def some_fun() do
+        <<abc::integer, asd::float->>
+      end
+    end
+    """
+
+    options =
+      Suggestion.suggestions(buffer, 4, 32)
+      |> Enum.filter(&(&1.type == :bitstring_option))
+      |> Enum.map(& &1.name)
+
+    assert "little" in options
+    assert "big" in options
+    assert "size" in options
+    assert "unit" in options
+    refute "native" in options
+    refute "signed" in options
+    refute "binary" in options
+    refute "utf8" in options
 
     buffer = """
     defmodule ElixirSenseExample.OtherModule do
