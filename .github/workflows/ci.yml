@@ -9,15 +9,12 @@ on:
       - master
 
 jobs:
-  # Release gate: absolute local path dependencies must never ship. This is
-  # EXPECTED to flag on the inlay-hints development branch (elixir_sense is a
-  # local worktree path dep during development) — continue-on-error keeps the
-  # branch green while documenting the blocker. Flip continue-on-error to
-  # false before release.
+  # Release gate: absolute local path dependencies must never ship. The
+  # elixir_sense dependency is a git pin (dep_versions.exs), so this job
+  # hard-fails on any reintroduction of a local path dep.
   release-gate:
     name: Reject absolute path deps (release gate)
     runs-on: ubuntu-22.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Check for absolute local path dependencies
