@@ -18,6 +18,43 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
     assert nil == Locator.definition("__MODULE__", 1, 1)
   end
 
+  # elixir-lsp/elixir-ls#1038: goto-definition must work when the cursor is at the very end of a
+  # symbol (one column past its last character), not only when it is on a character of the symbol.
+  test "find definition with the cursor at the end of the symbol (#1038)" do
+    buffer = """
+    defmodule MyModule do
+      def my_func(a), do: a
+
+      def caller do
+        my_func(1)
+      end
+    end
+    """
+
+    # `my_func` is on line 5 at columns 5..11; column 12 is the end of the symbol.
+    for col <- [8, 11, 12] do
+      assert %Location{type: :function, line: 2} = Locator.definition(buffer, 5, col),
+             "expected my_func/1 definition at line 5 column #{col}"
+    end
+  end
+
+  # elixir-lsp/elixir-ls#1027: at the end of an alias that is the LHS of a remote call, the cursor
+  # resolves to the module, not the function.
+  test "cursor at the end of an alias before `.` resolves the module (#1027)" do
+    buffer = """
+    defmodule MyModule do
+      alias ElixirSenseExample.ModuleWithFunctions
+
+      def caller do
+        ModuleWithFunctions.function_arity_zero()
+      end
+    end
+    """
+
+    # `ModuleWithFunctions` is on line 5 at columns 5..23; column 24 is on the `.` (its end).
+    assert %Location{type: :module} = Locator.definition(buffer, 5, 24)
+  end
+
   test "find module definition inside Phoenix's scope" do
     _define_existing_atom = ExampleWeb
 
