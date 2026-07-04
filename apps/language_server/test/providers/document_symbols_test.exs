@@ -1398,15 +1398,15 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                         children: [],
                         kind: 7,
                         name: "name",
-                        range: range(3, 15, 3, 55),
-                        selection_range: range(3, 15, 3, 55)
+                        range: range(3, 8, 3, 55),
+                        selection_range: range(3, 8, 3, 55)
                       },
                       %GenLSP.Structures.DocumentSymbol{
                         children: [],
                         kind: 7,
                         name: "age",
-                        range: range(3, 15, 3, 55),
-                        selection_range: range(3, 15, 3, 55)
+                        range: range(3, 8, 3, 55),
+                        selection_range: range(3, 8, 3, 55)
                       }
                     ],
                     kind: 5,
@@ -1453,7 +1453,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 container_name: ":user",
                 kind: 7,
                 location: %GenLSP.Structures.Location{
-                  range: range(3, 15, 3, 55),
+                  range: range(3, 8, 3, 55),
                   uri: "file:///project/file.ex"
                 },
                 name: "name"
@@ -1462,7 +1462,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
                 container_name: ":user",
                 kind: 7,
                 location: %GenLSP.Structures.Location{
-                  range: range(3, 15, 3, 55),
+                  range: range(3, 8, 3, 55),
                   uri: "file:///project/file.ex"
                 },
                 name: "age"
@@ -2231,7 +2231,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
            ] = document_symbols
   end
 
-  test "handles a file with compilation errors by returning an empty list" do
+  test "handles a file with compilation errors by returning recovered symbols" do
     uri = "file:///project/test.exs"
 
     text = """
@@ -2244,7 +2244,21 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbolsTest do
 
     parser_context = ParserContextBuilder.from_string(text)
 
-    assert {:ok, []} = get_document_symbols(uri, parser_context, true)
+    # the error tolerant toxic2 parser recovers an AST from a file with
+    # parse errors so symbols are still returned
+    assert {:ok,
+            [
+              %GenLSP.Structures.DocumentSymbol{
+                detail: "defmodule",
+                name: "aA",
+                children: [
+                  %GenLSP.Structures.DocumentSymbol{
+                    detail: "def",
+                    name: "hello/0"
+                  }
+                ]
+              }
+            ]} = get_document_symbols(uri, parser_context, true)
   end
 
   describe "invalid documents" do

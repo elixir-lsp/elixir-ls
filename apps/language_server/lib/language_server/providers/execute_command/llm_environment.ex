@@ -97,7 +97,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
         metadata = Parser.parse_string(text, true, false, {line, column})
 
         # Get context at cursor
-        context = Code.Fragment.surround_context(text, {line, column})
+        context = ElixirSense.Core.SurroundContext.Toxic.surround_context(text, {line, column})
 
         # Get environment
         env =

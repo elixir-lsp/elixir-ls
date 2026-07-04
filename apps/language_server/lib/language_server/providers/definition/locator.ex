@@ -26,7 +26,7 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.Locator do
   alias ElixirLS.LanguageServer.Plugins.Phoenix.Scope
 
   def definition(code, line, column, options \\ []) do
-    case Code.Fragment.surround_context(code, {line, column}) do
+    case ElixirSense.Core.SurroundContext.Toxic.surround_context(code, {line, column}) do
       :none ->
         nil
 

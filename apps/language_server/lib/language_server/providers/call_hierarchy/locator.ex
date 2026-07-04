@@ -12,7 +12,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
   alias ElixirSense.Core.Parser
 
   def prepare(code, line, column, trace, options \\ []) do
-    case Code.Fragment.surround_context(code, {line, column}) do
+    case ElixirSense.Core.SurroundContext.Toxic.surround_context(code, {line, column}) do
       :none ->
         # If no context, check if we're on a function definition line
         check_function_definition(code, line, column, trace, options)

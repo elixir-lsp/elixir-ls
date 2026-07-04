@@ -24,11 +24,30 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     :deprecated
   ]
 
-  def symbols(uri, %Parser.Context{ast: ast, source_file: source_file}, hierarchical) do
-    symbols = extract_modules(ast) |> Enum.reject(&is_nil/1)
+  def symbols(uri, %Parser.Context{source_file: source_file, ast: ast}, hierarchical) do
+    # Reuse the AST `Parser.parse_immediate/2` already produced on the context rather than
+    # reparsing the raw source here. For `.ex/.exs` that is the error-tolerant, already-neutralized
+    # toxic2 tree carrying `range:` meta (end-exclusive, 1-based) - the source of every symbol's
+    # range and selection range. For `.eex/.html-eex` it is the EEx-derived Code AST (reparsing the
+    # raw template text with toxic2 would be nonsensical); such nodes lack `range:` meta, so
+    # `location_to_range/2` degrades to a zero-width range at the node's `line`/`column` anchor.
+    # No `literal_encoder` is applied in either path, so the atom/keyword shapes the `extract_*`
+    # clauses pattern-match on (defstruct fields etc.) are preserved.
+    symbols =
+      ast
+      |> extract_modules()
+      |> Enum.reject(&is_nil/1)
 
     {:ok, build_symbols(symbols, uri, source_file.text, hierarchical)}
   end
+
+  # Arity from a head's args, ignoring error-recovery placeholders toxic2 injects for incomplete
+  # code (so `def foo(` while typing reports `foo/0`, not an inflated arity).
+  defp arity(args) when is_list(args) do
+    args |> Enum.reject(&match?({:__error__, _, _}, &1)) |> length()
+  end
+
+  defp arity(_args), do: 0
 
   defp build_symbols(symbols, uri, text, hierarchical)
 
@@ -85,7 +104,6 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
               _ -> {nil, nil}
             end
 
-          # TODO extract module name location from Code.Fragment.surround_context?
           # TODO better selection ranges for defimpl?
           {extract_module_name(module_expression), symbol, module_name_location, module_body}
 
@@ -198,7 +216,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
 
       %Info{
         type: type,
-        name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
+        name: "#{name_str}/#{arity(args)}",
         detail: "@#{type_kind}",
         location: location,
         selection_location: type_head_location,
@@ -236,7 +254,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
-      name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
+      name: "#{name_str}/#{arity(args)}",
       detail: defname |> to_string,
       location: location,
       selection_location: head_location,
@@ -260,7 +278,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
     %Info{
       type: if(defname in @macro_defs, do: :constant, else: :function),
       symbol: name_str,
-      name: "#{name_str}/#{if(is_list(args), do: length(args), else: 0)}",
+      name: "#{name_str}/#{arity(args)}",
       detail: defname |> to_string,
       location: location,
       selection_location: head_location,
@@ -387,11 +405,11 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
       end
 
     selection_range =
-      location_to_range(selection_location, text, info.symbol)
+      location_to_range(selection_location, text)
 
     # range must contain selection range
     range =
-      location_to_range(info.location, text, nil)
+      location_to_range(info.location, text)
       |> maybe_extend_range(selection_range)
 
     %GenLSP.Structures.DocumentSymbol{
@@ -467,7 +485,7 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
             kind: SymbolUtils.symbol_kind_to_code(info.type),
             location: %GenLSP.Structures.Location{
               uri: uri,
-              range: location_to_range(info.location, text, nil)
+              range: location_to_range(info.location, text)
             },
             container_name: parent_name
           }
@@ -480,84 +498,35 @@ defmodule ElixirLS.LanguageServer.Providers.DocumentSymbols do
           kind: SymbolUtils.symbol_kind_to_code(info.type),
           location: %GenLSP.Structures.Location{
             uri: uri,
-            range: location_to_range(info.location, text, nil)
+            range: location_to_range(info.location, text)
           },
           container_name: parent_name
         }
     end
   end
 
-  defp location_to_range(location, text, symbol) do
+  # The node's source range straight from toxic2's `range:` meta (1-based, end-exclusive) - covers
+  # both the full symbol range and the name selection range. Every node `extract_*` extracts a
+  # location from carries a range; a node that somehow lacks one degrades to a zero-width range at
+  # its `line`/`column` anchor.
+  defp location_to_range(location, text) do
     lines = SourceFile.lines(text)
 
-    {start_line, start_character} =
-      SourceFile.elixir_position_to_lsp(lines, {location[:line], location[:column]})
-
-    {end_line, end_character} =
-      cond do
-        end_location = location[:end_of_expression] ->
-          SourceFile.elixir_position_to_lsp(lines, {end_location[:line], end_location[:column]})
-
-        end_location = location[:end] ->
-          SourceFile.elixir_position_to_lsp(
-            lines,
-            {end_location[:line], end_location[:column] + 3}
-          )
-
-        end_location = location[:closing] ->
-          # all closing tags we expect here are 1 char width
-          SourceFile.elixir_position_to_lsp(
-            lines,
-            {end_location[:line], end_location[:column] + 1}
-          )
-
-        symbol != nil ->
-          end_char = SourceFile.elixir_character_to_lsp(symbol, String.length(to_string(symbol)))
-          {start_line, start_character + end_char + 1}
-
-        parent_end_line =
-            location
-            |> Keyword.get(:parent_location, [])
-            |> Keyword.get(:end, [])
-            |> Keyword.get(:line) ->
-          # last expression in block does not have end_of_expression
-          parent_do_line = location[:parent_location][:do][:line]
-
-          if parent_end_line > parent_do_line do
-            # take end location from parent and assume end_of_expression is last char in previous line
-            end_of_expression =
-              Enum.at(lines, max(parent_end_line - 2, 0), "")
-              |> String.length()
-
-            SourceFile.elixir_position_to_lsp(
-              lines,
-              {parent_end_line - 1, end_of_expression + 1}
-            )
-          else
-            # take end location from parent and assume end_of_expression is last char before final ; trimmed
-            line = Enum.at(lines, parent_end_line - 1, "")
-            parent_end_column = location[:parent_location][:end][:column]
-
-            end_of_expression =
-              line
-              |> String.slice(0..(parent_end_column - 2))
-              |> String.trim_trailing()
-              |> String.replace_trailing(";", "")
-              |> String.length()
-
-            SourceFile.elixir_position_to_lsp(
-              lines,
-              {parent_end_line, end_of_expression + 1}
-            )
-          end
-
-        true ->
-          {start_line, start_character}
+    {{start_line, start_column}, {end_line, end_column}} =
+      case location[:range] do
+        {{_, _}, {_, _}} = range -> range
+        _ -> {{location[:line], location[:column]}, {location[:line], location[:column]}}
       end
 
+    {lsp_start_line, lsp_start_character} =
+      SourceFile.elixir_position_to_lsp(lines, {start_line, start_column})
+
+    {lsp_end_line, lsp_end_character} =
+      SourceFile.elixir_position_to_lsp(lines, {end_line, end_column})
+
     %GenLSP.Structures.Range{
-      start: %GenLSP.Structures.Position{line: start_line, character: start_character},
-      end: %GenLSP.Structures.Position{line: end_line, character: end_character}
+      start: %GenLSP.Structures.Position{line: lsp_start_line, character: lsp_start_character},
+      end: %GenLSP.Structures.Position{line: lsp_end_line, character: lsp_end_character}
     }
   end
 
