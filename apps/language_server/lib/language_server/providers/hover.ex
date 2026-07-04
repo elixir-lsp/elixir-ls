@@ -228,12 +228,29 @@ defmodule ElixirLS.LanguageServer.Providers.Hover do
   end
 
   defp format_doc(info = %{kind: :variable}) do
+    type_section =
+      case Map.get(info, :type) do
+        type when is_binary(type) and type != "" ->
+          """
+
+          ### Type
+
+          ```elixir
+          #{type}
+          ```
+          """
+
+        _ ->
+          ""
+      end
+
     """
     ```elixir
     #{info.name}
     ```
 
     *variable*
+    #{type_section}
     """
   end
 

@@ -25,6 +25,16 @@ defmodule ElixirLS.LanguageServer do
     Launch.start_mix()
 
     Application.put_env(:elixir_sense, :logging_enabled, Mix.env() != :prod)
+
+    # Apply ELIXIR_LS_TYPE_INFERENCE env var at runtime. This must happen here
+    # because config.exs is evaluated at build time and has no effect in releases.
+    use_elixir_types =
+      System.get_env("ELIXIR_LS_TYPE_INFERENCE", "true")
+      |> String.downcase()
+      |> then(&(&1 not in ["false", "0"]))
+
+    Application.put_env(:elixir_sense, :use_elixir_types, use_elixir_types)
+
     Build.set_compiler_options()
 
     start_language_server()

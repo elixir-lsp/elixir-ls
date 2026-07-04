@@ -71,6 +71,7 @@ defmodule ElixirLS.Utils.CompletionEngine do
   alias ElixirSense.Core.State.StructInfo
   alias ElixirSense.Core.Struct
   alias ElixirSense.Core.TypeInfo
+  alias ElixirSense.Core.TypePresentation
 
   alias ElixirLS.Utils.Matcher
 
@@ -2021,7 +2022,10 @@ defmodule ElixirLS.Utils.CompletionEngine do
         value_is_map: value_is_map,
         origin: if(subtype == :struct_field and origin != nil, do: inspect(origin)),
         call?: true,
-        type_spec: map_field_spec(key, types, origin),
+        # Prefer the declared typespec; fall back to the inferred field type
+        # rendered from the resolved receiver shape (plain maps, or struct
+        # fields without a @type).
+        type_spec: map_field_spec(key, types, origin) || rendered_field_type(value),
         summary: doc,
         metadata: meta
       }
@@ -2069,6 +2073,17 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       some ->
         Introspection.to_string_with_parens(some)
+    end
+  end
+
+  # Fallback when a field has no declared typespec: render the inferred field
+  # type (from the resolved receiver shape) to text. elixir-ls `type_spec` is a
+  # string, so render directly (no AST round-trip). Bare `term()`/`none()` carry
+  # no information, so they are dropped (a nested `%{a: term()}` is still kept).
+  defp rendered_field_type(value) do
+    case TypePresentation.render(value) do
+      {:ok, text} when text not in ["term()", "none()"] -> text
+      _ -> nil
     end
   end
 

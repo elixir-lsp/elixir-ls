@@ -263,6 +263,28 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
            )
   end
 
+  test "variable with inferred type" do
+    text = """
+    defmodule MyModule do
+      asdf = 1
+    end
+    """
+
+    {line, char} = {1, 3}
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert {:ok,
+            %GenLSP.Structures.Hover{
+              contents: %GenLSP.Structures.MarkupContent{value: v}
+            }} = Hover.hover(parser_context, line, char)
+
+    assert v =~ "### Type"
+    assert v =~ "```elixir\n1\n```"
+  end
+
   test "attribute" do
     text = """
     defmodule MyModule do

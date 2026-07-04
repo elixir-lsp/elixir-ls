@@ -9,6 +9,18 @@ on:
       - master
 
 jobs:
+  # Release gate: absolute local path dependencies must never ship. The
+  # elixir_sense dependency is a git pin (dep_versions.exs), so this job
+  # hard-fails on any reintroduction of a local path dep.
+  release-gate:
+    name: Reject absolute path deps (release gate)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for absolute local path dependencies
+        run: |
+          ! grep -rn 'path: "/' --include=mix.exs --include=mix.lock .
+
   # Smoke test on the highest supported OTP for each Elixir version
   smoke_test_language_server:
     name: Smoke test language server (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})

@@ -3091,7 +3091,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :struct_field,
-               type_spec: nil,
+               type_spec: "nil",
                value_is_map: false
              },
              %{
@@ -3100,7 +3100,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :struct_field,
-               type_spec: nil,
+               type_spec: "\"\"",
                value_is_map: false
              }
            ] = list
@@ -3127,7 +3127,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: "1",
                value_is_map: false
              },
              %{
@@ -3136,7 +3136,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: "%{abc: 123}",
                value_is_map: true
              }
            ] = list
@@ -3156,6 +3156,16 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
       Suggestion.suggestions(buffer, 4, 13)
       |> Enum.filter(&(&1.type in [:field]))
 
+    # Native *expression* typing (Elixir 1.19+, the `Expr.of_expr/5` API) widens
+    # the literal map values to their type ("integer()", "%{abc: integer()}").
+    # Without it — Elixir < 1.19, including 1.18 where the adaptor is available
+    # for pattern/local-signature but not expression typing — the structural
+    # engine keeps the literal value ("1", "%{abc: 123}").
+    {spec_1, spec_2} =
+      if ElixirSense.Core.ElixirTypes.available?(:expr),
+        do: {"integer()", "%{abc: integer()}"},
+        else: {"1", "%{abc: 123}"}
+
     assert [
              %{
                name: "key_1",
@@ -3163,7 +3173,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: ^spec_1,
                value_is_map: false
              },
              %{
@@ -3172,7 +3182,7 @@ defmodule ElixirLS.LanguageServer.Providers.Completion.SuggestionTest do
                type: :field,
                call?: true,
                subtype: :map_key,
-               type_spec: nil,
+               type_spec: ^spec_2,
                value_is_map: true
              }
            ] = list

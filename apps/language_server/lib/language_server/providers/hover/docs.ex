@@ -18,6 +18,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
   alias ElixirSense.Core.SurroundContext
   alias ElixirSense.Core.State.{ModFunInfo, SpecInfo}
   alias ElixirSense.Core.TypeInfo
+  alias ElixirSense.Core.TypePresentation
   alias ElixirSense.Core.Parser
   alias ElixirSense.Core.Source
 
@@ -49,7 +50,8 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
 
   @type variable_doc :: %{
           name: atom(),
-          kind: :variable
+          kind: :variable,
+          type: String.t() | nil
         }
 
   @type attribute_doc :: %{
@@ -137,9 +139,16 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
         var_info = Metadata.find_var(metadata, variable, version, context.begin)
 
         if var_info != nil do
+          type =
+            case TypePresentation.render_hint(binding_env, var_info) do
+              {:ok, text} -> text
+              :skip -> nil
+            end
+
           %{
             name: Atom.to_string(variable),
-            kind: :variable
+            kind: :variable,
+            type: type
           }
         else
           mod_fun_docs(

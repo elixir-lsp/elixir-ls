@@ -45,6 +45,7 @@ defmodule ElixirLS.LanguageServer.Server do
     CodeLens,
     ExecuteCommand,
     FoldingRange,
+    InlayHints,
     SelectionRanges,
     CodeAction
   }
@@ -1717,6 +1718,32 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
+         %GenLSP.Requests.TextDocumentInlayHint{
+           params: %GenLSP.Structures.InlayHintParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{
+               uri: uri
+             },
+             range: request_range
+           }
+         },
+         state = %__MODULE__{}
+       ) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        parser_context = Parser.parse_immediate(uri, source_file)
+
+        InlayHints.inlay_hints(parser_context, request_range, settings: state.settings || %{})
+      else
+        {:ok, []}
+      end
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(
          %GenLSP.Requests.TextDocumentSelectionRange{
            params: %GenLSP.Structures.SelectionRangeParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
@@ -1832,6 +1859,9 @@ defmodule ElixirLS.LanguageServer.Server do
       selection_range_provider: true,
       execute_command_provider: %GenLSP.Structures.ExecuteCommandOptions{
         commands: ExecuteCommand.get_commands(server_instance_id)
+      },
+      inlay_hint_provider: %GenLSP.Structures.InlayHintOptions{
+        resolve_provider: false
       },
       workspace: %{
         workspace_folders: %GenLSP.Structures.WorkspaceFoldersServerCapabilities{
