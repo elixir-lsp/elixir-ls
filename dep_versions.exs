@@ -1,5 +1,5 @@
 [
-  elixir_sense: "c0991f3894f7ba4a2fc0a390f34577c327a63b0c",
+  elixir_sense: "9788101d0828a0d9303bcda3c2a0e768385f6d05",
   dialyxir_vendored: "accfec9393079abc4a82b7e79a4997f59f085b67",
   jason_v: "f1c10fa9c445cb9f300266122ef18671054b2330",
   erl2ex_vendored: "04f93e55f46d35d0aa3c149616f2c7a6a1ad9311",
