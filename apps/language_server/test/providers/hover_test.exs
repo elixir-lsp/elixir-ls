@@ -56,6 +56,32 @@ defmodule ElixirLS.LanguageServer.Providers.HoverTest do
            )
   end
 
+  # elixir-lsp/elixir-ls#1027: at the end of the alias `IO` (on the `.` before `inspect`) the module
+  # is hovered, not the remote function - the same trailing-edge resolution the definition locator uses.
+  test "elixir module hover at the end of an alias before `.` (#1027)" do
+    text = """
+    defmodule MyModule do
+      def hello() do
+        IO.inspect("hello world")
+      end
+    end
+    """
+
+    # `IO` is on line 3, columns 5-6; the caret sits just past it, on the `.` (0-based char 6).
+    {line, char} = {2, 6}
+    parser_context = ParserContextBuilder.from_string(text)
+
+    {line, char} =
+      SourceFile.lsp_position_to_elixir(parser_context.source_file.text, {line, char})
+
+    assert {:ok,
+            %GenLSP.Structures.Hover{
+              contents: %GenLSP.Structures.MarkupContent{kind: "markdown", value: v}
+            }} = Hover.hover(parser_context, line, char)
+
+    assert String.starts_with?(v, "```elixir\nIO\n```\n\n*module*")
+  end
+
   test "function hover" do
     text = """
     defmodule MyModule do
