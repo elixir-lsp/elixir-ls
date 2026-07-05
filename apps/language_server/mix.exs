@@ -55,7 +55,8 @@ defmodule ElixirLS.LanguageServer.MixProject do
       {:benchee, "~> 1.0", only: :dev, runtime: false},
       {:schematic_v,
        github: "elixir-lsp/schematic_vendored", ref: @dep_versions[:schematic_vendored]},
-      {:typed_struct, "~> 0.3"}
+      {:typed_struct, "~> 0.3"},
+      {:toxic2, path: "../../../../toxic2"}
     ]
   end
 

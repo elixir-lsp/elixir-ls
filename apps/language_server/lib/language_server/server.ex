@@ -47,7 +47,8 @@ defmodule ElixirLS.LanguageServer.Server do
     FoldingRange,
     InlayHints,
     SelectionRanges,
-    CodeAction
+    CodeAction,
+    SemanticTokens
   }
 
   alias ElixirLS.Utils.Launch
@@ -1744,6 +1745,51 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   defp handle_request(
+         %GenLSP.Requests.TextDocumentSemanticTokensFull{
+           params: %GenLSP.Structures.SemanticTokensParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{uri: uri}
+           }
+         },
+         state = %__MODULE__{}
+       ) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        SemanticTokens.full(source_file)
+      else
+        # TODO no support for eex
+        {:ok, %GenLSP.Structures.SemanticTokens{data: []}}
+      end
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(
+         %GenLSP.Requests.TextDocumentSemanticTokensRange{
+           params: %GenLSP.Structures.SemanticTokensRangeParams{
+             text_document: %GenLSP.Structures.TextDocumentIdentifier{uri: uri},
+             range: range
+           }
+         },
+         state = %__MODULE__{}
+       ) do
+    source_file = get_source_file(state, uri)
+
+    fun = fn ->
+      if String.ends_with?(uri, [".ex", ".exs"]) or source_file.language_id in ["elixir"] do
+        SemanticTokens.range(source_file, range)
+      else
+        # TODO no support for eex
+        {:ok, %GenLSP.Structures.SemanticTokens{data: []}}
+      end
+    end
+
+    {:async, fun, state}
+  end
+
+  defp handle_request(
          %GenLSP.Requests.TextDocumentSelectionRange{
            params: %GenLSP.Structures.SelectionRangeParams{
              text_document: %GenLSP.Structures.TextDocumentIdentifier{
@@ -1871,7 +1917,12 @@ defmodule ElixirLS.LanguageServer.Server do
       },
       folding_range_provider: true,
       code_action_provider: true,
-      call_hierarchy_provider: true
+      call_hierarchy_provider: true,
+      semantic_tokens_provider: %GenLSP.Structures.SemanticTokensOptions{
+        legend: SemanticTokens.legend(),
+        full: true,
+        range: true
+      }
     }
   end
 
