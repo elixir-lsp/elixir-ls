@@ -41,6 +41,18 @@ defmodule ElixirLS.LanguageServer.Providers.SemanticTokensTest do
       # append-only contract: the first entry must never move
       assert hd(legend.token_types) == "namespace"
     end
+
+    test "covers every type and modifier toxic2 can emit" do
+      legend = SemanticTokens.legend()
+
+      for type <- Toxic2.SemanticTokens.known_types() do
+        assert Atom.to_string(type) in legend.token_types
+      end
+
+      for modifier <- Toxic2.SemanticTokens.known_modifiers() do
+        assert Atom.to_string(modifier) in legend.token_modifiers
+      end
+    end
   end
 
   describe "full/1" do
@@ -86,6 +98,48 @@ defmodule ElixirLS.LanguageServer.Providers.SemanticTokensTest do
       assert {:ok, %{data: []}} = SemanticTokens.full(sf(""))
       assert {:ok, %{data: data}} = SemanticTokens.full(sf("@@@ (("))
       assert is_list(data)
+    end
+
+    test "explicit delta stream for two tokens on one line" do
+      # `x = 1` → `x` variable at col 0 len 1, `1` number at col 4 len 1.
+      {:ok, %{data: data}} = SemanticTokens.full(sf("x = 1"))
+      types = SemanticTokens.legend().token_types
+      var = Enum.find_index(types, &(&1 == "variable"))
+      num = Enum.find_index(types, &(&1 == "number"))
+
+      assert data == [0, 0, 1, var, 0, 0, 4, 1, num, 0]
+    end
+
+    test "multiple modifiers pack into one bitset (__MODULE__ is readonly + defaultLibrary)" do
+      {:ok, %{data: data}} = SemanticTokens.full(sf("x = __MODULE__"))
+
+      assert Enum.any?(decode(data), fn {_l, _s, _len, t, m} ->
+               t == "variable" and "readonly" in m and "defaultLibrary" in m
+             end)
+    end
+
+    test "CRLF line endings do not shift lines or columns" do
+      {:ok, %{data: data}} = SemanticTokens.full(sf("a = 1\r\nb = 2\r\n"))
+      decoded = decode(data)
+
+      assert Enum.any?(decoded, fn {l, s, _len, t, _m} -> l == 1 and s == 0 and t == "variable" end)
+    end
+
+    test "many emoji on one line: every start matches an independent UTF-16 count" do
+      # Exercises the per-line running cursor across repeated surrogate pairs.
+      text = "v1 = \"🚀🚀\" <> v2 <> \"🚀\" <> v3"
+      {:ok, %{data: data}} = SemanticTokens.full(sf(text))
+
+      starts =
+        decode(data)
+        |> Enum.filter(fn {_l, _s, _len, t, _m} -> t == "variable" end)
+        |> Enum.map(fn {_l, s, _len, _t, _m} -> s end)
+
+      assert starts == [
+               byte_like_utf16_col(text, "v1"),
+               byte_like_utf16_col(text, "v2"),
+               byte_like_utf16_col(text, "v3")
+             ]
     end
   end
 

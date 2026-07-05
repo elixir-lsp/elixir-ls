@@ -1918,11 +1918,16 @@ defmodule ElixirLS.LanguageServer.Server do
       folding_range_provider: true,
       code_action_provider: true,
       call_hierarchy_provider: true,
-      semantic_tokens_provider: %GenLSP.Structures.SemanticTokensOptions{
-        legend: SemanticTokens.legend(),
-        full: true,
-        range: true
-      }
+      # A sparse overlay over TextMate coloring — pointless for clients that replace syntax
+      # coloring with semantic tokens (explicit augmentsSyntaxTokens: false), so skip it there.
+      semantic_tokens_provider:
+        if ClientCapabilities.semantic_tokens_augments_syntax_tokens?() do
+          %GenLSP.Structures.SemanticTokensOptions{
+            legend: SemanticTokens.legend(),
+            full: true,
+            range: true
+          }
+        end
     }
   end
 

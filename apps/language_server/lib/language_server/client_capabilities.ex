@@ -174,6 +174,30 @@ defmodule ElixirLS.LanguageServer.ClientCapabilities do
   end
 
   @doc """
+  Whether the client uses semantic tokens to augment its own syntax (e.g. TextMate) coloring.
+
+  ElixirLS emits a deliberately sparse overlay that relies on grammar-based coloring showing
+  through, so a client that replaces syntax coloring entirely (explicit `false`) is better off
+  without it. Absent capability defaults to `true` — the field is optional and augmenting is the
+  common client behavior.
+  """
+  def semantic_tokens_augments_syntax_tokens? do
+    case get() do
+      %GenLSP.Structures.ClientCapabilities{
+        text_document: %GenLSP.Structures.TextDocumentClientCapabilities{
+          semantic_tokens: %GenLSP.Structures.SemanticTokensClientCapabilities{
+            augments_syntax_tokens: augments_syntax_tokens
+          }
+        }
+      } ->
+        augments_syntax_tokens != false
+
+      _ ->
+        true
+    end
+  end
+
+  @doc """
   Checks if the client supports workspace symbol tags.
   """
   def workspace_symbol_tag_support? do
