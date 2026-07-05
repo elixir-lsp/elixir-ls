@@ -56,9 +56,8 @@ defmodule ElixirLS.LanguageServer.MixProject do
       {:schematic_v,
        github: "elixir-lsp/schematic_vendored", ref: @dep_versions[:schematic_vendored]},
       {:typed_struct, "~> 0.3"},
-      # override: the vendored elixir_sense pins toxic2 by git ref; the local path wins in dev.
-      # TODO before merge: switch to a git pin matching elixir_sense (path deps don't lock/ship).
-      {:toxic2, path: "../../../../toxic2", override: true}
+      # override: elixir_sense pins its own (older) toxic2 ref; this pin wins for the umbrella.
+      {:toxic2, github: "lukaszsamson/toxic2", ref: @dep_versions[:toxic2], override: true}
     ]
   end
 

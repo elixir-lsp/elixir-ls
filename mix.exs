@@ -1,6 +1,11 @@
 defmodule ElixirLS.Mixfile do
   use Mix.Project
 
+  @dep_versions __DIR__
+                |> Path.join("dep_versions.exs")
+                |> Code.eval_file()
+                |> elem(0)
+
   def project do
     [
       apps_path: "apps",
@@ -26,7 +31,11 @@ defmodule ElixirLS.Mixfile do
   end
 
   defp deps do
-    []
+    [
+      # elixir_sense pins its own (older) toxic2 ref; overrides only apply from the top level,
+      # so the umbrella-wide pin lives here (language_server declares the same ref).
+      {:toxic2, github: "lukaszsamson/toxic2", ref: @dep_versions[:toxic2], override: true}
+    ]
   end
 
   defp aliases do

@@ -12,6 +12,6 @@
   "schematic_v": {:git, "https://github.com/elixir-lsp/schematic_vendored.git", "7ecf3cd4b3ee319abf7d0914d325657a1f56cffd", [ref: "7ecf3cd4b3ee319abf7d0914d325657a1f56cffd"]},
   "statistex": {:hex, :statistex, "1.0.0", "f3dc93f3c0c6c92e5f291704cf62b99b553253d7969e9a5fa713e5481cd858a5", [:mix], [], "hexpm", "ff9d8bee7035028ab4742ff52fc80a2aa35cece833cf5319009b52f1b5a86c27"},
   "stream_data": {:hex, :stream_data, "0.5.0", "b27641e58941685c75b353577dc602c9d2c12292dd84babf506c2033cd97893e", [:mix], [], "hexpm", "012bd2eec069ada4db3411f9115ccafa38540a3c78c4c0349f151fc761b9e271"},
-  "toxic2": {:git, "https://github.com/lukaszsamson/toxic2.git", "c47c911dac5aafa860206d222a781c3d71afc843", [ref: "c47c911dac5aafa860206d222a781c3d71afc843"]},
+  "toxic2": {:git, "https://github.com/lukaszsamson/toxic2.git", "bfb02ac8854c497d2c0b752d53d03d785a534c37", [ref: "bfb02ac8854c497d2c0b752d53d03d785a534c37"]},
   "typed_struct": {:hex, :typed_struct, "0.3.0", "939789e3c1dca39d7170c87f729127469d1315dcf99fee8e152bb774b17e7ff7", [:mix], [], "hexpm", "c50bd5c3a61fe4e198a8504f939be3d3c85903b382bde4865579bc23111d1b6d"},
 }
