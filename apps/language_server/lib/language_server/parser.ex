@@ -572,7 +572,8 @@ defmodule ElixirLS.LanguageServer.Parser do
             if is_struct(e) and
                  e.__struct__ in [
                    Phoenix.LiveView.Tokenizer.ParseError,
-                   Phoenix.LiveView.HTMLTokenizer.ParseError
+                   Phoenix.LiveView.HTMLTokenizer.ParseError,
+                   Phoenix.LiveView.TagEngine.Tokenizer.ParseError
                  ] do
               diagnostic =
                 Diagnostics.from_error(:error, e, __STACKTRACE__, file, :no_stacktrace)
