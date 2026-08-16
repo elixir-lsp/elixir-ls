@@ -358,6 +358,11 @@ defmodule ElixirLS.Utils.CompletionEngine do
 
       :none ->
         no()
+
+      # cursor_context/1 gains new context types with Elixir releases; an
+      # unknown one degrades to no suggestions instead of crashing the request
+      _other ->
+        no()
     end
   end
 
