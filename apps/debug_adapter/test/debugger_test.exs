@@ -4203,6 +4203,41 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
         assert Process.alive?(server)
       end)
     end
+
+    test "evaluate expression after continuing all processes", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req_(1))
+        assert_receive(response(_, 1, "initialize", _))
+
+        Server.receive_packet(
+          server,
+          launch_req(2, %{
+            "request" => "launch",
+            "type" => "mix_task",
+            "task" => "run",
+            "taskArgs" => ["-e", "MixProject.Dbg.simple()"],
+            "projectDir" => File.cwd!()
+          })
+        )
+
+        assert_receive(response(_, 2, "launch"), 3000)
+        assert_receive(event(_, "initialized", _), 5000)
+
+        Server.receive_packet(server, request(5, "configurationDone", %{}))
+        assert_receive(response(_, 5, "configurationDone"))
+
+        assert_receive event(_, "stopped", %{"threadId" => thread_id}), 5_000
+
+        # continuing all processes must not drop the evaluator entry
+        Server.receive_packet(server, continue_req(6, thread_id))
+        assert_receive response(_, 6, "continue", %{"allThreadsContinued" => true})
+
+        Server.receive_packet(server, gen_watch_expression_packet(7, "1 + 2 + 3 + 4"))
+        assert_receive(%{"body" => %{"result" => "10"}}, 5000)
+
+        assert Process.alive?(server)
+      end)
+    end
   end
 
   test "completions", %{server: server} do
