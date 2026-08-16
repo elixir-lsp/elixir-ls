@@ -1644,8 +1644,9 @@ defmodule ElixirLS.DebugAdapter.Server do
 
       # Get the existing evaluator registry
       existing_registry =
-        case Map.fetch!(state.paused_processes, :evaluator) do
-          %PausedProcess{registry: registry} -> registry
+        case Map.fetch(state.paused_processes, :evaluator) do
+          {:ok, %PausedProcess{registry: registry}} -> registry
+          :error -> %PausedProcess{}.registry
         end
 
       {updated_registry, var_id} =
@@ -1847,13 +1848,15 @@ defmodule ElixirLS.DebugAdapter.Server do
       end
 
     # continue erlang debugger paused processes
-    for {paused_pid, %PausedProcess{ref: ref}} <- state.paused_processes do
+    for {paused_pid, %PausedProcess{ref: ref}} <- state.paused_processes, is_pid(paused_pid) do
       safe_int_action(paused_pid, :continue)
       if ref, do: Process.demonitor(ref, [:flush])
       paused_pid
     end
 
-    %{state | paused_processes: %{}}
+    # the :evaluator entry is not a real process - it holds variables from
+    # evaluate requests and needs to outlive paused processes
+    %{state | paused_processes: Map.take(state.paused_processes, [:evaluator])}
   end
 
   # Defensive wrapper around :int actions. :int is finicky and can raise from
