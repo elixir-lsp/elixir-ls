@@ -32,8 +32,13 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
         {:ok, %{listen: listen_socket, port: actual_port, clients: %{}}}
 
       {:error, reason} ->
-        IO.puts("[MCP] Failed to find available port starting from #{port}: #{inspect(reason)}")
-        {:stop, reason}
+        IO.puts(
+          "[MCP] Failed to listen on 127.0.0.1 starting from port #{port}: #{inspect(reason)}"
+        )
+
+        # Do not take the language server down: binding one address can fail
+        # where the wildcard bind could not, and only :eaddrinuse is retried.
+        :ignore
     end
   end
 
@@ -132,7 +137,13 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
   end
 
   defp find_available_port(current_port, start_port, attempts_left) when attempts_left > 0 do
-    case :gen_tcp.listen(current_port, [:binary, packet: :line, active: false, reuseaddr: true]) do
+    case :gen_tcp.listen(current_port, [
+           :binary,
+           ip: {127, 0, 0, 1},
+           packet: :line,
+           active: false,
+           reuseaddr: true
+         ]) do
       {:ok, listen_socket} ->
         {:ok, current_port, listen_socket}
 
@@ -160,6 +171,12 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
 
         # Continue accepting
         accept_connection(parent, listen_socket)
+
+      {:error, reason} when reason in [:closed, :einval] ->
+        # The server stopped and closed the listen socket. Without this clause
+        # the loop retries forever, since it is not linked to the GenServer.
+        IO.puts("[MCP] Listen socket closed, stopping accept loop")
+        :ok
 
       {:error, reason} ->
         IO.puts("[MCP] Accept error: #{inspect(reason)}")

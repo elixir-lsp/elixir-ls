@@ -4,7 +4,7 @@
 # This bridges between LLM like claude (using stdio) and ElixirLS MCP server (using TCP)
 
 defmodule TcpToStdioBridge do
-  def start(host \\ "localhost", port \\ 3798) do
+  def start(host \\ "127.0.0.1", port \\ 3798) do
     # Set stdio to binary mode with latin1 encoding
     :io.setopts(:standard_io, [:binary, encoding: :latin1])
 
@@ -85,4 +85,4 @@ port =
     [] -> 3798
   end
 
-TcpToStdioBridge.start("localhost", port)
+TcpToStdioBridge.start("127.0.0.1", port)

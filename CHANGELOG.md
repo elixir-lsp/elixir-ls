@@ -1,5 +1,9 @@
 ### Unreleased
 
+#### Fixes
+
+- MCP server listens on `127.0.0.1` instead of every interface; the TCP-to-STDIO bridge connects to `127.0.0.1` instead of `localhost` [Guilherme Silva](https://github.com/erts-sched)
+
 ### v0.31.1: 11 June 2026
 
 #### Fixes
