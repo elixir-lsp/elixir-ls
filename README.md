@@ -399,6 +399,7 @@ The MCP server starts automatically when ElixirLS launches (if enabled). The ser
 - **Default behavior**: Port is calculated as `3789 + hash(workspace_path)` to ensure different workspaces use different ports
 - **Custom port**: Can be set via the `elixirLS.mcpPort` setting
 - **Port discovery**: If the calculated/configured port is busy, the server automatically finds the next available port
+- **Interface**: The server listens on `127.0.0.1` only, so it is reachable from the machine running ElixirLS and not from the network. Connect to it as `127.0.0.1` rather than as `localhost`, which on some systems resolves to the IPv6 loopback address `::1`
 
 **Finding the actual port**: Check the ElixirLS output logs for a message like:
 ```
