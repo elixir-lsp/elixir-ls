@@ -1339,7 +1339,7 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.DocsTest do
              } = doc
     end
 
-    test "retrieve function documentation from behaviour even if @doc is set to false vie @impl" do
+    test "retrieve function documentation from behaviour even if @doc is set to false via @impl" do
       buffer = """
       defmodule MyModule do
         import ElixirSenseExample.ExampleBehaviourWithDocCallbackImpl
