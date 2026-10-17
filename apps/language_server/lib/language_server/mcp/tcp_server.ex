@@ -7,9 +7,13 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
 
   alias ElixirLS.LanguageServer.MCP.RequestHandler
 
+  # The default keeps the server on loopback. The server has no authentication.
+  @default_host "localhost"
+
   def start_link(opts) do
     port = Keyword.get(opts, :port, 3798)
-    GenServer.start_link(__MODULE__, port, name: __MODULE__)
+    host = Keyword.get(opts, :host) || @default_host
+    GenServer.start_link(__MODULE__, {host, port}, name: __MODULE__)
   end
 
   def child_spec(opts) do
@@ -22,18 +26,35 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
   end
 
   @impl true
-  def init(port) do
-    IO.puts("[MCP] Starting TCP Server, trying port #{port}")
+  def init({host, port}) do
+    IO.puts("[MCP] Starting TCP Server on #{host}, trying port #{port}")
 
-    case find_available_port(port) do
-      {:ok, actual_port, listen_socket} ->
-        IO.puts("[MCP] Server listening on port #{actual_port}")
-        send(self(), :accept)
-        {:ok, %{listen: listen_socket, port: actual_port, clients: %{}}}
-
+    with {:ok, ip} <- resolve_host(host),
+         {:ok, actual_port, listen_socket} <- find_available_port(ip, port) do
+      IO.puts("[MCP] Server listening on #{host}, port #{actual_port}")
+      send(self(), :accept)
+      {:ok, %{listen: listen_socket, port: actual_port, clients: %{}}}
+    else
       {:error, reason} ->
-        IO.puts("[MCP] Failed to find available port starting from #{port}: #{inspect(reason)}")
-        {:stop, reason}
+        IO.puts(
+          "[MCP] Failed to listen on #{host} starting from port #{port}: #{inspect(reason)}"
+        )
+
+        # A failure here must not stop the language server. A host can fail to
+        # resolve or to bind, and only :eaddrinuse is retried.
+        :ignore
+    end
+  end
+
+  @doc false
+  # IPv4 first, as :gen_tcp.connect/3 does with no family option. So a client
+  # that connects by the same name reaches the address that the server binds.
+  def resolve_host(host) do
+    name = String.to_charlist(host)
+
+    case :inet.getaddr(name, :inet) do
+      {:ok, ip} -> {:ok, ip}
+      {:error, _} -> :inet.getaddr(name, :inet6)
     end
   end
 
@@ -127,25 +148,31 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
 
   # Private functions
 
-  defp find_available_port(start_port, max_attempts \\ 100) do
-    find_available_port(start_port, start_port, max_attempts)
+  defp find_available_port(ip, start_port, max_attempts \\ 100) do
+    find_available_port(ip, start_port, start_port, max_attempts)
   end
 
-  defp find_available_port(current_port, start_port, attempts_left) when attempts_left > 0 do
-    case :gen_tcp.listen(current_port, [:binary, packet: :line, active: false, reuseaddr: true]) do
+  defp find_available_port(ip, current_port, start_port, attempts_left)
+       when attempts_left > 0 do
+    case :gen_tcp.listen(current_port, listen_options(ip)) do
       {:ok, listen_socket} ->
         {:ok, current_port, listen_socket}
 
       {:error, :eaddrinuse} ->
-        find_available_port(current_port + 1, start_port, attempts_left - 1)
+        find_available_port(ip, current_port + 1, start_port, attempts_left - 1)
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp find_available_port(_current_port, start_port, 0) do
+  defp find_available_port(_ip, _current_port, start_port, 0) do
     {:error, "No available ports found starting from #{start_port}"}
+  end
+
+  defp listen_options(ip) do
+    family = if tuple_size(ip) == 8, do: [:inet6], else: []
+    family ++ [:binary, ip: ip, packet: :line, active: false, reuseaddr: true]
   end
 
   defp accept_connection(parent, listen_socket) do
@@ -160,6 +187,12 @@ defmodule ElixirLS.LanguageServer.MCP.TCPServer do
 
         # Continue accepting
         accept_connection(parent, listen_socket)
+
+      {:error, reason} when reason in [:closed, :einval] ->
+        # The server closed the listen socket. The loop is not linked to the
+        # GenServer, so without this clause it would retry forever.
+        IO.puts("[MCP] Listen socket closed, stopping accept loop")
+        :ok
 
       {:error, reason} ->
         IO.puts("[MCP] Accept error: #{inspect(reason)}")
