@@ -15,7 +15,7 @@ defmodule ElixirLS.LanguageServer.Build do
   def build(parent, root_path, opts) when is_binary(root_path) do
     build_pid_reference =
       spawn_monitor(fn ->
-        with_build_lock(fn ->
+        with_build_lock_restoring_owned_modules(fn ->
           {us, result} =
             :timer.tc(fn ->
               Logger.info("Starting build with MIX_ENV: #{Mix.env()} MIX_TARGET: #{Mix.target()}")
@@ -79,7 +79,7 @@ defmodule ElixirLS.LanguageServer.Build do
   by reloading the Mix project and running the "clean" task.
   """
   def clean(root_path, clean_deps? \\ false) when is_binary(root_path) do
-    with_build_lock(fn ->
+    with_build_lock_restoring_owned_modules(fn ->
       mixfile = Path.absname(MixfileHelpers.mix_exs(), root_path)
 
       case reload_project(mixfile, root_path) do
@@ -98,6 +98,17 @@ defmodule ElixirLS.LanguageServer.Build do
   """
   def with_build_lock(func) do
     :global.trans({__MODULE__, self()}, func)
+  end
+
+  # project code may replace modules owned by the language server, see `restore_owned_modules/0`
+  defp with_build_lock_restoring_owned_modules(func) do
+    with_build_lock(fn ->
+      try do
+        func.()
+      after
+        restore_owned_modules()
+      end
+    end)
   end
 
   ## Build Process
@@ -196,6 +207,9 @@ defmodule ElixirLS.LanguageServer.Build do
     if Keyword.get(opts, :compile?) do
       {status, compile_raw_diagnostics} = run_mix_compile(Keyword.get(opts, :force?, false))
 
+      # restore before notifying the server so that requests do not resolve to project modules
+      restore_owned_modules()
+
       compile_diagnostics =
         Enum.map(compile_raw_diagnostics, fn diag ->
           Diagnostics.from_mix_task_compiler_diagnostic(diag, mixfile, root_path)
@@ -228,6 +242,82 @@ defmodule ElixirLS.LanguageServer.Build do
     unless :persistent_term.get(:language_server_required_apps, false) do
       apps = Application.loaded_applications() |> Enum.map(&elem(&1, 0))
       :persistent_term.put(:language_server_required_apps, apps)
+    end
+
+    # snapshot before project paths and app specs are loaded
+    _ = owned_modules()
+  end
+
+  ## Owned Modules
+
+  # GenLSP is vendored under its original module names. A project depending on gen_lsp
+  # (or defining GenLSP modules) puts beams with the same names in code paths prepended
+  # before ElixirLS ebin. Modules not loaded yet (or unloaded by Mix or dependency purging)
+  # are then lazily loaded from the project paths instead. Deps paths are cached, so when
+  # the project beams are removed loading fails with `module GenLSP.X is not available`
+  # instead of falling back to ElixirLS ebin. After a build we load our versions back from
+  # ElixirLS ebin.
+  defp owned_modules() do
+    case :persistent_term.get(:language_server_owned_modules, nil) do
+      nil ->
+        ebin = __MODULE__ |> :code.which() |> :filename.dirname()
+
+        modules =
+          for module <- Application.spec(:language_server, :modules) || [],
+              owned_module?(module),
+              into: %{} do
+            {module, :filename.join(ebin, Atom.to_charlist(module) ++ ~c".beam")}
+          end
+
+        :persistent_term.put(:language_server_owned_modules, modules)
+        modules
+
+      modules ->
+        modules
+    end
+  end
+
+  defp owned_module?(module) do
+    module == GenLSP or String.starts_with?(Atom.to_string(module), "Elixir.GenLSP.")
+  end
+
+  defp loaded_owned_module?(module) do
+    case Map.fetch(owned_modules(), module) do
+      {:ok, beam} -> :code.is_loaded(module) == {:file, beam}
+      :error -> false
+    end
+  end
+
+  defp restore_owned_modules() do
+    for {module, beam} <- owned_modules() do
+      case :code.is_loaded(module) do
+        {:file, ^beam} ->
+          :ok
+
+        {:file, _other} ->
+          load_owned_module(module, beam)
+
+        false ->
+          if :code.which(module) != beam do
+            load_owned_module(module, beam)
+          end
+      end
+    end
+
+    :ok
+  end
+
+  defp load_owned_module(module, beam) do
+    if File.regular?(beam) do
+      :code.purge(module)
+
+      case :code.load_abs(:filename.rootname(beam)) do
+        {:module, ^module} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.warning("Unable to restore #{inspect(module)} from #{beam}: #{inspect(reason)}")
+      end
     end
   end
 
@@ -596,7 +686,8 @@ defmodule ElixirLS.LanguageServer.Build do
         end
 
       if modules != [] do
-        for module <- modules, do: purge_module(module)
+        # do not unload our own version of modules the dependency also defines
+        for module <- modules, not loaded_owned_module?(module), do: purge_module(module)
       end
     end
 
