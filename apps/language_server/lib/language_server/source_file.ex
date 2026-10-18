@@ -259,34 +259,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
             config_mtime: config_mtime,
             mix_project: mix_project,
             root: project_dir,
-            plugin_loader: fn plugins ->
-              for plugin <- plugins do
-                cond do
-                  not Code.ensure_loaded?(plugin) ->
-                    JsonRpc.show_message(
-                      :warning,
-                      "Formatter plugin #{inspect(plugin)} is not loaded and will be skipped. Please compile the project."
-                    )
-
-                    nil
-
-                  not function_exported?(plugin, :features, 1) ->
-                    JsonRpc.show_message(
-                      :error,
-                      "Formatter plugin #{inspect(plugin)} does not define features/1 and will be skipped."
-                    )
-
-                    nil
-
-                  true ->
-                    plugin
-                end
-              end
-              |> Enum.reject(&is_nil/1)
-
-              # we don't do any plugin loading as this may trigger compile
-              # TODO it may be safe to compile on 1.18+
-            end
+            plugin_loader: &plugin_loader/1
           ]
 
           formatter_opts =
@@ -299,7 +272,7 @@ defmodule ElixirLS.LanguageServer.SourceFile do
         end
       else
         formatter_opts =
-          [root: project_dir]
+          [root: project_dir, plugin_loader: &plugin_loader/1]
           |> maybe_put_dot_formatter(opts)
 
         {:ok, Mix.Tasks.ElixirLSFormat.formatter_for_file(path, formatter_opts)}
@@ -330,6 +303,35 @@ defmodule ElixirLS.LanguageServer.SourceFile do
   end
 
   def formatter_for(_, _, _, _), do: {:error, :project_dir_not_set}
+
+  # we don't do any plugin loading as the default loader runs `mix loadpaths` and
+  # `mix compile` in the calling process
+  # TODO it may be safe to compile on 1.18+
+  defp plugin_loader(plugins) do
+    for plugin <- plugins do
+      cond do
+        not Code.ensure_loaded?(plugin) ->
+          JsonRpc.show_message(
+            :warning,
+            "Formatter plugin #{inspect(plugin)} is not loaded and will be skipped. Please compile the project."
+          )
+
+          nil
+
+        not function_exported?(plugin, :features, 1) ->
+          JsonRpc.show_message(
+            :error,
+            "Formatter plugin #{inspect(plugin)} does not define features/1 and will be skipped."
+          )
+
+          nil
+
+        true ->
+          plugin
+      end
+    end
+    |> Enum.reject(&is_nil/1)
+  end
 
   defp maybe_put_dot_formatter(opts_list, opts) do
     if dot = Keyword.get(opts, :dot_formatter) do

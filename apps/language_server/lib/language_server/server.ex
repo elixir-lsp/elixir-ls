@@ -503,6 +503,15 @@ defmodule ElixirLS.LanguageServer.Server do
      %{state | requests: updated_requests, requests_ids_by_pid: updated_requests_ids_by_pid}}
   end
 
+  def handle_info(message, state = %__MODULE__{}) do
+    # stray messages (e.g. late replies from aborted Mix compiler workers) must not crash the server
+    Logger.warning(
+      "#{__MODULE__} received unexpected message: #{inspect(message, limit: 20, printable_limit: 200)}"
+    )
+
+    {:noreply, state}
+  end
+
   ## Helpers
 
   defp handle_notification(%GenLSP.Notifications.Initialized{}, state = %__MODULE__{}) do
