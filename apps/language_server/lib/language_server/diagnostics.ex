@@ -57,6 +57,22 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     %__MODULE__{normalized | message: message, file: file, position: position}
   end
 
+  # Third-party Mix compilers sometimes return plain strings (or other terms)
+  # instead of `Mix.Task.Compiler.Diagnostic` structs. Attach them to the mixfile.
+  def from_mix_task_compiler_diagnostic(message, mixfile, _root_path) when is_binary(message) do
+    %__MODULE__{
+      compiler_name: "Mix",
+      file: mixfile,
+      position: 0,
+      message: message,
+      severity: :error
+    }
+  end
+
+  def from_mix_task_compiler_diagnostic(other, mixfile, root_path) do
+    from_mix_task_compiler_diagnostic(inspect(other), mixfile, root_path)
+  end
+
   def from_kernel_parallel_compiler_tuple({file, position, message}, severity, fallback_file) do
     %__MODULE__{
       compiler_name: "Elixir",

@@ -36,6 +36,42 @@ defmodule ElixirLS.LanguageServer.DiagnosticsTest do
              }
     end
 
+    test "binary diagnostic from a third-party Mix compiler is attached to mix.exs" do
+      normalized =
+        Diagnostics.from_mix_task_compiler_diagnostic(
+          "Make failed with exit code 2",
+          "/somedir/mix.exs",
+          "/somedir"
+        )
+
+      assert normalized == %Diagnostics{
+               file: "/somedir/mix.exs",
+               severity: :error,
+               message: "Make failed with exit code 2",
+               position: 0,
+               compiler_name: "Mix",
+               span: nil,
+               details: nil,
+               stacktrace: []
+             }
+    end
+
+    test "non-binary, non-struct diagnostic from a Mix compiler is inspected and attached to mix.exs" do
+      normalized =
+        Diagnostics.from_mix_task_compiler_diagnostic(
+          {:some, :term},
+          "/somedir/mix.exs",
+          "/somedir"
+        )
+
+      assert %Diagnostics{
+               file: "/somedir/mix.exs",
+               severity: :error,
+               message: "{:some, :term}",
+               position: 0
+             } = normalized
+    end
+
     test "Mix.Task.Compiler.Diagnostic without position - get from stacktrace" do
       diagnostic = %Mix.Task.Compiler.Diagnostic{
         file: Path.join(File.cwd!(), "temp.ex"),
