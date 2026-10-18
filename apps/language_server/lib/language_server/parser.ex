@@ -579,7 +579,20 @@ defmodule ElixirLS.LanguageServer.Parser do
 
               {:error, diagnostic}
             else
-              reraise e, __STACKTRACE__
+              if elixir?(file, language_id) do
+                reraise e, __STACKTRACE__
+              else
+                # Template engine errors that are not syntax errors (e.g. LiveView macro
+                # components requiring `use Phoenix.Component` in the caller) are not the
+                # parser's concern - the real compilation reports them. Parsing with
+                # `__ENV__` as caller cannot satisfy such checks, so skip the file silently.
+                Logger.debug(
+                  "Ignoring template engine error while parsing #{inspect(file)}: " <>
+                    Exception.message(e)
+                )
+
+                {:error, nil}
+              end
             end
         catch
           kind, err ->
@@ -609,6 +622,7 @@ defmodule ElixirLS.LanguageServer.Parser do
 
     case result do
       {:ok, ast} -> {:ok, ast, warning_diagnostics}
+      {:error, nil} -> {:error, warning_diagnostics}
       {:error, diagnostic} -> {:error, [diagnostic | warning_diagnostics]}
     end
   end
