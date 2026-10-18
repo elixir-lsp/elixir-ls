@@ -225,17 +225,28 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
               [{:., _, [{:__aliases__, _, outer_alias = [head | _]}, :{}]} | _]
               when is_atom(head) ->
                 # Combine outer alias with the one under cursor
-                expanded = Module.concat(outer_alias ++ [alias])
-                refs_for_mod_fun.({{:atom, expanded}, nil})
+                with expanded when not is_nil(expanded) <-
+                       concat_aliases(outer_alias ++ [alias]) do
+                  refs_for_mod_fun.({{:atom, expanded}, nil})
+                else
+                  _ -> []
+                end
 
               [{:., _, [{:__aliases__, _, [{:__MODULE__, _, _} | outer_alias_rest]}, :{}]} | _] ->
                 # Combine __MODULE__ with the one under cursor
-                expanded = Module.concat([module | outer_alias_rest] ++ [alias])
-                refs_for_mod_fun.({{:atom, expanded}, nil})
+                with expanded when not is_nil(expanded) <-
+                       concat_aliases([module | outer_alias_rest] ++ [alias]) do
+                  refs_for_mod_fun.({{:atom, expanded}, nil})
+                else
+                  _ -> []
+                end
 
               [{:., _, [{:__MODULE__, _, _}, :{}]} | _] ->
-                expanded = Module.concat([module] ++ [alias])
-                refs_for_mod_fun.({{:atom, expanded}, nil})
+                with expanded when not is_nil(expanded) <- concat_aliases([module] ++ [alias]) do
+                  refs_for_mod_fun.({{:atom, expanded}, nil})
+                else
+                  _ -> []
+                end
 
               _ ->
                 refs_for_mod_fun.({{:atom, alias}, nil})
@@ -248,6 +259,14 @@ defmodule ElixirLS.LanguageServer.Providers.References.Locator do
       {mod, function} ->
         refs_for_mod_fun.({mod, function})
     end
+  end
+
+  # Module.concat/1 raises SystemLimitError when the resulting atom would exceed
+  # the 255 character limit, e.g. a very long alias inside `Outer.{Inner}`
+  defp concat_aliases(parts) do
+    Module.concat(parts)
+  rescue
+    SystemLimitError -> nil
   end
 
   defp xref_at_cursor(actual_mod_fun, arity, mods_funs, trace) do

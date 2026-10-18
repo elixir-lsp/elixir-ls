@@ -381,6 +381,24 @@ defmodule ElixirLS.LanguageServer.Providers.Definition.LocatorTest do
              Locator.definition(buffer, 12, 28)
   end
 
+  test "don't crash on multialias when the combined alias exceeds the atom length limit" do
+    # each segment is within the atom limit, but "Elixir." <> outer <> "." <> inner is not
+    outer = "A" <> String.duplicate("a", 199)
+    inner = "B" <> String.duplicate("b", 99)
+
+    buffer = """
+    defmodule #{outer} do
+    end
+
+    defmodule MyModule do
+      alias #{outer}.{#{inner}}
+    end
+    """
+
+    # cursor inside the inner alias
+    assert Locator.definition(buffer, 5, 215) == nil
+  end
+
   test "find definition for the correct arity of function - on fn call" do
     buffer = """
     defmodule MyModule do
