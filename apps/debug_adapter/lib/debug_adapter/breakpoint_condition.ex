@@ -49,7 +49,7 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   end
 
   @spec get_condition(module, non_neg_integer) ::
-          {Macro.Env.t(), String.t(), String.t() | nil, String.t(), non_neg_integer}
+          {Macro.Env.t(), String.t(), String.t() | nil, String.t(), non_neg_integer} | nil
   def get_condition(name \\ __MODULE__, number) do
     GenServer.call(name, {:get_condition, number})
   end
@@ -142,11 +142,16 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   end
 
   def handle_call({:get_condition, number}, _from, %{conditions: conditions, hits: hits} = state) do
-    {env, condition, log_message, hit_count} =
-      conditions |> Map.values() |> Enum.find(fn {n, _c} -> n == number end) |> elem(1)
+    case conditions |> Map.values() |> Enum.find(fn {n, _c} -> n == number end) do
+      nil ->
+        # the number may have been freed by unregister_condition/clear while
+        # the interpreted code still calls the check function
+        {:reply, nil, state}
 
-    hits = hits |> Map.get(number, 0)
-    {:reply, {env, condition, log_message, hit_count, hits}, state}
+      {_n, {env, condition, log_message, hit_count}} ->
+        hits = hits |> Map.get(number, 0)
+        {:reply, {env, condition, log_message, hit_count, hits}, state}
+    end
   end
 
   def handle_call(:clear, _from, _state) do
@@ -187,35 +192,42 @@ defmodule ElixirLS.DebugAdapter.BreakpointCondition do
   for i <- @range do
     @spec unquote(:"check_#{i}")(term) :: boolean
     def unquote(:"check_#{i}")(binding) do
-      {env, condition, log_message, hit_count_condition, hits} = get_condition(unquote(i))
-      elixir_binding = binding |> ElixirLS.DebugAdapter.Binding.to_elixir_variable_names()
-      result = eval_condition(condition, elixir_binding, env)
+      case get_condition(unquote(i)) do
+        # breakpoint was removed or replaced after the code was instrumented
+        nil ->
+          false
 
-      result =
-        if result do
-          register_hit(unquote(i))
-          # do not break if hit count not reached
-          # the spec requires:
-          # If both this property and `condition` are specified, `hitCondition` should
-          # be evaluated only if the `condition` is met, and the debug adapter should
-          # stop only if both conditions are met.
+        {env, condition, log_message, hit_count_condition, hits} ->
+          elixir_binding = binding |> ElixirLS.DebugAdapter.Binding.to_elixir_variable_names()
+          result = eval_condition(condition, elixir_binding, env)
 
-          hit_count = eval_hit_condition(hit_count_condition, elixir_binding, env)
-          hits + 1 >= hit_count
-        else
-          result
-        end
+          result =
+            if result do
+              register_hit(unquote(i))
 
-      if result and log_message != nil do
-        # Debug Adapter Protocol:
-        # If this attribute exists and is non-empty, the backend must not 'break' (stop)
-        # but log the message instead. Expressions within {} are interpolated.
-        # If either `hitCondition` or `condition` is specified, then the message
-        # should only be logged if those conditions are met.
-        Output.debugger_console(interpolate(log_message, elixir_binding, env))
-        false
-      else
-        result
+              # do not break if hit count not reached
+              # the spec requires:
+              # If both this property and `condition` are specified, `hitCondition` should
+              # be evaluated only if the `condition` is met, and the debug adapter should
+              # stop only if both conditions are met.
+
+              hit_count = eval_hit_condition(hit_count_condition, elixir_binding, env)
+              hits + 1 >= hit_count
+            else
+              result
+            end
+
+          if result and log_message != nil do
+            # Debug Adapter Protocol:
+            # If this attribute exists and is non-empty, the backend must not 'break' (stop)
+            # but log the message instead. Expressions within {} are interpolated.
+            # If either `hitCondition` or `condition` is specified, then the message
+            # should only be logged if those conditions are met.
+            Output.debugger_console(interpolate(log_message, elixir_binding, env))
+            false
+          else
+            result
+          end
       end
     end
   end
