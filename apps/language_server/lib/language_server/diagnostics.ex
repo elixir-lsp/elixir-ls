@@ -457,6 +457,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     line_start = max(line_start, 1)
     char_start = max(char_start, 1)
     lines = SourceFile.lines(source_file)
+
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
       SourceFile.elixir_position_to_lsp(lines, {line_start, char_start})
@@ -476,6 +477,7 @@ defmodule ElixirLS.LanguageServer.Diagnostics do
     char_end = max(char_end, 1)
 
     lines = SourceFile.lines(source_file)
+
     # elixir_position_to_lsp will handle positions outside file range
     {line_start_lsp, char_start_lsp} =
       SourceFile.elixir_position_to_lsp(lines, {line_start, char_start})

@@ -159,6 +159,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def get_modules_by_file(file) do
     ms = modules_by_file_matchspec(file, :"$_")
+
     # ms = :ets.fun2ms(fn {_, map} when :erlang.map_get(:file, map) == file -> map end)
 
     table = table_name(:modules)
@@ -173,6 +174,7 @@ defmodule ElixirLS.LanguageServer.Tracer do
 
   def delete_modules_by_file(file) do
     ms = modules_by_file_matchspec(file, true)
+
     # ms = :ets.fun2ms(fn {_, map} when :erlang.map_get(:file, map) == file -> true end)
 
     table = table_name(:modules)

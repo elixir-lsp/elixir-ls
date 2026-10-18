@@ -384,6 +384,7 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
       Logger.info("Loaded PLT info in #{div(us, 1000)}ms")
 
       iplt_info(warning_map: warning_map) = plt_info
+
       # filter by modules from project app/umbrella apps
       warnings =
         warning_map

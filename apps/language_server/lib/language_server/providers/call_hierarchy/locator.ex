@@ -306,8 +306,8 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
 
       filtered_calls =
         all_calls
-        # Filter out calls with nil function (anonymous function calls)
-        |> Enum.filter(fn call -> call.func != nil end)
+        # Filter out anonymous function calls: func is nil or a {:variable, _, _} / {:attribute, _} tuple
+        |> Enum.filter(fn call -> is_atom(call.func) and call.func != nil end)
         |> Enum.filter(fn call ->
           # Get environment at call position to expand variables and attributes
           {call_line, call_column} = call.position
@@ -528,6 +528,7 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchy.Locator do
             |> List.flatten()
             |> Enum.filter(fn call ->
               {call_line, _} = call.position
+
               # Exclude def/defp/defmacro calls on the function definition line
               is_function_definition =
                 call_line == start_line and
