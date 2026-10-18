@@ -64,10 +64,11 @@ defmodule ElixirLS.LanguageServer.Providers.Implementation.LocatorTest do
     end
     """
 
+    # implementations are returned in module load order, which is not deterministic
     [
       %Location{type: :module, file: file1, line: line1, column: column1},
       %Location{type: :module, file: file2, line: line2, column: column2}
-    ] = Locator.implementations(buffer, 1, 32)
+    ] = Locator.implementations(buffer, 1, 32) |> Enum.sort_by(&{&1.file, &1.line})
 
     assert file1 =~ "language_server/test/support/example_behaviour.ex"
 

@@ -25,7 +25,7 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
     # ExUnit.CaptureLog seeing crash reports).
     Logger.configure(level: :debug)
 
-    {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start_link(self())
+    {:ok, packet_capture} = ElixirLS.Utils.PacketCapture.start(self())
     default_group_leader = Process.info(Process.whereis(Output))[:group_leader]
     Process.group_leader(Process.whereis(Output), packet_capture)
 
@@ -49,6 +49,8 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
             :ok
         end
       end
+
+      GenServer.stop(packet_capture)
     end)
 
     {:ok, %{server: server}}
