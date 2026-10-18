@@ -240,6 +240,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmDocsAggregator do
           # by inspecting the module's exports
           try do
             exports = module.module_info(:exports)
+
             # Filter out module_info functions and other special functions
             functions =
               exports

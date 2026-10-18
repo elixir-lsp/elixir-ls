@@ -161,6 +161,29 @@ defmodule ElixirLS.LanguageServer.Providers.CallHierarchyTest do
       assert Enum.any?(caller_names, &String.contains?(&1, "CallHierarchyC"))
     end
 
+    test "ignores anonymous function calls and attribute calls" do
+      file_path = FixtureHelpers.get_path("call_hierarchy_a.ex")
+      parser_context = ParserContextBuilder.from_path(file_path)
+      source_file = parser_context.source_file
+      uri = SourceFile.Path.to_uri(file_path)
+
+      result =
+        CallHierarchy.incoming_calls(
+          uri,
+          "ElixirLS.Test.CallHierarchyA.called_from_other_modules/0",
+          :function,
+          28,
+          2,
+          File.cwd!(),
+          source_file,
+          parser_context
+        )
+
+      caller_names = result |> Enum.map(& &1.from.name)
+
+      assert "ElixirLS.Test.CallHierarchyA.calls_with_anonymous_calls/1" in caller_names
+    end
+
     test "handles functions with arity" do
       file_path = FixtureHelpers.get_path("call_hierarchy_a.ex")
       parser_context = ParserContextBuilder.from_path(file_path)

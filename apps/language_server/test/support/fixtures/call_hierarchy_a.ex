@@ -42,4 +42,13 @@ defmodule ElixirLS.Test.CallHierarchyA do
   def calls_private do
     private_function()
   end
+
+  @callback_fun &__MODULE__.multi_clause_fun/1
+
+  # Anonymous function calls are recorded with tuple funcs
+  def calls_with_anonymous_calls(func) do
+    func.(1)
+    @callback_fun.(1)
+    called_from_other_modules()
+  end
 end
