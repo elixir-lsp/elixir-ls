@@ -174,17 +174,22 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
               [{:., _, [{:__aliases__, _, outer_alias = [head | _]}, :{}]} | _]
               when is_atom(head) ->
                 # Combine outer alias with the one under cursor
-                expanded = Module.concat(outer_alias ++ [alias])
-                mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+                with expanded when not is_nil(expanded) <-
+                       concat_aliases(outer_alias ++ [alias]) do
+                  mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+                end
 
               [{:., _, [{:__aliases__, _, [{:__MODULE__, _, _} | outer_alias_rest]}, :{}]} | _] ->
                 # Combine __MODULE__ with the one under cursor
-                expanded = Module.concat([module | outer_alias_rest] ++ [alias])
-                mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+                with expanded when not is_nil(expanded) <-
+                       concat_aliases([module | outer_alias_rest] ++ [alias]) do
+                  mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+                end
 
               [{:., _, [{:__MODULE__, _, _}, :{}]} | _] ->
-                expanded = Module.concat([module] ++ [alias])
-                mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+                with expanded when not is_nil(expanded) <- concat_aliases([module] ++ [alias]) do
+                  mod_fun_docs({{:atom, expanded}, nil}, context, binding_env, env, metadata)
+                end
 
               _ ->
                 mod_fun_docs({{:atom, alias}, nil}, context, binding_env, env, metadata)
@@ -204,6 +209,14 @@ defmodule ElixirLS.LanguageServer.Providers.Hover.Docs do
         )
     end
     |> List.wrap()
+  end
+
+  # Module.concat/1 raises SystemLimitError when the resulting atom would exceed
+  # the 255 character limit, e.g. a very long alias inside `Outer.{Inner}`
+  defp concat_aliases(parts) do
+    Module.concat(parts)
+  rescue
+    SystemLimitError -> nil
   end
 
   defp mod_fun_docs(
