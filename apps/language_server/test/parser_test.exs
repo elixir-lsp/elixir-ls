@@ -6,6 +6,20 @@ defmodule ElixirLS.LanguageServer.ParserTest do
   alias ElixirLS.LanguageServer.Parser.Context
   alias ElixirLS.LanguageServer.SourceFile
 
+  # Other (async: false) test modules register the LSP `Tracer` as a global compiler
+  # tracer and may leave it behind after its ETS table is gone, so compile the
+  # stand-in module without tracers (see inlay_hints_integration_test.exs).
+  defp compile_string_no_tracers(source) do
+    prev_tracers = Code.compiler_options()[:tracers] || []
+    Code.put_compiler_option(:tracers, [])
+
+    try do
+      Code.compile_string(source)
+    after
+      Code.put_compiler_option(:tracers, prev_tracers)
+    end
+  end
+
   describe "heex template engine errors" do
     setup do
       if Code.ensure_loaded?(Phoenix.LiveView.TagEngine) do
@@ -13,7 +27,7 @@ defmodule ElixirLS.LanguageServer.ParserTest do
       else
         # simulate LiveView 1.2 raising for macro components when the caller
         # does not `use Phoenix.Component`
-        Code.compile_string("""
+        compile_string_no_tracers("""
         defmodule Phoenix.LiveView.TagEngine do
           @behaviour EEx.Engine
           def init(_opts), do: %{}
