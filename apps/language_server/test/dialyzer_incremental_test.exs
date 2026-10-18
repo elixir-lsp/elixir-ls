@@ -540,4 +540,27 @@ defmodule ElixirLS.LanguageServer.DialyzerIncrementalTest do
       wait_until_compiled(server)
     end)
   end
+
+  describe "suggest_contracts without a PLT" do
+    test "handle_call replies with an empty list when plt is nil" do
+      alias ElixirLS.LanguageServer.DialyzerIncremental
+
+      state = %DialyzerIncremental{plt: nil, analysis_pid: nil, next_build: nil}
+
+      assert {:reply, [], ^state} =
+               DialyzerIncremental.handle_call(
+                 {:suggest_contracts, ["/path/to/file.ex"]},
+                 {self(), make_ref()},
+                 state
+               )
+    end
+
+    test "suggest_contracts returns an empty list when the process is not running" do
+      alias ElixirLS.LanguageServer.DialyzerIncremental
+
+      ExUnit.CaptureLog.capture_log(fn ->
+        assert [] == DialyzerIncremental.suggest_contracts(self(), ["/path/to/file.ex"])
+      end)
+    end
+  end
 end

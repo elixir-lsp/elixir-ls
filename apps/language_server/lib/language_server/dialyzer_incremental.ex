@@ -162,6 +162,11 @@ defmodule ElixirLS.LanguageServer.DialyzerIncremental do
     {:reply, specs, state}
   end
 
+  def handle_call({:suggest_contracts, _files}, _from, state) do
+    # no PLT yet (initial analysis not finished or process restarted)
+    {:reply, [], state}
+  end
+
   @impl GenServer
   def handle_cast(
         {:analyze, build_ref, warn_opts, warning_format, project_dir},
