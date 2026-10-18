@@ -45,6 +45,24 @@ defmodule ElixirLS.LanguageServer.Providers.CompletionTest do
     assert first_item.preselect == true
   end
 
+  test "plugin function suggestion without default_args does not crash completion" do
+    text = """
+    defmodule MyModule do
+      def fun do
+        legacy_plugin_fun
+      end
+    end
+    """
+
+    {line, char} = {3, 22}
+    parser_context = ParserContextBuilder.from_string(text, {line, char})
+
+    {:ok, %GenLSP.Structures.CompletionList{items: items}} =
+      Completion.completion(parser_context, line, char, @supports)
+
+    assert Enum.any?(items, &(&1.label == "legacy_plugin_fun"))
+  end
+
   test "keyword param option text edit uses 0-based LSP positions" do
     text = """
     defmodule MyModule do
