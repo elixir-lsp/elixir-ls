@@ -808,4 +808,36 @@ defmodule ElixirLS.LanguageServer.SourceFileTest do
       end
     end
   end
+
+  describe "formatter_for/4" do
+    defmodule FormatterPlugin do
+      def features(_opts), do: [extensions: [".fake"]]
+      def format(_contents, _opts), do: "formatted by plugin"
+    end
+
+    @tag :tmp_dir
+    test "skips not loaded plugins without compiling in non mix project", %{tmp_dir: tmp_dir} do
+      File.write!(Path.join(tmp_dir, ".formatter.exs"), """
+      [
+        inputs: ["*.{ex,fake}"],
+        plugins: [#{inspect(FormatterPlugin)}, ElixirLS.NotLoadedFormatterPlugin],
+        line_length: 50
+      ]
+      """)
+
+      ex_uri = SourceFile.Path.to_uri(Path.join(tmp_dir, "a.ex"))
+      fake_uri = SourceFile.Path.to_uri(Path.join(tmp_dir, "a.fake"))
+
+      ExUnit.CaptureIO.capture_io(fn ->
+        # the default Mix plugin loader would run `mix compile` and then fail
+        # as the plugin cannot be found
+        assert {:ok, {formatter, opts}} = SourceFile.formatter_for(ex_uri, tmp_dir, false)
+        assert opts[:line_length] == 50
+        assert formatter.("foo  1") == "foo(1)\n"
+
+        assert {:ok, {formatter, _opts}} = SourceFile.formatter_for(fake_uri, tmp_dir, false)
+        assert formatter.("foo") == "formatted by plugin"
+      end)
+    end
+  end
 end

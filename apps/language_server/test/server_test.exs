@@ -421,6 +421,19 @@ defmodule ElixirLS.LanguageServer.ServerTest do
       end)
     end
 
+    test "unexpected messages are ignored", %{server: server} do
+      # e.g. a late reply from an aborted Mix compiler worker
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          send(server, {make_ref(), {:error, [], %{runtime_warnings: [], compile_warnings: []}}})
+          send(server, :unexpected)
+          :sys.get_state(server)
+        end)
+
+      assert Process.alive?(server)
+      assert log =~ "received unexpected message"
+    end
+
     test "not supported $/ requests return -32601 MethodNotFound", %{server: server} do
       in_fixture(__DIR__, "clean", fn ->
         fake_initialize(server)
