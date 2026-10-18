@@ -183,5 +183,39 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironmentTest do
       assert is_list(result.attributes)
       assert is_list(result.behaviours_implemented)
     end
+
+    test "result is JSON encodable when a variable is bound to a local call" do
+      test_file_content = """
+      defmodule TestModule do
+        def foo(a), do: a
+
+        def bar do
+          x = foo(1)
+          y = %{k: foo(2), t: {foo(3), :ok}}
+          x
+        end
+      end
+      """
+
+      uri = "file:///test/test_module.ex"
+
+      state = %{
+        source_files: %{
+          uri => %SourceFile{text: test_file_content, version: 1, language_id: "elixir"}
+        }
+      }
+
+      assert {:ok, result} = LlmEnvironment.execute(["#{uri}:7:5"], state)
+      assert _ = JasonV.encode!(result)
+
+      local_call =
+        Enum.find_value(result.variables, fn %{type: type} ->
+          if type.type == "local_call", do: type
+        end)
+
+      assert %{position: %{line: line, column: column}} = local_call
+      assert is_integer(line)
+      assert is_integer(column) or is_nil(column)
+    end
   end
 end

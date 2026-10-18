@@ -285,7 +285,7 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
     %{
       type: "local_call",
       function: function,
-      position: position,
+      position: format_position(position),
       arguments: Enum.map(arguments, &format_var_type/1)
     }
   end
@@ -356,6 +356,10 @@ defmodule ElixirLS.LanguageServer.Providers.ExecuteCommand.LlmEnvironment do
   end
 
   defp format_type_fields(other), do: inspect(other)
+
+  defp format_position({line, column}), do: %{line: line, column: column}
+  defp format_position(nil), do: nil
+  defp format_position(other), do: inspect(other)
 
   defp format_struct_type({:atom, module}), do: inspect(module)
   defp format_struct_type({:attribute, attr}), do: "@#{attr}"
