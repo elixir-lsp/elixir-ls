@@ -190,6 +190,72 @@ defmodule ElixirLS.DebugAdapter.BreakpointConditionTest do
     assert {_, "c == d", "xxx", "2", 1} = BreakpointCondition.get_condition(@name, 1)
   end
 
+  test "get_condition for an unregistered number returns nil and keeps the server alive" do
+    pid = Process.whereis(@name)
+
+    assert BreakpointCondition.get_condition(@name, 5) == nil
+
+    assert {:ok, {BreakpointCondition, :check_0}} ==
+             BreakpointCondition.register_condition(@name, Some, 123, __ENV__, "a == b", nil, "1")
+
+    assert :ok == BreakpointCondition.unregister_condition(@name, Some, 123)
+    assert BreakpointCondition.get_condition(@name, 0) == nil
+
+    assert :ok == BreakpointCondition.clear(@name)
+    assert BreakpointCondition.get_condition(@name, 0) == nil
+
+    assert Process.alive?(pid)
+    assert Process.whereis(@name) == pid
+  end
+
+  test "check functions return false for an unregistered number and keep the server alive" do
+    start_supervised!(
+      Supervisor.child_spec({BreakpointCondition, name: BreakpointCondition},
+        id: :default_breakpoint_condition
+      )
+    )
+
+    pid = Process.whereis(BreakpointCondition)
+
+    # never registered
+    refute apply(BreakpointCondition, :check_3, [[]])
+
+    # registered, then removed while the instrumented code still calls it
+    {:ok, {BreakpointCondition, check_fun}} =
+      BreakpointCondition.register_condition(
+        BreakpointCondition,
+        Some,
+        201,
+        __ENV__,
+        "true",
+        nil,
+        "0"
+      )
+
+    assert apply(BreakpointCondition, check_fun, [[]])
+
+    :ok = BreakpointCondition.unregister_condition(BreakpointCondition, Some, 201)
+    refute apply(BreakpointCondition, check_fun, [[]])
+
+    # cleared after registration
+    {:ok, {BreakpointCondition, check_fun}} =
+      BreakpointCondition.register_condition(
+        BreakpointCondition,
+        Some,
+        202,
+        __ENV__,
+        "true",
+        nil,
+        "0"
+      )
+
+    :ok = BreakpointCondition.clear(BreakpointCondition)
+    refute apply(BreakpointCondition, check_fun, [[]])
+
+    assert Process.alive?(pid)
+    assert Process.whereis(BreakpointCondition) == pid
+  end
+
   test "register_hit" do
     assert {:ok, {BreakpointCondition, :check_0}} ==
              BreakpointCondition.register_condition(@name, Some, 123, __ENV__, "a == b", nil, "1")
