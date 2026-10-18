@@ -52,7 +52,7 @@ defmodule ElixirLS.LanguageServer.Plugins.EctoTest do
   end
 
   describe "suggesting ecto types" do
-    # test "suggestion info for bult-in types" do
+    # test "suggestion info for built-in types" do
     #   buffer = """
     #   import Ecto.Schema
     #   field name, {:

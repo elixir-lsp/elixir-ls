@@ -1,4 +1,4 @@
-# we need to make sure ELS_ELIXIR_OPTS gets splitted by word
+# we need to make sure ELS_ELIXIR_OPTS gets split by word
 # parse it as bash array
 # shellcheck disable=SC3045
 # shellcheck disable=SC3011
