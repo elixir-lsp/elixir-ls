@@ -14,6 +14,14 @@ defmodule ElixirLS.Utils.PacketCapture do
     GenServer.start_link(__MODULE__, parent)
   end
 
+  # Unlinked variant for capturing output of long-lived processes (e.g. the global
+  # `ElixirLS.DebugAdapter.Output`). A linked capture dies together with the test
+  # process, before `on_exit` callbacks get a chance to restore the group leader,
+  # and any write in that window kills the process using it as group leader.
+  def start(parent) do
+    GenServer.start(__MODULE__, parent)
+  end
+
   ## Server Callbacks
 
   @impl GenServer

@@ -11,7 +11,7 @@ defmodule ElixirLS.DebugAdapter.ExUnitFormatterTest do
   @test_file "/abs/project/test/example_test.exs"
 
   setup do
-    {:ok, packet_capture} = PacketCapture.start_link(self())
+    {:ok, packet_capture} = PacketCapture.start(self())
     output = Process.whereis(Output)
     default_group_leader = Process.info(output)[:group_leader]
     Process.group_leader(output, packet_capture)
@@ -21,6 +21,7 @@ defmodule ElixirLS.DebugAdapter.ExUnitFormatterTest do
     on_exit(fn ->
       Process.group_leader(Process.whereis(Output), default_group_leader)
       if Process.alive?(formatter), do: GenServer.stop(formatter)
+      GenServer.stop(packet_capture)
     end)
 
     {:ok, %{formatter: formatter}}
