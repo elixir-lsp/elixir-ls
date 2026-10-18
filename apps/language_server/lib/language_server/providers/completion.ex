@@ -592,11 +592,14 @@ defmodule ElixirLS.LanguageServer.Providers.Completion do
     capture_before? = context.capture_before?
 
     for s <- suggestions do
+      # suggestions from third party plugins may not set optional keys like default_args
+      default_args = Map.get(s, :default_args) || 0
+
       default_arg_variants =
-        if s.type in [:function, :macro] and s.default_args > 0 do
+        if s.type in [:function, :macro] and default_args > 0 do
           max_arity_name = function_name_with_parens?(s.name, s.arity, locals_without_parens)
 
-          for i <- s.default_args..1//-1,
+          for i <- default_args..1//-1,
               capture_before? or !signature_help_supported or
                 max_arity_name !=
                   function_name_with_parens?(s.name, s.arity - i, locals_without_parens) do
