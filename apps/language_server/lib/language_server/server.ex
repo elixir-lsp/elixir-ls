@@ -2457,6 +2457,7 @@ defmodule ElixirLS.LanguageServer.Server do
       Map.get(settings, "mcpEnabled", false) == true
 
     mcp_port = calculate_mcp_port(settings, state.root_uri)
+    mcp_host = mcp_host(settings)
 
     state =
       state
@@ -2466,7 +2467,7 @@ defmodule ElixirLS.LanguageServer.Server do
       |> set_project_dir(project_dir)
       |> Map.put(:settings, settings)
       |> set_dialyzer_enabled(enable_dialyzer)
-      |> set_mcp_enabled(enable_mcp, mcp_port)
+      |> set_mcp_enabled(enable_mcp, mcp_port, mcp_host)
 
     add_watched_extensions(state.server_instance_id, additional_watched_extensions)
 
@@ -2608,10 +2609,10 @@ defmodule ElixirLS.LanguageServer.Server do
     end
   end
 
-  defp set_mcp_enabled(state = %__MODULE__{}, enable_mcp, port) do
+  defp set_mcp_enabled(state = %__MODULE__{}, enable_mcp, port, host) do
     cond do
       enable_mcp and state.mcp_sup == nil ->
-        {:ok, pid} = ElixirLS.LanguageServer.MCP.Supervisor.start_link(port)
+        {:ok, pid} = ElixirLS.LanguageServer.MCP.Supervisor.start_link(port: port, host: host)
         %{state | mcp_sup: pid}
 
       not enable_mcp and state.mcp_sup != nil ->
@@ -2627,6 +2628,14 @@ defmodule ElixirLS.LanguageServer.Server do
     case Map.get(settings, "mcpPort") do
       port when is_integer(port) and port > 0 -> port
       _ -> 3789 + hash_root_uri(root_uri)
+    end
+  end
+
+  # nil leaves the default host to the MCP TCP server.
+  defp mcp_host(settings) do
+    case Map.get(settings, "mcpHost") do
+      host when is_binary(host) and host != "" -> host
+      _ -> nil
     end
   end
 
