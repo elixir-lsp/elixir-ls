@@ -213,3 +213,28 @@ jobs:
       - run: MIX_ENV=test mix format --check-formatted
       - run: cd apps/language_server && MIX_ENV=test mix format --check-formatted
       - run: mix dialyzer
+
+  spec_lint:
+    name: spec_lint
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '29'
+          elixir-version: '1.20.4'
+      - name: Cache dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            _build
+            deps
+          key: spec-lint-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            spec-lint-
+      - name: Install Dependencies
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+      - run: mix spec_lint
