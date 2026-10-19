@@ -26,7 +26,12 @@ defmodule ElixirLS.Mixfile do
   end
 
   defp deps do
-    []
+    # spec_lint requires Elixir ~> 1.18
+    if Version.match?(System.version(), ">= 1.18.0") do
+      [{:spec_lint, "~> 0.1", only: [:dev, :test], runtime: false}]
+    else
+      []
+    end
   end
 
   defp aliases do
