@@ -445,6 +445,8 @@ defmodule ElixirLS.LanguageServer.Server do
             %{}
           )
 
+          show_project_build_failure(reason)
+
           path = Path.join(state.project_dir, MixfileHelpers.mix_exs())
 
           handle_build_result(
@@ -2008,6 +2010,43 @@ defmodule ElixirLS.LanguageServer.Server do
   end
 
   # Build
+
+  # The monitor owns abnormal build exits. Surface them to the client here; compiler
+  # diagnostics and normal completion continue through build_finished without a popup.
+  defp show_project_build_failure(reason) do
+    error = project_build_failure_text(reason)
+
+    message =
+      "ElixirLS project build failed: #{error}. " <>
+        "See the build diagnostics and output for details."
+
+    message =
+      if dependency_build_failure?(error) do
+        message <>
+          " Check your dependencies. Running `mix deps.get` is a possible recovery step."
+      else
+        message
+      end
+
+    JsonRpc.show_message(:error, message)
+  end
+
+  defp project_build_failure_text({exception, stacktrace})
+       when is_exception(exception) and is_list(stacktrace) do
+    Exception.message(exception)
+  end
+
+  defp project_build_failure_text(reason) do
+    reason
+    |> Exception.format_exit()
+    |> String.split("\n", parts: 2)
+    |> hd()
+    |> String.trim()
+  end
+
+  defp dependency_build_failure?(error) when is_binary(error) do
+    String.contains?(String.downcase(error), "dependenc")
+  end
 
   defp trigger_build(
          state = %__MODULE__{project_dir: project_dir, full_build_done?: full_build_done?}

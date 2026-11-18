@@ -1715,6 +1715,7 @@ defmodule ElixirLS.LanguageServer.ServerTest do
                      1000
 
       wait_until_compiled(server)
+      refute_receive notification("window/showMessage", %{"type" => 1})
     end)
   end
 
@@ -1762,6 +1763,179 @@ defmodule ElixirLS.LanguageServer.ServerTest do
 
       wait_until_compiled(server)
     end)
+  end
+
+  describe "project build crashes" do
+    @tag :fixture
+    test "notifies the client when a monitored build exits with a dependency error", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "clean", fn ->
+        initialize(server)
+        flush_mailbox()
+
+        error_text = "Can't continue due to errors on dependencies"
+
+        reason =
+          {%Mix.Error{message: error_text},
+           [
+             {Mix.Tasks.Deps.Loadpaths, :run, 1,
+              [file: ~c"lib/mix/tasks/deps.loadpaths.ex", line: 34]}
+           ]}
+
+        ref = make_ref()
+
+        :sys.replace_state(server, fn state ->
+          %{state | build_ref: ref, build_running?: true, needs_build?: false}
+        end)
+
+        send(server, {:DOWN, ref, :process, spawn(fn -> :ok end), reason})
+
+        assert_receive notification("window/showMessage", %{
+                         "type" => 1,
+                         "message" => message
+                       })
+
+        assert message =~ "ElixirLS"
+        assert message =~ "project build failed"
+        assert message =~ error_text
+        assert message =~ "diagnostics"
+        assert message =~ "mix deps.get"
+        assert message =~ "possible recovery step"
+
+        mix_uri = SourceFile.Path.to_uri("mix.exs")
+
+        assert_receive notification("textDocument/publishDiagnostics", %{
+                         "uri" => ^mix_uri,
+                         "diagnostics" => [
+                           %{
+                             "message" => diagnostic_message,
+                             "severity" => 1,
+                             "source" => "Elixir"
+                           }
+                         ]
+                       })
+
+        assert diagnostic_message =~ error_text
+
+        assert_receive notification("telemetry/event", %{
+                         "name" => "build_error",
+                         "properties" => %{"elixir_ls.build_error" => telemetry_message}
+                       })
+
+        assert telemetry_message =~ error_text
+
+        state = :sys.get_state(server)
+        refute state.build_running?
+
+        assert Enum.any?(state.build_diagnostics, fn diagnostic ->
+                 diagnostic.severity == :error and diagnostic.message =~ error_text
+               end)
+
+        refute_receive notification("window/showMessage", _)
+        wait_until_compiled(server)
+      end)
+    end
+
+    @tag :fixture
+    test "notifies the client when a monitored build exits abnormally for another reason", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "clean", fn ->
+        initialize(server)
+        flush_mailbox()
+
+        error_text = "toolchain mismatch"
+
+        reason =
+          {%RuntimeError{message: error_text},
+           [{Mix, :compile, 0, [file: ~c"lib/mix.ex", line: 1]}]}
+
+        ref = make_ref()
+
+        :sys.replace_state(server, fn state ->
+          %{state | build_ref: ref, build_running?: true, needs_build?: false}
+        end)
+
+        send(server, {:DOWN, ref, :process, spawn(fn -> :ok end), reason})
+
+        assert_receive notification("window/showMessage", %{
+                         "type" => 1,
+                         "message" => message
+                       })
+
+        assert message =~ "ElixirLS project build failed"
+        assert message =~ error_text
+        assert message =~ "diagnostics"
+        refute message =~ "mix deps.get"
+
+        state = :sys.get_state(server)
+        refute state.build_running?
+        refute_receive notification("window/showMessage", _)
+        wait_until_compiled(server)
+      end)
+    end
+
+    @tag :fixture
+    test "does not show a failure popup when the build exits normally", %{server: server} do
+      in_fixture(__DIR__, "clean", fn ->
+        initialize(server)
+        flush_mailbox()
+
+        ref = make_ref()
+
+        :sys.replace_state(server, fn state ->
+          %{state | build_ref: ref, build_running?: true, needs_build?: false}
+        end)
+
+        send(server, {:DOWN, ref, :process, spawn(fn -> :ok end), :normal})
+
+        state = :sys.get_state(server)
+        refute state.build_running?
+        refute_receive notification("window/showMessage", _)
+        wait_until_compiled(server)
+      end)
+    end
+
+    @tag :fixture
+    test "schedules a follow-up build after an abnormal exit when one is pending", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "clean", fn ->
+        initialize(server)
+        flush_mailbox()
+
+        ref = make_ref()
+
+        :sys.replace_state(server, fn state ->
+          %{state | build_ref: ref, build_running?: true, needs_build?: true}
+        end)
+
+        send(
+          server,
+          {:DOWN, ref, :process, spawn(fn -> :ok end),
+           {%Mix.Error{message: "Can't continue due to errors on dependencies"},
+            [
+              {Mix.Tasks.Deps.Loadpaths, :run, 1,
+               [file: ~c"lib/mix/tasks/deps.loadpaths.ex", line: 34]}
+            ]}}
+        )
+
+        assert_receive notification("window/showMessage", %{
+                         "type" => 1,
+                         "message" => message
+                       })
+
+        assert message =~ "project build failed"
+
+        wait_until_compiled(server)
+
+        state = :sys.get_state(server)
+        assert state.build_ref != ref
+        refute state.needs_build?
+        refute state.build_running?
+      end)
+    end
   end
 
   @tag :fixture
