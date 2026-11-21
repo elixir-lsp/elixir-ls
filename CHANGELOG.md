@@ -1,5 +1,36 @@
 ### Unreleased
 
+### v0.32.0: 27 October 2026
+
+#### Highlights
+
+- Added experimental inlay hints: inferred variable types and call parameter names. Configure them with `elixirLS.inlayHints.variableTypes.{enabled,showOnlyBindings,maxLength,minimumTrust}` and `elixirLS.inlayHints.parameterNames.enabled`
+- ElixirLS now parses source with the toxic2 tolerant parser. Folding ranges, selection ranges and document symbols were reimplemented on its range-annotated AST, and navigation providers use it to resolve the symbol under the cursor
+
+#### Improvements
+
+- Native Elixir type inference is now enabled by default for hover, completion and inlay hints. Set the `ELIXIR_LS_TYPE_INFERENCE=false` environment variable to disable it
+- Go to definition, references, implementations and hover now also resolve when the cursor is right after the end of a symbol
+- Go to definition now resolves functions ending with `?` or `!` that are defined by macros [Paweł Świątkowski](https://github.com/katafrakt)
+
+#### Fixes
+
+- Fixed a language server crash when a formatter plugin is listed in `.formatter.exs` of a non-mix project. Loading the formatter no longer triggers a project compile in the server process
+- Fixed `GenLSP.Structures.*` "module is not available" crashes in projects that depend on `gen_lsp`
+- Fixed a build crash when a Mix compiler returns diagnostics that are not `Mix.Task.Compiler.Diagnostic` structs
+- Fixed parser crashes on HEEx templates using LiveView 1.2 macro components
+- Fixed a parser crash on files containing aliases or other names longer than the atom length limit
+- Fixed completion, signature help and hover crashes on corrupt or partially written `.beam` files
+- Fixed a completion crash on unrecognized cursor contexts
+- Fixed a completion crash on suggestions from third-party plugins that do not provide `default_args`
+- Fixed a hover crash on `%var.field{}`-like struct expressions
+- Fixed a go to definition, references and hover crash on multi-alias expressions whose combined name is too long
+- Fixed a call hierarchy crash on calls to anonymous functions held in variables or module attributes
+- Fixed a crash when suggesting specs before the dialyzer PLT is ready
+- Fixed `llmEnvironment` command and MCP `get_environment` responses that could not be encoded as JSON
+- Debug adapter: fixed a crash when a conditional breakpoint is hit after it was removed
+- Debug adapter: keep variable references from evaluated expressions after continuing all threads
+
 ### v0.31.1: 11 June 2026
 
 #### Fixes
