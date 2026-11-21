@@ -1964,13 +1964,32 @@ defmodule ElixirLS.DebugAdapter.Server do
   defp maybe_append_variable_type(variable, _, _value), do: variable
 
   defp evaluate_code_expression(expr, binding, env_or_opts) do
-    try do
-      env = Code.env_for_eval(env_or_opts)
-      {term, _bindings} = Code.eval_string(expr, binding, env)
-      term
-    catch
-      kind, error ->
-        stacktrace = prune_stacktrace(__STACKTRACE__)
+    # Code.eval_string prints compiler diagnostics to stderr before raising CompileError,
+    # which would put one block in the console for every failed hover or watch
+    {result, diagnostics} =
+      Code.with_diagnostics(fn ->
+        try do
+          env = Code.env_for_eval(env_or_opts)
+          {term, _bindings} = Code.eval_string(expr, binding, env)
+          {:ok, term}
+        catch
+          kind, error -> {:error, kind, error, __STACKTRACE__}
+        end
+      end)
+
+    case result do
+      {:ok, term} ->
+        Enum.each(diagnostics, &Code.print_diagnostic/1)
+        term
+
+      {:error, kind, error, stacktrace} ->
+        {error, diagnostics} = fold_error_diagnostics(error, diagnostics)
+        Enum.each(diagnostics, &Code.print_diagnostic/1)
+
+        stacktrace =
+          stacktrace
+          |> prune_stacktrace()
+          |> Enum.reject(&match?({Code, :with_diagnostics, _, _}, &1))
 
         {payload, stacktrace} =
           try do
@@ -1998,6 +2017,18 @@ defmodule ElixirLS.DebugAdapter.Server do
         )
     end
   end
+
+  defp fold_error_diagnostics(%CompileError{} = error, diagnostics) do
+    case Enum.split_with(diagnostics, &(&1.severity == :error)) do
+      {[], _} ->
+        {error, diagnostics}
+
+      {errors, rest} ->
+        {%{error | description: Enum.map_join(errors, "\n", & &1.message)}, rest}
+    end
+  end
+
+  defp fold_error_diagnostics(error, diagnostics), do: {error, diagnostics}
 
   defp frame_for_eval(_paused_processes, nil), do: nil
 

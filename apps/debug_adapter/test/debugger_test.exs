@@ -3905,6 +3905,79 @@ defmodule ElixirLS.DebugAdapter.ServerTest do
       end)
     end
 
+    test "evaluate expression with compile error returns diagnostic without printing it", %{
+      server: server
+    } do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req_(1))
+        assert_receive(response(_, 1, "initialize", _))
+
+        stderr =
+          ExUnit.CaptureIO.capture_io(:stderr, fn ->
+            Server.receive_packet(server, gen_watch_expression_packet(1, "defmodule"))
+
+            assert_receive(
+              error_response(
+                _,
+                1,
+                "evaluate",
+                "evaluateError",
+                "** (CompileError) " <> message,
+                %{},
+                _,
+                _
+              ),
+              1000
+            )
+
+            assert message =~ ~s(undefined variable "defmodule")
+            refute message =~ "Code.with_diagnostics"
+          end)
+
+        assert stderr == ""
+      end)
+    end
+
+    test "evaluate expression with compile warning prints it", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req_(1))
+        assert_receive(response(_, 1, "initialize", _))
+
+        stderr =
+          ExUnit.CaptureIO.capture_io(:stderr, fn ->
+            Server.receive_packet(server, gen_watch_expression_packet(1, "(fn y -> 1 end).(2)"))
+            assert_receive(%{"body" => %{"result" => "1"}}, 1000)
+          end)
+
+        assert stderr =~ ~s(variable "y" is unused)
+      end)
+    end
+
+    test "evaluate expression with compile error prints only its warnings", %{server: server} do
+      in_fixture(__DIR__, "mix_project", fn ->
+        Server.receive_packet(server, initialize_req_(1))
+        assert_receive(response(_, 1, "initialize", _))
+
+        stderr =
+          ExUnit.CaptureIO.capture_io(:stderr, fn ->
+            Server.receive_packet(
+              server,
+              gen_watch_expression_packet(1, "(fn y -> 1 end); defmodule")
+            )
+
+            assert_receive(
+              error_response(_, 1, "evaluate", "evaluateError", message, %{}, _, _),
+              1000
+            )
+
+            assert message =~ ~s(undefined variable "defmodule")
+          end)
+
+        assert stderr =~ ~s(variable "y" is unused)
+        refute stderr =~ "undefined variable"
+      end)
+    end
+
     test "evaluate expression which calls exit process", %{server: server} do
       in_fixture(__DIR__, "mix_project", fn ->
         Server.receive_packet(
