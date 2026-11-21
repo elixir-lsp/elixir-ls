@@ -399,10 +399,12 @@ The MCP server starts automatically when ElixirLS launches (if enabled). The ser
 - **Default behavior**: Port is calculated as `3789 + hash(workspace_path)` to ensure different workspaces use different ports
 - **Custom port**: Can be set via the `elixirLS.mcpPort` setting
 - **Port discovery**: If the calculated/configured port is busy, the server automatically finds the next available port
+- **Host**: The server listens on the host in the `elixirLS.mcpHost` setting. The default is `localhost`, which keeps the server on loopback. Another value, such as `0.0.0.0`, puts the server on the network. The server has no authentication
+- **Address family**: The server resolves the host IPv4 first, so `localhost` binds `127.0.0.1`. A client that tries only `::1` cannot connect. Use `127.0.0.1` in that client
 
 **Finding the actual port**: Check the ElixirLS output logs for a message like:
 ```
-[MCP] Server listening on port 4328
+[MCP] Server listening on localhost, port 4328
 ```
 
 #### TCP-to-STDIO Bridge
@@ -433,7 +435,7 @@ To use ElixirLS with Claude Code or other MCP-compatible tools, create an `mcp.j
 }
 ```
 
-Replace `/absolute/path/to/elixir-ls/` with the actual path to your ElixirLS installation and `4328` with the actual port number from the ElixirLS logs.
+Replace `/absolute/path/to/elixir-ls/` with the actual path to your ElixirLS installation and `4328` with the actual port number from the ElixirLS logs. The bridge connects to `localhost`. If you set `elixirLS.mcpHost`, add the same host after the port in `args`.
 
 #### MCP Settings
 
@@ -441,6 +443,7 @@ The MCP server can be configured via ElixirLS settings:
 
 - **`elixirLS.mcpEnabled`** (boolean, default: `false`): Enable or disable the MCP server
 - **`elixirLS.mcpPort`** (integer, optional): Set a specific port for the MCP server. If not set, uses `3789 + hash(workspace_path)` for predictable port assignment per workspace
+- **`elixirLS.mcpHost`** (string, default: `localhost`): The host that the MCP server listens on. The default keeps the server on loopback. Another value, such as `0.0.0.0`, puts the server on the network, and the server has no authentication. The server reads this setting when it starts
 
 ## Automatic builds and error reporting
 
@@ -516,6 +519,7 @@ Below is a list of configuration options supported by the ElixirLS language serv
 <dt>elixirLS.dotFormatter</dt><dd>Path to a custom <code>.formatter.exs</code> file used when formatting documents</dd>
 <dt>elixirLS.mcpEnabled</dt><dd>Enable or disable the MCP (Model Context Protocol) server - Defaults to <code>false</code></dd>
 <dt>elixirLS.mcpPort</dt><dd>Set a specific TCP port for the MCP server - If not set, uses <code>3789 + hash(workspace_path)</code> for predictable port assignment per workspace</dd>
+<dt>elixirLS.mcpHost</dt><dd>Host that the MCP server listens on - Defaults to <code>localhost</code>, which keeps the server on loopback. The server has no authentication</dd>
 </dl>
 
 ## Debug Adapter configuration options
