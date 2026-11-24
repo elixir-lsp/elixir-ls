@@ -101,6 +101,14 @@ If you access any projects via symlinks, and the lsp crashes immediately on star
 
 </details>
 
+### Standalone LSP clients
+
+If your client does not install ElixirLS for you, install a compatible [Elixir and Erlang/OTP combination](#supported-elixir-and-otp-versions) and download the ZIP from the [latest ElixirLS release](https://github.com/elixir-lsp/elixir-ls/releases/latest).
+
+Extract the ZIP into its own directory and keep the files together. Set your client's language server command to the full path to `language_server.sh` on Linux or macOS, or `language_server.bat` on Windows. The launcher installs the version specified in the release's `VERSION` file on first start.
+
+To build from a source checkout for development, see [Building and running](#building-and-running). For MCP setup, see the [MCP server guide](#mcp-model-context-protocol-server).
+
 ## Supported Elixir and OTP versions
 
 ElixirLS supports the last five released versions of Elixir (per the [Elixir compatibility table](https://hexdocs.pm/elixir/compatibility-and-deprecations.html#content)) on the last three supported OTP releases ([Erlang/OTP supported releases](https://www.erlang.org/doc/system/misc.html#supported-releases)), plus the highest OTP each Elixir version officially supports.
