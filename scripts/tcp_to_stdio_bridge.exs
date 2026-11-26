@@ -85,4 +85,7 @@ port =
     [] -> 3798
   end
 
-TcpToStdioBridge.start("localhost", port)
+# The optional second argument is the host, the same name as in mcpHost.
+host = Enum.at(System.argv(), 1, "localhost")
+
+TcpToStdioBridge.start(host, port)
